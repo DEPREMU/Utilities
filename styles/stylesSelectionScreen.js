@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
-    boxSizing: "border-box",
+    marginBottom: 90,
   },
   checkBoxRow: {
     flexDirection: "row",

@@ -1,9 +1,11 @@
 import { Dimensions } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 //Variables
 const MINUTES_STORAGE_KEY = "@minutesSelected";
+const CRYPTOS_STORAGE_KEY = "@cryptos";
 const STORAGE_KEY = "@selected_cryptos";
 const arrMinutes = [1, 2, 5, 10, 20, 30, 60];
 const { height, width } = Dimensions.get("window");
@@ -15,7 +17,7 @@ const width_6 = width / 6;
 const width_7 = width / 7;
 const width_8 = width / 8;
 const settingsImage = require("../assets/settingsImage.png");
-const cryptosName = {
+let cryptosName = {
   BTC: "Bitcoin",
   ETH: "Ethereum",
   TRB: "Tellor",
@@ -71,16 +73,38 @@ const clearKey = async (key) => {
 const loadKey = async (key) => {
   try {
     const value = await AsyncStorage.getItem(key);
-    if (value) {
-      return JSON.parse(value);
-    }
+    if (value) return JSON.parse(value);
   } catch (error) {
-    console.error(
-      "Error loading selected cryptocurrencies from storage",
-      error
-    );
+    console.error(`Error loading ${key} from storage`, error);
   }
   return [];
+};
+
+const saveDataJSON = async (key, value) => {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error("Error saving data", error);
+  }
+};
+
+const getPriceCrypto = async (crypto) => {
+  try {
+    const responseUsd = await axios.get(
+      "https://api.binance.com/api/v3/ticker/price",
+      {
+        params: {
+          symbol: `${crypto.toUpperCase()}USDT`,
+        },
+      }
+    );
+    if (responseUsd.data.price > -1) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 };
 
 export {
@@ -103,4 +127,7 @@ export {
   loadKey,
   settingsImage,
   cryptosName,
+  CRYPTOS_STORAGE_KEY,
+  saveDataJSON,
+  getPriceCrypto,
 };

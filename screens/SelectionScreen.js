@@ -11,56 +11,86 @@ import {
   clearKey,
   loadKey,
   settingsImage,
+  MINUTES_STORAGE_KEY,
+  cryptosName as initialCryptosName,
+  CRYPTOS_STORAGE_KEY,
 } from "../components/globalVariables";
 import { styles } from "../styles/stylesSelectionScreen";
 
 const SelectionScreen = ({ navigation }) => {
   const [selectedCryptos, setSelectedCryptos] = useState([]);
-  const [allCryptos, setAllCryptos] = useState([
-    "BTC",
-    "ETH",
-    "TRB",
-    "SOL",
-    "BNB",
-    "PEPE",
-    "SHIB",
-  ]);
+  const [allCryptos, setAllCryptos] = useState([]);
+  const [cryptosName, setCryptosName] = useState(initialCryptosName);
 
   const requestPermissions = async () => {
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== "granted") {
       await Notifications.requestPermissionsAsync();
       try {
-        await AsyncStorage.setItem(MINUTES_STORAGE_KEY, 2);
         const data = await getData(MINUTES_STORAGE_KEY);
-        if (data !== null) {
-          setStoredValue(data);
+        if (data === null) {
+          await AsyncStorage.setItem(MINUTES_STORAGE_KEY, "2");
         }
-      } catch {
-        console.error("Error agregando minutos.");
+      } catch (error) {
+        console.error(`Error adding minutes: ${error}`);
       }
     }
   };
-
-  useEffect(() => {
-    requestPermissions();
-  }, []);
 
   const handleClearCache = async () => {
     await clearKey(STORAGE_KEY);
     setSelectedCryptos([]);
   };
 
+  const loadCryptos = async () => {
+    let data = await getData(CRYPTOS_STORAGE_KEY);
+    if (data) {
+      data = data.split(", ");
+      setAllCryptos(data);
+    } else {
+      const defaultCryptos = Object.keys(initialCryptosName);
+      await AsyncStorage.setItem(
+        CRYPTOS_STORAGE_KEY,
+        defaultCryptos.join(", ")
+      );
+      setAllCryptos(defaultCryptos);
+    }
+  };
+
+  const fetchSelectedCryptos = async () => {
+    const data = await loadKey(STORAGE_KEY);
+    setSelectedCryptos(data || []);
+  };
+
+  const updateCryptosName = async () => {
+    try {
+      let data = await getData(CRYPTOS_STORAGE_KEY);
+      if (data) {
+        data = data.split(", ");
+
+        const updatedCryptosName = { ...cryptosName };
+        data.forEach((value) => {
+          if (!updatedCryptosName[value]) {
+            updatedCryptosName[value] = value;
+          }
+        });
+
+        setCryptosName(updatedCryptosName);
+      }
+    } catch (error) {
+      console.error(`Error updating cryptosName: ${error}`);
+    }
+  };
+
   useEffect(() => {
-    const fetch = async () => {
-      const data = await loadKey(STORAGE_KEY);
-      setSelectedCryptos(data);
-    };
-    fetch();
+    requestPermissions();
+    fetchSelectedCryptos();
+    loadCryptos();
   }, []);
 
   useEffect(() => {
     loadData(STORAGE_KEY, selectedCryptos);
+    updateCryptosName();
   }, [selectedCryptos]);
 
   const handleCheckBoxChange = (cryptoId) => {
@@ -90,7 +120,9 @@ const SelectionScreen = ({ navigation }) => {
                 onPress={() => handleCheckBoxChange(cryptoId)}
               />
             </View>
-            <Text style={styles.text}>{capitalize(cryptoId)}</Text>
+            <Text style={styles.text}>
+              {capitalize(cryptosName[cryptoId] || cryptoId)}
+            </Text>
           </View>
         ))}
       </ScrollView>

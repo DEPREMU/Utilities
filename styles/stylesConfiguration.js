@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native"; 
+import { StyleSheet } from "react-native";
 import { width_3, width_2, width_6 } from "../components/globalVariables";
 
 export const style = StyleSheet.create({
@@ -44,5 +44,22 @@ export const style = StyleSheet.create({
     backgroundColor: "violet",
     justifyContent: "center",
     alignItems: "center",
+  },
+  text: {
+    fontSize: 20,
+    color: "white",
+    padding: 15,
+  },
+  viewNewCrypto: {
+    flex: 1,
+    backgroundColor: "purple",
+    alignItems: "center",
+  },
+  textInputNewCryto: {
+    height: 50,
+    backgroundColor: "white",
+    borderRadius: 10,
+    marginTop: 20,
+    padding: 10,
   },
 });

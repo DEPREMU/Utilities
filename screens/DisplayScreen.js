@@ -87,7 +87,6 @@ const DisplayScreen = ({ navigation }) => {
       }
     };
 
-    // Función para programar notificaciones
     const scheduleNotifications = async () => {
       await Notifications.cancelAllScheduledNotificationsAsync();
 

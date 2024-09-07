@@ -58,7 +58,10 @@ const CryptoPrice = ({ cryptoId, currency = "USDT" }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>El precio de {cryptosName[cryptoId]} es:</Text>
+      <Text style={styles.text}>
+        El precio de{" "}
+        {cryptosName[cryptoId] != null ? cryptosName[cryptoId] : cryptoId} es:
+      </Text>
       <Text style={styles.price}>
         USD: ${priceUsd} {"\n"}MXN: ${priceMxn}
       </Text>
