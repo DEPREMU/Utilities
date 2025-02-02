@@ -1,5 +1,4 @@
 import { StyleSheet } from "react-native";
-import { width_4 } from "../components/globalVariables";
 
 export const styles = StyleSheet.create({
   container: {
@@ -20,11 +19,14 @@ export const styles = StyleSheet.create({
     left: 0,
     padding: 10,
     borderRadius: 10,
-    maxWidth: width_4,
+    maxWidth: "25%",
     backgroundColor: "gray",
     zIndex: 2,
   },
   scrollView: {
     flex: 1,
+  },
+  contentScrollView: {
+    padding: 20,
   },
 });

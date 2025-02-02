@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "."
+  },
+  "include": [
+    "src/**/*",
+    "components",
+    "screens",
+    "utils/dataBaseConnection.ts",
+    "utils/database/supabaseClient.ts"
+  ],
+  "exclude": ["node_modules", "**/*.spec.ts"],
+  "extends": "expo/tsconfig.base"
+}

@@ -1,0 +1,91 @@
+import { StyleSheet } from "react-native";
+
+export const styles = StyleSheet.create({
+  back: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    padding: 20,
+  },
+  backScroll: {
+    flex: 1,
+  },
+  button: {
+    backgroundColor: "#007bff",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  menu: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  settings: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+  },
+  minuteText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  viewNewCrypto: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  textInputNewCrypto: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 16,
+    marginBottom: 15,
+    color: "#333",
+  },
+  getNotifies: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  eachNotification: {
+    padding: 10,
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  notificationText: {
+    fontSize: 16,
+  },
+});
