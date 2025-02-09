@@ -1,4 +1,7 @@
 {
+  "private": true,
+  "name": "utilities",
+  "version": "1.0.0",
   "main": "expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
@@ -61,8 +64,5 @@
         "listUnknownPackages": false
       }
     }
-  },
-  "private": true,
-  "name": "Utilities",
-  "version": "1.0.0"
+  }
 }
