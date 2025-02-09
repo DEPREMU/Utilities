@@ -1,16 +1,23 @@
 import {
-  Text,
+  dataIP_APIJSON,
+  dataIPQueryJSON,
+} from "../../utils/globalVariables/interfaces";
+import {
+  getIP,
+  getDataIP_api,
+  getDataIPQuery,
+} from "../../utils/globalVariables/utils";
+import {
   View,
   Alert,
+  StyleSheet,
   ScrollView,
   BackHandler,
   SafeAreaView,
 } from "react-native";
-import { styles } from "../../styles/connectivity/stylesIP";
-import { dataIPJSON } from "../../utils/globalVariables/interfaces";
+import IP_API from "../../components/IPs/IP_API";
+import IPQuery from "../../components/IPs/IPQuery";
 import { useFocusEffect } from "@react-navigation/native";
-import MapView, { Marker } from "react-native-maps";
-import { getDataIP, getIP } from "../../utils/globalVariables/utils";
 import React, { useEffect, useState } from "react";
 
 interface IPProps {
@@ -19,7 +26,8 @@ interface IPProps {
 
 const IP: React.FC<IPProps> = ({ navigation }) => {
   const [ip, setIp] = useState<string | null>(null);
-  const [dataIP, setDataIP] = useState<dataIPJSON | null>(null);
+  const [dataIP_API, setDataIP_API] = useState<dataIP_APIJSON | null>(null);
+  const [dataIPQuery, setDataIPQuery] = useState<dataIPQueryJSON | null>(null);
 
   useFocusEffect(() => {
     const onBackPress = () => {
@@ -53,13 +61,23 @@ const IP: React.FC<IPProps> = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
+    if (!ip) return;
     const getDataIp = async () => {
-      if (!ip) return;
-      const data = await getDataIP(ip);
-      setDataIP(data);
+      const data = await getDataIPQuery(ip);
+      if (data) setDataIPQuery(data);
     };
 
-    getDataIp();
+    const getDataIpapi = async () => {
+      const data = await getDataIP_api(ip);
+      if (data) setDataIP_API(data);
+    };
+
+    const get = async () => {
+      await getDataIp();
+      await getDataIpapi();
+    };
+
+    get();
   }, [ip]);
 
   return (
@@ -68,91 +86,35 @@ const IP: React.FC<IPProps> = ({ navigation }) => {
         style={styles.containerScrollView}
         contentContainerStyle={styles.contentContainer}
       >
-        <View style={styles.container}>
-          <Text style={styles.textIP}>Your IP is: {ip}</Text>
-          {dataIP && (
-            <>
-              <View style={styles.containerDataIP}>
-                <Text style={styles.textISP}>ISP: {dataIP.isp.isp}</Text>
-                <Text style={styles.textData}>ASN: {dataIP.isp.asn}</Text>
-                <Text style={styles.textData}>
-                  Organization: {dataIP.isp.org}
-                </Text>
-                <Text style={styles.textData}>
-                  Country: {dataIP.location.country}
-                </Text>
-                <Text style={styles.textData}>
-                  Country Code: {dataIP.location.country_code}
-                </Text>
-                <Text style={styles.textData}>
-                  City: {dataIP.location.city}
-                </Text>
-                <Text style={styles.textData}>
-                  State: {dataIP.location.state}
-                </Text>
-                <Text style={styles.textData}>
-                  Zipcode: {dataIP.location.zipcode}
-                </Text>
-                <Text style={styles.textData}>
-                  Latitude: {dataIP.location.latitude}
-                </Text>
-                <Text style={styles.textData}>
-                  Longitude: {dataIP.location.longitude}
-                </Text>
-                <Text style={styles.textData}>
-                  Timezone: {dataIP.location.timezone}
-                </Text>
-                <Text style={styles.textData}>
-                  Local Time:{" "}
-                  {new Date(dataIP.location.localtime).toLocaleString()}
-                </Text>
-                <Text style={styles.textData}>
-                  Is Mobile: {dataIP.risk.is_mobile ? "Yes" : "No"}
-                </Text>
-                <Text style={styles.textData}>
-                  Is VPN: {dataIP.risk.is_vpn ? "Yes" : "No"}
-                </Text>
-                <Text style={styles.textData}>
-                  Is TOR: {dataIP.risk.is_tor ? "Yes" : "No"}
-                </Text>
-                <Text style={styles.textData}>
-                  Is Proxy: {dataIP.risk.is_proxy ? "Yes" : "No"}
-                </Text>
-                <Text style={styles.textData}>
-                  Is Datacenter: {dataIP.risk.is_datacenter ? "Yes" : "No"}
-                </Text>
-                <Text style={styles.textData}>
-                  Risk Score: {dataIP.risk.risk_score}
-                </Text>
-              </View>
-
-              {/* Mapa */}
-              {/* <View style={styles.mapContainer}>
-                <MapView
-                  style={styles.map}
-                  initialRegion={{
-                    latitude: dataIP.location.latitude,
-                    longitude: dataIP.location.longitude,
-                    latitudeDelta: 0.1,
-                    longitudeDelta: 0.1,
-                  }}
-                >
-                  <Marker
-                    coordinate={{
-                      latitude: dataIP.location.latitude,
-                      longitude: dataIP.location.longitude,
-                    }}
-                    title="Your Location"
-                    description={`Lat: ${dataIP.location.latitude}, Lon: ${dataIP.location.longitude}`}
-                  />
-                </MapView>
-              </View> */}
-            </>
-          )}
-        </View>
+        {dataIPQuery && <IPQuery dataIP={dataIPQuery} />}
+        {dataIP_API && <View style={styles.separator} />}
+        {dataIP_API && <IP_API dataIP={dataIP_API} />}
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  containerSafeAreaView: {
+    flex: 1,
+    width: "100%",
+  },
+  containerScrollView: {
+    flex: 1,
+    width: "100%",
+  },
+  contentContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  separator: {
+    height: 10,
+    borderBottomColor: "#ccc",
+    borderBottomWidth: 1,
+    width: "90%",
+    marginVertical: 16,
+  },
+});
 
 export default IP;

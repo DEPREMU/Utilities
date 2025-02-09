@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-const apiGoogleMaps = process.env.API_GOOGLE_MAPS;
+const apiGoogleMaps = process.env.API_GOOGLE_MAPS || "scacbuabsia";
 
 const config = {
   name: "Utilities",
@@ -8,6 +8,7 @@ const config = {
   version: "1.1.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
+  newArchEnabled: true,
   userInterfaceStyle: "light",
   notification: {
     icon: "./assets/icon.png",
@@ -23,6 +24,7 @@ const config = {
   },
   android: {
     package: "com.depremu.utilities",
+    usesCleartextTraffic: true,
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#ffffff",
@@ -53,7 +55,18 @@ const config = {
     SUPABASE_KEY: process.env.SUPABASE_KEY,
     SECRET_KEY_TO_ENCRYPT: process.env.SECRET_KEY_TO_ENCRYPT,
   },
-  plugins: ["expo-secure-store", "expo-localization"],
+  plugins: [
+    "expo-secure-store",
+    "expo-localization",
+    [
+      "expo-build-properties",
+      {
+        android: {
+          usesCleartextTraffic: true,
+        },
+      },
+    ],
+  ],
 };
 
 export default config;

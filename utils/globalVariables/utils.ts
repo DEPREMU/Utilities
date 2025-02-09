@@ -24,7 +24,7 @@ import { getDataSingle } from "../database/dataBaseConnection";
 import * as Notifications from "expo-notifications";
 import * as BackgroundFetch from "expo-background-fetch";
 import { Alert, Linking, Platform } from "react-native";
-import { dataIPJSON } from "./interfaces";
+import { dataIP_APIJSON, dataIPQueryJSON } from "./interfaces";
 
 const capitalize = (text: string): string => {
   if (!text) return text;
@@ -302,9 +302,25 @@ const getIP = async () => {
   return data;
 };
 
-const getDataIP = async (ip: string) => {
-  const { data } = await axios.get(`https://api.ipquery.io/${ip}`);
-  return data;
+const getDataIPQuery = async (ip: string): Promise<dataIPQueryJSON | null> => {
+  const response = await axios.get(`https://api.ipquery.io/${ip}`, {
+    timeout: 10000,
+  });
+  return response.status === 200 ? response.data : null;
+};
+
+const getDataIP_api = async (ip: string): Promise<dataIP_APIJSON | null> => {
+  try {
+    const response = await axios.get(
+      `http://ip-api.com/json/${ip}?fields=66846719`,
+      {
+        timeout: 10000,
+      }
+    );
+    return response.status === 200 ? response.data : null;
+  } catch (error) {
+    return null;
+  }
 };
 
 const initializateNotis = async () => {
@@ -345,7 +361,9 @@ const notificationIP = async (minutesSelected: number) => {
 
     const ip = await getIP();
     if (!ip) return;
-    const data: dataIPJSON = await getDataIP(ip);
+    const reponse: any = await getDataIPQuery(ip);
+    if (!reponse || reponse.status != 200) return;
+    const data: dataIPQueryJSON = reponse.data;
     if (!data) return;
     const message = `IP: ${ip}\nISP: ${data.isp.org}\nCountry: ${data.location.country}\nCity: ${data.location.city}`;
 
@@ -369,16 +387,17 @@ export {
   openURL,
   loadData,
   saveData,
-  getDataIP,
   translate,
   removeData,
   capitalize,
   fetchPrices,
   hashPassword,
   widthDivided,
+  getDataIP_api,
   insertInTable,
   calculateTime,
   generateToken,
+  getDataIPQuery,
   notificationIP,
   getStartOfWeek,
   verifyPassword,

@@ -53,11 +53,7 @@ const Start: React.FC<StartProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Button
-        text="Settings"
-        component="Configuration"
-        navigation={navigation}
-      />
+      <Button text="Settings" component="Settings" navigation={navigation} />
 
       <Text style={styles.headerText}>Navigation</Text>
       <ScrollView
