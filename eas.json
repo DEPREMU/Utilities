@@ -1,17 +1,16 @@
 {
   "cli": {
-    "version": ">= 14.0.0",
     "appVersionSource": "local"
   },
   "build": {
-    "development": {
+    "dev": {
       "developmentClient": true,
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
-    "preview": {
+    "prev": {
       "android": {
         "buildType": "apk"
       },

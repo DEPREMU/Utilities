@@ -1,72 +1,57 @@
 import "dotenv/config";
 
-const apiGoogleMaps = process.env.API_GOOGLE_MAPS || "scacbuabsia";
+const apiGoogleMaps = process.env.API_GOOGLE_MAPS || "";
 
-const config = {
-  name: "Utilities",
-  slug: "utilities",
-  version: "1.1.0",
-  orientation: "portrait",
-  icon: "./assets/icon.png",
-  newArchEnabled: true,
-  userInterfaceStyle: "light",
-  notification: {
+export default {
+  expo: {
+    name: "Utilities",
+    slug: "Utilities",
+    version: "1.0.0",
+    owner: "depremu",
+    orientation: "portrait",
     icon: "./assets/icon.png",
-    color: "#000000",
-  },
-  splash: {
-    image: "./assets/splash.png",
-    resizeMode: "contain",
-    backgroundColor: "#ffffff",
-  },
-  ios: {
-    supportsTablet: true,
-  },
-  android: {
-    package: "com.depremu.utilities",
-    usesCleartextTraffic: true,
-    adaptiveIcon: {
-      foregroundImage: "./assets/adaptive-icon.png",
+    userInterfaceStyle: "light",
+    newArchEnabled: true,
+    splash: {
+      image: "./assets/splash-icon.png",
+      resizeMode: "contain",
       backgroundColor: "#ffffff",
     },
-    versionCode: 1,
-    permissions: [
-      "INTERNET",
-      "ACCESS_NETWORK_STATE",
-      "NOTIFICATIONS",
-      "READ_EXTERNAL_STORAGE",
-      "WRITE_EXTERNAL_STORAGE",
-      "FOREGROUND_SERVICE",
-    ],
-    config: {
-      googleMaps: {
-        apiKey: apiGoogleMaps,
+    ios: {
+      supportsTablet: true,
+    },
+    android: {
+      package: "com.depremu.utilities",
+      newArchEnabled: true,
+      adaptiveIcon: {
+        foregroundImage: "./assets/adaptive-icon.png",
+        backgroundColor: "#ffffff",
       },
-    },
-  },
-  web: {
-    favicon: "./assets/favicon.png",
-  },
-  extra: {
-    eas: {
-      projectId: "805ecce3-6c26-43e4-a556-a949fb62c2d8",
-    },
-    SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_KEY: process.env.SUPABASE_KEY,
-    SECRET_KEY_TO_ENCRYPT: process.env.SECRET_KEY_TO_ENCRYPT,
-  },
-  plugins: [
-    "expo-secure-store",
-    "expo-localization",
-    [
-      "expo-build-properties",
-      {
-        android: {
-          usesCleartextTraffic: true,
+      versionCode: 1,
+      permissions: [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "NOTIFICATIONS",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "FOREGROUND_SERVICE",
+      ],
+      config: {
+        googleMaps: {
+          apiKey: apiGoogleMaps,
         },
       },
-    ],
-  ],
+    },
+    web: {
+      favicon: "./assets/favicon.png",
+    },
+    extra: {
+      eas: {
+        projectId: "7dd2c093-0c91-4638-a5b9-828d458e8be0",
+      },
+      SUPABASE_URL: process.env.SUPABASE_URL,
+      SUPABASE_KEY: process.env.SUPABASE_KEY,
+      SECRET_KEY_TO_ENCRYPT: process.env.SECRET_KEY_TO_ENCRYPT,
+    },
+  },
 };
-
-export default config;
