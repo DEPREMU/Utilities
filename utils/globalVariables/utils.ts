@@ -1,15 +1,14 @@
 import {
-  width,
   appName,
   STORAGE_KEY,
   saltHashPassword,
+  NOTIFICATIONS_IP,
+  ALL_NOTIFICATIONS,
   tableNameErrorLogs,
   MINUTES_STORAGE_KEY,
   DEEPL_TRANSLATOR_API,
   BACKGROUND_FETCH_TASK,
   NOTIFICATIONS_KEY_STORAGE,
-  ALL_NOTIFICATIONS,
-  NOTIFICATIONS_IP,
 } from "./constants";
 import uuid from "react-native-uuid";
 import axios from "axios";
@@ -19,7 +18,6 @@ import Constants from "expo-constants";
 import { supabase } from "../database/supabaseClient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
-import * as Localization from "expo-localization";
 import { getDataSingle } from "../database/dataBaseConnection";
 import * as Notifications from "expo-notifications";
 import * as BackgroundFetch from "expo-background-fetch";
@@ -160,7 +158,6 @@ const translate = async (text: string, targetLang: string): Promise<string> => {
 };
 
 const generateToken = (): string => uuid.v4();
-const widthDivided = (num: number): number => width / num;
 
 const hashPassword = (password: string): string =>
   bcrypt.hashSync(password, saltHashPassword);
@@ -169,30 +166,6 @@ const verifyPassword = (
   originalPassword: string,
   inputPassword: string
 ): boolean => bcrypt.compareSync(inputPassword, originalPassword);
-
-// const checkLanguage = async () => {
-//   try {
-//     const data = await loadData(LANGUAGE_KEY_STORAGE);
-//     if (data) return data;
-
-//     const locales = Localization.getLocales()[0];
-//     const language = locales.languageTag.split("-")[0];
-//     const languageAvailable = languages.languages.indexOf(language) > -1;
-//     if (language && languageAvailable) {
-//       await saveData(LANGUAGE_KEY_STORAGE, language);
-//       return language;
-//     }
-//   } catch (error) {
-//     console.error(`./globalVariables/checkLanguage() => ${error}`);
-//     await insertInTable(tableNameErrorLogs, {
-//       appName: appName,
-//       error: `./globalVariables/checkLanguage() => ${error}`,
-//       date: new Date().toLocaleString(),
-//       component: `./globalVariables/checkLanguage() catch (error) => Language: ${error}`,
-//     });
-//   }
-//   return "en";
-// };
 
 const removeData = async (key: string) => await AsyncStorage.removeItem(key);
 
@@ -297,19 +270,31 @@ const getStartOfWeek = (date: Date | string): Date => {
   return startOfWeek;
 };
 
-const getIP = async () => {
-  const { data } = await axios.get("https://api.ipquery.io/");
-  return data;
+const getIP = async () =>
+  new Promise(
+    async (resolve: (value: string) => void, reject: (value: null) => void) => {
+      try {
+        const { data } = await axios.get("https://api.ipquery.io/", {
+          timeout: 10000,
+        });
+        const ipregex = /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/;
+        if (data && ipregex.test(data)) resolve(data);
+      } catch (error) {}
+      reject(null);
+    }
+  );
+
+const getDataIPQuery = async (ip: string) => {
+  try {
+    const response = await axios.get(`https://api.ipquery.io/${ip}`, {
+      timeout: 10000,
+    });
+    return response && response.status === 200 ? response.data : null;
+  } catch (error) {}
+  return null;
 };
 
-const getDataIPQuery = async (ip: string): Promise<dataIPQueryJSON | null> => {
-  const response = await axios.get(`https://api.ipquery.io/${ip}`, {
-    timeout: 10000,
-  });
-  return response.status === 200 ? response.data : null;
-};
-
-const getDataIP_api = async (ip: string): Promise<dataIP_APIJSON | null> => {
+const getDataIP_api = async (ip: string) => {
   try {
     const response = await axios.get(
       `http://ip-api.com/json/${ip}?fields=66846719`,
@@ -359,23 +344,23 @@ const notificationIP = async (minutesSelected: number) => {
       await Notifications.cancelAllScheduledNotificationsAsync();
     } catch (error) {}
 
-    const ip = await getIP();
-    if (!ip) return;
-    const reponse: any = await getDataIPQuery(ip);
-    if (!reponse || reponse.status != 200) return;
-    const data: dataIPQueryJSON = reponse.data;
-    if (!data) return;
-    const message = `IP: ${ip}\nISP: ${data.isp.org}\nCountry: ${data.location.country}\nCity: ${data.location.city}`;
+    await getIP().then(async (ip) => {
+      const reponse: any = await getDataIPQuery(ip);
+      if (!reponse || reponse.status != 200) return;
+      const data: dataIPQueryJSON = reponse.data;
+      if (!data) return;
+      const message = `IP: ${ip}\nISP: ${data.isp.org}\nCountry: ${data.location.country}\nCity: ${data.location.city}`;
 
-    const identifier = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "IP Updated",
-        body: message,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: minutesSelected * 60,
-      },
+      const identifier = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "IP Updated",
+          body: message,
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: minutesSelected * 60,
+        },
+      });
     });
   } catch (error) {
     console.error(error);
@@ -392,7 +377,6 @@ export {
   capitalize,
   fetchPrices,
   hashPassword,
-  widthDivided,
   getDataIP_api,
   insertInTable,
   calculateTime,

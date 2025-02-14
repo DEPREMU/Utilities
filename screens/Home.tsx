@@ -7,80 +7,56 @@ import {
   SafeAreaView,
 } from "react-native";
 import React from "react";
-import styles from "../styles/stylesHome";
 import { useFocusEffect } from "@react-navigation/native";
+import { ONBACKPRESS } from "../utils/globalVariables/constants";
+import useStylesHome from "../styles/stylesHome";
+import ButtonLocal from "../components/Home/ButtonComponent";
 
-interface ButtonProps {
-  text: string;
-  component: string;
+type HomeProps = {
   navigation: any;
-}
+};
 
-const Button: React.FC<ButtonProps> = ({ text, component, navigation }) => (
-  <Pressable
-    onPress={() => (component ? navigation.replace(component) : null)}
-    style={({ pressed }) => [styles.button, { opacity: pressed ? 0.6 : 1 }]}
-  >
-    <Text style={styles.buttonText}>{text}</Text>
-  </Pressable>
-);
+const Home: React.FC<HomeProps> = ({ navigation }) => {
+  const styles = useStylesHome();
 
-interface StartProps {
-  navigation: any;
-}
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert("Back", "Do you want to back to the menu selector?", [
+          { text: "No", onPress: () => null },
+          { text: "Yes", onPress: () => BackHandler.exitApp() },
+        ]);
+        return true;
+      };
 
-const Home: React.FC<StartProps> = ({ navigation }) => {
-  useFocusEffect(() => {
-    const onBackPress = () => {
-      Alert.alert("Exit the app", "Do you want to exit the app?", [
-        {
-          text: "No",
-          onPress: () => null,
-        },
-        {
-          text: "Yes",
-          onPress: () => BackHandler.exitApp(),
-        },
-      ]);
-      return true;
-    };
-
-    BackHandler.addEventListener("hardwareBackPress", onBackPress);
-
-    return () =>
-      BackHandler.removeEventListener("hardwareBackPress", onBackPress);
-  });
+      BackHandler.addEventListener(ONBACKPRESS, onBackPress);
+      return () => BackHandler.removeEventListener(ONBACKPRESS, onBackPress);
+    }, [navigation])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <Button text="Settings" component="Settings" navigation={navigation} />
+      <ButtonLocal
+        text="Settings"
+        component="Settings"
+        navigation={navigation}
+        buttonStyle={styles.button}
+        buttonText={styles.buttonText}
+      />
 
       <Text style={styles.headerText}>Navigation</Text>
       <ScrollView
         style={styles.scrollViewButtonContainer}
         contentContainerStyle={styles.buttonContainer}
+        showsVerticalScrollIndicator={false}
       >
-        <Button
-          text="Cryptos Currencies"
-          component="Selection"
+        <ButtonLocal
+          text="IP data"
+          component="IPScreen"
           navigation={navigation}
+          buttonStyle={styles.button}
+          buttonText={styles.buttonText}
         />
-        <Button text="Money Manager" component="Main" navigation={navigation} />
-        <Button text="ChatsGPT" component="ChatsGPT" navigation={navigation} />
-        <Button
-          text="Translator"
-          component="Translator"
-          navigation={navigation}
-        />
-        <Button
-          text="Homeworks"
-          component="HomeWorks"
-          navigation={navigation}
-        />
-        <Button text="WishList" component="WishList" navigation={navigation} />
-        <Button text="Camiones" component="Busses" navigation={navigation} />
-        <Button text="Faltas" component="Faltas" navigation={navigation} />
-        <Button text="IP" component="IP" navigation={navigation} />
       </ScrollView>
     </SafeAreaView>
   );

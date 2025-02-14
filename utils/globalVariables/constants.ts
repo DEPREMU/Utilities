@@ -4,6 +4,7 @@ import { Dimensions } from "react-native";
 //? Keys
 const appName = "Utilities";
 const MONEY_CASH = "@cash";
+const ONBACKPRESS = "hardwareBackPress";
 const STORAGE_KEY = "@selected_cryptos";
 const FIRST_TIME_KEY = "@firstTime";
 const COSTS_KEY_STORAGE = "@products";
@@ -31,6 +32,7 @@ export {
   width,
   height,
   appName,
+  ONBACKPRESS,
   arrMinutes,
   MONEY_CASH,
   STORAGE_KEY,

@@ -53,5 +53,16 @@ export default {
       SUPABASE_KEY: process.env.SUPABASE_KEY,
       SECRET_KEY_TO_ENCRYPT: process.env.SECRET_KEY_TO_ENCRYPT,
     },
+    plugins: [
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          android: {
+            usesCleartextTraffic: true,
+          },
+        },
+      ],
+    ],
   },
 };
