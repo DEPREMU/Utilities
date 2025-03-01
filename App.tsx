@@ -16,6 +16,7 @@ import {
   adaptNavigationTheme,
 } from "react-native-paper";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { StatusBar } from "expo-status-bar";
 LogBox.ignoreAllLogs(false);
 
 const fontsNavigation = {
@@ -55,6 +56,11 @@ export default function App() {
   return (
     <LayoutProvider>
       <PaperProvider theme={theme}>
+        <StatusBar
+          backgroundColor={theme.colors.background} // Ajusta el color al fondo del tema
+          style={isDarkMode ? "light" : "dark"} // Cambia el color de los iconos según el modo
+          
+        />
         <NavigationContainer theme={themeNavigation}>
           <Stack.Navigator>
             <Stack.Screen

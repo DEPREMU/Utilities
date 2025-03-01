@@ -19,7 +19,7 @@ interface LoadingProps {
  */
 const Loading: React.FC<LoadingProps> = ({
   boolLoadingText = true,
-  progress,
+  progress = null,
   boolActivityIndicator = false,
 }) => {
   const [loadingText, setLoadingText] = useState<string>("Loading.");
@@ -42,7 +42,7 @@ const Loading: React.FC<LoadingProps> = ({
       )}
       {/* {progress != null && (
         <Bar
-          progress={progress}
+          progress={progress > 1 || progress < 0v? 1 : progress}
           width={200}
           height={15}
           color="#3b5998"

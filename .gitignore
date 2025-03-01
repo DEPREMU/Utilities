@@ -38,3 +38,5 @@ yarn-error.*
 android/
 Comportamiento.js
 Test.tsx
+
+*.html

@@ -3,14 +3,14 @@
     "appVersionSource": "local"
   },
   "build": {
-    "dev": {
+    "development": {
       "developmentClient": true,
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
-    "prev": {
+    "preview": {
       "android": {
         "buildType": "apk"
       },

@@ -1,5 +1,5 @@
 import { MD3Theme, useTheme } from "react-native-paper";
-import { StyleSheet } from "react-native";
+import { StatusBar, StyleSheet } from "react-native";
 import { useResponsiveLayout } from "../../components/context/LayoutContext";
 export const useStylesIPScreen = () => {
   const theme: MD3Theme = useTheme();
@@ -12,13 +12,17 @@ export const useStylesIPScreen = () => {
       backgroundColor: theme.colors.background,
       alignItems: "center",
       justifyContent: "center",
+      width: "100%",
+      paddingTop: StatusBar.currentHeight,
     },
     containerScrollView: {
       flex: 1,
+      width: "100%",
       backgroundColor: theme.colors.surface,
     },
     contentContainer: {
-      padding: isPhone ? 8 : isTablet ? 16 : isLargeTablet ? 24 : 32,
+      padding: isPhone ? 4 : isTablet ? 8 : isLargeTablet ? 16 : 32,
+      width: "100%",
       backgroundColor: theme.colors.background,
       alignItems: "center",
       justifyContent: "center",

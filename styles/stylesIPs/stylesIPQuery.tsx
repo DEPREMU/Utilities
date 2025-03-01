@@ -1,7 +1,9 @@
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "../../components/context/LayoutContext";
+import { MD3Theme, useTheme } from "react-native-paper";
 
 export const stylesIPQuery = () => {
+  const theme: MD3Theme = useTheme();
   const { isPhone, isTablet } = useResponsiveLayout();
 
   const containerPadding = isPhone ? 10 : isTablet ? 15 : 20;
@@ -17,25 +19,25 @@ export const stylesIPQuery = () => {
       flex: 1,
       padding: containerPadding,
       width: "95%",
-      backgroundColor: "#f5f5f5",
+      backgroundColor: theme.colors.background,
     },
     textIP: {
       fontSize: textIPFontSize,
       fontWeight: "bold",
       marginBottom: 20,
       textAlign: "center",
-      color: "#333",
+      color: theme.colors.onBackground,
     },
     valueIP: {
       fontSize: valueIPFontSize,
-      color: "#1E90FF",
+      color: theme.colors.primary,
     },
     containerDataIP: {
-      backgroundColor: "#fff",
+      backgroundColor: theme.colors.surface,
       borderRadius: 10,
       padding: containerDataIPPadding,
       marginBottom: 15,
-      shadowColor: "#000",
+      shadowColor: theme.colors.onSurface,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 5,
@@ -46,11 +48,11 @@ export const stylesIPQuery = () => {
       fontWeight: "bold",
       marginBottom: 5,
       marginVertical: 5,
-      color: "#333",
+      color: theme.colors.onBackground,
     },
     value: {
       fontSize: valueFontSize,
-      color: "#1E90FF",
+      color: theme.colors.primary,
     },
     mapContainer: {
       height: mapContainerHeight,

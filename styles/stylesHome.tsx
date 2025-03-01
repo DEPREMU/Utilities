@@ -1,5 +1,5 @@
 import { useTheme } from "react-native-paper";
-import { StyleSheet } from "react-native";
+import { StatusBar, StyleSheet } from "react-native";
 import { useResponsiveLayout } from "../components/context/LayoutContext";
 
 const useStylesHome = () => {
@@ -13,6 +13,7 @@ const useStylesHome = () => {
       alignItems: "center",
       backgroundColor: theme.colors.background,
       padding: isPhone ? 10 : isTablet ? 20 : 30,
+      paddingTop: StatusBar.currentHeight,
     },
     headerText: {
       fontSize: isPhone ? 20 : isTablet ? 24 : 28,

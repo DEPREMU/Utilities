@@ -7,11 +7,11 @@
     "android": "npx expo start --android",
     "ios": "npx expo start --ios",
     "web": "npx expo start --web",
-    "build:dev": "eas build -e dev -p android",
-    "build:a": "eas build -e prev -p android",
-    "build:w": "eas build -e prev -p web",
-    "devHN": "set REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.39 & npx expo start -d -c",
-    "goHN": "set REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.39 & npx expo start -g -c",
+    "build:dev": "eas build -e development -p android",
+    "build:a": "eas build -e preview -p android",
+    "build:w": "eas build -e preview -p web",
+    "devHN": "set REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.48 & npx expo start -d -c",
+    "goHN": "set REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.48 & npx expo start -g -c",
     "go": "npx expo start -c -g",
     "dev": "npx expo start -c -d"
   },
@@ -24,7 +24,7 @@
     "@types/react-native-bcrypt": "^2.4.6",
     "axios": "^1.7.9",
     "crypto-js": "^4.2.0",
-    "expo": "~52.0.35",
+    "expo": "~52.0.36",
     "expo-background-fetch": "~13.0.5",
     "expo-build-properties": "~0.13.2",
     "expo-constants": "~17.0.5",
@@ -45,5 +45,12 @@
     "@types/react": "~18.3.12",
     "typescript": "^5.3.3"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    }
+  }
 }

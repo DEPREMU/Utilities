@@ -1,102 +1,152 @@
-import React from "react";
-import { View, Text, LogBox } from "react-native";
+import { View, Text } from "react-native";
 import { stylesIPQuery } from "../../styles/stylesIPs/stylesIPQuery";
 import { dataIPQueryJSON } from "../../utils/globalVariables/interfaces";
+import React, { useEffect, useState } from "react";
 // import MapView, { Marker } from "react-native-maps";
-LogBox.ignoreAllLogs(false);
 
-type IPQueryProps = {
+interface IPQueryProps {
   dataIPBefore: string;
-};
+}
 
 const IPQuery: React.FC<IPQueryProps> = ({ dataIPBefore }) => {
-  const styles = stylesIPQuery();
+  const stylesIPQ = stylesIPQuery();
+  const [dataIP, setDataIP] = useState<dataIPQueryJSON | null>(null);
 
-  const dataIP: dataIPQueryJSON = JSON.parse(dataIPBefore);
+  useEffect(() => {
+    if (!dataIPBefore) return;
+    setDataIP(JSON.parse(dataIPBefore));
+  }, [dataIPBefore]);
+
+  if (!dataIP) return null;
   return (
-    <View style={styles.container}>
-      <Text style={styles.textIP}>IP Query</Text>
-      <Text style={styles.textIP}>
-        Your IP is: <Text style={styles.valueIP}>{dataIP.ip}</Text>
+    <View style={stylesIPQ.container}>
+      <Text style={stylesIPQ.textIP}>IP Query</Text>
+      <Text style={stylesIPQ.textIP}>
+        Your IP is: <Text style={stylesIPQ.valueIP}>{dataIP.ip}</Text>
       </Text>
 
-      <View style={styles.containerDataIP}>
-        <Text style={styles.textKey}>
-          ISP: <Text style={styles.value}>{dataIP.isp.isp}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          ASN: <Text style={styles.value}>{dataIP.isp.asn}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Organization: <Text style={styles.value}>{dataIP.isp.org}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Country: <Text style={styles.value}>{dataIP.location.country}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Country Code:{" "}
-          <Text style={styles.value}>{dataIP.location.country_code}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          City: <Text style={styles.value}>{dataIP.location.city}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          State: <Text style={styles.value}>{dataIP.location.state}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Zipcode: <Text style={styles.value}>{dataIP.location.zipcode}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Latitude: <Text style={styles.value}>{dataIP.location.latitude}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Longitude:{" "}
-          <Text style={styles.value}>{dataIP.location.longitude}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Timezone: <Text style={styles.value}>{dataIP.location.timezone}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Local Time:{" "}
-          <Text style={styles.value}>
-            {new Date(dataIP.location.localtime).toLocaleString()}
+      <View style={stylesIPQ.containerDataIP}>
+        {dataIP.isp && dataIP.isp.isp != "" && (
+          <Text style={stylesIPQ.textKey}>
+            ISP: <Text style={stylesIPQ.value}>{dataIP.isp.isp}</Text>
           </Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Is Mobile:{" "}
-          <Text style={styles.value}>
-            {dataIP.risk.is_mobile ? "Yes" : "No"}
+        )}
+        {dataIP.isp && dataIP.isp.asn != "" && (
+          <Text style={stylesIPQ.textKey}>
+            ASN: <Text style={stylesIPQ.value}>{dataIP.isp.asn}</Text>
           </Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Is VPN:{" "}
-          <Text style={styles.value}>{dataIP.risk.is_vpn ? "Yes" : "No"}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Is TOR:{" "}
-          <Text style={styles.value}>{dataIP.risk.is_tor ? "Yes" : "No"}</Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Is Proxy:{" "}
-          <Text style={styles.value}>
-            {dataIP.risk.is_proxy ? "Yes" : "No"}
+        )}
+        {dataIP.isp && dataIP.isp.org != "" && (
+          <Text style={stylesIPQ.textKey}>
+            Organization: <Text style={stylesIPQ.value}>{dataIP.isp.org}</Text>
           </Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Is Datacenter:{" "}
-          <Text style={styles.value}>
-            {dataIP.risk.is_datacenter ? "Yes" : "No"}
+        )}
+        {dataIP.location && dataIP.location.country != "" && (
+          <Text style={stylesIPQ.textKey}>
+            Country:{" "}
+            <Text style={stylesIPQ.value}>{dataIP.location.country}</Text>
           </Text>
-        </Text>
-        <Text style={styles.textKey}>
-          Risk Score: <Text style={styles.value}>{dataIP.risk.risk_score}</Text>
-        </Text>
+        )}
+        {dataIP.location && dataIP.location.country_code != "" && (
+          <Text style={stylesIPQ.textKey}>
+            Country Code:{" "}
+            <Text style={stylesIPQ.value}>{dataIP.location.country_code}</Text>
+          </Text>
+        )}
+        {dataIP.location && dataIP.location.city != "" && (
+          <Text style={stylesIPQ.textKey}>
+            City: <Text style={stylesIPQ.value}>{dataIP.location.city}</Text>
+          </Text>
+        )}
+        {dataIP.location && dataIP.location.state != "" && (
+          <Text style={stylesIPQ.textKey}>
+            State: <Text style={stylesIPQ.value}>{dataIP.location.state}</Text>
+          </Text>
+        )}
+        {dataIP.location && dataIP.location.zipcode != "" && (
+          <Text style={stylesIPQ.textKey}>
+            Zipcode:{" "}
+            <Text style={stylesIPQ.value}>{dataIP.location.zipcode}</Text>
+          </Text>
+        )}
+        {dataIP.location && dataIP.location.latitude != undefined && (
+          <Text style={stylesIPQ.textKey}>
+            Latitude:{" "}
+            <Text style={stylesIPQ.value}>{dataIP.location.latitude}</Text>
+          </Text>
+        )}
+        {dataIP.location && dataIP.location.longitude != undefined && (
+          <Text style={stylesIPQ.textKey}>
+            Longitude:{" "}
+            <Text style={stylesIPQ.value}>{dataIP.location.longitude}</Text>
+          </Text>
+        )}
+        {dataIP.location && dataIP.location.timezone != "" && (
+          <Text style={stylesIPQ.textKey}>
+            Timezone:{" "}
+            <Text style={stylesIPQ.value}>{dataIP.location.timezone}</Text>
+          </Text>
+        )}
+        {dataIP.location && dataIP.location.localtime != "" && (
+          <Text style={stylesIPQ.textKey}>
+            Local Time:{" "}
+            <Text style={stylesIPQ.value}>
+              {new Date(dataIP.location.localtime).toLocaleString()}
+            </Text>
+          </Text>
+        )}
+        {dataIP.risk && dataIP.risk.is_mobile !== undefined && (
+          <Text style={stylesIPQ.textKey}>
+            Is Mobile:{" "}
+            <Text style={stylesIPQ.value}>
+              {dataIP.risk.is_mobile ? "Yes" : "No"}
+            </Text>
+          </Text>
+        )}
+        {dataIP.risk && dataIP.risk.is_vpn !== undefined && (
+          <Text style={stylesIPQ.textKey}>
+            Is VPN:{" "}
+            <Text style={stylesIPQ.value}>
+              {dataIP.risk.is_vpn ? "Yes" : "No"}
+            </Text>
+          </Text>
+        )}
+        {dataIP.risk && dataIP.risk.is_tor !== undefined && (
+          <Text style={stylesIPQ.textKey}>
+            Is TOR:{" "}
+            <Text style={stylesIPQ.value}>
+              {dataIP.risk.is_tor ? "Yes" : "No"}
+            </Text>
+          </Text>
+        )}
+        {dataIP.risk && dataIP.risk.is_proxy !== undefined && (
+          <Text style={stylesIPQ.textKey}>
+            Is Proxy:{" "}
+            <Text style={stylesIPQ.value}>
+              {dataIP.risk.is_proxy ? "Yes" : "No"}
+            </Text>
+          </Text>
+        )}
+        {dataIP.risk && dataIP.risk.is_datacenter !== undefined && (
+          <Text style={stylesIPQ.textKey}>
+            Is Datacenter:{" "}
+            <Text style={stylesIPQ.value}>
+              {dataIP.risk.is_datacenter ? "Yes" : "No"}
+            </Text>
+          </Text>
+        )}
+        {dataIP.risk && dataIP.risk.risk_score != undefined && (
+          <Text style={stylesIPQ.textKey}>
+            Risk Score:{" "}
+            <Text style={stylesIPQ.value}>{dataIP.risk.risk_score}</Text>
+          </Text>
+        )}
       </View>
 
       {/* Mapa */}
-      {/* <View style={styles.mapContainer}>
+      {/* <View style={stylesIPQ.mapContainer}>
     <MapView
-    style={styles.map}
+    style={stylesIPQ.map}
     initialRegion={{
     latitude: dataIP.location.latitude,
     longitude: dataIP.location.longitude,
