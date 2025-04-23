@@ -1,4 +1,6 @@
-interface dataIPQueryJSON {
+import { typeNotis } from "./constants";
+
+export interface dataIPQueryJSON {
   ip: string | null;
   isp: {
     asn: string;
@@ -26,7 +28,29 @@ interface dataIPQueryJSON {
   };
 }
 
-interface dataIP_APIJSON {
+export type dictNotifications = {
+  [key in typeNotis]: dictKeyNotifications;
+};
+
+export interface dictKeyNotifications {
+  isActive: boolean;
+  notificationKey: string;
+  timeMinSelected: number;
+  lastNotification: string | null;
+  storageKey: string;
+  useForAnyNetwork: boolean;
+  data: string | null;
+}
+
+export interface TableStreamers {
+  id: string;
+  email: string;
+  username: string;
+  streamer: string;
+  linkImage: string | null;
+}
+
+export interface dataIP_APIJSON {
   status: string;
   continent: string;
   continentCode: string;
@@ -211,5 +235,3 @@ export interface ThemeInterface {
   roundness: number;
   version: number;
 }
-
-export { dataIPQueryJSON, dataIP_APIJSON };

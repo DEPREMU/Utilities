@@ -1,5 +1,9 @@
 // layoutContext.js
-import { Dimensions, Platform, ScaledSize } from "react-native";
+import {
+  Dimensions,
+  Platform,
+  ScaledSize,
+} from "react-native";
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 const LayoutContext = createContext({
@@ -22,9 +26,12 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     const onChange = ({ window }: { window: ScaledSize }) => {
       setDimensions(window);
     };
+
     const subscription = Dimensions.addEventListener("change", onChange);
 
-    return () => subscription?.remove();
+    return () => {
+      subscription?.remove();
+    };
   }, []);
 
   const { width, height } = dimensions;

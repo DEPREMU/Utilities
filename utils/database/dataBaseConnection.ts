@@ -1,5 +1,7 @@
-import { PostgrestError } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
+import { PostgrestError } from "@supabase/supabase-js";
+import { verifyPassword } from "./../globalVariables/utils";
+import { tableNameUsers } from "../globalVariables/constants";
 
 const insertData = async (
   tableName: string,
@@ -9,10 +11,37 @@ const insertData = async (
   error: string | null;
 }> => {
   try {
-    await supabase.from(tableName).insert([dict]);
+    const { data, error } = await supabase.from(tableName).insert([dict]);
+    if (error) return { success: false, error: error.message };
   } catch (error) {
     return { success: false, error: `Error unexpected: ${error}` };
   }
+  return { success: true, error: null };
+};
+
+export const deleteFromEq = async (
+  tableName: string,
+  columnEq: string,
+  valueEq: string
+) => {
+  const { error } = await supabase
+    .from(tableName)
+    .delete()
+    .eq(columnEq, valueEq);
+
+  if (error) return { succes: false, error: error };
+  return { success: true, error: null };
+};
+
+export const deleteFromDictMatch = async (
+  tableName: string,
+  dictMatch: { [k: string]: any }
+) => {
+  const { error } = await supabase.from(tableName).delete().match(dictMatch);
+
+  console.log(error);
+
+  if (error) return { succes: false, error: error };
   return { success: true, error: null };
 };
 
@@ -45,7 +74,11 @@ const getAllDataEq = async (
   tableName: string,
   column: string,
   valueEqual: any
-): Promise<{ success: boolean; data: any; error: PostgrestError | null }> => {
+): Promise<{
+  success: boolean;
+  data: any[] | null;
+  error: PostgrestError | null;
+}> => {
   const { data, error } = await supabase
     .from(tableName)
     .select("*")
@@ -112,6 +145,60 @@ const updateColumns = async (
     return { success: false, error: `Error unexpected: ${error}` };
   }
   return { success: true, error: null };
+};
+
+export const loginUsername = async (
+  username: string,
+  password: string,
+  translations: any
+) => {
+  const { data, error } = await getAllDataEq(
+    tableNameUsers,
+    "username",
+    username
+  );
+  if (error) return { success: false, data: null, error: error.message };
+  if (!data || data.length === 0 || !verifyPassword(data[0].password, password))
+    return {
+      success: false,
+      data: null,
+      error: translations.verifyFields,
+    };
+
+  return {
+    success: true,
+    data: data[0],
+    error: null,
+  };
+};
+
+export const loginEmail = async (
+  email: string,
+  password: string,
+  translations: any
+) => {
+  const { data, error } = await getAllDataEq(tableNameUsers, "email", email);
+
+  if (error) return { success: false, data: null, error: error.message };
+
+  if (!data || data.length === 0 || !verifyPassword(data[0].password, password))
+    return {
+      success: false,
+      data: null,
+      error: translations.verifyFields,
+    };
+
+  return {
+    success: true,
+    data: data[0],
+    error: null,
+  };
+};
+
+export const getId = async (token: string): Promise<string> => {
+  const { data, error } = await getAllDataEq(tableNameUsers, "token", token);
+  if (error || !data) return "";
+  return data[0].id;
 };
 
 export {
