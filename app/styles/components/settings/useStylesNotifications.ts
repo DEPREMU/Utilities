@@ -49,6 +49,7 @@ const useStylesNotifications = () => {
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 3,
+      gap: 8,
       flexWrap: "wrap",
       minHeight: 60,
     },
@@ -64,6 +65,7 @@ const useStylesNotifications = () => {
     notificationInput: {
       minWidth: isWeb ? 120 : 100,
       backgroundColor: background,
+      width: "100%",
       borderRadius: 8,
       borderWidth: 2,
       borderColor: accent,

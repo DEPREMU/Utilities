@@ -83,20 +83,24 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
   const renderNotificationItem = useCallback(
     ({ item }: { item: { id: string; enabled: boolean } }) => {
+      const interval =
+        notifications?.intervals?.[item.id as ReasonNotification];
+
       return (
-        <Pressable
-          style={styles.notificationItem}
-          onPress={() => handleChangeNotification(item.id)}
-        >
-          <Switch
-            value={item.enabled}
-            onChange={() => handleChangeNotification(item.id)}
-          />
-          <Text style={styles.notificationKey}>
-            {t(item.id as keyof typeLanguages)}
-          </Text>
-          {notifications?.intervals?.[item.id as ReasonNotification] !==
-            undefined && (
+        <>
+          <Pressable
+            style={styles.notificationItem}
+            onPress={() => handleChangeNotification(item.id)}
+          >
+            <Switch
+              value={item.enabled}
+              onChange={() => handleChangeNotification(item.id)}
+            />
+            <Text style={styles.notificationKey}>
+              {t(item.id as keyof typeLanguages)}
+            </Text>
+          </Pressable>
+          {item.enabled && interval !== undefined && (
             <TextInput
               value={minutes?.[item.id as ReasonNotification]?.toString()}
               onChangeText={(text) =>
@@ -106,7 +110,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
               style={styles.notificationInput}
             />
           )}
-        </Pressable>
+        </>
       );
     },
     [
