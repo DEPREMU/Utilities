@@ -5,7 +5,7 @@ import { useColors } from "@hooks/useColors";
 const useStylesSettingsScreen = () => {
   const { isLargeTablet, isPhone, isTablet, isWeb, width } =
     useResponsiveLayout();
-  const { background, text, primary, secondary, border, shadow } = useColors();
+  const { background, text, primary, secondary, shadow, accent } = useColors();
 
   // Responsive sizing calculations
   const getResponsivePadding = () => {
@@ -47,11 +47,12 @@ const useStylesSettingsScreen = () => {
       flex: 1,
     },
     title: {
-      fontSize: getResponsiveFontSize(28),
+      fontSize: getResponsiveFontSize(32),
       fontWeight: "bold",
       marginBottom: getResponsivePadding(),
-      textAlign: isWeb && width > 768 ? "center" : "left",
+      textAlign: isWeb && width > 768 ? "center" : "center",
       color: primary,
+      letterSpacing: 0.5,
     },
     scrollView: {
       flex: 1,
@@ -63,48 +64,57 @@ const useStylesSettingsScreen = () => {
     },
     section: {
       backgroundColor: secondary,
-      borderRadius: 12,
+      borderRadius: 16,
       padding: getResponsivePadding(),
       marginBottom: getResponsivePadding(),
       shadowColor: shadow,
       shadowOffset: {
         width: 0,
-        height: 2,
+        height: 3,
       },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 4,
       minHeight: 100,
-      borderWidth: 1,
-      borderColor: border,
+      borderWidth: 2,
+      borderColor: accent,
     },
     subtitle: {
-      fontSize: getResponsiveFontSize(20),
-      fontWeight: "600",
+      fontSize: getResponsiveFontSize(22),
+      fontWeight: "700",
       marginBottom: getResponsivePadding(),
       color: text,
+      textAlign: "center",
+      letterSpacing: 0.3,
     },
     inputContainer: {
       marginBottom: getResponsivePadding(),
     },
     textInput: {
       backgroundColor: background,
-      borderRadius: 8,
+      borderRadius: 12,
       marginBottom: getResponsivePadding() * 0.75,
+      borderWidth: 2,
+      borderColor: accent,
     },
     buttonContainer: {
       marginTop: getResponsivePadding() * 0.5,
     },
     button: {
-      borderRadius: 8,
-      paddingVertical: isPhone ? 12 : 14,
+      borderRadius: 12,
+      paddingVertical: isPhone ? 14 : 16,
       backgroundColor: primary,
+      elevation: 3,
+      shadowColor: shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
     },
     buttonLabel: {
       fontSize: getResponsiveFontSize(16),
       fontWeight: "600",
+      letterSpacing: 0.3,
     },
-    // Web specific styles
     ...(isWeb && {
       webContainer: {
         maxWidth: 1200,
@@ -112,7 +122,6 @@ const useStylesSettingsScreen = () => {
         alignSelf: "center",
       },
     }),
-    // Large screen optimizations
     ...(isLargeTablet && {
       twoColumnLayout: {
         flexDirection: "row",
