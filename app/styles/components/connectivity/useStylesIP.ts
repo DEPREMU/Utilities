@@ -1,8 +1,10 @@
-import { StyleSheet } from "react-native";
 import { useColors } from "@hooks/useColors";
+import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
 const useStylesIP = () => {
-  const { background, text, primary, secondary, border, shadow } = useColors();
+  const { isPhone, isTablet } = useResponsiveLayout();
+  const { background, text, primary, secondary, shadow, accent } = useColors();
 
   const styles = StyleSheet.create({
     containerSafeAreaView: {
@@ -15,49 +17,63 @@ const useStylesIP = () => {
     contentContainer: {
       paddingHorizontal: 20,
       paddingVertical: 30,
+      alignItems: "center",
     },
     container: {
       flex: 1,
       alignItems: "center",
+      width: "100%",
+      maxWidth: 600,
     },
     textIP: {
-      fontSize: 22,
-      fontWeight: "bold",
+      fontSize: isPhone ? 26 : isTablet ? 30 : 34,
+      fontWeight: "800",
       color: primary,
-      marginBottom: 20,
+      marginBottom: 25,
+      textAlign: "center",
+      letterSpacing: 0.5,
     },
     containerDataIP: {
       width: "100%",
       backgroundColor: secondary,
-      borderRadius: 10,
-      padding: 20,
+      borderRadius: 16,
+      padding: 25,
       shadowColor: shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-      borderWidth: 1,
-      borderColor: border,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 8,
+      borderWidth: 2,
+      borderColor: primary,
+      marginBottom: 20,
     },
     textISP: {
-      fontSize: 18,
-      fontWeight: "600",
+      fontSize: isPhone ? 20 : isTablet ? 22 : 24,
+      fontWeight: "700",
       color: text,
-      marginBottom: 10,
+      marginBottom: 15,
+      letterSpacing: 0.3,
     },
     textData: {
-      fontSize: 16,
-      color: text,
-      marginBottom: 8,
+      fontSize: isPhone ? 17 : isTablet ? 19 : 21,
+      color: accent,
+      marginBottom: 12,
+      fontWeight: "500",
+      lineHeight: isPhone ? 24 : isTablet ? 26 : 28,
     },
     mapContainer: {
       width: "100%",
-      height: 300,
-      borderRadius: 10,
+      height: isPhone ? 250 : isTablet ? 300 : 350,
+      borderRadius: 16,
       overflow: "hidden",
-      marginTop: 20,
-      borderWidth: 1,
-      borderColor: border,
+      marginTop: 25,
+      borderWidth: 2,
+      borderColor: primary,
+      shadowColor: shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      elevation: 6,
     },
     map: {
       flex: 1,

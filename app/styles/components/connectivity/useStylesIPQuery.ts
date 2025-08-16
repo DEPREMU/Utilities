@@ -1,54 +1,71 @@
-import { useResponsiveLayout } from "@context/LayoutContext";
+import { useColors } from "@hooks/useColors";
 import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
 const useStylesIPQuery = () => {
   const { isPhone, isTablet, isWeb } = useResponsiveLayout();
+  const { background, primary, secondary, text, shadow, accent } = useColors();
 
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       padding: isPhone ? 16 : isTablet ? 20 : 24,
       width: isPhone ? "100%" : isTablet ? "95%" : "90%",
-      backgroundColor: "#f5f5f5",
+      backgroundColor: background,
       alignSelf: isWeb ? "center" : "stretch",
       maxWidth: isWeb ? 1200 : undefined,
     },
     textIP: {
-      fontSize: isPhone ? 20 : isTablet ? 24 : 28,
-      fontWeight: "bold",
-      marginBottom: isPhone ? 16 : 20,
+      fontSize: isPhone ? 24 : isTablet ? 28 : 32,
+      fontWeight: "800",
+      marginBottom: isPhone ? 20 : 25,
       textAlign: "center",
-      color: "#333",
+      color: primary,
+      letterSpacing: 0.5,
     },
     valueIP: {
-      fontSize: isPhone ? 16 : isTablet ? 18 : 20,
-      color: "#1E90FF",
+      fontSize: isPhone ? 18 : isTablet ? 20 : 22,
+      color: accent,
+      fontWeight: "600",
     },
     containerDataIP: {
-      backgroundColor: "#fff",
-      borderRadius: 10,
-      padding: isPhone ? 12 : 15,
-      marginBottom: isPhone ? 12 : 15,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 5,
-      elevation: 3,
+      backgroundColor: secondary,
+      borderRadius: 16,
+      padding: isPhone ? 18 : 22,
+      marginBottom: isPhone ? 16 : 20,
+      shadowColor: shadow,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.15,
+      shadowRadius: 10,
+      elevation: 8,
+      borderWidth: 2,
+      borderColor: primary,
     },
     textKey: {
-      fontSize: isPhone ? 14 : isTablet ? 16 : 18,
-      fontWeight: "bold",
-      marginBottom: 5,
-      marginVertical: 5,
-      color: "#333",
+      fontSize: isPhone ? 16 : isTablet ? 18 : 20,
+      fontWeight: "700",
+      marginBottom: 8,
+      marginVertical: 6,
+      color: text,
+      letterSpacing: 0.3,
     },
     value: {
-      fontSize: isPhone ? 14 : isTablet ? 16 : 18,
-      color: "#1E90FF",
+      fontSize: isPhone ? 16 : isTablet ? 18 : 20,
+      color: accent,
+      fontWeight: "500",
     },
     mapContainer: {
-      height: isPhone ? 150 : isTablet ? 200 : 250,
-      marginTop: isPhone ? 16 : 20,
+      height: isPhone ? 200 : isTablet ? 250 : 300,
+      marginTop: isPhone ? 20 : 25,
+      borderRadius: 16,
+      overflow: "hidden",
+      borderWidth: 2,
+      borderColor: primary,
+      shadowColor: shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      elevation: 6,
     },
     map: {
       ...StyleSheet.absoluteFillObject,
