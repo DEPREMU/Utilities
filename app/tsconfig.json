@@ -1,0 +1,21 @@
+{
+  "extends": "expo/tsconfig.base",
+  "typeRoutes": ["../types/index.ts"],
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["*"],
+      "@utils": ["utils/"],
+      "@types": ["../types/index.ts"],
+      "@hooks/*": ["hooks/*"],
+      "@assets/*": ["assets/*"],
+      "@styles/*": ["styles/*"],
+      "@screens/*": ["screens/*"],
+      "@context/*": ["context/*"],
+      "@constants/*": ["constants/*"],
+      "@navigation/*": ["navigation/*"],
+      "@components/*": ["components/*"]
+    }
+  }
+}

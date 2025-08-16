@@ -1,0 +1,23 @@
+{
+  "name": "utilities",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "clean": "rimraf app/.expo app/node_modules app/package-lock.json server/node_modules server/package-lock.json && cd app && npm cache clean --force ",
+    "clean:all": "npm run clean && npm run install-all && rimraf app/package-lock.json server/package-lock.json",
+    "install-all": "cd app && npm install && cd ../server && npm install",
+    "app": "cd app && npm run start",
+    "server": "cd server && npm run start",
+    "type-check": "cd app && npm run type-check",
+    "i:a": "cd app && npm install",
+    "i:s": "cd server && npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DEPREMU/Utilities.git"
+  },
+  "author": "DEPREMU",
+  "dependencies": {
+    "expo-notifications": "^0.31.4"
+  }
+}
