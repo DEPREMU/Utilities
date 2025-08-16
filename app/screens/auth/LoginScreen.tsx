@@ -33,9 +33,9 @@ type ShakeInput = {
 const LoginScreen: React.FC = () => {
   const { t } = useLanguage();
   const navigation = useNavigation<LoginScreenNavigationProp>();
-  const { styles } = stylesLoginScreen();
   const { login, isLoggedIn } = useUserContext();
   const { openModal, closeModal } = useModal();
+  const { styles, secondary, text, primary } = stylesLoginScreen();
 
   const [email, setEmail] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -151,9 +151,9 @@ const LoginScreen: React.FC = () => {
           <TextInput
             style={styles.input}
             label={t("emailPlaceholder")}
-            placeholderTextColor="#999"
-            underlineColor="#00a69d"
-            activeUnderlineColor="#00a69d"
+            placeholderTextColor={text}
+            underlineColor={secondary}
+            activeUnderlineColor={secondary}
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -178,9 +178,9 @@ const LoginScreen: React.FC = () => {
           <TextInput
             style={styles.input}
             label={t("passwordPlaceholder")}
-            underlineColor="#00a69d"
-            activeUnderlineColor="#00a69d"
-            placeholderTextColor="#999"
+            underlineColor={secondary}
+            activeUnderlineColor={secondary}
+            placeholderTextColor={text}
             secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
@@ -211,7 +211,7 @@ const LoginScreen: React.FC = () => {
             loggingIn ? (
               <ActivityIndicator
                 size="small"
-                color="#fff"
+                color={text}
                 style={styles.loadingIndicator}
               />
             ) : null
@@ -227,7 +227,9 @@ const LoginScreen: React.FC = () => {
           <View style={styles.rememberMeContainer}>
             <Text style={styles.rememberMeText}>{t("rememberMe")}</Text>
             <Switch
-              color="#7cced4"
+              color={text}
+              trackColor={{ false: primary, true: text }}
+              thumbColor={!rememberMe ? primary : text}
               value={rememberMe}
               onValueChange={setRememberMe}
             />

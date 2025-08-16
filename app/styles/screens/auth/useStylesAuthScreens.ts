@@ -1,36 +1,39 @@
 import { useResponsiveLayout } from "@context/LayoutContext";
 import { StyleSheet } from "react-native";
+import { useColors } from "@hooks/useColors";
 
 /**
- * @function stylesLoginScreen
+ * @function  useStylesAuthScreens
  * @returns {{ styles: object, height: number, width: number }}
  */
 const useStylesAuthScreens = () => {
+  const colors = useColors();
   const { width, height } = useResponsiveLayout();
+  const { background, primary, secondary, text, shadow, error } = colors;
 
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: "#00a69d",
+      backgroundColor: background,
       justifyContent: "center",
       alignItems: "center",
-    },
-    background: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: "#00a69d",
+      paddingHorizontal: 20,
+      paddingVertical: 40,
     },
     content: {
-      width: "90%",
-      maxWidth: 500,
-      backgroundColor: "#f0f4f7",
-      borderRadius: 15,
-      padding: 25,
+      width: "100%",
+      maxWidth: 400,
+      backgroundColor: secondary,
+      borderRadius: 20,
+      padding: 30,
       alignItems: "center",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
+      shadowColor: shadow,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 8,
+      borderWidth: 2,
+      borderColor: primary,
     },
     logo: {
       width: 120,
@@ -38,108 +41,127 @@ const useStylesAuthScreens = () => {
       marginBottom: 25,
     },
     title: {
-      fontSize: 22,
-      fontWeight: "600",
-      color: "#2c3e50",
+      fontSize: 28,
+      fontWeight: "800",
+      color: text,
       textAlign: "center",
-      marginBottom: 30,
+      marginBottom: 35,
       width: "100%",
+      letterSpacing: 0.5,
     },
     inputContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: "#fff",
-      borderRadius: 10,
-      marginBottom: 15,
-      width: "90%",
+      width: "100%",
+      marginBottom: 20,
+      position: "relative",
     },
     icon: {
       marginRight: 10,
     },
     input: {
-      flex: 1,
-      color: "#333",
-      borderRadius: 10,
+      width: "100%",
+      backgroundColor: background,
+      borderRadius: 12,
+      fontSize: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      color: text,
     },
     showPasswordButton: {
-      width: 30,
-      height: 30,
+      position: "absolute",
+      right: 15,
+      top: "50%",
+      transform: [{ translateY: -12 }],
+      width: 24,
+      height: 24,
       justifyContent: "center",
       alignItems: "center",
-      padding: 0,
-      position: "absolute",
-      right: 10,
-      marginLeft: 5,
       zIndex: 2,
     },
     loginButton: {
-      backgroundColor: "#3498db",
-      borderRadius: 10,
-      height: 50,
+      backgroundColor: primary,
+      borderRadius: 12,
+      height: 56,
       justifyContent: "center",
       alignItems: "center",
-      marginTop: 25,
-      width: "90%",
+      marginTop: 30,
+      width: "100%",
+      shadowColor: shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 6,
+      borderWidth: 2,
+      borderColor: secondary,
     },
     buttonText: {
-      color: "white",
-      fontSize: 16,
-      fontWeight: "600",
+      color: text,
+      fontSize: 18,
+      fontWeight: "700",
+      letterSpacing: 0.5,
     },
     inputError: {
       borderWidth: 2,
-      borderColor: "#ff0000",
+      borderColor: error,
+      backgroundColor: background,
     },
     linksContainer: {
       width: "100%",
       alignItems: "center",
+      marginTop: 20,
     },
     linkText: {
-      color: "#00a69d",
-      fontSize: 14,
-      marginVertical: 8,
-      fontWeight: "500",
+      color: primary,
+      fontSize: 16,
+      marginVertical: 12,
+      fontWeight: "600",
+      textDecorationLine: "underline",
     },
     errorText: {
-      color: "#e74c3c",
+      color: error,
       fontSize: 14,
       textAlign: "center",
-      marginTop: 15,
+      marginTop: 10,
+      marginBottom: 10,
       width: "100%",
+      fontWeight: "500",
     },
     inputPassword: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: "#fff",
+      backgroundColor: secondary,
       borderRadius: 10,
-      marginBottom: 0,
-      paddingHorizontal: 0,
-      width: "100%",
+      width: "90%",
       height: 50,
+      paddingHorizontal: 12,
     },
     rememberMeContainer: {
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
       width: "100%",
-      justifyContent: "space-around",
+      marginTop: 20,
+      marginBottom: 10,
+      paddingHorizontal: 5,
     },
     rememberMeText: {
-      color: "#2c3e50",
-      fontSize: 14,
+      color: text,
+      fontSize: 16,
       fontWeight: "500",
     },
     loadingIndicator: {
-      width: 20,
-      height: 20,
+      marginRight: 10,
     },
     iconImageShowPassword: {
       width: 20,
       height: 20,
+      tintColor: text,
     },
-    marginRight10: { marginRight: 10 },
+    marginRight10: {
+      marginRight: 10,
+    },
   });
 
-  return { styles, height, width };
+  return { styles, height, width, ...colors };
 };
 
 export default useStylesAuthScreens;

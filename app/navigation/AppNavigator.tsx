@@ -15,6 +15,7 @@ import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
 import { navigate, navigationRef } from "./navigationRef";
 import { setupNotificationHandlers } from "@utils";
 import { NavigationContainer, RouteProp } from "@react-navigation/native";
+import { useColors } from "@/hooks/useColors";
 
 export type RootStackParamList = Record<ScreensAvailable, Object | undefined>;
 
@@ -67,6 +68,8 @@ const allScreens = Object.entries(screens).map(
 );
 
 const AppNavigator: React.FC = () => {
+  const { navigationTheme } = useColors();
+
   useEffect(() => {
     const cleanup = setupNotificationHandlers(navigate);
 
@@ -74,7 +77,7 @@ const AppNavigator: React.FC = () => {
   }, []);
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
       <BackgroundTaskProvider>
         <Stack.Navigator initialRouteName="Login">{allScreens}</Stack.Navigator>
       </BackgroundTaskProvider>

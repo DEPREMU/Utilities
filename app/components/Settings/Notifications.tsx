@@ -1,12 +1,9 @@
 import {
   loadData,
   saveData,
+  stringifyData,
   reasonNotification,
   initializeNotificationsStorage,
-  removeData,
-  log,
-  stringifyData,
-  loadDataSecure,
 } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";

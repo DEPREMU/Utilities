@@ -1,9 +1,11 @@
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
+import { useColors } from "@hooks/useColors";
 
 const useStylesSettingsScreen = () => {
   const { isLargeTablet, isPhone, isTablet, isWeb, width } =
     useResponsiveLayout();
+  const { background, text, primary, secondary, border, shadow } = useColors();
 
   // Responsive sizing calculations
   const getResponsivePadding = () => {
@@ -35,7 +37,7 @@ const useStylesSettingsScreen = () => {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: "#f5f5f5",
+      backgroundColor: background,
       paddingHorizontal: getResponsivePadding(),
       paddingTop: getResponsivePadding(),
       alignItems: isWeb && width > 768 ? "center" : "stretch",
@@ -49,7 +51,7 @@ const useStylesSettingsScreen = () => {
       fontWeight: "bold",
       marginBottom: getResponsivePadding(),
       textAlign: isWeb && width > 768 ? "center" : "left",
-      color: "#1a1a1a",
+      color: primary,
     },
     scrollView: {
       flex: 1,
@@ -60,11 +62,11 @@ const useStylesSettingsScreen = () => {
       gap: 15,
     },
     section: {
-      backgroundColor: "#ffffff",
+      backgroundColor: secondary,
       borderRadius: 12,
       padding: getResponsivePadding(),
       marginBottom: getResponsivePadding(),
-      shadowColor: "#000",
+      shadowColor: shadow,
       shadowOffset: {
         width: 0,
         height: 2,
@@ -73,18 +75,20 @@ const useStylesSettingsScreen = () => {
       shadowRadius: 4,
       elevation: 3,
       minHeight: 100,
+      borderWidth: 1,
+      borderColor: border,
     },
     subtitle: {
       fontSize: getResponsiveFontSize(20),
       fontWeight: "600",
       marginBottom: getResponsivePadding(),
-      color: "#333",
+      color: text,
     },
     inputContainer: {
       marginBottom: getResponsivePadding(),
     },
     textInput: {
-      backgroundColor: "#f8f9fa",
+      backgroundColor: background,
       borderRadius: 8,
       marginBottom: getResponsivePadding() * 0.75,
     },
@@ -94,7 +98,7 @@ const useStylesSettingsScreen = () => {
     button: {
       borderRadius: 8,
       paddingVertical: isPhone ? 12 : 14,
-      backgroundColor: "#007bff",
+      backgroundColor: primary,
     },
     buttonLabel: {
       fontSize: getResponsiveFontSize(16),
@@ -124,7 +128,6 @@ const useStylesSettingsScreen = () => {
 
   return {
     styles,
-    // Export responsive values for component use
     responsiveValues: {
       padding: getResponsivePadding(),
       fontSize: getResponsiveFontSize,

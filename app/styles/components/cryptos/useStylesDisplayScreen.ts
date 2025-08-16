@@ -1,7 +1,9 @@
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
+import useColors from "@hooks/useColors";
 
 export const useStylesDisplayScreen = () => {
+  const { background, text, primary, shadow } = useColors();
   const { isTablet, isWeb, isLargeTablet } = useResponsiveLayout();
 
   const getResponsiveValue = <T = number>(
@@ -19,12 +21,12 @@ export const useStylesDisplayScreen = () => {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: "#0f0f23",
+      backgroundColor: background,
       paddingTop: getResponsiveValue(10, 15, 20, 25),
     },
     text: {
       fontSize: getResponsiveValue(18, 20, 22, 24),
-      color: "#a9b7c6",
+      color: text,
       textAlign: "center",
       marginTop: getResponsiveValue(40, 50, 60, 70),
       marginHorizontal: getResponsiveValue(20, 30, 40, 50),
@@ -40,26 +42,25 @@ export const useStylesDisplayScreen = () => {
     },
     emptyStateIcon: {
       fontSize: getResponsiveValue(64, 72, 80, 96),
-      color: "#4a90e2",
+      color: primary,
       marginBottom: getResponsiveValue(20, 24, 28, 32),
     },
     emptyStateTitle: {
       fontSize: getResponsiveValue(22, 24, 26, 30),
-      color: "#ffffff",
+      color: text,
       fontWeight: "700",
       textAlign: "center",
       marginBottom: getResponsiveValue(12, 14, 16, 20),
     },
     emptyStateSubtitle: {
       fontSize: getResponsiveValue(16, 17, 18, 20),
-      color: "#a9b7c6",
+      color: text,
       textAlign: "center",
       lineHeight: getResponsiveValue(22, 24, 26, 28),
       maxWidth: isWeb ? 600 : isTablet ? 400 : 300,
     },
     scrollView: {
       flex: 1,
-      backgroundColor: "transparent",
     },
     contentScrollView: {
       padding: getResponsiveValue(16, 20, 24, 32),
@@ -70,22 +71,22 @@ export const useStylesDisplayScreen = () => {
       justifyContent: "center",
       alignItems: "center",
       marginBottom: getResponsiveValue(20, 25, 30, 40),
-      backgroundColor: "#1e1e2e",
+      backgroundColor: primary,
       borderBottomLeftRadius: getResponsiveValue(16, 18, 20, 24),
       borderBottomRightRadius: getResponsiveValue(16, 18, 20, 24),
     },
     headerTitle: {
       fontSize: getResponsiveValue(28, 30, 34, 40),
-      color: "#ffffff",
+      color: text,
       fontWeight: "800",
       textAlign: "center",
-      textShadowColor: "rgba(0,0,0,0.3)",
+      textShadowColor: shadow,
       textShadowOffset: { width: 0, height: 2 },
       textShadowRadius: 4,
     },
     headerSubtitle: {
       fontSize: getResponsiveValue(14, 15, 16, 18),
-      color: "#b8c5d6",
+      color: text,
       textAlign: "center",
       marginTop: getResponsiveValue(8, 9, 10, 12),
       opacity: 0.9,
@@ -101,15 +102,15 @@ export const useStylesDisplayScreen = () => {
       position: "absolute",
       top: getResponsiveValue(10, 15, 20, 25),
       right: getResponsiveValue(10, 15, 20, 25),
-      backgroundColor: "rgba(74, 144, 226, 0.2)",
+      backgroundColor: primary,
       borderRadius: getResponsiveValue(16, 18, 20, 22),
       padding: getResponsiveValue(8, 10, 12, 14),
       borderWidth: 1,
-      borderColor: "#4a90e2",
+      borderColor: primary,
       zIndex: 10,
     },
     refreshText: {
-      color: "#4a90e2",
+      color: text,
       fontSize: getResponsiveValue(12, 13, 14, 15),
       fontWeight: "600",
     },

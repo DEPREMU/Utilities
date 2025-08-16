@@ -1,14 +1,16 @@
 import { useResponsiveLayout } from "@context/LayoutContext";
 import { StatusBar, StyleSheet } from "react-native";
+import { useColors } from "@hooks/useColors";
 
 export const useStylesModalComponent = () => {
   const { height, width, isPhone } = useResponsiveLayout();
+  const { background, text, border, primary, overlay, shadow } = useColors();
 
   const styles = StyleSheet.create({
     overlay: {
       flex: 1,
       width: "100%",
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      backgroundColor: overlay,
       justifyContent: "center",
       alignItems: "center",
       position: "absolute",
@@ -19,18 +21,20 @@ export const useStylesModalComponent = () => {
       cursor: "auto",
     },
     modal: {
-      backgroundColor: "#fff",
+      backgroundColor: background,
       cursor: "auto",
       borderRadius: 8,
       width: "90%",
       maxWidth: isPhone ? "90%" : 500,
       padding: 20,
       elevation: 5,
-      shadowColor: "#000",
+      shadowColor: shadow,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.2,
       shadowRadius: 6,
       gap: isPhone ? 10 : 20,
+      borderWidth: 1,
+      borderColor: border,
     },
     title: {
       fontWeight: "bold",
@@ -38,6 +42,7 @@ export const useStylesModalComponent = () => {
       borderRadius: 8,
       padding: isPhone ? 10 : 0,
       textAlign: "center",
+      color: primary,
     },
     body: {
       paddingHorizontal: isPhone ? 10 : 20,
@@ -61,6 +66,7 @@ export const useStylesModalComponent = () => {
       padding: isPhone ? 10 : 0,
       fontSize: isPhone ? 14 : 18,
       textAlign: "center",
+      color: text,
     },
   });
 

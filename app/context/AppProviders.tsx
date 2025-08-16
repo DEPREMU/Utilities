@@ -5,18 +5,21 @@ import { LayoutProvider } from "@context/LayoutContext";
 import { LanguageProvider } from "@context/LanguageContext";
 import { WebSocketProvider } from "./WebSocketContext";
 import { NotificationsProvider } from "./NotificationsContext";
+import { ThemeProvider } from "./ThemeContext";
 
 const AppProviders = ({ children }: { children: React.ReactNode }) => (
   <LayoutProvider>
-    <UserProvider>
-      <LanguageProvider>
-        <NotificationsProvider>
-          <ModalProvider>
-            <WebSocketProvider>{children}</WebSocketProvider>
-          </ModalProvider>
-        </NotificationsProvider>
-      </LanguageProvider>
-    </UserProvider>
+    <ThemeProvider>
+      <UserProvider>
+        <LanguageProvider>
+          <NotificationsProvider>
+            <ModalProvider>
+              <WebSocketProvider>{children}</WebSocketProvider>
+            </ModalProvider>
+          </NotificationsProvider>
+        </LanguageProvider>
+      </UserProvider>
+    </ThemeProvider>
   </LayoutProvider>
 );
 

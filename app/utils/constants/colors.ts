@@ -9,45 +9,36 @@ export type Colors =
   | "warning"
   | "success"
   | "info"
-  | "teal"
-  | "lightTeal"
-  | "mediumTeal"
-  | "darkTeal"
-  | "lightBlue"
-  | "lightGray"
-  | "mediumGray"
-  | "darkGray"
-  | "white"
-  | "black"
-  | "red"
-  | "lightRed"
-  | "transparent";
+  | "overlay"
+  | "shadow";
 
-export const colors: Record<Colors, string> = {
-  // Original colors
-  primary: "#3498DB",
-  secondary: "#2ecc71",
-  accent: "#e74c3c",
-  background: "#ecf0f1",
-  text: "#2c3e50",
-  border: "#bdc3c7",
-  error: "#e74c3c",
-  warning: "#f39c12",
-  success: "#2ecc71",
-  info: "#3498db",
-
-  // App-specific colors
-  teal: "#00a69d", // Primary teal color
-  lightTeal: "#7cced4", // Light teal variant
-  mediumTeal: "#60c4b4", // Medium teal variant
-  darkTeal: "#21aae1", // Dark teal variant
-  lightBlue: "#21aae1", // Light blue
-  lightGray: "#ecebea", // Light gray background
-  mediumGray: "#666", // Medium gray text
-  darkGray: "#333", // Dark gray text
-  white: "#fff", // White
-  black: "black", // Black
-  red: "#d93025", // Error red
-  lightRed: "#fce8e6", // Light red background
-  transparent: "transparent", // Transparent
-};
+export const colors: Record<"dark" | "light", Record<Colors, string>> = {
+  light: {
+    primary: "#d49eff", // botones / elementos principales
+    secondary: "#ff9cf2", // inputs / elementos secundarios
+    accent: "#ffafdb", // resaltados / detalles
+    background: "#ffcccc", // fondo principal
+    text: "#ffe3c0", // texto
+    border: "#d49eff", // bordes
+    error: "#e95858ff", // errores
+    warning: "#ffafdb", // advertencias
+    success: "#ffcccc", // confirmaciones
+    info: "#ffe3c0", // info sutil
+    overlay: "rgba(0, 0, 0, 0.5)", // overlays
+    shadow: "#000000", // sombras
+  },
+  dark: {
+    background: "#2d2f51", // fondo principal
+    secondary: "#51416c", // inputs / secundarios
+    accent: "#875a91", // resaltados
+    primary: "#d47dbd", // botones / elementos principales
+    text: "#ffaaed", // texto
+    border: "#2d2f51", // bordes
+    error: "#a13232ff", // errores
+    warning: "#875a91", // advertencias
+    success: "#d47dbd", // confirmaciones
+    info: "#ffaaed", // info sutil
+    overlay: "rgba(255, 255, 255, 0.3)", // overlays
+    shadow: "#ffffff", // sombras claras
+  },
+} as const;

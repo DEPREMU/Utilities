@@ -97,7 +97,7 @@ export default [
       "react-native/no-unused-styles": "warn",
       "react-native/split-platform-components": "error",
       "react-native/no-inline-styles": "warn",
-      "react-native/no-color-literals": "off", // Deshabilitado temporalmente
+      "react-native/no-color-literals": "warn",
       "react-native/no-raw-text": "off",
 
       // General rules

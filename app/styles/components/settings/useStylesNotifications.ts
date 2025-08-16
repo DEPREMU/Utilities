@@ -1,7 +1,9 @@
-import { useResponsiveLayout } from "@context/LayoutContext";
+import useColors from "@hooks/useColors";
 import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
 const useStylesNotifications = () => {
+  const { border } = useColors();
   const { isPhone, isWeb, isTablet } = useResponsiveLayout();
 
   const styles = StyleSheet.create({
@@ -29,7 +31,7 @@ const useStylesNotifications = () => {
       borderBottomWidth: 1,
       flexWrap: "wrap",
       flex: 1,
-      borderBottomColor: "#eee",
+      borderBottomColor: border,
       justifyContent: "space-between",
       maxWidth: isWeb ? 600 : "95%",
     },
