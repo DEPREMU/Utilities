@@ -30,17 +30,19 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Button label={t("logout")} handlePress={logout} />
-      <Text style={styles.title}>
-        {t("welcomeUser", { user: userData?.name || t("user") })}
-      </Text>
-      {buttons.map((button) => (
-        <Button
-          key={button.label}
-          label={t(button.label)}
-          handlePress={() => navigation.replace(button.screen)}
-        />
-      ))}
+      <View style={styles.contentContainer}>
+        <Button label={t("logout")} handlePress={logout} />
+        <Text style={styles.title}>
+          {t("welcomeUser", { user: userData?.name || t("user") })}
+        </Text>
+        {buttons.map((button) => (
+          <Button
+            key={button.label}
+            label={t(button.label)}
+            handlePress={() => navigation.replace(button.screen)}
+          />
+        ))}
+      </View>
     </View>
   );
 };

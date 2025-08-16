@@ -35,11 +35,6 @@ const useStylesAuthScreens = () => {
       borderWidth: 2,
       borderColor: primary,
     },
-    logo: {
-      width: 120,
-      height: 120,
-      marginBottom: 25,
-    },
     title: {
       fontSize: 28,
       fontWeight: "800",
@@ -53,9 +48,6 @@ const useStylesAuthScreens = () => {
       width: "100%",
       marginBottom: 20,
       position: "relative",
-    },
-    icon: {
-      marginRight: 10,
     },
     input: {
       width: "100%",
@@ -125,15 +117,6 @@ const useStylesAuthScreens = () => {
       width: "100%",
       fontWeight: "500",
     },
-    inputPassword: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: secondary,
-      borderRadius: 10,
-      width: "90%",
-      height: 50,
-      paddingHorizontal: 12,
-    },
     rememberMeContainer: {
       flexDirection: "row",
       alignItems: "center",
@@ -150,11 +133,6 @@ const useStylesAuthScreens = () => {
     },
     loadingIndicator: {
       marginRight: 10,
-    },
-    iconImageShowPassword: {
-      width: 20,
-      height: 20,
-      tintColor: text,
     },
     marginRight10: {
       marginRight: 10,

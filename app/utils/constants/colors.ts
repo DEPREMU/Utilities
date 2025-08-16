@@ -14,7 +14,7 @@ export type Colors =
 
 export const colors: Record<"dark" | "light", Record<Colors, string>> = {
   light: {
-    primary: "#d49eff", // botones / elementos principales
+    primary: "#d49eff", // buttons / elementos principales
     secondary: "#ff9cf2", // inputs / elementos secundarios
     accent: "#ffafdb", // resaltados / detalles
     background: "#ffcccc", // fondo principal
