@@ -10,6 +10,7 @@ import {
   fetchFromTable,
   deleteInTable,
   insertIntoTable,
+  log,
 } from "@utils";
 import { SelectedCryptos } from "@utils";
 import useStylesSelectionScreen from "@/styles/components/cryptos/useStylesSelectionScreen";
@@ -55,7 +56,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     if (!cryptos) return [];
 
     if (showSelected) {
-      const keys = Object.keys(selectedCryptos);
+      const keys = Object.keys(selectedCryptos).map((key) => key.toLowerCase());
       if (searchQuery) {
         const filtered = keys.filter((cryptoId) =>
           cryptoId.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -64,6 +65,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           filtered.includes(crypto.symbol.toLowerCase()),
         );
       }
+      log(keys);
       return cryptos.filter((crypto) =>
         keys.includes(crypto.symbol.toLowerCase()),
       );
@@ -215,7 +217,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       <View style={styles.header}>
         <TextInput
           style={styles.input}
-          placeholder={t("selectCurrency")}
+          label={t("selectCurrency")}
           value={currency}
           textColor="#f0f0f0"
           onChangeText={(t) => setCurrency(t.toUpperCase())}
@@ -250,7 +252,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 
               {isSelected && (
                 <TextInput
-                  style={styles.input}
+                  style={styles.inputAmount}
                   keyboardType="numeric"
                   placeholder="0.00"
                   value={String(crypto?.amount || 0)}

@@ -3,7 +3,7 @@ import { useResponsiveLayout } from "@context/LayoutContext";
 import useColors from "@hooks/useColors";
 
 export const useStylesDisplayScreen = () => {
-  const { background, text, primary, shadow } = useColors();
+  const { background, text, primary, shadow, secondary, accent } = useColors();
   const { isTablet, isWeb, isLargeTablet } = useResponsiveLayout();
 
   const getResponsiveValue = <T = number>(
@@ -24,15 +24,6 @@ export const useStylesDisplayScreen = () => {
       backgroundColor: background,
       paddingTop: getResponsiveValue(10, 15, 20, 25),
     },
-    text: {
-      fontSize: getResponsiveValue(18, 20, 22, 24),
-      color: text,
-      textAlign: "center",
-      marginTop: getResponsiveValue(40, 50, 60, 70),
-      marginHorizontal: getResponsiveValue(20, 30, 40, 50),
-      fontWeight: "500",
-      lineHeight: getResponsiveValue(24, 26, 30, 32),
-    },
     emptyStateContainer: {
       flex: 1,
       justifyContent: "center",
@@ -42,8 +33,11 @@ export const useStylesDisplayScreen = () => {
     },
     emptyStateIcon: {
       fontSize: getResponsiveValue(64, 72, 80, 96),
-      color: primary,
+      color: accent,
       marginBottom: getResponsiveValue(20, 24, 28, 32),
+      textShadowColor: shadow,
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 4,
     },
     emptyStateTitle: {
       fontSize: getResponsiveValue(22, 24, 26, 30),
@@ -71,9 +65,16 @@ export const useStylesDisplayScreen = () => {
       justifyContent: "center",
       alignItems: "center",
       marginBottom: getResponsiveValue(20, 25, 30, 40),
-      backgroundColor: primary,
+      backgroundColor: secondary,
       borderBottomLeftRadius: getResponsiveValue(16, 18, 20, 24),
       borderBottomRightRadius: getResponsiveValue(16, 18, 20, 24),
+      shadowColor: shadow,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 8,
+      borderWidth: 2,
+      borderColor: primary,
     },
     headerTitle: {
       fontSize: getResponsiveValue(28, 30, 34, 40),
@@ -83,12 +84,14 @@ export const useStylesDisplayScreen = () => {
       textShadowColor: shadow,
       textShadowOffset: { width: 0, height: 2 },
       textShadowRadius: 4,
+      letterSpacing: 0.5,
     },
     headerSubtitle: {
       fontSize: getResponsiveValue(14, 15, 16, 18),
-      color: text,
+      color: accent,
       textAlign: "center",
       marginTop: getResponsiveValue(8, 9, 10, 12),
+      fontWeight: "600",
       opacity: 0.9,
     },
     cryptoGrid: {
@@ -105,14 +108,20 @@ export const useStylesDisplayScreen = () => {
       backgroundColor: primary,
       borderRadius: getResponsiveValue(16, 18, 20, 22),
       padding: getResponsiveValue(8, 10, 12, 14),
-      borderWidth: 1,
-      borderColor: primary,
+      borderWidth: 2,
+      borderColor: secondary,
       zIndex: 10,
+      shadowColor: shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      elevation: 6,
     },
     refreshText: {
       color: text,
       fontSize: getResponsiveValue(12, 13, 14, 15),
-      fontWeight: "600",
+      fontWeight: "700",
+      letterSpacing: 0.3,
     },
   });
 

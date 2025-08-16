@@ -4,17 +4,7 @@ import { useColors } from "@hooks/useColors";
 
 export const useStylesCryptoPrice = () => {
   const { isTablet, isWeb, isLargeTablet } = useResponsiveLayout();
-  const {
-    background,
-    text,
-    primary,
-    secondary,
-    accent,
-    border,
-    shadow,
-    success,
-    error,
-  } = useColors();
+  const { text, primary, secondary, accent, shadow } = useColors();
 
   const getResponsiveValue = <T = number>(
     phone: T,
@@ -30,17 +20,17 @@ export const useStylesCryptoPrice = () => {
 
   const styles = StyleSheet.create({
     container: {
-      backgroundColor: "#1e1e2e",
+      backgroundColor: secondary,
       padding: getResponsiveValue(20, 24, 28, 32),
       borderRadius: getResponsiveValue(16, 18, 20, 24),
       width: getResponsiveValue<DimensionValue>("95%", "95%", "95%", "100%"),
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
+      shadowColor: shadow,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
       elevation: 8,
-      borderWidth: 1,
-      borderColor: "#2a2a40",
+      borderWidth: 2,
+      borderColor: primary,
       minHeight: getResponsiveValue(200, 220, 240, 260),
     },
     cryptoHeader: {
@@ -49,35 +39,35 @@ export const useStylesCryptoPrice = () => {
       alignItems: "center",
       marginBottom: getResponsiveValue(16, 18, 20, 24),
       paddingBottom: getResponsiveValue(12, 14, 16, 20),
-      borderBottomWidth: 1,
-      borderBottomColor: "#3a3a50",
+      borderBottomWidth: 2,
+      borderBottomColor: primary,
     },
     cryptoName: {
       fontSize: getResponsiveValue(24, 26, 28, 32),
       fontWeight: "800",
-      color: "#ffffff",
+      color: text,
       textTransform: "uppercase",
       letterSpacing: 1,
       flex: 1,
     },
     cryptoSymbol: {
       fontSize: getResponsiveValue(14, 15, 16, 18),
-      color: "#4a90e2",
+      color: accent,
       fontWeight: "600",
-      backgroundColor: "rgba(74, 144, 226, 0.1)",
+      backgroundColor: primary,
       paddingHorizontal: getResponsiveValue(8, 9, 10, 12),
       paddingVertical: getResponsiveValue(4, 5, 6, 7),
       borderRadius: getResponsiveValue(6, 7, 8, 9),
     },
     text: {
       fontSize: getResponsiveValue(16, 17, 18, 20),
-      color: "#a9b7c6",
+      color: text,
       marginBottom: getResponsiveValue(8, 9, 10, 12),
       fontWeight: "500",
       lineHeight: getResponsiveValue(22, 23, 24, 26),
     },
     priceContainer: {
-      backgroundColor: "#2a2a40",
+      backgroundColor: primary,
       borderRadius: getResponsiveValue(12, 13, 14, 16),
       padding: getResponsiveValue(16, 17, 18, 20),
       marginBottom: getResponsiveValue(16, 18, 20, 24),
@@ -85,13 +75,13 @@ export const useStylesCryptoPrice = () => {
     price: {
       fontSize: getResponsiveValue(20, 22, 24, 28),
       fontWeight: "700",
-      color: "#4a90e2",
+      color: accent,
       textAlign: "center",
       lineHeight: getResponsiveValue(28, 30, 32, 36),
     },
     priceLabel: {
       fontSize: getResponsiveValue(12, 13, 14, 16),
-      color: "#8a8a9a",
+      color: text,
       textAlign: "center",
       marginBottom: getResponsiveValue(8, 9, 10, 12),
       fontWeight: "600",
@@ -103,25 +93,25 @@ export const useStylesCryptoPrice = () => {
     },
     ownedText: {
       fontSize: getResponsiveValue(16, 17, 18, 20),
-      color: "#b8c5d6",
+      color: text,
       marginBottom: getResponsiveValue(6, 7, 8, 10),
       fontWeight: "500",
     },
     ownedAmount: {
       fontSize: getResponsiveValue(18, 19, 20, 22),
       fontWeight: "700",
-      color: "#ffffff",
+      color: accent,
       marginLeft: getResponsiveValue(8, 9, 10, 12),
     },
     firstInvest: {
       fontSize: getResponsiveValue(15, 16, 17, 19),
-      color: "#a9b7c6",
+      color: text,
       marginBottom: getResponsiveValue(12, 14, 16, 20),
       lineHeight: getResponsiveValue(20, 22, 24, 28),
       fontWeight: "400",
     },
     gainContainer: {
-      backgroundColor: "#2a2a40",
+      backgroundColor: primary,
       borderRadius: getResponsiveValue(10, 11, 12, 14),
       padding: getResponsiveValue(12, 13, 14, 16),
       flexDirection: "row",
@@ -131,7 +121,7 @@ export const useStylesCryptoPrice = () => {
     gainAmount: {
       fontSize: getResponsiveValue(16, 17, 18, 20),
       fontWeight: "600",
-      color: "#ffffff",
+      color: text,
       flex: 1,
     },
     gainPercent: {
@@ -145,7 +135,7 @@ export const useStylesCryptoPrice = () => {
     },
     datePurchasedText: {
       fontSize: getResponsiveValue(14, 15, 16, 18),
-      color: "#8a8a9a",
+      color: text,
       textAlign: "right",
       marginTop: getResponsiveValue(10, 13, 16, 18),
       fontWeight: "600",
@@ -153,28 +143,28 @@ export const useStylesCryptoPrice = () => {
       letterSpacing: 0.5,
     },
     colorGreen: {
-      color: "#27ae60",
-      backgroundColor: "rgba(39, 174, 96, 0.1)",
+      color: accent,
+      backgroundColor: primary,
     },
     colorRed: {
-      color: "#e74c3c",
-      backgroundColor: "rgba(231, 76, 60, 0.1)",
+      color: accent,
+      backgroundColor: primary,
     },
     divider: {
-      height: 1,
-      backgroundColor: "#3a3a50",
+      height: 2,
+      backgroundColor: primary,
       marginVertical: getResponsiveValue(12, 14, 16, 20),
-      opacity: 0.6,
+      opacity: 0.8,
     },
     statusIndicator: {
       width: getResponsiveValue(8, 9, 10, 12),
       height: getResponsiveValue(8, 9, 10, 12),
       borderRadius: getResponsiveValue(4, 4.5, 5, 6),
-      backgroundColor: "#27ae60",
+      backgroundColor: accent,
       marginRight: getResponsiveValue(8, 9, 10, 12),
     },
     loadingContainer: {
-      backgroundColor: "#1e1e2e",
+      backgroundColor: secondary,
       borderRadius: getResponsiveValue(16, 18, 20, 24),
       padding: getResponsiveValue(20, 24, 28, 32),
       marginHorizontal: getResponsiveValue(12, 16, 20, 24),
@@ -184,7 +174,7 @@ export const useStylesCryptoPrice = () => {
       minHeight: getResponsiveValue(120, 130, 140, 160),
     },
     loadingText: {
-      color: "#a9b7c6",
+      color: text,
       fontSize: getResponsiveValue(16, 17, 18, 20),
       marginTop: getResponsiveValue(12, 14, 16, 20),
       fontWeight: "500",

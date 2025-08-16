@@ -2,14 +2,20 @@ import useColors from "@hooks/useColors";
 import { StyleSheet } from "react-native";
 
 const useStylesCryptosNavigator = () => {
-  const { background, border, text } = useColors();
+  const { background, primary, text, shadow } = useColors();
 
   const styles = StyleSheet.create({
     tabBar: {
       backgroundColor: background,
-      borderTopWidth: 1,
-      borderTopColor: border,
+      borderTopWidth: 2,
+      borderTopColor: primary,
       color: text,
+      shadowColor: shadow,
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 6,
+      paddingVertical: 8,
     },
   });
 
