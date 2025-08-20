@@ -110,4 +110,16 @@ export type typeLanguages = Record<ReasonNotification, string> & {
   setNotifications: string;
   notificationInterval: string;
   allNotifications: string;
+  appTheme: string;
+  auto: string;
+  light: string;
+  dark: string;
+  setTheme: string;
+};
+
+export type typeLanguagesServer = {
+  notificationCryptoBody: string;
+  notificationCryptoTitle: string;
+  notificationNotCryptosSelectedBody: string;
+  notificationNotCryptosSelectedTitle: string;
 };

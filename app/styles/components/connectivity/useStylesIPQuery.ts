@@ -1,10 +1,10 @@
-import { useColors } from "@hooks/useColors";
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
 
 const useStylesIPQuery = () => {
   const { isPhone, isTablet, isWeb } = useResponsiveLayout();
-  const { background, primary, secondary, text, shadow, accent } = useColors();
+  const { background, primary, secondary, text, shadow, accent } = useTheme();
 
   const styles = StyleSheet.create({
     container: {

@@ -1,9 +1,9 @@
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
-import useColors from "@hooks/useColors";
 
 export const useStylesDisplayScreen = () => {
-  const { background, text, primary, shadow, secondary, accent } = useColors();
+  const { background, text, primary, shadow, secondary, accent } = useTheme();
   const { isTablet, isWeb, isLargeTablet } = useResponsiveLayout();
 
   const getResponsiveValue = <T = number>(

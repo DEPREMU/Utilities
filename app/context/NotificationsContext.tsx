@@ -4,6 +4,7 @@ import React, {
   useState,
   ReactNode,
   useEffect,
+  useCallback,
 } from "react";
 import { useLanguage } from "./LanguageContext";
 import * as Notifications from "expo-notifications";
@@ -46,6 +47,42 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasInternet, setHasInternet] = useState<boolean>(true);
 
+  const sendNotification = useCallback(
+    (notification: Omit<Notification, "id" | "timestamp">) => {
+      return Notifications.scheduleNotificationAsync({
+        content: {
+          title: notification.title,
+          body: notification.message,
+          data: { type: notification.type },
+        },
+        trigger: notification.trigger || null,
+      });
+    },
+    [],
+  );
+
+  const addNotification = useCallback(
+    (notification: Omit<Notification, "id" | "timestamp">) => {
+      const newNotification: Notification = {
+        ...notification,
+        id: Date.now().toString(),
+        timestamp: new Date(),
+      };
+      setNotifications((prev) => [...prev, newNotification]);
+    },
+    [],
+  );
+
+  const removeNotification = useCallback((id: string) => {
+    setNotifications((prev) =>
+      prev.filter((notification) => notification.id !== id),
+    );
+  }, []);
+
+  const clearNotifications = useCallback(() => {
+    setNotifications([]);
+  }, []);
+
   useEffect(() => {
     const listener = addNetworkStateListener(
       ({ isConnected, isInternetReachable }) => {
@@ -70,41 +107,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         Notifications.cancelScheduledNotificationAsync(id);
       });
     };
-  }, [hasInternet, t]);
-
-  const sendNotification = (
-    notification: Omit<Notification, "id" | "timestamp">,
-  ) => {
-    return Notifications.scheduleNotificationAsync({
-      content: {
-        title: notification.title,
-        body: notification.message,
-        data: { type: notification.type },
-      },
-      trigger: notification.trigger || null,
-    });
-  };
-
-  const addNotification = (
-    notification: Omit<Notification, "id" | "timestamp">,
-  ) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-    };
-    setNotifications((prev) => [...prev, newNotification]);
-  };
-
-  const removeNotification = (id: string) => {
-    setNotifications((prev) =>
-      prev.filter((notification) => notification.id !== id),
-    );
-  };
-
-  const clearNotifications = () => {
-    setNotifications([]);
-  };
+  }, [hasInternet, t, sendNotification]);
 
   const value: NotificationsContextType = {
     notifications,

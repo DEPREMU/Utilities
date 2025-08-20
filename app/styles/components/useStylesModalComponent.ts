@@ -1,10 +1,9 @@
 import { useResponsiveLayout } from "@context/LayoutContext";
 import { StatusBar, StyleSheet } from "react-native";
-import { useColors } from "@hooks/useColors";
-
+import { useTheme } from "@context/ThemeContext";
 export const useStylesModalComponent = () => {
   const { height, width, isPhone } = useResponsiveLayout();
-  const { background, text, border, primary, overlay, shadow } = useColors();
+  const { background, text, border, primary, overlay, shadow } = useTheme();
 
   const styles = StyleSheet.create({
     overlay: {

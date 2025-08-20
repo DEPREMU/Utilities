@@ -1,10 +1,10 @@
 import { DimensionValue, StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
-import useColors from "@hooks/useColors";
+import { useTheme } from "@context/ThemeContext";
 
 const useStylesSelectionScreen = () => {
   const { background, text, primary, shadow, error, secondary, accent } =
-    useColors();
+    useTheme();
   const { isTablet, isWeb, isLargeTablet } = useResponsiveLayout();
 
   const getResponsiveValue = <T = number>(

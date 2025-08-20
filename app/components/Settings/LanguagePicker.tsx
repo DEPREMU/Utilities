@@ -1,10 +1,12 @@
 import React from "react";
 import { List } from "react-native-paper";
+import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
-import { languagesNames } from "@/utils";
+import { languagesNames } from "@utils";
 import { LanguagesSupported } from "@types";
 
 const LanguagePicker: React.FC = () => {
+  const { primary, text } = useTheme();
   const { changeLanguage, t, language } = useLanguage();
 
   return (
@@ -12,7 +14,6 @@ const LanguagePicker: React.FC = () => {
       <List.Accordion
         title={t("setLanguage")}
         left={(props) => <List.Icon {...props} icon="translate" />}
-        
       >
         {Object.entries(languagesNames).map(([key, value]) => (
           <List.Item
@@ -21,6 +22,7 @@ const LanguagePicker: React.FC = () => {
             left={(props) => (
               <List.Icon
                 {...props}
+                color={language === key ? primary : text}
                 icon={language === key ? "radiobox-marked" : "radiobox-blank"}
               />
             )}

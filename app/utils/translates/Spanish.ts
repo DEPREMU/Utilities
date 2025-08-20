@@ -108,6 +108,11 @@ const es: typeLanguages = {
   cryptos: "Criptomonedas",
   notificationInterval: "Intervalo de Notificación",
   allNotifications: "Todas las Notificaciones",
+  appTheme: "Tema de la aplicación",
+  auto: "Automático",
+  light: "Claro",
+  dark: "Oscuro",
+  setTheme: "Seleccionar tema",
 } as const;
 
 export default es;

@@ -7,6 +7,7 @@ import InfoIP from "@screens/Connectivity/IP";
 import HomeScreen from "@screens/HomeScreen";
 import LoginScreen from "@/screens/auth/LoginScreen";
 import SignUpScreen from "@screens/auth/SignUpScreen";
+import { useTheme } from "@/context/ThemeContext";
 import SettingsScreen from "@/screens/Settings";
 import CryptosNavigator from "@/screens/Cryptos";
 import React, { useEffect } from "react";
@@ -15,7 +16,6 @@ import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
 import { navigate, navigationRef } from "./navigationRef";
 import { setupNotificationHandlers } from "@utils";
 import { NavigationContainer, RouteProp } from "@react-navigation/native";
-import { useColors } from "@/hooks/useColors";
 
 export type RootStackParamList = Record<ScreensAvailable, Object | undefined>;
 
@@ -68,7 +68,7 @@ const allScreens = Object.entries(screens).map(
 );
 
 const AppNavigator: React.FC = () => {
-  const { navigationTheme } = useColors();
+  const { navigationTheme } = useTheme();
 
   useEffect(() => {
     const cleanup = setupNotificationHandlers(navigate);

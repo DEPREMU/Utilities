@@ -1,10 +1,4 @@
-import {
-  loadData,
-  saveData,
-  stringifyData,
-  reasonNotification,
-  initializeNotificationsStorage,
-} from "@utils";
+import { loadData, saveData, stringifyData, getNotifications } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
@@ -133,15 +127,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      // await removeData("@notifications");
-      let data = await loadData<Notifications | null>("@notifications");
-      if (
-        !data ||
-        Object.keys(data.data).length !== reasonNotification.length
-      ) {
-        await initializeNotificationsStorage();
-        data = await loadData<Notifications | null>("@notifications");
-      }
+      const data = await getNotifications();
       setNotifications(data);
       const mins = Object.fromEntries(
         Object.entries(data?.intervals || {}).map(([id, value]) => [

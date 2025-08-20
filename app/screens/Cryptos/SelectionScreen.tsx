@@ -11,6 +11,7 @@ import {
   deleteInTable,
   insertIntoTable,
   log,
+  logError,
 } from "@utils";
 import { SelectedCryptos } from "@utils";
 import useStylesSelectionScreen from "@/styles/components/cryptos/useStylesSelectionScreen";
@@ -163,13 +164,11 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
   useEffect(() => {
     const id = setTimeout(() => {
       const loadCryptos = async () => {
-        const response = await fetch(
-          await getRouteAPI("/cryptos"),
-          fetchOptions("POST", { currency }),
-        );
-        const data = (await response.json()) as ResponseCryptos;
-        if (data.error) {
-          console.error("Error fetching cryptos:", data.error);
+        const route = await getRouteAPI("/cryptos");
+        const response = await fetch(route, fetchOptions("POST", { currency }));
+        const data = ((await response.json()) || {}) as ResponseCryptos;
+        if (data?.error || response.status !== 200) {
+          logError("Error fetching cryptos:", data?.error);
           setCryptos(null);
           return;
         }

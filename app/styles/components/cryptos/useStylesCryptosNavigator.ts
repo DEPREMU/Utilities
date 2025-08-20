@@ -1,8 +1,8 @@
-import useColors from "@hooks/useColors";
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 
 const useStylesCryptosNavigator = () => {
-  const { background, primary, text, shadow } = useColors();
+  const { background, primary, text, shadow } = useTheme();
 
   const styles = StyleSheet.create({
     tabBar: {

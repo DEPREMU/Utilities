@@ -1,11 +1,11 @@
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
-import { useColors } from "@hooks/useColors";
 
 const useStylesSettingsScreen = () => {
   const { isLargeTablet, isPhone, isTablet, isWeb, width } =
     useResponsiveLayout();
-  const { background, text, primary, secondary, shadow, accent } = useColors();
+  const { background, text, primary, secondary, shadow, accent } = useTheme();
 
   // Responsive sizing calculations
   const getResponsivePadding = () => {
@@ -89,13 +89,6 @@ const useStylesSettingsScreen = () => {
     },
     inputContainer: {
       marginBottom: getResponsivePadding(),
-    },
-    textInput: {
-      backgroundColor: background,
-      borderRadius: 12,
-      marginBottom: getResponsivePadding() * 0.75,
-      borderWidth: 2,
-      borderColor: accent,
     },
     buttonContainer: {
       marginTop: getResponsivePadding() * 0.5,

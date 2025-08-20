@@ -7,55 +7,95 @@ import { loadData, loadDataSecure, saveData } from "./storageManagement";
 import { Notifications, ScreensAvailable, ReasonNotification } from "@types";
 
 /**
+ * Checks if the notifications data is already declared.
+ * This function checks if the notifications data has been initialized
+ * and contains the necessary structure.
+ *
+ * @param {Notifications} notificationsData - The notifications data to check.
+ * @returns {boolean} - Returns true if notifications are already initialized, otherwise false.
+ */
+export const isNotificationsAlreadyInitialized = (
+  notificationsData: Notifications | null,
+): boolean => {
+  if (!notificationsData) return false;
+
+  const { data, enabled, intervals } = notificationsData;
+  const keysData = Object.keys(data || {});
+  const keysEnabled = Object.keys(enabled || {});
+  const keysIntervals = Object.keys(intervals || {});
+
+  const areKeysDataValid =
+    stringifyData(keysData) === stringifyData(reasonNotification);
+  const areKeysEnabledValid =
+    stringifyData(keysEnabled) ===
+    stringifyData([...reasonNotification, "allNotifications"]);
+  const areKeysIntervalsValid =
+    stringifyData(keysIntervals) === stringifyData(reasonNotification);
+
+  return areKeysDataValid && areKeysEnabledValid && areKeysIntervalsValid;
+};
+
+/**
  * Initializes the notifications storage with default values.
  * This function ensures that the notifications storage is set up correctly
  * before any notifications are scheduled or managed.
  */
-export const initializeNotificationsStorage = async () => {
-  const notificationsData = await loadData<Notifications>("@notifications");
-  const dataNotifications = {} as Notifications["data"];
-  const enabledNotifications = {} as Notifications["enabled"];
-  const intervalsNotifications = {} as Notifications["intervals"];
-  reasonNotification.forEach((reason) => {
-    dataNotifications[reason] = null;
-    enabledNotifications[reason] = false;
-    intervalsNotifications[reason] = null;
-    if (reason === "cryptos") intervalsNotifications[reason] = 1000 * 60 * 10;
-  });
+export const initializeNotificationsStorage =
+  async (): Promise<Notifications> => {
+    let notificationsData = await loadData<Notifications>("@notifications");
+    if (isNotificationsAlreadyInitialized(notificationsData))
+      return notificationsData;
 
-  if (!notificationsData || !notificationsData.enabled.allNotifications) {
-    const { status } = await notifications.getPermissionsAsync();
-    if (status !== notifications.PermissionStatus.GRANTED)
-      await notifications.requestPermissionsAsync();
+    const dataNotifications = {} as Notifications["data"];
+    const enabledNotifications = {} as Notifications["enabled"];
+    const intervalsNotifications = {} as Notifications["intervals"];
+    reasonNotification.forEach((reason) => {
+      dataNotifications[reason] = null;
+      enabledNotifications[reason] = false;
+      intervalsNotifications[reason] = null;
+      if (reason === "cryptos") intervalsNotifications[reason] = 1000 * 60 * 10;
+    });
 
-    const { status: newStatus } = await notifications.getPermissionsAsync();
-    if (newStatus !== notifications.PermissionStatus.GRANTED) {
-      await saveData<Notifications>("@notifications", {
-        enabled: { ...enabledNotifications, allNotifications: false },
+    if (!notificationsData || !notificationsData.enabled.allNotifications) {
+      const { status } = await notifications.getPermissionsAsync();
+      if (status !== notifications.PermissionStatus.GRANTED)
+        await notifications.requestPermissionsAsync();
+
+      const { status: newStatus } = await notifications.getPermissionsAsync();
+      if (newStatus !== notifications.PermissionStatus.GRANTED) {
+        notificationsData = {
+          enabled: { ...enabledNotifications, allNotifications: false },
+          data: dataNotifications,
+          intervals: intervalsNotifications,
+        };
+        await saveData<Notifications>("@notifications", notificationsData);
+        return notificationsData;
+      }
+
+      notificationsData = {
+        enabled: { ...enabledNotifications, allNotifications: true },
         data: dataNotifications,
         intervals: intervalsNotifications,
-      });
-      return;
+      };
+      await saveData<Notifications>("@notifications", notificationsData);
+      return notificationsData;
     }
 
-    await saveData<Notifications>("@notifications", {
-      enabled: { ...enabledNotifications, allNotifications: true },
-      data: dataNotifications,
-      intervals: intervalsNotifications,
-    });
-  }
+    const keysNotificationsSaved = stringifyData(
+      Object.keys(notificationsData),
+    );
+    if (keysNotificationsSaved === stringifyData(reasonNotification))
+      return notificationsData;
 
-  const lenNotificationsSaved = Object.keys(notificationsData).length;
-  if (lenNotificationsSaved === reasonNotification.length) return;
+    notificationsData.data = { ...dataNotifications };
+    notificationsData.enabled = {
+      ...enabledNotifications,
+      allNotifications: true,
+    };
 
-  notificationsData.data = { ...dataNotifications };
-  notificationsData.enabled = {
-    ...enabledNotifications,
-    allNotifications: true,
+    await saveData<Notifications>("@notifications", notificationsData);
+    return notificationsData;
   };
-
-  await saveData<Notifications>("@notifications", notificationsData);
-};
 
 /**
  * Checks if the application has permission to send push notifications.

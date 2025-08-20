@@ -1,9 +1,9 @@
-import useColors from "@hooks/useColors";
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
 
 const useStylesNotifications = () => {
-  const { primary, secondary, text, shadow, accent, background } = useColors();
+  const { primary, secondary, text, shadow, accent, background } = useTheme();
   const { isPhone, isWeb, isTablet } = useResponsiveLayout();
 
   const styles = StyleSheet.create({

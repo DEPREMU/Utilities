@@ -1,10 +1,9 @@
 import { DimensionValue, StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
-import { useColors } from "@hooks/useColors";
-
+import { useTheme } from "@context/ThemeContext";
 export const useStylesCryptoPrice = () => {
   const { isTablet, isWeb, isLargeTablet } = useResponsiveLayout();
-  const { text, primary, secondary, accent, shadow } = useColors();
+  const { text, primary, secondary, accent, shadow } = useTheme();
 
   const getResponsiveValue = <T = number>(
     phone: T,

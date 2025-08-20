@@ -1,8 +1,8 @@
 import { StyleSheet } from "react-native";
-import { useColors } from "@hooks/useColors";
+import { useTheme } from "@context/ThemeContext";
 
 export const useStylesButtonComponent = () => {
-  const { primary, background } = useColors();
+  const { primary, background } = useTheme();
 
   return StyleSheet.create({
     button: {

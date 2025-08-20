@@ -1,6 +1,9 @@
 import { logError } from "./debug";
 import * as Network from "expo-network";
+import { saveData } from "./storageManagement";
 import * as Localization from "expo-localization";
+import { initializeNotificationsStorage } from "./notifications";
+import { Notifications, ReasonNotification } from "@types";
 
 export const getFormattedDate = (
   date: Date,
@@ -153,9 +156,37 @@ export const getDateWithDaysAhead = (days: number): Date => {
   return date;
 };
 
+/**
+ * Checks if the device has an active internet connection.
+ *
+ * This function uses the `expo-network` library to determine the network state
+ * and checks if the device is connected to the internet.
+ *
+ * @returns {Promise<boolean>} A promise that resolves to `true` if the device is connected to the internet, otherwise `false`.
+ */
 export const hasInternetConnection = async (): Promise<boolean> => {
   const { isConnected, isInternetReachable } =
     await Network.getNetworkStateAsync();
 
   return !!isConnected && !!isInternetReachable;
+};
+
+/**
+ * Retrieves the notifications data from storage.
+ *
+ * This function initializes the notifications storage if it hasn't been set up yet.
+ * It returns the current notifications data or null if not found.
+ *
+ * @returns A promise that resolves to the notifications data or null.
+ */
+export const getNotifications = async (): Promise<Notifications | null> => {
+  const data = await initializeNotificationsStorage();
+
+  const keysData = Object.keys(data.data);
+  keysData.forEach((key) => {
+    data.data[key as ReasonNotification] = null;
+  });
+
+  saveData("@notifications", stringifyData(data));
+  return data;
 };

@@ -1,9 +1,8 @@
 import { useResponsiveLayout } from "@context/LayoutContext";
 import { StyleSheet } from "react-native";
-import { useColors } from "@hooks/useColors";
-
+import { useTheme } from "@context/ThemeContext";
 export const useStylesHomeScreen = () => {
-  const colors = useColors();
+  const colors = useTheme();
   const { isPhone, isWeb } = useResponsiveLayout();
   const { background, text } = colors;
 

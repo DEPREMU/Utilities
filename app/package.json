@@ -15,8 +15,8 @@
     "clean:all": "npm run clean && npm run install-all",
     "app": "npx expo start -c -g",
     "app-dev": "npx expo start -c -d",
-    "build:android": "npm run clean && eas build --clear-cache --platform android --profile preview && npm run install-all",
-    "build-dev:android": "npm run clean && eas build --clear-cache --platform android --profile development && npm run install-all",
+    "build:android": "eas build --clear-cache --platform android --profile preview && npm run install-all",
+    "build-dev:android": "eas build --clear-cache --platform android --profile development && npm run install-all",
     "build:web": "npx expo export --platform web",
     "install-all": "npm install & cd server & npm install",
     "format-all": "npx prettier --write \"./*.{ts,tsx}\" --ignore-path .gitignore",
@@ -40,7 +40,7 @@
     "expo-background-fetch": "~13.1.5",
     "expo-build-properties": "^0.14.8",
     "expo-constants": "~17.1.6",
-    "expo-dev-client": "~5.2.1",
+    "expo-dev-client": "~5.2.4",
     "expo-device": "~7.1.4",
     "expo-localization": "~16.1.6",
     "expo-notifications": "^0.31.4",
@@ -59,7 +59,8 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0",
-    "expo-network": "~7.1.5"
+    "expo-network": "~7.1.5",
+    "react-native-gesture-handler": "~2.24.0"
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",

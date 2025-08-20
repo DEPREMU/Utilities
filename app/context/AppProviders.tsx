@@ -6,6 +6,9 @@ import { LanguageProvider } from "@context/LanguageContext";
 import { WebSocketProvider } from "./WebSocketContext";
 import { NotificationsProvider } from "./NotificationsContext";
 import { ThemeProvider } from "./ThemeContext";
+import { initializeNotificationsStorage } from "@/utils";
+
+initializeNotificationsStorage();
 
 const AppProviders = ({ children }: { children: React.ReactNode }) => (
   <LayoutProvider>

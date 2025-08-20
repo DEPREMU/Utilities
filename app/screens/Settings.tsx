@@ -10,6 +10,7 @@ import { ScrollView, View } from "react-native";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
 import { loadData, log, saveData } from "@utils";
 import React, { useCallback, useEffect, useState } from "react";
+import ThemePicker from "@/components/Settings/ThemePicker";
 
 type Section = {
   subtitle: keyof typeLanguages;
@@ -57,7 +58,7 @@ const SettingsScreen: React.FC = () => {
     await saveData("@webSocketURL", socketURL);
   }, [socketURL, setSocketURL]);
 
-  const renderSections = useCallback(() => {
+  const renderSectionsAdmin = useCallback(() => {
     const sections: Section[] = [
       {
         subtitle: "setApiURL",
@@ -82,16 +83,13 @@ const SettingsScreen: React.FC = () => {
     return sections.map((section, index) => (
       <View style={styles.section} key={index}>
         <Text style={styles.subtitle}>{t(section.subtitle)}</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            label={t(section.labelTextInput)}
-            value={section.value || ""}
-            onChangeText={section.onChangeText}
-            mode="outlined"
-            placeholder={section.placeholder}
-          />
-        </View>
+        <TextInput
+          label={t(section.labelTextInput)}
+          value={section.value || ""}
+          onChangeText={section.onChangeText}
+          mode="outlined"
+          placeholder={section.placeholder}
+        />
         <View style={styles.buttonContainer}>
           <Button
             customStyles={{
@@ -106,7 +104,7 @@ const SettingsScreen: React.FC = () => {
     ));
   }, [apiURL, socketURL, styles, t, saveApiURL, saveSocketURL]);
 
-  const handleOtherScollActive = useCallback((touching: boolean) => {
+  const handleOtherScrollActive = useCallback((touching: boolean) => {
     setIsOtherScrollActive(touching);
   }, []);
 
@@ -132,19 +130,20 @@ const SettingsScreen: React.FC = () => {
           scrollEnabled={!isOtherScrollActive}
         >
           <View style={styles.section}>
-            <Text style={styles.subtitle}>{t("language")}</Text>
+            <ThemePicker />
+          </View>
+          <View style={styles.section}>
             <LanguagePicker />
           </View>
           <View style={styles.section}>
             <Text style={styles.subtitle}>{t("notifications")}</Text>
-            <Notifications onScrollableAreaTouch={handleOtherScollActive} />
+            <Notifications onScrollableAreaTouch={handleOtherScrollActive} />
           </View>
           {!hasAdmin && (
             <View style={styles.section}>
               <Text style={styles.subtitle}>{t("adminSection")}</Text>
               <View style={styles.inputContainer}>
                 <TextInput
-                  style={styles.textInput}
                   label={t("passwordAdminSection")}
                   onChangeText={setPassword}
                   value={password}
@@ -164,7 +163,7 @@ const SettingsScreen: React.FC = () => {
               </View>
             </View>
           )}
-          {hasAdmin && renderSections()}
+          {hasAdmin && renderSectionsAdmin()}
         </ScrollView>
       </View>
     </View>

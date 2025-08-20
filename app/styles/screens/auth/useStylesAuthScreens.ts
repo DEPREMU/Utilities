@@ -1,13 +1,12 @@
 import { useResponsiveLayout } from "@context/LayoutContext";
 import { StyleSheet } from "react-native";
-import { useColors } from "@hooks/useColors";
-
+import { useTheme } from "@context/ThemeContext";
 /**
  * @function  useStylesAuthScreens
  * @returns {{ styles: object, height: number, width: number }}
  */
 const useStylesAuthScreens = () => {
-  const colors = useColors();
+  const colors = useTheme();
   const { width, height } = useResponsiveLayout();
   const { background, primary, secondary, text, shadow, error } = colors;
 

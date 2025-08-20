@@ -4,19 +4,24 @@ import {
   ReasonNotification,
   Notifications as typeNotifications,
 } from "./typesNotifications";
-import { Cryptos } from "./typesDatabase";
+import { LanguagesSupported } from "./typesTranslations";
 
 export type WebSocketMessage =
   | {
       type: "init";
       uid: string;
-      language: string;
+      language: LanguagesSupported;
+      notifications: typeNotifications | null;
     }
   | { type: "ping" }
   | {
       type: "notifications";
       data: typeNotifications;
       uid: string;
+    }
+  | {
+      type: "language-change";
+      language: LanguagesSupported;
     };
 
 export type WebSocketResponse =
@@ -39,4 +44,7 @@ export type WebSocketResponse =
         screen?: ScreensAvailable;
         data?: Record<string, unknown>;
       };
+    }
+  | {
+      type: "pong";
     };

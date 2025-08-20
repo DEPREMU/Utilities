@@ -1,0 +1,36 @@
+{
+  "cli": {
+    "version": ">= 16.17.4",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal",
+      "env": {
+        "SUPABASE_URL": "$SUPABASE_URL",
+        "SUPABASE_KEY": "$SUPABASE_KEY",
+        "ADMIN_PASSWORD": "$ADMIN_PASSWORD"
+      }
+    },
+    "production": {
+      "env": {
+        "SUPABASE_URL": "$SUPABASE_URL",
+        "SUPABASE_KEY": "$SUPABASE_KEY",
+        "ADMIN_PASSWORD": "$ADMIN_PASSWORD"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

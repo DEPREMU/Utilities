@@ -16,6 +16,9 @@ export default {
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_KEY: process.env.SUPABASE_KEY,
       ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
+      eas: {
+        projectId: "7dd2c093-0c91-4638-a5b9-828d458e8be0",
+      },
     },
     splash: {
       image: "./assets/icon.png",

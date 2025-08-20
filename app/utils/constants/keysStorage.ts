@@ -9,6 +9,7 @@ export const KEYS_STORAGE = [
   "@webSocketURL",
   "@API_URL",
   "@hasAdminAccess",
+  "@theme",
 ] as const;
 
 export type KeyStorageValues = (typeof KEYS_STORAGE)[number];
