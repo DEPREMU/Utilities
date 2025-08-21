@@ -20,6 +20,7 @@ const buttons: Array<{ label: keyof typeLanguages; screen: ScreensAvailable }> =
     { label: "settings", screen: "Settings" },
     { label: "infoIP", screen: "InfoIP" },
     { label: "cryptoInfo", screen: "Cryptos" },
+    { label: "calculator", screen: "Calculator" },
   ];
 
 const HomeScreen: React.FC = () => {

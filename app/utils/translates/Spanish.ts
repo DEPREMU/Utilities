@@ -113,6 +113,10 @@ const es: typeLanguages = {
   light: "Claro",
   dark: "Oscuro",
   setTheme: "Seleccionar tema",
+  calculate: "Calcular",
+  syntaxError: "Error de sintaxis",
+  finances: "Finanzas",
+  calculator: "Calculadora",
 } as const;
 
 export default es;

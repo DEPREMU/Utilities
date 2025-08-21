@@ -183,7 +183,6 @@ const connectionWss = (ws: WebSocket) => {
       };
     }
     if (!data.data.enabled.allNotifications) return;
-    console.log(data.data);
     Object.entries(data.data.enabled).forEach(([key, value]) => {
       if (key === "allNotifications") return;
       const keyTyped = key as ReasonNotification;

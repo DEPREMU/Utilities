@@ -115,6 +115,10 @@ export type typeLanguages = Record<ReasonNotification, string> & {
   light: string;
   dark: string;
   setTheme: string;
+  calculate: string;
+  syntaxError: string;
+  calculator: string;
+  finances: string;
 };
 
 export type typeLanguagesServer = {

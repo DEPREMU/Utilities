@@ -4,4 +4,5 @@ export type ScreensAvailable =
   | "Cryptos"
   | "Login"
   | "SignUp"
-  | "Settings";
+  | "Settings"
+  | "Calculator";

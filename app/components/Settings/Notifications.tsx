@@ -100,6 +100,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
               onChangeText={(text) =>
                 handleChangeNotificationInterval(item.id, text)
               }
+              keyboardType="numeric"
               label={t("notificationInterval")}
               style={styles.notificationInput}
             />

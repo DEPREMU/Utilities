@@ -96,6 +96,7 @@ const SettingsScreen: React.FC = () => {
               button: styles.button,
               textButton: styles.buttonLabel,
             }}
+            touchableOpacity
             handlePress={section.handlePress}
             label={t(section.labelButton)}
           />

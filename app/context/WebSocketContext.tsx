@@ -48,7 +48,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const { userData } = useUserContext();
   const { openModal, closeModal } = useModal();
   const timeOutId = useRef<NodeJS.Timeout | null>(null);
-  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [socketURL, setSocketURL] = useState<string | null>(null);
 
@@ -70,27 +69,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     log("WebSocket initialized successfully.");
   }, [closeModal, openModal, t, userData?.name]);
 
-  const handleReconnectWebSocket = (
-    socket: WebSocket,
-    timeOutId: React.RefObject<NodeJS.Timeout | null>,
-    setSocket: React.Dispatch<React.SetStateAction<WebSocket | null>>,
-  ) => {
-    if (socket.readyState === WebSocket.OPEN)
-      return timeOutId.current && clearTimeout(timeOutId.current);
-    timeOutId.current = setTimeout(() => {
-      setSocket(null);
-    }, 2000);
-  };
-
   const getWebSocket = useCallback(() => {
-    if (socket && socket.readyState === WebSocket.OPEN) return socket;
+    if (
+      socket &&
+      socket.readyState === WebSocket.OPEN &&
+      (!socketURL || (socketURL && socketURL === socket.url))
+    )
+      return socket;
+    socket?.close();
 
     const localSocket = new WebSocket(socketURL || URL_WEB_SOCKET);
-    if (pingIntervalRef.current) {
-      clearInterval(pingIntervalRef.current);
-      pingIntervalRef.current = null;
-    }
-    pingIntervalRef.current = setInterval(() => localSocket?.ping?.(), 30000);
 
     localSocket.onopen = () => {
       checkLanguage().then((language) => {
@@ -148,60 +136,60 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     localSocket.onerror = (error) => {
       logError("WebSocket error:", error);
-      if (pingIntervalRef.current) {
-        clearInterval(pingIntervalRef.current);
-        pingIntervalRef.current = null;
-      }
-      handleReconnectWebSocket(localSocket, timeOutId, setSocket);
     };
 
     localSocket.ping = () => {
-      if (!socket || socket?.readyState !== WebSocket.OPEN)
-        return handleReconnectWebSocket(localSocket, timeOutId, setSocket);
+      if (!localSocket || localSocket.readyState !== WebSocket.OPEN) return;
       const message: WebSocketMessage = { type: "ping" };
-      socket.send(JSON.stringify(message));
+      localSocket.send(JSON.stringify(message));
       log("WebSocket ping sent.");
     };
 
     localSocket.onclose = (event) => {
       log("WebSocket connection closed:", event);
-      if (pingIntervalRef.current) {
-        clearInterval(pingIntervalRef.current);
-        pingIntervalRef.current = null;
-      }
-      handleReconnectWebSocket(localSocket, timeOutId, setSocket);
     };
 
     return localSocket;
-  }, [
-    socketURL,
-    userData,
-    timeOutId,
-    setSocket,
-    handleInitSuccessWebSocket,
-    socket,
-  ]);
+  }, [socketURL, userData, handleInitSuccessWebSocket, socket]);
 
   useEffect(() => {
     loadData<string | null>("@webSocketURL").then(setSocketURL);
   }, []);
 
   useEffect(() => {
-    if ((socket && !socketURL) || !userData) return;
-    if (
-      socket &&
-      socket.readyState === WebSocket.OPEN &&
-      socketURL === socket.url
-    )
-      return;
+    if (socket) return;
 
     const id = setTimeout(() => {
       const newSocket = getWebSocket();
       setSocket(newSocket);
-    }, 1000);
+    }, 2000);
 
     return () => clearTimeout(id);
-  }, [socket, userData, socketURL, getWebSocket]);
+  }, [socket, getWebSocket]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const checkSocketListener = () => setSocket(null);
+    socket.addEventListener("close", checkSocketListener);
+
+    const pingInterval = setInterval(() => socket.ping(), 30000);
+
+    return () => {
+      clearInterval(pingInterval);
+      socket.removeEventListener("close", checkSocketListener);
+    };
+  }, [socket, socketURL, getWebSocket]);
+
+  useEffect(() => {
+    if (
+      !socketURL ||
+      (socket?.url === socketURL && WebSocket.OPEN === socket?.readyState)
+    )
+      return;
+
+    socket?.close?.();
+  }, [socketURL, socket]);
 
   useEffect(() => {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;

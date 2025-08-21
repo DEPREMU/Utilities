@@ -10,6 +10,7 @@ import SignUpScreen from "@screens/auth/SignUpScreen";
 import { useTheme } from "@/context/ThemeContext";
 import SettingsScreen from "@/screens/Settings";
 import CryptosNavigator from "@/screens/Cryptos";
+import CalculatorNavigator from "@/screens/calculator";
 import React, { useEffect } from "react";
 import { ScreensAvailable } from "@types";
 import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
@@ -50,6 +51,7 @@ const screens: Screens = {
   Login: { component: LoginScreen },
   SignUp: { component: SignUpScreen },
   Settings: { component: SettingsScreen },
+  Calculator: { component: CalculatorNavigator },
 };
 
 const allScreens = Object.entries(screens).map(
@@ -79,7 +81,7 @@ const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer ref={navigationRef} theme={navigationTheme}>
       <BackgroundTaskProvider>
-        <Stack.Navigator initialRouteName="Login">{allScreens}</Stack.Navigator>
+        <Stack.Navigator initialRouteName="Home">{allScreens}</Stack.Navigator>
       </BackgroundTaskProvider>
     </NavigationContainer>
   );
