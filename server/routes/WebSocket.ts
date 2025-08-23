@@ -91,7 +91,7 @@ const connectionWss = (ws: WebSocket) => {
   }> => {
     const lang = users?.[userId]?.language || "en";
 
-    if (cryptos.length === 0)
+    if (cryptos?.length === 0)
       return {
         title: t("notificationNotCryptosSelectedTitle", lang),
         body: t("notificationNotCryptosSelectedBody", lang),

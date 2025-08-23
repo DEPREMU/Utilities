@@ -5,9 +5,10 @@ import { BottomNavigation } from "react-native-paper";
 import useStylesCryptosNavigator from "@styles/components/cryptos/useStylesCryptosNavigator";
 import { loadDataSecure, SelectedCryptos } from "@utils";
 import React, { useCallback, useEffect, useState } from "react";
+import { View } from "react-native";
 
 const CryptosNavigator: React.FC = () => {
-  const { styles } = useStylesCryptosNavigator();
+  const { styles, accent, primary } = useStylesCryptosNavigator();
 
   const [index, setIndex] = React.useState<number>(0);
 
@@ -73,14 +74,16 @@ const CryptosNavigator: React.FC = () => {
   }, []);
 
   return (
-    <BottomNavigation
-      navigationState={{ index, routes }}
-      onIndexChange={setIndex}
-      renderScene={renderScene}
-      barStyle={styles.tabBar}
-      activeColor="#6200ee"
-      inactiveColor="#ffffff"
-    />
+    <View style={styles.container}>
+      <BottomNavigation
+        navigationState={{ index, routes }}
+        onIndexChange={setIndex}
+        renderScene={renderScene}
+        barStyle={styles.tabBar}
+        activeColor={primary}
+        inactiveColor={accent}
+      />
+    </View>
   );
 };
 

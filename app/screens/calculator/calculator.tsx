@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import Button from "@components/common/ButtonComponent";
 import { ScrollView, View } from "react-native";
 import { Icon, Text } from "react-native-paper";
@@ -19,16 +19,14 @@ const Calculator: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesCalculator();
 
-  const [input, setInput] = useState<string>(
-    "(5+5)*2(3-1*(2+1*(2-1)))+105.5*2",
-  );
+  const [input, setInput] = useState<string>("");
   const [result, setResult] = useState<string>("");
 
-  const handlePressInput = (char: string) => {
+  const handlePressInput = useCallback((char: string) => {
     if (char === "c") return setInput("");
     if (char === "d") return setInput((prev) => prev.slice(0, -1));
     setInput((prev) => prev + char);
-  };
+  }, []);
 
   useEffect(() => {
     if (!input || !t || input.trim().length === 0) return setResult("0");
@@ -89,4 +87,6 @@ const Calculator: React.FC = () => {
   );
 };
 
-export default Calculator;
+const CalculatorMemo = memo(Calculator);
+
+export default CalculatorMemo;

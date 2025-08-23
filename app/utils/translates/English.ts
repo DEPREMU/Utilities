@@ -114,6 +114,7 @@ const en: typeLanguages = {
   syntaxError: "Syntax Error",
   finances: "Finances",
   calculator: "Calculator",
+  currentPrice: "Current Price",
 } as const;
 
 export default en;

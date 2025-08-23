@@ -2,12 +2,12 @@ import {
   logError,
   getRouteAPI,
   fetchOptions,
-  SelectedCryptos,
   stringifyData,
-  log,
+  SelectedCryptos,
   getFormattedDate,
 } from "@utils";
 import { View, Text } from "react-native";
+import SkeletonLoading from "@components/common/SkeletonLoading";
 import { ResponseCryptoPrice } from "@types";
 import { useStylesCryptoPrice } from "@styles/components/cryptos/useStylesCryptoPrice";
 import React, { useState, useEffect } from "react";
@@ -19,6 +19,7 @@ type CryptoPriceProps = {
   firstInvest: string;
   gainAmount: string;
   datePurchased: string;
+  currentPrice: string;
 };
 
 const CryptoPrice: React.FC<CryptoPriceProps> = ({
@@ -28,9 +29,11 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
   firstInvest = "You invested: {{amount}} {{cryptoName}} with the price of {{price}}",
   gainAmount = "You gained: {{gainAmount}} {{currency}}",
   datePurchased = "Date purchased: {{date}}",
+  currentPrice = "Current Price",
 }) => {
   const { styles } = useStylesCryptoPrice();
 
+  const [loading, setLoading] = useState<boolean>(true);
   const [priceUsd, setPriceUsd] = useState<number | null>(null);
   const [priceMxn, setPriceMxn] = useState<number | null>(null);
   const gainPercent =
@@ -50,7 +53,6 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
             currency: cryptoData.currency,
           }),
         ).then(async (r) => (await r.json()) as ResponseCryptoPrice);
-        log(data, cryptoData);
         const { priceUSD, error, priceUSDTMXN } = data;
         if (error) {
           setPriceUsd(null);
@@ -66,94 +68,143 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
       }
     };
 
-    const id = setInterval(fetchPrice, 10000);
-    fetchPrice();
+    const handleShow = () =>
+      fetchPrice().finally(() => setTimeout(() => setLoading(false), 1500));
+
+    const id = setInterval(handleShow, 10000);
+    handleShow();
     return () => clearInterval(id);
   }, [cryptoData]);
-
-  if (!priceUsd) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
       <View style={styles.cryptoHeader}>
-        <Text style={styles.cryptoName}>{cryptoData.id}</Text>
-        <Text style={styles.cryptoSymbol}>{cryptoData.currency}</Text>
+        <SkeletonLoading
+          style={[styles.cryptoName, styles.padding0]}
+          showChildren={!loading}
+        >
+          <Text style={styles.cryptoName}>{cryptoData.id}</Text>
+        </SkeletonLoading>
+        <SkeletonLoading
+          style={[styles.cryptoCurrencyContainer, styles.padding0]}
+          showChildren={!loading}
+        >
+          <View style={styles.cryptoCurrencyContainer}>
+            <Text style={styles.cryptoCurrency}>{cryptoData.currency}</Text>
+          </View>
+        </SkeletonLoading>
       </View>
 
       <View style={styles.priceContainer}>
-        <Text style={styles.priceLabel}>Current Price</Text>
-        <Text style={styles.price}>
-          {cryptoData.currency}: ${priceUsd.toFixed(2)}
-          {priceMxn !== null && `\nMXN: $${priceMxn.toFixed(2)}`}
-        </Text>
+        <Text style={styles.priceLabel}>{currentPrice}</Text>
+        <SkeletonLoading
+          style={[styles.pricesContainer, styles.padding0]}
+          showChildren={!loading}
+        >
+          <View style={styles.pricesContainer}>
+            <Text style={styles.price}>
+              {cryptoData.currency}: ${priceUsd?.toFixed(2)}
+              {priceMxn !== null && `\nMXN: $${priceMxn?.toFixed(2)}`}
+            </Text>
+          </View>
+        </SkeletonLoading>
       </View>
 
       <View style={styles.infoSection}>
-        <Text style={styles.ownedText}>
-          {ownedAmount
-            .replace("{{amount}}", Number(cryptoData.amount).toString())
-            .replace("{{cryptoName}}", cryptoData.id || "")}
-        </Text>
-        <Text style={styles.ownedAmount}>
-          {cryptoData.currency}: $
-          {(parseFloat(cryptoData.amount) * priceUsd).toFixed(2)}
-        </Text>
-        {priceMxn !== null && (
-          <Text style={styles.ownedAmount}>
-            MXN: ${(parseFloat(cryptoData.amount) * priceMxn).toFixed(2)}
+        <SkeletonLoading
+          style={[styles.ownedText, styles.padding0]}
+          showChildren={!loading}
+        >
+          <Text style={styles.ownedText}>
+            {ownedAmount
+              .replace("{{amount}}", Number(cryptoData.amount).toString())
+              .replace("{{cryptoName}}", cryptoData.id || "")}
           </Text>
-        )}
+        </SkeletonLoading>
+        <SkeletonLoading
+          style={[styles.ownedAmount, styles.padding0]}
+          showChildren={!loading}
+        >
+          <Text style={styles.ownedAmount}>
+            {cryptoData.currency}: $
+            {(parseFloat(cryptoData.amount) * (priceUsd || 0)).toFixed(2)}
+          </Text>
+        </SkeletonLoading>
+        <SkeletonLoading
+          style={[styles.ownedAmount, styles.padding0]}
+          showChildren={!loading}
+        >
+          {priceMxn !== null && !loading && (
+            <Text style={styles.ownedAmount}>
+              MXN: ${(parseFloat(cryptoData.amount) * priceMxn).toFixed(2)}
+            </Text>
+          )}
+        </SkeletonLoading>
       </View>
 
       <View style={styles.divider} />
 
-      <Text style={styles.firstInvest}>
-        {firstInvest
-          .replace("{{amount}}", Number(cryptoData.amount).toString())
-          .replace("{{cryptoName}}", cryptoData.id || "")
-          .replace("{{price}}", cryptoData.firstPricePurchased.toString())}
-      </Text>
+      <SkeletonLoading
+        style={[styles.firstInvest, styles.padding0]}
+        showChildren={!loading}
+      >
+        <Text style={styles.firstInvest}>
+          {firstInvest
+            .replace("{{amount}}", Number(cryptoData.amount).toString())
+            .replace("{{cryptoName}}", cryptoData.id || "")
+            .replace("{{price}}", cryptoData.firstPricePurchased.toString())}
+        </Text>
+      </SkeletonLoading>
 
       <View style={styles.gainContainer}>
-        <Text style={styles.gainAmount}>
-          {gainAmount
-            .replace(
-              "{{gainAmount}}",
-              String(
-                (
-                  Number(cryptoData.amount) * priceUsd -
-                  cryptoData.firstPricePurchased * Number(cryptoData.amount)
-                ).toFixed(2),
-              ),
-            )
-            .replace("{{currency}}", cryptoData?.currency || "")}
-        </Text>
-        <Text
-          style={[
-            styles.gainPercent,
-            gainPercent.startsWith("-") ? styles.colorRed : styles.colorGreen,
-          ]}
+        <SkeletonLoading
+          style={[styles.gainAmount, styles.padding0]}
+          showChildren={!loading}
         >
-          {gainPercent}
-        </Text>
+          <Text style={styles.gainAmount}>
+            {gainAmount
+              .replace(
+                "{{gainAmount}}",
+                String(
+                  (
+                    Number(cryptoData.amount) * (priceUsd || 0) -
+                    cryptoData.firstPricePurchased * Number(cryptoData.amount)
+                  ).toFixed(2),
+                ),
+              )
+              .replace("{{currency}}", cryptoData?.currency || "")}
+          </Text>
+        </SkeletonLoading>
+        <SkeletonLoading
+          style={[styles.gainPercent, styles.padding0]}
+          showChildren={!loading}
+        >
+          <Text
+            style={[
+              styles.gainPercent,
+              gainPercent.startsWith("-") ? styles.colorRed : styles.colorGreen,
+            ]}
+          >
+            {gainPercent}
+          </Text>
+        </SkeletonLoading>
       </View>
 
       {!!cryptoData.datePurchased && (
-        <Text style={styles.datePurchasedText}>
-          {datePurchased.replace(
-            "{{date}}",
-            getFormattedDate(new Date(cryptoData.datePurchased), undefined, {
-              dateStyle: "medium",
-              timeStyle: "short",
-            }),
-          )}
-        </Text>
+        <SkeletonLoading
+          style={[styles.datePurchasedText, styles.padding0]}
+          showChildren={!loading}
+        >
+          <Text style={styles.datePurchasedText}>
+            {datePurchased.replace(
+              "{{date}}",
+              getFormattedDate(new Date(cryptoData.datePurchased), undefined, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }),
+            )}
+          </Text>
+        </SkeletonLoading>
       )}
     </View>
   );
@@ -164,7 +215,8 @@ const CryptoPriceMemo = React.memo(CryptoPrice, (prevProps, nextProps) => {
     stringifyData(prevProps.cryptoData) ===
       stringifyData(nextProps.cryptoData) &&
     prevProps.priceOfCrypto === nextProps.priceOfCrypto &&
-    prevProps.ownedAmount === nextProps.ownedAmount
+    prevProps.ownedAmount === nextProps.ownedAmount &&
+    prevProps.currentPrice === nextProps.currentPrice
   );
 });
 

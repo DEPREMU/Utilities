@@ -1,5 +1,5 @@
 import axios from "axios";
-import { dataIP_APIJSON, dataIPQueryJSON } from "@types";
+import { dataIP_API_JSON, dataIPQueryJSON } from "@types";
 
 export const getIP = async () => {
   const { data } = await axios.get("https://api.ipquery.io/");
@@ -17,7 +17,7 @@ export const getDataIPQuery = async (
 
 export const getDataIP_api = async (
   ip: string,
-): Promise<dataIP_APIJSON | null> => {
+): Promise<dataIP_API_JSON | null> => {
   try {
     const response = await axios.get(
       `http://ip-api.com/json/${ip}?fields=66846719`,

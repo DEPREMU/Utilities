@@ -1,9 +1,11 @@
-import { DimensionValue, StyleSheet } from "react-native";
-import { useResponsiveLayout } from "@context/LayoutContext";
 import { useTheme } from "@context/ThemeContext";
+import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
+
 export const useStylesCryptoPrice = () => {
-  const { isTablet, isWeb, isLargeTablet } = useResponsiveLayout();
-  const { text, primary, secondary, accent, shadow } = useTheme();
+  const { isTablet, isWeb, isLargeTablet, getCommonStyles } =
+    useResponsiveLayout();
+  const { text, primary, secondary, accent } = useTheme();
 
   const getResponsiveValue = <T = number>(
     phone: T,
@@ -19,44 +21,56 @@ export const useStylesCryptoPrice = () => {
 
   const styles = StyleSheet.create({
     container: {
+      ...getCommonStyles(["shadow", "mainContainer"], { copyInsets: false }),
       backgroundColor: secondary,
       padding: getResponsiveValue(20, 24, 28, 32),
       borderRadius: getResponsiveValue(16, 18, 20, 24),
-      width: getResponsiveValue<DimensionValue>("95%", "95%", "95%", "100%"),
-      shadowColor: shadow,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-      elevation: 8,
       borderWidth: 2,
       borderColor: primary,
-      minHeight: getResponsiveValue(200, 220, 240, 260),
+      minHeight: getResponsiveValue(500, 550, 600, 650),
+      minWidth: 300,
     },
     cryptoHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
+      gap: getResponsiveValue(10, 12, 14, 16),
       alignItems: "center",
       marginBottom: getResponsiveValue(16, 18, 20, 24),
       paddingBottom: getResponsiveValue(12, 14, 16, 20),
       borderBottomWidth: 2,
       borderBottomColor: primary,
+      width: "100%",
+    },
+    cryptoCurrency: {
+      fontSize: getResponsiveValue(14, 15, 16, 18),
+      fontWeight: "600",
+      textAlign: "center",
+      color: accent,
     },
     cryptoName: {
       fontSize: getResponsiveValue(24, 26, 28, 32),
+      width: 100,
+      minHeight: 30,
+      maxWidth: "30%",
       fontWeight: "800",
       color: text,
+      flex: 1,
       textTransform: "uppercase",
       letterSpacing: 1,
-      flex: 1,
     },
-    cryptoSymbol: {
-      fontSize: getResponsiveValue(14, 15, 16, 18),
-      color: accent,
-      fontWeight: "600",
+    cryptoCurrencyContainer: {
+      minWidth: 50,
+      maxWidth: "30%",
+      minHeight: 30,
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
       backgroundColor: primary,
-      paddingHorizontal: getResponsiveValue(8, 9, 10, 12),
-      paddingVertical: getResponsiveValue(4, 5, 6, 7),
+      padding: getResponsiveValue(8, 9, 10, 12),
       borderRadius: getResponsiveValue(6, 7, 8, 9),
+    },
+    padding0: {
+      padding: 0,
     },
     text: {
       fontSize: getResponsiveValue(16, 17, 18, 20),
@@ -65,8 +79,16 @@ export const useStylesCryptoPrice = () => {
       fontWeight: "500",
       lineHeight: getResponsiveValue(22, 23, 24, 26),
     },
+    pricesContainer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      minHeight: 50,
+      alignItems: "center",
+      gap: getResponsiveValue(8, 9, 10, 12),
+    },
     priceContainer: {
       backgroundColor: primary,
+      minWidth: 200,
       borderRadius: getResponsiveValue(12, 13, 14, 16),
       padding: getResponsiveValue(16, 17, 18, 20),
       marginBottom: getResponsiveValue(16, 18, 20, 24),
@@ -81,6 +103,7 @@ export const useStylesCryptoPrice = () => {
     priceLabel: {
       fontSize: getResponsiveValue(12, 13, 14, 16),
       color: text,
+      minHeight: 20,
       textAlign: "center",
       marginBottom: getResponsiveValue(8, 9, 10, 12),
       fontWeight: "600",
@@ -89,22 +112,32 @@ export const useStylesCryptoPrice = () => {
     },
     infoSection: {
       marginBottom: getResponsiveValue(12, 14, 16, 20),
+      gap: getResponsiveValue(2, 4, 6, 8),
+      width: "100%",
+      alignItems: "center",
     },
     ownedText: {
       fontSize: getResponsiveValue(16, 17, 18, 20),
       color: text,
+      minHeight: 20,
+      minWidth: 150,
       marginBottom: getResponsiveValue(6, 7, 8, 10),
       fontWeight: "500",
+      textAlign: "center",
     },
     ownedAmount: {
       fontSize: getResponsiveValue(18, 19, 20, 22),
       fontWeight: "700",
+      textAlign: "center",
+      minWidth: 150,
+      minHeight: 25,
       color: accent,
-      marginLeft: getResponsiveValue(8, 9, 10, 12),
     },
     firstInvest: {
       fontSize: getResponsiveValue(15, 16, 17, 19),
       color: text,
+      minHeight: 20,
+      width: "100%",
       marginBottom: getResponsiveValue(12, 14, 16, 20),
       lineHeight: getResponsiveValue(20, 22, 24, 28),
       fontWeight: "400",
@@ -116,27 +149,30 @@ export const useStylesCryptoPrice = () => {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
+      width: "100%",
+      minHeight: 60,
     },
     gainAmount: {
       fontSize: getResponsiveValue(16, 17, 18, 20),
       fontWeight: "600",
       color: text,
-      flex: 1,
+      minHeight: 20,
+      minWidth: 150,
     },
     gainPercent: {
       fontSize: getResponsiveValue(18, 19, 20, 22),
       fontWeight: "800",
-      paddingHorizontal: getResponsiveValue(12, 13, 14, 16),
-      paddingVertical: getResponsiveValue(6, 7, 8, 10),
-      borderRadius: getResponsiveValue(8, 9, 10, 12),
+      minWidth: 80,
+      minHeight: 20,
       textAlign: "center",
-      minWidth: getResponsiveValue(80, 85, 90, 100),
     },
     datePurchasedText: {
       fontSize: getResponsiveValue(14, 15, 16, 18),
       color: text,
-      textAlign: "right",
-      marginTop: getResponsiveValue(10, 13, 16, 18),
+      marginTop: getResponsiveValue(14, 16, 18, 20),
+      textAlign: "center",
+      minHeight: 25,
+      width: "100%",
       fontWeight: "600",
       textTransform: "uppercase",
       letterSpacing: 0.5,

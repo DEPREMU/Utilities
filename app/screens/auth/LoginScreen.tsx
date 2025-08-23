@@ -99,10 +99,6 @@ const LoginScreen: React.FC = () => {
       );
   };
 
-  useEffect(() => {
-    if (isLoggedIn) navigation.replace("Home");
-  }, [isLoggedIn, navigation]);
-
   const handlerBlurInputEmail = () => {
     if (isValidEmail(email)) {
       setValidations((prev) => ({
@@ -134,6 +130,18 @@ const LoginScreen: React.FC = () => {
     }));
     triggerShake("password");
   };
+
+  const handleShowPassword = useCallback(() => {
+    setShowPassword((prev) => !prev);
+  }, []);
+
+  const handlePressCreateAccount = useCallback(() => {
+    navigation.replace("SignUp");
+  }, [navigation]);
+
+  useEffect(() => {
+    if (isLoggedIn) navigation.replace("Home");
+  }, [isLoggedIn, navigation]);
 
   return (
     <View style={styles.container}>
@@ -197,7 +205,7 @@ const LoginScreen: React.FC = () => {
               textButton: {},
             }}
             forceReplaceStyles
-            handlePress={() => setShowPassword((prev) => !prev)}
+            handlePress={handleShowPassword}
           />
         </Animated.View>
 
@@ -237,7 +245,7 @@ const LoginScreen: React.FC = () => {
           <ButtonComponent
             label={t("forgotPassword")}
             touchableOpacity
-            handlePress={() => setShowPassword((prev) => !prev)}
+            handlePress={handleShowPassword}
             replaceStyles={{
               button: {},
               textButton: styles.linkText,
@@ -246,7 +254,7 @@ const LoginScreen: React.FC = () => {
           <ButtonComponent
             label={t("createAccount")}
             touchableOpacity
-            handlePress={() => navigation.replace("SignUp")}
+            handlePress={handlePressCreateAccount}
             replaceStyles={{
               button: {},
               textButton: styles.linkText,

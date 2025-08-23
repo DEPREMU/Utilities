@@ -1,27 +1,30 @@
 import {
+  logError,
+  cleanFloat,
   getRouteAPI,
   fetchOptions,
   stringifyData,
-  loadDataSecure,
-  saveDataSecure,
-  removeDataSecure,
-  cleanFloat,
-  getCurrentUserId,
-  fetchFromTable,
   deleteInTable,
+  loadDataSecure,
+  fetchFromTable,
+  saveDataSecure,
   insertIntoTable,
-  log,
-  logError,
+  removeDataSecure,
+  getCurrentUserId,
 } from "@utils";
-import { SelectedCryptos } from "@utils";
-import useStylesSelectionScreen from "@/styles/components/cryptos/useStylesSelectionScreen";
-import { Checkbox, Text, TextInput } from "react-native-paper";
-import { View, Pressable, FlatList } from "react-native";
-import { Cryptos, PriceBinanceAPI, ResponseCryptos } from "@types";
-import React, { useState, useEffect, useCallback } from "react";
+import Button from "@components/common/ButtonComponent";
+import CryptoItem from "@components/Cryptos/CryptoItem";
 import { useLanguage } from "@context/LanguageContext";
+import SkeletonLoading from "@/components/common/SkeletonLoading";
+import { View, FlatList } from "react-native";
 import { useUserContext } from "@context/UserContext";
+import { SelectedCryptos } from "@utils";
+import { Text, TextInput } from "react-native-paper";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
+import useStylesSelectionScreen from "@styles/components/cryptos/useStylesSelectionScreen";
+import React, { useState, useEffect, useCallback } from "react";
+import { Cryptos, PriceBinanceAPI, ResponseCryptos } from "@types";
+import useStylesCryptoItem from "@/styles/components/cryptos/useStylesCryptoItem";
 
 interface SelectionScreenProps {
   setSelectedCryptos: React.Dispatch<React.SetStateAction<SelectedCryptos>>;
@@ -32,24 +35,23 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
   setSelectedCryptos,
   selectedCryptos,
 }) => {
-  const thingToLoad = 1;
   const { t } = useLanguage();
+  const { styles } = useStylesSelectionScreen();
+  const { styles: stylesCryptoItem } = useStylesCryptoItem();
   const { userData } = useUserContext();
   const { addTaskQueue } = useBackgroundTask();
-  const { styles } = useStylesSelectionScreen();
 
-  const [thingLoaded] = useState<number>(0);
-  const [, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [cryptos, setCryptos] = useState<PriceBinanceAPI | null>(null);
   const [currency, setCurrency] = useState<string>("USDT");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showSelected, setShowSelected] = useState<boolean>(false);
-
   const [ownedCryptos, setOwnedCryptos] =
     useState<SelectedCryptos>(selectedCryptos);
 
   const handleClearCache = useCallback(async () => {
     await removeDataSecure("_selectedCryptos");
+    setShowSelected(false);
     setOwnedCryptos({});
   }, []);
 
@@ -66,7 +68,6 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           filtered.includes(crypto.symbol.toLowerCase()),
         );
       }
-      log(keys);
       return cryptos.filter((crypto) =>
         keys.includes(crypto.symbol.toLowerCase()),
       );
@@ -149,6 +150,64 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     [cryptos, currency, userData],
   );
 
+  const renderItem = useCallback(
+    ({ item }: { item: PriceBinanceAPI[0] }) => {
+      const crypto = ownedCryptos?.[item.symbol];
+      const isSelected = !!crypto;
+
+      return (
+        <CryptoItem
+          item={item}
+          isSelected={isSelected}
+          crypto={crypto}
+          onCheckBoxChange={handleCheckBoxChange}
+          onAmountChange={handleTextInputAmount}
+        />
+      );
+    },
+    [handleCheckBoxChange, handleTextInputAmount, ownedCryptos],
+  );
+
+  const handleEmptyList = useCallback(() => {
+    const lengthCryptos = Object.keys(
+      showSelected ? ownedCryptos : cryptos || {},
+    ).length;
+
+    return (
+      <>
+        {!loading && lengthCryptos === 0 && (
+          <View style={stylesCryptoItem.checkBoxRow}>
+            <Text style={stylesCryptoItem.text}>{t("noCryptosFound")}</Text>
+          </View>
+        )}
+        {loading &&
+          Array.from({ length: 10 }).map((_, index) => (
+            <SkeletonLoading
+              key={index}
+              showChildren={false}
+              style={[stylesCryptoItem.checkBoxRow, stylesCryptoItem.padding0]}
+            >
+              <View />
+            </SkeletonLoading>
+          ))}
+      </>
+    );
+  }, [
+    stylesCryptoItem.checkBoxRow,
+    stylesCryptoItem.text,
+    stylesCryptoItem.padding0,
+    t,
+    cryptos,
+    loading,
+    ownedCryptos,
+    showSelected,
+  ]);
+
+  const handleKeyExtractor = useCallback(
+    (item: PriceBinanceAPI[0]) => item.symbol,
+    [],
+  );
+
   useEffect(() => {
     const fetchOwnedCryptos = async () => {
       const owned =
@@ -208,8 +267,10 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
   ]);
 
   useEffect(() => {
-    if (thingLoaded >= thingToLoad) setLoading(false);
-  }, [thingLoaded]);
+    if (!cryptos) return;
+
+    setLoading(false);
+  }, [cryptos]);
 
   return (
     <View style={styles.container}>
@@ -234,64 +295,31 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
         data={getDataFlatList()}
-        keyExtractor={(item) => item.symbol}
+        keyExtractor={handleKeyExtractor}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => {
-          const crypto = ownedCryptos?.[item.symbol];
-          const isSelected = !!crypto;
-
-          return (
-            <View style={styles.checkBoxRow}>
-              <Checkbox
-                status={isSelected ? "checked" : "unchecked"}
-                onPress={() => handleCheckBoxChange(item.symbol)}
-              />
-
-              <Text style={styles.text}>{item.symbol}</Text>
-
-              {isSelected && (
-                <TextInput
-                  style={styles.inputAmount}
-                  keyboardType="numeric"
-                  placeholder="0.00"
-                  value={String(crypto?.amount || 0)}
-                  textColor="#f0f0f0"
-                  onChangeText={(text) =>
-                    handleTextInputAmount(text, item.symbol)
-                  }
-                />
-              )}
-            </View>
-          );
-        }}
-        ListEmptyComponent={() => (
-          <View style={styles.container}>
-            <Text style={styles.text}>{t("noCryptosFound")}</Text>
-          </View>
-        )}
+        renderItem={renderItem}
+        ListEmptyComponent={handleEmptyList}
       />
 
       <View style={styles.buttonsBottom}>
-        <Pressable
-          onPress={handleClearCache}
-          style={({ pressed }) => [
-            styles.clearCacheButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-        >
-          <Text style={styles.buttonText}>{t("clearCache")}</Text>
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => [
-            styles.showSelectedButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-          onPress={handleShowSelected}
-        >
-          <Text style={styles.buttonText}>
-            {showSelected ? t("showAll") : t("showSelected")}
-          </Text>
-        </Pressable>
+        <Button
+          handlePress={handleClearCache}
+          label={t("clearCache")}
+          touchableOpacity
+          replaceStyles={{
+            button: styles.clearCacheButton,
+            textButton: styles.buttonText,
+          }}
+        />
+        <Button
+          handlePress={handleShowSelected}
+          label={showSelected ? t("showAll") : t("showSelected")}
+          touchableOpacity
+          replaceStyles={{
+            button: styles.showSelectedButton,
+            textButton: styles.buttonText,
+          }}
+        />
       </View>
     </View>
   );

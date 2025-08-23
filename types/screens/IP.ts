@@ -32,7 +32,7 @@ export type dataIPQueryJSON = {
   risk: IPQueryRisk;
 };
 
-export type dataIP_APIJSON = {
+export type dataIP_API_JSON = {
   status: string;
   continent: string;
   continentCode: string;

@@ -49,7 +49,6 @@ export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
   );
   if (apiUrl.endsWith("/")) apiUrl = apiUrl.slice(0, -1);
 
-  console.log(`URL: ${apiUrl}${route}`);
   return `${apiUrl}${route}`;
 };
 

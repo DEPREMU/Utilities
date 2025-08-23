@@ -131,6 +131,14 @@ const SignUpScreen: React.FC = () => {
     triggerShake("password");
   };
 
+  const handlePressShowPassword = useCallback(() => {
+    setShowPassword((prev) => !prev);
+  }, []);
+
+  const handlePressLogin = useCallback(() => {
+    navigation.replace("Login");
+  }, [navigation]);
+
   const handlerOnFocus = useCallback(() => {
     if (Platform.OS !== "android") return;
     if (typeof Keyboard.emit === "function") Keyboard?.emit("keyboardDidShow");
@@ -189,7 +197,7 @@ const SignUpScreen: React.FC = () => {
               textButton: {},
             }}
             forceReplaceStyles
-            handlePress={() => setShowPassword((prev) => !prev)}
+            handlePress={handlePressShowPassword}
           />
         </Animated.View>
 
@@ -219,7 +227,7 @@ const SignUpScreen: React.FC = () => {
           <ButtonComponent
             label={t("hasAccount")}
             touchableOpacity
-            handlePress={() => navigation.replace("Login")}
+            handlePress={handlePressLogin}
             replaceStyles={{
               button: {},
               textButton: styles.linkText,

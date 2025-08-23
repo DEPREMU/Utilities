@@ -1,15 +1,43 @@
-import React from "react";
+import { isFalsy } from "@utils";
 import { View, Text } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
+import SkeletonLoading from "@components/common/SkeletonLoading";
 import useStylesIP_API from "@styles/components/connectivity/useStylesIP_API";
-import { dataIP_APIJSON, typeLanguages } from "@types";
-// import MapView, { Marker } from "react-native-maps";
+import React, { useEffect, useState } from "react";
+import { dataIP_API_JSON, typeLanguages } from "@types";
+
+const dataIPLocal: dataIP_API_JSON = {
+  status: "false",
+  continent: "North America",
+  continentCode: "NA",
+  country: "United States",
+  countryCode: "US",
+  region: "California",
+  regionName: "California",
+  city: "Los Angeles",
+  district: "Los Angeles County",
+  zip: "90001",
+  lat: 34.0522,
+  lon: -118.2437,
+  timezone: "America/Los_Angeles",
+  offset: -8,
+  currency: "USD",
+  isp: "Your ISP",
+  org: "Your Organization",
+  as: "AS12345",
+  asname: "Your AS Name",
+  reverse: "your.reverse.ip",
+  mobile: false,
+  proxy: false,
+  hosting: false,
+  query: "192.168.1.1",
+};
 
 interface IP_ApiProps {
-  dataIP: dataIP_APIJSON;
+  data: dataIP_API_JSON | null;
 }
 
-const keysTranslated: Record<keyof dataIP_APIJSON, keyof typeLanguages> = {
+const keysTranslated: Record<keyof dataIP_API_JSON, keyof typeLanguages> = {
   status: "status",
   continent: "continent",
   continentCode: "continentCode",
@@ -36,70 +64,78 @@ const keysTranslated: Record<keyof dataIP_APIJSON, keyof typeLanguages> = {
   query: "yourIP",
 };
 
-const IP_API: React.FC<IP_ApiProps> = ({ dataIP }) => {
-  const { styles } = useStylesIP_API();
+const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
   const { t } = useLanguage();
+  const { styles } = useStylesIP_API();
+
+  const [show, setShow] = useState<boolean>(true);
+  const [dataIP, setDataIP] = useState<dataIP_API_JSON>(dataIPLocal);
+
+  useEffect(() => {
+    if (dataIP.status === "success") return;
+
+    const id = setTimeout(() => {
+      if (dataIP.status !== "success") setShow(false);
+    }, 10000);
+
+    return () => clearTimeout(id);
+  }, [dataIP]);
+
+  useEffect(() => {
+    if (!data) return;
+
+    const idTimeout = setTimeout(() => {
+      setDataIP(data);
+    }, 1500);
+
+    return () => clearTimeout(idTimeout);
+  }, [data]);
+
+  if (!show) return null;
 
   return (
     <View style={styles.container}>
       <Text style={styles.textIP}>IP API</Text>
-      <Text style={styles.textIP}>
-        {t("yourIP", { ip: "" })}:{" "}
-        <Text style={styles.value}>{dataIP.query}</Text>
-      </Text>
 
+      <View style={styles.containerIP}>
+        <Text style={styles.textKey}>{t("yourIP", { ip: "" })}</Text>
+        <SkeletonLoading
+          showChildren={dataIP.status === "success"}
+          style={[styles.skeletonValue]}
+        >
+          <Text style={styles.value}>{dataIP?.query}</Text>
+        </SkeletonLoading>
+      </View>
+
+      {/* Datos adicionales */}
       <View style={styles.containerDataIP}>
         {Object.entries(dataIP).map(([key, value]) => {
-          const isValueEmpty = value === "" || value === null;
+          const isValueEmpty = isFalsy(value);
           if (key === "query" || isValueEmpty) return null;
 
-          const keyTyped = key as keyof dataIP_APIJSON;
-          let valueToShow: string = "";
-          if (typeof value !== "boolean") valueToShow = String(value);
-          else valueToShow = value ? t("yes") : t("no");
+          const keyTyped = key as keyof dataIP_API_JSON;
+          const valueToShow =
+            typeof value === "boolean"
+              ? value
+                ? t("yes")
+                : t("no")
+              : String(value);
 
           return (
-            <Text style={styles.textKey} key={key}>
-              {t(keysTranslated[keyTyped])}:{" "}
-              <Text style={styles.value}>
-                {valueToShow || t("notAvailable")}
-              </Text>
-            </Text>
+            <View key={key} style={styles.containerEachValue}>
+              <Text style={styles.textKey}>{t(keysTranslated[keyTyped])}</Text>
+              <SkeletonLoading
+                showChildren={dataIP.status === "success"}
+                style={[styles.skeletonValue]}
+              >
+                <Text style={styles.value}>
+                  {valueToShow || t("notAvailable")}
+                </Text>
+              </SkeletonLoading>
+            </View>
           );
         })}
       </View>
-
-      {/* Map */}
-      {/* <View style={styles.mapContainer}>
-    <MapView
-      style={styles.map}
-      initialRegion={{
-        latitude: dataIP.lat,
-          </Text>;
-        })}
-      </View>
-
-      {/* Map */}
-      {/* <View style={styles.mapContainer}>
-    <MapView
-      style={styles.map}
-      initialRegion={{
-        latitude: dataIP.lat,
-        longitude: dataIP.lon,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
-      }}
-    >
-      <Marker
-        coordinate={{
-          latitude: dataIP.lat,
-          longitude: dataIP.lon,
-        }}
-        title="Your Location"
-        description={`Lat: ${dataIP.lat}, Lon: ${dataIP.lon}`}
-      />
-    </MapView>
-  </View> */}
     </View>
   );
 };

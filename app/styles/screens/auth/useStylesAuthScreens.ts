@@ -1,23 +1,19 @@
-import { useResponsiveLayout } from "@context/LayoutContext";
-import { StyleSheet } from "react-native";
 import { useTheme } from "@context/ThemeContext";
+import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
+
 /**
  * @function  useStylesAuthScreens
- * @returns {{ styles: object, height: number, width: number }}
  */
 const useStylesAuthScreens = () => {
   const colors = useTheme();
-  const { width, height } = useResponsiveLayout();
+  const { width, height, getCommonStyles } = useResponsiveLayout();
   const { background, primary, secondary, text, shadow, error } = colors;
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...getCommonStyles("mainContainer", { fallbackValues: [40, 20] }),
       backgroundColor: background,
-      justifyContent: "center",
-      alignItems: "center",
-      paddingHorizontal: 20,
-      paddingVertical: 40,
     },
     content: {
       width: "100%",

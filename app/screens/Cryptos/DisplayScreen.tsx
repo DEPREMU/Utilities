@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import { useLanguage } from "@context/LanguageContext";
 import { CryptoPrice } from "@components/Cryptos/CryptoPrice";
-import { SelectedCryptos, stringifyData } from "@utils";
+import SkeletonLoading from "@components/common/SkeletonLoading";
 import { useStylesDisplayScreen } from "@styles/components/cryptos/useStylesDisplayScreen";
 import { View, Text, ScrollView } from "react-native";
-import { useLanguage } from "@context/LanguageContext";
+import React, { useEffect, useState } from "react";
+import { SelectedCryptos, stringifyData } from "@utils";
+import { useStylesCryptoPrice } from "@/styles/components/cryptos/useStylesCryptoPrice";
 
 interface DisplayScreenProps {
   selectedCryptos: SelectedCryptos;
@@ -12,6 +14,8 @@ interface DisplayScreenProps {
 const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
   const { t } = useLanguage();
   const { styles } = useStylesDisplayScreen();
+  const [loading, setLoading] = useState<boolean>(true);
+  const { styles: cryptoPriceStyles } = useStylesCryptoPrice();
   const [render, setRender] = useState<boolean>(false);
 
   useEffect(() => {
@@ -19,6 +23,12 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
 
     return () => clearInterval(interval);
   }, [render]);
+
+  useEffect(() => {
+    const id = setTimeout(() => setLoading(false), 2000);
+
+    return () => clearTimeout(id);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -38,7 +48,7 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
         contentContainerStyle={styles.contentScrollView}
         showsVerticalScrollIndicator={false}
       >
-        {Object.keys(selectedCryptos).length === 0 ? (
+        {Object.keys(selectedCryptos).length === 0 && !loading && (
           <View style={styles.emptyStateContainer}>
             <Text style={styles.emptyStateIcon}>₿</Text>
             <Text style={styles.emptyStateTitle}>
@@ -47,6 +57,19 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
             <Text style={styles.emptyStateSubtitle}>
               {t("goToSelectionTab")}
             </Text>
+          </View>
+        )}
+        {Object.keys(selectedCryptos).length === 0 ? (
+          <View style={styles.cryptoGrid}>
+            {Array.from({ length: 3 }).map((_, index) => (
+              <SkeletonLoading
+                key={index}
+                style={[cryptoPriceStyles.container, styles.padding0]}
+                showChildren={!loading}
+              >
+                <View />
+              </SkeletonLoading>
+            ))}
           </View>
         ) : (
           <View style={styles.cryptoGrid}>
@@ -59,6 +82,7 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
                 firstInvest={t("firstInvest")}
                 gainAmount={t("gainAmount")}
                 datePurchased={t("datePurchased")}
+                currentPrice={t("currentPrice")}
               />
             ))}
           </View>

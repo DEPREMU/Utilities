@@ -3,11 +3,12 @@ import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
 
 const useStylesNotifications = () => {
-  const { primary, secondary, text, shadow, accent, background } = useTheme();
-  const { isPhone, isWeb, isTablet } = useResponsiveLayout();
+  const { isPhone, isWeb, isTablet, getCommonStyles } = useResponsiveLayout();
+  const { primary, secondary, text, accent, background } = useTheme();
 
   const styles = StyleSheet.create({
     container: {
+      ...getCommonStyles("shadow"),
       padding: isPhone ? 16 : 20,
       maxHeight: 400,
       width: "100%",
@@ -15,11 +16,6 @@ const useStylesNotifications = () => {
       borderRadius: 16,
       borderWidth: 2,
       borderColor: accent,
-      shadowColor: shadow,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.15,
-      shadowRadius: 6,
-      elevation: 4,
     },
     contentContainer: {
       paddingBottom: isPhone ? 20 : 30,
@@ -34,6 +30,7 @@ const useStylesNotifications = () => {
       letterSpacing: 0.5,
     },
     notificationItem: {
+      ...getCommonStyles("shadow"),
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
@@ -44,11 +41,6 @@ const useStylesNotifications = () => {
       marginVertical: 4,
       borderWidth: 1,
       borderColor: primary,
-      shadowColor: shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
       gap: 8,
       flexWrap: "wrap",
       minHeight: 60,

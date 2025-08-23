@@ -1,10 +1,10 @@
-import { useResponsiveLayout } from "@/context/LayoutContext";
 import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
-const useStylesCryptosNavigator = () => {
-  const colors = useTheme();
+const useStylesCalculatorNavigator = () => {
   const { getCommonStyles } = useResponsiveLayout();
+  const colors = useTheme();
   const { background, primary, text } = colors;
 
   const styles = StyleSheet.create({
@@ -26,4 +26,4 @@ const useStylesCryptosNavigator = () => {
   return { styles, ...colors };
 };
 
-export default useStylesCryptosNavigator;
+export default useStylesCalculatorNavigator;

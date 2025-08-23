@@ -119,6 +119,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
   syntaxError: string;
   calculator: string;
   finances: string;
+  currentPrice: string;
 };
 
 export type typeLanguagesServer = {

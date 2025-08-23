@@ -2,8 +2,8 @@ import { useResponsiveLayout } from "@context/LayoutContext";
 import { StatusBar, StyleSheet } from "react-native";
 import { useTheme } from "@context/ThemeContext";
 export const useStylesModalComponent = () => {
-  const { height, width, isPhone } = useResponsiveLayout();
-  const { background, text, border, primary, overlay, shadow } = useTheme();
+  const { height, width, isPhone, getCommonStyles } = useResponsiveLayout();
+  const { background, text, border, primary, overlay } = useTheme();
 
   const styles = StyleSheet.create({
     overlay: {
@@ -20,17 +20,13 @@ export const useStylesModalComponent = () => {
       cursor: "auto",
     },
     modal: {
+      ...getCommonStyles("shadow"),
       backgroundColor: background,
       cursor: "auto",
       borderRadius: 8,
       width: "90%",
       maxWidth: isPhone ? "90%" : 500,
       padding: 20,
-      elevation: 5,
-      shadowColor: shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 6,
       gap: isPhone ? 10 : 20,
       borderWidth: 1,
       borderColor: border,

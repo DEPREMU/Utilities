@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
@@ -15,4 +15,6 @@ const Finances: React.FC = () => {
   );
 };
 
-export default Finances;
+const FinancesMemo = memo(Finances);
+
+export default FinancesMemo;

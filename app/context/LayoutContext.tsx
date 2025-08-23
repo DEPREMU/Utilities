@@ -1,4 +1,11 @@
-import { Dimensions, Platform, ScaledSize } from "react-native";
+/* eslint-disable indent */
+import {
+  Platform,
+  TextStyle,
+  ViewStyle,
+  Dimensions,
+  ScaledSize,
+} from "react-native";
 import React, {
   createContext,
   useContext,
@@ -6,9 +13,49 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "./ThemeContext";
 
 interface LayoutProviderProps {
   children: ReactNode;
+}
+
+type SafeAreaContainerStyle = Record<
+  "paddingTop" | "paddingBottom" | "paddingLeft" | "paddingRight",
+  number
+>;
+
+type propGetStylesSafeAreaContainer =
+  | [top: number, bottom: number, left: number, right: number]
+  | [vertical: number, horizontal: number]
+  | [all: number];
+
+export type CommonStyles = "mainContainer" | "shadow";
+
+export type OptionsCommonStyles = {
+  fallbackValues?: propGetStylesSafeAreaContainer;
+  copyInsets?: boolean;
+  shadowColor?: string;
+};
+
+interface LayoutContextProps {
+  isLargeTablet: boolean;
+  isPlatformWeb: boolean;
+  getStylesSafeAreaContainer: (
+    fallbackValues?: propGetStylesSafeAreaContainer,
+  ) => SafeAreaContainerStyle;
+  getCommonStyles: (
+    style: CommonStyles | CommonStyles[],
+    options?: OptionsCommonStyles,
+  ) => ViewStyle | TextStyle;
+  isLandscape: boolean;
+  isPortrait: boolean;
+  isTablet: boolean;
+  isPhone: boolean;
+  isWeb: boolean;
+  width: number;
+  height: number;
+  insets: ReturnType<typeof useSafeAreaInsets>;
 }
 
 /**
@@ -20,13 +67,31 @@ interface LayoutProviderProps {
  * @context
  * @returns {LayoutContextProps} The context value containing layout information.
  */
-const LayoutContext = createContext({
+const LayoutContext = createContext<LayoutContextProps>({
   isTablet: false,
   isLargeTablet: false,
+  isPlatformWeb: false,
+  isLandscape: false,
+  isPortrait: false,
   isPhone: false,
   isWeb: false,
   width: 0,
   height: 0,
+  insets: {
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  getStylesSafeAreaContainer: () => {
+    return {
+      paddingTop: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
+      paddingRight: 0,
+    };
+  },
+  getCommonStyles: () => ({}),
 });
 
 /**
@@ -44,19 +109,14 @@ const LayoutContext = createContext({
  * @const {boolean} isTablet - Indicates if the device is considered a tablet (width > 768 and height <= 1600).
  * @const {boolean} isLargeTablet - Indicates if the device is considered a large tablet (width > 1024 and height <= 2048).
  * @const {object} layoutData - The object containing all layout-related values provided to the context.
+ * @const {Insets} insets - The safe area insets for the current device.
  */
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
+  const { colors } = useTheme();
+
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
 
-  useEffect(() => {
-    const onChange = ({ window }: { window: ScaledSize }) => {
-      setDimensions(window);
-    };
-    const subscription = Dimensions.addEventListener("change", onChange);
-
-    return () => subscription?.remove();
-  }, []);
-
+  const insets = useSafeAreaInsets();
   const { width, height } = dimensions;
   const isPlatformWeb = Platform.OS === "web";
   const isPortrait: boolean = height >= width;
@@ -67,17 +127,92 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const isTablet: boolean = width > 768 && height <= 1600;
   const isLargeTablet: boolean = width > 1024 && height <= 2048;
 
-  const layoutData = {
+  const getStylesSafeAreaContainer = (
+    fallbackValues: propGetStylesSafeAreaContainer = [10],
+  ) => {
+    let top: number, bottom: number, left: number, right: number;
+    const length = fallbackValues.length;
+    if (length >= 4) {
+      [top, bottom, left, right] = fallbackValues.slice(0, 4);
+    } else if (length >= 2) {
+      const [vertical, horizontal] = fallbackValues.slice(0, 2);
+      left = right = vertical;
+      top = bottom = horizontal;
+    } else {
+      top = bottom = left = right = fallbackValues[0];
+    }
+
+    return {
+      paddingTop: insets.top > top ? insets.top : top,
+      paddingBottom: insets.bottom > bottom ? insets.bottom : bottom,
+      paddingLeft: insets.left > left ? insets.left : left,
+      paddingRight: insets.right > right ? insets.right : right,
+    };
+  };
+
+  const getCommonStyles = (
+    styleFinder: CommonStyles | CommonStyles[],
+    options?: OptionsCommonStyles,
+  ) => {
+    let styleToReturn: ViewStyle | TextStyle = {};
+    if (!Array.isArray(styleFinder)) {
+      styleFinder = [styleFinder];
+    }
+    for (const style of styleFinder) {
+      switch (style) {
+        case "mainContainer":
+          styleToReturn = {
+            ...(options?.copyInsets || options?.copyInsets === undefined
+              ? getStylesSafeAreaContainer(options?.fallbackValues)
+              : {}),
+            flex: 1,
+            width: "100%",
+            justifyContent: "center",
+            alignItems: "center",
+            ...styleToReturn,
+          };
+          break;
+        case "shadow":
+          styleToReturn = {
+            shadowColor: options?.shadowColor || colors.shadow,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 6,
+            ...styleToReturn,
+          };
+          break;
+        default:
+          return {};
+      }
+    }
+
+    return styleToReturn;
+  };
+
+  const layoutData: LayoutContextProps = {
     isWeb,
+    insets,
     isPhone,
     isPortrait,
     isLargeTablet,
+    getCommonStyles,
+    getStylesSafeAreaContainer,
     isPlatformWeb,
     isLandscape,
     isTablet,
     height,
     width,
   };
+
+  useEffect(() => {
+    const onChange = ({ window }: { window: ScaledSize }) => {
+      setDimensions(window);
+    };
+    const subscription = Dimensions.addEventListener("change", onChange);
+
+    return () => subscription?.remove();
+  }, []);
 
   return (
     <LayoutContext.Provider value={layoutData}>

@@ -1,13 +1,16 @@
 import IP_API from "@components/IPs/IP_API";
 import IPQuery from "@components/IPs/IPQuery";
+import useStylesIPScreen from "@styles/screens/connectivity/useStylesIPScreen";
+import { View, ScrollView } from "react-native";
 import React, { useEffect, useState } from "react";
-import { dataIP_APIJSON, dataIPQueryJSON } from "@types";
+import { dataIP_API_JSON, dataIPQueryJSON } from "@types";
 import { getIP, getDataIP_api, getDataIPQuery } from "@utils";
-import { View, StyleSheet, ScrollView, SafeAreaView } from "react-native";
 
 const InfoIP: React.FC = () => {
+  const { styles } = useStylesIPScreen();
+
   const [ip, setIp] = useState<string | null>(null);
-  const [dataIP_API, setDataIP_API] = useState<dataIP_APIJSON | null>(null);
+  const [dataIP_API, setDataIP_API] = useState<dataIP_API_JSON | null>(null);
   const [dataIPQuery, setDataIPQuery] = useState<dataIPQueryJSON | null>(null);
 
   useEffect(() => {
@@ -21,6 +24,7 @@ const InfoIP: React.FC = () => {
 
   useEffect(() => {
     if (!ip) return;
+
     const getDataIp = async () => {
       const data = await getDataIPQuery(ip);
       if (data) setDataIPQuery(data);
@@ -32,48 +36,29 @@ const InfoIP: React.FC = () => {
     };
 
     const get = async () => {
-      await getDataIp();
-      await getDataIpapi();
+      await Promise.all([getDataIp(), getDataIpapi()]);
     };
 
     get();
   }, [ip]);
 
+  const ipQuery = <IPQuery data={dataIPQuery} />;
+  const ipAPI = <IP_API data={dataIP_API} />;
+
   return (
-    <SafeAreaView style={styles.containerSafeAreaView}>
+    <View style={styles.container}>
       <ScrollView
         style={styles.containerScrollView}
         contentContainerStyle={styles.contentContainer}
       >
-        {dataIPQuery && <IPQuery dataIP={dataIPQuery} />}
-        {dataIP_API && <View style={styles.separator} />}
-        {dataIP_API && <IP_API dataIP={dataIP_API} />}
+        {ipQuery}
+        {ipQuery !== null && ipAPI !== null && (
+          <View style={styles.separator} />
+        )}
+        {ipAPI}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
-
-const styles = StyleSheet.create({
-  containerSafeAreaView: {
-    flex: 1,
-    width: "100%",
-  },
-  containerScrollView: {
-    flex: 1,
-    width: "100%",
-  },
-  contentContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-  },
-  separator: {
-    height: 10,
-    borderBottomColor: "#ccc",
-    borderBottomWidth: 1,
-    width: "90%",
-    marginVertical: 16,
-  },
-});
 
 export default InfoIP;

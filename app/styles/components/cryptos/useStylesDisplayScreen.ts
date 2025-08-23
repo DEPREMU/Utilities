@@ -4,7 +4,8 @@ import { useResponsiveLayout } from "@context/LayoutContext";
 
 export const useStylesDisplayScreen = () => {
   const { background, text, primary, shadow, secondary, accent } = useTheme();
-  const { isTablet, isWeb, isLargeTablet } = useResponsiveLayout();
+  const { isTablet, isWeb, isLargeTablet, getCommonStyles } =
+    useResponsiveLayout();
 
   const getResponsiveValue = <T = number>(
     phone: T,
@@ -20,16 +21,22 @@ export const useStylesDisplayScreen = () => {
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...getCommonStyles("mainContainer"),
       backgroundColor: background,
-      paddingTop: getResponsiveValue(10, 15, 20, 25),
     },
     emptyStateContainer: {
+      ...getCommonStyles("shadow"),
       flex: 1,
-      justifyContent: "center",
       alignItems: "center",
-      paddingHorizontal: getResponsiveValue(20, 40, 60, 80),
-      minHeight: isWeb ? 400 : 300,
+      justifyContent: "center",
+      padding: getResponsiveValue(20, 24, 28, 32),
+      backgroundColor: secondary,
+      borderRadius: getResponsiveValue(16, 18, 20, 24),
+      borderWidth: 2,
+      borderColor: primary,
+    },
+    padding0: {
+      padding: 0,
     },
     emptyStateIcon: {
       fontSize: getResponsiveValue(64, 72, 80, 96),
@@ -55,24 +62,21 @@ export const useStylesDisplayScreen = () => {
     },
     scrollView: {
       flex: 1,
+      width: "100%",
     },
     contentScrollView: {
       padding: getResponsiveValue(16, 20, 24, 32),
       paddingBottom: getResponsiveValue(100, 110, 120, 140),
+      width: "100%",
     },
     headerGradient: {
-      height: getResponsiveValue(120, 130, 140, 160),
-      justifyContent: "center",
-      alignItems: "center",
+      ...getCommonStyles(["shadow", "mainContainer"]),
+      flex: undefined,
+      paddingTop: 10,
       marginBottom: getResponsiveValue(20, 25, 30, 40),
       backgroundColor: secondary,
       borderBottomLeftRadius: getResponsiveValue(16, 18, 20, 24),
       borderBottomRightRadius: getResponsiveValue(16, 18, 20, 24),
-      shadowColor: shadow,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-      elevation: 8,
       borderWidth: 2,
       borderColor: primary,
     },
@@ -95,15 +99,15 @@ export const useStylesDisplayScreen = () => {
       opacity: 0.9,
     },
     cryptoGrid: {
-      gap: getResponsiveValue(5, 14, 16, 20),
+      ...getCommonStyles(["mainContainer", "shadow"], { copyInsets: false }),
+      gap: getResponsiveValue(10, 14, 16, 20),
       flexDirection: "row",
       flexWrap: "wrap",
-      justifyContent: "center",
-      alignItems: "center",
     },
     refreshIndicator: {
+      ...getCommonStyles("shadow"),
       position: "absolute",
-      top: getResponsiveValue(10, 15, 20, 25),
+      top: getResponsiveValue(0, 5, 10, 15),
       right: getResponsiveValue(10, 15, 20, 25),
       backgroundColor: primary,
       borderRadius: getResponsiveValue(16, 18, 20, 22),
@@ -111,11 +115,6 @@ export const useStylesDisplayScreen = () => {
       borderWidth: 2,
       borderColor: secondary,
       zIndex: 10,
-      shadowColor: shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.12,
-      shadowRadius: 8,
-      elevation: 6,
     },
     refreshText: {
       color: text,

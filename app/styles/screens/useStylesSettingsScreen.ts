@@ -3,11 +3,10 @@ import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
 
 const useStylesSettingsScreen = () => {
-  const { isLargeTablet, isPhone, isTablet, isWeb, width } =
+  const { getCommonStyles, isLargeTablet, isTablet, isPhone, isWeb, width } =
     useResponsiveLayout();
   const { background, text, primary, secondary, shadow, accent } = useTheme();
 
-  // Responsive sizing calculations
   const getResponsivePadding = () => {
     if (isPhone) return 16;
     if (isTablet) return 24;
@@ -36,10 +35,10 @@ const useStylesSettingsScreen = () => {
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...getCommonStyles("mainContainer", {
+        fallbackValues: [getResponsivePadding()],
+      }),
       backgroundColor: background,
-      paddingHorizontal: getResponsivePadding(),
-      paddingTop: getResponsivePadding(),
       alignItems: isWeb && width > 768 ? "center" : "stretch",
     },
     contentWrapper: {

@@ -1,20 +1,16 @@
-import { useResponsiveLayout } from "@/context/LayoutContext";
 import { useTheme } from "@/context/ThemeContext";
 import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
 const useStylesCalculator = () => {
   const theme = useTheme();
-  const { isLargeTablet, isTablet } = useResponsiveLayout();
-
-  const { primary, secondary, text, background } = theme;
+  const { isLargeTablet, isTablet, getCommonStyles } = useResponsiveLayout();
+  const { secondary, text, background } = theme;
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
+      ...getCommonStyles("mainContainer", { fallbackValues: [16] }),
       backgroundColor: background,
-      padding: 16,
     },
     header: {
       width: "100%",
@@ -59,9 +55,10 @@ const useStylesCalculator = () => {
       marginBottom: 12,
     },
     buttonInput: {
+      ...getCommonStyles("shadow"),
       flex: 1,
       marginHorizontal: 4,
-      backgroundColor: primary,
+      backgroundColor: secondary,
       minHeight: 50,
       borderRadius: 10,
       alignItems: "center",

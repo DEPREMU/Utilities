@@ -117,6 +117,7 @@ const es: typeLanguages = {
   syntaxError: "Error de sintaxis",
   finances: "Finanzas",
   calculator: "Calculadora",
+  currentPrice: "Precio actual",
 } as const;
 
 export default es;

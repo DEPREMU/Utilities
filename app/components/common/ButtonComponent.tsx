@@ -1,20 +1,26 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Text,
   Pressable,
+  ViewStyle,
+  TextStyle,
   TargetedEvent,
   NativeMouseEvent,
   NativeSyntheticEvent,
 } from "react-native";
-import React from "react";
+import React, { memo } from "react";
+import { stringifyData } from "@utils";
 import { useStylesButtonComponent } from "@styles/components/useStylesButtonComponent";
 
-type StylesButtonComponent = "button" | "textButton";
+type Styles = {
+  button: ViewStyle;
+  textButton: TextStyle;
+};
+
 interface ButtonComponentProps {
   label?: string;
-  customStyles?: Record<StylesButtonComponent, any>;
-  replaceStyles?: Record<StylesButtonComponent, any>;
-  Children?: React.FC<any>;
+  customStyles?: Styles;
+  replaceStyles?: Styles;
+  Children?: React.FC<unknown>;
   children?: React.ReactNode;
   touchableOpacity?: boolean;
   touchableOpacityIntensity?: number;
@@ -22,7 +28,7 @@ interface ButtonComponentProps {
   handlerHoverIn?: (event: NativeSyntheticEvent<NativeMouseEvent>) => void;
   handlerFocus?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
   handlerHoverOut?: (event: NativeSyntheticEvent<NativeMouseEvent>) => void;
-  handlePress: () => any;
+  handlePress: () => unknown;
   disabled?: boolean;
 }
 
@@ -48,36 +54,9 @@ const areEqual = (
     prev.handlerHoverIn === next.handlerHoverIn &&
     prev.handlerHoverOut === next.handlerHoverOut &&
     prev.handlePress === next.handlePress &&
-    prev.Children === next.Children &&
-    prev.children === next.children &&
-    shallowEqual(prev.replaceStyles, next.replaceStyles) &&
-    shallowEqual(prev.customStyles, next.customStyles)
+    stringifyData(prev.replaceStyles) === stringifyData(next.replaceStyles) &&
+    stringifyData(prev.customStyles) === stringifyData(next.customStyles)
   );
-};
-
-/**
- * Performs a shallow comparison of two objects.
- * Returns true if they have the same keys and values, false otherwise.
- *
- * @param {Record<string, any>} obj1 - The first object to compare.
- * @param {Record<string, any>} obj2 - The second object to compare.
- * @returns {boolean} True if the objects are shallowly equal, false otherwise.
- */
-const shallowEqual = (
-  obj1?: Record<string, any>,
-  obj2?: Record<string, any>,
-): boolean => {
-  if (obj1 === obj2) return true;
-  if (!obj1 || !obj2) return false;
-
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
-  if (keys1.length !== keys2.length) return false;
-
-  for (const key of keys1) {
-    if (obj1[key] !== obj2[key]) return false;
-  }
-  return true;
 };
 
 /**
@@ -154,6 +133,6 @@ const ButtonComponent: React.FC<ButtonComponentProps> = ({
   );
 };
 
-const Button = React.memo(ButtonComponent, areEqual);
+const Button = memo(ButtonComponent, areEqual);
 
 export default Button;

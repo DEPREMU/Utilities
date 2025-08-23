@@ -4,6 +4,7 @@ import React, {
   ReactNode,
   useContext,
   createContext,
+  useCallback,
 } from "react";
 import ModalComponent from "@components/common/ModalComponent";
 
@@ -89,22 +90,25 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
    * This function clears any existing timeout before setting the modal's title, body, and buttons,
    * and then opens the modal by setting its state to open.
    */
-  const openModal = (
-    modalTitle: string,
-    modalBody: ReactNode | string,
-    modalButtons: ReactNode,
-  ) => {
-    setIsOpen((prev) => {
-      if (prev) return prev;
+  const openModal = useCallback(
+    (
+      modalTitle: string,
+      modalBody: ReactNode | string,
+      modalButtons: ReactNode,
+    ) => {
+      setIsOpen((prev) => {
+        if (prev) return prev;
 
-      clearIdTimeout();
+        clearIdTimeout();
 
-      setTitle(modalTitle);
-      setBody(modalBody);
-      setButtons(modalButtons);
-      return true;
-    });
-  };
+        setTitle(modalTitle);
+        setBody(modalBody);
+        setButtons(modalButtons);
+        return true;
+      });
+    },
+    [],
+  );
 
   /**
    * Closes the modal by performing the following actions:
@@ -114,7 +118,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
    *
    * Note: Ensure that `clearIdTimeout` properly clears the timeout stored in `idTimeout.current`.
    */
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     clearIdTimeout();
 
     setIsOpen(false);
@@ -123,7 +127,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
       setBody(null);
       setButtons(null);
     }, 1000);
-  };
+  }, []);
 
   return (
     <ModalContext.Provider value={{ openModal, closeModal, setCustomStyles }}>

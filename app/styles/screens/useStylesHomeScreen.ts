@@ -3,14 +3,12 @@ import { StyleSheet } from "react-native";
 import { useTheme } from "@context/ThemeContext";
 export const useStylesHomeScreen = () => {
   const colors = useTheme();
-  const { isPhone, isWeb } = useResponsiveLayout();
+  const { isPhone, isWeb, getCommonStyles } = useResponsiveLayout();
   const { background, text } = colors;
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
+      ...getCommonStyles("mainContainer", { fallbackValues: [10, 5] }),
       backgroundColor: background,
     },
     contentContainer: {

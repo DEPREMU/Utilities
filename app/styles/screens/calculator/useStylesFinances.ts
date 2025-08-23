@@ -1,19 +1,18 @@
-import { useResponsiveLayout } from "@/context/LayoutContext";
-import { useTheme } from "@/context/ThemeContext";
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
 const useStylesFinances = () => {
   const theme = useTheme();
-  const { isWeb } = useResponsiveLayout();
+  const { isWeb, getCommonStyles } = useResponsiveLayout();
   const { primary, background } = theme;
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
+      ...getCommonStyles("mainContainer", {
+        fallbackValues: [isWeb ? 20 : 16],
+      }),
       backgroundColor: background,
-      padding: isWeb ? 20 : 16,
     },
     title: {
       fontSize: isWeb ? 24 : 20,
