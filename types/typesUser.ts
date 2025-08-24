@@ -3,8 +3,8 @@ export type UserData = {
   name: string;
   phone: string | null;
   description: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
   email: string;
 };
 

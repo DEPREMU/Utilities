@@ -2,7 +2,7 @@ import { typeLanguages } from "@types";
 
 const es: typeLanguages = {
   success: "Éxito",
-  welcomeUser: "Bienvenido, {{user}}",
+  welcomeUser: "Bienvenido de nuevo, {{user}}",
   close: "Cerrar",
   dearUser: "Estimado usuario",
   infoIP: "Información de IP",

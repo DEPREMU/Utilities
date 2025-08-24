@@ -1,4 +1,4 @@
-import * as Notifications from "expo-notifications";
+import * as Notifications from "../app/node_modules/expo-notifications";
 import { ScreensAvailable } from "./typesNavigation";
 import {
   ReasonNotification,
@@ -12,6 +12,7 @@ export type WebSocketMessage =
       uid: string;
       language: LanguagesSupported;
       notifications: typeNotifications | null;
+      hasAdmin: boolean;
     }
   | { type: "ping" }
   | {

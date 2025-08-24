@@ -1,16 +1,28 @@
 import {
+  Tables,
+  UserData,
+  PushTokens,
+  TablesKeys,
+  SessionStored,
+  Notifications as NotificationsType,
+  ReasonNotification,
+} from "@types";
+import {
   log,
   logError,
   saveDataSecure,
   loadDataSecure,
   getDateWithDaysAhead,
   removeDataSecure,
+  saveData,
+  checkLanguage,
 } from "../functions";
-import { SessionStored } from "@types";
+import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
 import { supabase } from "./supabase";
 import type { User, Session } from "@supabase/supabase-js";
-import { TablesKeys, UserData } from "@types";
+import { reasonNotification, SelectedCryptos } from "../constants";
+import { fetchFromTable } from "./functions";
 
 /**
  * Auth response type for consistent error handling
@@ -20,6 +32,30 @@ export type AuthResponse = {
   session?: SessionStored | null;
   userData?: UserData | null;
   error?: string | null;
+};
+
+const insertTokenToDB = async (
+  userId: string,
+): Promise<{ error?: string | null }> => {
+  try {
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+
+    console.log(
+      "Push token:",
+      token,
+      userId,
+      await Notifications.getExpoPushTokenAsync(),
+    );
+
+    await insertIntoTable<PushTokens>("PushTokens", {
+      token,
+      userId,
+    });
+    return { error: null };
+  } catch (error) {
+    logError("Error getting push token:", error);
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
 };
 
 /**
@@ -51,13 +87,6 @@ export const signInWithEmail = async (
 
     let date = -1;
     if (rememberMe) date = getDateWithDaysAhead(15).getTime();
-    await saveDataSecure("_sessionExpiry", date);
-
-    const { data: userData } = await supabase
-      .from("Users")
-      .select("*")
-      .eq("uid", data.user.id)
-      .single();
 
     if (!data.session || !data.user) {
       const errorMsg = "No session or user data received from Supabase";
@@ -66,6 +95,46 @@ export const signInWithEmail = async (
     }
 
     log("User signed in successfully:", data.user.email);
+
+    const [users, cryptos, userNotificationsConfig, userConfig] =
+      await Promise.all([
+        supabase
+          .from("Users")
+          .select("*")
+          .limit(1)
+          .eq("uid", data.user.id)
+          .single(),
+        fetchFromTable<Tables["Cryptos"]>("Cryptos", {
+          userId: data.user.id,
+        }),
+        fetchFromTable<Tables["UserNotificationsConfig"]>(
+          "UserNotificationsConfig",
+          {
+            userId: data.user.id,
+          },
+        ),
+        fetchFromTable<Tables["UserConfig"]>("UserConfig", {
+          userId: data.user.id,
+        }),
+      ]);
+
+    const cryptosToSave: SelectedCryptos =
+      cryptos.data?.reduce((acc, crypto) => {
+        acc[[crypto.id, crypto.currency].join("")] = crypto;
+        return acc;
+      }, {} as SelectedCryptos) || {};
+    const userNotificationsConfigToSave: NotificationsType = {
+      enabled: {} as NotificationsType["enabled"],
+      data: {} as NotificationsType["data"],
+      intervals: {} as NotificationsType["intervals"],
+    };
+    userNotificationsConfig.data?.reduce((acc, config) => {
+      const reason = config.reason as ReasonNotification;
+      acc.enabled[reason] = config.enabled;
+      acc.data[reason] = null;
+      acc.intervals[reason] = config.interval;
+      return acc;
+    }, userNotificationsConfigToSave);
     const sessionToSave: SessionStored = {
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
@@ -75,10 +144,29 @@ export const signInWithEmail = async (
       provider_refresh_token: data.session.provider_refresh_token,
       provider_token: data.session.provider_token,
     };
-    await saveDataSecure("_userSessionStorage", sessionToSave);
+    const userConfigToSave: Tables["UserConfig"] = {
+      userId: data.user.id,
+      language: userConfig.data?.[0]?.language || "en",
+      hasAdmin: userConfig.data?.[0]?.hasAdmin || false,
+      updatedAt: new Date().toISOString(),
+      webSocketURL: userConfig.data?.[0]?.webSocketURL || "",
+      API_URL: userConfig.data?.[0]?.API_URL || "",
+    };
+
+    await Promise.all([
+      saveData("@notifications", userNotificationsConfigToSave),
+      saveDataSecure("_sessionExpiry", date),
+      saveDataSecure("_selectedCryptos", cryptosToSave),
+      insertTokenToDB(data.user.id),
+      saveDataSecure("_userSessionStorage", sessionToSave),
+      saveData("@API_URL", userConfigToSave.API_URL || ""),
+      saveData("@webSocketURL", userConfigToSave.webSocketURL || ""),
+      saveData("@hasAdminAccess", userConfigToSave.hasAdmin),
+      saveData("@languageKeyStorage", userConfigToSave.language),
+    ]);
     return {
       user: data.user,
-      userData: userData as UserData,
+      userData: users.data as UserData,
       session: data.session,
       error: null,
     };
@@ -106,8 +194,9 @@ export const signUpWithEmail = async (
       logError("Error signing up:", error.message);
       return { error: error.message };
     }
+    if (data.user)
+      handleCreateUserInitialData(data.user.id, data.user.email || "");
 
-    log("User signed up successfully:", data.user?.email);
     return {
       user: data.user,
       session: data.session,
@@ -298,10 +387,8 @@ export const insertIntoTable = async <T = unknown>(
       return { error: error.message };
     }
 
-    log("User record created successfully:");
-    return {
-      error: null,
-    };
+    log("User record created successfully:", data);
+    return { error: null };
   } catch (error) {
     const errorMsg = `Unexpected error creating record: ${error}`;
     logError(errorMsg);
@@ -309,96 +396,57 @@ export const insertIntoTable = async <T = unknown>(
   }
 };
 
-/**
- * Updates user data in the Users table
- */
-export const updateInTable = async (
-  uid: string,
-  updates: Partial<UserData>,
-  table: TablesKeys = "Users",
-  match: { [key: string]: unknown } = { uid },
-): Promise<{
-  userData?: UserData | null;
-  error?: string | null;
-}> => {
+export const handleCreateUserInitialData = async (
+  userId: string,
+  email: string,
+) => {
+  let token: string;
   try {
-    if (updates.uid) delete updates.uid;
-
-    const { data, error } = await supabase
-      .from(table)
-      .update(updates)
-      .match(match)
-      .select()
-      .single();
-
-    if (error) {
-      logError("Error updating user record:", error.message);
-      return { error: error.message };
-    }
-
-    log("User record updated successfully:", uid);
-    return {
-      userData: data,
-      error: null,
-    };
-  } catch (error) {
-    const errorMsg = `Unexpected error updating user record: ${error}`;
-    logError(errorMsg);
-    return { error: errorMsg };
+    token = (await Notifications.getExpoPushTokenAsync()).data;
+  } catch {
+    token = "";
   }
-};
 
-/**
- * Deletes a record from a specified table
- */
-export const deleteInTable = async <T = UserData>(
-  uid: string,
-  table: TablesKeys = "Users",
-  match: Partial<T> = {},
-): Promise<{
-  success: boolean;
-  error?: string | null;
-}> => {
-  try {
-    const { error } = await supabase.from(table).delete().match(match);
+  const cryptos: Tables["Cryptos"][] = [];
+  const pushTokens: Tables["PushTokens"] = { token, userId };
+  const user: Tables["Users"] = {
+    email,
+    uid: userId,
+    name: "",
+    phone: "",
+    description: "",
+  };
+  const userNotificationsConfig: Tables["UserNotificationsConfig"][] =
+    reasonNotification.map((reason) => ({
+      userId,
+      reason,
+      enabled: false,
+      interval: -1,
+      updatedAt: new Date().toISOString(),
+      isActive: true,
+    }));
+  const userConfig: Tables["UserConfig"] = {
+    userId,
+    language: await checkLanguage(),
+    hasAdmin: false,
+    updatedAt: new Date().toISOString(),
+  };
 
-    if (error) {
-      logError("Error deleting user record:", error.message);
-      return { success: false, error: error.message };
-    }
+  const initialData: Record<
+    TablesKeys,
+    Tables[TablesKeys][] | Tables[TablesKeys]
+  > = {
+    Cryptos: cryptos,
+    PushTokens: pushTokens,
+    Users: user,
+    Logs: [],
+    UserNotificationsConfig: userNotificationsConfig,
+    UserConfig: userConfig,
+  };
 
-    log("User record deleted successfully:", uid);
-    return { success: true };
-  } catch (error) {
-    const errorMsg = `Unexpected error deleting user record: ${error}`;
-    logError(errorMsg);
-    return { success: false, error: errorMsg };
-  }
-};
-
-export const fetchFromTable = async <T>(
-  table: TablesKeys = "Users",
-  match: Partial<T> = {},
-): Promise<{
-  data?: T[] | null;
-  error?: string | null;
-}> => {
-  try {
-    const { data, error } = await supabase.from(table).select().match(match);
-
-    if (error) {
-      logError("Error fetching data from table:", error.message);
-      return { error: error.message };
-    }
-
-    log("Data fetched successfully from table:", table);
-    return {
-      data,
-      error: null,
-    };
-  } catch (error) {
-    const errorMsg = `Unexpected error fetching data from table: ${error}`;
-    logError(errorMsg);
-    return { error: errorMsg };
-  }
+  await Promise.all(
+    Object.entries(initialData).map(([table, data]) => {
+      insertIntoTable(table as TablesKeys, data);
+    }),
+  );
 };

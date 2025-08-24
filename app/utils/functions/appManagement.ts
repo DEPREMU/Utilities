@@ -54,6 +54,13 @@ export const parseData = <T = object | null>(value: string | null): T => {
 export const stringifyData = (value: unknown): string => {
   if (typeof value === "string") return value;
   try {
+    if (value && typeof value === "object") {
+      const keys = Object.keys(value).sort((a, b) => a.localeCompare(b));
+      const sortedObject = Object.fromEntries(
+        keys.map((key) => [key, value[key as keyof typeof value]]),
+      );
+      return JSON.stringify(sortedObject);
+    }
     return JSON.stringify(value);
   } catch (error) {
     logError(`Error stringifying data: ${error}`);

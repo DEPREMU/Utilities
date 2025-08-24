@@ -42,7 +42,10 @@ export default {
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "FOREGROUND_SERVICE",
+        "WAKE_LOCK",
+        "RECEIVE_BOOT_COMPLETED",
       ],
+      googleServicesFile: "./google-services.json",
     },
     plugins: [
       "expo-font",

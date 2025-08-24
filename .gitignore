@@ -38,3 +38,6 @@ yarn-error.*
 tempCodeRunnerFile.*
 comportamiento.*
 package-lock.json
+
+android/
+google-services.json

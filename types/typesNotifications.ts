@@ -1,4 +1,3 @@
-import { typeLanguages } from "./typesTranslations";
 import { ScreensAvailable } from "./typesNavigation";
 
 export type Notification = {
@@ -10,10 +9,10 @@ export type Notification = {
   trigger: any | null;
 } | null;
 
-export type ReasonNotification = "cryptos";
+export type ReasonNotification = "cryptos" | "allNotifications";
 
 export type Notifications = {
-  enabled: Record<ReasonNotification | "allNotifications", boolean>;
+  enabled: Record<ReasonNotification, boolean>;
   data: Record<ReasonNotification, Notification>;
   intervals: Record<ReasonNotification, number | null>;
 };

@@ -3,12 +3,12 @@
 import { Platform } from "react-native";
 const isDev = process.env.NODE_ENV === "development";
 export const API_URL = !isDev
-  ? "https://api.utilities/api"
+  ? "http://137.131.8.63:3000/api"
   : Platform.OS === "web"
     ? "http://localhost:3000/api"
     : "http://192.168.1.209:3000/api";
 export const URL_WEB_SOCKET = !isDev
-  ? "wss://api.utilities/"
+  ? "ws://137.131.8.63:3000/"
   : Platform.OS === "web"
     ? "ws://localhost:3000/"
     : "ws://192.168.1.209:3000/";
