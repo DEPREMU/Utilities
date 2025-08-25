@@ -12,6 +12,8 @@ interface NotificationsProps {
   onScrollableAreaTouch: (touching: boolean) => void;
 }
 
+type typeMinutes = Record<ReasonNotification, number | null> | null;
+
 const NotificationsComponent: React.FC<NotificationsProps> = ({
   onScrollableAreaTouch,
 }) => {
@@ -22,10 +24,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
   const [notifications, setNotifications] = useState<Notifications | null>(
     null,
   );
-  const [minutes, setMinutes] = useState<Record<
-    ReasonNotification,
-    number | null
-  > | null>();
+  const [minutes, setMinutes] = useState<typeMinutes>();
 
   const notificationData = useMemo(() => {
     return Object.entries(notifications?.enabled || {})
@@ -61,16 +60,19 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
   );
 
   const handleChangeNotificationInterval = useCallback(
-    async (id: string, value: string) => {
+    async (id: ReasonNotification, value: string) => {
       if (!notifications) return;
 
       let interval = parseFloat(value);
-      if (isNaN(interval)) interval = 0;
+      if (isNaN(interval)) interval = -1;
 
-      setMinutes((prev) => ({
-        ...prev,
-        [id as ReasonNotification]: interval,
-      }));
+      setMinutes(
+        (prev) =>
+          ({
+            ...prev,
+            [id]: interval,
+          }) as typeMinutes,
+      );
     },
     [notifications],
   );
@@ -98,7 +100,10 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             <TextInput
               value={minutes?.[item.id as ReasonNotification]?.toString()}
               onChangeText={(text) =>
-                handleChangeNotificationInterval(item.id, text)
+                handleChangeNotificationInterval(
+                  item.id as ReasonNotification,
+                  text,
+                )
               }
               keyboardType="numeric"
               label={t("notificationInterval")}

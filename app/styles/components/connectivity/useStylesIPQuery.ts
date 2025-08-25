@@ -8,7 +8,6 @@ const useStylesIPQuery = () => {
     useResponsiveLayout();
   const { background, text, primary, secondary, shadow, accent } = colors;
 
-  // Responsive typography scale
   const typography = {
     titleSize: isPhone ? 28 : isTablet ? 32 : isLargeTablet ? 36 : 40,
     keySize: isPhone ? 16 : isTablet ? 18 : isLargeTablet ? 20 : 22,
@@ -16,7 +15,6 @@ const useStylesIPQuery = () => {
     ipSize: isPhone ? 17 : isTablet ? 19 : isLargeTablet ? 21 : 23,
   };
 
-  // Responsive spacing scale
   const spacing = {
     xs: isPhone ? 4 : 6,
     sm: isPhone ? 8 : 12,
@@ -25,7 +23,6 @@ const useStylesIPQuery = () => {
     xl: isPhone ? 32 : 40,
   };
 
-  // Responsive border radius
   const borderRadius = {
     sm: isPhone ? 8 : 10,
     md: isPhone ? 12 : 16,

@@ -1,9 +1,6 @@
 import js from "@eslint/js";
 import typescript from "@typescript-eslint/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
-import react from "eslint-plugin-react";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactNative from "eslint-plugin-react-native";
 
 export default [
   {
@@ -35,7 +32,7 @@ export default [
   },
   js.configs.recommended,
   {
-    files: ["**/*.{js,jsx,ts,tsx}"],
+    files: ["**/*.{js,ts}"],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -71,9 +68,6 @@ export default [
     },
     plugins: {
       "@typescript-eslint": typescript,
-      react,
-      "react-hooks": reactHooks,
-      "react-native": reactNative,
     },
     rules: {
       // TypeScript rules

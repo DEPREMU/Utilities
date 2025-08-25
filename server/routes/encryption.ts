@@ -57,7 +57,7 @@ const encrypt = (text: string): string => {
   const cipher = crypto.createCipheriv(
     algorithm,
     Buffer.from(SECRET_KEY),
-    Buffer.from(IV)
+    Buffer.from(IV),
   );
   let encrypted = cipher.update(text, "utf8", "base64");
   encrypted += cipher.final("base64");
@@ -76,7 +76,7 @@ const decrypt = (encryptedText: string): string => {
   const decipher = crypto.createDecipheriv(
     algorithm,
     Buffer.from(SECRET_KEY),
-    Buffer.from(IV)
+    Buffer.from(IV),
   );
   let decrypted = decipher.update(encryptedText, "base64", "utf8");
   decrypted += decipher.final("utf8");
@@ -96,7 +96,7 @@ const decrypt = (encryptedText: string): string => {
  */
 export const encryptHandler = async (
   req: Request<{}, {}, RequestEncrypt>,
-  res: Response<ResponseEncrypt>
+  res: Response<ResponseEncrypt>,
 ) => {
   const { dataToEncrypt } = req.body;
 
@@ -128,7 +128,7 @@ export const encryptHandler = async (
  */
 export const decryptHandler = async (
   req: Request<{}, {}, RequestDecrypt>,
-  res: Response<ResponseDecrypt>
+  res: Response<ResponseDecrypt>,
 ) => {
   const { dataToDecrypt } = req.body;
 

@@ -1,7 +1,4 @@
 import dotenv from "dotenv";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
 
 dotenv.config({ path: "../.env" });
 

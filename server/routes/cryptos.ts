@@ -24,7 +24,7 @@ export const getCryptoPrice = async (
 };
 
 export const handleGetCryptoPrice = async (
-  req: express.Request<any, any, RequestCryptoPrice>,
+  req: express.Request<unknown, unknown, RequestCryptoPrice>,
   res: express.Response<ResponseCryptoPrice>,
 ) => {
   const { cryptoId, currency } = req.body;
@@ -40,7 +40,7 @@ export const handleGetCryptoPrice = async (
 };
 
 export const handleGetCryptos = async (
-  req: express.Request<any, any, RequestCryptos>,
+  req: express.Request<unknown, unknown, RequestCryptos>,
   res: express.Response<ResponseCryptos>,
 ) => {
   try {

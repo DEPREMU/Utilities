@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npx nodemon --exec node index.ts",
-    "format-all": "npx prettier --write \"src/**/*.{ts,tsx}\" \"server**/*.{ts,tsx}\" \"*.{js,ts,tsx}\" --ignore-path .gitignore",
+    "format-all": "npx prettier --write \"**/*.{ts,js,json}\" --ignore-path ../.gitignore",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:check": "eslint . --max-warnings 0"

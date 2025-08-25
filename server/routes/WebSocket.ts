@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 import type {
   Cryptos,
   Notifications,
@@ -15,7 +16,7 @@ import WebSocket, { WebSocketServer } from "ws";
 import env from "../env.ts";
 import { t } from "../translations/index.ts";
 
-let credentials = await supabase.auth.signInWithPassword({
+const credentials = await supabase.auth.signInWithPassword({
   email: env.EMAIL_APP_SUPABASE,
   password: env.PASSWORD_APP_SUPABASE,
 });
@@ -170,7 +171,7 @@ const connectionWss = (ws: WebSocket) => {
         screen: "Cryptos",
       };
 
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/price`);
+    const res = await fetch("https://api.binance.com/api/v3/ticker/price");
     const data = await res.json();
     const prices = cryptos?.map((crypto) => {
       const priceData = data.find(

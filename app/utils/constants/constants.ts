@@ -11,4 +11,3 @@ export const SLOGAN_MSGS = [
   "Where health meets punctuality.",
   "Right dose. Right time. Every time.",
 ];
-

@@ -19,7 +19,7 @@
     "build-dev:android": "eas build --clear-cache --platform android --profile development && npm run install-all",
     "build:web": "npx expo export --platform web",
     "install-all": "npm install & cd server & npm install",
-    "format-all": "npx prettier --write \"./*.{ts,tsx}\" --ignore-path .gitignore",
+    "format-all": "npx prettier --write \"**/*.{ts,tsx}\" --ignore-path ../.gitignore",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:check": "eslint . --max-warnings 0",
@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
+    "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-masked-view/masked-view": "0.3.2",
     "@react-navigation/native": "^7.1.17",
@@ -45,6 +46,7 @@
     "expo-constants": "~17.1.6",
     "expo-dev-client": "~5.2.4",
     "expo-device": "~7.1.4",
+    "expo-font": "~13.3.2",
     "expo-linear-gradient": "~14.1.5",
     "expo-localization": "~16.1.6",
     "expo-network": "~7.1.5",
@@ -52,6 +54,7 @@
     "expo-secure-store": "~14.2.4",
     "expo-skeleton-loading": "*",
     "expo-status-bar": "~2.2.3",
+    "expo-task-manager": "~13.1.6",
     "i18next": "^25.3.2",
     "i18next-browser-languagedetector": "^8.2.0",
     "i18next-http-backend": "^3.0.2",
@@ -67,10 +70,7 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-skeleton-loading": "^1.1.1",
-    "react-native-web": "^0.20.0",
-    "@expo/vector-icons": "^14.1.0",
-    "expo-font": "~13.3.2",
-    "expo-task-manager": "~13.1.6"
+    "react-native-web": "^0.20.0"
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",
@@ -85,6 +85,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-native": "^5.0.0",
+    "expo-doctor": "^1.17.0",
     "prettier": "^3.6.2",
     "typescript": "~5.8.3"
   },
