@@ -38,6 +38,7 @@ const useStylesIP_API = () => {
       minHeight: height - 130,
     },
     containerIP: {
+      ...getCommonStyles("shadow"),
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
@@ -49,10 +50,7 @@ const useStylesIP_API = () => {
       borderWidth: 1,
       width: "100%",
       borderColor: primary,
-      shadowColor: shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      maxWidth: 500,
       elevation: 3,
     },
     containerDataIP: {

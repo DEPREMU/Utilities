@@ -1,4 +1,3 @@
-import { logError } from "./debug";
 import * as Network from "expo-network";
 import { saveData } from "./storageManagement";
 import * as Localization from "expo-localization";
@@ -42,29 +41,75 @@ export const parseData = <T = object | null>(value: string | null): T => {
 };
 
 /**
- * Converts a given value to its string representation.
+ * Gets a valid representation of a value for logging or debugging purposes.
  *
- * - If the value is already a string, it returns the value as is.
- * - Otherwise, it attempts to stringify the value using `JSON.stringify`.
- * - If stringification fails, it logs the error and returns an empty string.
+ * @param value - The value to process.
+ * @returns A valid representation of the value.
+ */
+const getValidValue = (value: unknown): unknown => {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "symbol") return "<<Symbol>>";
+  if (typeof value === "function") return "<<Function>>";
+  if (typeof value === "object" && value !== null) {
+    if (Array.isArray(value)) return sortArray(value);
+    return sortObject(value);
+  }
+
+  return value;
+};
+
+/**
+ * Sorts an array by getting valid representations of its elements.
  *
- * @param value - The value to be converted to a string.
- * @returns The string representation of the value, or an empty string if an error occurs.
+ * @param arr - The array to sort.
+ * @returns The sorted array.
+ */
+const sortArray = (arr: unknown[]): unknown[] => {
+  if (!Array.isArray(arr)) return arr;
+  return arr.map(getValidValue).sort();
+};
+
+/**
+ * Sorts an object by getting valid representations of its values.
+ *
+ * @param obj - The object to sort.
+ * @returns The sorted object.
+ */
+const sortObject = (obj: object): { [key: string]: unknown } => {
+  if (typeof obj !== "object" || obj === null) return obj;
+  const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b));
+
+  const sortedEntries = Object.fromEntries(
+    keys.map((key) => {
+      const valueKey = getValidValue(obj[key as keyof typeof obj]);
+
+      return [key, valueKey];
+    }),
+  );
+  return sortedEntries;
+};
+
+/**
+ * Stringifies a value.
+ *
+ * @param value - The value to stringify.
+ * @returns The stringified representation of the value.
  */
 export const stringifyData = (value: unknown): string => {
   if (typeof value === "string") return value;
   try {
+    if (value instanceof Date) return getValidValue(value) as string;
     if (value && typeof value === "object") {
-      const keys = Object.keys(value).sort((a, b) => a.localeCompare(b));
-      const sortedObject = Object.fromEntries(
-        keys.map((key) => [key, value[key as keyof typeof value]]),
-      );
-      return JSON.stringify(sortedObject);
+      if (Array.isArray(value)) return JSON.stringify(sortArray(value));
+
+      return JSON.stringify(sortObject(value));
     }
+    if (!value) return String(value);
+
     return JSON.stringify(value);
   } catch (error) {
-    logError(`Error stringifying data: ${error}`);
-    return "";
+    console.error(`Error stringifying data: ${error}`, value);
+    return "notValid";
   }
 };
 

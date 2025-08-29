@@ -12,6 +12,8 @@ import React, {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
+  useMemo,
 } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "./ThemeContext";
@@ -48,7 +50,6 @@ interface LayoutContextProps {
     style: CommonStyles | CommonStyles[],
     options?: OptionsCommonStyles,
   ) => ViewStyle | TextStyle;
-  isLandscape: boolean;
   isPortrait: boolean;
   isTablet: boolean;
   isPhone: boolean;
@@ -71,7 +72,6 @@ const LayoutContext = createContext<LayoutContextProps>({
   isTablet: false,
   isLargeTablet: false,
   isPlatformWeb: false,
-  isLandscape: false,
   isPortrait: false,
   isPhone: false,
   isWeb: false,
@@ -93,6 +93,8 @@ const LayoutContext = createContext<LayoutContextProps>({
   },
   getCommonStyles: () => ({}),
 });
+
+const isPlatformWeb = Platform.OS === "web";
 
 /**
  * Provides layout-related context values to its children, such as device type and screen dimensions.
@@ -116,79 +118,101 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
 
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
 
-  const insets = useSafeAreaInsets();
+  const rawInsets = useSafeAreaInsets();
+
+  const insets = useMemo(
+    () => ({
+      top: rawInsets.top,
+      bottom: rawInsets.bottom,
+      left: rawInsets.left,
+      right: rawInsets.right,
+    }),
+    [rawInsets.top, rawInsets.bottom, rawInsets.left, rawInsets.right],
+  );
+
   const { width, height } = dimensions;
-  const isPlatformWeb = Platform.OS === "web";
-  const isPortrait: boolean = height >= width;
-  const isLandscape: boolean = width > height;
+  const isPortrait: boolean = useMemo(() => height >= width, [height, width]);
 
-  const isWeb: boolean = isPlatformWeb && width > 768;
-  const isPhone: boolean = width <= 768 && height <= 1600;
-  const isTablet: boolean = width > 768 && height <= 1600;
-  const isLargeTablet: boolean = width > 1024 && height <= 2048;
+  const isWeb: boolean = useMemo(() => isPlatformWeb && width > 768, [width]);
+  const isPhone: boolean = useMemo(
+    () => width <= 768 && height <= 1600,
+    [width, height],
+  );
+  const isTablet: boolean = useMemo(
+    () => width > 768 && height <= 1600,
+    [width, height],
+  );
+  const isLargeTablet: boolean = useMemo(
+    () => width > 1024 && height <= 2048,
+    [width, height],
+  );
 
-  const getStylesSafeAreaContainer = (
-    fallbackValues: propGetStylesSafeAreaContainer = [10],
-  ) => {
-    let top: number, bottom: number, left: number, right: number;
-    const length = fallbackValues.length;
-    if (length >= 4) {
-      [top, bottom, left, right] = fallbackValues.slice(0, 4);
-    } else if (length >= 2) {
-      const [vertical, horizontal] = fallbackValues.slice(0, 2);
-      left = right = vertical;
-      top = bottom = horizontal;
-    } else {
-      top = bottom = left = right = fallbackValues[0];
-    }
-
-    return {
-      paddingTop: insets.top > top ? insets.top : top,
-      paddingBottom: insets.bottom > bottom ? insets.bottom : bottom,
-      paddingLeft: insets.left > left ? insets.left : left,
-      paddingRight: insets.right > right ? insets.right : right,
-    };
-  };
-
-  const getCommonStyles = (
-    styleFinder: CommonStyles | CommonStyles[],
-    options?: OptionsCommonStyles,
-  ) => {
-    let styleToReturn: ViewStyle | TextStyle = {};
-    if (!Array.isArray(styleFinder)) {
-      styleFinder = [styleFinder];
-    }
-    for (const style of styleFinder) {
-      switch (style) {
-        case "mainContainer":
-          styleToReturn = {
-            ...(options?.copyInsets || options?.copyInsets === undefined
-              ? getStylesSafeAreaContainer(options?.fallbackValues)
-              : {}),
-            flex: 1,
-            width: "100%",
-            justifyContent: "center",
-            alignItems: "center",
-            ...styleToReturn,
-          };
-          break;
-        case "shadow":
-          styleToReturn = {
-            shadowColor: options?.shadowColor || colors.shadow,
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.15,
-            shadowRadius: 4,
-            elevation: 6,
-            ...styleToReturn,
-          };
-          break;
-        default:
-          return {};
+  const getStylesSafeAreaContainer = useCallback(
+    (fallbackValues: propGetStylesSafeAreaContainer = [10]) => {
+      let top: number, bottom: number, left: number, right: number;
+      const length = fallbackValues.length;
+      if (length >= 4) {
+        [top, bottom, left, right] = fallbackValues.slice(0, 4);
+      } else if (length >= 2) {
+        const [vertical, horizontal] = fallbackValues.slice(0, 2);
+        left = right = vertical;
+        top = bottom = horizontal;
+      } else {
+        top = bottom = left = right = fallbackValues[0];
       }
-    }
 
-    return styleToReturn;
-  };
+      return {
+        paddingTop: insets.top > top ? insets.top : top,
+        paddingBottom: insets.bottom > bottom ? insets.bottom : bottom,
+        paddingLeft: insets.left > left ? insets.left : left,
+        paddingRight: insets.right > right ? insets.right : right,
+      };
+    },
+    [insets],
+  );
+
+  const getCommonStyles = useCallback(
+    (
+      styleFinder: CommonStyles | CommonStyles[],
+      options?: OptionsCommonStyles,
+    ) => {
+      let styleToReturn: ViewStyle | TextStyle = {};
+      if (!Array.isArray(styleFinder)) {
+        styleFinder = [styleFinder];
+      }
+      for (const style of styleFinder) {
+        switch (style) {
+          case "mainContainer":
+            styleToReturn = {
+              ...(options?.copyInsets || options?.copyInsets === undefined
+                ? getStylesSafeAreaContainer(options?.fallbackValues)
+                : {}),
+              flex: 1,
+              width: "100%",
+              justifyContent: "center",
+              alignItems: "center",
+              ...styleToReturn,
+            };
+            break;
+          case "shadow":
+            styleToReturn = {
+              shadowColor: options?.shadowColor || colors.shadow,
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.15,
+              shadowRadius: 4,
+              elevation: 6,
+              ...styleToReturn,
+            };
+            break;
+          default:
+            return {};
+        }
+      }
+
+      return styleToReturn;
+    },
+    [colors.shadow, getStylesSafeAreaContainer],
+  );
 
   const layoutData: LayoutContextProps = {
     isWeb,
@@ -199,7 +223,6 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     getCommonStyles,
     getStylesSafeAreaContainer,
     isPlatformWeb,
-    isLandscape,
     isTablet,
     height,
     width,

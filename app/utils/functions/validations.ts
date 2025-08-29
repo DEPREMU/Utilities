@@ -1,3 +1,5 @@
+import React from "react";
+
 /**
  * Validates whether a given string is a properly formatted email address.
  *
@@ -50,4 +52,32 @@ export const cleanFloat = (text: string): string => {
   if (cleanedText.startsWith(".")) cleanedText = "0" + cleanedText;
 
   return cleanedText;
+};
+
+export const areEqualChildren = (
+  prevChildren: React.ReactNode,
+  nextChildren: React.ReactNode,
+): boolean => {
+  if (!prevChildren && !nextChildren) return true;
+  if (!prevChildren || !nextChildren) return false;
+
+  const prevCount = React.Children.count(prevChildren);
+  const nextCount = React.Children.count(nextChildren);
+  if (prevCount !== nextCount) return false;
+
+  const prevArray = React.Children.toArray(prevChildren);
+  const nextArray = React.Children.toArray(nextChildren);
+
+  for (let i = 0; i < prevArray.length; i++) {
+    const prevChild = prevArray[i];
+    const nextChild = nextArray[i];
+
+    if (React.isValidElement(prevChild) && React.isValidElement(nextChild)) {
+      if (prevChild.type !== nextChild.type) return false;
+    } else {
+      if (prevChild !== nextChild) return false;
+    }
+  }
+
+  return true;
 };

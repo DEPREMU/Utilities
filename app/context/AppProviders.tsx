@@ -11,7 +11,11 @@ import { initializeNotificationsStorage } from "@/utils";
 
 initializeNotificationsStorage();
 
-const AppProviders = ({ children }: { children: React.ReactNode }) => (
+interface AppProvidersProps {
+  children: React.ReactNode;
+}
+
+const AppProviders: React.FC<AppProvidersProps> = ({ children }) => (
   <SafeAreaProvider>
     <ThemeProvider>
       <LayoutProvider>

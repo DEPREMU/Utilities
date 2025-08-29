@@ -6,7 +6,7 @@ import {
   typeLanguages,
 } from "@types";
 import { View, Text } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 // import MapView, { Marker } from "react-native-maps";
 import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@components/common/SkeletonLoading";
@@ -60,6 +60,57 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
     keysTranslated as unknown as dataIPQueryJSON,
   );
 
+  const renderData = useCallback(() => {
+    return Object.entries(dataIP).map(([key, value]) => {
+      if (key === "ip" || isFalsy(value)) return null;
+
+      if (typeof value !== "object" || Array.isArray(value)) return null;
+
+      const subEntries = Object.entries(value || {}).filter(
+        ([, subValue]) => !isFalsy(subValue),
+      );
+
+      return subEntries.map(([subKey, subValue]) => {
+        const translationKey = (
+          keysTranslated[key as keyof Omit<dataIPQueryJSON, "ip">] as Record<
+            string,
+            keyof typeLanguages
+          >
+        )[subKey];
+
+        let valueToShow: string = "";
+        if (typeof subValue === "boolean")
+          valueToShow = subValue ? t("yes") : t("no");
+        else if (
+          translationKey === "localTime" &&
+          String(subValue).includes("T") &&
+          String(subValue).includes(":")
+        )
+          valueToShow = getFormattedDate(new Date(String(subValue)));
+        else valueToShow = String(subValue);
+
+        return (
+          <View key={`${key}-${subKey}`} style={styles.containerEachValue}>
+            <Text style={styles.textKey}>{t(translationKey)}:</Text>
+            <SkeletonLoading
+              showChildren={dataIP?.ip !== "yourIP"}
+              style={[styles.skeletonValue]}
+            >
+              <Text style={styles.value}>{valueToShow}</Text>
+            </SkeletonLoading>
+          </View>
+        );
+      });
+    });
+  }, [
+    t,
+    dataIP,
+    styles.value,
+    styles.textKey,
+    styles.skeletonValue,
+    styles.containerEachValue,
+  ]);
+
   useEffect(() => {
     if (dataIP?.ip !== "yourIP") return;
 
@@ -97,48 +148,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
         </SkeletonLoading>
       </View>
 
-      <View style={styles.containerDataIP}>
-        {Object.entries(dataIP).map(([key, value]) => {
-          if (key === "ip" || isFalsy(value)) return null;
-
-          if (typeof value !== "object" || Array.isArray(value)) return null;
-
-          const subEntries = Object.entries(value || {}).filter(
-            ([, subValue]) => !isFalsy(subValue),
-          );
-
-          return subEntries.map(([subKey, subValue]) => {
-            const translationKey = (
-              keysTranslated[
-                key as keyof Omit<dataIPQueryJSON, "ip">
-              ] as Record<string, keyof typeLanguages>
-            )[subKey];
-
-            let valueToShow: string = "";
-            if (typeof subValue === "boolean")
-              valueToShow = subValue ? t("yes") : t("no");
-            else if (
-              translationKey === "localTime" &&
-              String(subValue).includes("T") &&
-              String(subValue).includes(":")
-            )
-              valueToShow = getFormattedDate(new Date(String(subValue)));
-            else valueToShow = String(subValue);
-
-            return (
-              <View key={`${key}-${subKey}`} style={styles.containerEachValue}>
-                <Text style={styles.textKey}>{t(translationKey)}:</Text>
-                <SkeletonLoading
-                  showChildren={dataIP?.ip !== "yourIP"}
-                  style={[styles.skeletonValue]}
-                >
-                  <Text style={styles.value}>{valueToShow}</Text>
-                </SkeletonLoading>
-              </View>
-            );
-          });
-        })}
-      </View>
+      <View style={styles.containerDataIP}>{renderData()}</View>
 
       {/* Mapa */}
       {/* <View style={styles.mapContainer}>
@@ -165,4 +175,8 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
   );
 };
 
-export default IPQuery;
+const IPQueryMemo = memo(IPQuery, (prevProps, nextProps) => {
+  return prevProps.data === nextProps.data;
+});
+
+export default IPQueryMemo;

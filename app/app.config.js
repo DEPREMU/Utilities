@@ -6,6 +6,11 @@ export default {
   expo: {
     name: "Utilities",
     slug: "Utilities",
+    build: {
+      env: {
+        GOOGLE_SERVICES_JSON: "GOOGLE_SERVICES_JSON",
+      },
+    },
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -48,6 +53,7 @@ export default {
       googleServicesFile: "./google-services.json",
     },
     plugins: [
+      "./plugins/handleCreateFiles.js",
       "expo-font",
       "expo-secure-store",
       "expo-localization",

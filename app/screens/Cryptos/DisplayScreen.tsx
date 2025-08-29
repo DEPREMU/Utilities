@@ -3,7 +3,7 @@ import { CryptoPrice } from "@components/Cryptos/CryptoPrice";
 import SkeletonLoading from "@components/common/SkeletonLoading";
 import { useStylesDisplayScreen } from "@styles/components/cryptos/useStylesDisplayScreen";
 import { View, Text, ScrollView } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { SelectedCryptos, stringifyData } from "@utils";
 import { useStylesCryptoPrice } from "@/styles/components/cryptos/useStylesCryptoPrice";
 
@@ -13,10 +13,65 @@ interface DisplayScreenProps {
 
 const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
   const { t } = useLanguage();
-  const { styles } = useStylesDisplayScreen();
-  const [loading, setLoading] = useState<boolean>(true);
+  const useStyles = useStylesDisplayScreen();
   const { styles: cryptoPriceStyles } = useStylesCryptoPrice();
+
+  const styles = useMemo(
+    () => useStyles.styles,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stringifyData(useStyles.styles)],
+  );
+
+  const [loading, setLoading] = useState<boolean>(true);
   const [render, setRender] = useState<boolean>(false);
+
+  const renderEmptyState = useMemo(
+    () =>
+      Object.keys(selectedCryptos).length === 0 &&
+      !loading && (
+        <View style={styles.emptyStateContainer}>
+          <Text style={styles.emptyStateIcon}>₿</Text>
+          <Text style={styles.emptyStateTitle}>
+            {t("noCryptocurrenciesSelected")}
+          </Text>
+          <Text style={styles.emptyStateSubtitle}>{t("goToSelectionTab")}</Text>
+        </View>
+      ),
+    [loading, selectedCryptos, styles, t],
+  );
+
+  const renderCryptos = useMemo(
+    () =>
+      Object.keys(selectedCryptos).length === 0 ? (
+        <View style={styles.cryptoGrid}>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <SkeletonLoading
+              key={index}
+              style={[cryptoPriceStyles.container, styles.padding0]}
+              showChildren={!loading}
+            >
+              <View />
+            </SkeletonLoading>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.cryptoGrid}>
+          {Object.entries(selectedCryptos).map(([cryptoId, cryptoData]) => (
+            <CryptoPrice
+              key={cryptoId}
+              cryptoData={cryptoData}
+              priceOfCrypto={t("priceOfCrypto")}
+              ownedAmount={t("ownedAmount")}
+              firstInvest={t("firstInvest")}
+              gainAmount={t("gainAmount")}
+              datePurchased={t("datePurchased")}
+              currentPrice={t("currentPrice")}
+            />
+          ))}
+        </View>
+      ),
+    [loading, selectedCryptos, styles, t, cryptoPriceStyles.container],
+  );
 
   useEffect(() => {
     const interval = setInterval(() => setRender((prev) => !prev), 10000);
@@ -48,45 +103,8 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
         contentContainerStyle={styles.contentScrollView}
         showsVerticalScrollIndicator={false}
       >
-        {Object.keys(selectedCryptos).length === 0 && !loading && (
-          <View style={styles.emptyStateContainer}>
-            <Text style={styles.emptyStateIcon}>₿</Text>
-            <Text style={styles.emptyStateTitle}>
-              {t("noCryptocurrenciesSelected")}
-            </Text>
-            <Text style={styles.emptyStateSubtitle}>
-              {t("goToSelectionTab")}
-            </Text>
-          </View>
-        )}
-        {Object.keys(selectedCryptos).length === 0 ? (
-          <View style={styles.cryptoGrid}>
-            {Array.from({ length: 3 }).map((_, index) => (
-              <SkeletonLoading
-                key={index}
-                style={[cryptoPriceStyles.container, styles.padding0]}
-                showChildren={!loading}
-              >
-                <View />
-              </SkeletonLoading>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.cryptoGrid}>
-            {Object.entries(selectedCryptos).map(([cryptoId, cryptoData]) => (
-              <CryptoPrice
-                key={cryptoId}
-                cryptoData={cryptoData}
-                priceOfCrypto={t("priceOfCrypto")}
-                ownedAmount={t("ownedAmount")}
-                firstInvest={t("firstInvest")}
-                gainAmount={t("gainAmount")}
-                datePurchased={t("datePurchased")}
-                currentPrice={t("currentPrice")}
-              />
-            ))}
-          </View>
-        )}
+        {renderEmptyState}
+        {renderCryptos}
       </ScrollView>
     </View>
   );

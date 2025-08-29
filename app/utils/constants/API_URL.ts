@@ -6,9 +6,9 @@ export const API_URL = !isDev
   ? "http://137.131.8.63:3000/api"
   : Platform.OS === "web"
     ? "http://localhost:3000/api"
-    : "http://192.168.1.209:3000/api";
+    : "http://192.168.1.136:3000/api";
 export const URL_WEB_SOCKET = !isDev
   ? "ws://137.131.8.63:3000/"
   : Platform.OS === "web"
     ? "ws://localhost:3000/"
-    : "ws://192.168.1.209:3000/";
+    : "ws://192.168.1.136:3000/";

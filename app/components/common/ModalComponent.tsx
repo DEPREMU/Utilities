@@ -8,7 +8,8 @@ import Animated, {
 import { StylesModal } from "@context/ModalContext";
 import { Pressable, Text, View } from "react-native";
 import { useStylesModalComponent } from "@/styles/components/useStylesModalComponent";
-import React, { useEffect, useRef } from "react";
+import React, { memo, useEffect, useRef } from "react";
+import { areEqualChildren, stringifyData } from "@/utils";
 
 interface ModalProps {
   title: string;
@@ -71,9 +72,9 @@ const ModalComponent: React.FC<ModalProps> = ({
     <Animated.View
       style={[
         styles.overlay,
+        customStyles?.overlay,
         // eslint-disable-next-line react-native/no-inline-styles
         { display: hideModal ? "none" : "flex" },
-        customStyles?.overlay,
         animatedStyle,
       ]}
     >
@@ -102,4 +103,17 @@ const ModalComponent: React.FC<ModalProps> = ({
   );
 };
 
-export default ModalComponent;
+const ModalComponentMemo = memo(ModalComponent, (prev, next) => {
+  return (
+    prev.title === next.title &&
+    (typeof prev.body === "string"
+      ? typeof next.body === "string" && prev.body === next.body
+      : areEqualChildren(prev.body, next.body)) &&
+    areEqualChildren(prev.buttons, next.buttons) &&
+    prev.isOpen === next.isOpen &&
+    prev.onClose === next.onClose &&
+    prev.hideModal === next.hideModal &&
+    stringifyData(prev.customStyles) === stringifyData(next.customStyles)
+  );
+});
+export default ModalComponentMemo;

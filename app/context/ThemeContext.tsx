@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { PaperProvider } from "react-native-paper";
-import { useColors } from "@/hooks/useColors";
-import { StatusBar } from "react-native";
-import { loadData, saveData } from "@/utils";
 import { Theme } from "@types";
+import { useColors } from "@hooks/useColors";
+import { StatusBar } from "react-native";
+import { PaperProvider } from "react-native-paper";
+import { loadData, saveData } from "@utils";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -30,6 +30,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   }, [themeState]);
 
   const colors = useColors(themeState);
+
   const { paperTheme, isLight } = colors;
 
   return (

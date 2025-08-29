@@ -59,18 +59,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const shouldConnect = useRef<boolean>(true);
   const socketRef = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    socketRef.current = socket;
-  }, [socket]);
-
   const sendMessage = useCallback((message: WebSocketMessage) => {
     const currentSocket = socketRef.current;
     if (!currentSocket || currentSocket.readyState !== WebSocket.OPEN) return;
     currentSocket.send(stringifyData(message));
-  }, []);
-
-  useEffect(() => {
-    loadData<string | null>("@webSocketURL").then(setSocketURL);
   }, []);
 
   const createWebSocketConnection = useCallback(
@@ -221,7 +213,21 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   );
 
   useEffect(() => {
-    if (!socketURL || !shouldConnect.current) return;
+    loadData<string | null>("@webSocketURL").then(setSocketURL);
+  }, []);
+
+  useEffect(() => {
+    if (
+      socketRef.current &&
+      socketRef.current.readyState === WebSocket.OPEN &&
+      socketRef.current !== socket
+    )
+      socketRef.current?.close?.();
+    socketRef.current = socket;
+  }, [socket]);
+
+  useEffect(() => {
+    if (!shouldConnect.current) return;
 
     if (
       !socketRef.current ||

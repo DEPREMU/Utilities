@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { List } from "react-native-paper";
 import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
@@ -34,4 +34,6 @@ const LanguagePicker: React.FC = () => {
   );
 };
 
-export default LanguagePicker;
+const LanguagePickerMemo = memo(LanguagePicker);
+
+export default LanguagePickerMemo;

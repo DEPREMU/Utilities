@@ -6,7 +6,9 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
+import axios from "axios";
 import { useLanguage } from "./LanguageContext";
+import {  getRouteAPI } from "@utils";
 import * as Notifications from "expo-notifications";
 import { addNetworkStateListener } from "expo-network";
 
@@ -20,15 +22,10 @@ type Notification = {
 };
 
 interface NotificationsContextType {
-  notifications: Notification[];
-  addNotification: (
-    notification: Omit<Notification, "id" | "timestamp">,
-  ) => void;
   sendNotification: (
     notification: Omit<Notification, "id" | "timestamp">,
   ) => Promise<string>;
   removeNotification: (id: string) => void;
-  clearNotifications: () => void;
 }
 
 const NotificationsContext = createContext<
@@ -44,7 +41,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 }) => {
   const { t } = useLanguage();
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasInternet, setHasInternet] = useState<boolean>(true);
 
   const sendNotification = useCallback(
@@ -61,36 +57,32 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     [],
   );
 
-  const addNotification = useCallback(
-    (notification: Omit<Notification, "id" | "timestamp">) => {
-      const newNotification: Notification = {
-        ...notification,
-        id: Date.now().toString(),
-        timestamp: new Date(),
-      };
-      setNotifications((prev) => [...prev, newNotification]);
-    },
-    [],
-  );
-
   const removeNotification = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.filter((notification) => notification.id !== id),
-    );
-  }, []);
-
-  const clearNotifications = useCallback(() => {
-    setNotifications([]);
+    Notifications.cancelScheduledNotificationAsync(id);
   }, []);
 
   useEffect(() => {
-    const listener = addNetworkStateListener(
-      ({ isConnected, isInternetReachable }) => {
-        setHasInternet(!!isConnected && !!isInternetReachable);
-      },
-    );
+    const listener = addNetworkStateListener((values) => {
+      const { isConnected, isInternetReachable } = values;
+      setHasInternet(!!isConnected && !!isInternetReachable);
+    });
 
-    return () => listener.remove();
+    const id = setInterval(async () => {
+      try {
+        const res = await axios.get(await getRouteAPI("/health"), {
+          timeout: 5000,
+        });
+        const data = res.data || { status: null };
+        setHasInternet(data?.status === "ok");
+      } catch {
+        setHasInternet(false);
+      }
+    }, 10000);
+
+    return () => {
+      clearInterval(id);
+      listener.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -110,11 +102,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, [hasInternet, t, sendNotification]);
 
   const value: NotificationsContextType = {
-    notifications,
-    addNotification,
     sendNotification,
     removeNotification,
-    clearNotifications,
   };
 
   return (

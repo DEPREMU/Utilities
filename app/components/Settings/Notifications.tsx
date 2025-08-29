@@ -1,12 +1,13 @@
-import { loadData, saveData, stringifyData, getNotifications } from "@utils";
+import Button from "@components/common/ButtonComponent";
+import { FlatList } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import useStylesNotifications from "@styles/components/settings/useStylesNotifications";
-import { FlatList, Pressable } from "react-native";
 import { Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Notifications, ReasonNotification, typeLanguages } from "@types";
+import { loadData, saveData, stringifyData, getNotifications } from "@utils";
 
 interface NotificationsProps {
   onScrollableAreaTouch: (touching: boolean) => void;
@@ -84,18 +85,21 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
       return (
         <>
-          <Pressable
-            style={styles.notificationItem}
-            onPress={() => handleChangeNotification(item.id)}
-          >
-            <Switch
-              value={item.enabled}
-              onChange={() => handleChangeNotification(item.id)}
-            />
-            <Text style={styles.notificationKey}>
-              {t(item.id as keyof typeLanguages)}
-            </Text>
-          </Pressable>
+          <Button
+            replaceStyles={{ button: styles.notificationItem, textButton: {} }}
+            handlePress={() => handleChangeNotification(item.id)}
+            children={
+              <>
+                <Switch
+                  value={item.enabled}
+                  onChange={() => handleChangeNotification(item.id)}
+                />
+                <Text style={styles.notificationKey}>
+                  {t(item.id as keyof typeLanguages)}
+                </Text>
+              </>
+            }
+          />
           {item.enabled && interval !== undefined && (
             <TextInput
               value={minutes?.[item.id as ReasonNotification]?.toString()}

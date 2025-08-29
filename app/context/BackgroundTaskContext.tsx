@@ -209,19 +209,6 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);
 
-  const addTaskQueue = (task: BackgroundTask) => {
-    taskQueueRef.current.push(task);
-    processQueue();
-  };
-
-  const runTask = useCallback(async (task: BackgroundTask) => {
-    try {
-      await task();
-    } catch {
-      logError("Error running task:", task);
-    }
-  }, []);
-
   const processQueue = useCallback(async () => {
     if (isProcessingRef.current) return;
 
@@ -239,7 +226,23 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     }
 
     isProcessingRef.current = false;
-  }, [isProcessingRef, taskQueueRef]);
+  }, []);
+
+  const addTaskQueue = useCallback(
+    (task: BackgroundTask) => {
+      taskQueueRef.current.push(task);
+      processQueue();
+    },
+    [processQueue],
+  );
+
+  const runTask = useCallback(async (task: BackgroundTask) => {
+    try {
+      await task();
+    } catch {
+      logError("Error running task:", task);
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener(

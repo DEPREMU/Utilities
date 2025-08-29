@@ -214,9 +214,12 @@ const CryptoPriceMemo = React.memo(CryptoPrice, (prevProps, nextProps) => {
   return (
     stringifyData(prevProps.cryptoData) ===
       stringifyData(nextProps.cryptoData) &&
+    prevProps.currentPrice === nextProps.currentPrice &&
+    prevProps.gainAmount === nextProps.gainAmount &&
+    prevProps.datePurchased === nextProps.datePurchased &&
+    prevProps.firstInvest === nextProps.firstInvest &&
     prevProps.priceOfCrypto === nextProps.priceOfCrypto &&
-    prevProps.ownedAmount === nextProps.ownedAmount &&
-    prevProps.currentPrice === nextProps.currentPrice
+    prevProps.ownedAmount === nextProps.ownedAmount
   );
 });
 

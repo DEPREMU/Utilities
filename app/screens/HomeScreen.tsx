@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import Button from "@components/common/ButtonComponent";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
@@ -29,6 +29,17 @@ const HomeScreen: React.FC = () => {
   const { styles } = useStylesHomeScreen();
   const navigation = useNavigation<HomeScreenNavigationProp>();
 
+  const renderButtons = useMemo(() => {
+    return buttons.map((button) => (
+      <Button
+        key={button.label}
+        label={t(button.label)}
+        touchableOpacity
+        handlePress={() => navigation.replace(button.screen)}
+      />
+    ));
+  }, [navigation, t]);
+
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
@@ -36,13 +47,7 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.title}>
           {t("welcomeUser", { user: userData?.name || t("user") })}
         </Text>
-        {buttons.map((button) => (
-          <Button
-            key={button.label}
-            label={t(button.label)}
-            handlePress={() => navigation.replace(button.screen)}
-          />
-        ))}
+        {renderButtons}
       </View>
     </View>
   );

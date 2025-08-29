@@ -8,19 +8,18 @@ import {
   NativeSyntheticEvent,
 } from "react-native";
 import React, { memo } from "react";
-import { stringifyData } from "@utils";
 import { useStylesButtonComponent } from "@styles/components/useStylesButtonComponent";
+import { stringifyData, areEqualChildren } from "@utils";
 
 type Styles = {
-  button: ViewStyle;
-  textButton: TextStyle;
+  button?: ViewStyle;
+  textButton?: TextStyle;
 };
 
 interface ButtonComponentProps {
   label?: string;
   customStyles?: Styles;
   replaceStyles?: Styles;
-  Children?: React.FC<unknown>;
   children?: React.ReactNode;
   touchableOpacity?: boolean;
   touchableOpacityIntensity?: number;
@@ -55,7 +54,8 @@ const areEqual = (
     prev.handlerHoverOut === next.handlerHoverOut &&
     prev.handlePress === next.handlePress &&
     stringifyData(prev.replaceStyles) === stringifyData(next.replaceStyles) &&
-    stringifyData(prev.customStyles) === stringifyData(next.customStyles)
+    stringifyData(prev.customStyles) === stringifyData(next.customStyles) &&
+    areEqualChildren(prev.children, next.children)
   );
 };
 
@@ -80,7 +80,6 @@ const areEqual = (
  * @returns {JSX.Element} The rendered button component.
  */
 const ButtonComponent: React.FC<ButtonComponentProps> = ({
-  Children,
   children,
   handlerFocus,
   replaceStyles,
@@ -127,7 +126,6 @@ const ButtonComponent: React.FC<ButtonComponentProps> = ({
           {label}
         </Text>
       )}
-      {!!Children && <Children />}
       {!!children && children}
     </Pressable>
   );

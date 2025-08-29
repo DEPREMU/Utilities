@@ -15,7 +15,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { stringifyData } from "@utils";
+import { areEqualChildren, stringifyData } from "@utils";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { memo, useCallback, useEffect, useState } from "react";
 
@@ -130,9 +130,10 @@ const SkeletonLoadingMemo = memo(SkeletonLoading, (prevProps, nextProps) => {
     stringifyData(a) === stringifyData(b);
 
   const areEquals =
-    areEqual(prevProps.showChildren, nextProps.showChildren) &&
+    areEqual(prevProps.style, nextProps.style) &&
     areEqual(prevProps.duration, nextProps.duration) &&
-    areEqual(prevProps.style, nextProps.style);
+    areEqual(prevProps.showChildren, nextProps.showChildren) &&
+    areEqualChildren(prevProps.children, nextProps.children);
 
   return areEquals;
 });

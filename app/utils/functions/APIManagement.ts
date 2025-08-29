@@ -44,8 +44,8 @@ export const fetchOptions = <T = RequestBody>(
  * ```
  */
 export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
-  let apiUrl = await loadData<string>("@API_URL").then(
-    (data) => data || API_URL,
+  let apiUrl = await loadData<string>("@API_URL").then((data) =>
+    data?.includes("http") ? data : API_URL,
   );
   if (apiUrl.endsWith("/")) apiUrl = apiUrl.slice(0, -1);
 

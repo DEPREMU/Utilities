@@ -3,7 +3,7 @@ import { View, Text } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@components/common/SkeletonLoading";
 import useStylesIP_API from "@styles/components/connectivity/useStylesIP_API";
-import React, { useEffect, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { dataIP_API_JSON, typeLanguages } from "@types";
 
 const dataIPLocal: dataIP_API_JSON = {
@@ -140,4 +140,8 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
   );
 };
 
-export default IP_API;
+const IP_API_Memo = memo(IP_API, (prevProps, nextProps) => {
+  return prevProps.data === nextProps.data;
+});
+
+export default IP_API_Memo;

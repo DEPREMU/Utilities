@@ -61,7 +61,6 @@ const CryptoItem: React.FC<CryptoItemProps> = ({
 const CryptoItemMemo = React.memo(CryptoItem, (prevProps, nextProps) => {
   return (
     prevProps.isSelected === nextProps.isSelected &&
-    prevProps.crypto?.amount === nextProps.crypto?.amount &&
     stringifyData(prevProps.crypto) === stringifyData(nextProps.crypto) &&
     stringifyData(prevProps.item) === stringifyData(nextProps.item) &&
     prevProps.onAmountChange === nextProps.onAmountChange &&
