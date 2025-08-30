@@ -6,10 +6,10 @@ import { useMemo } from "react";
 export const useStylesMinesweeper = () => {
   const useColors = useTheme();
   const {
+    width,
     isPhone,
     isTablet,
     isLargeTablet,
-    width,
     getCommonStyles,
     getResponsiveValue,
   } = useResponsiveLayout();
@@ -45,14 +45,28 @@ export const useStylesMinesweeper = () => {
     [isPhone],
   );
 
-  const cellSize = useMemo(
-    () =>
-      isPhone
-        ? Math.min(width / 10, 35)
-        : isTablet
-          ? Math.min(width / 15, 45)
-          : Math.min(width / 20, 55),
-    [isPhone, isTablet, width],
+  const cellSize = useMemo(() => {
+    const baseSize = isPhone ? 30 : isTablet ? 40 : 50;
+    const maxBoardSize = 19;
+    const availableWidth = width * 0.9;
+    const maxCellSize = Math.floor(availableWidth / maxBoardSize);
+    console.log({ baseSize, maxCellSize, availableWidth });
+
+    return Math.min(baseSize, maxCellSize);
+  }, [isPhone, isTablet, width]);
+
+  console.log({ cellSize });
+
+  const commonCell = useMemo(
+    () => ({
+      width: cellSize,
+      height: cellSize,
+      borderWidth: 1,
+      borderColor: colors.border,
+      minWidth: 15,
+      minHeight: 15,
+    }),
+    [cellSize, colors.border],
   );
 
   const styles = useMemo(
@@ -122,7 +136,6 @@ export const useStylesMinesweeper = () => {
           ...getCommonStyles("shadow"),
           backgroundColor: colors.secondary,
           borderRadius: borderRadius.lg,
-          padding: spacing.xs,
           borderWidth: 2,
           borderColor: colors.primary,
           alignSelf: "center",
@@ -132,27 +145,14 @@ export const useStylesMinesweeper = () => {
           alignItems: "center",
         },
         cell: {
-          width: cellSize,
-          height: cellSize,
-          justifyContent: "center",
-          alignItems: "center",
+          ...getCommonStyles(["shadow", "mainContainer"]),
+          ...commonCell,
           backgroundColor: colors.background,
-          borderWidth: 1,
-          borderColor: colors.border,
-          minWidth: 30,
-          minHeight: 30,
         },
         cellHidden: {
-          ...getCommonStyles("shadow"),
-          width: cellSize,
-          height: cellSize,
-          justifyContent: "center",
-          alignItems: "center",
+          ...getCommonStyles(["shadow", "mainContainer"]),
+          ...commonCell,
           backgroundColor: colors.secondary,
-          borderWidth: 1,
-          borderColor: colors.border,
-          minWidth: 30,
-          minHeight: 30,
         },
         cellText: {
           fontSize: typography.cellSize,
@@ -178,8 +178,8 @@ export const useStylesMinesweeper = () => {
     [
       colors,
       spacing,
-      cellSize,
       typography,
+      commonCell,
       borderRadius,
       getCommonStyles,
       getResponsiveValue,
