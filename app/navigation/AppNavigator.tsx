@@ -5,12 +5,14 @@ import {
 } from "@react-navigation/native-stack";
 import InfoIP from "@screens/Connectivity/IP";
 import HomeScreen from "@screens/HomeScreen";
-import LoginScreen from "@/screens/auth/LoginScreen";
+import LoginScreen from "@screens/auth/LoginScreen";
+import Minesweeper from "@screens/Games/Minesweeper";
 import SignUpScreen from "@screens/auth/SignUpScreen";
-import { useTheme } from "@/context/ThemeContext";
-import SettingsScreen from "@/screens/Settings";
-import CryptosNavigator from "@/screens/Cryptos";
-import CalculatorNavigator from "@/screens/calculator";
+import { useTheme } from "@context/ThemeContext";
+import GamesNavigator from "@screens/Games";
+import SettingsScreen from "@screens/Settings";
+import CryptosNavigator from "@screens/Cryptos";
+import CalculatorNavigator from "@screens/calculator";
 import React, { useEffect } from "react";
 import { ScreensAvailable } from "@types";
 import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
@@ -52,6 +54,8 @@ const screens: Screens = {
   SignUp: { component: SignUpScreen },
   Settings: { component: SettingsScreen },
   Calculator: { component: CalculatorNavigator },
+  Minesweeper: { component: Minesweeper },
+  Games: { component: GamesNavigator },
 };
 
 const allScreens = Object.entries(screens).map(

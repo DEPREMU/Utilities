@@ -8,12 +8,14 @@ import { DarkTheme, DefaultTheme } from "@react-navigation/native";
  * Hook to get the current color theme based on the device's color scheme
  * @returns Object containing color values for the current theme and Paper/Navigation themes
  */
-export const useColors = (theme: "light" | "dark" | "auto" = "auto") => {
+export const useColors = (themeArg: "light" | "dark" | "auto" = "auto") => {
   const colorScheme = useColorScheme();
   const isLight = useMemo(() => colorScheme === "light", [colorScheme]);
-  if (!theme || theme === "auto") {
-    theme = isLight ? "light" : "dark";
-  }
+  const theme = useMemo(() => {
+    if (!themeArg || themeArg === "auto") return isLight ? "light" : "dark";
+
+    return themeArg;
+  }, [isLight, themeArg]);
 
   const paperTheme = useMemo(
     () => ({
@@ -70,7 +72,7 @@ export const useColors = (theme: "light" | "dark" | "auto" = "auto") => {
     [theme],
   );
 
-  const colorsMemo = useMemo(() => colors[theme] , [theme]);
+  const colorsMemo = useMemo(() => colors[theme], [theme]);
 
   return {
     theme,

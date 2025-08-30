@@ -120,6 +120,16 @@ export type typeLanguages = Record<ReasonNotification, string> & {
   calculator: string;
   finances: string;
   currentPrice: string;
+  games: string;
+  minesweeper: string;
+  startGame: string;
+  easy: string;
+  medium: string;
+  hard: string;
+  flagsRemaining: string;
+  youWin: string;
+  youLose: string;
+  youArePlaying: string;
 };
 
 export type typeLanguagesServer = {

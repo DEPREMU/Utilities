@@ -5,4 +5,6 @@ export type ScreensAvailable =
   | "Login"
   | "SignUp"
   | "Settings"
-  | "Calculator";
+  | "Calculator"
+  | "Games"
+  | "Minesweeper";

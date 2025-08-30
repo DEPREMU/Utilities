@@ -7,9 +7,9 @@ import {
   NativeMouseEvent,
   NativeSyntheticEvent,
 } from "react-native";
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { useStylesButtonComponent } from "@styles/components/useStylesButtonComponent";
-import { stringifyData, areEqualChildren } from "@utils";
+import { stringifyData, areEqualChildren, isFalsy } from "@utils";
 
 type Styles = {
   button?: ViewStyle;
@@ -27,7 +27,8 @@ interface ButtonComponentProps {
   handlerHoverIn?: (event: NativeSyntheticEvent<NativeMouseEvent>) => void;
   handlerFocus?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
   handlerHoverOut?: (event: NativeSyntheticEvent<NativeMouseEvent>) => void;
-  handlePress: () => unknown;
+  handlePress: Function;
+  argsFuncHandlePress?: unknown;
   disabled?: boolean;
 }
 
@@ -86,6 +87,7 @@ const ButtonComponent: React.FC<ButtonComponentProps> = ({
   touchableOpacity,
   forceReplaceStyles = false,
   touchableOpacityIntensity = 0.7,
+  argsFuncHandlePress,
   disabled = false,
   handlerHoverOut,
   handlerHoverIn,
@@ -94,6 +96,13 @@ const ButtonComponent: React.FC<ButtonComponentProps> = ({
   label,
 }) => {
   const styles = useStylesButtonComponent();
+
+  const handlePressCallback = useCallback(() => {
+    if (!isFalsy(argsFuncHandlePress) && Array.isArray(argsFuncHandlePress))
+      handlePress(...argsFuncHandlePress);
+    else handlePress(argsFuncHandlePress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handlePress, stringifyData(argsFuncHandlePress)]);
 
   return (
     <Pressable
@@ -110,7 +119,7 @@ const ButtonComponent: React.FC<ButtonComponentProps> = ({
         return [styles.button, customStyles?.button, opacity];
       }}
       onFocus={handlerFocus}
-      onPress={handlePress}
+      onPress={handlePressCallback}
       disabled={disabled}
       onHoverIn={handlerHoverIn}
       onHoverOut={handlerHoverOut}

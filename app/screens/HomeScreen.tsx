@@ -1,19 +1,12 @@
-import React, { useMemo } from "react";
 import Button from "@components/common/ButtonComponent";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
-import { useNavigation } from "@react-navigation/native";
+import React, { useMemo } from "react";
 import { useUserContext } from "@context/UserContext";
-import { RootStackParamList } from "navigation/AppNavigator";
-import { useStylesHomeScreen } from "@/styles/screens/useStylesHomeScreen";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { navigateReplace } from "@navigation/navigationRef";
+import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
 import { ScreensAvailable, typeLanguages } from "@types";
-
-type HomeScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  "Home"
->;
 
 const buttons: Array<{ label: keyof typeLanguages; screen: ScreensAvailable }> =
   [
@@ -21,24 +14,25 @@ const buttons: Array<{ label: keyof typeLanguages; screen: ScreensAvailable }> =
     { label: "infoIP", screen: "InfoIP" },
     { label: "cryptoInfo", screen: "Cryptos" },
     { label: "calculator", screen: "Calculator" },
+    { label: "games", screen: "Games" },
   ];
 
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
   const { userData, logout } = useUserContext();
   const { styles } = useStylesHomeScreen();
-  const navigation = useNavigation<HomeScreenNavigationProp>();
 
   const renderButtons = useMemo(() => {
     return buttons.map((button) => (
       <Button
         key={button.label}
         label={t(button.label)}
+        argsFuncHandlePress={button.screen}
         touchableOpacity
-        handlePress={() => navigation.replace(button.screen)}
+        handlePress={navigateReplace}
       />
     ));
-  }, [navigation, t]);
+  }, [t]);
 
   return (
     <View style={styles.container}>

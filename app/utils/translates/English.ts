@@ -115,6 +115,16 @@ const en: typeLanguages = {
   finances: "Finances",
   calculator: "Calculator",
   currentPrice: "Current Price",
+  games: "Games",
+  minesweeper: "Minesweeper",
+  startGame: "Start Game",
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+  flagsRemaining: "Flags Remaining: {{count}}",
+  youWin: "You Win!",
+  youLose: "You Lose!",
+  youArePlaying: "You Are Playing",
 } as const;
 
 export default en;

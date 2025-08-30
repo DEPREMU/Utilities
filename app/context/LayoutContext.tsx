@@ -46,6 +46,12 @@ interface LayoutContextProps {
   getStylesSafeAreaContainer: (
     fallbackValues?: propGetStylesSafeAreaContainer,
   ) => SafeAreaContainerStyle;
+  getResponsiveValue: <T = number>(
+    phoneValue: T,
+    tabletValue: T,
+    largeTabletValue: T,
+    webValue?: T,
+  ) => T;
   getCommonStyles: (
     style: CommonStyles | CommonStyles[],
     options?: OptionsCommonStyles,
@@ -82,6 +88,15 @@ const LayoutContext = createContext<LayoutContextProps>({
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  getResponsiveValue: <T,>(
+    phoneValue: T,
+    _tabletValue: T,
+    _largeTabletValue: T,
+    _webValue?: T,
+  ): T => {
+    // Simulación básica para el valor por defecto
+    return phoneValue; // Por defecto retorna el valor de teléfono
   },
   getStylesSafeAreaContainer: () => {
     return {
@@ -214,6 +229,21 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     [colors.shadow, getStylesSafeAreaContainer],
   );
 
+  const getResponsiveValue = useCallback(
+    <T,>(
+      phoneValue: T,
+      tabletValue: T,
+      largeTabletValue: T,
+      webValue?: T,
+    ): T => {
+      if (isLargeTablet) return largeTabletValue;
+      if (isTablet) return tabletValue;
+      if (isWeb) return webValue !== undefined ? webValue : largeTabletValue;
+      return phoneValue;
+    },
+    [isTablet, isLargeTablet, isWeb],
+  );
+
   const layoutData: LayoutContextProps = {
     isWeb,
     insets,
@@ -221,6 +251,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     isPortrait,
     isLargeTablet,
     getCommonStyles,
+    getResponsiveValue,
     getStylesSafeAreaContainer,
     isPlatformWeb,
     isTablet,
