@@ -7,6 +7,9 @@ import React, {
   useCallback,
 } from "react";
 import ModalComponent from "@components/common/ModalComponent";
+import SnackBarComponent from "@components/common/SnackBarComponent";
+import { SnackbarProps } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
 
 export type StylesModal =
   | "body"
@@ -22,10 +25,23 @@ interface ModalContextProps {
   setCustomStyles: React.Dispatch<
     React.SetStateAction<Record<StylesModal, object> | undefined>
   >;
+  openSnackBar: (
+    label: string,
+    duration?: number,
+    action?: SnackbarProps["action"],
+  ) => void;
 }
 
 interface ModalProviderProps {
   children: ReactNode;
+}
+
+interface SnackBarConfig {
+  id: string;
+  label: string;
+  duration: number;
+  action?: SnackbarProps["action"];
+  timeout?: number | NodeJS.Timeout;
 }
 
 /**
@@ -66,18 +82,20 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     Record<StylesModal, object> | undefined
   >(undefined);
 
+  const [snackbar, setSnackbar] = useState<SnackBarConfig[]>([]);
+
   /**
    * Clears the timeout stored in `idTimeout.current` if it exists.
    *
    * This function is used to prevent memory leaks and ensure that the timeout
    * does not execute after the modal has been closed or reset.
    */
-  const clearIdTimeout = () => {
+  const clearIdTimeout = useCallback(() => {
     if (!idTimeout.current) return;
 
     clearTimeout(idTimeout.current);
     idTimeout.current = null;
-  };
+  }, []);
 
   /**
    * Opens a modal with the specified title, body, and buttons.
@@ -107,7 +125,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
         return true;
       });
     },
-    [],
+    [clearIdTimeout],
   );
 
   /**
@@ -127,10 +145,63 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
       setBody(null);
       setButtons(null);
     }, 1000);
+  }, [clearIdTimeout]);
+
+  /**
+   * Opens a snackbar with the specified label, duration, and action.
+   *
+   * @param label - The label to display in the snackbar.
+   * @param duration - The duration for which the snackbar should be visible (in milliseconds).
+   * @param action - An optional action button for the snackbar.
+   */
+  const openSnackBar = useCallback(
+    (
+      label: string,
+      duration: number = 3000,
+      action?: SnackbarProps["action"],
+    ) => {
+      setSnackbar((prev) => {
+        const id = Math.random().toString(36).substring(2, 15);
+
+        const timeout = setTimeout(() => {
+          setSnackbar((prev) => prev.filter((snackbar) => snackbar.id !== id));
+        }, duration);
+
+        return [...prev, { label, duration, action, id, timeout }];
+      });
+    },
+    [],
+  );
+
+  /**
+   * Dismisses a snackbar with the specified id.
+   *
+   * @param id - The id of the snackbar to dismiss.
+   */
+  const onDismissSnackbar = useCallback((id: string) => {
+    setSnackbar((prev) => {
+      const snackbar = prev.find((snackbar) => snackbar.id === id);
+      if (snackbar?.timeout) clearTimeout(snackbar.timeout);
+
+      return prev.filter((snackbar) => snackbar.id !== id);
+    });
   }, []);
 
   return (
-    <ModalContext.Provider value={{ openModal, closeModal, setCustomStyles }}>
+    <ModalContext.Provider
+      value={{ openModal, closeModal, setCustomStyles, openSnackBar }}
+    >
+      <View style={styles.snackbarContainer}>
+        {snackbar.map((snackbar) => (
+          <SnackBarComponent
+            key={snackbar.id}
+            label={snackbar.label}
+            actionSnackbar={snackbar.action}
+            id={snackbar.id}
+            onDismiss={onDismissSnackbar}
+          />
+        ))}
+      </View>
       <ModalComponent
         onClose={closeModal}
         title={title}
@@ -145,6 +216,17 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     </ModalContext.Provider>
   );
 };
+
+const styles = StyleSheet.create({
+  snackbarContainer: {
+    position: "absolute",
+    zIndex: 1000,
+    top: 0,
+    width: "100%",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+  },
+});
 
 /**
  * Custom hook to access the ModalContext.

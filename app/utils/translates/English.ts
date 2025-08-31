@@ -125,6 +125,7 @@ const en: typeLanguages = {
   youWin: "You Win!",
   youLose: "You Lose!",
   youArePlaying: "You Are Playing",
+  undo: "Undo",
 } as const;
 
 export default en;

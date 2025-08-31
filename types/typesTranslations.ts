@@ -130,6 +130,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
   youWin: string;
   youLose: string;
   youArePlaying: string;
+  undo: string;
 };
 
 export type typeLanguagesServer = {

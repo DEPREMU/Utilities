@@ -218,7 +218,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
    * Listen to auth state changes
    */
   useEffect(() => {
-    const handleonAuthStateChange = async (
+    const handleOnAuthStateChange = async (
       event: AuthChangeEvent,
       session: Session | null,
     ) => {
@@ -244,7 +244,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(handleonAuthStateChange);
+    } = supabase.auth.onAuthStateChange(handleOnAuthStateChange);
 
     return () => subscription.unsubscribe();
   }, []);

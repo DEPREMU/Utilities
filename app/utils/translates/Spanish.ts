@@ -128,6 +128,7 @@ const es: typeLanguages = {
   youWin: "¡Tú ganas!",
   youLose: "¡Tú pierdes!",
   youArePlaying: "Estás jugando",
+  undo: "Deshacer",
 } as const;
 
 export default es;

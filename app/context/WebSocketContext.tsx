@@ -19,7 +19,6 @@ import React, {
   createContext,
   useCallback,
 } from "react";
-import Button from "@components/common/ButtonComponent";
 import { AppState } from "react-native";
 import { useModal } from "./ModalContext";
 import { useLanguage } from "./LanguageContext";
@@ -47,7 +46,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 }) => {
   const { userData } = useUserContext();
   const { t, language } = useLanguage();
-  const { openModal, closeModal } = useModal();
+  const { openSnackBar } = useModal();
 
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [socketURL, setSocketURL] = useState<string | null>(null);
@@ -94,14 +93,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       isConnecting.current = true;
 
       const handleInitSuccessWebSocket = () => {
-        openModal(
-          t("success"),
+        openSnackBar(
           t("welcomeUser", { user: userData?.name || t("dearUser") }),
-          <Button
-            handlePress={closeModal}
-            label={t("close")}
-            touchableOpacity
-          />,
+          3000,
+          {
+            label: t("close"),
+          },
         );
         log("WebSocket initialized successfully.");
       };
@@ -209,7 +206,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
       setSocket(newSocket);
     },
-    [closeModal, openModal, t, userData?.name, userData?.uid],
+    [openSnackBar, t, userData?.name, userData?.uid],
   );
 
   useEffect(() => {
