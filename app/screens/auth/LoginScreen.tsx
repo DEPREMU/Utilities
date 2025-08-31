@@ -1,6 +1,5 @@
 import Animated, {
   withTiming,
-  SharedValue,
   withSequence,
   useSharedValue,
   useAnimatedStyle,
@@ -25,16 +24,11 @@ type LoginScreenNavigationProp = NativeStackNavigationProp<
   "Login"
 >;
 
-type ShakeInput = {
-  shake: SharedValue<number>;
-  animatedStyle: ReturnType<typeof useAnimatedStyle>;
-};
-
 const LoginScreen: React.FC = () => {
   const { t } = useLanguage();
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { login, isLoggedIn } = useUserContext();
-  const { openModal, closeModal } = useModal();
+  const { openSnackBar } = useModal();
   const { styles, secondary, text, primary } = stylesLoginScreen();
 
   const [email, setEmail] = useState<string>("");
@@ -50,19 +44,19 @@ const LoginScreen: React.FC = () => {
     isPasswordValid: true,
   });
 
-  const shakeInputs: ShakeInput[] = [
-    {
-      shake: useSharedValue(0),
-      animatedStyle: useAnimatedStyle(() => ({
-        transform: [{ translateX: 0 }],
-      })),
-    },
-    {
-      shake: useSharedValue(0),
-      animatedStyle: useAnimatedStyle(() => ({
-        transform: [{ translateX: 0 }],
-      })),
-    },
+  const shakeInputs = [useSharedValue(0), useSharedValue(0)];
+
+  const animatedStyles = [
+    useAnimatedStyle(() => {
+      return {
+        transform: [{ translateX: shakeInputs[0].value }],
+      };
+    }),
+    useAnimatedStyle(() => {
+      return {
+        transform: [{ translateX: shakeInputs[1].value }],
+      };
+    }),
   ];
 
   const handlePressLogin = useCallback(() => {
@@ -77,26 +71,23 @@ const LoginScreen: React.FC = () => {
       }
 
       setLoggingIn(false);
-      openModal(
-        t("successLogin"),
-        t("successLoginMessage"),
-        <ButtonComponent label={t("close")} handlePress={closeModal} />,
-      );
+
+      openSnackBar(t("successLoginMessage"), 3000, { label: t("close") });
     });
-  }, [email, password, openModal, t, closeModal, login, loggingIn, rememberMe]);
+  }, [email, password, openSnackBar, t, login, loggingIn, rememberMe]);
 
   const triggerShake = (which: "password" | "email") => {
     const valueToMove = 5;
     const duration = 50;
+    const shakeInput = which === "email" ? shakeInputs[0] : shakeInputs[1];
 
-    (which === "email" ? shakeInputs[0] : shakeInputs[1]).shake.value =
-      withSequence(
-        withTiming(-valueToMove, { duration }),
-        withTiming(valueToMove, { duration: duration * 2 }),
-        withTiming(-valueToMove, { duration: duration * 2 }),
-        withTiming(valueToMove, { duration: duration * 2 }),
-        withTiming(0, { duration }),
-      );
+    shakeInput.value = withSequence(
+      withTiming(-valueToMove, { duration }),
+      withTiming(valueToMove, { duration: duration * 2 }),
+      withTiming(-valueToMove, { duration: duration * 2 }),
+      withTiming(valueToMove, { duration: duration * 2 }),
+      withTiming(0, { duration }),
+    );
   };
 
   const handlerBlurInputEmail = () => {
@@ -139,6 +130,10 @@ const LoginScreen: React.FC = () => {
     navigation.replace("SignUp");
   }, [navigation]);
 
+  const handleForgotPassword = useCallback(() => {
+    navigation.replace("forgotPassword");
+  }, [navigation]);
+
   useEffect(() => {
     if (isLoggedIn) navigation.replace("Home");
   }, [isLoggedIn, navigation]);
@@ -152,7 +147,7 @@ const LoginScreen: React.FC = () => {
         <Animated.View
           style={[
             styles.inputContainer,
-            validations.isEmailValid ? null : shakeInputs[0].animatedStyle,
+            validations.isEmailValid ? null : animatedStyles[0],
             validations.isEmailValid ? null : styles.inputError,
           ]}
         >
@@ -179,7 +174,7 @@ const LoginScreen: React.FC = () => {
         <Animated.View
           style={[
             styles.inputContainer,
-            validations.isPasswordValid ? null : shakeInputs[1].animatedStyle,
+            validations.isPasswordValid ? null : animatedStyles[1],
             validations.isPasswordValid ? null : styles.inputError,
           ]}
         >
@@ -245,7 +240,7 @@ const LoginScreen: React.FC = () => {
           <ButtonComponent
             label={t("forgotPassword")}
             touchableOpacity
-            handlePress={handleShowPassword}
+            handlePress={handleForgotPassword}
             replaceStyles={{
               button: {},
               textButton: styles.linkText,

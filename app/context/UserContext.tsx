@@ -2,12 +2,14 @@ import {
   log,
   logError,
   supabase,
+  isValidEmail,
   loadDataSecure,
   signInWithEmail,
   signUpWithEmail,
   getCurrentSession,
   signOut as authSignOut,
   refreshSession as authRefreshSession,
+  forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
 import { navigateReplace } from "@navigation/navigationRef";
 import { SessionStored, UserData } from "@types";
@@ -32,6 +34,10 @@ interface UserContextType {
   ) => Promise<T>;
   logout: (callback?: (success: boolean) => void) => Promise<void>;
   refreshToken: () => Promise<void>;
+  forgotPassword: (
+    email: string,
+    callback?: (success: boolean, error?: string) => void,
+  ) => Promise<void>;
   userData: UserData | null;
 }
 
@@ -156,6 +162,40 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   }, []);
 
   /**
+   * Forgot password function
+   */
+  const forgotPassword = useCallback(
+    async (
+      email: string,
+      callback?: (success: boolean, error?: string) => void,
+    ) => {
+      if (!isValidEmail(email)) {
+        callback?.(false, "Invalid email format");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const { success, error } = await authForgotPassword(email);
+
+        if (!success || error) {
+          logError("Forgot password error:", error);
+          callback?.(false, error);
+          return;
+        }
+
+        callback?.(true);
+      } catch (error) {
+        logError("Unexpected forgot password error:", error);
+        callback?.(false, error as string);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  /**
    * Refresh current session
    */
   const refreshToken = useCallback(async () => {
@@ -251,14 +291,15 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const contextValue: UserContextType = {
     user,
+    login,
+    signUp,
+    logout,
     session,
     loading,
     userData,
     isLoggedIn,
-    login,
-    signUp,
-    logout,
     refreshToken,
+    forgotPassword,
   };
 
   return (

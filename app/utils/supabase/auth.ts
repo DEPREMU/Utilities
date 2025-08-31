@@ -280,6 +280,31 @@ export const signUpWithEmail = async (
 };
 
 /**
+ * Sends a password reset email to the user
+ */
+export const forgotPasswordWithEmail = async (
+  email: string,
+  callback?: (success: boolean, error?: string) => void,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+    if (!error) {
+      callback?.(true);
+      return { success: true };
+    }
+
+    logError("Error sending forgot password email:", error.message);
+    callback?.(false, error.message);
+    return { success: false, error: error.message };
+  } catch (error) {
+    logError("Unexpected error sending forgot password email:", error);
+    callback?.(false, error as string);
+    return { success: false, error: error as string };
+  }
+};
+
+/**
  * Signs out the current user
  */
 export const signOut = async (): Promise<{ error?: string | null }> => {

@@ -126,6 +126,8 @@ const en: typeLanguages = {
   youLose: "You Lose!",
   youArePlaying: "You Are Playing",
   undo: "Undo",
+  successForgotPasswordMessage: "A password reset email has been sent. If you don't see it, check your spam folder.",
+  sending: "Sending...",
 } as const;
 
 export default en;

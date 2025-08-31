@@ -1,10 +1,11 @@
 export type ScreensAvailable =
   | "Home"
-  | "InfoIP"
-  | "Cryptos"
   | "Login"
+  | "Games"
+  | "InfoIP"
   | "SignUp"
+  | "Cryptos"
   | "Settings"
   | "Calculator"
-  | "Games"
-  | "Minesweeper";
+  | "Minesweeper"
+  | "forgotPassword";

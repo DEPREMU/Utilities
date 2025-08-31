@@ -129,6 +129,9 @@ const es: typeLanguages = {
   youLose: "¡Tú pierdes!",
   youArePlaying: "Estás jugando",
   undo: "Deshacer",
+  successForgotPasswordMessage:
+    "Se ha enviado un correo electrónico para restablecer la contraseña. Si no lo ves, revisa tu carpeta de spam.",
+  sending: "Enviando...",
 } as const;
 
 export default es;

@@ -40,6 +40,7 @@ const useStylesAuthScreens = () => {
       letterSpacing: 0.5,
     },
     inputContainer: {
+      ...getCommonStyles("shadow"),
       width: "100%",
       marginBottom: 20,
       position: "relative",

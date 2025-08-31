@@ -15,6 +15,7 @@ import CryptosNavigator from "@screens/Cryptos";
 import CalculatorNavigator from "@screens/calculator";
 import React, { useEffect } from "react";
 import { ScreensAvailable } from "@types";
+import ForgotPasswordScreen from "@screens/auth/ForgotPasswordScreen";
 import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
 import { navigate, navigationRef } from "./navigationRef";
 import { setupNotificationHandlers } from "@utils";
@@ -56,6 +57,7 @@ const screens: Screens = {
   Calculator: { component: CalculatorNavigator },
   Minesweeper: { component: Minesweeper },
   Games: { component: GamesNavigator },
+  forgotPassword: { component: ForgotPasswordScreen },
 };
 
 const allScreens = Object.entries(screens).map(

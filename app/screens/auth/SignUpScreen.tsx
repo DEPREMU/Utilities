@@ -1,6 +1,5 @@
 import Animated, {
   withTiming,
-  SharedValue,
   withSequence,
   useSharedValue,
   useAnimatedStyle,
@@ -25,17 +24,12 @@ type SignUpScreenNavigationProp = NativeStackNavigationProp<
   "SignUp"
 >;
 
-type ShakeInput = {
-  shake: SharedValue<number>;
-  animatedStyle: ReturnType<typeof useAnimatedStyle>;
-};
-
 const SignUpScreen: React.FC = () => {
   const { t } = useLanguage();
   const { signUp } = useUserContext();
   const { styles } = useStylesAuthScreens();
   const navigation = useNavigation<SignUpScreenNavigationProp>();
-  const { openModal, closeModal } = useModal();
+  const { openSnackBar } = useModal();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -66,37 +60,39 @@ const SignUpScreen: React.FC = () => {
       }
 
       setSigningUp(false);
-      openModal(
-        t("successSignUp"),
-        `${t("successSignUpMessage")}\n${t("verifyEmail")}`,
-        <ButtonComponent
-          label={t("close")}
-          handlePress={() => {
-            navigation.replace("Login");
-            closeModal();
-          }}
-        />,
-      );
+      openSnackBar(`${t("successSignUpMessage")}\n${t("verifyEmail")}`, 8000, {
+        label: t("close"),
+      });
     });
   };
 
-  const shakeInputs: ShakeInput[] = [
-    { shake: useSharedValue(0), animatedStyle: {} },
-    { shake: useSharedValue(0), animatedStyle: {} },
+  const shakeInputs = [useSharedValue(0), useSharedValue(0)];
+
+  const animatedStyles = [
+    useAnimatedStyle(() => {
+      return {
+        transform: [{ translateX: shakeInputs[0].value }],
+      };
+    }),
+    useAnimatedStyle(() => {
+      return {
+        transform: [{ translateX: shakeInputs[1].value }],
+      };
+    }),
   ];
 
   const triggerShake = (which: "password" | "email") => {
     const valueToMove = 5;
     const duration = 50;
+    const shakeInput = which === "email" ? shakeInputs[0] : shakeInputs[1];
 
-    (which === "email" ? shakeInputs[0] : shakeInputs[1]).shake.value =
-      withSequence(
-        withTiming(-valueToMove, { duration }),
-        withTiming(valueToMove, { duration: duration * 2 }),
-        withTiming(-valueToMove, { duration: duration * 2 }),
-        withTiming(valueToMove, { duration: duration * 2 }),
-        withTiming(0, { duration }),
-      );
+    shakeInput.value = withSequence(
+      withTiming(-valueToMove, { duration }),
+      withTiming(valueToMove, { duration: duration * 2 }),
+      withTiming(-valueToMove, { duration: duration * 2 }),
+      withTiming(valueToMove, { duration: duration * 2 }),
+      withTiming(0, { duration }),
+    );
   };
 
   const handlerBlurInputEmail = () => {
@@ -153,7 +149,7 @@ const SignUpScreen: React.FC = () => {
         <Animated.View
           style={[
             styles.inputContainer,
-            validations.isEmailValid ? null : shakeInputs[0].animatedStyle,
+            validations.isEmailValid ? null : animatedStyles[0],
             validations.isEmailValid ? null : styles.inputError,
           ]}
         >
@@ -175,7 +171,7 @@ const SignUpScreen: React.FC = () => {
         <Animated.View
           style={[
             styles.inputContainer,
-            validations.isPasswordValid ? null : shakeInputs[1].animatedStyle,
+            validations.isPasswordValid ? null : animatedStyles[1],
             validations.isPasswordValid ? null : styles.inputError,
           ]}
         >

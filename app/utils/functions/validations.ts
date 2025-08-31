@@ -54,6 +54,13 @@ export const cleanFloat = (text: string): string => {
   return cleanedText;
 };
 
+/**
+ * Compares two sets of children and determines if they are equal.
+ *
+ * @param prevChildren - The previous set of children.
+ * @param nextChildren - The next set of children.
+ * @returns `true` if the children are equal, otherwise `false`.
+ */
 export const areEqualChildren = (
   prevChildren: React.ReactNode,
   nextChildren: React.ReactNode,
@@ -74,9 +81,7 @@ export const areEqualChildren = (
 
     if (React.isValidElement(prevChild) && React.isValidElement(nextChild)) {
       if (prevChild.type !== nextChild.type) return false;
-    } else {
-      if (prevChild !== nextChild) return false;
-    }
+    } else if (prevChild !== nextChild) return false;
   }
 
   return true;
