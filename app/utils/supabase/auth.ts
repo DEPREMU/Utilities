@@ -570,6 +570,7 @@ export const handleCreateUserInitialData = async (
     Logs: [],
     UserNotificationsConfig: userNotificationsConfig,
     UserConfig: userConfig,
+    ClipboardSync: [],
   };
 
   await Promise.all(

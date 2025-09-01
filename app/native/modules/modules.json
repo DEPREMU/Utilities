@@ -1,0 +1,25 @@
+[
+  {
+    "name": "ForegroundClipboardService.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "android/app/src/main/java/com/utilities/depremu/",
+    "service": "<service \n  android:name=\".ForegroundClipboardService\" \n  android:enabled=\"true\" \n  android:exported=\"false\" \n  android:foregroundServiceType=\"dataSync\" />",
+    "permissions": [
+      "android.permission.WAKE_LOCK",
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.POST_NOTIFICATIONS",
+      "android.permission.FOREGROUND_SERVICE_DATA_SYNC"
+    ]
+  },
+  {
+    "name": "ClipboardPackage.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+  },
+  {
+    "name": "ClipboardModule.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+  }
+]

@@ -8,7 +8,7 @@ export default {
     slug: "Utilities",
     build: {
       env: {
-        GOOGLE_SERVICES_JSON: "GOOGLE_SERVICES_JSON",
+        GOOGLE_SERVICES_JSON: "$GOOGLE_SERVICES_JSON",
       },
     },
     version: "1.0.0",

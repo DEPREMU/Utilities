@@ -7,10 +7,12 @@ import React, {
   useCallback,
 } from "react";
 import axios from "axios";
+import ClipboardModule from "@/utils/ClipboardModule";
 import { useLanguage } from "./LanguageContext";
-import {  getRouteAPI } from "@utils";
+import { getRouteAPI } from "@utils";
 import * as Notifications from "expo-notifications";
 import { addNetworkStateListener } from "expo-network";
+import { useUserContext } from "./UserContext";
 
 type Notification = {
   id: string;
@@ -40,6 +42,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   children,
 }) => {
   const { t } = useLanguage();
+  const { session, user } = useUserContext();
 
   const [hasInternet, setHasInternet] = useState<boolean>(true);
 
@@ -86,20 +89,36 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, []);
 
   useEffect(() => {
-    if (hasInternet) return;
+    if (hasInternet) {
+      if (!session?.access_token) return;
+      ClipboardModule?.isRunning().then((running) => {
+        if (running) return;
+        ClipboardModule?.setUserData(session?.access_token, user?.id || "");
+        ClipboardModule?.startClipboardService();
+      });
+      return;
+    }
 
     const notification = sendNotification({
       title: t("NoInternetConnection"),
       message: t("PleaseCheckInternetConnection"),
       type: "error",
     });
+    ClipboardModule?.stopClipboardService?.();
 
     return () => {
       notification.then((id) => {
         Notifications.cancelScheduledNotificationAsync(id);
       });
     };
-  }, [hasInternet, t, sendNotification]);
+  }, [hasInternet, t, sendNotification, session?.access_token, user?.id]);
+
+  useEffect(() => {
+    if (!session?.access_token) return;
+
+    ClipboardModule?.setUserData(session?.access_token, user?.id || "");
+    ClipboardModule?.startClipboardService?.();
+  }, [session?.access_token, user?.id]);
 
   const value: NotificationsContextType = {
     sendNotification,

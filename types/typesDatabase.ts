@@ -47,12 +47,22 @@ export type UserConfig = {
   webSocketURL?: string;
 };
 
+export type ClipboardSync = {
+  id?: string;
+  userId: string;
+  content: string;
+  deleted?: boolean;
+  deviceId: string;
+  createdAt: string;
+};
+
 export type Tables = {
   Users: UserData;
   Logs: Logs;
   Cryptos: Cryptos;
   PushTokens: PushTokens;
   UserConfig: UserConfig;
+  ClipboardSync: ClipboardSync;
   UserNotificationsConfig: UserNotificationsConfig;
 };
 

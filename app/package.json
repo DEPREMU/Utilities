@@ -19,6 +19,7 @@
     "build-dev:android": "eas build --clear-cache --platform android --profile development && npm run install-all",
     "build:web": "npx expo export --platform web",
     "install-all": "npm install & cd server & npm install",
+    "prebuild": "node ../app/native/createPrebuild.ts",
     "format-all": "npx prettier --write \"**/*.{ts,tsx}\" --ignore-path ../.gitignore",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -70,7 +71,8 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-skeleton-loading": "^1.1.1",
-    "react-native-web": "^0.20.0"
+    "react-native-web": "^0.20.0",
+    "expo-clipboard": "~7.1.5"
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",
