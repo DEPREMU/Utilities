@@ -11,7 +11,15 @@ if (__dirname.endsWith("app")) __dirname = path.join(__dirname, "..");
 const isWindows = process.platform === "win32";
 
 const getPath = (relativePath: string) => {
-  return path.resolve(__dirname, relativePath);
+  const pathLocal = path.resolve(__dirname, relativePath);
+  if (!fs.existsSync(pathLocal)) {
+    console.log(
+      `Creating directory: ${pathLocal} with relative path: ${relativePath}`,
+    );
+    fs.mkdirSync(pathLocal, { recursive: true });
+  }
+
+  return pathLocal;
 };
 
 const editMainApplication = async () => {
@@ -26,7 +34,7 @@ const editMainApplication = async () => {
     [
       packageMA,
       "import com.utilities.depremu.ClipboardPackage",
-      "import com.utilities.depremu.ClipboardModule",
+      "import com.utilities.depremu.KeyboardPackage",
       "",
     ].join("\n"),
   );
@@ -43,15 +51,24 @@ const editMainApplication = async () => {
     return;
   }
 
+  const packages = ["ClipboardPackage()", "KeyboardPackage()"];
+
   fs.writeFileSync(
     mainApplicationPath,
     newContent.replace(getPackagesMatch, (match) => {
-      return match
-        .replace(".packages", ".packages.toMutableList()")
-        .replace(
+      const packagesNotAdded = packages.filter((pkg) => !match.includes(pkg));
+
+      match = match.replace(
+        "return packages",
+        [
+          ...packagesNotAdded.map((p) => `packages.add(${p})`),
           "return packages",
-          "packages.add(ClipboardPackage())\nreturn packages",
-        );
+        ].join("\n"),
+      );
+      if (!match.includes("packages.toMutableList()")) {
+        match = match.replace(".packages", ".packages.toMutableList()");
+      }
+      return match;
     }),
   );
 };
@@ -84,14 +101,17 @@ const createModules = async () => {
       const newContent = content
         .replace("{{supabaseUrl}}", process.env.SUPABASE_URL)
         .replace("{{supabaseKey}}", process.env.SUPABASE_KEY);
-      fs.writeFileSync(path.resolve(module.finalPath, module.name), newContent);
+      fs.writeFileSync(
+        path.resolve(getPath(module.finalPath), module.name),
+        newContent,
+      );
 
       return;
     }
 
     fs.copyFileSync(
-      path.join(modulePath, module.name),
-      path.join(module.finalPath, module.name),
+      path.resolve(modulePath, module.name),
+      path.resolve(getPath(module.finalPath), module.name),
     );
   });
 

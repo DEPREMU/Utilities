@@ -10,20 +10,11 @@ import {
   signOut as authSignOut,
   refreshSession as authRefreshSession,
   forgotPasswordWithEmail as authForgotPassword,
-  insertIntoTable,
 } from "@utils";
-import deviceInfo from "expo-device";
-import * as Clipboard from "expo-clipboard";
 import { navigateReplace } from "@navigation/navigationRef";
-import { SessionStored, Tables, UserData } from "@types";
+import { SessionStored, UserData } from "@types";
 import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
-import React, {
-  createContext,
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import React, { createContext, useState, useCallback, useEffect } from "react";
 
 interface UserContextType {
   user: User | null;
@@ -58,7 +49,6 @@ const UserContext = createContext<UserContextType | null>(null);
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const lastClipboardContent = useRef<string>("");
   const [session, setSession] = useState<SessionStored | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -298,37 +288,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const fetchClipboardData = async () => {
-      const clipboardContent = await Clipboard.getStringAsync();
-      if (
-        !clipboardContent ||
-        clipboardContent === lastClipboardContent.current
-      )
-        return;
-      lastClipboardContent.current = clipboardContent;
-      console.log("Clipboard content changed:", clipboardContent);
-      await insertIntoTable<Tables["ClipboardSync"]>("ClipboardSync", {
-        userId: user.id,
-        content: clipboardContent,
-        createdAt: new Date().toISOString(),
-        deviceId: `${deviceInfo.manufacturer || "Unknown"} ${deviceInfo.modelName || "Unknown"}`,
-      });
-    };
-    fetchClipboardData();
-
-    const id = setInterval(fetchClipboardData, 15000);
-
-    const listener = Clipboard.addClipboardListener(fetchClipboardData);
-
-    return () => {
-      clearInterval(id);
-      listener.remove();
-    };
-  }, [user?.id]);
 
   const contextValue: UserContextType = {
     user,

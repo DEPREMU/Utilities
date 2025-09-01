@@ -35,7 +35,9 @@ export const updateInTable = async (
       update: Partial<Tables[TablesKeys]>,
       match?: { [key: string]: unknown },
     ) => {
-      return match || Object.keys(update).includes("id")
+      if (match && Object.keys(match).length > 0) return match;
+
+      return Object.keys(update).includes("id")
         ? { id: update["id" as keyof Tables[TablesKeys]] }
         : { uid: update["uid" as keyof Tables[TablesKeys]] };
     };
@@ -63,7 +65,7 @@ export const updateInTable = async (
     const { error } = await supabase
       .from(table)
       .update(updates)
-      .match(getMatchObject(updates));
+      .match(getMatchObject(updates, match));
 
     if (error) {
       logError("Error updating user record:", error.message);

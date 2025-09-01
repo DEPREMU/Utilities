@@ -11,6 +11,7 @@ import SignUpScreen from "@screens/auth/SignUpScreen";
 import { useTheme } from "@context/ThemeContext";
 import GamesNavigator from "@screens/Games";
 import SettingsScreen from "@screens/Settings";
+import ClipboardScreen from "@screens/ClipboardScreen";
 import CryptosNavigator from "@screens/Cryptos";
 import CalculatorNavigator from "@screens/calculator";
 import React, { useEffect } from "react";
@@ -58,6 +59,7 @@ const screens: Screens = {
   Minesweeper: { component: Minesweeper },
   Games: { component: GamesNavigator },
   forgotPassword: { component: ForgotPasswordScreen },
+  Clipboard: { component: ClipboardScreen },
 };
 
 const allScreens = Object.entries(screens).map(

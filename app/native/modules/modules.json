@@ -2,7 +2,7 @@
   {
     "name": "ForegroundClipboardService.kt",
     "initPath": "app/native/modules/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/",
     "service": "<service \n  android:name=\".ForegroundClipboardService\" \n  android:enabled=\"true\" \n  android:exported=\"false\" \n  android:foregroundServiceType=\"dataSync\" />",
     "permissions": [
       "android.permission.WAKE_LOCK",
@@ -15,11 +15,37 @@
   {
     "name": "ClipboardPackage.kt",
     "initPath": "app/native/modules/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
   },
   {
     "name": "ClipboardModule.kt",
     "initPath": "app/native/modules/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
+  },
+  {
+    "name": "CustomKeyboard.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/",
+    "service": "<service \n  android:name=\".CustomKeyboard\" \n  android:enabled=\"true\" \n  android:exported=\"true\" \n  android:permission=\"android.permission.BIND_INPUT_METHOD\" \n  android:label=\"@string/app_name\" >\n  <intent-filter>\n    <action android:name=\"android.view.InputMethod\" />\n  </intent-filter>\n  <meta-data android:name=\"android.view.im\" \n    android:resource=\"@xml/method\" />\n</service>"
+  },
+  {
+    "name": "method.xml",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/res/xml/"
+  },
+  {
+    "name": "keyboard_layout.xml",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/res/layout/"
+  },
+  {
+    "name": "KeyboardModule.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
+  },
+  {
+    "name": "KeyboardPackage.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
   }
 ]

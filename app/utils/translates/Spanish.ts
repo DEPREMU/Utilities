@@ -132,6 +132,10 @@ const es: typeLanguages = {
   successForgotPasswordMessage:
     "Se ha enviado un correo electrónico para restablecer la contraseña. Si no lo ves, revisa tu carpeta de spam.",
   sending: "Enviando...",
+  clipboard: "Portapapeles",
+  clipboardTitle: "Contenido",
+  remove: "Eliminar",
+  copy: "Copiar",
 } as const;
 
 export default es;

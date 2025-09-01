@@ -133,6 +133,10 @@ export type typeLanguages = Record<ReasonNotification, string> & {
   successForgotPasswordMessage: string;
   sending: string;
   undo: string;
+  clipboard: string;
+  clipboardTitle: string;
+  remove: string;
+  copy: string;
 };
 
 export type typeLanguagesServer = {

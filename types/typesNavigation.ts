@@ -6,6 +6,7 @@ export type ScreensAvailable =
   | "SignUp"
   | "Cryptos"
   | "Settings"
+  | "Clipboard"
   | "Calculator"
   | "Minesweeper"
   | "forgotPassword";

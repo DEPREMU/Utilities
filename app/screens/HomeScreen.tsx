@@ -15,6 +15,7 @@ const buttons: Array<{ label: keyof typeLanguages; screen: ScreensAvailable }> =
     { label: "cryptoInfo", screen: "Cryptos" },
     { label: "calculator", screen: "Calculator" },
     { label: "games", screen: "Games" },
+    { label: "clipboard", screen: "Clipboard" },
   ];
 
 const HomeScreen: React.FC = () => {
