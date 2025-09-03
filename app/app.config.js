@@ -6,6 +6,9 @@ export default {
   expo: {
     name: "Utilities",
     slug: "Utilities",
+    notification: {
+      vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
+    },
     build: {
       env: {
         GOOGLE_SERVICES_JSON: "$GOOGLE_SERVICES_JSON",
