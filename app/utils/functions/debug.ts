@@ -1,6 +1,5 @@
 import { Logs } from "@types";
-import { insertIntoTable } from "../supabase";
-import { getCurrentUserId } from "./storageManagement";
+import { insertIntoTable, getCurrentUserId } from "../supabase";
 
 /**
  * Logs a message to the console or sends it to a server.
@@ -23,7 +22,13 @@ export const log = async (...args: unknown[]): Promise<void> => {
 
   const firstMessage = `Log - ${date.toLocaleString()} ::\n`;
 
-  if (isDev) console.log(firstMessage, ...args);
+  if (isDev)
+    console.log(
+      firstMessage,
+      ...args.map((arg) =>
+        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+      ),
+    );
   else if (isPreview) {
     const message = [firstMessage, ...args]
       .filter(Boolean)
@@ -33,7 +38,7 @@ export const log = async (...args: unknown[]): Promise<void> => {
       .join(" ");
     const userId = await getCurrentUserId();
 
-    await insertIntoTable<Logs>("Logs", {
+    insertIntoTable<Logs>("Logs", {
       message,
       timestamp: date.toISOString(),
       type: "log",
@@ -112,7 +117,13 @@ export const logError = async (...args: unknown[]): Promise<void> => {
 
   const firstMessage = `Error - ${date.toLocaleString()} ::\n`;
 
-  if (isDev) console.error(firstMessage, ...args);
+  if (isDev)
+    console.error(
+      firstMessage,
+      ...args.map((arg) =>
+        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+      ),
+    );
   else if (isPreview) {
     const errorMessage = [firstMessage, ...args]
       .filter(Boolean)
@@ -122,61 +133,11 @@ export const logError = async (...args: unknown[]): Promise<void> => {
       .join(" ");
     const userId = await getCurrentUserId();
 
-    await insertIntoTable<Logs>("Logs", {
+    insertIntoTable<Logs>("Logs", {
       message: errorMessage,
       timestamp: date.toISOString(),
       type: "error",
       userId,
     });
   }
-};
-
-/**
- * Retrieves the file name of the caller function from the stack trace.
- *
- * @returns The file name as a string if it can be determined, otherwise "unknown".
- *
- * @remarks
- * This function uses the `Error` stack trace to extract the file name of the caller.
- * It parses the stack trace and attempts to match the file name using a regular expression.
- * Note that the accuracy of this function depends on the structure of the stack trace,
- * which may vary between environments (e.g., browsers, Node.js).
- *
- * @example
- * ```typescript
- * const fileName = getFileName();
- * log(fileName); // Outputs the file name of the caller or "unknown".
- * ```
- */
-export const getFileName = (): string => {
-  const stack = new Error().stack;
-  if (stack) {
-    const fileName = stack.split("\n")[2].trim();
-    const fileNameMatch = fileName.match(/at (.+):\d+:\d+/);
-    if (fileNameMatch) {
-      return fileNameMatch[1];
-    }
-  }
-  return "unknown";
-};
-
-/**
- * Retrieves the line number of the code that called this function.
- *
- * This function uses the stack trace of a newly created `Error` object
- * to determine the line number of the caller. If the stack trace is not
- * available or the line number cannot be determined, it returns `-1`.
- *
- * @returns The line number of the caller, or `-1` if it cannot be determined.
- */
-export const getLineNumber = (): number => {
-  const stack = new Error().stack;
-  if (stack) {
-    const lineNumber = stack.split("\n")[2].trim();
-    const lineNumberMatch = lineNumber.match(/:(\d+):/);
-    if (lineNumberMatch) {
-      return parseInt(lineNumberMatch[1], 10);
-    }
-  }
-  return -1;
 };

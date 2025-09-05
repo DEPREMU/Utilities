@@ -1,8 +1,9 @@
 import {
-  LanguagesSupported,
-  ResponseDecrypt,
+  RequestDecrypt,
   RequestEncrypt,
+  ResponseDecrypt,
   ResponseEncrypt,
+  LanguagesSupported,
 } from "@types";
 import { logError } from "./debug";
 import { Platform } from "react-native";
@@ -13,7 +14,6 @@ import { KeyStorageValues } from "../constants/keysStorage";
 import { languagesSupported } from "../translates";
 import { parseData, stringifyData } from "./appManagement";
 import { fetchOptions, getRouteAPI } from "./APIManagement";
-import { supabase } from "../supabase";
 
 /**
  * Securely stores a value under a specified key.
@@ -40,9 +40,9 @@ export const saveDataSecure = async <T = undefined>(
 
     const response = await fetch(
       await getRouteAPI("/encrypt"),
-      fetchOptions("POST", {
+      fetchOptions<RequestEncrypt>("POST", {
         dataToEncrypt: stringifiedValue,
-      } satisfies RequestEncrypt),
+      }),
     );
     const result = (await response.json()) as ResponseEncrypt;
 
@@ -88,7 +88,7 @@ export const loadDataSecure = async <T = string | object | null>(
   try {
     const result = await fetch(
       await getRouteAPI("/decrypt"),
-      fetchOptions("POST", {
+      fetchOptions<RequestDecrypt>("POST", {
         dataToDecrypt: storedValue,
       }),
     ).then(async (res) => (await res.json()) as ResponseDecrypt);
@@ -173,11 +173,9 @@ export const loadData = async <T = string | null>(
 ): Promise<T> => {
   let value: string | null;
 
-  if (Platform.OS === "web") {
-    value = localStorage.getItem(key);
-  } else {
-    value = await AsyncStorage.getItem(key);
-  }
+  if (Platform.OS === "web") value = localStorage.getItem(key);
+  else value = await AsyncStorage.getItem(key);
+
   const parsed = parseData<T>(value);
   if (callback) return callback(parsed);
   return parsed;
@@ -223,11 +221,10 @@ export const getLanguageFromStorage =
     const data = await loadData<LanguagesSupported | null>(
       "@languageKeyStorage",
     );
-    if (data) {
-      const languageAvailable = languagesSupported.includes(data);
-      if (languageAvailable) return data;
-    }
-    return null;
+    if (!data) return null;
+
+    const languageAvailable = languagesSupported.includes(data);
+    return languageAvailable ? data : null;
   };
 
 /**
@@ -250,7 +247,7 @@ export const getLanguageFromDevice =
       const language = locales.languageCode as LanguagesSupported;
       const languageAvailable = languagesSupported.includes(language || "");
       if (language && languageAvailable) {
-        await saveData("@languageKeyStorage", language);
+        saveData("@languageKeyStorage", language);
         return language;
       }
     } catch (error) {
@@ -279,9 +276,4 @@ export const checkLanguage = async (): Promise<LanguagesSupported> => {
   if (lang) return lang;
 
   return "en";
-};
-
-export const getCurrentUserId = async (): Promise<string | null> => {
-  const user = await supabase.auth.getUser();
-  return user?.data.user?.id || null;
 };

@@ -23,17 +23,43 @@ export const getFormattedDate = (
   return new Intl.DateTimeFormat(locale, options).format(date);
 };
 
-/**
- * Parses a JSON string into an object of type `T`.
- *
- * @template T - The expected return type, defaults to `object | null`.
- * @param value - The JSON string to parse. If `null`, it will be treated as `"null"`.
- * @returns The parsed object of type `T`. If parsing fails, returns the original value cast to type `T`.
- */
+const functionFallback = (functionName: string) => () =>
+  console.log(
+    `Function created after parsed data, original function name: "${functionName}"`,
+  );
+const symbolFallback = (symbolName: String) =>
+  Symbol(
+    `Symbol created after parsed data, original symbol name: "${symbolName}"`,
+  );
+
+const getCorrectParsed = <T = object | null>(obj: object | null): T => {
+  if (!obj) return null as T;
+  if (Array.isArray(obj))
+    return obj.map((value) => {
+      if (value === "<<Function>>") return functionFallback(value);
+      if (value === "<<Symbol>>") return symbolFallback(value);
+      if (typeof value === "object") return getCorrectParsed<T>(value);
+      return value;
+    }) as T;
+  else
+    return Object.fromEntries(
+      Object.entries(obj).map(([key, value]) => {
+        if (value === "<<Function>>") return [key, functionFallback(key)];
+        if (value === "<<Symbol>>") return [key, symbolFallback(key)];
+        if (typeof value === "object") return [key, getCorrectParsed(value)];
+        return [key, value];
+      }),
+    ) as T;
+};
+
 export const parseData = <T = object | null>(value: string | null): T => {
   let parsed: T;
   try {
-    parsed = JSON.parse(value || "null") as T;
+    if (!value) return value as T;
+    if (value.includes("<<Symbol>>") || value.includes("<<Function>>")) {
+      const parsedValue = JSON.parse(value);
+      return getCorrectParsed<T>(parsedValue);
+    } else parsed = JSON.parse(value || "null") as T;
   } catch {
     parsed = value as T;
   }
@@ -64,7 +90,7 @@ const getValidValue = (value: unknown): unknown => {
  * @param arr - The array to sort.
  * @returns The sorted array.
  */
-const sortArray = (arr: unknown[]): unknown[] => {
+export const sortArray = (arr: unknown[]): unknown[] => {
   if (!Array.isArray(arr)) return arr;
   return arr.map(getValidValue).sort();
 };
@@ -75,7 +101,7 @@ const sortArray = (arr: unknown[]): unknown[] => {
  * @param obj - The object to sort.
  * @returns The sorted object.
  */
-const sortObject = (obj: object): { [key: string]: unknown } => {
+export const sortObject = (obj: object): { [key: string]: unknown } => {
   if (typeof obj !== "object" || obj === null) return obj;
   const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b));
 

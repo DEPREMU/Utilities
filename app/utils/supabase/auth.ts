@@ -16,13 +16,18 @@ import {
   loadDataSecure,
   removeDataSecure,
   getDateWithDaysAhead,
+  removeData,
 } from "../functions";
 import { supabase } from "./supabase";
 import { fetchFromTable } from "./functions";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
 import type { User, Session } from "@supabase/supabase-js";
-import { reasonNotification, SelectedCryptos } from "../constants";
+import {
+  KeyStorageValues,
+  reasonNotification,
+  SelectedCryptos,
+} from "../constants";
 
 /**
  * Auth response type for consistent error handling
@@ -62,14 +67,7 @@ const insertTokenToDB = async (
   try {
     const token = (await Notifications.getExpoPushTokenAsync()).data;
 
-    console.log(
-      "Push token:",
-      token,
-      userId,
-      await Notifications.getExpoPushTokenAsync(),
-    );
-
-    await insertIntoTable<PushTokens>("PushTokens", {
+    insertIntoTable<PushTokens>("PushTokens", {
       token,
       userId,
     });
@@ -108,40 +106,32 @@ export const saveStorageData = async (
   session: Session,
   rememberMe: boolean,
 ): Promise<{ userData: UserData | null }> => {
-  const [users, cryptos, userNotificationsConfig, userConfig] =
+  const [users, cryptos, userConfig, userNotificationsConfig] =
     await Promise.all([
       supabase.from("Users").select("*").limit(1).eq("uid", userId).single(),
-      fetchFromTable<Tables["Cryptos"]>("Cryptos", {
-        userId: userId,
-      }),
+      fetchFromTable<Tables["Cryptos"]>("Cryptos", { userId }),
+      fetchFromTable<Tables["UserConfig"]>("UserConfig", { userId }),
       fetchFromTable<Tables["UserNotificationsConfig"]>(
         "UserNotificationsConfig",
-        {
-          userId: userId,
-        },
+        { userId },
       ),
-      fetchFromTable<Tables["UserConfig"]>("UserConfig", {
-        userId: userId,
-      }),
     ]);
 
   const cryptosToSave: SelectedCryptos =
     cryptos.data?.reduce((acc, crypto) => {
-      acc[[crypto.id, crypto.currency].join("")] = crypto;
+      acc[crypto.id + crypto.currency] = crypto;
       return acc;
     }, {} as SelectedCryptos) || {};
-  const userNotificationsConfigToSave: NotificationsType = {
-    enabled: {} as NotificationsType["enabled"],
-    data: {} as NotificationsType["data"],
-    intervals: {} as NotificationsType["intervals"],
-  };
-  userNotificationsConfig.data?.reduce((acc, config) => {
-    const reason = config.reason as ReasonNotification;
-    acc.enabled[reason] = config.enabled;
-    acc.data[reason] = null;
-    acc.intervals[reason] = config.interval;
-    return acc;
-  }, userNotificationsConfigToSave);
+  const userNotificationsConfigToSave = userNotificationsConfig.data?.reduce(
+    (acc, config) => {
+      const reason = config.reason as ReasonNotification;
+      acc.enabled[reason] = config.enabled;
+      acc.data[reason] = null;
+      acc.intervals[reason] = config.interval;
+      return acc;
+    },
+    { enabled: {}, data: {}, intervals: {} } as NotificationsType,
+  );
   const sessionToSave: SessionStored = {
     access_token: session.access_token,
     refresh_token: session.refresh_token,
@@ -152,8 +142,8 @@ export const saveStorageData = async (
     provider_token: session.provider_token,
   };
   const userConfigToSave: Tables["UserConfig"] = {
-    userId: userId,
-    language: userConfig.data?.[0]?.language || "en",
+    userId,
+    language: userConfig.data?.[0]?.language || (await checkLanguage()),
     hasAdmin: userConfig.data?.[0]?.hasAdmin || false,
     updatedAt: new Date().toISOString(),
     webSocketURL: userConfig.data?.[0]?.webSocketURL || "",
@@ -163,15 +153,15 @@ export const saveStorageData = async (
   if (rememberMe) date = getDateWithDaysAhead(15).getTime();
 
   await Promise.all([
-    saveData("@notifications", userNotificationsConfigToSave),
+    insertTokenToDB(userId),
     saveDataSecure("_sessionExpiry", date),
     saveDataSecure("_selectedCryptos", cryptosToSave),
-    insertTokenToDB(userId),
     saveDataSecure("_userSessionStorage", sessionToSave),
     saveData("@API_URL", userConfigToSave.API_URL || ""),
-    saveData("@webSocketURL", userConfigToSave.webSocketURL || ""),
     saveData("@hasAdminAccess", userConfigToSave.hasAdmin),
+    saveData("@notifications", userNotificationsConfigToSave),
     saveData("@languageKeyStorage", userConfigToSave.language),
+    saveData("@webSocketURL", userConfigToSave.webSocketURL || ""),
   ]);
 
   return { userData: users.data || null };
@@ -268,8 +258,7 @@ export const signUpWithEmail = async (
       handleCreateUserInitialData(data.user.id, data.user.email || "");
 
     return {
-      user: data.user,
-      session: data.session,
+      ...data,
       error: null,
     };
   } catch (error) {
@@ -316,10 +305,21 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
       return { error: error.message };
     }
 
-    await Promise.all([
-      removeDataSecure("_sessionExpiry"),
-      removeDataSecure("_userSessionStorage"),
-    ]);
+    const storedValues: KeyStorageValues[] = [
+      "@API_URL",
+      "@webSocketURL",
+      "@notifications",
+      "@hasAdminAccess",
+      "_sessionExpiry",
+      "_selectedCryptos",
+      "_userSessionStorage",
+    ];
+
+    await Promise.all(
+      storedValues.map((key) =>
+        key.startsWith("@") ? removeData(key) : removeDataSecure(key),
+      ),
+    );
     log("User signed out successfully");
     navigateReplace("Login");
     return { error: null };
@@ -380,9 +380,9 @@ export const getCurrentSession = async (): Promise<AuthResponse> => {
       logError("Error getting session:", error?.message);
       return { error: error?.message || "No session found" };
     }
-    const [, { data: userData }] = await Promise.all([
-      saveDataSecure("_userSessionStorage", { ...session, user: null }),
+    const [{ data: userData }] = await Promise.all([
       supabase.from("Users").select("*").eq("uid", session?.user.id).single(),
+      saveDataSecure("_userSessionStorage", { ...session, user: null }),
     ]);
 
     return {
@@ -416,8 +416,7 @@ export const refreshSession = async (
 
     log("Session refreshed successfully");
     return {
-      user: data.user,
-      session: data.session,
+      ...data,
       error: null,
     };
   } catch (error) {
@@ -454,7 +453,7 @@ export const getUserData = async (
   try {
     const { data, error } = await supabase
       .from("Users")
-      .select("*")
+      .select()
       .eq("userId", userId)
       .single();
 
@@ -535,7 +534,6 @@ export const handleCreateUserInitialData = async (
     token = "";
   }
 
-  const cryptos: Tables["Cryptos"][] = [];
   const pushTokens: Tables["PushTokens"] = { token, userId };
   const user: Tables["Users"] = {
     email,
@@ -564,18 +562,28 @@ export const handleCreateUserInitialData = async (
     TablesKeys,
     Tables[TablesKeys][] | Tables[TablesKeys]
   > = {
-    Cryptos: cryptos,
+    Cryptos: [],
     PushTokens: pushTokens,
+    ClipboardSync: [],
     Users: user,
     Logs: [],
     UserNotificationsConfig: userNotificationsConfig,
     UserConfig: userConfig,
-    ClipboardSync: [],
   };
 
   await Promise.all(
-    Object.entries(initialData).map(([table, data]) => {
-      insertIntoTable(table as TablesKeys, data);
-    }),
+    Object.entries(initialData).map(([table, data]) =>
+      insertIntoTable(table as TablesKeys, data),
+    ),
   );
+};
+
+/**
+ * Fetches the current user id from supabase auth.
+ *
+ * @returns The user's id if the user is authenticated, otherwise null.
+ */
+export const getCurrentUserId = async (): Promise<string | null> => {
+  const { user } = await getCurrentUser();
+  return user?.id || null;
 };

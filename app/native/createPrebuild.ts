@@ -218,11 +218,13 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
   });
 };
 
-const runPrebuild = async () => {
+const runPrebuild = () => {
   const projectRoot = path.resolve(__dirname, "app");
   const commands = [`cd ${projectRoot}`, "npm i", "npx expo prebuild"];
   if (!projectRoot.endsWith("app"))
     throw new Error("Project root does not end with 'app'");
+  if (!fs.existsSync(path.join(projectRoot, "google-services.json")))
+    throw new Error("Missing google-services.json file");
 
   try {
     const output = execSync(

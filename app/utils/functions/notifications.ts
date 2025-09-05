@@ -6,6 +6,11 @@ import { log, logError, logWarn } from "./debug";
 import { loadData, loadDataSecure, saveData } from "./storageManagement";
 import { Notifications, ScreensAvailable, ReasonNotification } from "@types";
 
+export interface NotificationData {
+  screen?: ScreensAvailable;
+  [key: string]: unknown;
+}
+
 /**
  * Checks if the notifications data is already declared.
  * This function checks if the notifications data has been initialized
@@ -24,15 +29,11 @@ export const isNotificationsAlreadyInitialized = (
   const keysEnabled = Object.keys(enabled || {});
   const keysIntervals = Object.keys(intervals || {});
 
-  const areKeysDataValid =
-    stringifyData(keysData) === stringifyData(reasonNotification);
-  const areKeysEnabledValid =
-    stringifyData(keysEnabled) ===
-    stringifyData([...reasonNotification, "allNotifications"]);
-  const areKeysIntervalsValid =
-    stringifyData(keysIntervals) === stringifyData(reasonNotification);
-
-  return areKeysDataValid && areKeysEnabledValid && areKeysIntervalsValid;
+  return (
+    stringifyData(keysData) === stringifyData(reasonNotification) &&
+    stringifyData(keysEnabled) === stringifyData(reasonNotification) &&
+    stringifyData(keysIntervals) === stringifyData(reasonNotification)
+  );
 };
 
 /**
@@ -57,18 +58,14 @@ export const initializeNotificationsStorage =
     });
 
     if (!notificationsData || !notificationsData.enabled.allNotifications) {
-      const { status } = await notifications.getPermissionsAsync();
-      if (status !== notifications.PermissionStatus.GRANTED)
-        await notifications.requestPermissionsAsync();
-
-      const { status: newStatus } = await notifications.getPermissionsAsync();
-      if (newStatus !== notifications.PermissionStatus.GRANTED) {
+      const { status } = await notifications.requestPermissionsAsync();
+      if (status !== notifications.PermissionStatus.GRANTED) {
         notificationsData = {
           enabled: { ...enabledNotifications, allNotifications: false },
           data: dataNotifications,
           intervals: intervalsNotifications,
         };
-        await saveData<Notifications>("@notifications", notificationsData);
+        saveData<Notifications>("@notifications", notificationsData);
         return notificationsData;
       }
 
@@ -77,15 +74,9 @@ export const initializeNotificationsStorage =
         data: dataNotifications,
         intervals: intervalsNotifications,
       };
-      await saveData<Notifications>("@notifications", notificationsData);
+      saveData<Notifications>("@notifications", notificationsData);
       return notificationsData;
     }
-
-    const keysNotificationsSaved = stringifyData(
-      Object.keys(notificationsData),
-    );
-    if (keysNotificationsSaved === stringifyData(reasonNotification))
-      return notificationsData;
 
     notificationsData.data = { ...dataNotifications };
     notificationsData.enabled = {
@@ -93,7 +84,7 @@ export const initializeNotificationsStorage =
       allNotifications: true,
     };
 
-    await saveData<Notifications>("@notifications", notificationsData);
+    saveData<Notifications>("@notifications", notificationsData);
     return notificationsData;
   };
 
@@ -107,9 +98,14 @@ export const initializeNotificationsStorage =
  * @returns {Promise<boolean>} A promise that resolves to `true` if push notification permission is granted, otherwise `false`.
  */
 export const hasPushNotifications = async (): Promise<boolean> => {
-  const { status } = await notifications.getPermissionsAsync();
-  const notificationsData = await loadData<Notifications>("@notifications");
-  if (!notificationsData) await initializeNotificationsStorage();
+  const promise = await Promise.all([
+    notifications.requestPermissionsAsync(),
+    loadData<Notifications | null>("@notifications"),
+  ]);
+  const { status } = promise[0];
+  let notificationsData = promise[1];
+  if (!notificationsData)
+    notificationsData = await initializeNotificationsStorage();
 
   if (status === notifications.PermissionStatus.GRANTED)
     return notificationsData.enabled.allNotifications;
@@ -140,7 +136,7 @@ export const handleCancelNotification = async (
     await notifications.cancelScheduledNotificationAsync(idNotification);
     if (saveNewNotifications) {
       notificationsData.data[reason] = null;
-      await saveData("@notifications", stringifyData(notificationsData));
+      saveData("@notifications", notificationsData);
     }
     log(`Notification with reason "${reason}" canceled successfully.`);
   } catch (error) {
@@ -173,7 +169,7 @@ export const sendNotification = async (
     )
       return;
 
-    await handleCancelNotification(notificationsData, reason);
+    handleCancelNotification(notificationsData, reason);
 
     const id = await notifications.scheduleNotificationAsync({
       content: {
@@ -196,16 +192,11 @@ export const sendNotification = async (
       trigger,
     };
 
-    await saveData("@notifications", JSON.stringify(notificationsData));
+    saveData("@notifications", stringifyData(notificationsData));
   } catch (error) {
     logError("Error sending notification:", error);
   }
 };
-
-export interface NotificationData {
-  screen?: ScreensAvailable;
-  [key: string]: unknown;
-}
 
 /**
  * Sets up notification handlers for when notifications are received and tapped
