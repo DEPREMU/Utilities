@@ -16,6 +16,9 @@ const buttons: Array<{ label: keyof typeLanguages; screen: ScreensAvailable }> =
     { label: "calculator", screen: "Calculator" },
     { label: "games", screen: "Games" },
     { label: "clipboard", screen: "Clipboard" },
+    { label: "translator", screen: "Translator" },
+    { label: "socialMedia", screen: "SocialMedia" },
+    { label: "deviceInformation", screen: "DeviceInformation" },
   ];
 
 const HomeScreen: React.FC = () => {
@@ -24,9 +27,9 @@ const HomeScreen: React.FC = () => {
   const { styles } = useStylesHomeScreen();
 
   const renderButtons = useMemo(() => {
-    return buttons.map((button) => (
+    return buttons.map((button, i) => (
       <Button
-        key={button.label}
+        key={i}
         label={t(button.label)}
         argsFuncHandlePress={button.screen}
         touchableOpacity

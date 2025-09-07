@@ -1,15 +1,16 @@
 import { Cryptos } from "@types";
 
 export const KEYS_STORAGE = [
-  "_userSessionStorage",
-  "_sessionExpiry",
-  "@languageKeyStorage",
-  "@notifications",
-  "_selectedCryptos",
-  "@webSocketURL",
-  "@API_URL",
-  "@hasAdminAccess",
   "@theme",
+  "@API_URL",
+  "@webSocketURL",
+  "@notifications",
+  "@hasAdminAccess",
+  "@languageKeyStorage",
+  "_Streamers",
+  "_sessionExpiry",
+  "_selectedCryptos",
+  "_userSessionStorage",
 ] as const;
 
 export type KeyStorageValues = (typeof KEYS_STORAGE)[number];

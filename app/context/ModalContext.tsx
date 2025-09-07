@@ -20,7 +20,11 @@ export type StylesModal =
   | "messageText";
 
 interface ModalContextProps {
-  openModal: (title: string, body: ReactNode, buttons: ReactNode) => void;
+  openModal: (
+    title: string,
+    body: ReactNode | string,
+    buttons: ReactNode,
+  ) => void;
   closeModal: () => void;
   setCustomStyles: React.Dispatch<
     React.SetStateAction<Record<StylesModal, object> | undefined>

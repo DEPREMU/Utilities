@@ -1,11 +1,11 @@
 import type { UserData } from "./typesUser";
-import type { Logs } from "./typesDatabase";
+import type { Logs, Streamer } from "./typesDatabase";
+import type { Handler } from "express";
 
 export type Route = {
-  path: RoutesAPI;
   method: "get" | "post" | "put" | "delete";
   middlewares?: any[];
-  handler: any;
+  handler: Handler;
 };
 
 export type Coin = {
@@ -18,7 +18,10 @@ export type RoutesAPI =
   | "/decrypt"
   | "/encrypt"
   | "/cryptoPrice"
+  | "/addStreamer"
   | "/cryptos"
+  | "/getIsLiveStreamer"
+  | "/translate"
   | "/health";
 
 export type RequestBody = Logs | UserData;
@@ -44,5 +47,35 @@ export type RequestCryptos = {
 
 export type ResponseCryptos = {
   cryptos?: PriceBinanceAPI;
+  error?: string;
+};
+
+export type RequestTranslate = {
+  text: string;
+  targetLang: string;
+};
+
+export type ResponseTranslate = {
+  translatedText?: string;
+  error?: string;
+};
+
+export type RequestAddStreamer = {
+  name: string;
+  userId: string;
+};
+
+export type ResponseAddStreamer = {
+  success?: boolean;
+  streamer?: (Streamer & { isLive: boolean }) | null;
+  error?: string;
+};
+
+export type RequestGetIsLiveStreamer = {
+  streamer: Streamer;
+};
+
+export type ResponseGetIsLiveStreamer = {
+  streamer?: Streamer & { isLive: boolean };
   error?: string;
 };

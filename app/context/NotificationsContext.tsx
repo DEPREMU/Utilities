@@ -1,18 +1,15 @@
 import React, {
   createContext,
   useContext,
-  useState,
   ReactNode,
   useEffect,
   useCallback,
 } from "react";
-import axios from "axios";
 import ClipboardModule from "@/utils/ClipboardModule";
 import { useLanguage } from "./LanguageContext";
-import { getRouteAPI } from "@utils";
 import * as Notifications from "expo-notifications";
-import { addNetworkStateListener } from "expo-network";
 import { useUserContext } from "./UserContext";
+import { useDeviceInformation } from "./DeviceInformationContext";
 
 type Notification = {
   id: string;
@@ -43,8 +40,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 }) => {
   const { t } = useLanguage();
   const { session, user } = useUserContext();
-
-  const [hasInternet, setHasInternet] = useState<boolean>(true);
+  const { hasInternet } = useDeviceInformation();
 
   const sendNotification = useCallback(
     (notification: Omit<Notification, "id" | "timestamp">) => {
@@ -62,30 +58,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   const removeNotification = useCallback((id: string) => {
     Notifications.cancelScheduledNotificationAsync(id);
-  }, []);
-
-  useEffect(() => {
-    const listener = addNetworkStateListener((values) => {
-      const { isConnected, isInternetReachable } = values;
-      setHasInternet(!!isConnected && !!isInternetReachable);
-    });
-
-    const id = setInterval(async () => {
-      try {
-        const res = await axios.get(await getRouteAPI("/health"), {
-          timeout: 5000,
-        });
-        const data = res.data || { status: null };
-        setHasInternet(data?.status === "ok");
-      } catch {
-        setHasInternet(false);
-      }
-    }, 10000);
-
-    return () => {
-      clearInterval(id);
-      listener.remove();
-    };
   }, []);
 
   useEffect(() => {

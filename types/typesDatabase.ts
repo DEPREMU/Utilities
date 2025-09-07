@@ -56,11 +56,20 @@ export type ClipboardSync = {
   createdAt: string;
 };
 
+export type Streamer = {
+  id?: string;
+  name: string;
+  linkImage: string | null;
+  userId: string;
+  createdAt?: string;
+};
+
 export type Tables = {
   Users: UserData;
   Logs: Logs;
   Cryptos: Cryptos;
   PushTokens: PushTokens;
+  Streamers: Streamer;
   UserConfig: UserConfig;
   ClipboardSync: ClipboardSync;
   UserNotificationsConfig: UserNotificationsConfig;

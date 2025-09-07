@@ -8,5 +8,8 @@ export type ScreensAvailable =
   | "Settings"
   | "Clipboard"
   | "Calculator"
+  | "Translator"
+  | "SocialMedia"
   | "Minesweeper"
-  | "forgotPassword";
+  | "forgotPassword"
+  | "DeviceInformation";

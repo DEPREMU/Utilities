@@ -1,47 +1,58 @@
 import { Router } from "express";
-import type { Route } from "../../types/typesAPI.ts";
+import { translate } from "./translate.ts";
+import type { Route, RoutesAPI } from "../../types/typesAPI.ts";
 import type { Response, Request } from "express";
 import { decryptHandler, encryptHandler } from "./encryption.ts";
 import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
+import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
 
 const handleHealthCheck = (_: Request, res: Response) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  res
+    .status(200)
+    .json({ status: "running", timestamp: new Date().toISOString() });
 };
 
 const router = Router();
 
-const routes: Route[] = [
-  {
-    path: "/cryptoPrice",
+const routes: Record<RoutesAPI, Route> = {
+  "/cryptoPrice": {
     method: "post",
     handler: handleGetCryptoPrice,
   },
-  {
-    path: "/cryptos",
+  "/cryptos": {
     method: "post",
     handler: handleGetCryptos,
   },
-  {
-    path: "/encrypt",
+  "/translate": {
+    method: "post",
+    handler: translate,
+  },
+  "/encrypt": {
     method: "post",
     handler: encryptHandler,
   },
-  {
-    path: "/decrypt",
+  "/decrypt": {
     method: "post",
     handler: decryptHandler,
   },
-  {
-    path: "/health",
+  "/health": {
     method: "get",
     handler: handleHealthCheck,
   },
-];
+  "/addStreamer": {
+    method: "post",
+    handler: addStreamer,
+  },
+  "/getIsLiveStreamer": {
+    method: "post",
+    handler: getIsLiveStreamer,
+  },
+};
 
-routes.forEach((route) => {
+Object.entries(routes).forEach(([path, route]) => {
   if (route.middlewares?.length)
-    router[route.method](route.path, ...route.middlewares, route.handler);
-  else router[route.method](route.path, route.handler);
+    router[route.method](path, ...route.middlewares, route.handler);
+  else router[route.method](path, route.handler);
 });
 
 export default router;

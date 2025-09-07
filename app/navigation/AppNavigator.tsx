@@ -4,6 +4,7 @@ import {
   NativeStackNavigationOptions,
 } from "@react-navigation/native-stack";
 import InfoIP from "@screens/Connectivity/IP";
+import Translator from "@screens/translator/Translator";
 import HomeScreen from "@screens/HomeScreen";
 import LoginScreen from "@screens/auth/LoginScreen";
 import Minesweeper from "@screens/Games/Minesweeper";
@@ -13,9 +14,11 @@ import GamesNavigator from "@screens/Games";
 import SettingsScreen from "@screens/Settings";
 import ClipboardScreen from "@screens/ClipboardScreen";
 import CryptosNavigator from "@screens/Cryptos";
+import DeviceInformation from "@screens/DeviceInformation/DeviceInfomation";
 import CalculatorNavigator from "@screens/calculator";
 import React, { useEffect } from "react";
 import { ScreensAvailable } from "@types";
+import SocialMediaNavigator from "@screens/SocialMedia";
 import ForgotPasswordScreen from "@screens/auth/ForgotPasswordScreen";
 import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
 import { navigate, navigationRef } from "./navigationRef";
@@ -50,16 +53,19 @@ type Screens = Record<
  */
 const screens: Screens = {
   Home: { component: HomeScreen },
-  Cryptos: { component: CryptosNavigator },
-  InfoIP: { component: InfoIP },
   Login: { component: LoginScreen },
+  Games: { component: GamesNavigator },
+  InfoIP: { component: InfoIP },
   SignUp: { component: SignUpScreen },
+  Cryptos: { component: CryptosNavigator },
   Settings: { component: SettingsScreen },
+  Clipboard: { component: ClipboardScreen },
+  Translator: { component: Translator },
   Calculator: { component: CalculatorNavigator },
   Minesweeper: { component: Minesweeper },
-  Games: { component: GamesNavigator },
+  SocialMedia: { component: SocialMediaNavigator },
   forgotPassword: { component: ForgotPasswordScreen },
-  Clipboard: { component: ClipboardScreen },
+  DeviceInformation: { component: DeviceInformation },
 };
 
 const allScreens = Object.entries(screens).map(
