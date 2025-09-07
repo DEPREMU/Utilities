@@ -204,8 +204,8 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
                 : {}),
               flex: 1,
               width: "100%",
-              justifyContent: "center",
               alignItems: "center",
+              justifyContent: "center",
               ...styleToReturn,
             };
             break;
@@ -220,7 +220,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
             };
             break;
           default:
-            return {};
+            break;
         }
       }
 

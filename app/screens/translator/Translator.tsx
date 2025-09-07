@@ -33,40 +33,59 @@ const Translator: React.FC = () => {
     setTranslatedText(response);
   }, [inputText, languageTo]);
 
+  const languageToLabel = useMemo(() => {
+    const lang = languages.find((l) => l.value === languageTo);
+    return lang ? lang.label : "";
+  }, [languageTo, languages]);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("translator")}</Text>
-      <Text style={styles.translateText}>{t("translation")}</Text>
-      <Text style={styles.translatedText}>{translatedText}</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>{t("translator")}</Text>
+        {!!translatedText && (
+          <Text style={styles.translatedText}>{translatedText}</Text>
+        )}
+      </View>
 
-      <TextInput
-        value={inputText}
-        onChangeText={setInputText}
-        label={t("enterText")}
-        style={styles.textInput}
-      />
+      <View style={styles.body}>
+        <TextInput
+          value={inputText}
+          onChangeText={setInputText}
+          label={t("enterText")}
+          style={styles.textInput}
+        />
 
-      <List.Accordion title={t("languageTarget")} style={styles.list}>
-        {languages.map((lang) => (
-          <List.Item
-            key={lang.value}
-            style={styles.listItem}
-            title={lang.label}
-            onPress={() => setLanguageTo(lang.value)}
-          />
-        ))}
-      </List.Accordion>
+        <List.Accordion
+          style={styles.list}
+          title={languageToLabel || t("languageTarget")}
+          left={() => <List.Icon icon="translate" />}
+        >
+          {languages.map((lang) => {
+            if (lang.label === languageToLabel) return null;
 
-      <Button
-        label={t("translate")}
-        handlePress={translateText}
-        disabled={inputText === ""}
-        touchableOpacity
-        replaceStyles={{
-          button: styles.buttonTranslate,
-          textButton: styles.textTranslate,
-        }}
-      />
+            return (
+              <List.Item
+                key={lang.value}
+                style={styles.listItem}
+                left={() => <List.Icon icon="translate" />}
+                title={lang.label}
+                onPress={() => setLanguageTo(lang.value)}
+              />
+            );
+          })}
+        </List.Accordion>
+
+        <Button
+          label={t("translate")}
+          handlePress={translateText}
+          disabled={isFalsy(inputText)}
+          touchableOpacity
+          replaceStyles={{
+            button: styles.buttonTranslate,
+            textButton: styles.textTranslate,
+          }}
+        />
+      </View>
     </View>
   );
 };
