@@ -23,11 +23,11 @@ const AppProviders: React.FC<AppProvidersProps> = ({ children }) => (
         <LayoutProvider>
           <UserProvider>
             <LanguageProvider>
-              <NotificationsProvider>
-                <ModalProvider>
+              <ModalProvider>
+                <NotificationsProvider>
                   <WebSocketProvider>{children}</WebSocketProvider>
-                </ModalProvider>
-              </NotificationsProvider>
+                </NotificationsProvider>
+              </ModalProvider>
             </LanguageProvider>
           </UserProvider>
         </LayoutProvider>

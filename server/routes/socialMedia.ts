@@ -3,6 +3,7 @@ import type {
   RequestGetIsLiveStreamer,
   ResponseAddStreamer,
   ResponseGetIsLiveStreamer,
+  UserNotificationsConfig,
 } from "./../../types/index";
 import axios from "axios";
 import express from "express";
@@ -39,8 +40,6 @@ const isLiveStreamer = async (streamer: string): Promise<boolean> => {
   if (!script) return false;
 
   const json = JSON.parse(script.replace("</script", ""));
-  console.log(JSON.stringify({ json }, null, 2));
-  console.log(JSON.stringify({ script }, null, 2));
   const isLive: boolean =
     json?.["@graph"]?.[0]?.publication?.isLiveBroadcast || false;
   return isLive;
@@ -51,7 +50,6 @@ export const getIsLiveStreamer = async (
   res: express.Response<ResponseGetIsLiveStreamer>,
 ) => {
   const { streamer } = req.body || { streamer: null };
-  console.log(streamer);
   if (!streamer) {
     res.status(400).json({ error: "Streamer name is required" });
     return;
@@ -81,6 +79,33 @@ export const addStreamer = async (
       })
       .select()
       .single();
+
+    const newNotificationFromStreamer: UserNotificationsConfig = {
+      enabled: false,
+      interval: -1,
+      userId,
+      streamer: name,
+      reason: "streamers",
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      supabase
+        .from("UserNotificationsConfig")
+        .insert(newNotificationFromStreamer)
+        .then(({ error: errorInsert }) => {
+          if (errorInsert)
+            console.error(
+              "Failed to create notification config for streamer:",
+              errorInsert,
+            );
+        });
+    } catch (error) {
+      console.error(
+        "Failed to create notification config for streamer:",
+        error,
+      );
+    }
 
     const streamer = data
       ? { ...data, isLive: await isLiveStreamer(data.name) }

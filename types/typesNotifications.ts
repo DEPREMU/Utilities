@@ -9,10 +9,14 @@ export type Notification = {
   trigger: any | null;
 } | null;
 
-export type ReasonNotification = "cryptos" | "allNotifications";
+export type ReasonNotification = "cryptos" | "allNotifications" | "streamers";
+
+export type typeStreamerNotification = { name: string; enabled: boolean };
 
 export type Notifications = {
-  enabled: Record<ReasonNotification, boolean>;
+  enabled: Record<Exclude<ReasonNotification, "streamers">, boolean> & {
+    streamers: Record<string, typeStreamerNotification>;
+  };
   data: Record<ReasonNotification, Notification>;
   intervals: Record<ReasonNotification, number | null>;
 };

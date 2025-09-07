@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import axios from "axios";
 import DeviceInfo, { PowerState } from "react-native-device-info";
-import { getRouteAPI } from "@utils";
+import { getRouteAPI, logError } from "@utils";
 import { addNetworkStateListener } from "expo-network";
 
 export type DeviceInformation = {
@@ -108,7 +108,6 @@ export const DeviceInformationProvider: React.FC<
           },
         ),
       );
-      console.log(info);
 
       return Object.fromEntries(info);
     }, []);
@@ -119,7 +118,7 @@ export const DeviceInformationProvider: React.FC<
       const info = await getDeviceInformation();
       setDeviceInfo(info);
     } catch (error) {
-      console.error("Error getting device information:", error);
+      logError("Error getting device information:", error);
     } finally {
       setLoading(false);
     }
@@ -136,7 +135,7 @@ export const DeviceInformationProvider: React.FC<
         const res = await axios.get(await getRouteAPI("/health"), {
           timeout: 5000,
         });
-        const data = res.data || { status: null };
+        const data = res?.data || { status: null };
         setHasInternet(data?.status === "running");
       } catch {
         setHasInternet(false);

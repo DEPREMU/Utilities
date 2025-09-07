@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { stringifyData } from "./appManagement";
+import { getNotifications, stringifyData } from "./appManagement";
 import * as notifications from "expo-notifications";
 import { reasonNotification } from "../constants";
 import { log, logError, logWarn } from "./debug";
@@ -51,8 +51,9 @@ export const initializeNotificationsStorage =
     const enabledNotifications = {} as Notifications["enabled"];
     const intervalsNotifications = {} as Notifications["intervals"];
     reasonNotification.forEach((reason) => {
+      if (reason === "streamers") enabledNotifications[reason] = {};
+      else enabledNotifications[reason] = false;
       dataNotifications[reason] = null;
-      enabledNotifications[reason] = false;
       intervalsNotifications[reason] = null;
       if (reason === "cryptos") intervalsNotifications[reason] = 1000 * 60 * 10;
     });
@@ -100,7 +101,7 @@ export const initializeNotificationsStorage =
 export const hasPushNotifications = async (): Promise<boolean> => {
   const promise = await Promise.all([
     notifications.requestPermissionsAsync(),
-    loadData<Notifications | null>("@notifications"),
+    getNotifications(),
   ]);
   const { status } = promise[0];
   let notificationsData = promise[1];
@@ -159,7 +160,7 @@ export const sendNotification = async (
     }
 
     const [notificationsData, sessionExpiry] = await Promise.all([
-      loadData<Notifications>("@notifications"),
+      getNotifications(),
       loadDataSecure<number | null>("_sessionExpiry"),
     ]);
     if (

@@ -30,8 +30,9 @@ export type UserNotificationsConfig = {
   id?: string;
   userId: string;
   reason: ReasonNotification;
+  streamer?: string | null;
   enabled: boolean;
-  interval: number | -1;
+  interval: -1 | number;
   updatedAt: string;
   createdAt?: string;
 };

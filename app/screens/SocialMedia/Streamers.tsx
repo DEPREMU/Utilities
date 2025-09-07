@@ -9,24 +9,28 @@ import {
   stringifyData,
   getRouteAPI,
   fetchOptions,
+  updateInTable,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import {
+  Notifications,
   RequestAddStreamer,
   RequestGetIsLiveStreamer,
   ResponseAddStreamer,
   ResponseGetIsLiveStreamer,
   Streamer,
+  UserNotificationsConfig,
 } from "@types";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
 import { fetchFromTable } from "@utils";
 import { useUserContext } from "@context/UserContext";
-import { Text, TextInput } from "react-native-paper";
+import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
 import { useStylesStreamers } from "@styles/screens/SocialMedia/useStylesStreamers";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
-import { View, Image, ScrollView } from "react-native";
+import { View, ScrollView } from "react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNotifications } from "@/context/NotificationsContext";
 
 type StreamerWithIsLive = Streamer & { isLive: boolean };
 
@@ -35,6 +39,7 @@ const Streamers: React.FC = () => {
   const { user } = useUserContext();
   const { styles } = useStylesStreamers();
   const { hasInternet } = useDeviceInformation();
+  const { notifications, setNotifications } = useNotifications();
   const { openModal, closeModal } = useModal();
 
   const [streamer, setStreamer] = useState<string>("");
@@ -80,15 +85,39 @@ const Streamers: React.FC = () => {
         return;
       }
 
-      if (Object.keys(data.streamer || {}).length > 3)
+      if (Object.keys(data.streamer || {}).length > 3) {
         setStreamers((prev) => [...prev, data.streamer as StreamerWithIsLive]);
+        setNotifications((prev) => {
+          if (!prev || !user?.id) return prev;
+          const newNotifications = {
+            ...JSON.parse(JSON.stringify(prev)),
+            enabled: {
+              ...prev.enabled,
+              streamers: {
+                ...(prev.enabled?.streamers || {}),
+                [streamer]: { name: data.streamer?.name, enabled: false },
+              },
+            },
+          } as Notifications;
+
+          return newNotifications;
+        });
+      }
     } catch (error) {
       logError(error);
       return;
     }
 
     setStreamer("");
-  }, [closeModal, openModal, streamers, streamer, t, user?.id]);
+  }, [
+    closeModal,
+    openModal,
+    streamers,
+    streamer,
+    t,
+    user?.id,
+    setNotifications,
+  ]);
 
   const addStreamer = useCallback(() => {
     addingStreamer();
@@ -96,6 +125,8 @@ const Streamers: React.FC = () => {
   }, [addingStreamer, closeModal]);
 
   const askAddStreamer = useCallback(async () => {
+    if (!hasInternet) return;
+
     const streamerName = capitalize(streamer);
     openModal(
       t("askAddStreamerTitle"),
@@ -105,11 +136,12 @@ const Streamers: React.FC = () => {
         <Button label={t("no")} handlePress={closeModal} />
       </>,
     );
-  }, [addStreamer, closeModal, openModal, streamer, t]);
+  }, [addStreamer, closeModal, openModal, streamer, t, hasInternet]);
 
   const deleteStreamer = useCallback(
     async (id: string) => {
-      if (!user?.id) return;
+      closeModal();
+      if (!user?.id || isFalsy(id)) return;
 
       const { error } = await deleteInTable<Streamer>(user?.id, "Streamers", {
         id,
@@ -125,13 +157,44 @@ const Streamers: React.FC = () => {
         return;
       }
 
-      setStreamers((prev) => prev.filter((streamer) => streamer.id !== id));
+      setStreamers((prev) => {
+        const streamerExists = prev.find((streamer) => streamer.id === id);
+        if (streamerExists)
+          deleteInTable<UserNotificationsConfig>(
+            user?.id,
+            "UserNotificationsConfig",
+            {
+              userId: user?.id,
+              reason: "streamers",
+              streamer: streamerExists.name,
+            },
+          );
+
+        return prev.filter((streamer) => streamer.id !== id);
+      });
+      setNotifications((prev) => {
+        if (!prev || !user?.id) return prev;
+        const streamers = { ...prev.enabled.streamers };
+        if (streamers[id]) delete streamers[id];
+
+        const newNotifications = {
+          ...JSON.parse(JSON.stringify(prev)),
+          enabled: {
+            ...prev.enabled,
+            streamers,
+          },
+        } as Notifications;
+
+        return newNotifications;
+      });
     },
-    [closeModal, openModal, t, user?.id],
+    [closeModal, openModal, t, user?.id, setNotifications],
   );
 
   const askDeleteStreamer = useCallback(
     (streamer: Streamer) => {
+      if (!hasInternet) return;
+
       const streamerName = capitalize(streamer.name || streamer.id || "");
       openModal(
         t("askDeleteStreamer"),
@@ -146,7 +209,7 @@ const Streamers: React.FC = () => {
         </>,
       );
     },
-    [closeModal, openModal, t, deleteStreamer],
+    [closeModal, openModal, t, deleteStreamer, hasInternet],
   );
 
   const handleOpenURLStreamer = useCallback(
@@ -178,6 +241,40 @@ const Streamers: React.FC = () => {
     [t, openModal, closeModal, handleOpenURLStreamer],
   );
 
+  const toggleNotifications = useCallback(
+    async (streamerName: string, newBool: boolean) => {
+      if (!streamerName || !notifications || !setNotifications || !hasInternet)
+        return;
+
+      setNotifications((prev) => {
+        if (!prev) return prev;
+
+        const newValue: Notifications = JSON.parse(JSON.stringify(prev));
+        const newNotifications = {
+          ...newValue,
+          enabled: {
+            ...newValue.enabled,
+            streamers: {
+              ...newValue.enabled.streamers,
+              [streamerName]: {
+                ...newValue.enabled.streamers[streamerName],
+                enabled: newBool,
+              },
+            },
+          },
+        } as Notifications;
+
+        return newNotifications;
+      });
+      await updateInTable(
+        "UserNotificationsConfig",
+        { enabled: newBool },
+        { userId: user?.id, reason: "streamers", streamer: streamerName },
+      );
+    },
+    [notifications, setNotifications, user?.id, hasInternet],
+  );
+
   useEffect(() => {
     streamersLoaded.current = streamers.length > 0;
   }, [streamers]);
@@ -201,7 +298,6 @@ const Streamers: React.FC = () => {
             "Streamers",
             { userId: user.id },
           );
-          console.log(internetData);
 
           data = internetData ?? [];
         } else {
@@ -281,50 +377,82 @@ const Streamers: React.FC = () => {
       <ScrollView
         style={styles.containerScrollView}
         contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
       >
-        {streamers.map((streamer, index) => (
-          <View key={index} style={styles.containerStreamer}>
-            <View style={styles.containerImageAndName}>
-              <Image
-                source={
-                  streamer.linkImage ? { uri: streamer.linkImage } : undefined
-                }
-                style={styles.streamerImage}
-              />
-              <Text style={styles.nameStreamer}>
-                {capitalize(streamer.name)}
-              </Text>
-            </View>
-            <View style={styles.containerData}>
-              <Text style={styles.isLiveStreamer}>
-                {streamer.isLive ? t("Live") : t("Offline")}
-              </Text>
-              <View style={styles.containerButtons}>
-                <Button
-                  label={t("openURL")}
-                  argsFuncHandlePress={streamer.name}
-                  handlePress={openURLStreamer}
-                  touchableOpacity
-                  replaceStyles={{
-                    button: styles.buttonVisit,
-                    textButton: styles.textButton,
-                  }}
-                />
+        {streamers.map((streamer, index) => {
+          console.log(streamer);
+          console.log(notifications?.enabled.streamers);
+          const notificationsEnabled =
+            notifications?.enabled.streamers?.[streamer.name]?.enabled || false;
 
-                <Button
-                  label={t("delete")}
-                  argsFuncHandlePress={streamer}
-                  handlePress={askDeleteStreamer}
-                  touchableOpacity
-                  replaceStyles={{
-                    button: styles.buttonVisit,
-                    textButton: styles.textButton,
-                  }}
+          return (
+            <Card key={index} style={styles.containerStreamer}>
+              <Card.Content>
+                <View style={styles.containerImageAndName}>
+                  <Avatar.Image
+                    size={80}
+                    source={
+                      streamer.linkImage
+                        ? { uri: streamer.linkImage }
+                        : require("@assets/icon.png")
+                    }
+                    style={styles.streamerImage}
+                  />
+                  <Text style={styles.nameStreamer}>
+                    {capitalize(streamer.name)}
+                  </Text>
+                </View>
+
+                <View style={styles.containerData}>
+                  <Text
+                    style={
+                      streamer.isLive
+                        ? styles.isLiveStreamer
+                        : styles.isNotLiveStreamer
+                    }
+                  >
+                    {streamer.isLive ? t("Live") : t("Offline")}
+                  </Text>
+
+                  <View style={styles.containerButtons}>
+                    <Button
+                      label={t("openURL")}
+                      argsFuncHandlePress={streamer.name}
+                      handlePress={openURLStreamer}
+                      touchableOpacity
+                      replaceStyles={{
+                        button: styles.buttonVisit,
+                        textButton: styles.textButton,
+                      }}
+                    />
+
+                    <Button
+                      label={t("delete")}
+                      argsFuncHandlePress={streamer}
+                      handlePress={askDeleteStreamer}
+                      touchableOpacity
+                      replaceStyles={{
+                        button: styles.buttonDelete,
+                        textButton: styles.textButton,
+                      }}
+                    />
+                  </View>
+                </View>
+              </Card.Content>
+              <View style={styles.notificationsContainer}>
+                <Text style={styles.notificationsTitle}>
+                  {t("notifications")}
+                </Text>
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={(value) =>
+                    toggleNotifications(streamer.name as string, value)
+                  }
                 />
               </View>
-            </View>
-          </View>
-        ))}
+            </Card>
+          );
+        })}
       </ScrollView>
     </View>
   );

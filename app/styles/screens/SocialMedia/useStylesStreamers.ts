@@ -1,144 +1,191 @@
 import { useMemo } from "react";
 import { useTheme } from "@context/ThemeContext";
-import { StyleSheet } from "react-native";
+import { StyleSheet, TextStyle } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
 
 export const useStylesStreamers = () => {
-  const { colors } = useTheme();
+  const colors = useTheme();
   const { getCommonStyles, getResponsiveValue } = useResponsiveLayout();
-  const valueFontSize = getResponsiveValue(14, 16, 18, 20);
-  const paddingTextInput = getResponsiveValue(10, 12, 14, 16);
-  const streamerImageSize = getResponsiveValue(60, 70, 80, 90);
-  const textTitleFontSize = getResponsiveValue(18, 20, 22, 24);
-  const marginSizeNameStreamer = getResponsiveValue(5, 6, 7, 8);
+
+  const liveStreamer = useMemo(
+    () =>
+      ({
+        fontSize: getResponsiveValue(14, 16, 18, 20),
+        fontWeight: "600",
+        color: colors.text,
+        minWidth: 80,
+        textAlign: "center",
+        paddingHorizontal: getResponsiveValue(12, 16, 20, 24),
+        paddingVertical: getResponsiveValue(6, 8, 10, 12),
+        borderRadius: getResponsiveValue(8, 10, 12, 14),
+        borderWidth: 1,
+        borderColor: colors.accent,
+        letterSpacing: 0.3,
+      }) as TextStyle,
+    [colors, getResponsiveValue],
+  );
+
+  const buttonStyle = useMemo(
+    () =>
+      ({
+        ...getCommonStyles("shadow"),
+        borderRadius: getResponsiveValue(8, 10, 12, 14),
+        paddingHorizontal: getResponsiveValue(12, 16, 20, 24),
+        paddingVertical: getResponsiveValue(8, 10, 12, 14),
+        borderWidth: 1,
+        borderColor: colors.primary,
+        minWidth: getResponsiveValue(70, 80, 90, 100),
+      }) as TextStyle,
+    [colors, getCommonStyles, getResponsiveValue],
+  );
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
+          ...getCommonStyles("mainContainer"),
           backgroundColor: colors.background,
+          padding: getResponsiveValue(20, 24, 28, 32),
+          alignItems: "center",
         },
         title: {
-          fontSize: getResponsiveValue(24, 28, 32, 36),
-          fontWeight: "bold",
-          color: colors.text,
+          fontSize: getResponsiveValue(28, 32, 36, 40),
+          fontWeight: "800",
+          color: colors.primary,
           textAlign: "center",
-          marginVertical: 10,
+          marginBottom: getResponsiveValue(24, 30, 36, 42),
+          letterSpacing: 1,
+          textShadowColor: colors.shadow + "30",
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 2,
+        },
+        containerAdd: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: getResponsiveValue(24, 30, 36, 42),
+          width: "100%",
+          maxWidth: 500,
+          gap: getResponsiveValue(12, 16, 20, 24),
         },
         textInput: {
-          backgroundColor: colors.secondary,
           flex: 1,
-          margin: 10,
-          padding: paddingTextInput,
-          borderRadius: 5,
-          color: colors.text,
+          backgroundColor: colors.secondary,
+          fontSize: getResponsiveValue(14, 16, 18, 20),
+          maxHeight: getResponsiveValue(50, 55, 60, 65),
+        },
+        buttonAdd: {
+          backgroundColor: colors.primary,
+          borderRadius: getResponsiveValue(12, 16, 20, 24),
+          paddingHorizontal: getResponsiveValue(16, 20, 24, 28),
+          paddingVertical: getResponsiveValue(12, 16, 20, 24),
+          shadowColor: colors.shadow,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.12,
+          shadowRadius: 8,
+          elevation: 6,
           borderWidth: 1,
-          borderColor: colors.border,
+          borderColor: colors.accent,
+          minWidth: getResponsiveValue(100, 120, 140, 160),
+        },
+        textButton: {
+          fontSize: getResponsiveValue(14, 16, 18, 20),
+          fontWeight: "700",
+          color: colors.text,
+          textAlign: "center",
+          letterSpacing: 0.5,
+        },
+        yourStreamers: {
+          fontSize: getResponsiveValue(20, 24, 28, 32),
+          fontWeight: "700",
+          color: colors.text,
+          textAlign: "center",
+          marginBottom: getResponsiveValue(20, 24, 28, 32),
+          letterSpacing: 0.5,
         },
         containerScrollView: {
           flex: 1,
           width: "100%",
         },
         contentContainer: {
+          padding: getResponsiveValue(16, 20, 24, 28),
+          gap: getResponsiveValue(16, 20, 24, 28),
           alignItems: "center",
-          justifyContent: "center",
-          padding: 10,
-        },
-        containerAdd: {
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginVertical: 10,
-        },
-        buttonAdd: {
-          backgroundColor: colors.primary,
-          padding: 10,
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: 5,
-          margin: 10,
-          width: "auto",
-          ...getCommonStyles("shadow"),
-        },
-        textButton: {
-          color: colors.text,
-          fontSize: valueFontSize,
-          textAlign: "center",
-          fontWeight: "600",
         },
         containerStreamer: {
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginVertical: 10,
-          backgroundColor: colors.primary,
-          padding: 12,
-          borderRadius: 10,
-          ...getCommonStyles("shadow"),
-        },
-        streamerImage: {
-          width: streamerImageSize,
-          height: streamerImageSize,
-          borderRadius: streamerImageSize / 2,
-          borderWidth: 2,
+          width: "100%",
+          maxWidth: 500,
+          backgroundColor: colors.secondary,
+          borderRadius: getResponsiveValue(16, 20, 24, 28),
+          padding: getResponsiveValue(16, 20, 24, 28),
+          shadowColor: colors.shadow,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 8,
+          borderWidth: 1,
           borderColor: colors.primary,
-        },
-        containerData: {
-          flex: 1,
-          marginHorizontal: 10,
-          justifyContent: "space-evenly",
-          alignItems: "center",
-          flexDirection: "row",
-        },
-        nameStreamer: {
-          fontSize: valueFontSize,
-          fontWeight: "bold",
-          color: colors.text,
-          marginTop: marginSizeNameStreamer,
-        },
-        isLiveStreamer: {
-          fontSize: valueFontSize - 2,
-          color: colors.secondary,
-          fontWeight: "500",
         },
         containerImageAndName: {
           alignItems: "center",
           justifyContent: "center",
+          marginBottom: getResponsiveValue(12, 16, 20, 24),
         },
-        buttonVisit: {
-          backgroundColor: colors.secondary,
-          padding: 8,
+        streamerImage: {
+          width: getResponsiveValue(80, 90, 100, 110),
+          height: getResponsiveValue(80, 90, 100, 110),
+          marginBottom: getResponsiveValue(8, 12, 16, 20),
+        },
+        nameStreamer: {
+          fontSize: getResponsiveValue(18, 20, 22, 24),
+          fontWeight: "700",
+          color: colors.text,
+          textAlign: "center",
+          letterSpacing: 0.5,
+        },
+        containerData: {
+          flexDirection: "row",
           alignItems: "center",
-          justifyContent: "center",
-          borderRadius: 5,
-          margin: 5,
-          minWidth: getResponsiveValue(80, 90, 100, 110),
+          justifyContent: "space-between",
+          width: "100%",
+        },
+        isLiveStreamer: {
+          ...liveStreamer,
+          backgroundColor: colors.success,
+        },
+        isNotLiveStreamer: {
+          ...liveStreamer,
+          backgroundColor: colors.error,
         },
         containerButtons: {
           flexDirection: "row",
-          flexWrap: "wrap",
+          gap: getResponsiveValue(8, 12, 16, 20),
           alignItems: "center",
-          justifyContent: "center",
-          flex: 1,
         },
-        yourStreamers: {
-          fontSize: textTitleFontSize - 2,
-          fontWeight: "bold",
+        buttonVisit: {
+          ...buttonStyle,
+          backgroundColor: colors.secondary,
+        },
+        buttonDelete: {
+          ...buttonStyle,
+          backgroundColor: colors.error,
+        },
+        notificationsContainer: {
+          ...getCommonStyles("shadow"),
+          marginVertical: getResponsiveValue(16, 20, 24, 28),
+          padding: getResponsiveValue(12, 16, 20, 24),
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexDirection: "row",
+        },
+        notificationsTitle: {
+          fontSize: getResponsiveValue(16, 18, 20, 22),
+          fontWeight: "700",
           color: colors.text,
-          textAlign: "center",
-          marginVertical: 10,
+          letterSpacing: 0.5,
         },
       }),
-    [
-      colors,
-      getCommonStyles,
-      getResponsiveValue,
-      paddingTextInput,
-      valueFontSize,
-      streamerImageSize,
-      marginSizeNameStreamer,
-      textTitleFontSize,
-    ],
+    [colors, getCommonStyles, getResponsiveValue, liveStreamer, buttonStyle],
   );
 
   return { styles };

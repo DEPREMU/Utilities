@@ -1,5 +1,4 @@
 import * as Network from "expo-network";
-import { saveData } from "./storageManagement";
 import * as Localization from "expo-localization";
 import { initializeNotificationsStorage } from "./notifications";
 import { Notifications, ReasonNotification } from "@types";
@@ -257,7 +256,7 @@ export const hasInternetConnection = async (): Promise<boolean> => {
  *
  * @returns A promise that resolves to the notifications data or null.
  */
-export const getNotifications = async (): Promise<Notifications | null> => {
+export const getNotifications = async (): Promise<Notifications> => {
   const data = await initializeNotificationsStorage();
 
   const keysData = Object.keys(data.data);
@@ -265,6 +264,5 @@ export const getNotifications = async (): Promise<Notifications | null> => {
     data.data[key as ReasonNotification] = null;
   });
 
-  saveData("@notifications", stringifyData(data));
   return data;
 };

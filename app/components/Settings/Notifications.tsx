@@ -5,9 +5,9 @@ import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import useStylesNotifications from "@styles/components/settings/useStylesNotifications";
 import { Switch, Text, TextInput } from "react-native-paper";
+import { saveData, stringifyData, getNotifications } from "@utils";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Notifications, ReasonNotification, typeLanguages } from "@types";
-import { loadData, saveData, stringifyData, getNotifications } from "@utils";
 
 interface NotificationsProps {
   onScrollableAreaTouch: (touching: boolean) => void;
@@ -28,12 +28,14 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
   const [minutes, setMinutes] = useState<typeMinutes>();
 
   const notificationData = useMemo(() => {
-    return Object.entries(notifications?.enabled || {})
+    const entries = Object.entries(notifications?.enabled || {})
       .map(([id, enabled]) => ({
-        id,
+        id: id as ReasonNotification,
         enabled,
       }))
+      .filter((item) => "streamers" === item.id)
       .sort((a, b) => (a.id > b.id ? 1 : -1));
+    return entries as { id: string; enabled: boolean }[];
   }, [notifications]);
 
   const handleChangeNotification = useCallback(
@@ -154,7 +156,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
   useEffect(() => {
     const saveIntervals = async () => {
       if (!notifications || !userData?.uid) return;
-      const oldNotifications = await loadData<Notifications>("@notifications");
+      const oldNotifications = await getNotifications();
 
       const updatedNotifications = {
         ...notifications,

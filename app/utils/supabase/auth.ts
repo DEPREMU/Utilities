@@ -117,6 +117,19 @@ export const saveStorageData = async (
       ),
     ]);
 
+  const streamers: NotificationsType["enabled"]["streamers"] =
+    Object.fromEntries(
+      userNotificationsConfig.data
+        ?.filter((config) => config.reason === "streamers")
+        .map((config) => [
+          config.streamer || "",
+          {
+            name: config.streamer || "",
+            enabled: config.enabled,
+          },
+        ]) || [],
+    );
+
   const cryptosToSave: SelectedCryptos =
     cryptos.data?.reduce((acc, crypto) => {
       acc[crypto.id + crypto.currency] = crypto;
@@ -125,7 +138,8 @@ export const saveStorageData = async (
   const userNotificationsConfigToSave = userNotificationsConfig.data?.reduce(
     (acc, config) => {
       const reason = config.reason as ReasonNotification;
-      acc.enabled[reason] = config.enabled;
+      if (reason === "streamers") acc.enabled[reason] = streamers;
+      else acc.enabled[reason] = config.enabled;
       acc.data[reason] = null;
       acc.intervals[reason] = config.interval;
       return acc;
@@ -547,7 +561,7 @@ export const handleCreateUserInitialData = async (
       userId,
       reason,
       enabled: false,
-      interval: -1,
+      interval: reason === "allNotifications" ? -1 : 6 * 60 * 1000,
       updatedAt: new Date().toISOString(),
       isActive: true,
     }));
@@ -564,6 +578,7 @@ export const handleCreateUserInitialData = async (
   > = {
     Cryptos: [],
     PushTokens: pushTokens,
+    Streamers: [],
     ClipboardSync: [],
     Users: user,
     Logs: [],
@@ -572,9 +587,11 @@ export const handleCreateUserInitialData = async (
   };
 
   await Promise.all(
-    Object.entries(initialData).map(([table, data]) =>
-      insertIntoTable(table as TablesKeys, data),
-    ),
+    Object.entries(initialData).map(async ([table, data]) => {
+      if (Array.isArray(data) && data.length === 0) return;
+      if (!data) return;
+      await insertIntoTable(table as TablesKeys, data);
+    }),
   );
 };
 
