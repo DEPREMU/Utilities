@@ -13,7 +13,7 @@ import * as Notifications from "expo-notifications";
 import { Notifications as NotificationsType } from "@types";
 import { useUserContext } from "./UserContext";
 import { useDeviceInformation } from "./DeviceInformationContext";
-import { getNotifications, saveData, stringifyData } from "@utils";
+import { getNotifications, isFalsy, saveData, stringifyData } from "@utils";
 import { AppState } from "react-native";
 import { useModal } from "./ModalContext";
 
@@ -50,8 +50,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 }) => {
   const { t } = useLanguage();
   const { openSnackBar } = useModal();
-  const { hasInternet } = useDeviceInformation();
   const { session, user } = useUserContext();
+  const { hasInternet, deviceInfo } = useDeviceInformation();
 
   const notificationsFromStorage = useRef<NotificationsType | null>(null);
   const [notifications, setNotifications] = useState<NotificationsType | null>(
@@ -60,6 +60,14 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   const sendNotification = useCallback(
     (notification: Omit<Notification, "id" | "timestamp">) => {
+      if (AppState.currentState === "active") {
+        openSnackBar(
+          [notification.title, notification.message].join("\n"),
+          8000,
+        );
+        return Promise.resolve("");
+      }
+
       return Notifications.scheduleNotificationAsync({
         content: {
           title: notification.title,
@@ -69,7 +77,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         trigger: notification.trigger || null,
       });
     },
-    [],
+    [openSnackBar],
   );
 
   const removeNotification = useCallback((id: string) => {
@@ -102,6 +110,47 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     s();
     notificationsFromStorage.current = notifications;
   }, [notifications]);
+
+  useEffect(() => {
+    if (isFalsy(deviceInfo)) return;
+
+    const handleBatteryNotifications = async (): Promise<() => void> => {
+      let id: string | null = null;
+      const getDestroyer = (id: string | null) => () => {
+        if (!id) return;
+        Notifications.cancelScheduledNotificationAsync(id);
+      };
+
+      if (["charging", "full"].includes(deviceInfo?.powerState?.batteryState)) {
+        if (deviceInfo.powerState.batteryLevel <= 0.8) return getDestroyer(id);
+
+        id = await sendNotification({
+          title: t("BatteryFullyCharged"),
+          message: t("YouCanUnplugYourDevice"),
+          type: "info",
+        });
+        return getDestroyer(id);
+      } else if (
+        deviceInfo?.powerState?.batteryLevel >= 0.3 &&
+        ["unplugged", "unknown"].includes(deviceInfo?.powerState?.batteryState)
+      )
+        return getDestroyer(id);
+
+      id = await sendNotification({
+        title: t("BatteryLow"),
+        message: t("YourBatteryIsLow"),
+        type: "warning",
+      });
+
+      return getDestroyer(id);
+    };
+
+    const destroyer = handleBatteryNotifications();
+
+    return () => {
+      destroyer.then((func) => func?.());
+    };
+  }, [deviceInfo, sendNotification, t]);
 
   useEffect(() => {
     if (hasInternet) {

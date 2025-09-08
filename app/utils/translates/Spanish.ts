@@ -204,6 +204,10 @@ const es: typeLanguages = {
   unplugged: "Desenchufado",
   batteryState: "Estado de la batería",
   lowPowerMode: "Modo de bajo consumo",
+  BatteryLow: "Batería baja",
+  YourBatteryIsLow: "Tu batería está baja",
+  BatteryFullyCharged: "Batería completamente cargada",
+  YouCanUnplugYourDevice: "Puedes desconectar tu dispositivo",
 } as const;
 
 export default es;

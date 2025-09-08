@@ -13,74 +13,112 @@ const DeviceInformation: React.FC = () => {
   const { styles } = useStylesDeviceInformation();
   const { deviceInfo } = useDeviceInformation();
 
+  const renderKeyValue = useCallback(
+    (
+      key:
+        | keyof DeviceInformationType
+        | "batteryLevel"
+        | "batteryState"
+        | "lowPowerMode",
+      value: string | number | boolean,
+    ) => {
+      let displayValue = "";
+
+      if (typeof value === "boolean") displayValue = value ? t("yes") : t("no");
+      else if (key === "batteryLevel" && typeof value === "number")
+        displayValue = `${(value * 100).toFixed(0)}%`;
+      else if (
+        key.toLowerCase().includes("memory") ||
+        key.toLowerCase().includes("storage")
+      )
+        displayValue = isNaN(value as number)
+          ? t("notAvailable")
+          : `${((value as number) / 1024 ** 3).toFixed(2)} GB`;
+      else displayValue = String(value);
+
+      return (
+        <View key={key} style={styles.keyValueRow}>
+          <View style={styles.keyContainer}>
+            <Text style={styles.textKey}>{t(key)}</Text>
+          </View>
+          <View style={styles.valueContainer}>
+            <Text style={styles.textValue}>{displayValue}</Text>
+          </View>
+        </View>
+      );
+    },
+    [styles, t],
+  );
+
   const renderObject = useCallback(
     (key: string, value: Object) => {
-      let text = ": ";
-
       if (!Array.isArray(value) && Object.keys(value || {}).length > 0) {
         return (
-          <>
-            {console.log(value)}
-            <Text style={styles.textKey}>
+          <View key={key} style={styles.infoCard}>
+            <Text style={styles.sectionTitle}>
               {t(key as keyof DeviceInformationType)}
             </Text>
-            {Object.entries(value).map(([subKey, subValue]) => {
-              if (isFalsy(subValue) || subValue === "unknown") return null;
-              let text = ": ";
-              if (typeof subValue === "boolean")
-                text += subValue ? t("yes") : t("no");
-              else if (typeof subValue === "number") text += String(subValue);
-              else text += t(subValue);
-
-              return (
-                <Text style={styles.textKey} key={subKey}>
-                  {t(subKey as keyof DeviceInformationType)}
-                  <Text style={styles.textValue}>{text}</Text>
-                </Text>
-              );
-            })}
-          </>
+            <View style={styles.infoSection}>
+              {Object.entries(value).map(([subKey, subValue]) => {
+                if (isFalsy(subValue) || subValue === "unknown") return null;
+                return renderKeyValue(
+                  subKey as keyof DeviceInformationType,
+                  subValue as string | number | boolean,
+                );
+              })}
+            </View>
+          </View>
         );
       } else if (Array.isArray(value) && value.length > 0) {
-        text += value.join(", ");
+        const displayValue = value.join(", ");
         return (
-          <Text style={styles.textKey}>
-            {t(key as keyof DeviceInformationType)}
-            <Text style={styles.textValue}>{text}</Text>
-          </Text>
+          <View key={key} style={[styles.infoCard, styles.keyValueRow]}>
+            <View style={styles.keyContainer}>
+              <Text style={styles.textKey}>
+                {t(key as keyof DeviceInformationType)}
+              </Text>
+            </View>
+            <View style={styles.valueContainer}>
+              <Text style={[styles.textValue]}>{displayValue}</Text>
+            </View>
+          </View>
         );
-      } else return null;
+      }
+      return null;
     },
-    [styles.textKey, styles.textValue, t],
+    [styles, t, renderKeyValue],
   );
 
-  const renderMainInfo = React.useMemo(
-    () =>
-      Object.entries(deviceInfo || {}).map(([key, value]) => {
-        if (isFalsy(value) || ["unknown", -1].includes(value as string))
-          return null;
+  const renderMainInfo = React.useMemo(() => {
+    const infoItems: Array<React.ReactElement | null> = [];
 
-        let text = ": ";
-        if (typeof value === "boolean") text += value ? t("yes") : t("no");
-        else if (typeof value === "object") return renderObject(key, value);
-        else text += String(value);
+    Object.entries(deviceInfo || {}).forEach(([key, value]) => {
+      if (isFalsy(value) || ["unknown", -1].includes(value as string)) {
+        return;
+      }
 
-        const keyTyped = key as keyof DeviceInformationType;
-
-        return (
-          <Text key={key} style={styles.textKey}>
-            {t(keyTyped)}
-            <Text style={styles.textValue}>{text}</Text>
-          </Text>
+      if (typeof value === "object") {
+        infoItems.push(renderObject(key, value));
+      } else {
+        infoItems.push(
+          <View key={key} style={styles.infoCard}>
+            {renderKeyValue(key as keyof DeviceInformationType, value)}
+          </View>,
         );
-      }),
-    [deviceInfo, renderObject, styles.textKey, styles.textValue, t],
-  );
+      }
+    });
+
+    return infoItems;
+  }, [deviceInfo, renderObject, renderKeyValue, styles]);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t("deviceInformation")}</Text>
-      <ScrollView contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {renderMainInfo}
       </ScrollView>
     </View>

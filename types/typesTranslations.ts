@@ -178,11 +178,17 @@ export type typeLanguages = Record<ReasonNotification, string> &
     batteryLevel: string;
     batteryState: string;
     lowPowerMode: string;
+    BatteryFullyCharged: string;
+    YouCanUnplugYourDevice: string;
+    BatteryLow: string;
+    YourBatteryIsLow: string;
   };
 
 export type typeLanguagesServer = {
   notificationCryptoBody: string;
   notificationCryptoTitle: string;
+  streamerLiveNotification: string;
+  streamerLiveNotificationTitle: string;
   notificationNotCryptosSelectedBody: string;
   notificationNotCryptosSelectedTitle: string;
 };

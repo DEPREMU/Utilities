@@ -150,6 +150,19 @@ export const DeviceInformationProvider: React.FC<
 
   useEffect(() => {
     refreshDeviceInfo();
+
+    const interval = setInterval(async () => {
+      const powerState = await DeviceInfo.getPowerState();
+      setDeviceInfo((prev) => {
+        const newValue: DeviceInformation = JSON.parse(
+          JSON.stringify(prev || {}),
+        );
+        newValue.powerState = powerState as PowerState;
+        return newValue;
+      });
+    }, 60000);
+
+    return () => clearInterval(interval);
   }, [refreshDeviceInfo]);
 
   const value: DeviceInformationContextType = {

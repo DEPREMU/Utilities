@@ -110,13 +110,25 @@ const insertNotifications = async (
 
   if (data)
     return data.forEach(async (item: UserNotificationsConfig) => {
-      const newData: UserNotificationsConfig = {
-        ...item,
-        enabled: notifications?.enabled?.[item.reason] || false,
-        interval: notifications?.intervals?.[item.reason] || -1,
-        updatedAt: new Date().toISOString(),
-      };
-
+      let newData: UserNotificationsConfig = { ...item };
+      if (item.reason !== "streamers")
+        newData = {
+          ...item,
+          enabled: notifications?.enabled?.[item.reason] as boolean,
+          interval: notifications?.intervals?.[item.reason] || -1,
+          updatedAt: new Date().toISOString(),
+        };
+      else if (notifications?.enabled.streamers) {
+        Object.entries(notifications.enabled.streamers).map(
+          ([streamer, data]) => {
+            newData = {
+              ...item,
+              enabled: data.enabled,
+              streamer,
+            };
+          },
+        );
+      }
       await supabase
         .from("UserNotificationsConfig")
         .update(newData)
@@ -128,14 +140,27 @@ const insertNotifications = async (
   const arrEnabled: UserNotificationsConfig[] = Object.entries(
     notifications.enabled,
   )
-    .filter(([, value]) => value)
+    .filter(([reason]) => reason !== "streamers")
     .map(([reason, enabled]) => ({
       userId,
       reason: reason as ReasonNotification,
-      enabled,
+      enabled: enabled as boolean,
       interval: notifications.intervals[reason as ReasonNotification] || -1,
       updatedAt: new Date().toISOString(),
     }));
+
+  Object.entries(notifications.enabled.streamers).forEach(
+    ([streamer, data]) => {
+      arrEnabled.push({
+        userId,
+        reason: "streamers",
+        streamer,
+        enabled: data.enabled,
+        interval: -1,
+        updatedAt: new Date().toISOString(),
+      });
+    },
+  );
 
   const { error: errorInsert } = await supabase
     .from("UserNotificationsConfig")
@@ -239,6 +264,7 @@ const connectionWss = (ws: WebSocket) => {
     users[data.uid].intervalsId = {
       ...users[data.uid].intervalsId,
       cryptos: intervalId,
+      streamers: null,
       allNotifications: null,
     };
   };

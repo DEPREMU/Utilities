@@ -27,7 +27,7 @@ const getLinkImageStreamer = async (streamer: string) => {
   return image;
 };
 
-const isLiveStreamer = async (streamer: string): Promise<boolean> => {
+export const isLiveStreamer = async (streamer: string): Promise<boolean> => {
   if (!streamer) return false;
   streamer = streamer.toLowerCase().replace(/\s/g, "");
   const { data }: { data: string } = await axios.get(

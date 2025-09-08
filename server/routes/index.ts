@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { translate } from "./translate.ts";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { intervalId } from "../Notifications/streamers.ts";
 import type { Route, RoutesAPI } from "../../types/typesAPI.ts";
 import type { Response, Request } from "express";
 import { decryptHandler, encryptHandler } from "./encryption.ts";

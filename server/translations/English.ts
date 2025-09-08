@@ -7,6 +7,8 @@ const en: typeLanguagesServer = {
   notificationNotCryptosSelectedBody:
     "No cryptos selected for notifications.\nGo to crypto selection to receive updates.",
   notificationNotCryptosSelectedTitle: "No Cryptos Selected",
+  streamerLiveNotification: "Your favorite streamer {{streamer}} is now live!",
+  streamerLiveNotificationTitle: "Streamer Live: {{streamer}}",
 };
 
 export default en;

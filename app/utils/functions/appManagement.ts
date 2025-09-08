@@ -2,6 +2,7 @@ import * as Network from "expo-network";
 import * as Localization from "expo-localization";
 import { initializeNotificationsStorage } from "./notifications";
 import { Notifications, ReasonNotification } from "@types";
+import { Falsy } from "react-native";
 
 export const getFormattedDate = (
   date: Date,
@@ -211,11 +212,12 @@ export const capitalize = (str: string): string => {
  * - `undefined`
  * - `false`
  * - an empty string (`""`)
+ * Falsy values do not include `0`, `NaN`, or empty arrays/objects.
  *
  * @param value - The value to check.
  * @returns `true` if the value is falsy, otherwise `false`.
  */
-export const isFalsy = (value: unknown): boolean => {
+export const isFalsy = (value: unknown): value is Falsy => {
   return (
     value === null || value === undefined || value === false || value === ""
   );
