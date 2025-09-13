@@ -208,6 +208,9 @@ const es: typeLanguages = {
   YourBatteryIsLow: "Tu batería está baja",
   BatteryFullyCharged: "Batería completamente cargada",
   YouCanUnplugYourDevice: "Puedes desconectar tu dispositivo",
+  noClipboardData: "No hay elementos en el portapapeles",
+  clipboardEmptyDescription:
+    "Tu portapapeles está vacío. Cualquier texto que copies en tu dispositivo aparecerá aquí para un acceso fácil.",
 } as const;
 
 export default es;

@@ -204,6 +204,9 @@ const en: typeLanguages = {
   YourBatteryIsLow: "Your Battery Is Low",
   BatteryFullyCharged: "Battery Fully Charged",
   YouCanUnplugYourDevice: "You Can Unplug Your Device",
+  noClipboardData: "No clipboard items available",
+  clipboardEmptyDescription:
+    "Your clipboard is currently empty. Any text you copy on your device will appear here for easy access.",
 } as const;
 
 export default en;

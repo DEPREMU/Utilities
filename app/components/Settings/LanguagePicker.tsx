@@ -2,10 +2,10 @@ import React, { memo, useCallback, useMemo } from "react";
 import { List } from "react-native-paper";
 import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
-import { languagesNames, updateInTable } from "@utils";
+import { useUserContext } from "@context/UserContext";
+import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import { LanguagesSupported } from "@types";
-import { useBackgroundTask } from "@/context/BackgroundTaskContext";
-import { useUserContext } from "@/context/UserContext";
+import { languagesNames, updateInTable } from "@utils";
 
 const LanguagePicker: React.FC = () => {
   const { colors } = useTheme();

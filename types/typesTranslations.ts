@@ -182,6 +182,8 @@ export type typeLanguages = Record<ReasonNotification, string> &
     YouCanUnplugYourDevice: string;
     BatteryLow: string;
     YourBatteryIsLow: string;
+    noClipboardData: string;
+    clipboardEmptyDescription: string;
   };
 
 export type typeLanguagesServer = {

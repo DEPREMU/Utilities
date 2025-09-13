@@ -7,6 +7,7 @@ import RenderClipboardItem from "@components/Clipboard/RenderClipboardItem";
 import useStylesClipboardScreen from "@styles/screens/useStylesClipboardScreen";
 import React, { useCallback, useEffect, useState } from "react";
 import { fetchFromTable, logError, updateInTable } from "@utils";
+import { Text } from "react-native-paper";
 
 const skeletonData: Tables["ClipboardSync"][] = Array.from({ length: 5 }).map(
   () =>
@@ -67,6 +68,22 @@ const ClipboardScreen: React.FC = () => {
     ),
     [t, deleteClipboardItem, copyClipboardContent],
   );
+  const renderEmptyComponent = useCallback(() => {
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <View style={styles.titleCard}>
+            <Text style={styles.buttonText}>{t("noClipboardData")}</Text>
+          </View>
+          <View style={styles.contentCard}>
+            <Text style={styles.contentText}>
+              {t("clipboardEmptyDescription")}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }, [t, styles]);
 
   useEffect(() => {
     if (!userData?.uid) return;
@@ -76,6 +93,7 @@ const ClipboardScreen: React.FC = () => {
         "ClipboardSync",
         {
           userId: userData?.uid,
+          deleted: false,
         },
       );
 
@@ -98,6 +116,7 @@ const ClipboardScreen: React.FC = () => {
         data={clipboardData}
         keyExtractor={(item) => String(item.id || Math.random())}
         renderItem={renderItems}
+        ListEmptyComponent={renderEmptyComponent}
       />
     </View>
   );
