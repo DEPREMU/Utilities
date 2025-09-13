@@ -108,67 +108,34 @@ const insertNotifications = async (
     .select("*")
     .eq("userId", userId);
 
-  if (data)
-    return data.forEach(async (item: UserNotificationsConfig) => {
-      let newData: UserNotificationsConfig = { ...item };
+  if (!data || data?.length === 0) return;
+
+  await Promise.all(
+    data.map(async (item: UserNotificationsConfig) => {
+      let newData: UserNotificationsConfig = {
+        ...item,
+        updatedAt: new Date().toISOString(),
+      };
       if (item.reason !== "streamers")
         newData = {
-          ...item,
+          ...newData,
           enabled: notifications?.enabled?.[item.reason] as boolean,
           interval: notifications?.intervals?.[item.reason] || -1,
-          updatedAt: new Date().toISOString(),
         };
-      else if (notifications?.enabled.streamers) {
-        Object.entries(notifications.enabled.streamers).map(
-          ([streamer, data]) => {
-            newData = {
-              ...item,
-              enabled: data.enabled,
-              streamer,
-            };
-          },
-        );
-      }
+      else if (notifications?.enabled.streamers && item.streamer)
+        newData = {
+          ...newData,
+          enabled:
+            notifications?.enabled?.streamers?.[item.streamer]?.enabled ||
+            false,
+        };
+
       await supabase
         .from("UserNotificationsConfig")
         .update(newData)
         .eq("id", item.id);
-    });
-
-  if (!notifications) return;
-
-  const arrEnabled: UserNotificationsConfig[] = Object.entries(
-    notifications.enabled,
-  )
-    .filter(([reason]) => reason !== "streamers")
-    .map(([reason, enabled]) => ({
-      userId,
-      reason: reason as ReasonNotification,
-      enabled: enabled as boolean,
-      interval: notifications.intervals[reason as ReasonNotification] || -1,
-      updatedAt: new Date().toISOString(),
-    }));
-
-  Object.entries(notifications.enabled.streamers).forEach(
-    ([streamer, data]) => {
-      arrEnabled.push({
-        userId,
-        reason: "streamers",
-        streamer,
-        enabled: data.enabled,
-        interval: -1,
-        updatedAt: new Date().toISOString(),
-      });
-    },
+    }),
   );
-
-  const { error: errorInsert } = await supabase
-    .from("UserNotificationsConfig")
-    .insert(arrEnabled);
-
-  if (errorInsert) {
-    console.error("Error inserting user notifications:", errorInsert);
-  }
 };
 
 const connectionWss = (ws: WebSocket) => {

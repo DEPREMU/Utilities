@@ -6,10 +6,9 @@ import { useLanguage } from "@context/LanguageContext";
 
 const ThemePicker: React.FC = () => {
   const { t } = useLanguage();
-  const { themeState, setThemeState, primary, text } = useTheme();
+  const { themeState, setThemeState, colors } = useTheme();
 
   const renderAccordionItem = useMemo(() => {
-    console.log("Rendering ThemePicker items");
     return ["auto", "light", "dark"].map((key) => (
       <List.Item
         key={key}
@@ -17,14 +16,14 @@ const ThemePicker: React.FC = () => {
         left={(props) => (
           <List.Icon
             {...props}
-            color={themeState === key ? primary : text}
+            color={themeState === key ? colors.primary : colors.text}
             icon={themeState === key ? "radiobox-marked" : "radiobox-blank"}
           />
         )}
         onPress={() => setThemeState(key as Theme)}
       />
     ));
-  }, [themeState, primary, text, t, setThemeState]);
+  }, [themeState, colors, t, setThemeState]);
 
   return (
     <List.Accordion

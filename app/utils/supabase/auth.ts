@@ -1,3 +1,4 @@
+import { isFalsy } from "./../functions/appManagement";
 import {
   Tables,
   UserData,
@@ -120,11 +121,14 @@ export const saveStorageData = async (
   const streamers: NotificationsType["enabled"]["streamers"] =
     Object.fromEntries(
       userNotificationsConfig.data
-        ?.filter((config) => config.reason === "streamers")
+        ?.filter(
+          (config) =>
+            config.reason === "streamers" && !isFalsy(config.streamer),
+        )
         .map((config) => [
-          config.streamer || "",
+          config.streamer,
           {
-            name: config.streamer || "",
+            name: config.streamer,
             enabled: config.enabled,
           },
         ]) || [],

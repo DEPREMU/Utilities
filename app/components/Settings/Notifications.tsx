@@ -5,7 +5,7 @@ import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import useStylesNotifications from "@styles/components/settings/useStylesNotifications";
 import { Switch, Text, TextInput } from "react-native-paper";
-import { saveData, stringifyData, getNotifications } from "@utils";
+import { saveData, stringifyData, getNotifications, isFalsy } from "@utils";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Notifications, ReasonNotification, typeLanguages } from "@types";
 
@@ -33,39 +33,38 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         id: id as ReasonNotification,
         enabled,
       }))
-      .filter((item) => "streamers" === item.id)
+      .filter((item) => item.id !== "streamers")
       .sort((a, b) => (a.id > b.id ? 1 : -1));
     return entries as { id: string; enabled: boolean }[];
   }, [notifications]);
 
   const handleChangeNotification = useCallback(
     async (id: string) => {
-      if (!notifications) return;
+      setNotifications((prev) => {
+        if (!prev) return prev;
+        const updated = {
+          ...prev,
+          enabled: {
+            ...prev.enabled,
+            [id as ReasonNotification]: !prev.enabled[id as ReasonNotification],
+          },
+        };
 
-      const updatedNotifications = {
-        ...notifications,
-        enabled: {
-          ...notifications.enabled,
-          [id as ReasonNotification]:
-            !notifications.enabled[id as ReasonNotification],
-        },
-      };
+        sendMessage({
+          type: "notifications",
+          data: updated,
+          uid: userData?.uid || "",
+        });
+        saveData("@notifications", updated);
 
-      setNotifications(updatedNotifications);
-      sendMessage({
-        type: "notifications",
-        data: updatedNotifications,
-        uid: userData?.uid || "",
+        return updated;
       });
-      await saveData("@notifications", updatedNotifications);
     },
-    [notifications, sendMessage, userData],
+    [sendMessage, userData?.uid],
   );
 
   const handleChangeNotificationInterval = useCallback(
     async (id: ReasonNotification, value: string) => {
-      if (!notifications) return;
-
       let interval = parseFloat(value);
       if (isNaN(interval)) interval = -1;
 
@@ -77,34 +76,36 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
           }) as typeMinutes,
       );
     },
-    [notifications],
+    [],
   );
 
   const renderNotificationItem = useCallback(
     ({ item }: { item: { id: string; enabled: boolean } }) => {
       const interval =
         notifications?.intervals?.[item.id as ReasonNotification];
+      const minutesItem = minutes?.[item.id as ReasonNotification] || -1;
 
+      console.log(t(item.id as keyof typeLanguages));
       return (
         <>
           <Button
             replaceStyles={{ button: styles.notificationItem, textButton: {} }}
-            handlePress={() => handleChangeNotification(item.id)}
-            children={
-              <>
-                <Switch
-                  value={item.enabled}
-                  onChange={() => handleChangeNotification(item.id)}
-                />
-                <Text style={styles.notificationKey}>
-                  {t(item.id as keyof typeLanguages)}
-                </Text>
-              </>
-            }
-          />
-          {item.enabled && interval !== undefined && (
+            argsFuncHandlePress={item.id}
+            handlePress={handleChangeNotification}
+          >
+            <>
+              <Switch
+                value={item.enabled}
+                onChange={() => handleChangeNotification(item.id)}
+              />
+              <Text style={styles.notificationKey}>
+                {t(item.id as keyof typeLanguages)}
+              </Text>
+            </>
+          </Button>
+          {item.enabled && !isFalsy(interval) && minutesItem > 0 && (
             <TextInput
-              value={minutes?.[item.id as ReasonNotification]?.toString()}
+              value={minutesItem?.toString()}
               onChangeText={(text) =>
                 handleChangeNotificationInterval(
                   item.id as ReasonNotification,
@@ -140,11 +141,14 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
   useEffect(() => {
     const fetchNotifications = async () => {
       const data = await getNotifications();
+      console.log(data);
       setNotifications(data);
       const mins = Object.fromEntries(
         Object.entries(data?.intervals || {}).map(([id, value]) => [
           id,
-          value !== null ? (value as number) / (60 * 1000) : null,
+          value !== null || value !== -1
+            ? (value as number) / (60 * 1000)
+            : null,
         ]),
       ) as Record<ReasonNotification, number | null>;
       setMinutes(mins);

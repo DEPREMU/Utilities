@@ -3,11 +3,6 @@ const path = require("path");
 
 const withGoogleServices = (config) => {
   console.log("Plugin handleCreateFiles.js is being executed...");
-  console.log("EAS_BUILD:", process.env.EAS_BUILD);
-  console.log(
-    "GOOGLE_SERVICES_JSON exists:",
-    !!process.env.GOOGLE_SERVICES_JSON,
-  );
 
   if (process.env.EAS_BUILD === "true" && process.env.GOOGLE_SERVICES_JSON) {
     try {

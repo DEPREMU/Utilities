@@ -100,6 +100,7 @@ const Streamers: React.FC = () => {
             },
           } as Notifications;
 
+          console.log(newNotifications);
           return newNotifications;
         });
       }
