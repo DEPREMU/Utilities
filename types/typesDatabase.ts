@@ -39,6 +39,7 @@ export type UserNotificationsConfig = {
 
 export type UserConfig = {
   id?: string;
+  theme: "light" | "dark" | "auto";
   userId: string;
   API_URL?: string;
   language: string;

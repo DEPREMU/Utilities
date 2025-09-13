@@ -23,7 +23,7 @@ import { AppState } from "react-native";
 import { useModal } from "./ModalContext";
 import { useLanguage } from "./LanguageContext";
 import { useUserContext } from "./UserContext";
-import { WebSocketMessage, WebSocketResponse } from "@types";
+import { Theme, WebSocketMessage, WebSocketResponse } from "@types";
 
 interface WebSocketContextType {
   socket: WebSocket | null;
@@ -111,16 +111,18 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         setIsConnected(true);
 
         try {
-          const [lang, notifications, hasAdmin] = await Promise.all([
+          const [lang, notifications, hasAdmin, theme] = await Promise.all([
             checkLanguage(),
             getNotifications(),
             loadData<boolean>("@hasAdminAccess"),
+            loadData<Theme>("@theme"),
           ]);
 
           const initMessage: WebSocketMessage = {
             type: "init",
             uid: userData?.uid || "",
             notifications,
+            theme: theme || "auto",
             language: lang || "en",
             hasAdmin: hasAdmin || false,
           };

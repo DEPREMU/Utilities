@@ -1,21 +1,27 @@
 import React, {
-  createContext,
-  useContext,
-  ReactNode,
-  useEffect,
-  useCallback,
-  useState,
   useRef,
+  useState,
+  useEffect,
+  ReactNode,
+  useContext,
+  useCallback,
+  createContext,
 } from "react";
+import {
+  isFalsy,
+  logError,
+  saveData,
+  stringifyData,
+  getNotifications,
+} from "@utils";
+import { AppState } from "react-native";
+import { useModal } from "./ModalContext";
 import ClipboardModule from "@/utils/ClipboardModule";
 import { useLanguage } from "./LanguageContext";
 import * as Notifications from "expo-notifications";
-import { Notifications as NotificationsType } from "@types";
 import { useUserContext } from "./UserContext";
 import { useDeviceInformation } from "./DeviceInformationContext";
-import { getNotifications, isFalsy, saveData, stringifyData } from "@utils";
-import { AppState } from "react-native";
-import { useModal } from "./ModalContext";
+import { Notifications as NotificationsType } from "@types";
 
 type Notification = {
   id: string;
@@ -100,56 +106,46 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     )
       return;
 
-    const s = async () => {
+    const saveNewNotifications = async () => {
       try {
         await saveData("@notifications", notifications);
       } catch (error) {
-        console.error("Error saving notifications to storage", error);
+        logError("Error saving notifications to storage", error);
       }
     };
-    s();
+    saveNewNotifications();
     notificationsFromStorage.current = notifications;
   }, [notifications]);
 
   useEffect(() => {
     if (isFalsy(deviceInfo)) return;
 
-    const handleBatteryNotifications = async (): Promise<() => void> => {
-      let id: string | null = null;
-      const getDestroyer = (id: string | null) => () => {
-        if (!id) return;
-        Notifications.cancelScheduledNotificationAsync(id);
-      };
-
+    const handleBatteryNotifications = async () => {
       if (["charging", "full"].includes(deviceInfo?.powerState?.batteryState)) {
-        if (deviceInfo.powerState.batteryLevel <= 0.8) return getDestroyer(id);
+        if (deviceInfo.powerState.batteryLevel <= 0.8) return;
 
-        id = await sendNotification({
+        await sendNotification({
           title: t("BatteryFullyCharged"),
           message: t("YouCanUnplugYourDevice"),
           type: "info",
         });
-        return getDestroyer(id);
+        return;
       } else if (
         deviceInfo?.powerState?.batteryLevel >= 0.3 &&
         ["unplugged", "unknown"].includes(deviceInfo?.powerState?.batteryState)
       )
-        return getDestroyer(id);
+        return;
 
-      id = await sendNotification({
+      await sendNotification({
         title: t("BatteryLow"),
         message: t("YourBatteryIsLow"),
         type: "warning",
       });
-
-      return getDestroyer(id);
     };
 
-    const destroyer = handleBatteryNotifications();
+    const id = setTimeout(handleBatteryNotifications, 5000);
 
-    return () => {
-      destroyer.then((func) => func?.());
-    };
+    return () => clearTimeout(id);
   }, [deviceInfo, sendNotification, t]);
 
   useEffect(() => {
@@ -163,21 +159,14 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       return;
     }
 
-    let notification: Promise<string>;
     if (AppState.currentState !== "active")
-      notification = sendNotification({
+      sendNotification({
         title: t("NoInternetConnection"),
         message: t("PleaseCheckInternetConnection"),
         type: "error",
       });
     else openSnackBar(t("NoInternetConnection"), 12000);
     ClipboardModule?.stopClipboardService?.();
-
-    return () => {
-      notification.then((id) => {
-        Notifications.cancelScheduledNotificationAsync(id);
-      });
-    };
   }, [
     hasInternet,
     t,

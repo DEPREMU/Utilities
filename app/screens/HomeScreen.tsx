@@ -42,13 +42,19 @@ const HomeScreen: React.FC = () => {
           style={styles.leftIcon}
           color={background}
           icon={
-            hasInternet || button.needsInternet === false
+            hasInternet ||
+            button.needsInternet === false ||
+            button.label === "settings"
               ? "check-circle"
               : "cancel"
           }
         />
         <Button
-          disabled={!hasInternet && button.needsInternet !== false}
+          disabled={
+            !hasInternet &&
+            button.needsInternet !== false &&
+            button.label !== "settings"
+          }
           label={t(button.label)}
           argsFuncHandlePress={button.screen}
           touchableOpacity
@@ -65,6 +71,7 @@ const HomeScreen: React.FC = () => {
         {!hasInternet && (
           <Text style={styles.doesNotHaveInternet}>
             {t("NoInternetConnection")}
+            {"\n"}
             {t("PleaseCheckInternetConnection")}
           </Text>
         )}

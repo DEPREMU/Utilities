@@ -1,16 +1,19 @@
 import Button from "@components/common/ButtonComponent";
 import Constants from "expo-constants";
+import ThemePicker from "@components/Settings/ThemePicker";
 import Notifications from "@components/Settings/Notifications";
 import LanguagePicker from "@components/Settings/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { typeLanguages } from "@types";
+import { useUserContext } from "@context/UserContext";
 import { Text, TextInput } from "react-native-paper";
 import { ScrollView, View } from "react-native";
+import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
-import { loadData, log, saveData } from "@utils";
+import { useDeviceInformation } from "@context/DeviceInformationContext";
+import { loadData, log, saveData, updateInTable } from "@utils";
 import React, { useCallback, useEffect, useState } from "react";
-import ThemePicker from "@/components/Settings/ThemePicker";
 
 type Section = {
   subtitle: keyof typeLanguages;
@@ -24,7 +27,10 @@ type Section = {
 
 const SettingsScreen: React.FC = () => {
   const { t } = useLanguage();
+  const { userData } = useUserContext();
   const { styles } = useStylesSettingsScreen();
+  const { hasInternet } = useDeviceInformation();
+  const { addTaskQueue } = useBackgroundTask();
   const { setSocketURL } = useWebSocket();
 
   const [apiURL, setApiURL] = useState<string | null>(null);
@@ -46,17 +52,47 @@ const SettingsScreen: React.FC = () => {
   }, [password]);
 
   const saveApiURL = useCallback(async () => {
-    if (!apiURL) return;
+    if (!apiURL || !userData?.uid) return;
 
+    addTaskQueue(
+      async () => {
+        await updateInTable(
+          "UserConfig",
+          { API_URL: apiURL },
+          { userId: userData.uid },
+        );
+      },
+      true,
+      {
+        functionName: "updateAPIConfig",
+        args: [userData.uid, apiURL],
+      },
+    );
     await saveData("@API_URL", apiURL);
-  }, [apiURL]);
+  }, [apiURL, addTaskQueue, userData?.uid]);
 
   const saveSocketURL = useCallback(async () => {
-    if (!socketURL) return;
+    if (!socketURL || !userData?.uid) return;
 
     setSocketURL(socketURL);
+    addTaskQueue(
+      async () => {
+        if (!userData?.uid) return;
+        await updateInTable(
+          "UserConfig",
+          { webSocketURL: socketURL },
+          { userId: userData.uid },
+        );
+      },
+      true,
+      {
+        functionName: "updateWebSocketConfig",
+        args: [userData.uid, socketURL],
+      },
+    );
+
     await saveData("@webSocketURL", socketURL);
-  }, [socketURL, setSocketURL]);
+  }, [socketURL, setSocketURL, addTaskQueue, userData?.uid]);
 
   const renderSectionsAdmin = useCallback(() => {
     const sections: Section[] = [
@@ -136,10 +172,13 @@ const SettingsScreen: React.FC = () => {
           <View style={styles.section}>
             <LanguagePicker />
           </View>
-          <View style={styles.section}>
-            <Text style={styles.subtitle}>{t("notifications")}</Text>
-            <Notifications onScrollableAreaTouch={handleOtherScrollActive} />
-          </View>
+
+          {hasInternet && (
+            <View style={styles.section}>
+              <Text style={styles.subtitle}>{t("notifications")}</Text>
+              <Notifications onScrollableAreaTouch={handleOtherScrollActive} />
+            </View>
+          )}
           {!hasAdmin && (
             <View style={styles.section}>
               <Text style={styles.subtitle}>{t("adminSection")}</Text>

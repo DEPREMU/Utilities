@@ -13,6 +13,7 @@ export type WebSocketMessage =
       language: LanguagesSupported;
       notifications: typeNotifications | null;
       hasAdmin: boolean;
+      theme: "light" | "dark" | "auto";
     }
   | { type: "ping" }
   | {

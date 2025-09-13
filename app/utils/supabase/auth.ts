@@ -164,6 +164,7 @@ export const saveStorageData = async (
     language: userConfig.data?.[0]?.language || (await checkLanguage()),
     hasAdmin: userConfig.data?.[0]?.hasAdmin || false,
     updatedAt: new Date().toISOString(),
+    theme: userConfig.data?.[0]?.theme || "auto",
     webSocketURL: userConfig.data?.[0]?.webSocketURL || "",
     API_URL: userConfig.data?.[0]?.API_URL || "",
   };
@@ -180,6 +181,7 @@ export const saveStorageData = async (
     saveData("@notifications", userNotificationsConfigToSave),
     saveData("@languageKeyStorage", userConfigToSave.language),
     saveData("@webSocketURL", userConfigToSave.webSocketURL || ""),
+    saveData("@theme", userConfigToSave.theme || "auto"),
   ]);
 
   return { userData: users.data || null };
@@ -574,6 +576,7 @@ export const handleCreateUserInitialData = async (
     language: await checkLanguage(),
     hasAdmin: false,
     updatedAt: new Date().toISOString(),
+    theme: "auto",
   };
 
   const initialData: Record<

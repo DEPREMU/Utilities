@@ -6,17 +6,40 @@ import React, {
   createContext,
   useEffect,
 } from "react";
-import { logError } from "@utils";
+import {
+  logError,
+  loadData,
+  saveData,
+  executeRegisteredTask,
+  AvailableFunctions,
+} from "@utils";
 import { useLanguage } from "./LanguageContext";
 import { useNavigation } from "@react-navigation/native";
 import { useUserContext } from "./UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import { ScreensAvailable } from "@types";
-import { RootStackParamList } from "@/navigation/AppNavigator";
+import { RootStackParamList } from "@navigation/AppNavigator";
+import { useDeviceInformation } from "./DeviceInformationContext";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Alert, BackHandler, StatusBar } from "react-native";
 
 type BackgroundTask = () => void | Promise<void>;
+
+interface SerializableTask {
+  id: string;
+  functionName: AvailableFunctions;
+  args: unknown[];
+  timestamp: number;
+}
+
+type BackgroundTaskWithMeta = {
+  task: BackgroundTask;
+  meta?: {
+    id: string;
+    functionName: AvailableFunctions;
+    args: unknown[];
+  };
+};
 
 /**
  * Context type for managing background tasks and navigation-related utilities.
@@ -76,10 +99,13 @@ type BackgroundTaskContextType = {
    * Adds a new background task to the task queue.
    *
    * @param task - The background task to be added to the queue.
+   * @param executeWhenInternet - Si es true, la tarea se ejecutará cuando haya internet
+   * @param meta - Metadatos para serializar la tarea (opcional)
    *
    * @remarks
    * - This function allows you to queue a task that will be executed later.
    * - The tasks in the queue are executed sequentially, ensuring that each task is completed before the next one starts.
+   * - Si se proporciona meta y executeWhenInternet es true, la tarea será persistida y sobrevivirá al cierre de la app
    * @example
    * ```tsx
    * const { addTaskQueue } = useContext(BackgroundTaskContext);
@@ -109,7 +135,14 @@ type BackgroundTaskContextType = {
    *
    * ```
    */
-  addTaskQueue: (task: BackgroundTask) => void;
+  addTaskQueue: (
+    task: BackgroundTask,
+    executeWhenInternet?: boolean,
+    meta?: {
+      functionName: AvailableFunctions;
+      args: unknown[];
+    },
+  ) => void;
 
   /**
    * Sets the background color of the status bar.
@@ -196,6 +229,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 }) => {
   const { t } = useLanguage();
   const { isLoggedIn } = useUserContext();
+  const { hasInternet } = useDeviceInformation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -208,6 +242,55 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);
+  const executeWhenInternetRef = useRef<BackgroundTaskWithMeta[]>([]);
+
+  useEffect(() => {
+    const loadPersistedTasks = async () => {
+      try {
+        const persistedTasks =
+          await loadData<SerializableTask[]>("@pendingTasks");
+        if (persistedTasks && persistedTasks.length > 0) {
+          const rebuiltTasks = persistedTasks.map((taskData) => ({
+            task: () =>
+              executeRegisteredTask(taskData.functionName, taskData.args),
+            meta: {
+              id: taskData.id,
+              functionName: taskData.functionName,
+              args: taskData.args,
+            },
+          }));
+
+          executeWhenInternetRef.current = rebuiltTasks;
+        }
+      } catch (error) {
+        logError("Error loading persisted tasks:", error);
+      }
+    };
+
+    loadPersistedTasks();
+  }, []);
+
+  const persistPendingTasks = useCallback(async () => {
+    try {
+      const serializableTasks: SerializableTask[] =
+        executeWhenInternetRef.current
+          .filter((taskWithMeta) => taskWithMeta.meta)
+          .map((taskWithMeta) => {
+            const meta = taskWithMeta.meta;
+            if (!meta) throw new Error("Meta is required");
+            return {
+              id: meta.id,
+              functionName: meta.functionName,
+              args: meta.args,
+              timestamp: Date.now(),
+            };
+          });
+
+      await saveData("@pendingTasks", serializableTasks);
+    } catch (error) {
+      logError("Error persisting tasks:", error);
+    }
+  }, []);
 
   const processQueue = useCallback(async () => {
     if (isProcessingRef.current) return;
@@ -229,11 +312,44 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   }, []);
 
   const addTaskQueue = useCallback(
-    (task: BackgroundTask) => {
-      taskQueueRef.current.push(task);
+    (
+      task: BackgroundTask,
+      executeWhenInternet: boolean = false,
+      meta?: {
+        functionName: AvailableFunctions;
+        args: unknown[];
+      },
+    ) => {
+      if (hasInternet) {
+        taskQueueRef.current.push(task);
+        return;
+      }
+
+      if (executeWhenInternet) {
+        if (!meta) {
+          logError(
+            "Meta is required for tasks that execute when internet is available",
+          );
+          return;
+        }
+        const metaData = {
+          ...meta,
+          id:
+            Date.now().toString() + Math.random().toString(36).substring(2, 8),
+        };
+        const taskWithMeta: BackgroundTaskWithMeta = {
+          task,
+          meta: metaData,
+        };
+
+        executeWhenInternetRef.current.push(taskWithMeta);
+
+        persistPendingTasks();
+      }
+
       processQueue();
     },
-    [processQueue],
+    [processQueue, hasInternet, persistPendingTasks],
   );
 
   const runTask = useCallback(async (task: BackgroundTask) => {
@@ -291,6 +407,19 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
     return subscription.remove;
   }, [currentRouteName, isLoggedIn, t]);
+
+  useEffect(() => {
+    if (!hasInternet) return;
+    if (executeWhenInternetRef.current.length === 0) return;
+
+    taskQueueRef.current.push(
+      ...executeWhenInternetRef.current.map((t) => t.task),
+    );
+    executeWhenInternetRef.current = [];
+
+    saveData("@pendingTasks", []);
+    processQueue();
+  }, [hasInternet, processQueue]);
 
   return (
     <BackgroundTaskContext.Provider

@@ -79,6 +79,7 @@ const handleInitWebSocket = (data: WebSocketMessage, ws: WebSocket): string => {
   insertUserConfig({
     userId: data.uid,
     language: data.language || "en",
+    theme: data.theme || "auto",
     hasAdmin: data.hasAdmin || false,
     updatedAt: new Date().toISOString(),
   });

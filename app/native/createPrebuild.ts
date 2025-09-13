@@ -39,8 +39,7 @@ const editMainApplication = async () => {
     ].join("\n"),
   );
 
-  const getPackagesRegex =
-    /override fun getPackages\(\): List<ReactPackage> \{[^}]*\}/s;
+  const getPackagesRegex = /getPackages\(\)[^}]+}/g;
   const getPackagesMatch = newContent.match(getPackagesRegex)?.[0];
 
   if (!getPackagesMatch) {
@@ -51,24 +50,25 @@ const editMainApplication = async () => {
     return;
   }
 
+  const curlyBraces = getPackagesMatch.match(/{[^}]*}/g)?.[0];
+  if (!curlyBraces) {
+    console.error(
+      "Could not find curly braces in getPackages function",
+      "add manual package in MainApplication.kt fun getPackages()",
+    );
+    return;
+  }
+
   const packages = ["ClipboardPackage()", "KeyboardPackage()"];
 
   fs.writeFileSync(
     mainApplicationPath,
-    newContent.replace(getPackagesMatch, (match) => {
+    newContent.replace(curlyBraces, (match) => {
       const packagesNotAdded = packages.filter((pkg) => !match.includes(pkg));
 
-      match = match.replace(
-        "return packages",
-        [
-          ...packagesNotAdded.map((p) => `packages.add(${p})`),
-          "return packages",
-        ].join("\n"),
-      );
-      if (!match.includes("packages.toMutableList()")) {
-        match = match.replace(".packages", ".packages.toMutableList()");
-      }
-      return match;
+      match = packagesNotAdded.map((p) => `add(${p})`).join("\n");
+
+      return `{\n${match}\n}`;
     }),
   );
 };
@@ -138,8 +138,8 @@ const addPermissionsToManifest = async (newPermissions: string[]) => {
     try {
       const manifestContent = fs.readFileSync(androidManifestPath, "utf8");
       const permissionsAlreadyPresent = manifestContent
-        .match(/<uses-permission ([^\n]+)/g)
-        ?.map((match) => match.replace("\n", "").trim());
+        .match(/<uses-permission[^>]+>/g)
+        ?.map((match) => match.trim());
       const permissions = permissionsAlreadyPresent?.map(
         (perm) => perm.match(/android:name="([^"]+)"/)?.[1],
       );

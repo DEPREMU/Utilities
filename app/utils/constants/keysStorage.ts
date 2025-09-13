@@ -3,6 +3,7 @@ import { Cryptos } from "@types";
 export const KEYS_STORAGE = [
   "@theme",
   "@API_URL",
+  "@pendingTasks",
   "@webSocketURL",
   "@notifications",
   "@hasAdminAccess",

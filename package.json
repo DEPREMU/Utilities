@@ -6,7 +6,7 @@
     "clean": "rimraf app/.expo app/node_modules app/package-lock.json server/node_modules server/package-lock.json && cd app && npm cache clean --force ",
     "clean:all": "npm run clean && npm run install-all && rimraf app/package-lock.json server/package-lock.json",
     "format-all": "cd app && npm run format-all && cd ../server && npm run format-all",
-    "install-all": "cd app && npm install && cd ../server && npm install",
+    "install-all": "cd app && npm i && cd ../server && npm i && cd .. && npm i",
     "app": "cd app && npm run start",
     "server": "cd server && npm run start",
     "type-check": "cd app && npm run type-check",

@@ -25,7 +25,8 @@
     "lint:fix": "eslint . --fix",
     "lint:check": "eslint . --max-warnings 0",
     "type-check": "tsc --noEmit",
-    "android": "expo run:android",
+    "android": "npx expo run:android",
+    "build-with-prebuild": "cmd /c \"if not exist android npm run prebuild\" && cd android && gradlew.bat assembleRelease",
     "ios": "expo run:ios"
   },
   "dependencies": {
@@ -73,7 +74,8 @@
     "react-native-safe-area-context": "~5.6.1",
     "react-native-screens": "~4.16.0",
     "react-native-web": "^0.21.1",
-    "react-native-worklets": "0.5.1"
+    "react-native-worklets": "0.5.1",
+    "expo-system-ui": "~6.0.7"
   },
   "devDependencies": {
     "@babel/core": "^7.28.4",
