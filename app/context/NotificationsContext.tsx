@@ -12,16 +12,19 @@ import {
   logError,
   saveData,
   stringifyData,
+  fetchFromTable,
+  insertIntoTable,
   getNotifications,
 } from "@utils";
-import { AppState } from "react-native";
 import { useModal } from "./ModalContext";
 import ClipboardModule from "@/utils/ClipboardModule";
 import { useLanguage } from "./LanguageContext";
-import * as Notifications from "expo-notifications";
 import { useUserContext } from "./UserContext";
+import * as ExpoClipboard from "expo-clipboard";
+import * as Notifications from "expo-notifications";
+import { AppState, Platform } from "react-native";
 import { useDeviceInformation } from "./DeviceInformationContext";
-import { Notifications as NotificationsType } from "@types";
+import { Notifications as NotificationsType, Tables } from "@types";
 
 type Notification = {
   id: string;
@@ -30,6 +33,12 @@ type Notification = {
   type: "success" | "error" | "warning" | "info";
   timestamp: Date;
   trigger?: Notifications.NotificationTriggerInput;
+};
+
+type Window = {
+  myElectronApp?: {
+    readClipboard: () => string;
+  };
 };
 
 interface NotificationsContextType {
@@ -63,6 +72,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   const [notifications, setNotifications] = useState<NotificationsType | null>(
     null,
   );
+  const lastItemCopied = useRef<string | null>(null);
 
   const sendNotification = useCallback(
     (notification: Omit<Notification, "id" | "timestamp">) => {
@@ -73,6 +83,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         );
         return Promise.resolve("");
       }
+      if (Platform.OS === "web") return Promise.resolve("");
 
       return Notifications.scheduleNotificationAsync({
         content: {
@@ -87,12 +98,28 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   );
 
   const removeNotification = useCallback((id: string) => {
+    if (Platform.OS === "web") return;
     Notifications.cancelScheduledNotificationAsync(id);
   }, []);
 
   useEffect(() => {
+    if (!user?.id || lastItemCopied.current) return;
+
     getNotifications().then((data) => setNotifications(data ?? null));
-  }, []);
+    if (Platform.OS !== "web") return;
+
+    fetchFromTable<Tables["ClipboardSync"]>("ClipboardSync", {
+      userId: user.id,
+      deleted: false,
+    }).then(({ data }) => {
+      lastItemCopied.current = Math.random().toString(32).substring(2, 10);
+      if (isFalsy(data) || data.length === 0) return;
+      lastItemCopied.current = data.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )?.[0]?.content;
+    });
+  }, [user?.id]);
 
   useEffect(() => {
     if (!notifications) return;
@@ -118,7 +145,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, [notifications]);
 
   useEffect(() => {
-    if (isFalsy(deviceInfo)) return;
+    if (isFalsy(deviceInfo) || Platform.OS === "web") return;
 
     const handleBatteryNotifications = async () => {
       if (["charging", "full"].includes(deviceInfo?.powerState?.batteryState)) {
@@ -151,12 +178,46 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   useEffect(() => {
     if (hasInternet) {
       if (!session?.access_token) return;
-      ClipboardModule?.isRunning().then((running) => {
-        if (running) return;
-        ClipboardModule?.setUserData(session?.access_token, user?.id || "");
-        ClipboardModule?.startClipboardService();
-      });
-      return;
+      if (Platform.OS === "android")
+        ClipboardModule?.isRunning().then((running) => {
+          if (running) return;
+          ClipboardModule?.setUserData(session?.access_token, user?.id || "");
+          ClipboardModule?.startClipboardService();
+        });
+      if (Platform.OS !== "web") return;
+
+      const id = setInterval(async () => {
+        if (isFalsy(typeof window) || !user?.id) return;
+
+        try {
+          let text: string | undefined = undefined;
+
+          try {
+            text = await ExpoClipboard.getStringAsync();
+          } catch {
+            // eslint-disable-next-line no-undef
+            const electronApp = (window as Window)?.myElectronApp;
+            if (electronApp) text = electronApp?.readClipboard?.();
+          }
+          if (isFalsy(text) || lastItemCopied.current === text) return;
+
+          lastItemCopied.current = text;
+          let deviceId = deviceInfo?.model;
+
+          if (isFalsy(deviceId) || deviceId === "unknown")
+            deviceId = "Platform: " + Platform.OS;
+          insertIntoTable<Tables["ClipboardSync"]>("ClipboardSync", {
+            content: text,
+            createdAt: new Date().toISOString(),
+            userId: user.id || "",
+            deviceId,
+          });
+        } catch (error) {
+          logError("Error reading clipboard content", error);
+        }
+      }, 2500);
+
+      return () => clearInterval(id);
     }
 
     if (AppState.currentState !== "active")
@@ -171,6 +232,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     hasInternet,
     t,
     sendNotification,
+    deviceInfo?.model,
     session?.access_token,
     user?.id,
     openSnackBar,

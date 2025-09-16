@@ -40,3 +40,7 @@ comportamiento.*
 
 android/
 google-services.json
+
+clirelease
+dist-electron
+build

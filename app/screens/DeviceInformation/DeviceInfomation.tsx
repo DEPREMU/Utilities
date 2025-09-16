@@ -1,12 +1,10 @@
-import {
-  useDeviceInformation,
-  DeviceInformation as DeviceInformationType,
-} from "@context/DeviceInformationContext";
 import { isFalsy } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import React, { useCallback } from "react";
+import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { View, Text, ScrollView } from "react-native";
 import useStylesDeviceInformation from "@styles/screens/DeviceInformation/useStylesDeviceInformation";
+import { DeviceInformation as DeviceInformationType } from "@types";
 
 const DeviceInformation: React.FC = () => {
   const { t } = useLanguage();

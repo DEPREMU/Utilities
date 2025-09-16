@@ -1,0 +1,62 @@
+{
+  "name": "utilities-for-pc",
+  "version": "1.0.0",
+  "description": "A collection of useful utilities for PC users.",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && npx electron .",
+    "pack": "npm run build && npx electron-builder",
+    "dist": "npm run build && npx electron-builder --publish=never"
+  },
+  "author": "DEPREMU",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "electron": "^38.1.0",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.9.2"
+  },
+  "build": {
+    "appId": "com.utilities.depremu",
+    "productName": "Utilities For PC",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "build/**/*",
+      "dist/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "build/preload.js",
+        "to": "resources/preload.js"
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "dist",
+        "to": "dist"
+      },
+      {
+        "from": "assets",
+        "to": "assets"
+      },
+      {
+        "from": "dist/assets/fonts",
+        "to": "assets/fonts"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/tray-icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

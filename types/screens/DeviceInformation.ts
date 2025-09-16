@@ -1,0 +1,32 @@
+import { PowerState } from "react-native-device-info/src/internal/types";
+
+export type DeviceInformation = {
+  deviceId: string;
+  deviceName: string;
+  brand: string;
+  model: string;
+  systemName: string;
+  manufacturer: string;
+  systemVersion: string;
+  buildNumber: string;
+  bundleId: string;
+  powerState: PowerState;
+  appVersion: string;
+  isTablet: boolean;
+  hostname: string[];
+  host: string;
+  startupTime: number;
+  uniqueId: string;
+  hardware: string;
+  hasNotch: boolean;
+  isCharging: boolean;
+  totalMemory: number;
+  usedMemory: number;
+  totalStorage: number;
+  freeStorage: number;
+  carrier: string;
+  ipAddress: string;
+  macAddress: string;
+  isEmulator: boolean;
+  userAgent: string;
+};

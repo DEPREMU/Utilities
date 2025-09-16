@@ -1,8 +1,5 @@
-import type {
-  BatteryState,
-  PowerState,
-} from "node_modules/react-native-device-info/src/internal/types";
-import { DeviceInformation } from "@/context/DeviceInformationContext";
+import { DeviceInformation } from "./screens/";
+import type { BatteryState } from "react-native-device-info/src/internal/types";
 import { ReasonNotification } from "./typesNotifications";
 
 export type LanguagesSupported = "en" | "es";
