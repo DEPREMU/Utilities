@@ -207,6 +207,14 @@ const en: typeLanguages = {
   noClipboardData: "No clipboard items available",
   clipboardEmptyDescription:
     "Your clipboard is currently empty. Any text you copy on your device will appear here for easy access.",
+  sync: "Sync",
+  addToDatabase: "Add to Database",
+  adding: "Adding...",
+  addTextToClipboard: "Add Text to Clipboard",
+  enterYourTextHere: "Enter your text here",
+  errorOccurred: "An error occurred: {{error}}",
+  failedToAddTextToDatabase: "Failed to add text to database",
+  textAddedToDatabase: "Text added to database",
 } as const;
 
 export default en;

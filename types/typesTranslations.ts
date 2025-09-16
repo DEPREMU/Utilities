@@ -181,6 +181,14 @@ export type typeLanguages = Record<ReasonNotification, string> &
     YourBatteryIsLow: string;
     noClipboardData: string;
     clipboardEmptyDescription: string;
+    sync: string;
+    addToDatabase: string;
+    adding: string;
+    addTextToClipboard: string;
+    enterYourTextHere: string;
+    errorOccurred: string;
+    failedToAddTextToDatabase: string;
+    textAddedToDatabase: string;
   };
 
 export type typeLanguagesServer = {

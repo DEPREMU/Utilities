@@ -12,7 +12,7 @@ import SignUpScreen from "@screens/auth/SignUpScreen";
 import { useTheme } from "@context/ThemeContext";
 import GamesNavigator from "@screens/Games";
 import SettingsScreen from "@screens/Settings";
-import ClipboardScreen from "@screens/ClipboardScreen";
+import ClipboardNavigator from "@/screens/Clipboard";
 import CryptosNavigator from "@screens/Cryptos";
 import DeviceInformation from "@screens/DeviceInformation/DeviceInfomation";
 import CalculatorNavigator from "@screens/calculator";
@@ -59,7 +59,7 @@ const screens: Screens = {
   SignUp: { component: SignUpScreen },
   Cryptos: { component: CryptosNavigator },
   Settings: { component: SettingsScreen },
-  Clipboard: { component: ClipboardScreen },
+  Clipboard: { component: ClipboardNavigator },
   Translator: { component: Translator },
   Calculator: { component: CalculatorNavigator },
   Minesweeper: { component: Minesweeper },

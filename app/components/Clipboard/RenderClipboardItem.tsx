@@ -3,7 +3,7 @@ import Button from "@components/common/ButtonComponent";
 import { Tables } from "@types";
 import { Card, Text } from "react-native-paper";
 import SkeletonLoading from "@components/common/SkeletonLoading";
-import useStylesClipboardScreen from "@styles/screens/useStylesClipboardScreen";
+import useStylesClipboardScreen from "@/styles/screens/clipboard/useStylesClipboardScreen";
 
 interface RenderClipboardItemProps {
   item: Tables["ClipboardSync"];

@@ -1,13 +1,13 @@
+import { Text } from "react-native-paper";
 import { Tables } from "@types";
 import * as Clipboard from "expo-clipboard";
 import { useLanguage } from "@context/LanguageContext";
 import { FlatList, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import RenderClipboardItem from "@components/Clipboard/RenderClipboardItem";
-import useStylesClipboardScreen from "@styles/screens/useStylesClipboardScreen";
+import useStylesClipboardScreen from "@/styles/screens/clipboard/useStylesClipboardScreen";
 import React, { useCallback, useEffect, useState } from "react";
 import { fetchFromTable, logError, updateInTable } from "@utils";
-import { Text } from "react-native-paper";
 
 const skeletonData: Tables["ClipboardSync"][] = Array.from({ length: 5 }).map(
   () =>
@@ -21,9 +21,9 @@ const skeletonData: Tables["ClipboardSync"][] = Array.from({ length: 5 }).map(
 );
 
 const ClipboardScreen: React.FC = () => {
-  const { userData } = useUserContext();
   const { t } = useLanguage();
   const { styles } = useStylesClipboardScreen();
+  const { userData } = useUserContext();
 
   const [clipboardData, setClipboardData] = useState<
     Tables["ClipboardSync"][] | null

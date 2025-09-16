@@ -211,6 +211,14 @@ const es: typeLanguages = {
   noClipboardData: "No hay elementos en el portapapeles",
   clipboardEmptyDescription:
     "Tu portapapeles está vacío. Cualquier texto que copies en tu dispositivo aparecerá aquí para un acceso fácil.",
+  sync: "Sincronizar",
+  addToDatabase: "Agregar a la base de datos",
+  adding: "Agregando...",
+  addTextToClipboard: "Agregar texto al portapapeles",
+  enterYourTextHere: "Ingresa tu texto aquí",
+  errorOccurred: "Ocurrió un error: {{error}}",
+  failedToAddTextToDatabase: "No se pudo agregar el texto a la base de datos",
+  textAddedToDatabase: "Texto agregado a la base de datos",
 } as const;
 
 export default es;
