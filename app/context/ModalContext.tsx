@@ -195,7 +195,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     <ModalContext.Provider
       value={{ openModal, closeModal, setCustomStyles, openSnackBar }}
     >
-      <View style={styles.snackbarContainer}>
+      <View style={styles.snackbarContainer} pointerEvents="box-none">
         {snackbar.map((snackbar) => (
           <SnackBarComponent
             key={snackbar.id}

@@ -31,6 +31,11 @@ export type PriceBinanceAPI = {
   price: number;
 }[];
 
+export type ResponseHealth = {
+  status: "running";
+  timestamp: string;
+};
+
 export type ResponseCryptoPrice = {
   priceUSD?: number;
   priceUSDTMXN?: number;

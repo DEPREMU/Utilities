@@ -64,7 +64,10 @@ const ModalComponent: React.FC<ModalProps> = ({
     }
 
     return () => {
-      if (idTimeout.current) clearTimeout(idTimeout.current);
+      if (!idTimeout.current) return;
+
+      clearTimeout(idTimeout.current);
+      idTimeout.current = null;
     };
   }, [isOpen, height, position, setHideModal]);
 

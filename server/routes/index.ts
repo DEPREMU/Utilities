@@ -2,13 +2,13 @@ import { Router } from "express";
 import { translate } from "./translate.ts";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { intervalId } from "../Notifications/streamers.ts";
-import type { Route, RoutesAPI } from "../../types/typesAPI.ts";
 import type { Response, Request } from "express";
 import { decryptHandler, encryptHandler } from "./encryption.ts";
-import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
+import type { ResponseHealth, Route, RoutesAPI } from "../../types/typesAPI.ts";
+import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
 
-const handleHealthCheck = (_: Request, res: Response) => {
+const handleHealthCheck = (_: Request, res: Response<ResponseHealth>) => {
   res
     .status(200)
     .json({ status: "running", timestamp: new Date().toISOString() });

@@ -1,7 +1,16 @@
-import { API_URL } from "../constants/API_URL";
+import {
+  API_URL,
+  fallbackAPI_URL,
+  fallbackURL_WEB_SOCKET,
+  URL_WEB_SOCKET,
+} from "../constants/API_URL";
+import axios from "axios";
+import { Falsy } from "react-native";
+import { isFalsy } from "@utils";
+import { logWarn } from "./debug";
 import { stringifyData } from "./appManagement";
-import { RequestBody, RoutesAPI } from "@types";
-import { loadData } from "./storageManagement";
+import { loadData, saveData } from "./storageManagement";
+import { RequestBody, ResponseHealth, RoutesAPI } from "@types";
 
 /**
  * Generates an options object for a fetch request.
@@ -44,9 +53,34 @@ export const fetchOptions = <T = RequestBody>(
  * ```
  */
 export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
-  let apiUrl = await loadData<string>("@API_URL").then((data) =>
-    data?.includes("http") ? data : API_URL,
-  );
+  let isOk: boolean = false;
+  let apiUrl = await loadData<string | Falsy>("@API_URL");
+
+  if (isFalsy(apiUrl)) {
+    apiUrl = API_URL;
+    try {
+      const res = await axios.get<unknown, { data: ResponseHealth }>(
+        apiUrl + "/health",
+      );
+      isOk = res.data.status === "running";
+    } catch {
+      logWarn("Error fetching API URL health");
+    }
+
+    if (isOk)
+      await Promise.all([
+        saveData("@API_URL", API_URL),
+        saveData("@webSocketURL", URL_WEB_SOCKET),
+      ]);
+    else {
+      logWarn("Falling back to server API URL and WebSocket URL");
+      apiUrl = fallbackAPI_URL;
+      await Promise.all([
+        saveData("@API_URL", fallbackAPI_URL),
+        saveData("@webSocketURL", fallbackURL_WEB_SOCKET),
+      ]);
+    }
+  }
   if (apiUrl.endsWith("/")) apiUrl = apiUrl.slice(0, -1);
 
   return `${apiUrl}${route}`;
