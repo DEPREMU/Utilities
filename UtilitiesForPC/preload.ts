@@ -14,4 +14,11 @@ electron.contextBridge.exposeInMainWorld("myElectronApp", {
       return "";
     }
   },
+  setClipboard: (text: string) => {
+    try {
+      electron.clipboard.writeText(text);
+    } catch {
+      // ignore
+    }
+  },
 });

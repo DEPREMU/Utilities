@@ -189,6 +189,7 @@ export type typeLanguages = Record<ReasonNotification, string> &
     errorOccurred: string;
     failedToAddTextToDatabase: string;
     textAddedToDatabase: string;
+    test: string;
   };
 
 export type typeLanguagesServer = {

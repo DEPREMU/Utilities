@@ -9,11 +9,18 @@ import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { ScreensAvailable, typeLanguages } from "@types";
 
-const buttons: Array<{
+type ButtonType = {
   label: keyof typeLanguages;
   screen: ScreensAvailable;
   needsInternet?: boolean;
-}> = [
+};
+
+const dev: ButtonType | undefined =
+  __DEV__ || process.env.NODE_ENV === "development"
+    ? { label: "test", screen: "Test", needsInternet: false }
+    : undefined;
+
+const buttons: ButtonType[] = [
   { label: "settings", screen: "Settings" },
   { label: "infoIP", screen: "InfoIP" },
   { label: "cryptoInfo", screen: "Cryptos" },
@@ -27,7 +34,8 @@ const buttons: Array<{
     screen: "DeviceInformation",
     needsInternet: false,
   },
-];
+  dev,
+].filter((btn): btn is ButtonType => btn !== undefined);
 
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();

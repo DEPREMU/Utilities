@@ -15,6 +15,8 @@ import {
   fetchFromTable,
   insertIntoTable,
   getNotifications,
+  supabase,
+  log,
 } from "@utils";
 import { useModal } from "./ModalContext";
 import ClipboardModule from "@/utils/ClipboardModule";
@@ -22,9 +24,20 @@ import { useLanguage } from "./LanguageContext";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
+import { RealtimeChannel } from "@supabase/supabase-js";
 import { AppState, Platform } from "react-native";
 import { useDeviceInformation } from "./DeviceInformationContext";
-import { Notifications as NotificationsType, Tables } from "@types";
+import { Notifications as NotificationsType, Tables, TablesKeys } from "@types";
+
+type Payload = {
+  commit_timestamp: string;
+  errors: string | null;
+  eventType: "INSERT" | "UPDATE";
+  new: Tables["ClipboardSync"];
+  old: Tables["ClipboardSync"];
+  schema: "public";
+  table: "ClipboardSync";
+};
 
 type Notification = {
   id: string;
@@ -38,6 +51,7 @@ type Notification = {
 type Window = {
   myElectronApp?: {
     readClipboard: () => string;
+    setClipboard: (text: string) => void;
   };
 };
 
@@ -176,58 +190,110 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, [deviceInfo, sendNotification, t]);
 
   useEffect(() => {
-    if (hasInternet) {
-      if (!session?.access_token) return;
-      if (Platform.OS === "android")
-        ClipboardModule?.isRunning().then((running) => {
-          if (running) return;
-          ClipboardModule?.setUserData(session?.access_token, user?.id || "");
-          ClipboardModule?.startClipboardService();
-        });
-      if (Platform.OS !== "web") return;
-
-      const id = setInterval(async () => {
-        if (isFalsy(typeof window) || !user?.id) return;
-
-        try {
-          let text: string | undefined = undefined;
-
-          try {
-            text = await ExpoClipboard.getStringAsync();
-          } catch {
-            // eslint-disable-next-line no-undef
-            const electronApp = (window as Window)?.myElectronApp;
-            if (electronApp) text = electronApp?.readClipboard?.();
-          }
-          if (isFalsy(text) || lastItemCopied.current === text) return;
-
-          lastItemCopied.current = text;
-          let deviceId = deviceInfo?.model;
-
-          if (isFalsy(deviceId) || deviceId === "unknown")
-            deviceId = "Platform: " + Platform.OS;
-          insertIntoTable<Tables["ClipboardSync"]>("ClipboardSync", {
-            content: text,
-            createdAt: new Date().toISOString(),
-            userId: user.id || "",
-            deviceId,
-          });
-        } catch (error) {
-          logError("Error reading clipboard content", error);
-        }
-      }, 2500);
-
-      return () => clearInterval(id);
-    }
-
-    if (AppState.currentState !== "active")
+    if (!hasInternet) {
       sendNotification({
         title: t("NoInternetConnection"),
         message: t("PleaseCheckInternetConnection"),
         type: "error",
       });
-    else openSnackBar(t("NoInternetConnection"), 12000);
-    ClipboardModule?.stopClipboardService?.();
+      ClipboardModule?.stopClipboardService?.();
+      return;
+    }
+
+    if (!session?.access_token) return;
+    if (Platform.OS === "android")
+      ClipboardModule?.isRunning().then((running) => {
+        if (running) return;
+        ClipboardModule?.setUserData(session?.access_token, user?.id || "");
+        ClipboardModule?.startClipboardService();
+      });
+    if (Platform.OS !== "web") return;
+
+    const getChannel = (): RealtimeChannel => {
+      const table: TablesKeys = "ClipboardSync";
+
+      const receivedDatabaseEvent = (payload: Payload) => {
+        try {
+          const newItem = payload.new;
+          if (isFalsy(newItem) || isFalsy(newItem?.content)) return;
+          log(
+            "Copying new clipboard item from database event:\n",
+            newItem.content,
+          );
+          if (newItem.content === lastItemCopied.current) return;
+          lastItemCopied.current = newItem.content;
+          // eslint-disable-next-line no-undef
+          const electronApp = (window as Window)?.myElectronApp;
+          if (electronApp) electronApp?.setClipboard?.(newItem.content);
+        } catch (error) {
+          logError("Error handling database event", error);
+        }
+      };
+
+      return supabase
+        .channel("clipboard-changes")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table,
+          },
+          (payload) => receivedDatabaseEvent(payload as unknown as Payload),
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table,
+          },
+          (payload) => receivedDatabaseEvent(payload as unknown as Payload),
+        )
+        .subscribe((status, error) => {
+          if (error) logError("Error subscribing to clipboard changes", error);
+          else log("Subscribed status:", status);
+        });
+    };
+
+    const handleInterval = async () => {
+      if (isFalsy(typeof window) || !user?.id) return;
+
+      try {
+        let text: string | undefined = undefined;
+
+        try {
+          text = await ExpoClipboard.getStringAsync();
+        } catch {
+          // eslint-disable-next-line no-undef
+          const electronApp = (window as Window)?.myElectronApp;
+          if (electronApp) text = electronApp?.readClipboard?.();
+        }
+        if (isFalsy(text) || lastItemCopied.current === text) return;
+
+        lastItemCopied.current = text;
+        let deviceId = deviceInfo?.model;
+
+        if (isFalsy(deviceId) || deviceId === "unknown")
+          deviceId = "Platform: " + Platform.OS;
+        insertIntoTable<Tables["ClipboardSync"]>("ClipboardSync", {
+          content: text,
+          createdAt: new Date().toISOString(),
+          userId: user.id || "",
+          deviceId,
+        });
+      } catch (error) {
+        logError("Error reading clipboard content", error);
+      }
+    };
+
+    const id = setInterval(handleInterval, 2500);
+    const channel = getChannel();
+
+    return () => {
+      clearInterval(id);
+      supabase.removeChannel(channel);
+    };
   }, [
     hasInternet,
     t,

@@ -102,7 +102,14 @@ const ClipboardScreen: React.FC = () => {
         return;
       }
 
-      setTimeout(() => setClipboardData(data ?? null), 3000);
+      setTimeout(
+        () =>
+          setClipboardData(
+            data?.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) ??
+              null,
+          ),
+        3000,
+      );
     };
 
     fetchClipboardFromSupabase();

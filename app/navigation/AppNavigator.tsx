@@ -3,6 +3,7 @@ import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from "@react-navigation/native-stack";
+import Test from "@screens/ButtonTest";
 import InfoIP from "@screens/Connectivity/IP";
 import Translator from "@screens/translator/Translator";
 import HomeScreen from "@screens/HomeScreen";
@@ -53,6 +54,7 @@ type Screens = Record<
  */
 const screens: Screens = {
   Home: { component: HomeScreen },
+  Test: { component: Test },
   Login: { component: LoginScreen },
   Games: { component: GamesNavigator },
   InfoIP: { component: InfoIP },

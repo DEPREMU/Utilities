@@ -1,5 +1,6 @@
 export type ScreensAvailable =
   | "Home"
+  | "Test"
   | "Login"
   | "Games"
   | "InfoIP"
