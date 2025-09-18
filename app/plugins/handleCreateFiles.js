@@ -15,7 +15,19 @@ const withGoogleServices = (config) => {
       );
 
       const projectRoot = config._internal?.projectRoot || process.cwd();
-      const googleServicesPath = path.join(projectRoot, "google-services.json");
+      const googleServicesPath = path.join(
+        projectRoot,
+        "android",
+        "app",
+        "google-services.json",
+      );
+      if (fs.existsSync(googleServicesPath)) {
+        console.log(
+          chalk.yellow("google-services.json already exists at:"),
+          googleServicesPath,
+        );
+        return config;
+      }
 
       const googleServicesContent = Buffer.from(
         process.env.GOOGLE_SERVICES_JSON,
@@ -24,12 +36,15 @@ const withGoogleServices = (config) => {
 
       const parsed = JSON.parse(googleServicesContent);
       console.log(
-        "Valid JSON with project_id:",
+        chalk.blue("Valid JSON with project_id:"),
         parsed.project_info?.project_id,
       );
 
       fs.writeFileSync(googleServicesPath, googleServicesContent);
-      console.log(chalk.green("google-services.json created successfully"));
+      console.log(
+        chalk.green("google-services.json created successfully in:"),
+        googleServicesPath,
+      );
 
       if (!fs.existsSync(googleServicesPath))
         throw new Error("File was not created successfully");

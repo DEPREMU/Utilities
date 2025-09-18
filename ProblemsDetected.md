@@ -14,8 +14,8 @@
 
 | Status    | Count | Percentage |
 | --------- | ----- | ---------- |
-| Done      | 7     | 77.7%      |
-| Detected  | 2     | 22.3%      |
+| Done      | 7     | 88.8%      |
+| Detected  | 2     | 11.2%      |
 | **Total** | **9** | **100%**   |
 
 ---
@@ -47,11 +47,11 @@
 
 ### Backend/Server Issues
 
-| Component                  | Priority | Issue Description                                                                                | Status | Detected   | Fixed |
-| -------------------------- | -------- | ------------------------------------------------------------------------------------------------ | ------ | ---------- | ----- |
-| **Streamer Notifications** | High     | Push notifications not sent when streamers go live - potential duplicate push tokens in database | ❌     | 2025/09/13 | -     |
+| Component                  | Priority | Issue Description                                                                                | Status | Detected   | Fixed      |
+| -------------------------- | -------- | ------------------------------------------------------------------------------------------------ | ------ | ---------- | ---------- |
+| **Streamer Notifications** | High     | Push notifications not sent when streamers go live - potential duplicate push tokens in database | ✅     | 2025/09/13 | 2025/09/18 |
 
 ---
 
 _Last Updated: 2025/09/18_  
-_Total Issues: 9 | Resolved: 7 | Remaining: 2_
+_Total Issues: 9 | Resolved: 8 | Remaining: 1_

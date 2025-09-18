@@ -1,14 +1,15 @@
 import type {
-  LanguagesSupported,
-  PushTokens,
   Streamer,
-  TablesKeys,
   UserConfig,
+  PushTokens,
+  TablesKeys,
+  LanguagesSupported,
   UserNotificationsConfig,
 } from "../../types/index.ts";
-import { isLiveStreamer } from "../routes/socialMedia.ts";
-import { supabase } from "../supabase/supabase.ts";
+import chalk from "chalk";
 import { t } from "../translations/index.ts";
+import { supabase } from "../supabase/supabase.ts";
+import { isLiveStreamer } from "../routes/socialMedia.ts";
 
 const tableNameStreamers: TablesKeys = "Streamers";
 const tableNameNotificationsConfig: TablesKeys = "UserNotificationsConfig";
@@ -19,7 +20,7 @@ const notificationsSent: Record<
 > = {};
 
 export const getInterval = () => {
-  console.log("Starting streamers interval...");
+  console.log(chalk.blue("Starting streamers interval..."));
 
   return setInterval(async () => {
     let pushTokens: PushTokens[] | null = null;
@@ -44,7 +45,10 @@ export const getInterval = () => {
         ]) || [],
       );
     } catch (error) {
-      console.error("Error fetching streamers or notifications config:", error);
+      console.error(
+        chalk.red("Error fetching streamers or notifications config:"),
+        error,
+      );
     }
 
     if (!tableStreamers || !notificationsConfig || !pushTokens) return;
@@ -62,10 +66,14 @@ export const getInterval = () => {
         .map((config) => [config.userId, config]),
     );
 
-    const pushTokensUsers = Object.fromEntries(
-      pushTokens
-        .filter((token) => token.userId && token.token)
-        .map((token) => [token.userId, token]),
+    const pushTokensUsers = pushTokens.reduce(
+      (acc, userToken) => {
+        if (!acc[userToken.userId]) acc[userToken.userId] = { tokens: [] };
+        if (userToken.token?.startsWith("ExponentPushToken"))
+          acc[userToken.userId].tokens.push(userToken.token);
+        return acc;
+      },
+      {} as Record<string, { tokens: string[] }>,
     );
 
     const liveStatuses = (
@@ -82,15 +90,15 @@ export const getInterval = () => {
 
     for (const status of liveStatuses) {
       for (const userConfig of status.usersConfig) {
+        if (!userConfig.enabled) continue;
+        if (!userConfig.userId) continue;
+        if (!notificationsEnabled[userConfig.userId]?.enabled) continue;
+        if (!pushTokensUsers[userConfig.userId]?.tokens) continue;
         if (
-          !userConfig.enabled ||
-          !userConfig.userId ||
-          !notificationsEnabled[userConfig.userId]?.enabled ||
-          !pushTokensUsers[userConfig.userId]?.token ||
-          (notificationsSent[userConfig.userId]?.streamer === status.streamer &&
-            (notificationsSent[userConfig.userId]?.timestamp || 0) +
-              8 * 60 * 60 * 1000 >
-              Date.now())
+          notificationsSent[userConfig.userId]?.streamer === status.streamer &&
+          (notificationsSent[userConfig.userId]?.timestamp || 0) +
+            8 * 60 * 60 * 1000 >
+            Date.now()
         )
           continue;
 
@@ -99,59 +107,44 @@ export const getInterval = () => {
           timestamp: Date.now(),
         };
 
-        const title = t(
-          "streamerLiveNotificationTitle",
+        const lang: LanguagesSupported =
           (usersConfig?.[userConfig.userId]?.language as LanguagesSupported) ||
-            "en",
-          {
-            streamer: status.streamer,
-          },
-        );
+          "en";
 
-        const body = t(
-          "streamerLiveNotification",
-          (usersConfig?.[userConfig.userId]?.language as LanguagesSupported) ||
-            "en",
-          {
-            streamer: status.streamer,
-          },
-        );
+        const config = { streamer: status.streamer };
+
+        const title = t("streamerLiveNotificationTitle", lang, config);
+
+        const body = t("streamerLiveNotification", lang, config);
 
         try {
           fetch("https://exp.host/--/api/v2/push/send", {
             method: "POST",
             headers: {
+              Accept: "application/json",
+              "Accept-encoding": "gzip, deflate",
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              to: pushTokensUsers?.[userConfig.userId]?.token,
-              body,
-              title,
-            }),
+            body: JSON.stringify(
+              pushTokensUsers?.[userConfig.userId]?.tokens.map((to) => ({
+                to,
+                title,
+                body,
+              })),
+            ),
           })
             .then((r) => r.json())
-            .then(async ({ data }) => {
-              if (data.status === "error") {
-                const errorData = data.message;
-                console.error("Error sending push notification:", errorData);
-              } else
-                console.log(
-                  "Push notification sent successfully:",
-                  JSON.stringify(
-                    {
-                      to: pushTokensUsers?.[userConfig.userId]?.token,
-                      title,
-                      body,
-                      data,
-                    },
-                    null,
-                    2,
-                  ),
-                );
-              //! Delete
+            .then(({ data }) => {
+              if (data.status !== "error") return;
+
+              const errorData = data.message;
+              console.error(
+                chalk.red("Error sending push notification:"),
+                errorData,
+              );
             });
         } catch (error) {
-          console.error("Error sending push notification:", error);
+          console.error(chalk.red("Error sending push notification:"), error);
         }
       }
     }

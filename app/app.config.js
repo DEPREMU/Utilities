@@ -59,6 +59,7 @@ export default {
       "./plugins/handleCreateFiles.js",
       "expo-font",
       "expo-secure-store",
+      "expo-notifications",
       "expo-localization",
       [
         "expo-build-properties",

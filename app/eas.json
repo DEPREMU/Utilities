@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 16.17.4",
+    "version": ">= 16.19.3",
     "appVersionSource": "local"
   },
   "build": {
@@ -13,7 +13,9 @@
       "env": {
         "SUPABASE_URL": "$SUPABASE_URL",
         "SUPABASE_KEY": "$SUPABASE_KEY",
-        "ADMIN_PASSWORD": "$ADMIN_PASSWORD"
+        "ADMIN_PASSWORD": "$ADMIN_PASSWORD",
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
+        "DEEPL_TRANSLATOR_API": "$DEEPL_TRANSLATOR_API"
       }
     },
     "preview": {
@@ -24,14 +26,18 @@
       "env": {
         "SUPABASE_URL": "$SUPABASE_URL",
         "SUPABASE_KEY": "$SUPABASE_KEY",
-        "ADMIN_PASSWORD": "$ADMIN_PASSWORD"
+        "ADMIN_PASSWORD": "$ADMIN_PASSWORD",
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
+        "DEEPL_TRANSLATOR_API": "$DEEPL_TRANSLATOR_API"
       }
     },
     "production": {
       "env": {
         "SUPABASE_URL": "$SUPABASE_URL",
         "SUPABASE_KEY": "$SUPABASE_KEY",
-        "ADMIN_PASSWORD": "$ADMIN_PASSWORD"
+        "ADMIN_PASSWORD": "$ADMIN_PASSWORD",
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
+        "DEEPL_TRANSLATOR_API": "$DEEPL_TRANSLATOR_API"
       }
     }
   },
