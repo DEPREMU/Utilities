@@ -10,7 +10,11 @@ const useStylesClipboardScreen = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: getCommonStyles("mainContainer"),
+        container: {
+          ...getCommonStyles("mainContainer"),
+          maxWidth: 1000,
+          alignSelf: "center",
+        },
         containerFlatList: {
           flex: 1,
           width: "100%",
@@ -39,9 +43,8 @@ const useStylesClipboardScreen = () => {
         },
         contentCard: {
           width: "100%",
-          minHeight: getResponsiveValue(40, 50, 60, 70),
-          paddingTop: 0,
-          paddingBottom: getResponsiveValue(12, 16, 20, 24),
+          minHeight: getResponsiveValue(80, 100, 130, 170),
+          padding: 0,
         },
         contentText: {
           lineHeight: getResponsiveValue(20, 22, 24, 26),

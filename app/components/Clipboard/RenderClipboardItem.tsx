@@ -1,9 +1,9 @@
 import React from "react";
 import Button from "@components/common/ButtonComponent";
 import { Tables } from "@types";
-import { Card, Text } from "react-native-paper";
 import SkeletonLoading from "@components/common/SkeletonLoading";
-import useStylesClipboardScreen from "@/styles/screens/clipboard/useStylesClipboardScreen";
+import { Card, TextInput } from "react-native-paper";
+import useStylesClipboardScreen from "@styles/screens/clipboard/useStylesClipboardScreen";
 
 interface RenderClipboardItemProps {
   item: Tables["ClipboardSync"];
@@ -30,9 +30,12 @@ const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
         <Card.Title style={styles.titleCard} title={title} />
       </SkeletonLoading>
       <SkeletonLoading style={styles.contentCard} showChildren={!!item.id}>
-        <Card.Content style={styles.contentCard}>
-          <Text style={styles.contentText}>{item.content}</Text>
-        </Card.Content>
+        <TextInput
+          style={styles.contentCard}
+          editable={false}
+          multiline
+          value={item.content}
+        />
       </SkeletonLoading>
       <Button
         replaceStyles={{
