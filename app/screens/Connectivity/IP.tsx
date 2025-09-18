@@ -30,20 +30,18 @@ const InfoIP: React.FC = () => {
       if (data) setDataIPQuery(data);
     };
 
-    const getDataIpapi = async () => {
+    const getDataIpAPI = async () => {
       const data = await getDataIP_api(ip);
       if (data) setDataIP_API(data);
     };
 
-    const get = async () => {
-      await Promise.all([getDataIp(), getDataIpapi()]);
-    };
+    const get = async () => await Promise.all([getDataIp(), getDataIpAPI()]);
 
     get();
   }, [ip]);
 
-  const ipQuery = <IPQuery data={dataIPQuery} />;
   const ipAPI = <IP_API data={dataIP_API} />;
+  const ipQuery = <IPQuery data={dataIPQuery} />;
 
   return (
     <View style={styles.container}>

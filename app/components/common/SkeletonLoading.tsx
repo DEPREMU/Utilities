@@ -14,10 +14,11 @@ import Animated, {
   withTiming,
   useSharedValue,
   useAnimatedStyle,
+  WithTimingConfig,
 } from "react-native-reanimated";
-import { areEqualChildren, stringifyData } from "@utils";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { memo, useCallback, useEffect, useState } from "react";
+import { areEqualChildren, stringifyData } from "@utils";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 interface SkeletonLoadingProps {
   showChildren: boolean;
@@ -32,43 +33,35 @@ const SkeletonLoading: React.FC<SkeletonLoadingProps> = ({
   showChildren,
   duration = 750,
 }) => {
-  const { styles } = useStylesSkeletonLoading();
-
   const progress = useSharedValue<number>(-200);
   const [layout, setLayout] = useState<LayoutRectangle | null>(null);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    const style = {
-      transform: [{ translateX: progress.value }],
-    };
-
-    return style;
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: progress.value }],
+  }));
 
   const changeLayout = useCallback((event: LayoutChangeEvent) => {
     const layoutLocal = event.nativeEvent.layout;
     setLayout(layoutLocal);
   }, []);
 
-  useEffect(() => {
-    if (!layout) return;
-
-    const options = {
+  const options: WithTimingConfig = useMemo(
+    () => ({
       duration,
       easing: Easing.linear,
-    };
+    }),
+    [duration],
+  );
 
-    const getWidth = () => {
-      if (layout.width > 0) return layout.width;
-      return 200;
-    };
+  useEffect(() => {
+    if (!layout) return;
+    if (layout.width > 200) {
+      progress.value = withRepeat(withTiming(layout.width, options), -1);
+      return;
+    }
 
-    const startPosition = -getWidth() * 0.6;
-    const endPosition = getWidth() * 1.6;
-
-    progress.value = startPosition;
-    progress.value = withRepeat(withTiming(endPosition, options), -1);
-  }, [layout, progress, duration]);
+    progress.value = withRepeat(withTiming(200, options), -1);
+  }, [layout, progress, options]);
 
   useEffect(() => {
     if (!showChildren || !progress) return;
@@ -76,7 +69,7 @@ const SkeletonLoading: React.FC<SkeletonLoadingProps> = ({
     progress.value = 0;
   }, [showChildren, progress]);
 
-  if (showChildren) return <>{children}</>;
+  if (showChildren) return <React.Fragment>{children}</React.Fragment>;
 
   if (!layout) return <View style={styles.fill} onLayout={changeLayout} />;
 
@@ -100,30 +93,12 @@ const SkeletonLoading: React.FC<SkeletonLoadingProps> = ({
   );
 };
 
-const useStylesSkeletonLoading = () => {
-  const styles = StyleSheet.create({
-    container: {
-      position: "absolute",
-      width: "40%",
-      height: "100%",
-    },
-    linearGradient: {
-      flex: 1,
-    },
-    overflowHidden: {
-      overflow: "hidden",
-      minHeight: 10,
-    },
-    fill: {
-      width: "100%",
-      height: "100%",
-    },
-  });
-
-  return {
-    styles,
-  };
-};
+const styles = StyleSheet.create({
+  container: { position: "absolute", width: "40%", height: "100%" },
+  linearGradient: { flex: 1 },
+  overflowHidden: { overflow: "hidden", minHeight: 10 },
+  fill: { width: "100%", height: "100%" },
+});
 
 const SkeletonLoadingMemo = memo(SkeletonLoading, (prevProps, nextProps) => {
   const areEqual = (a: unknown, b: unknown) =>

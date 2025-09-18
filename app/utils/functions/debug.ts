@@ -1,3 +1,4 @@
+import Chalk from "chalk";
 import { Logs } from "@types";
 import { insertIntoTable, getCurrentUserId } from "../supabase";
 
@@ -24,7 +25,7 @@ export const log = async (...args: unknown[]): Promise<void> => {
 
   if (isDev)
     console.log(
-      firstMessage,
+      Chalk.blue.bold(firstMessage),
       ...args.map((arg) =>
         typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
       ),
@@ -75,7 +76,7 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
 
   const firstMessage = `Warning - ${date.toLocaleString()} ::\n`;
 
-  if (isDev) console.warn(firstMessage, ...args);
+  if (isDev) console.warn(Chalk.yellow.bold(firstMessage), ...args);
   else if (isPreview) {
     const warningMessage = [firstMessage, ...args]
       .filter(Boolean)
@@ -119,7 +120,7 @@ export const logError = async (...args: unknown[]): Promise<void> => {
 
   if (isDev)
     console.error(
-      firstMessage,
+      Chalk.red.bold(firstMessage),
       ...args.map((arg) =>
         typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
       ),

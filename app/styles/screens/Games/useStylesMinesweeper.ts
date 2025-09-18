@@ -1,5 +1,5 @@
 import { useTheme } from "@context/ThemeContext";
-import { DimensionValue, StyleSheet } from "react-native";
+import { DimensionValue, StyleSheet, ViewStyle } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
 import { useMemo } from "react";
 
@@ -46,25 +46,24 @@ export const useStylesMinesweeper = () => {
   );
 
   const cellSize = useMemo(() => {
-    const baseSize = isPhone ? 30 : isTablet ? 40 : 50;
+    const baseSize = isPhone ? 50 : isTablet ? 40 : 50;
     const maxBoardSize = 19;
     const availableWidth = width * 0.9;
     const maxCellSize = Math.floor(availableWidth / maxBoardSize);
-    console.log({ baseSize, maxCellSize, availableWidth });
 
     return Math.min(baseSize, maxCellSize);
   }, [isPhone, isTablet, width]);
 
-  console.log({ cellSize });
-
-  const commonCell = useMemo(
+  const commonCell: ViewStyle = useMemo(
     () => ({
       width: cellSize,
       height: cellSize,
-      borderWidth: 1,
-      borderColor: colors.border,
       minWidth: 15,
       minHeight: 15,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
+      justifyContent: "center",
     }),
     [cellSize, colors.border],
   );
@@ -73,9 +72,8 @@ export const useStylesMinesweeper = () => {
     () =>
       StyleSheet.create({
         container: {
-          flex: 1,
+          ...getCommonStyles("mainContainer"),
           backgroundColor: colors.background,
-          alignItems: "center",
           justifyContent: "flex-start",
           padding: spacing.md,
         },
@@ -133,9 +131,12 @@ export const useStylesMinesweeper = () => {
           letterSpacing: 0.3,
         },
         containerMinesweeper: {
-          ...getCommonStyles("shadow"),
+          ...getCommonStyles(["shadow", "mainContainer"], {
+            copyInsets: false,
+          }),
+          width: "auto",
+          flex: undefined,
           backgroundColor: colors.secondary,
-          borderRadius: borderRadius.lg,
           borderWidth: 2,
           borderColor: colors.primary,
           alignSelf: "center",
@@ -145,12 +146,10 @@ export const useStylesMinesweeper = () => {
           alignItems: "center",
         },
         cell: {
-          ...getCommonStyles(["shadow", "mainContainer"]),
           ...commonCell,
           backgroundColor: colors.background,
         },
         cellHidden: {
-          ...getCommonStyles(["shadow", "mainContainer"]),
           ...commonCell,
           backgroundColor: colors.secondary,
         },
@@ -159,6 +158,10 @@ export const useStylesMinesweeper = () => {
           color: colors.text,
           fontWeight: "700",
           textAlign: "center",
+          textAlignVertical: "center",
+          textShadowColor: colors.shadow + "50",
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 1,
         },
         cellMine: {
           backgroundColor: colors.error,

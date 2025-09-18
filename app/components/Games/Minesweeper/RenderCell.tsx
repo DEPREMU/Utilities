@@ -43,13 +43,15 @@ const RenderCell: React.FC<RenderCellProps> = ({
     return "";
   };
 
+  const cellText = getCellContent();
+
   return (
     <Pressable
       style={cell.isRevealed ? styles.cell : styles.cellHidden}
       onPress={handlePressCallback}
       onLongPress={handleOnLongPressCallback}
     >
-      <Text style={styles.cellText}>{getCellContent()}</Text>
+      {!!cellText && <Text style={styles.cellText}>{cellText}</Text>}
     </Pressable>
   );
 };

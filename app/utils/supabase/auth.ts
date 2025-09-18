@@ -29,6 +29,7 @@ import {
   reasonNotification,
   SelectedCryptos,
 } from "../constants";
+import { Platform } from "react-native";
 
 /**
  * Auth response type for consistent error handling
@@ -66,6 +67,10 @@ const insertTokenToDB = async (
   userId: string,
 ): Promise<{ error?: string | null }> => {
   try {
+    if (Platform.OS === "web") {
+      log("Push notifications are not supported on web platforms.");
+      return { error: null };
+    }
     const token = (await Notifications.getExpoPushTokenAsync()).data;
 
     insertIntoTable<PushTokens>("PushTokens", {

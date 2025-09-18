@@ -23,9 +23,9 @@ export type typeCell = {
 };
 
 export type typeFinishGame = {
+  isWin: boolean;
   isPlaying: boolean;
   isFinished: boolean;
-  isWin: boolean;
 };
 
 const createBoard = (size: number, mines: [number, number][]): typeCell[][] => {
@@ -107,7 +107,6 @@ const Minesweeper: React.FC = () => {
     setFinishGame({ isPlaying: true, isFinished: false, isWin: false });
     const localDifficulty = difficulties[difficulty];
     const newBoard: typeCell[][] = getBoard(localDifficulty);
-    console.log("Game started with difficulty:", newBoard);
     setBoard(newBoard);
   }, [difficulty, finishGame]);
 

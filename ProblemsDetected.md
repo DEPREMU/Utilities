@@ -14,9 +14,9 @@
 
 | Status    | Count | Percentage |
 | --------- | ----- | ---------- |
-| Done      | 1     | 16.7%      |
-| Detected  | 5     | 83.3%      |
-| **Total** | **6** | **100%**   |
+| Done      | 7     | 77.7%      |
+| Detected  | 2     | 22.3%      |
+| **Total** | **9** | **100%**   |
 
 ---
 
@@ -30,8 +30,8 @@
 | **ModalContext**      | Low      | When a snackbar is showing a message, you were not able to touch behind the parent of the snackbar | ✅     | 2025/09/16 | 2025/09/16 |
 | **Clipboard Screen**  | Medium   | Large text is displayed out of its view                                                            | ✅     | 2025/09/16 | 2025/09/18 |
 | **Streamers**         | Low      | Background/border color in streamer's image                                                        | ✅     | 2025/09/16 | 2025/09/18 |
-| **Minesweeper Game**  | Medium   | Responsive design broken on mobile devices                                                         | ❌     | 2025/09/13 | -          |
-| **DeviceInformation** | Medium   | Information container not properly centered on mobile                                              | ❌     | 2025/09/13 | -          |
+| **DeviceInformation** | Medium   | Information container not properly centered on mobile                                              | ✅     | 2025/09/13 | 2025/09/18 |
+| **Minesweeper Game**  | Medium   | Responsive design broken on mobile devices                                                         | ✅     | 2025/09/13 | 2025/09/18 |
 
 ### Theme & Design
 
@@ -41,9 +41,9 @@
 
 ### Performance Issues
 
-| Component         | Priority | Issue Description                                                        | Status | Detected   | Fixed |
-| ----------------- | -------- | ------------------------------------------------------------------------ | ------ | ---------- | ----- |
-| **InfoIP Screen** | High     | Significant FPS drops during data loading with SkeletonLoading component | ❌     | 2025/09/13 | -     |
+| Component         | Priority | Issue Description                                                        | Status | Detected   | Fixed      |
+| ----------------- | -------- | ------------------------------------------------------------------------ | ------ | ---------- | ---------- |
+| **InfoIP Screen** | High     | Significant FPS drops during data loading with SkeletonLoading component | ✅     | 2025/09/13 | 2025/09/18 |
 
 ### Backend/Server Issues
 
@@ -53,5 +53,5 @@
 
 ---
 
-_Last Updated: 2025/09/13_  
-_Total Issues: 9 | Resolved: 4 | Remaining: 5_
+_Last Updated: 2025/09/18_  
+_Total Issues: 9 | Resolved: 7 | Remaining: 2_

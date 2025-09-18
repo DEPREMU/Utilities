@@ -1,10 +1,9 @@
 import { isFalsy } from "@utils";
 import { View, Text } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
-import SkeletonLoading from "@components/common/SkeletonLoading";
 import useStylesIP_API from "@styles/components/connectivity/useStylesIP_API";
-import React, { memo, useEffect, useState } from "react";
 import { dataIP_API_JSON, typeLanguages } from "@types";
+import React, { memo, useEffect, useMemo, useState } from "react";
 
 const dataIPLocal: dataIP_API_JSON = {
   status: "false",
@@ -86,10 +85,34 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
 
     const idTimeout = setTimeout(() => {
       setDataIP(data);
-    }, 1500);
+    }, 2500);
 
     return () => clearTimeout(idTimeout);
   }, [data]);
+
+  const renderData = useMemo(
+    () =>
+      Object.entries(dataIP).map(([key, value]) => {
+        const isValueEmpty = isFalsy(value);
+        if (key === "query" || isValueEmpty) return null;
+
+        const keyTyped = key as keyof dataIP_API_JSON;
+        const valueToShow =
+          typeof value === "boolean"
+            ? value
+              ? t("yes")
+              : t("no")
+            : String(value);
+
+        return (
+          <View key={key} style={styles.containerEachValue}>
+            <Text style={styles.textKey}>{t(keysTranslated[keyTyped])}</Text>
+            <Text style={styles.value}>{valueToShow || t("notAvailable")}</Text>
+          </View>
+        );
+      }),
+    [dataIP, styles, t],
+  );
 
   if (!show) return null;
 
@@ -99,43 +122,10 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
 
       <View style={styles.containerIP}>
         <Text style={styles.textKey}>{t("yourIP", { ip: "" })}</Text>
-        <SkeletonLoading
-          showChildren={dataIP.status === "success"}
-          style={[styles.skeletonValue]}
-        >
-          <Text style={styles.value}>{dataIP?.query}</Text>
-        </SkeletonLoading>
+        <Text style={styles.value}>{dataIP?.query}</Text>
       </View>
 
-      {/* Datos adicionales */}
-      <View style={styles.containerDataIP}>
-        {Object.entries(dataIP).map(([key, value]) => {
-          const isValueEmpty = isFalsy(value);
-          if (key === "query" || isValueEmpty) return null;
-
-          const keyTyped = key as keyof dataIP_API_JSON;
-          const valueToShow =
-            typeof value === "boolean"
-              ? value
-                ? t("yes")
-                : t("no")
-              : String(value);
-
-          return (
-            <View key={key} style={styles.containerEachValue}>
-              <Text style={styles.textKey}>{t(keysTranslated[keyTyped])}</Text>
-              <SkeletonLoading
-                showChildren={dataIP.status === "success"}
-                style={[styles.skeletonValue]}
-              >
-                <Text style={styles.value}>
-                  {valueToShow || t("notAvailable")}
-                </Text>
-              </SkeletonLoading>
-            </View>
-          );
-        })}
-      </View>
+      <View style={styles.containerDataIP}>{renderData}</View>
     </View>
   );
 };

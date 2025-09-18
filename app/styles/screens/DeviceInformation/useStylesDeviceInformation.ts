@@ -75,12 +75,14 @@ const useStylesDeviceInformation = () => {
           marginBottom: getResponsiveValue(0, 4, 6, 8),
         },
         valueContainer: {
-          ...getCommonStyles("mainContainer"),
+          ...getCommonStyles(["mainContainer", "shadow"], {
+            copyInsets: false,
+          }),
           backgroundColor: colors.background,
           borderRadius: getResponsiveValue(6, 8, 10),
-          padding: getResponsiveValue(8, 10, 12),
           flex: getResponsiveValue(undefined, 1, 1),
           alignItems: "flex-start",
+          padding: getResponsiveValue(8, 12, 16),
           borderLeftWidth: 3,
           borderLeftColor: colors.primary,
           minHeight: getResponsiveValue(40, 44, 48),

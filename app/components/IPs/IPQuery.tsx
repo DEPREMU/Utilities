@@ -6,12 +6,12 @@ import {
   typeLanguages,
 } from "@types";
 import { View, Text } from "react-native";
-import React, { memo, useCallback, useEffect, useState } from "react";
 // import MapView, { Marker } from "react-native-maps";
 import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@components/common/SkeletonLoading";
 import useStylesIPQuery from "@styles/components/connectivity/useStylesIPQuery";
 import { getFormattedDate, isFalsy } from "@utils";
+import React, { memo, useEffect, useMemo, useState } from "react";
 
 interface IPQueryProps {
   data: dataIPQueryJSON | null;
@@ -60,7 +60,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
     keysTranslated as unknown as dataIPQueryJSON,
   );
 
-  const renderData = useCallback(() => {
+  const renderData = useMemo(() => {
     return Object.entries(dataIP).map(([key, value]) => {
       if (key === "ip" || isFalsy(value)) return null;
 
@@ -94,7 +94,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
             <Text style={styles.textKey}>{t(translationKey)}:</Text>
             <SkeletonLoading
               showChildren={dataIP?.ip !== "yourIP"}
-              style={[styles.skeletonValue]}
+              style={styles.skeletonValue}
             >
               <Text style={styles.value}>{valueToShow}</Text>
             </SkeletonLoading>
@@ -148,7 +148,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
         </SkeletonLoading>
       </View>
 
-      <View style={styles.containerDataIP}>{renderData()}</View>
+      <View style={styles.containerDataIP}>{renderData}</View>
 
       {/* Mapa */}
       {/* <View style={styles.mapContainer}>
