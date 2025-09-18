@@ -3,10 +3,12 @@ import type { UserData } from "./typesUser";
 
 export type Logs = {
   id?: string;
-  userId: string | null;
-  timestamp: string;
   type: "log" | "warn" | "error";
+  userId: string | null;
   message: string;
+  deviceId: string;
+  timestamp: string;
+  deviceName: string;
 };
 
 export type Cryptos = {

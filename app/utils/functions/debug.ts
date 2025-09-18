@@ -1,6 +1,31 @@
 import Chalk from "chalk";
 import { Logs } from "@types";
 import { insertIntoTable, getCurrentUserId } from "../supabase";
+import { Platform } from "react-native";
+import DeviceInfo from "react-native-device-info";
+
+type Return = {
+  deviceId: string;
+  deviceName: string;
+};
+
+const getCurrentDeviceInfo = async (): Promise<Return> => {
+  const fallback = "Platform: " + Platform.OS;
+  try {
+    let deviceId = await DeviceInfo.getUniqueId();
+    const deviceName = await DeviceInfo.getDeviceName();
+    if (!deviceId || deviceId === "unknown")
+      deviceId = DeviceInfo.getDeviceId();
+    if (!deviceId || deviceId === "unknown") deviceId = fallback;
+
+    return { deviceId, deviceName };
+  } catch {
+    return {
+      deviceId: fallback,
+      deviceName: "Unknown Device",
+    };
+  }
+};
 
 /**
  * Logs a message to the console or sends it to a server.
@@ -14,10 +39,11 @@ import { insertIntoTable, getCurrentUserId } from "../supabase";
  */
 export const log = async (...args: unknown[]): Promise<void> => {
   const env = process.env.NODE_ENV;
-  const isDev = env === "development" || __DEV__;
-  const isPreview = env === "preview";
-  const isProduction = env === "production";
-  if (isProduction || (!isPreview && !isDev)) return;
+  const isProduction: boolean = env === "production";
+  if (isProduction) return;
+  const isDev: boolean = __DEV__ || env === "development";
+  const isPreview: boolean = env === "preview";
+  if (!isPreview && !isDev) return;
 
   const date = new Date();
 
@@ -40,10 +66,11 @@ export const log = async (...args: unknown[]): Promise<void> => {
     const userId = await getCurrentUserId();
 
     insertIntoTable<Logs>("Logs", {
-      message,
-      timestamp: date.toISOString(),
       type: "log",
       userId,
+      message,
+      timestamp: date.toISOString(),
+      ...(await getCurrentDeviceInfo()),
     });
   }
 };
@@ -88,10 +115,11 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
     const userId = await getCurrentUserId();
 
     await insertIntoTable<Logs>("Logs", {
-      message: warningMessage,
-      timestamp: date.toISOString(),
       type: "warn",
       userId,
+      message: warningMessage,
+      timestamp: date.toISOString(),
+      ...(await getCurrentDeviceInfo()),
     });
   }
 };
@@ -135,10 +163,11 @@ export const logError = async (...args: unknown[]): Promise<void> => {
     const userId = await getCurrentUserId();
 
     insertIntoTable<Logs>("Logs", {
-      message: errorMessage,
-      timestamp: date.toISOString(),
       type: "error",
       userId,
+      message: errorMessage,
+      timestamp: date.toISOString(),
+      ...(await getCurrentDeviceInfo()),
     });
   }
 };
