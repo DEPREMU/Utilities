@@ -11,6 +11,7 @@
 
 import fs from "fs";
 import path from "path";
+import chalk from "chalk";
 import { execSync } from "child_process";
 
 let __dirname = path.resolve();
@@ -21,17 +22,19 @@ if (!fs.existsSync(__dirname))
   throw new Error("__dirname does not exist: " + __dirname);
 
 const buildApp = () => {
-  console.log("Building Electron app...");
+  console.log(chalk.blue("Building Electron app..."));
   execSync("npm run build", { cwd: __dirname });
-  console.log("Electron app build command executed.");
+  console.log(chalk.green("Electron app build command executed."));
 
-  console.log("Elevating permissions and packaging the app...");
+  console.log(chalk.blue("Elevating permissions and packaging the app..."));
   execSync(
     `powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', 'cd \"${__dirname}\"; npx electron-builder; exit'"`,
     { cwd: __dirname }
   );
   console.log(
-    "App was packaged successfully. Now you can wait for the PowerShell window to close to install the app in the folder 'dist-electron'."
+    chalk.black.bgGreen.bold(
+      "App was packaged successfully. Now you can wait for the PowerShell window to close to install the app in the folder 'dist-electron'."
+    )
   );
 };
 
@@ -40,41 +43,41 @@ const exportWebApp = () => {
   if (!fs.existsSync(appPath))
     throw new Error("App path does not exist: " + appPath);
 
-  console.log("Installing dependencies...");
+  console.log(chalk.blue("Installing dependencies..."));
   execSync("npm install", { cwd: appPath });
-  console.log("Dependencies installed.");
+  console.log(chalk.green("Dependencies installed."));
 
-  console.log("Building web app...");
+  console.log(chalk.blue("Building web app..."));
   const data = execSync("npm run build:web", { cwd: appPath });
   if (!data.toString().includes("Exported: dist"))
     throw new Error("Failed to build web app" + data.toString());
-  console.log("Web app built successfully.");
+  console.log(chalk.green("Web app built successfully."));
 
-  console.log("Cleaning up old build directories...");
+  console.log(chalk.blue("Cleaning up old build directories..."));
   ["dist", "dist-electron", "release", "build"].forEach((dir) => {
     try {
       const fullPath = path.resolve(__dirname, dir);
       if (fs.existsSync(fullPath)) fs.rmSync(fullPath, { recursive: true });
     } catch {}
   });
-  console.log("Old build directories cleaned.");
+  console.log(chalk.green("Old build directories cleaned."));
 
-  console.log("Preparing files for Electron app...");
+  console.log(chalk.blue("Preparing files for Electron app..."));
   const distPath = path.resolve(appPath, "dist");
   const distPathToCopy = path.resolve(__dirname, "dist");
   fs.cpSync(distPath, distPathToCopy, { recursive: true });
   fs.rmSync(distPath, { recursive: true });
 
-  console.log("Copying assets...");
+  console.log(chalk.blue("Copying assets..."));
   ["ico", "png"].forEach((ext) => {
     fs.copyFileSync(
       path.resolve(__dirname, "assets", `tray-icon.${ext}`),
       path.resolve(__dirname, "dist", "assets", `tray-icon.${ext}`)
     );
   });
-  console.log("Assets copied.");
+  console.log(chalk.green("Assets copied."));
 
-  console.log("Inlining JS and fonts into HTML...");
+  console.log(chalk.blue("Inlining JS and fonts into HTML..."));
   const jsPath = path.resolve(
     __dirname,
     "dist",
@@ -128,7 +131,7 @@ const exportWebApp = () => {
     );
   });
   fs.writeFileSync(path.resolve(__dirname, "dist", "index.html"), html);
-  console.log("JS and fonts inlined.");
+  console.log(chalk.green("JS and fonts inlined."));
 
   buildApp();
 };

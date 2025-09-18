@@ -1,6 +1,7 @@
-import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
+import chalk from "chalk";
+import dotenv from "dotenv";
 import { execSync } from "child_process";
 
 dotenv.config({ path: "../.env" });
@@ -14,7 +15,9 @@ const getPath = (relativePath: string) => {
   const pathLocal = path.resolve(__dirname, relativePath);
   if (!fs.existsSync(pathLocal)) {
     console.log(
-      `Creating directory: ${pathLocal} with relative path: ${relativePath}`,
+      chalk.yellow(
+        `Creating directory: ${pathLocal} with relative path: ${relativePath}`,
+      ),
     );
     fs.mkdirSync(pathLocal, { recursive: true });
   }
@@ -23,6 +26,8 @@ const getPath = (relativePath: string) => {
 };
 
 const editMainApplication = async () => {
+  console.log(chalk.blue("Editing MainApplication.kt..."));
+
   const mainApplicationPath = getPath(
     "app/android/app/src/main/java/com/utilities/depremu/MainApplication.kt",
   );
@@ -44,7 +49,7 @@ const editMainApplication = async () => {
 
   if (!getPackagesMatch) {
     console.error(
-      "Could not find getPackages function",
+      chalk.red("Could not find getPackages function"),
       "add manual package in MainApplication.kt fun getPackages()",
     );
     return;
@@ -53,7 +58,7 @@ const editMainApplication = async () => {
   const curlyBraces = getPackagesMatch.match(/{[^}]*}/g)?.[0];
   if (!curlyBraces) {
     console.error(
-      "Could not find curly braces in getPackages function",
+      chalk.red("Could not find curly braces in getPackages function"),
       "add manual package in MainApplication.kt fun getPackages()",
     );
     return;
@@ -65,17 +70,18 @@ const editMainApplication = async () => {
     mainApplicationPath,
     newContent.replace(curlyBraces, (match) => {
       const packagesNotAdded = packages.filter((pkg) => !match.includes(pkg));
-
       match = packagesNotAdded.map((p) => `add(${p})`).join("\n");
 
       return `{\n${match}\n}`;
     }),
   );
+  console.log(chalk.green("MainApplication.kt edited successfully."));
 };
 
 const createModules = async () => {
   const modulesPath = getPath("app/native/modules/modules.json");
 
+  console.log(chalk.blue("Creating native modules..."));
   const modules = JSON.parse(fs.readFileSync(modulesPath, "utf8")) as {
     name: string;
     service?: string;
@@ -94,7 +100,9 @@ const createModules = async () => {
       );
       if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
         console.error(
-          "SUPABASE_URL or SUPABASE_KEY is not defined in environment variables",
+          chalk.red(
+            "SUPABASE_URL or SUPABASE_KEY is not defined in environment variables",
+          ),
         );
         return;
       }
@@ -114,6 +122,7 @@ const createModules = async () => {
       path.resolve(getPath(module.finalPath), module.name),
     );
   });
+  console.log(chalk.green("Native modules created successfully."));
 
   await modifyAndroidManifest(modules.map((m) => m.service || ""));
   await addPermissionsToManifest(modules.flatMap((m) => m.permissions || []));
@@ -136,6 +145,7 @@ const addPermissionsToManifest = async (newPermissions: string[]) => {
     fs.copyFileSync(androidManifestPath, backupPath);
 
     try {
+      console.log(chalk.blue("Adding permissions to AndroidManifest.xml..."));
       const manifestContent = fs.readFileSync(androidManifestPath, "utf8");
       const permissionsAlreadyPresent = manifestContent
         .match(/<uses-permission[^>]+>/g)
@@ -169,6 +179,7 @@ const addPermissionsToManifest = async (newPermissions: string[]) => {
       fs.copyFileSync(backupPath, androidManifestPath);
     }
 
+    console.log(chalk.green("Permissions added to AndroidManifest.xml."));
     resolve();
   });
 };
@@ -189,8 +200,8 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
     fs.copyFileSync(androidManifestPath, backupPath);
 
     try {
+      console.log(chalk.blue("Modifying AndroidManifest.xml..."));
       const manifestContent = fs.readFileSync(androidManifestPath, "utf8");
-
       const application = manifestContent.match(
         /<application.*<\/application>/s,
       )?.[0];
@@ -210,10 +221,11 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
         manifestContent.replace(application, newApplication),
       );
     } catch (error) {
-      console.error("Error modifying AndroidManifest.xml:", error);
+      console.error(chalk.red("Error modifying AndroidManifest.xml:"), error);
       fs.copyFileSync(backupPath, androidManifestPath);
     }
 
+    console.log(chalk.green("AndroidManifest.xml modified."));
     resolve();
   });
 };
@@ -227,6 +239,7 @@ const runPrebuild = () => {
     throw new Error("Missing google-services.json file");
 
   try {
+    console.log(chalk.blue("Running prebuild script..."));
     const output = execSync(
       commands.join(isWindows ? " && " : " ; "),
     )?.toString();
@@ -234,9 +247,10 @@ const runPrebuild = () => {
     if (!output?.includes("Finished prebuild"))
       throw new Error(["Prebuild failed", output].join("\n"));
 
+    console.log(chalk.green("Prebuild completed successfully."));
     createModules();
   } catch (error) {
-    console.error("Error running prebuild script:", error);
+    console.error(chalk.red("Error running prebuild script:"), error);
   }
 };
 
