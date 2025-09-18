@@ -29,9 +29,9 @@
 | **Clipboard Screen**  | Low      | Empty clipboard state missing user feedback message                                                | ✅     | 2025/09/13 | 2025/09/13 |
 | **ModalContext**      | Low      | When a snackbar is showing a message, you were not able to touch behind the parent of the snackbar | ✅     | 2025/09/16 | 2025/09/16 |
 | **Clipboard Screen**  | Medium   | Large text is displayed out of its view                                                            | ✅     | 2025/09/16 | 2025/09/18 |
+| **Streamers**         | Low      | Background/border color in streamer's image                                                        | ✅     | 2025/09/16 | 2025/09/18 |
 | **Minesweeper Game**  | Medium   | Responsive design broken on mobile devices                                                         | ❌     | 2025/09/13 | -          |
 | **DeviceInformation** | Medium   | Information container not properly centered on mobile                                              | ❌     | 2025/09/13 | -          |
-| **Streamers**         | Low      | Background/border color in streamer's image                                                        | ❌     | 2025/09/16 | -          |
 
 ### Theme & Design
 
@@ -54,4 +54,4 @@
 ---
 
 _Last Updated: 2025/09/13_  
-_Total Issues: 9 | Resolved: 3 | Remaining: 6_
+_Total Issues: 9 | Resolved: 4 | Remaining: 5_

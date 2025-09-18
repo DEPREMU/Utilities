@@ -100,7 +100,6 @@ const Streamers: React.FC = () => {
             },
           } as Notifications;
 
-          console.log(newNotifications);
           return newNotifications;
         });
       }
@@ -149,7 +148,7 @@ const Streamers: React.FC = () => {
       });
 
       if (error) {
-        console.error(error);
+        logError(error);
         openModal(
           t("error"),
           t("errorDeletingStreamer", { error }),
@@ -381,8 +380,6 @@ const Streamers: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         {streamers.map((streamer, index) => {
-          console.log(streamer);
-          console.log(notifications?.enabled.streamers);
           const notificationsEnabled =
             notifications?.enabled.streamers?.[streamer.name]?.enabled || false;
 
@@ -397,7 +394,6 @@ const Streamers: React.FC = () => {
                         ? { uri: streamer.linkImage }
                         : require("@assets/icon.png")
                     }
-                    style={styles.streamerImage}
                   />
                   <Text style={styles.nameStreamer}>
                     {capitalize(streamer.name)}
