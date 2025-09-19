@@ -20,7 +20,7 @@ import {
   removeData,
 } from "../functions";
 import { supabase } from "./supabase";
-import { fetchFromTable } from "./functions";
+import { deleteInTable, fetchFromTable } from "./functions";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
 import type { User, Session } from "@supabase/supabase-js";
@@ -323,7 +323,14 @@ export const forgotPasswordWithEmail = async (
  */
 export const signOut = async (): Promise<{ error?: string | null }> => {
   try {
+    const { data } = await supabase.auth.getUser();
     const { error } = await supabase.auth.signOut();
+
+    if (data.user?.id)
+      deleteInTable<PushTokens>(data.user.id, "PushTokens", {
+        userId: data.user.id,
+        token: await Notifications.getExpoPushTokenAsync().then((t) => t.data),
+      });
 
     if (error) {
       logError("Error signing out:", error.message);

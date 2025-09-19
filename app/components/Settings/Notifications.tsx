@@ -5,9 +5,20 @@ import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import useStylesNotifications from "@styles/components/settings/useStylesNotifications";
 import { Switch, Text, TextInput } from "react-native-paper";
-import { saveData, stringifyData, getNotifications, isFalsy } from "@utils";
+import {
+  saveData,
+  stringifyData,
+  getNotifications,
+  isFalsy,
+  updateInTable,
+} from "@utils";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Notifications, ReasonNotification, typeLanguages } from "@types";
+import {
+  Notifications,
+  ReasonNotification,
+  Tables,
+  typeLanguages,
+} from "@types";
 
 interface NotificationsProps {
   onScrollableAreaTouch: (touching: boolean) => void;
@@ -49,6 +60,11 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             [id as ReasonNotification]: !prev.enabled[id as ReasonNotification],
           },
         };
+        updateInTable("UserNotificationsConfig", {
+          uid: userData?.uid || "",
+          reason: id as ReasonNotification,
+          enabled: updated.enabled[id as ReasonNotification] ? true : false,
+        });
 
         sendMessage({
           type: "notifications",
