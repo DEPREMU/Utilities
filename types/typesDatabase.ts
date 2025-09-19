@@ -63,8 +63,8 @@ export type ClipboardSync = {
 export type Streamer = {
   id?: string;
   name: string;
-  linkImage: string | null;
   userId: string;
+  linkImage: string | null;
   createdAt?: string;
 };
 

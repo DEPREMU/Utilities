@@ -1,10 +1,15 @@
+import {
+  ChannelsId,
+  Notifications,
+  ScreensAvailable,
+  ReasonNotification,
+} from "@types";
 import { Platform } from "react-native";
-import { getNotifications, stringifyData } from "./appManagement";
 import * as notifications from "expo-notifications";
 import { reasonNotification } from "../constants";
 import { log, logError, logWarn } from "./debug";
+import { getNotifications, stringifyData } from "./appManagement";
 import { loadData, loadDataSecure, saveData } from "./storageManagement";
-import { Notifications, ScreensAvailable, ReasonNotification } from "@types";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -234,4 +239,27 @@ export const setupNotificationHandlers = (
     foregroundListener.remove();
     notificationListener.remove();
   };
+};
+
+export const configureNotificationChannel = async () => {
+  if (Platform.OS !== "android") return;
+
+  const channelIdCryptos: ChannelsId = "cryptos";
+  const channelIdStreamers: ChannelsId = "streamers";
+  await Promise.all([
+    notifications.setNotificationChannelAsync(channelIdStreamers, {
+      name: "Streamers",
+      importance: notifications.AndroidImportance.DEFAULT,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250, 100],
+      lightColor: "#8400ff7c",
+    }),
+    notifications.setNotificationChannelAsync(channelIdCryptos, {
+      name: "Cryptos",
+      importance: notifications.AndroidImportance.MAX,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250, 250, 250, 100],
+      lightColor: "#00f7ff7c",
+    }),
+  ]);
 };

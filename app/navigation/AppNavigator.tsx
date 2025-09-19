@@ -22,8 +22,8 @@ import { ScreensAvailable } from "@types";
 import SocialMediaNavigator from "@screens/SocialMedia";
 import ForgotPasswordScreen from "@screens/auth/ForgotPasswordScreen";
 import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
-import { navigate, navigationRef } from "./navigationRef";
 import { setupNotificationHandlers } from "@utils";
+import { navigateReplace, navigationRef } from "./navigationRef";
 import { NavigationContainer, RouteProp } from "@react-navigation/native";
 
 export type RootStackParamList = Record<ScreensAvailable, Object | undefined>;
@@ -89,7 +89,7 @@ const AppNavigator: React.FC = () => {
   const { navigationTheme } = useTheme();
 
   useEffect(() => {
-    const cleanup = setupNotificationHandlers(navigate);
+    const cleanup = setupNotificationHandlers(navigateReplace);
 
     return cleanup;
   }, []);

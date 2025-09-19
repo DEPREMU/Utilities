@@ -1,8 +1,10 @@
 import type {
   Streamer,
+  ChannelsId,
   UserConfig,
   PushTokens,
   TablesKeys,
+  ScreensAvailable,
   LanguagesSupported,
   UserNotificationsConfig,
 } from "../../types/index.ts";
@@ -83,10 +85,21 @@ export const getInterval = () => {
           const usersConfig = notificationsConfig.filter((config) =>
             config.streamer?.toLowerCase().includes(streamer),
           );
-          return { streamer, isLive, usersConfig };
+          const image = tableStreamers.find(
+            (s) => s.name.toLowerCase() === streamer,
+          )?.linkImage;
+          return {
+            streamer,
+            isLive,
+            usersConfig,
+            ...(image ? { image } : {}),
+          };
         }),
       )
     ).filter((status) => status.isLive);
+
+    const channelId: ChannelsId = "streamers";
+    const data: { screen: ScreensAvailable } = { screen: "SocialMedia" };
 
     for (const status of liveStatuses) {
       for (const userConfig of status.usersConfig) {
@@ -112,9 +125,7 @@ export const getInterval = () => {
           "en";
 
         const config = { streamer: status.streamer };
-
         const title = t("streamerLiveNotificationTitle", lang, config);
-
         const body = t("streamerLiveNotification", lang, config);
 
         try {
@@ -128,8 +139,11 @@ export const getInterval = () => {
             body: JSON.stringify(
               pushTokensUsers?.[userConfig.userId]?.tokens.map((to) => ({
                 to,
-                title,
+                data,
                 body,
+                title,
+                channelId,
+                richContent: { image: status.image },
               })),
             ),
           })
