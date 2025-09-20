@@ -4,7 +4,7 @@ import {
   ScreensAvailable,
   ReasonNotification,
 } from "@types";
-import { Platform } from "react-native";
+import { Platform, Falsy } from "react-native";
 import * as notifications from "expo-notifications";
 import { reasonNotification } from "../constants";
 import { log, logError, logWarn } from "./debug";
@@ -25,8 +25,8 @@ export interface NotificationData {
  * @returns {boolean} - Returns true if notifications are already initialized, otherwise false.
  */
 export const isNotificationsAlreadyInitialized = (
-  notificationsData: Notifications | null,
-): boolean => {
+  notificationsData: Notifications | Falsy,
+): notificationsData is Notifications => {
   if (!notificationsData) return false;
 
   const { data, enabled, intervals } = notificationsData;
@@ -48,7 +48,7 @@ export const isNotificationsAlreadyInitialized = (
  */
 export const initializeNotificationsStorage =
   async (): Promise<Notifications> => {
-    let notificationsData = await loadData<Notifications>("@notifications");
+    let notificationsData = (await loadData("@notifications")) as Notifications;
     if (isNotificationsAlreadyInitialized(notificationsData))
       return notificationsData;
 
@@ -63,7 +63,7 @@ export const initializeNotificationsStorage =
       if (reason === "cryptos") intervalsNotifications[reason] = 1000 * 60 * 10;
     });
 
-    if (!notificationsData || !notificationsData.enabled.allNotifications) {
+    if (!notificationsData || typeof notificationsData !== "object") {
       const { status } = await notifications.requestPermissionsAsync();
       if (status !== notifications.PermissionStatus.GRANTED) {
         notificationsData = {
@@ -71,7 +71,7 @@ export const initializeNotificationsStorage =
           data: dataNotifications,
           intervals: intervalsNotifications,
         };
-        saveData<Notifications>("@notifications", notificationsData);
+        saveData("@notifications", notificationsData);
         return notificationsData;
       }
 
@@ -80,18 +80,18 @@ export const initializeNotificationsStorage =
         data: dataNotifications,
         intervals: intervalsNotifications,
       };
-      saveData<Notifications>("@notifications", notificationsData);
+      saveData("@notifications", notificationsData);
       return notificationsData;
     }
 
-    notificationsData.data = { ...dataNotifications };
-    notificationsData.enabled = {
-      ...enabledNotifications,
-      allNotifications: true,
+    const newNotifications: Notifications = {
+      data: { ...dataNotifications },
+      enabled: { ...enabledNotifications, allNotifications: true },
+      intervals: { ...intervalsNotifications },
     };
 
-    saveData<Notifications>("@notifications", notificationsData);
-    return notificationsData;
+    saveData("@notifications", newNotifications);
+    return newNotifications;
   };
 
 /**
@@ -166,7 +166,7 @@ export const sendNotification = async (
 
     const [notificationsData, sessionExpiry] = await Promise.all([
       getNotifications(),
-      loadDataSecure<number | null>("_sessionExpiry"),
+      loadDataSecure("_sessionExpiry"),
     ]);
     if (
       !notificationsData.enabled.allNotifications ||

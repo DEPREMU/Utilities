@@ -4,8 +4,10 @@ import type {
   RequestEncrypt,
   ResponseDecrypt,
   ResponseEncrypt,
+  ResponseGetRandomUUID,
 } from "../../types/";
 import crypto from "crypto";
+import chalk from "chalk";
 
 /**
  * The secret key used for encryption and decryption operations.
@@ -107,7 +109,7 @@ export const encryptHandler = async (
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Encryption error:", error);
+    console.error(chalk.red("Encryption error:"), error);
     res.status(500).json({
       error: "Encryption failed",
       timestamp: new Date().toISOString(),
@@ -139,10 +141,25 @@ export const decryptHandler = async (
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Decryption error:", error);
+    console.error(chalk.red("Decryption error:"), error);
     res.status(500).json({
       error: "Decryption failed",
       timestamp: new Date().toISOString(),
+    });
+  }
+};
+
+export const handleGetRandomUUID = async (
+  _: Request,
+  res: Response<ResponseGetRandomUUID>,
+) => {
+  try {
+    const UUIDs = Array.from({ length: 2 }, () => crypto.randomUUID());
+    res.status(200).json({ uuid: UUIDs.join("") });
+  } catch (error) {
+    console.error(chalk.red("UUID generation error:"), error);
+    res.status(500).json({
+      error: "UUID generation failed",
     });
   }
 };

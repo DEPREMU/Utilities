@@ -4,9 +4,8 @@ import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 
 const useStylesCryptosNavigator = () => {
-  const colors = useTheme();
+  const { colors } = useTheme();
   const { getCommonStyles } = useResponsiveLayout();
-  const { background, primary, text } = colors;
 
   const styles = useMemo(
     () =>
@@ -18,17 +17,17 @@ const useStylesCryptosNavigator = () => {
 
         tabBar: {
           ...getCommonStyles("shadow"),
-          backgroundColor: background,
+          backgroundColor: colors.background,
           borderTopWidth: 2,
-          borderTopColor: primary,
-          color: text,
+          borderTopColor: colors.primary,
+          color: colors.text,
           paddingVertical: 4,
         },
       }),
-    [background, primary, text, getCommonStyles],
+    [colors, getCommonStyles],
   );
 
-  return { styles, ...colors };
+  return { styles, colors };
 };
 
 export default useStylesCryptosNavigator;

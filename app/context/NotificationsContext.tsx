@@ -1,3 +1,9 @@
+import {
+  Notifications as NotificationsType,
+  RequestSupabaseFetch,
+  RequestSupabaseInsert,
+  ResponseSupabaseFetch,
+} from "@types";
 import React, {
   useRef,
   useState,
@@ -11,33 +17,20 @@ import {
   isFalsy,
   logError,
   saveData,
+  getRouteAPI,
+  fetchOptions,
   stringifyData,
-  fetchFromTable,
-  insertIntoTable,
   getNotifications,
-  supabase,
-  log,
 } from "@utils";
+import { v4 } from "uuid";
 import { useModal } from "./ModalContext";
 import ClipboardModule from "@/utils/ClipboardModule";
 import { useLanguage } from "./LanguageContext";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
-import { RealtimeChannel } from "@supabase/supabase-js";
 import { AppState, Platform } from "react-native";
 import { useDeviceInformation } from "./DeviceInformationContext";
-import { Notifications as NotificationsType, Tables, TablesKeys } from "@types";
-
-type Payload = {
-  commit_timestamp: string;
-  errors: string | null;
-  eventType: "INSERT" | "UPDATE";
-  new: Tables["ClipboardSync"];
-  old: Tables["ClipboardSync"];
-  schema: "public";
-  table: "ClipboardSync";
-};
 
 type Notification = {
   id: string;
@@ -77,9 +70,9 @@ interface NotificationsProviderProps {
 export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   children,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { openSnackBar } = useModal();
-  const { session, user } = useUserContext();
+  const { sessionToken, userData } = useUserContext();
   const { hasInternet, deviceInfo } = useDeviceInformation();
 
   const notificationsFromStorage = useRef<NotificationsType | null>(null);
@@ -117,23 +110,35 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!user?.id || lastItemCopied.current) return;
+    if (!userData?.userId || lastItemCopied.current) return;
 
     getNotifications().then((data) => setNotifications(data ?? null));
+    if (!sessionToken) return;
     if (Platform.OS !== "web") return;
 
-    fetchFromTable<Tables["ClipboardSync"]>("ClipboardSync", {
-      userId: user.id,
-      deleted: false,
-    }).then(({ data }) => {
-      lastItemCopied.current = Math.random().toString(32).substring(2, 10);
-      if (isFalsy(data) || data.length === 0) return;
+    getRouteAPI("/supabase/fetch").then(async (url) => {
+      const res = await fetch(
+        url,
+        fetchOptions<RequestSupabaseFetch>("POST", {
+          lang: language,
+          table: "ClipboardSync",
+          match: { userId: userData.userId, deleted: false },
+          token: sessionToken,
+        }),
+      );
+      const json = (await res.json()) as ResponseSupabaseFetch<"ClipboardSync">;
+      lastItemCopied.current = v4();
+      if (isFalsy(json) || isFalsy(json.data)) return;
+
+      let data = json.data;
+      if (!Array.isArray(data)) data = [data];
+      if (data.length === 0) return;
       lastItemCopied.current = data.sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )?.[0]?.content;
     });
-  }, [user?.id]);
+  }, [userData?.userId, sessionToken, language]);
 
   useEffect(() => {
     if (!notifications) return;
@@ -200,116 +205,75 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       return;
     }
 
-    if (!session?.access_token) return;
+    if (!sessionToken) return;
     if (Platform.OS === "android")
       ClipboardModule?.isRunning().then((running) => {
         if (running) return;
-        ClipboardModule?.setUserData(session?.access_token, user?.id || "");
+        ClipboardModule?.setUserData(sessionToken, userData?.userId || "");
         ClipboardModule?.startClipboardService();
       });
     if (Platform.OS !== "web") return;
 
-    const getChannel = (): RealtimeChannel => {
-      const table: TablesKeys = "ClipboardSync";
-
-      const receivedDatabaseEvent = (payload: Payload) => {
-        try {
-          const newItem = payload.new;
-          if (isFalsy(newItem) || isFalsy(newItem?.content)) return;
-          log(
-            "Copying new clipboard item from database event:\n",
-            newItem.content,
-          );
-          if (newItem.content === lastItemCopied.current) return;
-          lastItemCopied.current = newItem.content;
-          // eslint-disable-next-line no-undef
-          const electronApp = (window as Window)?.myElectronApp;
-          if (electronApp) electronApp?.setClipboard?.(newItem.content);
-        } catch (error) {
-          logError("Error handling database event", error);
-        }
-      };
-
-      return supabase
-        .channel("clipboard-changes")
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table,
-          },
-          (payload) => receivedDatabaseEvent(payload as unknown as Payload),
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table,
-          },
-          (payload) => receivedDatabaseEvent(payload as unknown as Payload),
-        )
-        .subscribe((status, error) => {
-          if (error) logError("Error subscribing to clipboard changes", error);
-          else log("Subscribed status:", status);
-        });
-    };
-
     const handleInterval = async () => {
-      if (isFalsy(typeof window) || !user?.id) return;
+      if (isFalsy(typeof window) || !userData?.userId) return;
 
       try {
-        let text: string | undefined = undefined;
+        let content: string | undefined = undefined;
 
         try {
-          text = await ExpoClipboard.getStringAsync();
+          content = await ExpoClipboard.getStringAsync();
         } catch {
           // eslint-disable-next-line no-undef
           const electronApp = (window as Window)?.myElectronApp;
-          if (electronApp) text = electronApp?.readClipboard?.();
+          if (electronApp) content = electronApp?.readClipboard?.();
         }
-        if (isFalsy(text) || lastItemCopied.current === text) return;
+        if (isFalsy(content) || lastItemCopied.current === content) return;
 
-        lastItemCopied.current = text;
+        lastItemCopied.current = content;
         let deviceId = deviceInfo?.model;
 
         if (isFalsy(deviceId) || deviceId === "unknown")
           deviceId = "Platform: " + Platform.OS;
-        insertIntoTable<Tables["ClipboardSync"]>("ClipboardSync", {
-          content: text,
-          createdAt: new Date().toISOString(),
-          userId: user.id || "",
-          deviceId,
-        });
+
+        await fetch(
+          await getRouteAPI("/supabase/insert"),
+          fetchOptions<RequestSupabaseInsert<"ClipboardSync">>("POST", {
+            lang: language,
+            table: "ClipboardSync",
+            values: {
+              userId: userData.userId,
+              content,
+              deviceId,
+              createdAt: new Date().toISOString(),
+            },
+            token: sessionToken,
+          }),
+        );
       } catch (error) {
         logError("Error reading clipboard content", error);
       }
     };
 
     const id = setInterval(handleInterval, 2500);
-    const channel = getChannel();
 
-    return () => {
-      clearInterval(id);
-      supabase.removeChannel(channel);
-    };
+    return () => clearInterval(id);
   }, [
-    hasInternet,
     t,
-    sendNotification,
-    deviceInfo?.model,
-    session?.access_token,
-    user?.id,
+    language,
+    hasInternet,
+    sessionToken,
     openSnackBar,
+    userData?.userId,
+    deviceInfo?.model,
+    sendNotification,
   ]);
 
   useEffect(() => {
-    if (!session?.access_token) return;
+    if (!sessionToken) return;
 
-    ClipboardModule?.setUserData(session?.access_token, user?.id || "");
+    ClipboardModule?.setUserData(sessionToken, userData?.userId || "");
     ClipboardModule?.startClipboardService?.();
-  }, [session?.access_token, user?.id]);
+  }, [sessionToken, userData?.userId]);
 
   const value: NotificationsContextType = {
     notifications,

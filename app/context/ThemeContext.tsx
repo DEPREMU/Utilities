@@ -20,7 +20,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [themeState, setThemeState] = useState<Theme>("auto");
 
   useEffect(() => {
-    loadData<Theme | null>("@theme").then((data) => {
+    loadData("@theme").then((data) => {
       setThemeState(data || "auto");
     });
   }, []);

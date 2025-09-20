@@ -15,7 +15,7 @@
     "clean:i": "npm run clean && npm i",
     "app": "npx expo start -c -g",
     "app-dev": "npx expo start -c -d",
-    "build:android": "npm run prebuild && echo \"You must delete android/ from .gitignore\" && eas build --platform android --profile preview",
+    "build:android": "npx rimraf android && npm run prebuild && echo \"You must delete android/ from .gitignore\" && eas build --platform android --profile preview",
     "build-dev:android": "npx rimraf android && npm run prebuild && npm run android",
     "build:web": "npx expo export --platform web",
     "prebuild": "node ../app/native/createPrebuild.ts",
@@ -77,7 +77,8 @@
     "react-native-screens": "~4.16.0",
     "react-native-vector-icons": "^10.3.0",
     "react-native-web": "^0.21.1",
-    "react-native-worklets": "0.5.1"
+    "react-native-worklets": "0.5.1",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.28.4",
@@ -85,10 +86,11 @@
     "@types/crypto-js": "^4.2.2",
     "@types/lodash": "^4.17.20",
     "@types/react": "~19.1.13",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
     "@typescript-eslint/parser": "^8.43.0",
     "babel-plugin-module-resolver": "^5.0.2",
-    "eslint": "^9.35.0",
+    "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react": "^7.37.5",
@@ -96,7 +98,8 @@
     "eslint-plugin-react-native": "^5.0.0",
     "expo-doctor": "^1.17.7",
     "prettier": "^3.6.2",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.44.0"
   },
   "private": true
 }

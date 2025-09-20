@@ -1,41 +1,121 @@
-import { logError, updateInTable } from "@utils";
-import { Tables, TablesKeys } from "@types";
+import {
+  logError,
+  getRouteAPI,
+  fetchOptions,
+  checkLanguage,
+  loadDataSecure,
+} from "@utils";
+import {
+  Tables,
+  TablesKeys,
+  RequestSupabaseUpdate,
+  RequestSupabaseDelete,
+  RequestSupabaseInsert,
+} from "@types";
 
 type TaskFunction = Function;
 
 export type AvailableFunctions =
-  | "updateAPIConfig"
-  | "updateUserConfig"
-  | "updateWebSocketConfig";
+  | "insertIntoSupabase"
+  | "updateFromSupabase"
+  | "deleteFromSupabase";
 
 type TaskRegistry = Record<AvailableFunctions, TaskFunction>;
 
+export type FunctionsArguments<T extends AvailableFunctions> =
+  T extends "insertIntoSupabase"
+    ? [table: TablesKeys, values: Tables[TablesKeys] | Tables[TablesKeys][]]
+    : T extends "updateFromSupabase"
+      ? [
+          table: TablesKeys,
+          values: Partial<Tables[TablesKeys]> | Partial<Tables[TablesKeys]>[],
+          match: Partial<Tables[TablesKeys]> | null,
+        ]
+      : T extends "deleteFromSupabase"
+        ? [table: TablesKeys, match: Partial<Tables[TablesKeys]> | null]
+        : never;
+
+export interface SerializableTask {
+  id: string;
+  functionName: AvailableFunctions;
+  args: unknown[];
+  timestamp: number;
+}
+
 const taskRegistry: TaskRegistry = {
-  updateUserConfig: async (
-    tableName: TablesKeys,
-    data: Partial<Tables[TablesKeys]>,
-    condition: { [key: string]: unknown },
+  updateFromSupabase: async <T extends TablesKeys>(
+    tableName: T,
+    data: Partial<Tables[T]> | Partial<Tables[T]>[],
+    condition: Partial<Tables[T]> | null,
   ) => {
     try {
-      await updateInTable(tableName, data, condition);
+      const [lang, token] = await Promise.all([
+        checkLanguage(),
+        loadDataSecure("_userSessionTokenStorage"),
+      ]);
+      if (!token) return;
+
+      await fetch(
+        await getRouteAPI("/supabase/update"),
+        fetchOptions<RequestSupabaseUpdate>("POST", {
+          table: tableName,
+          values: data,
+          match: condition,
+          lang,
+          token,
+        }),
+      );
     } catch (error) {
       logError(`Error updating ${tableName}:`, error);
     }
   },
 
-  updateWebSocketConfig: async (userId: string, webSocketURL: string) => {
+  insertIntoSupabase: async <T extends TablesKeys>(
+    table: T,
+    values: Tables[T] | Tables[T][],
+  ) => {
     try {
-      await updateInTable("UserConfig", { webSocketURL }, { userId });
+      const [lang, token] = await Promise.all([
+        checkLanguage(),
+        loadDataSecure("_userSessionTokenStorage"),
+      ]);
+      if (!token) return;
+      await fetch(
+        await getRouteAPI("/supabase/insert"),
+        fetchOptions<RequestSupabaseInsert>("POST", {
+          table,
+          values,
+          lang,
+          token,
+        }),
+      );
     } catch (error) {
-      logError("Error updating WebSocket config:", error);
+      logError(`Error inserting into ${table}:`, error);
     }
   },
 
-  updateAPIConfig: async (userId: string, apiURL: string) => {
+  deleteFromSupabase: async <T extends TablesKeys>(
+    table: T,
+    match: Partial<Tables[T]>,
+  ) => {
     try {
-      await updateInTable("UserConfig", { API_URL: apiURL }, { userId });
+      const [lang, token] = await Promise.all([
+        checkLanguage(),
+        loadDataSecure("_userSessionTokenStorage"),
+      ]);
+      if (!token) return;
+
+      await fetch(
+        await getRouteAPI("/supabase/delete"),
+        fetchOptions<RequestSupabaseDelete>("POST", {
+          table,
+          match,
+          lang,
+          token,
+        }),
+      );
     } catch (error) {
-      logError("Error updating API config:", error);
+      logError(`Error deleting from ${table}:`, error);
     }
   },
 };

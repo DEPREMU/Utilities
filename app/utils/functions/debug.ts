@@ -1,8 +1,10 @@
 import Chalk from "chalk";
-import { Logs } from "@types";
-import { insertIntoTable, getCurrentUserId } from "../supabase";
-import { Platform } from "react-native";
 import DeviceInfo from "react-native-device-info";
+import { Platform } from "react-native";
+import { getCurrentUserId } from "../supabase";
+import { RequestSupabaseInsert } from "@types";
+import { fetchOptions, getRouteAPI } from "./APIManagement";
+import { checkLanguage, loadDataSecure } from "./storageManagement";
 
 type Return = {
   deviceId: string;
@@ -63,14 +65,32 @@ export const log = async (...args: unknown[]): Promise<void> => {
         typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
       )
       .join(" ");
-    const userId = await getCurrentUserId();
 
-    insertIntoTable<Logs>("Logs", {
-      type: "log",
-      userId,
-      message,
-      timestamp: date.toISOString(),
-      ...(await getCurrentDeviceInfo()),
+    getRouteAPI("/supabase/insert").then(async (url) => {
+      const [lang, userId, token, deviceInfo] = await Promise.all([
+        checkLanguage(),
+        getCurrentUserId(),
+        loadDataSecure("_userSessionTokenStorage"),
+        getCurrentDeviceInfo(),
+      ]);
+
+      if (!userId || !token) return;
+
+      fetch(
+        url,
+        fetchOptions<RequestSupabaseInsert>("POST", {
+          lang,
+          table: "Logs",
+          values: {
+            type: "log",
+            userId,
+            message,
+            timestamp: date.toISOString(),
+            ...deviceInfo,
+          },
+          token,
+        }),
+      );
     });
   }
 };
@@ -112,14 +132,31 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
       )
       .join(" ");
 
-    const userId = await getCurrentUserId();
+    getRouteAPI("/supabase/insert").then(async (url) => {
+      const [lang, userId, token, deviceInfo] = await Promise.all([
+        checkLanguage(),
+        getCurrentUserId(),
+        loadDataSecure("_userSessionTokenStorage"),
+        getCurrentDeviceInfo(),
+      ]);
 
-    await insertIntoTable<Logs>("Logs", {
-      type: "warn",
-      userId,
-      message: warningMessage,
-      timestamp: date.toISOString(),
-      ...(await getCurrentDeviceInfo()),
+      if (!userId || !token) return;
+
+      fetch(
+        url,
+        fetchOptions<RequestSupabaseInsert>("POST", {
+          lang,
+          table: "Logs",
+          values: {
+            type: "warn",
+            userId,
+            message: warningMessage,
+            timestamp: date.toISOString(),
+            ...deviceInfo,
+          },
+          token,
+        }),
+      );
     });
   }
 };
@@ -160,14 +197,32 @@ export const logError = async (...args: unknown[]): Promise<void> => {
         typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
       )
       .join(" ");
-    const userId = await getCurrentUserId();
 
-    insertIntoTable<Logs>("Logs", {
-      type: "error",
-      userId,
-      message: errorMessage,
-      timestamp: date.toISOString(),
-      ...(await getCurrentDeviceInfo()),
+    getRouteAPI("/supabase/insert").then(async (url) => {
+      const [lang, userId, token, deviceInfo] = await Promise.all([
+        checkLanguage(),
+        getCurrentUserId(),
+        loadDataSecure("_userSessionTokenStorage"),
+        getCurrentDeviceInfo(),
+      ]);
+
+      if (!userId || !token) return;
+
+      fetch(
+        url,
+        fetchOptions<RequestSupabaseInsert>("POST", {
+          lang,
+          table: "Logs",
+          values: {
+            type: "log",
+            userId,
+            message: errorMessage,
+            timestamp: date.toISOString(),
+            ...deviceInfo,
+          },
+          token,
+        }),
+      );
     });
   }
 };

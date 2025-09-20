@@ -1,36 +1,26 @@
 import React, {
   useRef,
-  useState,
+  useEffect,
   useContext,
   useCallback,
   createContext,
-  useEffect,
 } from "react";
 import {
   logError,
   loadData,
   saveData,
-  executeRegisteredTask,
+  SerializableTask,
   AvailableFunctions,
+  executeRegisteredTask,
+  FunctionsArguments,
 } from "@utils";
 import { useLanguage } from "./LanguageContext";
-import { useNavigation } from "@react-navigation/native";
 import { useUserContext } from "./UserContext";
-import { navigateReplace } from "@navigation/navigationRef";
-import { ScreensAvailable } from "@types";
-import { RootStackParamList } from "@navigation/AppNavigator";
+import { Alert, BackHandler } from "react-native";
 import { useDeviceInformation } from "./DeviceInformationContext";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Alert, BackHandler, StatusBar } from "react-native";
+import { getCurrentScreen, navigateReplace } from "@navigation/navigationRef";
 
 type BackgroundTask = () => void | Promise<void>;
-
-interface SerializableTask {
-  id: string;
-  functionName: AvailableFunctions;
-  args: unknown[];
-  timestamp: number;
-}
 
 type BackgroundTaskWithMeta = {
   task: BackgroundTask;
@@ -42,121 +32,37 @@ type BackgroundTaskWithMeta = {
 };
 
 /**
- * Context type for managing background tasks and navigation-related utilities.
+ * Context type for managing background tasks and status bar appearance.
  *
- * @remarks
- * This context provides methods for running tasks immediately or queuing them for sequential execution,
- * as well as utilities for updating navigation state and status bar appearance.
- *
- * @property runTask - Executes a given background task immediately, bypassing the queue.
- * @property addTaskQueue - Adds a background task to the queue for sequential execution.
- * @property setBgColorStatusBar - Sets the background color of the status bar.
- * @property setTranslucentStatusBar - Sets the translucency of the status bar.
+ * @type BackgroundTaskContextType
  */
 type BackgroundTaskContextType = {
   /**
-   * Runs a given task immediately.
+   * Executes a background task immediately.
    *
-   * @param task - The task to run.
-   *
-   * @remarks
-   * - This function executes the task immediately, without adding it to the queue.
-   * - It is useful for tasks that need to be executed right away, rather than waiting for the queue.
-   *
-   * @example
-   * ```tsx
-   * const { runTask } = useContext(BackgroundTaskContext);
-   * runTask(() => {
-   *  log("Task executed immediately");
-   * });
-   * ```
-   *
-   * Practical example:
-   * ```tsx
-   * const { runTask } = useContext(BackgroundTaskContext);
-   * const updateDB = async () => {
-   * // This function will be executed immediately
-   * // This is good for updating a database or making an API call
-   * // without blocking the main thread. And avoiding the cancellation of the task
-   * // if the user closes the app or navigates to another screen.
-   * await fetch("https://example.com/api/update", {
-   *  method: "POST",
-   * body: JSON.stringify({ data: "new data" }),
-   * headers: {
-   *     "Content-Type": "application/json",
-   * },
-   * });
-   * log("Database updated");
-   * };
-   *
-   * runTask(updateDB);
-   * ```
-   *
+   * @param task - The background task to execute
    */
   runTask: (task: BackgroundTask) => void;
 
   /**
-   * Adds a new background task to the task queue.
+   * Adds a background task to the execution queue.
    *
-   * @param task - The background task to be added to the queue.
-   * @param executeWhenInternet - Si es true, la tarea se ejecutará cuando haya internet
-   * @param meta - Metadatos para serializar la tarea (opcional)
-   *
-   * @remarks
-   * - This function allows you to queue a task that will be executed later.
-   * - The tasks in the queue are executed sequentially, ensuring that each task is completed before the next one starts.
-   * - Si se proporciona meta y executeWhenInternet es true, la tarea será persistida y sobrevivirá al cierre de la app
-   * @example
-   * ```tsx
-   * const { addTaskQueue } = useContext(BackgroundTaskContext);
-   * addTaskQueue(() => {
-   *  log("Task added to queue");
-   * });
-   * ```
-   *
-   * Practical example:
-   * ```tsx
-   * const { addTaskQueue } = useContext(BackgroundTaskContext);
-   * const updateDB = async () => {
-   *   // This function will be executed in the background
-   *   // This is good for updating a database or making an API call
-   *   // without blocking the main thread. And avoiding the cancellation of the task
-   *   // if the user closes the app or navigates to another screen.
-   *   await fetch("https://example.com/api/update", {
-   *     method: "POST",
-   *     body: JSON.stringify({ data: "new data" }),
-   *     headers: {
-   *       "Content-Type": "application/json",
-   *     },
-   *   });
-   *   log("Database updated");
-   * };
-   * addTaskQueue(updateDB);
-   *
-   * ```
+   * @param task - The background task to queue
+   * @param executeWhenInternet - Optional flag to execute task only when internet is available
+   * @param meta - Optional metadata containing function name and arguments
+   * @param meta.functionName - The name of the function to execute
+   * @param meta.args - Array of arguments to pass to the function
    */
-  addTaskQueue: (
+  addTaskQueue: <T extends AvailableFunctions>(
     task: BackgroundTask,
     executeWhenInternet?: boolean,
     meta?: {
-      functionName: AvailableFunctions;
-      args: unknown[];
+      id: string;
+      args: FunctionsArguments<T>;
+      functionName: T;
     },
+    removeTaskWithId?: string,
   ) => void;
-
-  /**
-   * Sets the background color of the status bar.
-   *
-   * @param color - The color to set for the status bar background.
-   */
-  setBgColorStatusBar: React.Dispatch<React.SetStateAction<string>>;
-
-  /**
-   * Sets whether the status bar is translucent.
-   *
-   * @param translucent - If true, the status bar will be translucent; otherwise, it will not be.
-   */
-  setTranslucentStatusBar: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 interface BackgroundTaskProviderProps {
@@ -164,65 +70,47 @@ interface BackgroundTaskProviderProps {
 }
 
 /**
- * BackgroundTaskContext provides a way to manage background tasks in a React application.
+ * BackgroundTaskContext provides a way to manage background tasks and status bar appearance in a React application.
  *
- * It allows adding tasks to a queue and executing them sequentially, as well as
- * updating the current screen in the navigation stack.
+ * It allows adding tasks to a queue and executing them sequentially, running tasks immediately,
+ * and controlling the status bar's background color and translucent state.
  *
  * @context
- * @returns {BackgroundTaskContextType} The context value containing the `runTask` and `addTaskQueue`.
+ * @returns {BackgroundTaskContextType} The context value containing `runTask`, `addTaskQueue`,
+ * `setBgColorStatusBar`, and `setTranslucentStatusBar` methods.
  */
 const BackgroundTaskContext = createContext<BackgroundTaskContextType | null>(
   null,
 );
 
 /**
- * A React context provider component for managing background tasks.
+ * BackgroundTaskProvider component that manages background task execution and provides context for the application.
  *
- * This provider maintains a queue of background tasks and ensures they are executed
- * sequentially. It provides methods to add tasks to the queue and to run tasks directly.
+ * This provider handles:
+ * - Background task queue management with automatic processing
+ * - Task persistence for offline scenarios (tasks are saved and executed when internet is restored)
+ * - Status bar configuration (background color and translucency)
+ * - Hardware back button handling with confirmation dialogs
+ * - Navigation state tracking for current route detection
  *
- * @param children - The child components that will have access to the context.
+ * Features:
+ * - Queues tasks for immediate execution when internet is available
+ * - Persists tasks to storage when offline and executes them when connectivity is restored
+ * - Prevents duplicate task processing with internal processing flags
+ * - Provides localized confirmation dialogs for app exit and navigation
+ * - Manages status bar appearance through context
  *
- * @returns A context provider that supplies the `runTask` and `addTaskQueue` methods.
+ * @param props - Component props
+ * @param props.children - Child components that will have access to the BackgroundTaskContext
  *
- * @remarks
- * - The `tasksQueue` state holds the queue of background tasks.
- * - The `addTaskQueue` function adds a new task to the queue.
- * - The `runTask` function executes a given task immediately.
- * - The `useEffect` hook monitors the `tasksQueue` and ensures tasks are executed
- *   sequentially, removing each task from the queue after execution.
+ * @returns JSX element providing BackgroundTaskContext to child components
  *
  * @example
  * ```tsx
- * const { addTaskQueue } = useContext(BackgroundTaskContext);
- *
- * addTaskQueue(() => {
- *   log("Task 1 executed");
- * });
+ * <BackgroundTaskProvider>
+ *   <App />
+ * </BackgroundTaskProvider>
  * ```
- *
- * Practical example:
- * ```tsx
- * const { addTaskQueue } = useContext(BackgroundTaskContext);
- * const updateDB = async () => {
- * // This function will be executed in the background
- * // This is good for updating a database or making an API call
- * // without blocking the main thread. And avoiding the cancellation of the task
- * // if the user closes the app or navigates to another screen.
- * await fetch("https://example.com/api/update", {
- *  method: "POST",
- *  body: JSON.stringify({ data: "new data" }),
- *  headers: {
- *      "Content-Type": "application/json",
- *  },
- *  });
- *  log("Database updated");
- * };
- *
- * addTaskQueue(updateDB);
- * ```
- *
  */
 export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   children,
@@ -230,51 +118,19 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   const { t } = useLanguage();
   const { isLoggedIn } = useUserContext();
   const { hasInternet } = useDeviceInformation();
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-
-  const [bgColorStatusBar, setBgColorStatusBar] =
-    useState<string>("transparent");
-  const [translucentStatusBar, setTranslucentStatusBar] =
-    useState<boolean>(true);
-  const [currentRouteName, setCurrentRouteName] =
-    useState<ScreensAvailable>("Home");
 
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);
   const executeWhenInternetRef = useRef<BackgroundTaskWithMeta[]>([]);
 
-  useEffect(() => {
-    const loadPersistedTasks = async () => {
-      try {
-        const persistedTasks =
-          await loadData<SerializableTask[]>("@pendingTasks");
-        if (persistedTasks && persistedTasks.length > 0) {
-          const rebuiltTasks = persistedTasks.map((taskData) => ({
-            task: () =>
-              executeRegisteredTask(taskData.functionName, taskData.args),
-            meta: {
-              id: taskData.id,
-              functionName: taskData.functionName,
-              args: taskData.args,
-            },
-          }));
-
-          executeWhenInternetRef.current = rebuiltTasks;
-        }
-      } catch (error) {
-        logError("Error loading persisted tasks:", error);
-      }
-    };
-
-    loadPersistedTasks();
-  }, []);
-
-  const persistPendingTasks = useCallback(async () => {
+  const persistPendingTasks = useCallback(async (removeTaskWithId?: string) => {
     try {
       const serializableTasks: SerializableTask[] =
         executeWhenInternetRef.current
-          .filter((taskWithMeta) => taskWithMeta.meta)
+          .filter(
+            (taskWithMeta) =>
+              !!taskWithMeta.meta && taskWithMeta.meta.id !== removeTaskWithId,
+          )
           .map((taskWithMeta) => {
             const meta = taskWithMeta.meta;
             if (!meta) throw new Error("Meta is required");
@@ -316,12 +172,15 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       task: BackgroundTask,
       executeWhenInternet: boolean = false,
       meta?: {
-        functionName: AvailableFunctions;
+        id: string;
         args: unknown[];
+        functionName: AvailableFunctions;
       },
+      removeTaskWithId?: string,
     ) => {
       if (hasInternet) {
         taskQueueRef.current.push(task);
+        processQueue();
         return;
       }
 
@@ -344,7 +203,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
         executeWhenInternetRef.current.push(taskWithMeta);
 
-        persistPendingTasks();
+        persistPendingTasks(removeTaskWithId);
       }
 
       processQueue();
@@ -361,17 +220,29 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   }, []);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener(
-      "state",
-      ({ data: { state } }) => {
-        const route = state?.routes?.[state?.index || 0];
-        const routeName = route?.name || "Home";
-        setCurrentRouteName(routeName);
-      },
-    );
+    const loadPersistedTasks = async () => {
+      try {
+        const persistedTasks = await loadData("@pendingTasks");
+        if (persistedTasks && persistedTasks.length > 0) {
+          const rebuiltTasks = persistedTasks.map((taskData) => ({
+            task: () =>
+              executeRegisteredTask(taskData.functionName, taskData.args),
+            meta: {
+              id: taskData.id,
+              functionName: taskData.functionName,
+              args: taskData.args,
+            },
+          }));
 
-    return unsubscribe;
-  }, [navigation]);
+          executeWhenInternetRef.current = rebuiltTasks;
+        }
+      } catch (error) {
+        logError("Error loading persisted tasks:", error);
+      }
+    };
+
+    loadPersistedTasks();
+  }, []);
 
   useEffect(() => {
     const handlePressYes = (isHomeScreen: boolean) => {
@@ -380,22 +251,24 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     };
 
     const onBackPress = () => {
-      const isHomeScreen = currentRouteName === "Home";
+      getCurrentScreen().then((currentScreen) => {
+        const isHomeScreen = currentScreen === "Home";
 
-      Alert.alert(
-        t(isHomeScreen || !isLoggedIn ? "exitApp" : "back"),
-        t(isHomeScreen || !isLoggedIn ? "exitAppMessage" : "backMessage"),
-        [
-          {
-            text: t("no"),
-            onPress: () => null,
-          },
-          {
-            text: t("yes"),
-            onPress: () => handlePressYes(isHomeScreen),
-          },
-        ],
-      );
+        Alert.alert(
+          t(isHomeScreen || !isLoggedIn ? "exitApp" : "back"),
+          t(isHomeScreen || !isLoggedIn ? "exitAppMessage" : "backMessage"),
+          [
+            {
+              text: t("no"),
+              onPress: () => null,
+            },
+            {
+              text: t("yes"),
+              onPress: () => handlePressYes(isHomeScreen),
+            },
+          ],
+        );
+      });
 
       return true;
     };
@@ -405,8 +278,8 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       onBackPress,
     );
 
-    return subscription.remove;
-  }, [currentRouteName, isLoggedIn, t]);
+    return () => subscription.remove();
+  }, [isLoggedIn, t]);
 
   useEffect(() => {
     if (!hasInternet) return;
@@ -422,18 +295,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   }, [hasInternet, processQueue]);
 
   return (
-    <BackgroundTaskContext.Provider
-      value={{
-        runTask,
-        addTaskQueue,
-        setBgColorStatusBar,
-        setTranslucentStatusBar,
-      }}
-    >
-      <StatusBar
-        backgroundColor={bgColorStatusBar}
-        translucent={translucentStatusBar}
-      />
+    <BackgroundTaskContext.Provider value={{ runTask, addTaskQueue }}>
       {children}
     </BackgroundTaskContext.Provider>
   );

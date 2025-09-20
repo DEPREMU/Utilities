@@ -1,6 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import { app, BrowserWindow, Tray, Menu, nativeImage } from "electron";
+import chalk from "chalk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,7 +78,7 @@ const createWindow = (): void => {
   else htmlPath = path.join(path.dirname(__dirname), "dist", "index.html");
 
   mainWindow.loadFile(htmlPath).catch((err) => {
-    console.error("Error loading file:", err);
+    console.error(chalk.red("Error loading file:"), err);
   });
 
   if (process.env.NODE_ENV === "development")
@@ -119,7 +120,7 @@ const createTray = (): void => {
     const trayIcon = nativeImage.createFromPath(trayIconPath);
 
     if (trayIcon.isEmpty()) {
-      console.error("Could not load tray icon:", trayIconPath);
+      console.error(chalk.red("Could not load tray icon:"), trayIconPath);
       return;
     }
 
@@ -154,9 +155,9 @@ const createTray = (): void => {
       mainWindow.hide();
     });
 
-    console.log("Tray was created successfully");
+    console.log(chalk.green("Tray was created successfully"));
   } catch (error) {
-    console.error("Error creating tray:", error);
+    console.error(chalk.red("Error creating tray:"), error);
   }
 };
 

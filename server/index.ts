@@ -6,6 +6,7 @@ import router from "./routes/index.ts";
 import { host, port } from "./config.ts";
 import { initWebSocket } from "./routes/WebSocket.ts";
 import { validateServerEnv } from "./env.ts";
+import chalk from "chalk";
 
 const app = express();
 
@@ -20,8 +21,9 @@ initWebSocket(server);
 
 server.listen(port, host, () => {
   console.log(
-    `Server is running on http://${host}:${port}`,
+    "",
+    chalk.green(`Server is running on http://${host}:${port}`),
     "\n",
-    `WebSocket is running on ws://${host}:${port}`,
+    chalk.green(`WebSocket is running on ws://${host}:${port}`),
   );
 });

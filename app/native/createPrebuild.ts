@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import fs from "fs";
 import path from "path";
 import chalk from "chalk";
@@ -127,6 +128,7 @@ const createModules = async () => {
   await modifyAndroidManifest(modules.map((m) => m.service || ""));
   await addPermissionsToManifest(modules.flatMap((m) => m.permissions || []));
   await editMainApplication();
+  console.log(chalk.green("Prebuild process completed."));
 };
 
 const addPermissionsToManifest = async (newPermissions: string[]) => {
@@ -175,7 +177,7 @@ const addPermissionsToManifest = async (newPermissions: string[]) => {
         ),
       );
     } catch (error) {
-      console.error("Error modifying AndroidManifest.xml:", error);
+      console.error(chalk.red("Error modifying AndroidManifest.xml:"), error);
       fs.copyFileSync(backupPath, androidManifestPath);
     }
 

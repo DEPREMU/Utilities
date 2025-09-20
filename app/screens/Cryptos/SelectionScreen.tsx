@@ -1,16 +1,19 @@
 import {
+  PriceBinanceAPI,
+  ResponseCryptos,
+  RequestSupabaseDelete,
+  RequestSupabaseInsert,
+  TablesKeys,
+} from "@types";
+import {
   logError,
   cleanFloat,
   getRouteAPI,
   fetchOptions,
   stringifyData,
-  updateInTable,
-  deleteInTable,
   loadDataSecure,
   saveDataSecure,
-  insertIntoTable,
   removeDataSecure,
-  getCurrentUserId,
   getCryptosFromSupabase,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
@@ -24,7 +27,6 @@ import { Text, TextInput } from "react-native-paper";
 import useStylesCryptoItem from "@styles/components/cryptos/useStylesCryptoItem";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSelectionScreen from "@styles/components/cryptos/useStylesSelectionScreen";
-import { PriceBinanceAPI, ResponseCryptos } from "@types";
 import React, { useState, useEffect, useCallback } from "react";
 
 interface SelectionScreenProps {
@@ -36,11 +38,11 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
   setSelectedCryptos,
   selectedCryptos,
 }) => {
-  const { t } = useLanguage();
   const { styles } = useStylesSelectionScreen();
-  const { styles: stylesCryptoItem } = useStylesCryptoItem();
-  const { userData } = useUserContext();
+  const { t, language } = useLanguage();
   const { addTaskQueue } = useBackgroundTask();
+  const { userData, sessionToken } = useUserContext();
+  const { styles: stylesCryptoItem } = useStylesCryptoItem();
 
   const [loading, setLoading] = useState<boolean>(true);
   const [cryptos, setCryptos] = useState<PriceBinanceAPI | null>(null);
@@ -100,7 +102,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
               cryptos?.find((c) => c.symbol === cryptoId)?.price || 0,
             datePurchased: new Date().toISOString(),
             currency,
-            userId: userData?.uid || "",
+            userId: userData?.userId || "",
           },
         }));
       }
@@ -114,7 +116,9 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 
   const handleTextInputAmount = useCallback(
     async (text: string, id: string) => {
-      const userId = userData?.uid || (await getCurrentUserId());
+      if (!userData?.userId) return;
+
+      const userId = userData?.userId;
       if (!userId) return;
       setOwnedCryptos((prev) => {
         const newOwned = { ...prev };
@@ -194,18 +198,18 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 
   useEffect(() => {
     const fetchOwnedCryptos = async () => {
-      const owned =
-        (await loadDataSecure<SelectedCryptos>("_selectedCryptos")) || {};
+      const owned = (await loadDataSecure("_selectedCryptos")) || {};
       const lengthOwned = Object.keys(owned).length;
       if (owned && lengthOwned < 25 && lengthOwned > 0)
         return setOwnedCryptos(owned);
-      if (!userData?.uid) return;
-      const newOwned = await getCryptosFromSupabase(userData?.uid);
-      setOwnedCryptos(newOwned);
+      if (!userData?.userId || !sessionToken) return;
+
+      const newOwned = await getCryptosFromSupabase(language, sessionToken);
+      if (newOwned) setOwnedCryptos(newOwned);
     };
 
     fetchOwnedCryptos();
-  }, [userData?.uid]);
+  }, [userData?.userId]);
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -229,61 +233,120 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 
   useEffect(() => {
     const save = async () => {
-      const userId = userData?.uid;
-      if (!userId) return;
-      const cryptosFromSupabase = await getCryptosFromSupabase(userId);
+      const userId = userData?.userId;
+      if (!userId || !sessionToken) return;
+      const cryptosFromSupabase = await getCryptosFromSupabase(
+        language,
+        sessionToken,
+      );
 
-      const insertCryptos = async () => {
-        const cryptosToAdd = Object.values(ownedCryptos).filter(
-          (crypto) => !cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`],
-        );
-        if (!cryptosToAdd || cryptosToAdd.length === 0) return;
-        await insertIntoTable("Cryptos", cryptosToAdd);
-      };
-
-      const updateCryptos = async () => {
-        const cryptosToUpdate = Object.values(ownedCryptos).filter((crypto) => {
-          return (
-            !!cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`] &&
+      const cryptosToUpdate = Object.values(ownedCryptos).filter((crypto) => {
+        return (
+          !!cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`] &&
+          stringifyData(
+            cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`],
+          ) !==
             stringifyData({
-              ...cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`],
-            }) !==
-              stringifyData({
-                ...crypto,
-                firstPricePurchased: Number(crypto.firstPricePurchased),
-                uid: cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`]
-                  ?.uid,
-              })
-          );
-        });
-        if (!cryptosToUpdate || cryptosToUpdate.length === 0) return;
-        await updateInTable("Cryptos", cryptosToUpdate);
-      };
-
-      const deleteCryptos = async () => {
-        const cryptosToDelete = Object.values(cryptosFromSupabase)
-          .filter((crypto) => !ownedCryptos?.[`${crypto.id}${crypto.currency}`])
-          .map((c) => c.uid as string);
-
-        if (!cryptosToDelete || cryptosToDelete.length === 0) return;
-        await Promise.all(
-          cryptosToDelete.map((uid) => deleteInTable(uid, "Cryptos", { uid })),
+              ...crypto,
+              firstPricePurchased: Number(crypto.firstPricePurchased),
+              uid: cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`]?.uid,
+            })
         );
-      };
+      });
+      if (cryptosToUpdate && cryptosToUpdate.length > 0 && sessionToken) {
+        const id = "updateCryptos";
+        addTaskQueue(
+          async () => {
+            fetch(
+              await getRouteAPI("/supabase/update"),
+              fetchOptions<RequestSupabaseInsert>("POST", {
+                lang: language,
+                token: sessionToken,
+                table: "Cryptos",
+                values: cryptosToUpdate,
+              }),
+            );
+          },
+          true,
+          {
+            id,
+            functionName: "updateFromSupabase",
+            args: ["Cryptos", cryptosToUpdate, null],
+          },
+        );
+      }
+
+      const cryptosToAdd = Object.values(ownedCryptos).filter(
+        (crypto) => !cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`],
+      );
+      if (cryptosToAdd && cryptosToAdd.length > 0 && sessionToken) {
+        const id = "insertCryptos";
+        const table: TablesKeys = "Cryptos";
+        addTaskQueue(
+          async () => {
+            fetch(
+              await getRouteAPI("/supabase/insert"),
+              fetchOptions<RequestSupabaseInsert>("POST", {
+                lang: language,
+                token: sessionToken,
+                table,
+                values: cryptosToAdd,
+              }),
+            );
+          },
+          true,
+          {
+            id,
+            functionName: "insertIntoSupabase",
+            args: [table, cryptosToAdd],
+          },
+          id,
+        );
+      }
+
+      const cryptosToDelete = Object.values(cryptosFromSupabase || {})
+        .filter((crypto) => !ownedCryptos?.[`${crypto.id}${crypto.currency}`])
+        .map((c) => c.uid as string);
+
+      if (cryptosToDelete && cryptosToDelete.length > 0) {
+        const url = await getRouteAPI("/supabase/delete");
+
+        cryptosToDelete.map((uid) =>
+          addTaskQueue(
+            async () => {
+              fetch(
+                url,
+                fetchOptions<RequestSupabaseDelete>("POST", {
+                  lang: language,
+                  token: sessionToken,
+                  table: "Cryptos",
+                  match: { uid },
+                }),
+              );
+            },
+            true,
+            {
+              id: `deleteCrypto${uid}`,
+              functionName: "deleteFromSupabase",
+              args: ["Cryptos", { uid }],
+            },
+          ),
+        );
+      }
 
       setSelectedCryptos(ownedCryptos);
-      await Promise.all([
-        saveDataSecure("_selectedCryptos", ownedCryptos),
-        insertCryptos(),
-        updateCryptos(),
-        deleteCryptos(),
-      ]);
+      await saveDataSecure("_selectedCryptos", ownedCryptos);
     };
 
-    const id = setTimeout(() => addTaskQueue(save), 1000);
-
-    return () => clearTimeout(id);
-  }, [userData?.uid, ownedCryptos, addTaskQueue, setSelectedCryptos]);
+    save();
+  }, [
+    userData?.userId,
+    ownedCryptos,
+    addTaskQueue,
+    setSelectedCryptos,
+    language,
+    sessionToken,
+  ]);
 
   useEffect(() => {
     if (!cryptos) return;

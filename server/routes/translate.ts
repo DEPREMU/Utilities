@@ -2,6 +2,7 @@ import env from "../env.ts";
 import express from "express";
 import { URLSearchParams } from "url";
 import type { RequestTranslate, ResponseTranslate } from "./../../types/index";
+import chalk from "chalk";
 
 export const translate = async (
   req: express.Request<unknown, unknown, RequestTranslate>,
@@ -41,6 +42,6 @@ export const translate = async (
     res.json({ translatedText: data.translations?.[0]?.text || "" });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
-    console.error(error);
+    console.error(chalk.red("Error during translation request:"), error);
   }
 };

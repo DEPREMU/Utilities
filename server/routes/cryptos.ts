@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import type {
   RequestCryptoPrice,
   ResponseCryptoPrice,
@@ -18,7 +19,7 @@ export const getCryptoPrice = async (
     const data = await response.json();
     return parseFloat(data.price);
   } catch (error) {
-    console.error("Error fetching crypto price:", error);
+    console.error(chalk.red("Error fetching crypto price:"), error);
     throw new Error("Error fetching crypto price");
   }
 };
@@ -34,7 +35,7 @@ export const handleGetCryptoPrice = async (
     const priceUSDTMXN = await getCryptoPrice("USDT", "MXN");
     res.json({ priceUSD, priceUSDTMXN });
   } catch (error) {
-    console.error("Error fetching crypto price:", error);
+    console.error(chalk.red("Error fetching crypto price:"), error);
     res.status(500).json({ error: "Error fetching crypto price" });
   }
 };
@@ -52,7 +53,7 @@ export const handleGetCryptos = async (
 
     res.json({ cryptos: cryptosFilteredByCurrency });
   } catch (error) {
-    console.error("Error fetching cryptos:", error);
+    console.error(chalk.red("Error fetching cryptos:"), error);
     res.status(500).json({ error: "Error fetching cryptos" });
   }
 };

@@ -215,6 +215,8 @@ const en: typeLanguages = {
   errorOccurred: "An error occurred: {{error}}",
   failedToAddTextToDatabase: "Failed to add text to database",
   textAddedToDatabase: "Text added to database",
+  test: "Test",
+  pleaseEnterSomeText: "Please enter some text",
 } as const;
 
 export default en;

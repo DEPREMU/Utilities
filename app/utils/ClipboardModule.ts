@@ -1,5 +1,7 @@
+import chalk from "chalk";
 import type { TurboModule } from "react-native";
 import { Platform, TurboModuleRegistry } from "react-native";
+import { logError } from "./functions";
 
 export interface Spec extends TurboModule {
   setUserData(token: string, userId: string): void;
@@ -23,7 +25,7 @@ const ClipboardModule =
     : defaultClipboardModule;
 
 if (!ClipboardModule || Object.keys(ClipboardModule).length === 0) {
-  console.error("ClipboardModule is not available");
+  logError(chalk.red("ClipboardModule is not available"));
 }
 
 export default ClipboardModule;

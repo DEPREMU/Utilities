@@ -1,24 +1,29 @@
+import {
+  Notifications,
+  typeLanguages,
+  ReasonNotification,
+  RequestSupabaseUpdate,
+  ResponseSupabaseUpdate,
+} from "@types";
+import {
+  isFalsy,
+  saveData,
+  getRouteAPI,
+  fetchOptions,
+  stringifyData,
+  getNotifications,
+  log,
+} from "@utils";
 import Button from "@components/common/ButtonComponent";
 import { FlatList } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
+import { navigateReplace } from "@navigation/navigationRef";
 import useStylesNotifications from "@styles/components/settings/useStylesNotifications";
 import { Switch, Text, TextInput } from "react-native-paper";
-import {
-  saveData,
-  stringifyData,
-  getNotifications,
-  isFalsy,
-  updateInTable,
-} from "@utils";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Notifications,
-  ReasonNotification,
-  Tables,
-  typeLanguages,
-} from "@types";
+import { useBackgroundTask } from "@/context/BackgroundTaskContext";
 
 interface NotificationsProps {
   onScrollableAreaTouch: (touching: boolean) => void;
@@ -29,10 +34,11 @@ type typeMinutes = Record<ReasonNotification, number | null> | null;
 const NotificationsComponent: React.FC<NotificationsProps> = ({
   onScrollableAreaTouch,
 }) => {
-  const { t } = useLanguage();
   const { styles } = useStylesNotifications();
-  const { userData } = useUserContext();
+  const { t, language } = useLanguage();
   const { sendMessage } = useWebSocket();
+  const { addTaskQueue } = useBackgroundTask();
+  const { userData, sessionToken } = useUserContext();
   const [notifications, setNotifications] = useState<Notifications | null>(
     null,
   );
@@ -51,6 +57,9 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
   const handleChangeNotification = useCallback(
     async (id: string) => {
+      if (!sessionToken) return navigateReplace("Login");
+      if (!userData?.userId) return;
+
       setNotifications((prev) => {
         if (!prev) return prev;
         const updated = {
@@ -60,39 +69,96 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             [id as ReasonNotification]: !prev.enabled[id as ReasonNotification],
           },
         };
-        updateInTable("UserNotificationsConfig", {
-          uid: userData?.uid || "",
-          reason: id as ReasonNotification,
-          enabled: updated.enabled[id as ReasonNotification] ? true : false,
+        getRouteAPI("/supabase/update").then((url) => {
+          const id =
+            Date.now().toString() + Math.random().toString(36).substring(2, 8);
+          const values: RequestSupabaseUpdate["values"] = {
+            enabled: !!updated.enabled[id as ReasonNotification],
+          };
+          const match: RequestSupabaseUpdate["match"] = {
+            userId: userData.userId,
+            reason: id as ReasonNotification,
+          };
+          addTaskQueue(
+            async () => {
+              fetch(
+                url,
+                fetchOptions<RequestSupabaseUpdate>("POST", {
+                  match,
+                  table: "UserNotificationsConfig",
+                  values,
+                  token: sessionToken,
+                  lang: language,
+                }),
+              );
+            },
+            true,
+            {
+              id,
+              args: ["UserNotificationsConfig", values, match],
+              functionName: "updateFromSupabase",
+            },
+            id,
+          );
         });
 
-        sendMessage({
-          type: "notifications",
-          data: updated,
-          uid: userData?.uid || "",
-        });
         saveData("@notifications", updated);
+        return updated;
+      });
+    },
+    [userData?.userId, sessionToken, language],
+  );
+  const handleChangeNotificationInterval = useCallback(
+    async (id: ReasonNotification, value: string) => {
+      if (!sessionToken) return navigateReplace("Login");
+      if (!userData?.userId) return;
+
+      let interval = parseFloat(value);
+      if (isNaN(interval)) interval = -1;
+
+      setMinutes((prev) => {
+        const updated = {
+          ...prev,
+          [id]: interval,
+        } as typeMinutes;
+
+        getRouteAPI("/supabase/update").then((url) => {
+          const taskId =
+            Date.now().toString() + Math.random().toString(36).substring(2, 8);
+          const values: RequestSupabaseUpdate["values"] = {
+            interval: interval * 60 * 1000,
+          };
+          const match: RequestSupabaseUpdate["match"] = {
+            userId: userData.userId,
+            reason: id,
+          };
+          addTaskQueue(
+            async () => {
+              fetch(
+                url,
+                fetchOptions<RequestSupabaseUpdate>("POST", {
+                  match,
+                  table: "UserNotificationsConfig",
+                  values,
+                  token: sessionToken,
+                  lang: language,
+                }),
+              );
+            },
+            true,
+            {
+              id: taskId,
+              args: ["UserNotificationsConfig", values, match],
+              functionName: "updateFromSupabase",
+            },
+            taskId,
+          );
+        });
 
         return updated;
       });
     },
-    [sendMessage, userData?.uid],
-  );
-
-  const handleChangeNotificationInterval = useCallback(
-    async (id: ReasonNotification, value: string) => {
-      let interval = parseFloat(value);
-      if (isNaN(interval)) interval = -1;
-
-      setMinutes(
-        (prev) =>
-          ({
-            ...prev,
-            [id]: interval,
-          }) as typeMinutes,
-      );
-    },
-    [],
+    [userData?.userId, sessionToken, language, addTaskQueue],
   );
 
   const renderNotificationItem = useCallback(
@@ -101,7 +167,6 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         notifications?.intervals?.[item.id as ReasonNotification];
       const minutesItem = minutes?.[item.id as ReasonNotification] || -1;
 
-      console.log(t(item.id as keyof typeLanguages));
       return (
         <>
           <Button
@@ -157,7 +222,6 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
   useEffect(() => {
     const fetchNotifications = async () => {
       const data = await getNotifications();
-      console.log(data);
       setNotifications(data);
       const mins = Object.fromEntries(
         Object.entries(data?.intervals || {}).map(([id, value]) => [
@@ -175,7 +239,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
   useEffect(() => {
     const saveIntervals = async () => {
-      if (!notifications || !userData?.uid) return;
+      if (!notifications || !userData?.userId) return;
       const oldNotifications = await getNotifications();
 
       const updatedNotifications = {
@@ -200,7 +264,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
       sendMessage({
         type: "notifications",
         data: updatedNotifications,
-        uid: userData.uid,
+        userId: userData.userId,
       });
       await saveData("@notifications", updatedNotifications);
     };

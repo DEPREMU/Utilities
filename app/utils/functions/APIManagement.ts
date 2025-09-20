@@ -4,10 +4,10 @@ import {
   fallbackURL_WEB_SOCKET,
   URL_WEB_SOCKET,
 } from "../constants/API_URL";
+import chalk from "chalk";
 import axios from "axios";
-import { Falsy } from "react-native";
 import { isFalsy } from "@utils";
-import { logWarn } from "./debug";
+import { logError, logWarn } from "./debug";
 import { stringifyData } from "./appManagement";
 import { loadData, saveData } from "./storageManagement";
 import { RequestBody, ResponseHealth, RoutesAPI } from "@types";
@@ -24,13 +24,19 @@ export const fetchOptions = <T = RequestBody>(
   method: "POST" | "GET" | "PUT" | "DELETE",
   body?: T,
 ) => {
+  try {
+    if (body) body = stringifyData(body) as T;
+  } catch (error) {
+    logError(chalk.red("Error stringifying request body:", error));
+    body = undefined;
+  }
   return {
     method,
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: stringifyData(body) ?? undefined,
+    body: body as string | undefined,
   };
 };
 
@@ -54,7 +60,7 @@ export const fetchOptions = <T = RequestBody>(
  */
 export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
   let isOk: boolean = false;
-  let apiUrl = await loadData<string | Falsy>("@API_URL");
+  let apiUrl = await loadData("@API_URL");
 
   if (isFalsy(apiUrl)) {
     apiUrl = API_URL;
@@ -105,8 +111,6 @@ export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
  * ```
  */
 export const getRouteImage = async (filename: string): Promise<string> => {
-  const apiUrl = await loadData<string>("@API_URL").then(
-    (data) => data || API_URL,
-  );
+  const apiUrl = await loadData("@API_URL").then((data) => data || API_URL);
   return `${apiUrl.replace("/api/v1", "")}${filename}`;
 };

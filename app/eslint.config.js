@@ -101,7 +101,7 @@ export default [
       "react-native/no-raw-text": "off",
 
       // General rules
-      "no-console": "off",
+      "no-console": "warn",
       "no-unused-vars": "off",
       "no-undef": "warn",
       "no-empty": "warn",

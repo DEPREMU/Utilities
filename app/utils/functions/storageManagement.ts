@@ -1,4 +1,11 @@
 import {
+  SECURE_KEYS_STORAGE,
+  ExpectedStorageTypes,
+  ALL_KEYS_STORAGE_TYPE,
+  SECURE_KEYS_STORAGE_TYPE,
+  UNSECURE_KEYS_STORAGE_TYPE,
+} from "../constants/keysStorage";
+import {
   RequestDecrypt,
   RequestEncrypt,
   ResponseDecrypt,
@@ -10,7 +17,6 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import * as Localization from "expo-localization";
-import { KeyStorageValues } from "../constants/keysStorage";
 import { languagesSupported } from "../translates";
 import { parseData, stringifyData } from "./appManagement";
 import { fetchOptions, getRouteAPI } from "./APIManagement";
@@ -25,11 +31,14 @@ import { fetchOptions, getRouteAPI } from "./APIManagement";
  * @param value - The value to store. Will be stringified if not a string.
  * @param callback - Optional callback executed after the operation, receives an error if failed.
  */
-export const saveDataSecure = async <T = undefined>(
-  key: KeyStorageValues,
-  value: unknown,
-  callback: (err?: Error) => T = () => undefined as T,
-): Promise<T> => {
+export const saveDataSecure = async <
+  T extends SECURE_KEYS_STORAGE_TYPE,
+  U = undefined,
+>(
+  key: T,
+  value: ExpectedStorageTypes[T],
+  callback: (err?: Error) => U = () => undefined as U,
+): Promise<U> => {
   try {
     const stringifiedValue = stringifyData(value);
 
@@ -71,19 +80,23 @@ export const saveDataSecure = async <T = undefined>(
  * @param key - The key to retrieve. Must be a valid `KeyStorageValues`.
  * @returns The decrypted string or `null` if not found or decryption fails.
  */
-export const loadDataSecure = async <T = string | object | null>(
-  key: KeyStorageValues,
-  callback?: (value: T | null, err?: Error) => T,
-): Promise<T | undefined> => {
+export const loadDataSecure = async <
+  T extends SECURE_KEYS_STORAGE_TYPE,
+  U = ExpectedStorageTypes[T] | null,
+>(
+  key: T,
+  callback?: (value: U, err?: Error) => U,
+): Promise<U | undefined> => {
   if (Platform.OS !== "web") {
     const value = await SecureStore.getItemAsync(key);
-    const parsed = parseData<T>(value);
+    const parsed = parseData<U>(value);
     if (callback) return callback?.(parsed);
     return parsed;
   }
 
   const storedValue = localStorage.getItem(key);
-  if (!storedValue) return callback?.(null, new Error("No value found")) as T;
+  if (!storedValue)
+    return callback?.(null as U, new Error("No value found")) as U;
 
   try {
     const result = await fetch(
@@ -95,17 +108,20 @@ export const loadDataSecure = async <T = string | object | null>(
 
     if (result?.error || !result?.decryptedValue) {
       logError(`loadDataSecure() => ${result?.error} - ${result?.timestamp}`);
-      return callback?.(null, new Error(result?.error || "Decryption failed"));
+      return callback?.(
+        null as U,
+        new Error(result?.error || "Decryption failed"),
+      );
     }
 
-    const parsed = parseData<T>(result.decryptedValue);
+    const parsed = parseData<U>(result.decryptedValue);
 
     if (callback) return callback(parsed);
     return parsed;
   } catch (error) {
     logError(`loadDataSecure() => ${error}`);
     return callback?.(
-      null,
+      null as U,
       new Error(error instanceof Error ? error.message : String(error)),
     );
   }
@@ -121,7 +137,7 @@ export const loadDataSecure = async <T = string | object | null>(
  * @param callback - Optional callback executed after the operation, receives an error if failed.
  */
 export const removeDataSecure = async <T = undefined>(
-  key: KeyStorageValues,
+  key: SECURE_KEYS_STORAGE_TYPE,
   callback: (err?: Error) => T = () => undefined as T,
 ): Promise<T> => {
   try {
@@ -146,11 +162,14 @@ export const removeDataSecure = async <T = undefined>(
  * @param key - The key to store the value under.
  * @param value - The value to store. Non-string values will be stringified.
  */
-export const saveData = async <T = undefined, K = unknown>(
-  key: KeyStorageValues,
-  value: K,
-  callback: () => T = () => undefined as T,
-): Promise<T> => {
+export const saveData = async <
+  T extends UNSECURE_KEYS_STORAGE_TYPE,
+  U = ExpectedStorageTypes<"UNSECURE">[T] | undefined,
+>(
+  key: T,
+  value: U,
+  callback: () => U = () => undefined as U,
+): Promise<U> => {
   const stringValue = stringifyData(value);
 
   if (Platform.OS === "web") localStorage.setItem(key, stringValue);
@@ -167,16 +186,19 @@ export const saveData = async <T = undefined, K = unknown>(
  * @param key - The key to retrieve the value from.
  * @returns The stored value as a string, or `null` if not found.
  */
-export const loadData = async <T = string | null>(
-  key: KeyStorageValues,
-  callback?: (value: T) => T,
-): Promise<T> => {
+export const loadData = async <
+  T extends UNSECURE_KEYS_STORAGE_TYPE,
+  U = ExpectedStorageTypes<"UNSECURE">[T] | null,
+>(
+  key: T,
+  callback?: (value: U) => U,
+): Promise<U | undefined> => {
   let value: string | null;
 
   if (Platform.OS === "web") value = localStorage.getItem(key);
   else value = await AsyncStorage.getItem(key);
 
-  const parsed = parseData<T>(value);
+  const parsed = parseData<U>(value);
   if (callback) return callback(parsed);
   return parsed;
 };
@@ -191,7 +213,7 @@ export const loadData = async <T = string | null>(
  * @param callback - Optional callback executed after deletion.
  */
 export const removeData = async <T = undefined>(
-  key: KeyStorageValues,
+  key: UNSECURE_KEYS_STORAGE_TYPE,
   callback: (err?: Error) => T = () => undefined as T,
 ): Promise<T> => {
   try {
@@ -206,6 +228,32 @@ export const removeData = async <T = undefined>(
   return callback();
 };
 
+/** Clears all stored data from both secure and regular storage.
+ *
+ * - On **web**, clears `localStorage`.
+ * - On **native**, clears `AsyncStorage` and deletes all keys in `SecureStore` that start with an underscore (`_`).
+ */
+export const cleanAllStorageData = async (): Promise<void> => {
+  try {
+    if (Platform.OS === "web") localStorage.clear();
+    else {
+      const allKeys = SECURE_KEYS_STORAGE.filter((key) => key !== "_deviceId");
+      await Promise.all(
+        allKeys.map((key) => {
+          try {
+            SecureStore.deleteItemAsync(key);
+          } catch {
+            // Ignore errors for individual keys
+          }
+        }),
+      );
+      await AsyncStorage.clear();
+    }
+  } catch (error) {
+    logError(`cleanAllStorageData() => ${error}`);
+  }
+};
+
 /**
  * Retrieves the user's preferred language from storage.
  *
@@ -218,9 +266,7 @@ export const removeData = async <T = undefined>(
  */
 export const getLanguageFromStorage =
   async (): Promise<LanguagesSupported | null> => {
-    const data = await loadData<LanguagesSupported | null>(
-      "@languageKeyStorage",
-    );
+    const data = await loadData("@languageKeyStorage");
     if (!data) return null;
 
     const languageAvailable = languagesSupported.includes(data);
@@ -277,3 +323,8 @@ export const checkLanguage = async (): Promise<LanguagesSupported> => {
 
   return "en";
 };
+
+export const isSecureKey = (
+  key: ALL_KEYS_STORAGE_TYPE,
+): key is SECURE_KEYS_STORAGE_TYPE =>
+  SECURE_KEYS_STORAGE.includes(key as SECURE_KEYS_STORAGE_TYPE);

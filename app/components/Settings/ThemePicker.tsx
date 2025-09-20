@@ -1,31 +1,38 @@
-import React, { memo, useCallback, useMemo } from "react";
 import { List } from "react-native-paper";
-import { Theme } from "@types";
 import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
-import { updateInTable } from "@utils";
 import { useUserContext } from "@context/UserContext";
 import { useBackgroundTask } from "@/context/BackgroundTaskContext";
+import { fetchOptions, getRouteAPI } from "@/utils";
+import { RequestSupabaseUpdate, Theme } from "@types";
+import React, { memo, useCallback, useMemo } from "react";
 
 const ThemePicker: React.FC = () => {
-  const { t } = useLanguage();
-  const { userData } = useUserContext();
+  const { t, language } = useLanguage();
   const { addTaskQueue } = useBackgroundTask();
+  const { userData, sessionToken } = useUserContext();
   const { themeState, setThemeState, colors } = useTheme();
 
   const changeTheme = useCallback(
     (newTheme: Theme) => {
       setThemeState(newTheme);
-      if (!userData?.uid) return;
+      if (!userData?.userId || !sessionToken) return;
       addTaskQueue(async () => {
-        await updateInTable(
-          "UserConfig",
-          { theme: newTheme },
-          { userId: userData.uid },
+        if (!userData?.userId || !sessionToken) return;
+
+        await fetch(
+          await getRouteAPI("/supabase/update"),
+          fetchOptions<RequestSupabaseUpdate>("POST", {
+            lang: language,
+            table: "UserConfig",
+            match: { userId: userData?.userId },
+            values: { theme: newTheme },
+            token: sessionToken,
+          }),
         );
       }, true);
     },
-    [setThemeState, userData, addTaskQueue],
+    [setThemeState, userData, addTaskQueue, sessionToken, language],
   );
 
   const renderAccordionItem = useMemo(() => {

@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import env from "../env.ts";
 import { createClient } from "@supabase/supabase-js";
 
@@ -6,7 +7,9 @@ const supabaseKey = env.SUPABASE_KEY as string | undefined;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error(
-    "Faltan SUPABASE_URL o SUPABASE_KEY en la configuración. Revisa tu .env y app.config.js",
+    chalk.red(
+      "SUPABASE_URL or SUPABASE_KEY is not defined in environment variables",
+    ),
   );
 }
 

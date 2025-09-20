@@ -1,8 +1,18 @@
 import * as Network from "expo-network";
 import * as Localization from "expo-localization";
 import { initializeNotificationsStorage } from "./notifications";
-import { Notifications, ReasonNotification } from "@types";
+import {
+  LanguagesSupported,
+  Notifications,
+  ReasonNotification,
+  RequestSupabaseFetch,
+  ResponseSupabaseFetch,
+} from "@types";
 import { Falsy } from "react-native";
+import { fetchOptions, getRouteAPI } from "./APIManagement";
+import { log, logError } from "./debug";
+import { ExpectedStorageTypes } from "../constants";
+import chalk from "chalk";
 
 export const getFormattedDate = (
   date: Date,
@@ -24,8 +34,10 @@ export const getFormattedDate = (
 };
 
 const functionFallback = (functionName: string) => () =>
-  console.log(
-    `Function created after parsed data, original function name: "${functionName}"`,
+  log(
+    chalk.green(
+      `Function created after parsed data, original function name: "${functionName}"`,
+    ),
   );
 const symbolFallback = (symbolName: String) =>
   Symbol(
@@ -134,7 +146,7 @@ export const stringifyData = (value: unknown): string => {
 
     return JSON.stringify(value);
   } catch (error) {
-    console.error(`Error stringifying data: ${error}`, value);
+    logError(chalk.red("Error stringifying data:"), error, value);
     return "notValid";
   }
 };
@@ -196,7 +208,7 @@ export const interpolateMessage = (message: string, values: string[]) => {
  * @example
  * ```typescript
  * const result = capitalize("hello");
- * console.log(result); // Output: "Hello"
+ * log(result); // Output: "Hello"
  * ```
  */
 export const capitalize = (str: string): string => {
@@ -267,4 +279,42 @@ export const getNotifications = async (): Promise<Notifications> => {
   });
 
   return data;
+};
+
+export const getCryptosFromSupabase = async (
+  lang: LanguagesSupported,
+  token: string,
+): Promise<ExpectedStorageTypes["_selectedCryptos"]> => {
+  const url = await getRouteAPI("/supabase/fetch");
+  const response = await fetch(
+    url,
+    fetchOptions<RequestSupabaseFetch>("POST", {
+      lang,
+      token,
+      table: "Cryptos",
+      match: null,
+    }),
+  );
+
+  if (!response.ok) {
+    logError("Error fetching cryptos from Supabase:", response.statusText);
+    return null;
+  }
+
+  const data = (await response.json()) as ResponseSupabaseFetch<"Cryptos">;
+
+  let cryptos = data.data;
+  if (!cryptos) return null;
+  if (!Array.isArray(cryptos)) cryptos = [cryptos];
+
+  return cryptos.reduce(
+    (acc, crypto) => {
+      if (!acc) return acc;
+
+      if (crypto.id && crypto.currency)
+        acc[crypto.id + crypto.currency] = crypto;
+      return acc;
+    },
+    {} as ExpectedStorageTypes["_selectedCryptos"],
+  );
 };

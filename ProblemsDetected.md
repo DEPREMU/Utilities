@@ -12,11 +12,11 @@
 
 ## Summary Dashboard
 
-| Status    | Count | Percentage |
-| --------- | ----- | ---------- |
-| Done      | 7     | 88.8%      |
-| Detected  | 2     | 11.2%      |
-| **Total** | **9** | **100%**   |
+| Status    | Count  | Percentage |
+| --------- | ------ | ---------- |
+| Done      | 9      | 90%        |
+| Detected  | 1      | 10%        |
+| **Total** | **10** | **100%**   |
 
 ---
 
@@ -47,11 +47,12 @@
 
 ### Backend/Server Issues
 
-| Component                  | Priority | Issue Description                                                                                | Status | Detected   | Fixed      |
-| -------------------------- | -------- | ------------------------------------------------------------------------------------------------ | ------ | ---------- | ---------- |
-| **Streamer Notifications** | High     | Push notifications not sent when streamers go live - potential duplicate push tokens in database | ✅     | 2025/09/13 | 2025/09/18 |
+| Component                        | Priority | Issue Description                                                                                | Status | Detected   | Fixed      |
+| -------------------------------- | -------- | ------------------------------------------------------------------------------------------------ | ------ | ---------- | ---------- |
+| **Streamer Notifications**       | High     | Push notifications not sent when streamers go live - potential duplicate push tokens in database | ✅     | 2025/09/13 | 2025/09/18 |
+| **Multi Sessions Not Available** | High     | Multi sessions are not available, once the user logs in, old refresh_token will be invalidated   | ✅     | 2025/09/19 | 2025/09/20 |
 
 ---
 
 _Last Updated: 2025/09/18_  
-_Total Issues: 9 | Resolved: 8 | Remaining: 1_
+_Total Issues: 10 | Resolved: 9 | Remaining: 1_

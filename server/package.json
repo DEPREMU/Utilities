@@ -17,6 +17,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
     "axios": "^1.12.1",
+    "bcryptjs": "^3.0.2",
     "chalk": "^5.6.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
@@ -24,15 +25,18 @@
     "fs": "^0.0.1-security",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
+    "jsonwebtoken": "^9.0.2",
     "path": "^0.12.7",
     "ws": "^8.18.3"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/chalk": "^0.4.31",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
-    "@types/node": "^24.3.3",
+    "@types/node": "^24.5.2",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
     "@typescript-eslint/parser": "^8.43.0",
@@ -40,6 +44,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "nodemon": "^3.1.10",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2"
   }
 }

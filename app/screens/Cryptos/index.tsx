@@ -3,15 +3,15 @@ import DisplayScreen from "./DisplayScreen";
 import SelectionScreen from "./SelectionScreen";
 import { BottomNavigation } from "react-native-paper";
 import useStylesCryptosNavigator from "@styles/components/cryptos/useStylesCryptosNavigator";
-import { loadDataSecure, SelectedCryptos } from "@utils";
+import { loadDataSecure, logError, SelectedCryptos } from "@utils";
 import React, { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
+import chalk from "chalk";
 
 const CryptosNavigator: React.FC = () => {
-  const { styles, accent, primary } = useStylesCryptosNavigator();
+  const { styles, colors } = useStylesCryptosNavigator();
 
-  const [index, setIndex] = React.useState<number>(0);
-
+  const [index, setIndex] = useState<number>(0);
   const [selectedCryptos, setSelectedCryptos] = useState<SelectedCryptos>({});
 
   const handleSetSelectedCryptos = useCallback(
@@ -60,12 +60,11 @@ const CryptosNavigator: React.FC = () => {
   useEffect(() => {
     const loadSelectedCryptos = async () => {
       try {
-        const storedCryptos =
-          await loadDataSecure<SelectedCryptos>("_selectedCryptos");
+        const storedCryptos = await loadDataSecure("_selectedCryptos");
         if (storedCryptos) setSelectedCryptos(storedCryptos);
       } catch (error) {
-        console.error(
-          "Error loading selected cryptocurrencies from storage",
+        logError(
+          chalk.red("Error loading selected cryptocurrencies from storage"),
           error,
         );
       }
@@ -80,8 +79,8 @@ const CryptosNavigator: React.FC = () => {
         onIndexChange={setIndex}
         renderScene={renderScene}
         barStyle={styles.tabBar}
-        activeColor={primary}
-        inactiveColor={accent}
+        activeColor={colors.primary}
+        inactiveColor={colors.accent}
       />
     </View>
   );

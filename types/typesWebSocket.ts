@@ -9,7 +9,7 @@ import { LanguagesSupported } from "./typesTranslations";
 export type WebSocketMessage =
   | {
       type: "init";
-      uid: string;
+      userId: string;
       language: LanguagesSupported;
       notifications: typeNotifications | null;
       hasAdmin: boolean;
@@ -19,7 +19,7 @@ export type WebSocketMessage =
   | {
       type: "notifications";
       data: typeNotifications;
-      uid: string;
+      userId: string;
     }
   | {
       type: "language-change";

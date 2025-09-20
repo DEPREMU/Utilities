@@ -1,15 +1,16 @@
 export type UserData = {
-  uid: string;
   name: string;
+  email: string;
   phone: string | null;
+  userId: string;
+  password: string;
   description: string | null;
   createdAt?: string;
   updatedAt?: string;
-  email: string;
 };
 
 export type UserSession = {
   access_token: string;
   refresh_token: string;
-  user: UserData;
+  user: Omit<UserData, "password">;
 };

@@ -1,6 +1,15 @@
+import { Falsy } from "react-native";
 import type { UserData } from "./typesUser";
-import type { Logs, Streamer } from "./typesDatabase";
+import type {
+  Logs,
+  Streamer,
+  Tables,
+  TablesKeys,
+  UserConfig,
+} from "./typesDatabase";
 import type { Handler } from "express";
+import { LanguagesSupported } from "./typesTranslations";
+import { ExpectedStorageTypes } from "@/utils";
 
 export type Route = {
   method: "get" | "post" | "put" | "delete";
@@ -22,6 +31,15 @@ export type RoutesAPI =
   | "/cryptos"
   | "/getIsLiveStreamer"
   | "/translate"
+  | "/supabase/update"
+  | "/supabase/delete"
+  | "/supabase/fetch"
+  | "/supabase/insert"
+  | "/auth/login"
+  | "/auth/signup"
+  | "/auth/signOut"
+  | "/auth/refreshSession"
+  | "/getRandomUUID"
   | "/health";
 
 export type RequestBody = Logs | UserData;
@@ -82,5 +100,105 @@ export type RequestGetIsLiveStreamer = {
 
 export type ResponseGetIsLiveStreamer = {
   streamer?: Streamer & { isLive: boolean };
+  error?: string;
+};
+
+export type RequestAuth = {
+  lang: LanguagesSupported;
+  email: string;
+  password: string;
+  // Login:
+  deviceId?: string;
+  expoToken?: string;
+  rememberMe?: boolean;
+};
+
+export type ResponseAuth = {
+  user?: Omit<UserData, "password">;
+  token?: string;
+  error?: string;
+  success: boolean;
+  storageValues?: ExpectedStorageTypes;
+};
+
+export type RequestRefreshSession = {
+  lang: LanguagesSupported;
+  token: string;
+  deviceId: string;
+  expoToken: string;
+};
+
+export type ResponseRefreshSession = {
+  token?: string;
+  error?: string;
+  success: boolean;
+  userData?: Omit<UserData, "password"> | null;
+};
+
+export type RequestSignOut = {
+  lang: LanguagesSupported;
+  token: string;
+  deviceId: string;
+  expoToken: string;
+};
+
+export type ResponseSignOut = {
+  success: boolean;
+  error?: string;
+};
+
+export type RequestSupabaseInsert<T extends TablesKeys = TablesKeys> = {
+  lang: LanguagesSupported;
+  token: string;
+  table: T;
+  values: Tables[T] | Tables[T][];
+};
+
+export type ResponseSupabaseInsert<T extends TablesKeys = TablesKeys> = {
+  data?: Tables[T] | Tables[T][] | null;
+  error?: string;
+  success: boolean;
+};
+
+export type RequestSupabaseFetch<T extends TablesKeys = TablesKeys> = {
+  lang: LanguagesSupported;
+  table: T;
+  token: string;
+  match: Partial<Tables[T]> | null;
+};
+
+export type ResponseSupabaseFetch<T extends TablesKeys = TablesKeys> = {
+  data?: Tables[T][] | Tables[T] | Falsy;
+  error?: string;
+};
+
+export type RequestSupabaseUpdate<T extends TablesKeys = TablesKeys> = {
+  lang: LanguagesSupported;
+  table: T;
+  token: string;
+  match: Partial<Tables[T]> | null;
+  values: Partial<Tables[T]> | Partial<Tables[T]>[];
+};
+
+export type ResponseSupabaseUpdate<T extends TablesKeys = TablesKeys> = {
+  data?: Tables[T] | Tables[T][] | Falsy;
+  error?: string;
+  success: boolean;
+};
+
+export type RequestSupabaseDelete<T extends TablesKeys = TablesKeys> = {
+  lang: LanguagesSupported;
+  table: T;
+  token: string;
+  match: Partial<Tables[T]> ;
+};
+
+export type ResponseSupabaseDelete = {
+  success: boolean;
+  error?: string;
+};
+
+export type ResponseGetRandomUUID = {
+  uuid?: string;
   error?: string;
 };

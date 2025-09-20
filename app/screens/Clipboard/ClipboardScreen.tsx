@@ -1,5 +1,12 @@
 import { Text } from "react-native-paper";
-import { Tables } from "@types";
+import {
+  RequestSupabaseFetch,
+  RequestSupabaseUpdate,
+  ResponseSupabaseFetch,
+  ResponseSupabaseUpdate,
+  Tables,
+} from "@types";
+import { fetchOptions, getRouteAPI, logError } from "@utils";
 import * as Clipboard from "expo-clipboard";
 import { useLanguage } from "@context/LanguageContext";
 import { FlatList, View } from "react-native";
@@ -7,7 +14,7 @@ import { useUserContext } from "@context/UserContext";
 import RenderClipboardItem from "@components/Clipboard/RenderClipboardItem";
 import useStylesClipboardScreen from "@/styles/screens/clipboard/useStylesClipboardScreen";
 import React, { useCallback, useEffect, useState } from "react";
-import { fetchFromTable, logError, updateInTable } from "@utils";
+import chalk from "chalk";
 
 const skeletonData: Tables["ClipboardSync"][] = Array.from({ length: 5 }).map(
   () =>
@@ -21,32 +28,41 @@ const skeletonData: Tables["ClipboardSync"][] = Array.from({ length: 5 }).map(
 );
 
 const ClipboardScreen: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { styles } = useStylesClipboardScreen();
-  const { userData } = useUserContext();
+  const { userData, sessionToken } = useUserContext();
 
   const [clipboardData, setClipboardData] = useState<
     Tables["ClipboardSync"][] | null
   >(skeletonData);
 
-  const deleteClipboardItem = useCallback(async (id: string) => {
-    if (!id) return logError("No ID provided for deletion");
+  const deleteClipboardItem = useCallback(
+    async (id: string) => {
+      if (!id) return logError("No ID provided for deletion");
+      if (!sessionToken) return logError("No session token available");
 
-    const { error } = await updateInTable(
-      "ClipboardSync",
-      { deleted: true },
-      { id: id },
-    );
+      const { error } = (await fetch(
+        await getRouteAPI("/supabase/update"),
+        fetchOptions<RequestSupabaseUpdate>("POST", {
+          lang: language,
+          match: { id },
+          table: "ClipboardSync",
+          token: sessionToken,
+          values: { deleted: true },
+        }),
+      ).then((res) => res.json())) as ResponseSupabaseUpdate;
 
-    if (error) {
-      console.error("Error deleting clipboard item:", error);
-      return;
-    }
+      if (error) {
+        logError(chalk.red("Error deleting clipboard item:"), error);
+        return;
+      }
 
-    setClipboardData(
-      (prevData) => prevData?.filter((item) => item.id !== id) ?? null,
-    );
-  }, []);
+      setClipboardData(
+        (prevData) => prevData?.filter((item) => item.id !== id) ?? null,
+      );
+    },
+    [sessionToken, language],
+  );
 
   const copyClipboardContent = useCallback(async (content: string) => {
     if (!content) return logError("No content provided for copying");
@@ -86,34 +102,42 @@ const ClipboardScreen: React.FC = () => {
   }, [t, styles]);
 
   useEffect(() => {
-    if (!userData?.uid) return;
+    if (!userData?.userId) return;
 
     const fetchClipboardFromSupabase = async () => {
-      const { data, error } = await fetchFromTable<Tables["ClipboardSync"]>(
-        "ClipboardSync",
-        {
-          userId: userData?.uid,
-          deleted: false,
-        },
+      if (!sessionToken) return logError("No session token available");
+
+      const res = await fetch(
+        await getRouteAPI("/supabase/fetch"),
+        fetchOptions<RequestSupabaseFetch>("POST", {
+          table: "ClipboardSync",
+          match: { userId: userData?.userId, deleted: false },
+          lang: language,
+          token: sessionToken,
+        }),
       );
 
-      if (error) {
-        console.error("Error fetching clipboard data:", error);
+      const { data, error } =
+        (await res.json()) as ResponseSupabaseFetch<"ClipboardSync">;
+
+      if (error || !data) {
+        logError(chalk.red("Error fetching clipboard data:"), error);
         return;
       }
 
       setTimeout(
         () =>
           setClipboardData(
-            data?.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) ??
-              null,
+            (Array.isArray(data) ? data : [data]).sort((a, b) =>
+              b.createdAt.localeCompare(a.createdAt),
+            ) ?? null,
           ),
         3000,
       );
     };
 
     fetchClipboardFromSupabase();
-  }, [userData?.uid]);
+  }, [userData?.userId, sessionToken, language]);
 
   return (
     <View style={styles.container}>

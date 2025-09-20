@@ -1,4 +1,5 @@
 /* eslint-disable indent */
+import chalk from "chalk";
 import type { LanguagesSupported, typeLanguagesServer } from "../../types";
 import en from "./English.ts";
 import es from "./Spanish.ts";
@@ -12,7 +13,7 @@ import es from "./Spanish.ts";
  * @returns The translated string, with placeholders replaced by their corresponding values.
  */
 export const t = (
-  key: keyof typeLanguagesServer,
+  key: keyof typeLanguagesServer | string,
   lang: LanguagesSupported,
   replace?: object,
 ): string => {
@@ -21,10 +22,48 @@ export const t = (
   switch (lang) {
     case "en":
     default:
-      value = en[key];
+       if (!key.includes("."))
+         value = en[key as keyof typeLanguagesServer] as string;
+       else {
+         const keys = key.split(".");
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         let temp: any = en[keys[0] as keyof typeof en];
+         for (const k of keys.slice(1)) {
+           temp = temp?.[k];
+           if (!temp) break;
+         }
+         if (temp && typeof temp === "string") value = temp;
+         else {
+           console.log(
+             chalk.yellow(
+               `Missing translation for key "${key}" in language "${lang}"`,
+             ),
+           );
+           value = key;
+         }
+       }
       break;
     case "es":
-      value = es[key];
+      if (!key.includes("."))
+        value = es[key as keyof typeLanguagesServer] as string;
+      else {
+        const keys = key.split(".");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let temp: any = es[keys[0] as keyof typeof es];
+        for (const k of keys.slice(1)) {
+          temp = temp?.[k];
+          if (!temp) break;
+        }
+        if (temp && typeof temp === "string") value = temp;
+        else {
+          console.log(
+            chalk.yellow(
+              `Missing translation for key "${key}" in language "${lang}"`,
+            ),
+          );
+          value = key;
+        }
+      }
       break;
   }
   if (!value) return "";

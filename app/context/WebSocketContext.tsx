@@ -16,14 +16,14 @@ import React, {
   useState,
   useEffect,
   useContext,
-  createContext,
   useCallback,
+  createContext,
 } from "react";
 import { AppState } from "react-native";
 import { useModal } from "./ModalContext";
 import { useLanguage } from "./LanguageContext";
 import { useUserContext } from "./UserContext";
-import { Theme, WebSocketMessage, WebSocketResponse } from "@types";
+import { WebSocketMessage, WebSocketResponse } from "@types";
 
 interface WebSocketContextType {
   socket: WebSocket | null;
@@ -66,7 +66,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
   const createWebSocketConnection = useCallback(
     (url: string) => {
-      if (!userData?.uid) return null;
+      if (!userData?.userId) return null;
       if (isConnecting.current || !shouldConnect.current) {
         log("Skipping connection: already connecting or should not connect");
         return;
@@ -114,13 +114,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           const [lang, notifications, hasAdmin, theme] = await Promise.all([
             checkLanguage(),
             getNotifications(),
-            loadData<boolean>("@hasAdminAccess"),
-            loadData<Theme>("@theme"),
+            loadData("@hasAdminAccess"),
+            loadData("@theme"),
           ]);
 
           const initMessage: WebSocketMessage = {
             type: "init",
-            uid: userData?.uid || "",
+            userId: userData?.userId || "",
             notifications,
             theme: theme || "auto",
             language: lang || "en",
@@ -133,7 +133,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
             const notificationMessage: WebSocketMessage = {
               type: "notifications",
               data: notifications,
-              uid: userData?.uid || "",
+              userId: userData?.userId || "",
             };
             newSocket.send(stringifyData(notificationMessage));
           }
@@ -208,11 +208,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
       setSocket(newSocket);
     },
-    [openSnackBar, t, userData?.name, userData?.uid],
+    [openSnackBar, t, userData?.name, userData?.userId],
   );
 
   useEffect(() => {
-    loadData<string | null>("@webSocketURL").then(setSocketURL);
+    loadData("@webSocketURL").then((data) => setSocketURL(data || null));
   }, []);
 
   useEffect(() => {

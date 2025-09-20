@@ -1,46 +1,46 @@
 import {
-  openURL,
-  capitalize,
-  loadDataSecure,
-  saveDataSecure,
-  logError,
   isFalsy,
-  deleteInTable,
-  stringifyData,
+  openURL,
+  logError,
+  capitalize,
   getRouteAPI,
   fetchOptions,
-  updateInTable,
+  saveDataSecure,
+  loadDataSecure,
 } from "@utils";
-import Button from "@components/common/ButtonComponent";
 import {
+  Streamer,
   Notifications,
   RequestAddStreamer,
-  RequestGetIsLiveStreamer,
   ResponseAddStreamer,
+  RequestSupabaseFetch,
+  RequestSupabaseDelete,
+  ResponseSupabaseFetch,
+  RequestSupabaseUpdate,
+  ResponseSupabaseDelete,
+  RequestGetIsLiveStreamer,
   ResponseGetIsLiveStreamer,
-  Streamer,
-  UserNotificationsConfig,
 } from "@types";
+import Button from "@components/common/ButtonComponent";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
-import { fetchFromTable } from "@utils";
 import { useUserContext } from "@context/UserContext";
-import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
+import { View, ScrollView } from "react-native";
+import { useNotifications } from "@context/NotificationsContext";
 import { useStylesStreamers } from "@styles/screens/SocialMedia/useStylesStreamers";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
-import { View, ScrollView } from "react-native";
+import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useNotifications } from "@/context/NotificationsContext";
 
 type StreamerWithIsLive = Streamer & { isLive: boolean };
 
 const Streamers: React.FC = () => {
-  const { t } = useLanguage();
-  const { user } = useUserContext();
   const { styles } = useStylesStreamers();
+  const { t, language } = useLanguage();
   const { hasInternet } = useDeviceInformation();
-  const { notifications, setNotifications } = useNotifications();
   const { openModal, closeModal } = useModal();
+  const { userData, sessionToken } = useUserContext();
+  const { notifications, setNotifications } = useNotifications();
 
   const [streamer, setStreamer] = useState<string>("");
   const [streamers, setStreamers] = useState<StreamerWithIsLive[]>([]);
@@ -48,7 +48,7 @@ const Streamers: React.FC = () => {
 
   const addingStreamer = useCallback(async () => {
     if (isFalsy(streamer)) return;
-    if (isFalsy(user?.id)) return;
+    if (isFalsy(userData?.userId)) return;
 
     if (
       streamers.find(
@@ -70,7 +70,7 @@ const Streamers: React.FC = () => {
         await getRouteAPI("/addStreamer"),
         fetchOptions<RequestAddStreamer>("POST", {
           name: streamer,
-          userId: user?.id || "",
+          userId: userData?.userId || "",
         }),
       );
 
@@ -88,7 +88,7 @@ const Streamers: React.FC = () => {
       if (Object.keys(data.streamer || {}).length > 3) {
         setStreamers((prev) => [...prev, data.streamer as StreamerWithIsLive]);
         setNotifications((prev) => {
-          if (!prev || !user?.id) return prev;
+          if (!prev || !userData?.userId) return prev;
           const newNotifications = {
             ...JSON.parse(JSON.stringify(prev)),
             enabled: {
@@ -115,7 +115,7 @@ const Streamers: React.FC = () => {
     streamers,
     streamer,
     t,
-    user?.id,
+    userData?.userId,
     setNotifications,
   ]);
 
@@ -141,11 +141,18 @@ const Streamers: React.FC = () => {
   const deleteStreamer = useCallback(
     async (id: string) => {
       closeModal();
-      if (!user?.id || isFalsy(id)) return;
+      if (!userData?.userId || isFalsy(id) || !sessionToken) return;
 
-      const { error } = await deleteInTable<Streamer>(user?.id, "Streamers", {
-        id,
-      });
+      const res = await fetch(
+        await getRouteAPI("/supabase/delete"),
+        fetchOptions<RequestSupabaseDelete>("POST", {
+          lang: language,
+          table: "Streamers",
+          match: { id, userId: userData?.userId },
+          token: sessionToken,
+        }),
+      );
+      const { error } = (await res.json()) as ResponseSupabaseDelete;
 
       if (error) {
         logError(error);
@@ -160,20 +167,26 @@ const Streamers: React.FC = () => {
       setStreamers((prev) => {
         const streamerExists = prev.find((streamer) => streamer.id === id);
         if (streamerExists)
-          deleteInTable<UserNotificationsConfig>(
-            user?.id,
-            "UserNotificationsConfig",
-            {
-              userId: user?.id,
-              reason: "streamers",
-              streamer: streamerExists.name,
-            },
+          getRouteAPI("/supabase/delete").then((url) =>
+            fetch(
+              url,
+              fetchOptions<RequestSupabaseDelete>("POST", {
+                lang: language,
+                table: "UserNotificationsConfig",
+                match: {
+                  userId: userData?.userId,
+                  reason: "streamers",
+                  streamer: streamerExists.name,
+                },
+                token: sessionToken,
+              }),
+            ),
           );
 
         return prev.filter((streamer) => streamer.id !== id);
       });
       setNotifications((prev) => {
-        if (!prev || !user?.id) return prev;
+        if (!prev || !userData?.userId) return prev;
         const streamers = { ...prev.enabled.streamers };
         if (streamers[id]) delete streamers[id];
 
@@ -188,7 +201,15 @@ const Streamers: React.FC = () => {
         return newNotifications;
       });
     },
-    [closeModal, openModal, t, user?.id, setNotifications],
+    [
+      closeModal,
+      openModal,
+      t,
+      userData?.userId,
+      setNotifications,
+      sessionToken,
+      language,
+    ],
   );
 
   const askDeleteStreamer = useCallback(
@@ -266,13 +287,24 @@ const Streamers: React.FC = () => {
 
         return newNotifications;
       });
-      await updateInTable(
-        "UserNotificationsConfig",
-        { enabled: newBool },
-        { userId: user?.id, reason: "streamers", streamer: streamerName },
+      if (!userData?.userId || !sessionToken) return;
+
+      await fetch(
+        await getRouteAPI("/supabase/update"),
+        fetchOptions<RequestSupabaseUpdate>("POST", {
+          lang: language,
+          table: "UserNotificationsConfig",
+          match: {
+            userId: userData?.userId,
+            reason: "streamers",
+            streamer: streamerName,
+          },
+          values: { enabled: newBool },
+          token: sessionToken,
+        }),
       );
     },
-    [notifications, setNotifications, user?.id, hasInternet],
+    [notifications, setNotifications, userData?.userId, hasInternet],
   );
 
   useEffect(() => {
@@ -280,7 +312,7 @@ const Streamers: React.FC = () => {
   }, [streamers]);
 
   useEffect(() => {
-    if (!user?.id || !hasInternet) {
+    if (!userData?.userId || !hasInternet) {
       openModal(
         t("error"),
         t("youAreNotLoggedIn"),
@@ -291,17 +323,31 @@ const Streamers: React.FC = () => {
 
     const loadStreamers = async () => {
       try {
+        if (!userData?.userId || !sessionToken) return;
         let data: Streamer[];
 
         if (hasInternet) {
-          const { data: internetData } = await fetchFromTable<Streamer>(
-            "Streamers",
-            { userId: user.id },
+          const res = await fetch(
+            await getRouteAPI("/supabase/fetch"),
+            fetchOptions<RequestSupabaseFetch>("POST", {
+              table: "Streamers",
+              match: { userId: userData?.userId },
+              lang: language,
+              token: sessionToken,
+            }),
           );
+          const { data: internetData, error } =
+            (await res.json()) as ResponseSupabaseFetch<"Streamers">;
 
-          data = internetData ?? [];
+          if (error) throw new Error(error);
+
+          data = Array.isArray(internetData)
+            ? internetData
+            : internetData
+              ? [internetData]
+              : [];
         } else {
-          data = (await loadDataSecure<Streamer[]>("_Streamers")) || [];
+          data = (await loadDataSecure("_Streamers")) || [];
         }
 
         if (data && data.length === 0) return;
@@ -338,7 +384,7 @@ const Streamers: React.FC = () => {
           );
 
         setStreamers(newData ? newData : allStreamers);
-        saveDataSecure("_Streamers", stringifyData(allStreamers));
+        saveDataSecure("_Streamers", allStreamers);
       } catch (error) {
         logError(error);
       }
@@ -350,7 +396,7 @@ const Streamers: React.FC = () => {
     }, 15000);
 
     return () => clearInterval(id);
-  }, [closeModal, hasInternet, openModal, t, user?.id]);
+  }, [closeModal, hasInternet, openModal, t, userData?.userId]);
 
   return (
     <View style={styles.container}>

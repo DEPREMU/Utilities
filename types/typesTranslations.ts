@@ -190,13 +190,34 @@ export type typeLanguages = Record<ReasonNotification, string> &
     failedToAddTextToDatabase: string;
     textAddedToDatabase: string;
     test: string;
+    pleaseEnterSomeText: string;
   };
 
 export type typeLanguagesServer = {
+  internalError: string;
   notificationCryptoBody: string;
   notificationCryptoTitle: string;
   streamerLiveNotification: string;
   streamerLiveNotificationTitle: string;
   notificationNotCryptosSelectedBody: string;
   notificationNotCryptosSelectedTitle: string;
+  auth: {
+    passwordNotStrong: string;
+    emailAndPasswordRequired: string;
+    accountAlreadyExists: string;
+    invalidCredentials: string;
+    tokenRequired: string;
+    userNotFound: string;
+    invalidPassword: string;
+    wrongCredentials: string;
+    deviceIdRequired: string;
+    tokenAndDeviceIdRequired: string;
+    deviceInfoIsRequired: string;
+  };
+  supabase: {
+    fetchError: string;
+    insertError: string;
+    updateError: string;
+    deleteError: string;
+  }
 };

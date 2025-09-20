@@ -1,20 +1,26 @@
 /* eslint-disable indent */
+import {
+  updateInTable,
+  fetchFromTable,
+  insertIntoTable,
+} from "../supabase/functions.ts";
 import type {
   Cryptos,
+  UserConfig,
   Notifications,
   WebSocketMessage,
   ReasonNotification,
   WebSocketResponse,
   LanguagesSupported,
   UserNotificationsConfig,
-  UserConfig,
 } from "./../../types/index";
+import env from "../env.ts";
+import { t } from "../translations/index.ts";
+import chalk from "chalk";
 import { supabase } from "../supabase/supabase.ts";
 import { Server as ServerHTTP } from "http";
 import { Server as ServerHTTPS } from "https";
 import WebSocket, { WebSocketServer } from "ws";
-import env from "../env.ts";
-import { t } from "../translations/index.ts";
 
 const credentials = await supabase.auth.signInWithPassword({
   email: env.EMAIL_APP_SUPABASE,
@@ -39,7 +45,7 @@ setInterval(
     });
     credentials.data.session = data.session;
   },
-  60 * 60 * 1000,
+  50 * 60 * 1000,
 );
 
 const getPercentGain = (priceUsd: number, cryptoData: Cryptos) => {
@@ -53,42 +59,39 @@ const getPercentGain = (priceUsd: number, cryptoData: Cryptos) => {
 };
 
 const insertUserConfig = async (config: UserConfig) => {
-  const { data } = await supabase
-    .from("UserConfig")
-    .select("*")
-    .eq("userId", config.userId)
-    .single();
+  const fetchedData = await fetchFromTable("UserConfig", {
+    userId: config.userId,
+  });
+  let data = fetchedData.data;
+  if (Array.isArray(data)) data = null;
 
-  if (!data) return await supabase.from("UserConfig").insert(config);
-  await supabase
-    .from("UserConfig")
-    .update({ ...config, id: data.id })
-    .eq("id", data.id);
+  if (!data) return await insertIntoTable("UserConfig", config);
+  updateInTable("UserConfig", { id: data.id }, { id: data.id });
 };
 
 const handleInitWebSocket = (data: WebSocketMessage, ws: WebSocket): string => {
   if (data.type !== "init") return "";
 
-  if (!users[data.uid]) {
-    users[data.uid] = {
+  if (!users[data.userId]) {
+    users[data.userId] = {
       ws,
       intervalsId: null,
     };
   }
-  insertNotifications(data.uid, data.notifications || null);
+  insertNotifications(data.userId, data.notifications || null);
   insertUserConfig({
-    userId: data.uid,
+    userId: data.userId,
     language: data.language || "en",
     theme: data.theme || "auto",
     hasAdmin: data.hasAdmin || false,
     updatedAt: new Date().toISOString(),
   });
 
-  if (users[data.uid].ws !== ws) {
-    if (users[data.uid].ws.readyState === WebSocket.OPEN) {
-      users[data.uid].ws.close();
+  if (users[data.userId].ws !== ws) {
+    if (users[data.userId].ws.readyState === WebSocket.OPEN) {
+      users[data.userId].ws.close();
     }
-    users[data.uid].ws = ws;
+    users[data.userId].ws = ws;
   }
 
   const message: WebSocketResponse = {
@@ -97,19 +100,20 @@ const handleInitWebSocket = (data: WebSocketMessage, ws: WebSocket): string => {
   };
   ws.send(JSON.stringify(message));
 
-  return data.uid;
+  return data.userId;
 };
 
 const insertNotifications = async (
   userId: string,
   notifications: Notifications | null,
 ) => {
-  const { data } = await supabase
-    .from("UserNotificationsConfig")
-    .select("*")
-    .eq("userId", userId);
+  const fetchedData = await fetchFromTable("UserNotificationsConfig", {
+    userId,
+  });
+  let data = fetchedData.data;
 
-  if (!data || data?.length === 0) return;
+  if (!data) return;
+  if (!Array.isArray(data)) data = [data];
 
   await Promise.all(
     data.map(async (item: UserNotificationsConfig) => {
@@ -131,10 +135,7 @@ const insertNotifications = async (
             false,
         };
 
-      await supabase
-        .from("UserNotificationsConfig")
-        .update(newData)
-        .eq("id", item.id);
+      updateInTable("UserNotificationsConfig", newData, { id: item.id });
     }),
   );
 };
@@ -148,13 +149,13 @@ const connectionWss = (ws: WebSocket) => {
     reason: "cryptos";
     screen: "Cryptos";
   }> => {
-    const { data: lang } = await supabase
-      .from("UserConfig")
-      .select<"language", { language: LanguagesSupported }>("language")
-      .eq("userId", userId)
-      .single();
+    const fetchedData = await fetchFromTable("UserConfig", {
+      userId,
+    });
 
-    const { language } = lang || { language: "en" };
+    let dataLang = fetchedData.data;
+    if (Array.isArray(dataLang)) dataLang = dataLang[0];
+    const language = (dataLang?.language || "en") as LanguagesSupported;
 
     if (!cryptos || cryptos?.length === 0)
       return {
@@ -203,17 +204,18 @@ const connectionWss = (ws: WebSocket) => {
   ) => {
     if (data.type !== "notifications") return;
 
-    if (!users[data.uid]) {
-      users[data.uid] = {
+    if (!users[data.userId]) {
+      users[data.userId] = {
         ws,
         intervalsId: null,
       };
     }
-    const { data: dataSupabase } = await supabase
-      .from("Cryptos")
-      .select("*")
-      .eq("userId", data.uid);
-    const cryptos = dataSupabase as Cryptos[];
+    const fetchedData = await fetchFromTable("Cryptos", {
+      userId: data.userId,
+    });
+    let cryptos = fetchedData.data;
+    if (!cryptos) cryptos = [];
+    if (!Array.isArray(cryptos)) cryptos = [cryptos];
 
     const handleInterval = async () => {
       if (!cryptos || cryptos.length === 0) return;
@@ -226,11 +228,11 @@ const connectionWss = (ws: WebSocket) => {
       if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
     };
 
-    const intervalOld = users[data.uid].intervalsId?.cryptos;
+    const intervalOld = users[data.userId].intervalsId?.cryptos;
     if (intervalOld) clearInterval(intervalOld);
     const intervalId = setInterval(handleInterval, interval);
-    users[data.uid].intervalsId = {
-      ...users[data.uid].intervalsId,
+    users[data.userId].intervalsId = {
+      ...users[data.userId].intervalsId,
       cryptos: intervalId,
       streamers: null,
       allNotifications: null,
@@ -240,10 +242,10 @@ const connectionWss = (ws: WebSocket) => {
   const handleNotifications = (data: WebSocketMessage, ws: WebSocket) => {
     if (data.type !== "notifications") return;
 
-    insertNotifications(data.uid, data.data);
+    insertNotifications(data.userId, data.data);
 
-    if (!users[data.uid]) {
-      users[data.uid] = {
+    if (!users[data.userId]) {
+      users[data.userId] = {
         ws,
         intervalsId: null,
       };
@@ -268,7 +270,7 @@ const connectionWss = (ws: WebSocket) => {
   };
 
   let userId: string;
-  console.log("New client connected");
+  console.log(chalk.green("New client connected"));
 
   ws.on("message", (message) => {
     const data = JSON.parse(message.toString()) as WebSocketMessage;
@@ -284,19 +286,22 @@ const connectionWss = (ws: WebSocket) => {
         break;
       case "language-change":
         if (!users[userId]) return;
-        supabase
-          .from("Users")
-          .update({ language: data.language })
-          .eq("id", userId);
+        updateInTable("UserConfig", { language: data.language }, { userId });
         break;
       default:
-        console.log("Unknown message type:", data);
+        console.log(chalk.yellow("Unknown message type:"), data);
         break;
     }
   });
 
   ws.on("close", (code, reason) => {
-    console.log("Client", userId, "disconnected:", code, reason.toString());
+    console.log(
+      chalk.red("Client"),
+      chalk.yellow(userId),
+      chalk.red("disconnected:"),
+      code,
+      chalk.yellow(reason.toString()),
+    );
   });
 };
 

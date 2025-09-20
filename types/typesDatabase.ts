@@ -68,13 +68,23 @@ export type Streamer = {
   createdAt?: string;
 };
 
+export type UserSessions = {
+  id?: string;
+  token: string;
+  userId: string;
+  deviceId: string;
+  updatedAt: string;
+  createdAt?: string;
+}
+
 export type Tables = {
   Users: UserData;
   Logs: Logs;
   Cryptos: Cryptos;
-  PushTokens: PushTokens;
   Streamers: Streamer;
   UserConfig: UserConfig;
+  PushTokens: PushTokens;
+  UserSessions: UserSessions;
   ClipboardSync: ClipboardSync;
   UserNotificationsConfig: UserNotificationsConfig;
 };

@@ -7,14 +7,15 @@ const REQUIRED_VARS: (keyof Env)[] = [
   "HOST",
   "PORT",
   "USE_HTTPS",
+  "JWT_SECRET",
   "SUPABASE_URL",
   "SUPABASE_KEY",
   "ADMIN_PASSWORD",
-  "EMAIL_APP_SUPABASE",
-  "PASSWORD_APP_SUPABASE",
   "VAPID_PUBLIC_KEY",
   "VAPID_PRIVATE_KEY",
+  "EMAIL_APP_SUPABASE",
   "DEEPL_TRANSLATOR_API",
+  "PASSWORD_APP_SUPABASE",
 ];
 
 export const validateServerEnv = () => {
@@ -40,6 +41,7 @@ const env: Env = {
   VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || "",
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || "",
   DEEPL_TRANSLATOR_API: process.env.DEEPL_TRANSLATOR_API || "",
+  JWT_SECRET: process.env.JWT_SECRET || "7rg398cg9savc93q87fvvca08fv",
 };
 
 export default env;

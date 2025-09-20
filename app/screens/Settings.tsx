@@ -5,14 +5,14 @@ import Notifications from "@components/Settings/Notifications";
 import LanguagePicker from "@components/Settings/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
-import { typeLanguages } from "@types";
+import { RequestSupabaseUpdate, typeLanguages } from "@types";
 import { useUserContext } from "@context/UserContext";
 import { Text, TextInput } from "react-native-paper";
 import { ScrollView, View } from "react-native";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
-import { loadData, log, saveData, updateInTable } from "@utils";
+import { fetchOptions, getRouteAPI, loadData, log, saveData } from "@utils";
 import React, { useCallback, useEffect, useState } from "react";
 
 type Section = {
@@ -26,12 +26,12 @@ type Section = {
 };
 
 const SettingsScreen: React.FC = () => {
-  const { t } = useLanguage();
-  const { userData } = useUserContext();
   const { styles } = useStylesSettingsScreen();
+  const { t, language } = useLanguage();
   const { hasInternet } = useDeviceInformation();
   const { addTaskQueue } = useBackgroundTask();
   const { setSocketURL } = useWebSocket();
+  const { userData, sessionToken } = useUserContext();
 
   const [apiURL, setApiURL] = useState<string | null>(null);
   const [password, setPassword] = useState<string>("");
@@ -52,47 +52,80 @@ const SettingsScreen: React.FC = () => {
   }, [password]);
 
   const saveApiURL = useCallback(async () => {
-    if (!apiURL || !userData?.uid) return;
+    if (!apiURL || !userData?.userId) return;
+    const id =
+      Date.now().toString() + Math.random().toString(36).substring(2, 8);
 
     addTaskQueue(
       async () => {
-        await updateInTable(
-          "UserConfig",
-          { API_URL: apiURL },
-          { userId: userData.uid },
+        if (!userData?.userId) return;
+        if (!sessionToken) return;
+
+        await fetch(
+          await getRouteAPI("/supabase/update"),
+          fetchOptions<RequestSupabaseUpdate>("POST", {
+            lang: language,
+            match: { userId: userData.userId },
+            table: "UserConfig",
+            token: sessionToken,
+            values: { API_URL: apiURL },
+          }),
         );
+        await saveData("@API_URL", apiURL);
       },
       true,
       {
-        functionName: "updateAPIConfig",
-        args: [userData.uid, apiURL],
+        id,
+        functionName: "updateFromSupabase",
+        args: ["UserConfig", { API_URL: apiURL }, { userId: userData.userId }],
       },
+      id,
     );
-    await saveData("@API_URL", apiURL);
-  }, [apiURL, addTaskQueue, userData?.uid]);
+  }, [apiURL, addTaskQueue, userData?.userId, sessionToken, language]);
 
   const saveSocketURL = useCallback(async () => {
-    if (!socketURL || !userData?.uid) return;
+    if (!socketURL || !userData?.userId) return;
+    const id =
+      Date.now().toString() + Math.random().toString(36).substring(2, 8);
 
     setSocketURL(socketURL);
     addTaskQueue(
       async () => {
-        if (!userData?.uid) return;
-        await updateInTable(
-          "UserConfig",
-          { webSocketURL: socketURL },
-          { userId: userData.uid },
+        if (!userData?.userId) return;
+        if (!sessionToken) return;
+
+        await fetch(
+          await getRouteAPI("/supabase/update"),
+          fetchOptions<RequestSupabaseUpdate>("POST", {
+            lang: language,
+            match: { userId: userData.userId },
+            table: "UserConfig",
+            token: sessionToken,
+            values: { webSocketURL: socketURL },
+          }),
         );
+        await saveData("@webSocketURL", socketURL);
       },
       true,
       {
-        functionName: "updateWebSocketConfig",
-        args: [userData.uid, socketURL],
+        id,
+        functionName: "updateFromSupabase",
+        args: [
+          "UserConfig",
+          { webSocketURL: socketURL },
+          { userId: userData.userId },
+        ],
       },
+      id,
     );
-
-    await saveData("@webSocketURL", socketURL);
-  }, [socketURL, setSocketURL, addTaskQueue, userData?.uid]);
+  }, [
+    socketURL,
+    setSocketURL,
+    addTaskQueue,
+    userData?.userId,
+    sessionToken,
+    language,
+  ]);
 
   const renderSectionsAdmin = useCallback(() => {
     const sections: Section[] = [
@@ -146,14 +179,14 @@ const SettingsScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadData<boolean>("@hasAdminAccess").then((data) => {
-      setHasAdmin(data);
+    loadData("@hasAdminAccess").then((data) => {
+      setHasAdmin(data || false);
     });
-    loadData<string>("@webSocketURL").then((data) => {
-      setSocketURLState(data);
+    loadData("@webSocketURL").then((data) => {
+      setSocketURLState(data || "");
     });
-    loadData<string>("@API_URL").then((data) => {
-      setApiURL(data);
+    loadData("@API_URL").then((data) => {
+      setApiURL(data || "");
     });
   }, []);
 

@@ -8,6 +8,8 @@ import type {
 import axios from "axios";
 import express from "express";
 import { supabase } from "./../supabase/supabase.ts";
+import chalk from "chalk";
+import { updateInTable } from "../supabase/functions.ts";
 
 const getLinkImageStreamer = async (streamer: string) => {
   streamer = streamer.toLowerCase().replace(/\s+/g, "");
@@ -90,19 +92,18 @@ export const addStreamer = async (
     };
 
     try {
-      supabase
-        .from("UserNotificationsConfig")
-        .insert(newNotificationFromStreamer)
-        .then(({ error: errorInsert }) => {
-          if (errorInsert)
-            console.error(
-              "Failed to create notification config for streamer:",
-              errorInsert,
-            );
-        });
+      updateInTable("UserNotificationsConfig", newNotificationFromStreamer, {
+        userId,
+      }).then(({ error: errorInsert }) => {
+        if (errorInsert)
+          console.error(
+            chalk.red("Failed to create notification config for streamer:"),
+            errorInsert,
+          );
+      });
     } catch (error) {
       console.error(
-        "Failed to create notification config for streamer:",
+        chalk.red("Failed to create notification config for streamer:"),
         error,
       );
     }

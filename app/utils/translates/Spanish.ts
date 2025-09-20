@@ -219,6 +219,8 @@ const es: typeLanguages = {
   errorOccurred: "Ocurrió un error: {{error}}",
   failedToAddTextToDatabase: "No se pudo agregar el texto a la base de datos",
   textAddedToDatabase: "Texto agregado a la base de datos",
+  test: "Prueba",
+  pleaseEnterSomeText: "Por favor, ingresa algún texto",
 } as const;
 
 export default es;
