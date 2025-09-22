@@ -28,17 +28,20 @@ const SyncClipboardScreen: React.FC = () => {
     try {
       const res = await fetch(
         await getRouteAPI("/supabase/insert"),
-        fetchOptions<RequestSupabaseInsert>("POST", {
-          lang: language,
-          token: sessionToken,
-          table: "ClipboardSync",
-          values: {
-            content: inputText,
-            createdAt: new Date().toISOString(),
-            deviceId: "local-device",
-            userId: userData?.userId,
+        fetchOptions<RequestSupabaseInsert>(
+          "POST",
+          {
+            lang: language,
+            table: "ClipboardSync",
+            values: {
+              content: inputText,
+              createdAt: new Date().toISOString(),
+              deviceId: "local-device",
+              userId: userData?.userId,
+            },
           },
-        }),
+          sessionToken,
+        ),
       );
       const { error } = (await res.json()) as ResponseSupabaseInsert;
 

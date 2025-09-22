@@ -57,13 +57,16 @@ const taskRegistry: TaskRegistry = {
 
       await fetch(
         await getRouteAPI("/supabase/update"),
-        fetchOptions<RequestSupabaseUpdate>("POST", {
-          table: tableName,
-          values: data,
-          match: condition,
-          lang,
+        fetchOptions<RequestSupabaseUpdate>(
+          "POST",
+          {
+            table: tableName,
+            values: data,
+            match: condition,
+            lang,
+          },
           token,
-        }),
+        ),
       );
     } catch (error) {
       logError(`Error updating ${tableName}:`, error);
@@ -82,12 +85,15 @@ const taskRegistry: TaskRegistry = {
       if (!token) return;
       await fetch(
         await getRouteAPI("/supabase/insert"),
-        fetchOptions<RequestSupabaseInsert>("POST", {
-          table,
-          values,
-          lang,
+        fetchOptions<RequestSupabaseInsert>(
+          "POST",
+          {
+            table,
+            values,
+            lang,
+          },
           token,
-        }),
+        ),
       );
     } catch (error) {
       logError(`Error inserting into ${table}:`, error);
@@ -107,12 +113,15 @@ const taskRegistry: TaskRegistry = {
 
       await fetch(
         await getRouteAPI("/supabase/delete"),
-        fetchOptions<RequestSupabaseDelete>("POST", {
-          table,
-          match,
-          lang,
+        fetchOptions<RequestSupabaseDelete>(
+          "POST",
+          {
+            table,
+            match,
+            lang,
+          },
           token,
-        }),
+        ),
       );
     } catch (error) {
       logError(`Error deleting from ${table}:`, error);

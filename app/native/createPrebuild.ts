@@ -7,6 +7,9 @@ import { execSync } from "child_process";
 
 dotenv.config({ path: "../.env" });
 
+if (!process.env.API_URL)
+  throw new Error("API_URL is not defined in environment variables");
+
 let __dirname = path.resolve();
 if (__dirname.endsWith("app")) __dirname = path.join(__dirname, "..");
 
@@ -107,9 +110,10 @@ const createModules = async () => {
         );
         return;
       }
-      const newContent = content
-        .replace("{{supabaseUrl}}", process.env.SUPABASE_URL)
-        .replace("{{supabaseKey}}", process.env.SUPABASE_KEY);
+      const newContent = content.replace(
+        "{{serverURL}}",
+        process.env.API_URL || "",
+      );
       fs.writeFileSync(
         path.resolve(getPath(module.finalPath), module.name),
         newContent,

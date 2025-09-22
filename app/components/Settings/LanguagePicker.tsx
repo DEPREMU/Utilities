@@ -26,13 +26,16 @@ const LanguagePicker: React.FC = () => {
 
           fetch(
             await getRouteAPI("/supabase/update"),
-            fetchOptions<RequestSupabaseUpdate>("POST", {
-              lang,
-              match: { userId: userData?.userId },
-              table: "UserConfig",
-              token: sessionToken,
-              values: { language: lang },
-            }),
+            fetchOptions<RequestSupabaseUpdate>(
+              "POST",
+              {
+                lang,
+                match: { userId: userData?.userId },
+                table: "UserConfig",
+                values: { language: lang },
+              },
+              sessionToken,
+            ),
           );
         },
         true,
@@ -41,7 +44,7 @@ const LanguagePicker: React.FC = () => {
           functionName: "updateFromSupabase",
           args: ["UserConfig", { language: lang }, { userId: userData.userId }],
         },
-        id
+        id,
       );
       await changeLang(lang);
     },

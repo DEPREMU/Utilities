@@ -288,12 +288,15 @@ export const getCryptosFromSupabase = async (
   const url = await getRouteAPI("/supabase/fetch");
   const response = await fetch(
     url,
-    fetchOptions<RequestSupabaseFetch>("POST", {
-      lang,
+    fetchOptions<RequestSupabaseFetch>(
+      "POST",
+      {
+        lang,
+        table: "Cryptos",
+        match: null,
+      },
       token,
-      table: "Cryptos",
-      match: null,
-    }),
+    ),
   );
 
   if (!response.ok) {

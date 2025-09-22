@@ -22,13 +22,16 @@ const ThemePicker: React.FC = () => {
 
         await fetch(
           await getRouteAPI("/supabase/update"),
-          fetchOptions<RequestSupabaseUpdate>("POST", {
-            lang: language,
-            table: "UserConfig",
-            match: { userId: userData?.userId },
-            values: { theme: newTheme },
-            token: sessionToken,
-          }),
+          fetchOptions<RequestSupabaseUpdate>(
+            "POST",
+            {
+              lang: language,
+              table: "UserConfig",
+              match: { userId: userData?.userId },
+              values: { theme: newTheme },
+            },
+            sessionToken,
+          ),
         );
       }, true);
     },

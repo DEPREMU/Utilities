@@ -20,13 +20,19 @@ class ForegroundClipboardService : Service() {
     }
 
     private lateinit var clipboardManager: ClipboardManager
-    private var lastText: String = ""
-    private var userToken: String? = null
+    // Requirements to insert data in table "ClipboardSync"
     private var userId: String? = null
+    private var lastText: String = ""
+    private var deviceId: String = "${Build.MANUFACTURER} ${Build.MODEL}"
+    private var createdAt: String = ""
+    
+    // Requirements to send data to server insertion endpoint
+    private var lang: String = "en"
+    private val table: String = "ClipboardSync"
+    private var userToken: String? = null
 
-    private val supabaseUrl = "{{supabaseUrl}}/rest/v1/ClipboardSync"
-    private val supabaseAnonKey = "{{supabaseKey}}"
     private val client = OkHttpClient()
+    private val serverURL = "{{serverURL}}"
 
     private val clipListener = ClipboardManager.OnPrimaryClipChangedListener {
         val clip = clipboardManager.primaryClip
@@ -35,7 +41,6 @@ class ForegroundClipboardService : Service() {
 
         if (text != lastText && text.isNotBlank()) {
             lastText = text
-            Log.d("ClipboardService", "Nuevo texto copiado: $text")
             sendToSupabase(text)
         }
     }
@@ -45,32 +50,33 @@ class ForegroundClipboardService : Service() {
         createNotificationChannel()
         val notification = buildNotification()
         startForeground(NOTIFICATION_ID, notification)
-        Log.d("ClipboardService", "Servicio en primer plano iniciado")
 
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener(clipListener)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("ForegroundClipboardService activo", "Servicio activo")
-        userToken = intent?.getStringExtra("userToken")
+        lang = intent?.getStringExtra("lang") ?: lang
         userId = intent?.getStringExtra("userId")
+        deviceId = intent?.getStringExtra("deviceId") ?: deviceId
+        userToken = intent?.getStringExtra("userToken")
 
         if (userToken.isNullOrBlank()) {
-            Log.e("ClipboardService", "Token de usuario no recibido. Deteniendo servicio.")
             stopSelf()
             return START_NOT_STICKY
         }
-
-        // No necesitamos volver a añadir listener aquí, ya se añadió en onCreate
+        if (userId.isNullOrBlank()) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         return START_STICKY
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        client.dispatcher.cancelAll()
         clipboardManager.removePrimaryClipChangedListener(clipListener)
-        Log.d("ClipboardService", "Servicio detenido")
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -106,22 +112,35 @@ class ForegroundClipboardService : Service() {
     }
 
     private fun sendToSupabase(content: String) {
-        val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
+        createdAt = java.time.Instant.now().toString() // Current timestamp in ISO 8601 format
+        if (userId.isNullOrBlank() || deviceId.isBlank() || userToken.isNullOrBlank()) return
 
-        val json = JSONObject().apply {
-            put("content", content)
-            put("deviceId", deviceName)
+        // This must be values previously set when starting the service
+        val jsonToTable = JSONObject().apply {
             put("userId", userId)
+            put("content", content)
+            put("deviceId", deviceId)
+            put("createdAt", createdAt)
+        }
+
+        // This must be the same as the server expects in its insertion endpoint
+        val jsonToServer = JSONObject().apply {
+            put("lang", lang ?: "en")
+            put("table", table)
+            put("values", jsonToTable)
         }
 
         val mediaType = "application/json".toMediaType()
-        val body = json.toString().toRequestBody(mediaType)
+        val body = jsonToServer.toString().toRequestBody(mediaType)
+        var fullServerURL = serverURL
+        if (fullServerURL.endsWith("/")) {
+            fullServerURL = fullServerURL.dropLast(1)
+        }
 
         val request = Request.Builder()
-            .url(supabaseUrl)
-            .addHeader("Authorization", "Bearer $userToken")
-            .addHeader("apikey", supabaseAnonKey)
+            .url("$fullServerURL/supabase/insert")
             .addHeader("Content-Type", "application/json")
+            .addHeader("Authorization", "Bearer $userToken")
             .post(body)
             .build()
 
@@ -131,9 +150,7 @@ class ForegroundClipboardService : Service() {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    Log.d("SupabaseSync", "Texto sincronizado con éxito")
-                } else {
+                if (!response.isSuccessful) {
                     Log.e("SupabaseSync", "Fallo al sincronizar: ${response.code}")
                 }
                 response.close()

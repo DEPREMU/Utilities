@@ -2,9 +2,15 @@ import chalk from "chalk";
 import type { TurboModule } from "react-native";
 import { Platform, TurboModuleRegistry } from "react-native";
 import { logError } from "./functions";
+import { LanguagesSupported } from "@types";
 
 export interface Spec extends TurboModule {
-  setUserData(token: string, userId: string): void;
+  setUserData(
+    token: string,
+    userId: string,
+    lang: LanguagesSupported,
+    deviceId: string,
+  ): void;
   startClipboardService(): void;
   stopClipboardService(): void;
   isRunning(): Promise<boolean>;

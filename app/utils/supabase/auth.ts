@@ -209,12 +209,15 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
 
     const res = await fetch(
       await getRouteAPI("/auth/signOut"),
-      fetchOptions<RequestSignOut>("POST", {
-        deviceId: deviceId as string,
-        expoToken,
-        lang,
+      fetchOptions<RequestSignOut>(
+        "POST",
+        {
+          deviceId: deviceId as string,
+          expoToken,
+          lang,
+        },
         token,
-      }),
+      ),
     );
     const data = (await res.json()) as ResponseSignOut;
 
@@ -286,12 +289,15 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
 
     const res = await fetch(
       await getRouteAPI("/auth/refreshSession"),
-      fetchOptions<RequestRefreshSession>("POST", {
-        lang,
+      fetchOptions<RequestRefreshSession>(
+        "POST",
+        {
+          lang,
+          deviceId,
+          expoToken,
+        },
         token,
-        deviceId,
-        expoToken,
-      }),
+      ),
     );
     const data = (await res.json()) as ResponseRefreshSession;
 

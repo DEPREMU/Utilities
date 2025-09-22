@@ -1,9 +1,8 @@
-import type { Request, Response } from "express";
 import {
+  updateInTable,
   deleteInTable,
   fetchFromTable,
   insertIntoTable,
-  updateInTable,
 } from "../supabase/functions.ts";
 import type {
   RequestSupabaseDelete,
@@ -15,9 +14,9 @@ import type {
   ResponseSupabaseInsert,
   ResponseSupabaseUpdate,
 } from "../../types";
-import { decodeJWTToken } from "./auth.ts";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
+import type { Request, Response } from "express";
 
 export const handleFetchFromSupabase = async (
   req: Request<unknown, unknown, RequestSupabaseFetch>,
@@ -26,9 +25,9 @@ export const handleFetchFromSupabase = async (
   const lang = req.body.lang || "en";
   let { match } = req.body || { match: null };
   try {
-    const { table, token } = req.body;
+    const { table } = req.body;
+    const { tokenDecoded: decode } = req.user;
 
-    const decode = decodeJWTToken(token);
     if (!decode) {
       res.status(401).json({ error: t("auth.invalidToken", lang) });
       return;
@@ -56,9 +55,9 @@ export const handleInsertToSupabase = async (
 ) => {
   const lang = req.body.lang || "en";
   try {
-    const { table, values, token } = req.body;
+    const { table, values } = req.body;
+    const { token, tokenDecoded: decode } = req.user;
 
-    const decode = decodeJWTToken(token);
     if (!decode) {
       res
         .status(401)
@@ -104,9 +103,9 @@ export const handleUpdateToSupabase = async (
 
   try {
     let { match } = req.body;
-    const { table, values, token } = req.body;
+    const { tokenDecoded: decode } = req.user;
+    const { table, values } = req.body;
 
-    const decode = decodeJWTToken(token);
     if (!decode) {
       res
         .status(401)
@@ -139,8 +138,8 @@ export const handleDeleteFromSupabase = async (
   const lang = req.body.lang || "en";
 
   try {
-    const { table, match, token } = req.body;
-    const decode = decodeJWTToken(token);
+    const { tokenDecoded: decode } = req.user;
+    const { table, match } = req.body;
     if (!decode) {
       res
         .status(401)

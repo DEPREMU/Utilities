@@ -23,6 +23,7 @@ import { RequestBody, ResponseHealth, RoutesAPI } from "@types";
 export const fetchOptions = <T = RequestBody>(
   method: "POST" | "GET" | "PUT" | "DELETE",
   body?: T,
+  token?: string,
 ) => {
   try {
     if (body) body = stringifyData(body) as T;
@@ -35,6 +36,7 @@ export const fetchOptions = <T = RequestBody>(
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      Authorization: `Bearer ${token || ""}`,
     },
     body: body as string | undefined,
   };

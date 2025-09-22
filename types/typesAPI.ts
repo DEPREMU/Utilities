@@ -123,7 +123,6 @@ export type ResponseAuth = {
 
 export type RequestRefreshSession = {
   lang: LanguagesSupported;
-  token: string;
   deviceId: string;
   expoToken: string;
 };
@@ -137,7 +136,6 @@ export type ResponseRefreshSession = {
 
 export type RequestSignOut = {
   lang: LanguagesSupported;
-  token: string;
   deviceId: string;
   expoToken: string;
 };
@@ -149,7 +147,6 @@ export type ResponseSignOut = {
 
 export type RequestSupabaseInsert<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
-  token: string;
   table: T;
   values: Tables[T] | Tables[T][];
 };
@@ -163,7 +160,6 @@ export type ResponseSupabaseInsert<T extends TablesKeys = TablesKeys> = {
 export type RequestSupabaseFetch<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
-  token: string;
   match: Partial<Tables[T]> | null;
 };
 
@@ -175,7 +171,6 @@ export type ResponseSupabaseFetch<T extends TablesKeys = TablesKeys> = {
 export type RequestSupabaseUpdate<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
-  token: string;
   match: Partial<Tables[T]> | null;
   values: Partial<Tables[T]> | Partial<Tables[T]>[];
 };
@@ -189,8 +184,7 @@ export type ResponseSupabaseUpdate<T extends TablesKeys = TablesKeys> = {
 export type RequestSupabaseDelete<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
-  token: string;
-  match: Partial<Tables[T]> ;
+  match: Partial<Tables[T]>;
 };
 
 export type ResponseSupabaseDelete = {

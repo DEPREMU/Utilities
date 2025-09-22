@@ -21,6 +21,7 @@ import {
   fetchOptions,
   stringifyData,
   getNotifications,
+  loadDataSecure,
 } from "@utils";
 import { v4 } from "uuid";
 import { useModal } from "./ModalContext";
@@ -119,12 +120,15 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     getRouteAPI("/supabase/fetch").then(async (url) => {
       const res = await fetch(
         url,
-        fetchOptions<RequestSupabaseFetch>("POST", {
-          lang: language,
-          table: "ClipboardSync",
-          match: { userId: userData.userId, deleted: false },
-          token: sessionToken,
-        }),
+        fetchOptions<RequestSupabaseFetch>(
+          "POST",
+          {
+            lang: language,
+            table: "ClipboardSync",
+            match: { userId: userData.userId, deleted: false },
+          },
+          sessionToken,
+        ),
       );
       const json = (await res.json()) as ResponseSupabaseFetch<"ClipboardSync">;
       lastItemCopied.current = v4();
@@ -208,9 +212,16 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (!sessionToken) return;
     if (Platform.OS === "android")
       ClipboardModule?.isRunning().then((running) => {
-        if (running) return;
-        ClipboardModule?.setUserData(sessionToken, userData?.userId || "");
-        ClipboardModule?.startClipboardService();
+        if (running || !userData?.userId) return;
+        loadDataSecure("_deviceId").then((deviceId) => {
+          ClipboardModule?.setUserData(
+            sessionToken,
+            userData.userId,
+            language,
+            deviceId || "",
+          );
+          ClipboardModule?.startClipboardService();
+        });
       });
     if (Platform.OS !== "web") return;
 
@@ -237,17 +248,20 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
         await fetch(
           await getRouteAPI("/supabase/insert"),
-          fetchOptions<RequestSupabaseInsert<"ClipboardSync">>("POST", {
-            lang: language,
-            table: "ClipboardSync",
-            values: {
-              userId: userData.userId,
-              content,
-              deviceId,
-              createdAt: new Date().toISOString(),
+          fetchOptions<RequestSupabaseInsert<"ClipboardSync">>(
+            "POST",
+            {
+              lang: language,
+              table: "ClipboardSync",
+              values: {
+                userId: userData.userId,
+                content,
+                deviceId,
+                createdAt: new Date().toISOString(),
+              },
             },
-            token: sessionToken,
-          }),
+            sessionToken,
+          ),
         );
       } catch (error) {
         logError("Error reading clipboard content", error);
@@ -271,9 +285,16 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   useEffect(() => {
     if (!sessionToken) return;
 
-    ClipboardModule?.setUserData(sessionToken, userData?.userId || "");
-    ClipboardModule?.startClipboardService?.();
-  }, [sessionToken, userData?.userId]);
+    loadDataSecure("_deviceId").then((deviceId) => {
+      ClipboardModule?.setUserData(
+        sessionToken,
+        userData?.userId || "",
+        language,
+        deviceId || "",
+      );
+      ClipboardModule?.startClipboardService?.();
+    });
+  }, [sessionToken, userData?.userId, language]);
 
   const value: NotificationsContextType = {
     notifications,

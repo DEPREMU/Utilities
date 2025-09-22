@@ -259,12 +259,15 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           async () => {
             fetch(
               await getRouteAPI("/supabase/update"),
-              fetchOptions<RequestSupabaseInsert>("POST", {
-                lang: language,
-                token: sessionToken,
-                table: "Cryptos",
-                values: cryptosToUpdate,
-              }),
+              fetchOptions<RequestSupabaseInsert>(
+                "POST",
+                {
+                  lang: language,
+                  table: "Cryptos",
+                  values: cryptosToUpdate,
+                },
+                sessionToken,
+              ),
             );
           },
           true,
@@ -286,12 +289,15 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           async () => {
             fetch(
               await getRouteAPI("/supabase/insert"),
-              fetchOptions<RequestSupabaseInsert>("POST", {
-                lang: language,
-                token: sessionToken,
-                table,
-                values: cryptosToAdd,
-              }),
+              fetchOptions<RequestSupabaseInsert>(
+                "POST",
+                {
+                  lang: language,
+                  table,
+                  values: cryptosToAdd,
+                },
+                sessionToken,
+              ),
             );
           },
           true,
@@ -316,12 +322,15 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
             async () => {
               fetch(
                 url,
-                fetchOptions<RequestSupabaseDelete>("POST", {
-                  lang: language,
-                  token: sessionToken,
-                  table: "Cryptos",
-                  match: { uid },
-                }),
+                fetchOptions<RequestSupabaseDelete>(
+                  "POST",
+                  {
+                    lang: language,
+                    table: "Cryptos",
+                    match: { uid },
+                  },
+                  sessionToken,
+                ),
               );
             },
             true,

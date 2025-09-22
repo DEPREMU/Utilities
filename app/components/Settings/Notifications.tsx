@@ -83,13 +83,16 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             async () => {
               fetch(
                 url,
-                fetchOptions<RequestSupabaseUpdate>("POST", {
-                  match,
-                  table: "UserNotificationsConfig",
-                  values,
-                  token: sessionToken,
-                  lang: language,
-                }),
+                fetchOptions<RequestSupabaseUpdate>(
+                  "POST",
+                  {
+                    match,
+                    table: "UserNotificationsConfig",
+                    values,
+                    lang: language,
+                  },
+                  sessionToken,
+                ),
               );
             },
             true,
@@ -136,13 +139,16 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             async () => {
               fetch(
                 url,
-                fetchOptions<RequestSupabaseUpdate>("POST", {
-                  match,
-                  table: "UserNotificationsConfig",
-                  values,
-                  token: sessionToken,
-                  lang: language,
-                }),
+                fetchOptions<RequestSupabaseUpdate>(
+                  "POST",
+                  {
+                    match,
+                    table: "UserNotificationsConfig",
+                    values,
+                    lang: language,
+                  },
+                  sessionToken,
+                ),
               );
             },
             true,

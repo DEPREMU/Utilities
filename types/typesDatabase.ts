@@ -78,8 +78,8 @@ export type UserSessions = {
 }
 
 export type Tables = {
-  Users: UserData;
   Logs: Logs;
+  Users: UserData;
   Cryptos: Cryptos;
   Streamers: Streamer;
   UserConfig: UserConfig;

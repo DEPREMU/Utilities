@@ -11,8 +11,10 @@ import com.facebook.react.bridge.Promise
 
 class ClipboardModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
-    private var userToken: String? = null
+    private var lang: String = "en"
     private var userId: String? = null
+    private var deviceId: String? = null
+    private var userToken: String? = null
 
     init {
         Log.d("ClipboardModule", "ClipboardModule initialized")
@@ -24,9 +26,12 @@ class ClipboardModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
     }
 
     @ReactMethod
-    fun setUserData(token: String, id: String) {
-        userToken = token
+    fun setUserData(token: String, id: String, language: String, deviceID: String) {
+        lang = language
         userId = id
+        deviceId = deviceID
+        userToken = token
+
         Log.d("ClipboardModule", "Token set: ${token.take(10)}...")
     }
 
@@ -40,8 +45,10 @@ class ClipboardModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
 
         val context = reactApplicationContext
         val intent = Intent(context, ForegroundClipboardService::class.java).apply {
-            putExtra("userToken", userToken)
+            putExtra("lang", lang)
             putExtra("userId", userId)
+            putExtra("deviceId", deviceId)
+            putExtra("userToken", userToken)
         }
 
         try {

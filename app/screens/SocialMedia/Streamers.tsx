@@ -145,12 +145,15 @@ const Streamers: React.FC = () => {
 
       const res = await fetch(
         await getRouteAPI("/supabase/delete"),
-        fetchOptions<RequestSupabaseDelete>("POST", {
-          lang: language,
-          table: "Streamers",
-          match: { id, userId: userData?.userId },
-          token: sessionToken,
-        }),
+        fetchOptions<RequestSupabaseDelete>(
+          "POST",
+          {
+            lang: language,
+            table: "Streamers",
+            match: { id, userId: userData?.userId },
+          },
+          sessionToken,
+        ),
       );
       const { error } = (await res.json()) as ResponseSupabaseDelete;
 
@@ -170,16 +173,19 @@ const Streamers: React.FC = () => {
           getRouteAPI("/supabase/delete").then((url) =>
             fetch(
               url,
-              fetchOptions<RequestSupabaseDelete>("POST", {
-                lang: language,
-                table: "UserNotificationsConfig",
-                match: {
-                  userId: userData?.userId,
-                  reason: "streamers",
-                  streamer: streamerExists.name,
+              fetchOptions<RequestSupabaseDelete>(
+                "POST",
+                {
+                  lang: language,
+                  table: "UserNotificationsConfig",
+                  match: {
+                    userId: userData?.userId,
+                    reason: "streamers",
+                    streamer: streamerExists.name,
+                  },
                 },
-                token: sessionToken,
-              }),
+                sessionToken,
+              ),
             ),
           );
 
@@ -291,17 +297,20 @@ const Streamers: React.FC = () => {
 
       await fetch(
         await getRouteAPI("/supabase/update"),
-        fetchOptions<RequestSupabaseUpdate>("POST", {
-          lang: language,
-          table: "UserNotificationsConfig",
-          match: {
-            userId: userData?.userId,
-            reason: "streamers",
-            streamer: streamerName,
+        fetchOptions<RequestSupabaseUpdate>(
+          "POST",
+          {
+            lang: language,
+            table: "UserNotificationsConfig",
+            match: {
+              userId: userData?.userId,
+              reason: "streamers",
+              streamer: streamerName,
+            },
+            values: { enabled: newBool },
           },
-          values: { enabled: newBool },
-          token: sessionToken,
-        }),
+          sessionToken,
+        ),
       );
     },
     [notifications, setNotifications, userData?.userId, hasInternet],
@@ -329,12 +338,15 @@ const Streamers: React.FC = () => {
         if (hasInternet) {
           const res = await fetch(
             await getRouteAPI("/supabase/fetch"),
-            fetchOptions<RequestSupabaseFetch>("POST", {
-              table: "Streamers",
-              match: { userId: userData?.userId },
-              lang: language,
-              token: sessionToken,
-            }),
+            fetchOptions<RequestSupabaseFetch>(
+              "POST",
+              {
+                table: "Streamers",
+                match: { userId: userData?.userId },
+                lang: language,
+              },
+              sessionToken,
+            ),
           );
           const { data: internetData, error } =
             (await res.json()) as ResponseSupabaseFetch<"Streamers">;

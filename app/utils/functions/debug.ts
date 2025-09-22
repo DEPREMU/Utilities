@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
@@ -78,18 +79,21 @@ export const log = async (...args: unknown[]): Promise<void> => {
 
       fetch(
         url,
-        fetchOptions<RequestSupabaseInsert>("POST", {
-          lang,
-          table: "Logs",
-          values: {
-            type: "log",
-            userId,
-            message,
-            timestamp: date.toISOString(),
-            ...deviceInfo,
+        fetchOptions<RequestSupabaseInsert>(
+          "POST",
+          {
+            lang,
+            table: "Logs",
+            values: {
+              type: "log",
+              userId,
+              message,
+              timestamp: date.toISOString(),
+              ...deviceInfo,
+            },
           },
           token,
-        }),
+        ),
       );
     });
   }
@@ -144,18 +148,21 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
 
       fetch(
         url,
-        fetchOptions<RequestSupabaseInsert>("POST", {
-          lang,
-          table: "Logs",
-          values: {
-            type: "warn",
-            userId,
-            message: warningMessage,
-            timestamp: date.toISOString(),
-            ...deviceInfo,
+        fetchOptions<RequestSupabaseInsert>(
+          "POST",
+          {
+            lang,
+            table: "Logs",
+            values: {
+              type: "warn",
+              userId,
+              message: warningMessage,
+              timestamp: date.toISOString(),
+              ...deviceInfo,
+            },
           },
           token,
-        }),
+        ),
       );
     });
   }
@@ -210,18 +217,21 @@ export const logError = async (...args: unknown[]): Promise<void> => {
 
       fetch(
         url,
-        fetchOptions<RequestSupabaseInsert>("POST", {
-          lang,
-          table: "Logs",
-          values: {
-            type: "log",
-            userId,
-            message: errorMessage,
-            timestamp: date.toISOString(),
-            ...deviceInfo,
+        fetchOptions<RequestSupabaseInsert>(
+          "POST",
+          {
+            lang,
+            table: "Logs",
+            values: {
+              type: "log",
+              userId,
+              message: errorMessage,
+              timestamp: date.toISOString(),
+              ...deviceInfo,
+            },
           },
           token,
-        }),
+        ),
       );
     });
   }

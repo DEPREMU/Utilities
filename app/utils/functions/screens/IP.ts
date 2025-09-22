@@ -3,7 +3,7 @@ import { dataIP_API_JSON, dataIPQueryJSON } from "@types";
 
 export const getIP = async () => {
   const { data } = await axios.get("https://api.ipquery.io/");
-  return data;
+  return data as string;
 };
 
 export const getDataIPQuery = async (

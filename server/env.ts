@@ -6,6 +6,8 @@ dotenv.config({ path: "../.env" });
 const REQUIRED_VARS: (keyof Env)[] = [
   "HOST",
   "PORT",
+  "WS_URL",
+  "API_URL",
   "USE_HTTPS",
   "JWT_SECRET",
   "SUPABASE_URL",
@@ -32,6 +34,8 @@ export const validateServerEnv = () => {
 const env: Env = {
   HOST: process.env.HOST || "localhost",
   PORT: Number(process.env.PORT) || 3000,
+  WS_URL: process.env.WS_URL || "ws://localhost:3000/",
+  API_URL: process.env.API_URL || "http://localhost:3000/api",
   USE_HTTPS: process.env.USE_HTTPS === "true" || false,
   SUPABASE_URL: process.env.SUPABASE_URL || "",
   SUPABASE_KEY: process.env.SUPABASE_KEY || "",

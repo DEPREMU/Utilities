@@ -1,6 +1,6 @@
 export type Env = {
   HOST: string;
-  USE_HTTPS: boolean;
+  API_URL: string;
   JWT_SECRET: string;
   SUPABASE_URL: string;
   VAPID_PRIVATE_KEY: string;
@@ -10,5 +10,7 @@ export type Env = {
   VAPID_PUBLIC_KEY: string;
   ADMIN_PASSWORD: string;
   SUPABASE_KEY: string;
+  USE_HTTPS: boolean;
+  WS_URL: string;
   PORT: number;
 };

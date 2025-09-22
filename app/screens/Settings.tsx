@@ -63,13 +63,16 @@ const SettingsScreen: React.FC = () => {
 
         await fetch(
           await getRouteAPI("/supabase/update"),
-          fetchOptions<RequestSupabaseUpdate>("POST", {
-            lang: language,
-            match: { userId: userData.userId },
-            table: "UserConfig",
-            token: sessionToken,
-            values: { API_URL: apiURL },
-          }),
+          fetchOptions<RequestSupabaseUpdate>(
+            "POST",
+            {
+              lang: language,
+              match: { userId: userData.userId },
+              table: "UserConfig",
+              values: { API_URL: apiURL },
+            },
+            sessionToken,
+          ),
         );
         await saveData("@API_URL", apiURL);
       },
@@ -96,13 +99,16 @@ const SettingsScreen: React.FC = () => {
 
         await fetch(
           await getRouteAPI("/supabase/update"),
-          fetchOptions<RequestSupabaseUpdate>("POST", {
-            lang: language,
-            match: { userId: userData.userId },
-            table: "UserConfig",
-            token: sessionToken,
-            values: { webSocketURL: socketURL },
-          }),
+          fetchOptions<RequestSupabaseUpdate>(
+            "POST",
+            {
+              lang: language,
+              match: { userId: userData.userId },
+              table: "UserConfig",
+              values: { webSocketURL: socketURL },
+            },
+            sessionToken,
+          ),
         );
         await saveData("@webSocketURL", socketURL);
       },

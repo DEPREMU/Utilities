@@ -43,13 +43,16 @@ const ClipboardScreen: React.FC = () => {
 
       const { error } = (await fetch(
         await getRouteAPI("/supabase/update"),
-        fetchOptions<RequestSupabaseUpdate>("POST", {
-          lang: language,
-          match: { id },
-          table: "ClipboardSync",
-          token: sessionToken,
-          values: { deleted: true },
-        }),
+        fetchOptions<RequestSupabaseUpdate>(
+          "POST",
+          {
+            lang: language,
+            match: { id },
+            table: "ClipboardSync",
+            values: { deleted: true },
+          },
+          sessionToken,
+        ),
       ).then((res) => res.json())) as ResponseSupabaseUpdate;
 
       if (error) {
@@ -109,12 +112,15 @@ const ClipboardScreen: React.FC = () => {
 
       const res = await fetch(
         await getRouteAPI("/supabase/fetch"),
-        fetchOptions<RequestSupabaseFetch>("POST", {
-          table: "ClipboardSync",
-          match: { userId: userData?.userId, deleted: false },
-          lang: language,
-          token: sessionToken,
-        }),
+        fetchOptions<RequestSupabaseFetch>(
+          "POST",
+          {
+            table: "ClipboardSync",
+            match: { userId: userData?.userId, deleted: false },
+            lang: language,
+          },
+          sessionToken,
+        ),
       );
 
       const { data, error } =

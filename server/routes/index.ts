@@ -1,24 +1,29 @@
+import {
+  decryptHandler,
+  encryptHandler,
+  handleGetRandomUUID,
+} from "./encryption.ts";
+import {
+  handleUpdateToSupabase,
+  handleInsertToSupabase,
+  handleFetchFromSupabase,
+  handleDeleteFromSupabase,
+} from "./supabase.ts";
+import {
+  handleLogin,
+  handleSignIn,
+  handleSignOut,
+  authMiddleware,
+  handleRefreshSession,
+} from "./auth.ts";
 import { Router } from "express";
 import { translate } from "./translate.ts";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { intervalId } from "../Notifications/streamers.ts";
 import type { Response, Request } from "express";
-import { decryptHandler, encryptHandler, handleGetRandomUUID } from "./encryption.ts";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
 import type { ResponseHealth, Route, RoutesAPI } from "../../types/typesAPI.ts";
 import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
-import {
-  handleLogin,
-  handleSignIn,
-  handleRefreshSession,
-  handleSignOut,
-} from "./auth.ts";
-import {
-  handleDeleteFromSupabase,
-  handleFetchFromSupabase,
-  handleInsertToSupabase,
-  handleUpdateToSupabase,
-} from "./supabase.ts";
 
 const handleHealthCheck = (_: Request, res: Response<ResponseHealth>) => {
   res
@@ -72,26 +77,32 @@ const routes: Record<RoutesAPI, Route> = {
   "/auth/refreshSession": {
     method: "post",
     handler: handleRefreshSession,
+    middlewares: [authMiddleware],
   },
   "/auth/signOut": {
     method: "post",
     handler: handleSignOut,
+    middlewares: [authMiddleware],
   },
   "/supabase/fetch": {
     method: "post",
     handler: handleFetchFromSupabase,
+    middlewares: [authMiddleware],
   },
   "/supabase/insert": {
     method: "post",
     handler: handleInsertToSupabase,
+    middlewares: [authMiddleware],
   },
   "/supabase/update": {
     method: "post",
     handler: handleUpdateToSupabase,
+    middlewares: [authMiddleware],
   },
   "/supabase/delete": {
     method: "post",
     handler: handleDeleteFromSupabase,
+    middlewares: [authMiddleware],
   },
   "/getRandomUUID": {
     method: "post",
