@@ -21,6 +21,8 @@ export default {
     newArchEnabled: true,
     platforms: ["ios", "android", "web"],
     extra: {
+      WS_URL: process.env.WS_URL,
+      API_URL: process.env.API_URL,
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_KEY: process.env.SUPABASE_KEY,
       ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
