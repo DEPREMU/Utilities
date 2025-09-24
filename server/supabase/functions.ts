@@ -200,9 +200,15 @@ export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
 const deleteSessions = async () => {
   if (!env.DELETE_OLD_SESSIONS) return;
 
+  console.log(chalk.blue("Deleting old sessions and push tokens..."));
   try {
-    await deleteInTable("", "PushTokens", {});
-    await deleteInTable("", "UserSessions", {});
+    await Promise.all([
+      supabase.from("PushTokens").delete(),
+      supabase.from("UserSessions").delete(),
+    ]);
+    console.log(
+      chalk.green("Old sessions and push tokens deleted successfully."),
+    );
   } catch (error) {
     console.error(chalk.red("Error deleting old sessions:"), error);
   }
