@@ -3,6 +3,7 @@ import {
   updateInTable,
   fetchFromTable,
   insertIntoTable,
+  deleteSessions,
 } from "../supabase/functions.ts";
 import type {
   Cryptos,
@@ -25,6 +26,8 @@ const credentials = await supabase.auth.signInWithPassword({
   email: env.EMAIL_APP_SUPABASE,
   password: env.PASSWORD_APP_SUPABASE,
 });
+
+deleteSessions();
 
 const users: Record<
   string,

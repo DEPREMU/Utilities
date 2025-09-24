@@ -197,21 +197,31 @@ export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
   }
 };
 
-const deleteSessions = async () => {
+export const deleteSessions = async () => {
   if (!env.DELETE_OLD_SESSIONS) return;
 
   console.log(chalk.blue("Deleting old sessions and push tokens..."));
   try {
-    await Promise.all([
-      supabase.from("PushTokens").delete(),
-      supabase.from("UserSessions").delete(),
-    ]);
+    const users = await fetchFromTable("Users");
+    let data = users.data;
+    if (!data) return;
+    if (!Array.isArray(data)) data = [data];
+    if (data.length === 0) return;
+
+    const deleted = await Promise.all(
+      data.map((user) => {
+        if (!user.userId) return;
+        return Promise.all([
+          deleteInTable(user.userId, "UserSessions"),
+          deleteInTable(user.userId, "PushTokens"),
+        ]);
+      }),
+    );
     console.log(
-      chalk.green("Old sessions and push tokens deleted successfully."),
+      chalk.green("Old sessions and push tokens deleted successfully. Count:"),
+      deleted.length,
     );
   } catch (error) {
     console.error(chalk.red("Error deleting old sessions:"), error);
   }
 };
-
-deleteSessions();
