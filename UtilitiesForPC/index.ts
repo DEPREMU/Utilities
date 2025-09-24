@@ -68,9 +68,7 @@ const createWindow = (): void => {
       webSecurity: false,
       nodeIntegration: false,
       contextIsolation: true,
-      preload: app.isPackaged
-        ? path.join(process.resourcesPath, "preload.js")
-        : path.join(__dirname, "build", "preload.js"),
+      preload: path.join(process.resourcesPath, "preload.js"),
     },
   });
 
@@ -88,9 +86,6 @@ const createWindow = (): void => {
   mainWindow.loadFile(htmlPath).catch((err) => {
     console.error("Error loading file:", err);
   });
-
-  if (process.env.NODE_ENV === "development")
-    mainWindow.webContents.openDevTools();
 
   mainWindow.on("close", (event) => {
     if (isQuitting) return;

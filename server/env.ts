@@ -16,6 +16,7 @@ const REQUIRED_VARS: (keyof Env)[] = [
   "VAPID_PUBLIC_KEY",
   "VAPID_PRIVATE_KEY",
   "EMAIL_APP_SUPABASE",
+  "DELETE_OLD_SESSIONS",
   "DEEPL_TRANSLATOR_API",
   "PASSWORD_APP_SUPABASE",
 ];
@@ -33,19 +34,20 @@ export const validateServerEnv = () => {
 
 const env: Env = {
   HOST: process.env.HOST || "localhost",
-  PORT: Number(process.env.PORT) || 3000,
+  PORT: Number(process.env.PORT || "3000"),
   WS_URL: process.env.WS_URL || "ws://localhost:3000/",
   API_URL: process.env.API_URL || "http://localhost:3000/api",
   USE_HTTPS: process.env.USE_HTTPS === "true" || false,
+  JWT_SECRET: process.env.JWT_SECRET || "7rg398cg9savc93q87fvvca08fv",
   SUPABASE_URL: process.env.SUPABASE_URL || "",
   SUPABASE_KEY: process.env.SUPABASE_KEY || "",
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || "",
-  EMAIL_APP_SUPABASE: process.env.EMAIL_APP_SUPABASE || "",
-  PASSWORD_APP_SUPABASE: process.env.PASSWORD_APP_SUPABASE || "",
   VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || "",
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || "",
+  EMAIL_APP_SUPABASE: process.env.EMAIL_APP_SUPABASE || "",
+  DELETE_OLD_SESSIONS: process.env.DELETE_OLD_SESSIONS === "true" || false,
   DEEPL_TRANSLATOR_API: process.env.DEEPL_TRANSLATOR_API || "",
-  JWT_SECRET: process.env.JWT_SECRET || "7rg398cg9savc93q87fvvca08fv",
+  PASSWORD_APP_SUPABASE: process.env.PASSWORD_APP_SUPABASE || "",
 };
 
 export default env;

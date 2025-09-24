@@ -217,6 +217,9 @@ const en: typeLanguages = {
   textAddedToDatabase: "Text added to database",
   test: "Test",
   pleaseEnterSomeText: "Please enter some text",
+  retry: "Retry",
+  clipboardWebSocketError:
+    "A connection error occurred with the clipboard service. Please check your internet connection and try reconnecting. While disconnected, clipboard syncing will not function.",
 } as const;
 
 export default en;

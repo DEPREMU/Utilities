@@ -245,18 +245,18 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   }, []);
 
   useEffect(() => {
-    const handlePressYes = (isHomeScreen: boolean) => {
-      if (isHomeScreen) return BackHandler.exitApp();
+    const handlePressYes = (isFirstScreen: boolean) => {
+      if (isFirstScreen) return BackHandler.exitApp();
       navigateReplace("Home");
     };
 
     const onBackPress = () => {
       getCurrentScreen().then((currentScreen) => {
-        const isHomeScreen = currentScreen === "Home";
+        const isFirstScreen = currentScreen === "Home" || !isLoggedIn;
 
         Alert.alert(
-          t(isHomeScreen || !isLoggedIn ? "exitApp" : "back"),
-          t(isHomeScreen || !isLoggedIn ? "exitAppMessage" : "backMessage"),
+          t(isFirstScreen ? "exitApp" : "back"),
+          t(isFirstScreen ? "exitAppMessage" : "backMessage"),
           [
             {
               text: t("no"),
@@ -264,7 +264,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
             },
             {
               text: t("yes"),
-              onPress: () => handlePressYes(isHomeScreen),
+              onPress: () => handlePressYes(isFirstScreen),
             },
           ],
         );

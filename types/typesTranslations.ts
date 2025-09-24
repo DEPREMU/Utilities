@@ -191,6 +191,8 @@ export type typeLanguages = Record<ReasonNotification, string> &
     textAddedToDatabase: string;
     test: string;
     pleaseEnterSomeText: string;
+    clipboardWebSocketError: string;
+    retry: string;
   };
 
 export type typeLanguagesServer = {
@@ -219,5 +221,5 @@ export type typeLanguagesServer = {
     insertError: string;
     updateError: string;
     deleteError: string;
-  }
+  };
 };

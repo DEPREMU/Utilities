@@ -13,13 +13,12 @@ import type {
   WebSocketResponse,
   LanguagesSupported,
   UserNotificationsConfig,
+  ClipboardWebSocketMessage,
 } from "./../../types/index";
 import env from "../env.ts";
 import { t } from "../translations/index.ts";
 import chalk from "chalk";
 import { supabase } from "../supabase/supabase.ts";
-import { Server as ServerHTTP } from "http";
-import { Server as ServerHTTPS } from "https";
 import WebSocket, { WebSocketServer } from "ws";
 
 const credentials = await supabase.auth.signInWithPassword({
@@ -305,8 +304,107 @@ const connectionWss = (ws: WebSocket) => {
   });
 };
 
-export const initWebSocket = (server: ServerHTTP | ServerHTTPS) => {
-  const wss = new WebSocketServer({ server });
+export const initWebSocket = () => {
+  const wss = new WebSocketServer({ noServer: true });
 
   wss.on("connection", connectionWss);
+
+  return wss;
+};
+
+export const initWebSocketClipboard = () => {
+  const wss = new WebSocketServer({ noServer: true });
+  const usersClipboard: {
+    [userId: string]: {
+      [deviceId: string]: { ws: WebSocket; lastContent: string | null };
+    };
+  } = {};
+
+  const deleteDevice = (data: { userId: string; deviceId: string }) => {
+    delete usersClipboard[data.userId]?.[data.deviceId];
+    if (!usersClipboard[data.userId]) return;
+    if (Object.keys(usersClipboard[data.userId]).length > 0) return;
+
+    delete usersClipboard[data.userId];
+  };
+
+  setInterval(() => {
+    const users = Object.entries(usersClipboard);
+
+    users.forEach(async ([userId, devices]) => {
+      const fetchedData = await fetchFromTable("ClipboardSync", {
+        userId,
+      });
+      let dataLang = fetchedData.data;
+      if (!dataLang) return;
+      if (!Array.isArray(dataLang)) dataLang = [dataLang];
+      if (dataLang.length === 0) return;
+
+      const lastItem = dataLang.sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt),
+      )?.[0];
+      if (!lastItem) return;
+
+      const devicesEntries = Object.entries(devices);
+
+      devicesEntries.forEach(([deviceId, device]) => {
+        if (device.lastContent === lastItem.content) return;
+        if (device.ws.readyState !== WebSocket.OPEN) {
+          deleteDevice({ userId, deviceId });
+          return;
+        }
+        const message: ClipboardWebSocketMessage = {
+          type: "new-clipboard-item",
+          content: lastItem.content,
+        };
+        device.ws.send(JSON.stringify(message));
+        usersClipboard[userId][deviceId].lastContent = lastItem.content;
+      });
+    });
+  }, 2500);
+
+  wss.on("connection", (connectionClipboard) => {
+    let data: { userId: string; deviceId: string } = {
+      userId: "",
+      deviceId: "",
+    };
+
+    connectionClipboard.on("message", (buffer) => {
+      console.log(buffer.toString());
+      const message = JSON.parse(
+        buffer.toString(),
+      ) as ClipboardWebSocketMessage;
+
+      if (message.type !== "init") return;
+      if (!message.userId || !message.deviceId) {
+        connectionClipboard.close();
+        return;
+      }
+      data = { userId: message.userId, deviceId: message.deviceId };
+
+      console.log(
+        chalk.green("New clipboard client connected:"),
+        chalk.yellow(data.userId),
+        chalk.green("Device ID:"),
+        chalk.yellow(data.deviceId),
+      );
+
+      usersClipboard[data.userId] = {
+        ...usersClipboard[data.userId],
+        [data.deviceId]: { ws: connectionClipboard, lastContent: null },
+      };
+    });
+
+    connectionClipboard.on("close", () => {
+      deleteDevice(data);
+    });
+
+    connectionClipboard.on("error", (error) => {
+      console.log("Clipboard WebSocket error:", error);
+      connectionClipboard.close();
+      deleteDevice(data);
+    });
+  });
+
+  return wss;
 };

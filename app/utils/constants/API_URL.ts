@@ -7,7 +7,7 @@ const isDev = process.env.NODE_ENV === "development" || __DEV__;
 export const fallbackAPI_URL: string =
   Constants.expoConfig?.extra?.API_URL || "http://137.131.8.63:3000/api";
 export const fallbackURL_WEB_SOCKET: string =
-  Constants.expoConfig?.extra?.WS_URL || "ws://137.131.8.63:3000/";
+  Constants.expoConfig?.extra?.WS_URL || "ws://137.131.8.63:3000/ws";
 
 if (!Constants.expoConfig?.extra?.API_URL && isDev) {
   console.warn(
@@ -36,5 +36,10 @@ export const API_URL = !isDev
 export const URL_WEB_SOCKET = !isDev
   ? fallbackURL_WEB_SOCKET
   : Platform.OS === "web"
-    ? "ws://localhost:3000/"
-    : `ws://${getLocalIP()}/`;
+    ? "ws://localhost:3000/ws"
+    : `ws://${getLocalIP()}/ws`;
+export const CLIPBOARD_WS_URL = !isDev
+  ? `${fallbackURL_WEB_SOCKET.replace("/ws", "/clipboard")}`
+  : Platform.OS === "web"
+    ? "ws://localhost:3000/clipboard"
+    : `ws://${getLocalIP()}/clipboard`;

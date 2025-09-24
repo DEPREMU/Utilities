@@ -24,6 +24,7 @@ export const UNSECURE_KEYS_STORAGE = [
   "@notifications",
   "@hasAdminAccess",
   "@languageKeyStorage",
+  "@clipboardWebSocketURL",
 ] as const;
 
 export type SECURE_KEYS_STORAGE_TYPE = (typeof SECURE_KEYS_STORAGE)[number];
@@ -74,6 +75,7 @@ export type ExpectedUnsecureStorageTypes = {
   "@notifications": Notifications;
   "@hasAdminAccess": boolean | null;
   "@languageKeyStorage": LanguagesSupported;
+  "@clipboardWebSocketURL": string | null;
 };
 
 export type ExpectedStorageTypes<

@@ -1,10 +1,10 @@
-import * as Notifications from "../app/node_modules/expo-notifications";
-import { ScreensAvailable } from "./typesNavigation";
-import {
+import type {
   ReasonNotification,
   Notifications as typeNotifications,
 } from "./typesNotifications";
-import { LanguagesSupported } from "./typesTranslations";
+import type { ScreensAvailable } from "./typesNavigation";
+import type { LanguagesSupported } from "./typesTranslations";
+import type { NotificationTriggerInput } from "../app/node_modules/expo-notifications/build/index";
 
 export type WebSocketMessage =
   | {
@@ -42,7 +42,7 @@ export type WebSocketResponse =
         reason: ReasonNotification;
         title: string;
         body: string;
-        trigger?: Notifications.NotificationTriggerInput;
+        trigger?: NotificationTriggerInput;
         screen?: ScreensAvailable;
         data?: Record<string, unknown>;
       };
@@ -50,3 +50,16 @@ export type WebSocketResponse =
   | {
       type: "pong";
     };
+
+export type ClipboardWebSocketMessage =
+  | {
+      type: "new-clipboard-item";
+      content: string;
+    }
+  | {
+      type: "init";
+      userId: string;
+      deviceId: string;
+    };
+
+export type WebSocketPathname = "/ws" | "/clipboard";

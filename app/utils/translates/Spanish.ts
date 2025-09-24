@@ -221,6 +221,9 @@ const es: typeLanguages = {
   textAddedToDatabase: "Texto agregado a la base de datos",
   test: "Prueba",
   pleaseEnterSomeText: "Por favor, ingresa algún texto",
+  clipboardWebSocketError:
+    "Ocurrió un error de conexión con el servicio de portapapeles. Por favor, verifica tu conexión a Internet e intenta reconectar. Mientras estés desconectado, la sincronización del portapapeles no funcionará.",
+  retry: "Reintentar",
 } as const;
 
 export default es;

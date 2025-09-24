@@ -1,8 +1,9 @@
 import {
   API_URL,
-  fallbackAPI_URL,
-  fallbackURL_WEB_SOCKET,
   URL_WEB_SOCKET,
+  fallbackAPI_URL,
+  CLIPBOARD_WS_URL,
+  fallbackURL_WEB_SOCKET,
 } from "../constants/API_URL";
 import chalk from "chalk";
 import axios from "axios";
@@ -82,6 +83,7 @@ export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
       await Promise.all([
         saveData("@API_URL", API_URL),
         saveData("@webSocketURL", URL_WEB_SOCKET),
+        saveData("@clipboardWebSocketURL", CLIPBOARD_WS_URL),
       ]);
     else {
       logWarn("Falling back to server API URL and WebSocket URL");

@@ -19,7 +19,7 @@ const hasDeviceId = async (): Promise<boolean> => {
   try {
     const deviceId = await loadDataSecure("_deviceId");
     if (deviceId) return true;
-    if (Platform.OS === "web") await saveDataSecure("_deviceId", v4());
+    if (Platform.OS === "web") await saveDataSecure("_deviceId", v4() + v4());
     else {
       const res = await fetch(
         await getRouteAPI("/getRandomUUID"),

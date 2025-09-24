@@ -4,6 +4,7 @@ export type Env = {
   JWT_SECRET: string;
   SUPABASE_URL: string;
   VAPID_PRIVATE_KEY: string;
+  DELETE_OLD_SESSIONS: boolean;
   DEEPL_TRANSLATOR_API: string;
   PASSWORD_APP_SUPABASE: string;
   EMAIL_APP_SUPABASE: string;

@@ -47,6 +47,7 @@ interface NotificationsContextType {
   sendNotification: (
     notification: Omit<Notification, "id" | "timestamp">,
   ) => Promise<string>;
+  lastItemCopied: React.RefObject<string | null>;
   removeNotification: (id: string) => void;
   notifications?: NotificationsType | null;
   setNotifications: React.Dispatch<
@@ -108,6 +109,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (!userData?.userId || lastItemCopied.current) return;
 
     getNotifications().then((data) => setNotifications(data ?? null));
+    
     if (!sessionToken) return;
     if (Platform.OS !== "web") return;
 
@@ -292,6 +294,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   const value: NotificationsContextType = {
     notifications,
+    lastItemCopied,
     setNotifications,
     sendNotification,
     removeNotification,
