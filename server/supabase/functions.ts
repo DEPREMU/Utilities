@@ -2,6 +2,7 @@ import chalk from "chalk";
 import { supabase } from "./supabase.ts";
 import type { Falsy } from "../../app/node_modules/react-native/";
 import type { Tables, TablesKeys } from "../../types";
+import env from "../env.ts";
 
 /**
  * Updates user data in the Users table
@@ -195,3 +196,16 @@ export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
     return { error: errorMsg };
   }
 };
+
+const deleteSessions = async () => {
+  if (!env.DELETE_OLD_SESSIONS) return;
+
+  try {
+    await deleteInTable("", "PushTokens", {});
+    await deleteInTable("", "UserSessions", {});
+  } catch (error) {
+    console.error(chalk.red("Error deleting old sessions:"), error);
+  }
+};
+
+deleteSessions();
