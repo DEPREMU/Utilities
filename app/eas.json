@@ -11,11 +11,10 @@
         "buildType": "apk"
       },
       "env": {
-        "SUPABASE_URL": "$SUPABASE_URL",
-        "SUPABASE_KEY": "$SUPABASE_KEY",
+        "WS_URL": "$WS_URL",
+        "API_URL": "$API_URL",
         "ADMIN_PASSWORD": "$ADMIN_PASSWORD",
-        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
-        "DEEPL_TRANSLATOR_API": "$DEEPL_TRANSLATOR_API"
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON"
       }
     },
     "preview": {
@@ -24,20 +23,18 @@
       },
       "distribution": "internal",
       "env": {
-        "SUPABASE_URL": "$SUPABASE_URL",
-        "SUPABASE_KEY": "$SUPABASE_KEY",
+        "WS_URL": "$WS_URL",
+        "API_URL": "$API_URL",
         "ADMIN_PASSWORD": "$ADMIN_PASSWORD",
-        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
-        "DEEPL_TRANSLATOR_API": "$DEEPL_TRANSLATOR_API"
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON"
       }
     },
     "production": {
       "env": {
-        "SUPABASE_URL": "$SUPABASE_URL",
-        "SUPABASE_KEY": "$SUPABASE_KEY",
+        "WS_URL": "$WS_URL",
+        "API_URL": "$API_URL",
         "ADMIN_PASSWORD": "$ADMIN_PASSWORD",
-        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
-        "DEEPL_TRANSLATOR_API": "$DEEPL_TRANSLATOR_API"
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON"
       }
     }
   },

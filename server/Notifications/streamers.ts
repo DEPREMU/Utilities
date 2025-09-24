@@ -3,18 +3,14 @@ import type {
   ChannelsId,
   UserConfig,
   PushTokens,
-  TablesKeys,
   ScreensAvailable,
   LanguagesSupported,
   UserNotificationsConfig,
 } from "../../types/index.ts";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
-import { supabase } from "../supabase/supabase.ts";
 import { isLiveStreamer } from "../routes/socialMedia.ts";
-
-const tableNameStreamers: TablesKeys = "Streamers";
-const tableNameNotificationsConfig: TablesKeys = "UserNotificationsConfig";
+import { fetchFromTable } from "../supabase/functions.ts";
 
 const notificationsSent: Record<
   string,
@@ -31,20 +27,39 @@ export const getInterval = () => {
     let notificationsConfig: UserNotificationsConfig[] | null = null;
 
     try {
-      tableStreamers = (await supabase.from(tableNameStreamers).select("*"))
-        .data;
+      const [
+        fetchedStreamers,
+        fetchedNotificationsConfig,
+        fetchedPushTokens,
+        fetchedUsersConfig,
+      ] = await Promise.all([
+        fetchFromTable("Streamers", {}),
+        fetchFromTable("UserNotificationsConfig", {}),
+        fetchFromTable("PushTokens", {}),
+        fetchFromTable("UserConfig", {}),
+      ]);
+      if (!fetchedStreamers.data) return;
+      if (!fetchedPushTokens.data) return;
+      if (!fetchedUsersConfig.data) return;
+      if (!fetchedNotificationsConfig.data) return;
 
-      notificationsConfig = (
-        await supabase.from(tableNameNotificationsConfig).select("*")
-      ).data;
+      tableStreamers = Array.isArray(fetchedStreamers.data)
+        ? fetchedStreamers.data
+        : [fetchedStreamers.data];
 
-      pushTokens = (await supabase.from("PushTokens").select("*")).data;
+      notificationsConfig = Array.isArray(fetchedNotificationsConfig.data)
+        ? fetchedNotificationsConfig.data
+        : [fetchedNotificationsConfig.data];
+
+      pushTokens = Array.isArray(fetchedPushTokens.data)
+        ? fetchedPushTokens.data
+        : [fetchedPushTokens.data];
 
       usersConfig = Object.fromEntries(
-        (await supabase.from("UserConfig").select("*")).data?.map((config) => [
-          config.userId,
-          config,
-        ]) || [],
+        (Array.isArray(fetchedUsersConfig.data)
+          ? fetchedUsersConfig.data
+          : [fetchedUsersConfig.data]
+        ).map((config) => [config.userId, config]) || [],
       );
     } catch (error) {
       console.error(
@@ -149,9 +164,9 @@ export const getInterval = () => {
           })
             .then((r) => r.json())
             .then(({ data }) => {
-              if (data.status !== "error") return;
+              if (data?.status !== "error") return;
 
-              const errorData = data.message;
+              const errorData = data?.message;
               console.error(
                 chalk.red("Error sending push notification:"),
                 errorData,

@@ -2,11 +2,11 @@
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-const isDev = process.env.NODE_ENV === "development";
+const isDev = process.env.NODE_ENV === "development" || __DEV__;
 
-export const fallbackAPI_URL =
+export const fallbackAPI_URL: string =
   Constants.expoConfig?.extra?.API_URL || "http://137.131.8.63:3000/api";
-export const fallbackURL_WEB_SOCKET =
+export const fallbackURL_WEB_SOCKET: string =
   Constants.expoConfig?.extra?.WS_URL || "ws://137.131.8.63:3000/";
 
 if (!Constants.expoConfig?.extra?.API_URL && isDev) {

@@ -9,8 +9,9 @@ import {
   refreshSession as authRefreshSession,
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
-import { UserData } from "@types";
+import { Platform } from "react-native";
 import { navigateReplace } from "@navigation/navigationRef";
+import { UserData, Window } from "@types";
 import React, { createContext, useState, useCallback, useEffect } from "react";
 
 interface UserContextType {
@@ -216,9 +217,20 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
    */
   useEffect(() => {
     const initializeAuth = async () => {
+      const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
+        if (Platform.OS !== "web") return;
+        if (typeof window === "undefined") return;
+        // eslint-disable-next-line no-undef
+        (window as Window)?.UtilitiesForPC?.notifyLoginStatus?.(isLoggedIn);
+      };
+
       try {
         const rememberMe = await loadDataSecure("_sessionExpiry");
-        if (!rememberMe || rememberMe < Date.now()) return await authSignOut();
+        if (!rememberMe || rememberMe < Date.now()) {
+          sendNotificationLoginStatus(false);
+          await authSignOut();
+          return;
+        }
         const { userData, token } = await authRefreshSession(
           (await loadDataSecure("_userSessionTokenStorage")) || "",
         );
@@ -227,9 +239,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           setSessionToken(token);
           setUserData(userData ?? null);
           setIsLoggedIn(true);
+          sendNotificationLoginStatus(true);
           log("Restored user session:", userData?.email);
         }
       } catch (error) {
+        authSignOut();
+        sendNotificationLoginStatus(false);
         logError("Error initializing auth:", error);
       } finally {
         setLoading(false);

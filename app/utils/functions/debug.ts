@@ -2,7 +2,7 @@
 import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
-import { getCurrentUserId } from "../supabase";
+import { getCurrentUserId } from "./auth";
 import { RequestSupabaseInsert } from "@types";
 import { fetchOptions, getRouteAPI } from "./APIManagement";
 import { checkLanguage, loadDataSecure } from "./storageManagement";
@@ -15,11 +15,14 @@ type Return = {
 const getCurrentDeviceInfo = async (): Promise<Return> => {
   const fallback = "Platform: " + Platform.OS;
   try {
-    let deviceId = await DeviceInfo.getUniqueId();
-    const deviceName = await DeviceInfo.getDeviceName();
+    let [deviceId, deviceName] = await Promise.all([
+      loadDataSecure("_deviceId"),
+      DeviceInfo.getDeviceName(),
+    ]);
     if (!deviceId || deviceId === "unknown")
       deviceId = DeviceInfo.getDeviceId();
     if (!deviceId || deviceId === "unknown") deviceId = fallback;
+    if (!deviceName || deviceName === "unknown") deviceName = fallback;
 
     return { deviceId, deviceName };
   } catch {
@@ -79,7 +82,7 @@ export const log = async (...args: unknown[]): Promise<void> => {
 
       fetch(
         url,
-        fetchOptions<RequestSupabaseInsert>(
+        fetchOptions<RequestSupabaseInsert<"Logs">>(
           "POST",
           {
             lang,
@@ -89,7 +92,8 @@ export const log = async (...args: unknown[]): Promise<void> => {
               userId,
               message,
               timestamp: date.toISOString(),
-              ...deviceInfo,
+              deviceId: deviceInfo.deviceId,
+              deviceName: deviceInfo.deviceName,
             },
           },
           token,
@@ -148,7 +152,7 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
 
       fetch(
         url,
-        fetchOptions<RequestSupabaseInsert>(
+        fetchOptions<RequestSupabaseInsert<"Logs">>(
           "POST",
           {
             lang,
@@ -158,7 +162,8 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
               userId,
               message: warningMessage,
               timestamp: date.toISOString(),
-              ...deviceInfo,
+              deviceId: deviceInfo.deviceId,
+              deviceName: deviceInfo.deviceName,
             },
           },
           token,
@@ -217,17 +222,18 @@ export const logError = async (...args: unknown[]): Promise<void> => {
 
       fetch(
         url,
-        fetchOptions<RequestSupabaseInsert>(
+        fetchOptions<RequestSupabaseInsert<"Logs">>(
           "POST",
           {
             lang,
             table: "Logs",
             values: {
-              type: "log",
+              type: "error",
               userId,
               message: errorMessage,
               timestamp: date.toISOString(),
-              ...deviceInfo,
+              deviceId: deviceInfo.deviceId,
+              deviceName: deviceInfo.deviceName,
             },
           },
           token,

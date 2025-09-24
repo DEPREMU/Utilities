@@ -2,14 +2,11 @@ import Button from "@components/common/ButtonComponent";
 import { View } from "react-native";
 import { List, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
-import { useNavigation } from "@react-navigation/native";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
-import { RootStackParamList } from "@navigation/AppNavigator";
 import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
 import React, { useEffect, useMemo } from "react";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { ScreensAvailable, typeLanguages } from "@types";
 
 type ButtonType = {
@@ -40,14 +37,8 @@ const buttons: ButtonType[] = [
   dev,
 ].filter((btn): btn is ButtonType => btn !== undefined);
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  "Home"
->;
-
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
-  const navigation = useNavigation<HomeScreenNavigationProp>();
   const { styles, background } = useStylesHomeScreen();
   const { hasInternet } = useDeviceInformation();
   const { userData, logout, isLoggedIn } = useUserContext();
@@ -83,8 +74,9 @@ const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     if (isLoggedIn) return;
-    navigation.replace("Login");
-  }, [isLoggedIn, navigation]);
+
+    navigateReplace("Login");
+  }, [isLoggedIn]);
 
   return (
     <View style={styles.container}>

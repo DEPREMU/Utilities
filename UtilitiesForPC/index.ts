@@ -1,6 +1,6 @@
 import path from "path";
 import { fileURLToPath } from "url";
-import { app, BrowserWindow, Tray, Menu, nativeImage } from "electron";
+import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } from "electron";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,9 +45,18 @@ const t = (key: keyof Translations): string => {
 };
 
 let isQuitting = false;
+let userIsLoggedIn = false;
 let tray: Tray | null = null;
 let language: LanguagesSupported = "en";
 let mainWindow: BrowserWindow | null = null;
+
+ipcMain.on("user-login-status", async (_, isLoggedIn: boolean) => {
+  userIsLoggedIn = isLoggedIn;
+
+  if (!mainWindow) return;
+  if (userIsLoggedIn) mainWindow.hide();
+  else mainWindow.show();
+});
 
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
@@ -92,7 +101,6 @@ const createWindow = (): void => {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
-    setTimeout(() => mainWindow?.hide(), 1000);
   });
 };
 
@@ -172,7 +180,8 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  if (BrowserWindow.getAllWindows().length > 0) return;
+  createWindow();
 });
 
 app.on("before-quit", () => {

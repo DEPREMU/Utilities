@@ -1,6 +1,7 @@
 export * from "./API";
 export * from "./env";
 export * from "./screens";
+export * from "./typesApp";
 export * from "./typesAPI";
 export * from "./typesUser";
 export * from "./typesStorage";

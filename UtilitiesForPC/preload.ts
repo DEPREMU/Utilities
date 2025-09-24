@@ -1,24 +1,27 @@
-const electron = require("electron");
+const { clipboard, contextBridge, ipcRenderer } = require("electron");
 
-const isDev = process.env.NODE_ENV === "development";
+let idleTimeout: NodeJS.Timeout | null = null;
 
-if (!electron.clipboard)
-  isDev && console.error("clipboard API is not available");
-else isDev && console.log("clipboard API loaded successfully");
-
-electron.contextBridge.exposeInMainWorld("myElectronApp", {
+contextBridge.exposeInMainWorld("UtilitiesForPC", {
   readClipboard: () => {
     try {
-      return electron.clipboard.readText();
+      return clipboard.readText();
     } catch {
       return "";
     }
   },
   setClipboard: (text: string) => {
     try {
-      electron.clipboard.writeText(text);
+      clipboard.writeText(text);
     } catch {
       // ignore
     }
+  },
+  notifyLoginStatus: (isLoggedIn: boolean) => {
+    if (idleTimeout) clearTimeout(idleTimeout);
+    idleTimeout = setTimeout(() => {
+      idleTimeout = null;
+      ipcRenderer.send("user-login-status", isLoggedIn);
+    }, 500);
   },
 });

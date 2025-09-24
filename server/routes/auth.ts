@@ -70,17 +70,17 @@ const getDateWithDaysAhead = (days: number): Date => {
 const insertTokenToDB = async (
   token: string | undefined,
   userId: string,
-): Promise<{ error?: string | null }> => {
+): Promise<string | null> => {
   try {
-    if (!token || token === "Web") return { error: null };
+    if (!token || token === "Web") return null;
     await insertIntoTable("PushTokens", {
       token,
       userId,
     });
-    return { error: null };
+    return null;
   } catch (error) {
     console.error(chalk.red("Error getting push token:"), error);
-    return { error: error instanceof Error ? error.message : String(error) };
+    return error instanceof Error ? error.message : String(error);
   }
 };
 
@@ -152,7 +152,7 @@ export const getStorageData = async (
 
   const streamers: Notifications["enabled"]["streamers"] = Object.fromEntries(
     userNotificationsConfig
-      ?.filter((config) => config.reason === "streamers" && !config.streamer)
+      ?.filter((config) => config.reason === "streamers" && !!config.streamer)
       .map((config) => [
         config.streamer,
         {
@@ -317,7 +317,7 @@ export const handleLogin = async (
       return;
     }
 
-    const { error } = await insertTokenToDB(expoToken, user.userId);
+    const error = await insertTokenToDB(expoToken, user.userId);
 
     if (error) console.error(chalk.red("Error inserting push token:"), error);
 

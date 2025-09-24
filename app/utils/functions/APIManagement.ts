@@ -69,6 +69,9 @@ export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
     try {
       const res = await axios.get<unknown, { data: ResponseHealth }>(
         apiUrl + "/health",
+        {
+          timeout: 5000,
+        },
       );
       isOk = res.data.status === "running";
     } catch {

@@ -3,6 +3,7 @@ import {
   RequestSupabaseFetch,
   RequestSupabaseInsert,
   ResponseSupabaseFetch,
+  Window,
 } from "@types";
 import React, {
   useRef,
@@ -42,13 +43,6 @@ type Notification = {
   trigger?: Notifications.NotificationTriggerInput;
 };
 
-type Window = {
-  myElectronApp?: {
-    readClipboard: () => string;
-    setClipboard: (text: string) => void;
-  };
-};
-
 interface NotificationsContextType {
   sendNotification: (
     notification: Omit<Notification, "id" | "timestamp">,
@@ -73,8 +67,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 }) => {
   const { t, language } = useLanguage();
   const { openSnackBar } = useModal();
-  const { sessionToken, userData } = useUserContext();
   const { hasInternet, deviceInfo } = useDeviceInformation();
+  const { sessionToken, userData } = useUserContext();
 
   const notificationsFromStorage = useRef<NotificationsType | null>(null);
   const [notifications, setNotifications] = useState<NotificationsType | null>(
@@ -235,7 +229,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           content = await ExpoClipboard.getStringAsync();
         } catch {
           // eslint-disable-next-line no-undef
-          const electronApp = (window as Window)?.myElectronApp;
+          const electronApp = (window as Window)?.UtilitiesForPC;
           if (electronApp) content = electronApp?.readClipboard?.();
         }
         if (isFalsy(content) || lastItemCopied.current === content) return;
