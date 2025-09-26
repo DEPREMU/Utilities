@@ -11,10 +11,8 @@
         "buildType": "apk"
       },
       "env": {
-        "WS_URL": "$WS_URL",
-        "API_URL": "$API_URL",
-        "ADMIN_PASSWORD": "$ADMIN_PASSWORD",
-        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON"
+        "PLATFORM": "android",
+        "NODE_ENV": "development"
       }
     },
     "preview": {
@@ -23,18 +21,17 @@
       },
       "distribution": "internal",
       "env": {
-        "WS_URL": "$WS_URL",
-        "API_URL": "$API_URL",
-        "ADMIN_PASSWORD": "$ADMIN_PASSWORD",
-        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON"
+        "PLATFORM": "android",
+        "NODE_ENV": "preview"
       }
     },
     "production": {
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
-        "WS_URL": "$WS_URL",
-        "API_URL": "$API_URL",
-        "ADMIN_PASSWORD": "$ADMIN_PASSWORD",
-        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON"
+        "PLATFORM": "android",
+        "NODE_ENV": "production"
       }
     }
   },

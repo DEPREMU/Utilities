@@ -245,11 +245,12 @@ export const configureNotificationChannel = async () => {
   if (Platform.OS !== "android") return;
 
   const channelIdCryptos: ChannelsId = "cryptos";
+  const channelIdDefault: ChannelsId = "default";
   const channelIdStreamers: ChannelsId = "streamers";
   await Promise.all([
     notifications.setNotificationChannelAsync(channelIdStreamers, {
       name: "Streamers",
-      importance: notifications.AndroidImportance.DEFAULT,
+      importance: notifications.AndroidImportance.HIGH,
       sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#8400ff7c",
@@ -260,6 +261,13 @@ export const configureNotificationChannel = async () => {
       sound: "default",
       vibrationPattern: [0, 250, 250, 250, 250, 250, 100],
       lightColor: "#00f7ff7c",
+    }),
+    notifications.setNotificationChannelAsync(channelIdDefault, {
+      name: "Default",
+      importance: notifications.AndroidImportance.DEFAULT,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250, 100],
+      lightColor: "#ffffff",
     }),
   ]);
 };

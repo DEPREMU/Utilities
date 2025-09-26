@@ -14,9 +14,9 @@
 
 | Status    | Count  | Percentage |
 | --------- | ------ | ---------- |
-| Done      | 9      | 90%        |
-| Detected  | 1      | 10%        |
-| **Total** | **10** | **100%**   |
+| Done      | 9      | 81.81%     |
+| Detected  | 2      | 18.19%     |
+| **Total** | **11** | **100%**   |
 
 ---
 
@@ -47,12 +47,13 @@
 
 ### Backend/Server Issues
 
-| Component                        | Priority | Issue Description                                                                                | Status | Detected   | Fixed      |
-| -------------------------------- | -------- | ------------------------------------------------------------------------------------------------ | ------ | ---------- | ---------- |
-| **Streamer Notifications**       | High     | Push notifications not sent when streamers go live - potential duplicate push tokens in database | ✅     | 2025/09/13 | 2025/09/18 |
-| **Multi Sessions Not Available** | High     | Multi sessions are not available, once the user logs in, old refresh_token will be invalidated   | ✅     | 2025/09/19 | 2025/09/20 |
+| Component                              | Priority | Issue Description                                                                                | Status | Detected   | Fixed      |
+| -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ | ------ | ---------- | ---------- |
+| **Streamer Notifications**             | High     | Push notifications not sent when streamers go live - potential duplicate push tokens in database | ✅     | 2025/09/13 | 2025/09/18 |
+| **Multi Sessions Not Available**       | High     | Multi sessions are not available, once the user logs in, old refresh_token will be invalidated   | ✅     | 2025/09/19 | 2025/09/20 |
+| **Data across devices are not synced** | High     | When data in DB is updated in any device, remaining devices do not fetch last data               | ❌     | 2025/09/24 | -          |
 
 ---
 
 _Last Updated: 2025/09/18_  
-_Total Issues: 10 | Resolved: 9 | Remaining: 1_
+_Total Issues: 11 | Resolved: 9 | Remaining: 2_

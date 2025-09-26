@@ -1,8 +1,8 @@
 import chalk from "chalk";
+import { logError } from "../functions";
 import type { TurboModule } from "react-native";
-import { Platform, TurboModuleRegistry } from "react-native";
-import { logError } from "./functions";
 import { LanguagesSupported } from "@types";
+import { Platform, TurboModuleRegistry } from "react-native";
 
 export interface Spec extends TurboModule {
   setUserData(
@@ -11,18 +11,20 @@ export interface Spec extends TurboModule {
     lang: LanguagesSupported,
     deviceId: string,
   ): void;
-  startClipboardService(): void;
-  stopClipboardService(): void;
   isRunning(): Promise<boolean>;
   getMethods(): Promise<string[]>;
+  setClipboardText(text: string): void;
+  stopClipboardService(): void;
+  startClipboardService(): void;
 }
 
 const defaultClipboardModule: Spec = {
   setUserData: (_: string, __: string) => {},
-  startClipboardService: () => {},
-  stopClipboardService: () => {},
   isRunning: async () => false,
   getMethods: async () => [],
+  setClipboardText: () => {},
+  stopClipboardService: () => {},
+  startClipboardService: () => {},
 };
 
 const ClipboardModule =
@@ -30,7 +32,10 @@ const ClipboardModule =
     ? TurboModuleRegistry.getEnforcing<Spec>("ClipboardModule")
     : defaultClipboardModule;
 
-if (!ClipboardModule || Object.keys(ClipboardModule).length === 0) {
+if (
+  process.env.NODE_ENV === "development" &&
+  (!ClipboardModule || Object.keys(ClipboardModule).length === 0)
+) {
   logError(chalk.red("ClipboardModule is not available"));
 }
 

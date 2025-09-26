@@ -32,7 +32,7 @@ class ForegroundClipboardService : Service() {
     private var userToken: String? = null
 
     private val client = OkHttpClient()
-    private val serverURL = "{{serverURL}}"
+    private val serverURL = "{{serverURL}}" // This will be replaced in build time
 
     private val clipListener = ClipboardManager.OnPrimaryClipChangedListener {
         val clip = clipboardManager.primaryClip

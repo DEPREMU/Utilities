@@ -147,7 +147,7 @@ export const fetchFromTable = async <T extends TablesKeys = TablesKeys>(
  */
 export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
   table: T = "Users" as T,
-  data: Partial<Tables[T]> | Partial<Tables[T]>[],
+  data: T extends "Users" ? Partial<Tables[T]> : Tables[T] | Tables[T][],
 ): Promise<{
   data?: Tables[T][] | Tables[T] | null;
   error?: string | null;

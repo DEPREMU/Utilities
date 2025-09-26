@@ -27,6 +27,7 @@ import {
   cleanAllStorageData,
 } from "../functions";
 import chalk from "chalk";
+import Constants from "expo-constants";
 import { isFalsy } from "./../functions/appManagement";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
@@ -39,6 +40,30 @@ export type AuthResponse = {
   token?: string | null;
   error?: string | null;
   userData?: Omit<UserData, "password"> | null;
+};
+
+/**
+ * Retrieves the Expo push token for the device.
+ * On web, it returns "Web" as a placeholder.
+ *
+ * @returns A promise that resolves to the Expo push token string.
+ * @throws Will throw an error if the project ID is not found or if there is an issue fetching the token.
+ */
+const getExpoPushToken = async (): Promise<string> => {
+  if (Platform.OS === "web") return "Web";
+  const projectId =
+    Constants?.expoConfig?.extra?.eas?.projectId ??
+    Constants?.easConfig?.projectId;
+  if (!projectId) {
+    throw new Error("Project ID not found");
+  }
+
+  const token = (
+    await Notifications.getExpoPushTokenAsync({
+      projectId,
+    })
+  ).data;
+  return token;
 };
 
 const saveStorageData = async (
@@ -93,8 +118,7 @@ export const signInWithEmail = async (
       loadDataSecure("_deviceId"),
     ]);
     let expoToken = "Web";
-    if (Platform.OS !== "web")
-      expoToken = (await Notifications.getExpoPushTokenAsync()).data;
+    if (Platform.OS !== "web") expoToken = await getExpoPushToken();
 
     const res = await fetch(
       await getRouteAPI("/auth/login"),
@@ -204,8 +228,7 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
     if (!token) return { error: "No session token found" };
 
     let expoToken = "Web";
-    if (Platform.OS !== "web")
-      expoToken = (await Notifications.getExpoPushTokenAsync()).data;
+    if (Platform.OS !== "web") expoToken = await getExpoPushToken();
 
     const res = await fetch(
       await getRouteAPI("/auth/signOut"),
@@ -279,8 +302,8 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
     ]);
 
     let expoToken = "Web";
-    if (Platform.OS !== "web")
-      expoToken = (await Notifications.getExpoPushTokenAsync()).data;
+    if (Platform.OS !== "web") expoToken = await getExpoPushToken();
+
     if (!deviceId) {
       cleanAllStorageData();
       logError(chalk.red("No device ID found"));

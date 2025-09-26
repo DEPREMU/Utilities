@@ -19,7 +19,7 @@ export default {
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
-    platforms: ["ios", "android", "web"],
+    platforms: ["android", "web"],
     extra: {
       WS_URL: process.env.WS_URL,
       API_URL: process.env.API_URL,
@@ -45,22 +45,23 @@ export default {
       package: "com.utilities.depremu",
       permissions: [
         "INTERNET",
-        "ACCESS_NETWORK_STATE",
+        "WAKE_LOCK",
         "NOTIFICATIONS",
+        "FOREGROUND_SERVICE",
+        "ACCESS_NETWORK_STATE",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "FOREGROUND_SERVICE",
-        "WAKE_LOCK",
         "RECEIVE_BOOT_COMPLETED",
       ],
       googleServicesFile: "./google-services.json",
+      useNextNotificationsApi: true,
     },
     plugins: [
       "./plugins/handleCreateFiles.js",
       "expo-font",
       "expo-secure-store",
-      "expo-notifications",
       "expo-localization",
+      "expo-notifications",
       [
         "expo-build-properties",
         {

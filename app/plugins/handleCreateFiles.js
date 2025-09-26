@@ -6,7 +6,11 @@ const chalk = new Chalk({ level: 1 });
 const withGoogleServices = (config) => {
   console.log(chalk.blue("Plugin handleCreateFiles.js is being executed..."));
 
-  if (process.env.EAS_BUILD === "true" && process.env.GOOGLE_SERVICES_JSON) {
+  if (
+    process.env.EAS_BUILD === "true" &&
+    process.env.GOOGLE_SERVICES_JSON &&
+    !process.env.GOOGLE_SERVICES_JSON.startsWith("$")
+  ) {
     try {
       console.log(
         chalk.blue(

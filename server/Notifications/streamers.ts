@@ -143,6 +143,16 @@ export const getInterval = () => {
         const title = t("streamerLiveNotificationTitle", lang, config);
         const body = t("streamerLiveNotification", lang, config);
 
+        console.log(
+          chalk.green(
+            `Sending notification to user ${userConfig.userId} that ${status.streamer} is live`,
+          ),
+          config,
+          pushTokensUsers[userConfig.userId]?.tokens,
+          title,
+          body,
+        );
+
         try {
           fetch("https://exp.host/--/api/v2/push/send", {
             method: "POST",

@@ -1,9 +1,9 @@
 import {
+  Window,
   Notifications as NotificationsType,
   RequestSupabaseFetch,
   RequestSupabaseInsert,
   ResponseSupabaseFetch,
-  Window,
 } from "@types";
 import React, {
   useRef,
@@ -26,7 +26,7 @@ import {
 } from "@utils";
 import { v4 } from "uuid";
 import { useModal } from "./ModalContext";
-import ClipboardModule from "@/utils/ClipboardModule";
+import ClipboardModule from "@/utils/modules/ClipboardModule";
 import { useLanguage } from "./LanguageContext";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
@@ -109,7 +109,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (!userData?.userId || lastItemCopied.current) return;
 
     getNotifications().then((data) => setNotifications(data ?? null));
-    
+
     if (!sessionToken) return;
     if (Platform.OS !== "web") return;
 

@@ -102,4 +102,14 @@ class ClipboardModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
         )
         promise.resolve(com.facebook.react.bridge.Arguments.makeNativeMap(methods))
     }
+
+    @ReactMethod
+    fun setClipboardText(text: String) {
+        Log.d("ClipboardModule", "setClipboardText() called with text: ${text.take(10)}...")
+        val context = reactApplicationContext
+        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        val clip = android.content.ClipData.newPlainText("label", text)
+        clipboard.setPrimaryClip(clip)
+        Log.d("ClipboardModule", "Text set to clipboard.")
+    }
 }

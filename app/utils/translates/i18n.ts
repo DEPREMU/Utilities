@@ -1,8 +1,8 @@
-import { logError } from "../functions";
 import en from "./English";
 import es from "./Spanish";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { logError, checkLanguage } from "../functions";
 
 i18n.use(initReactI18next).init({
   lng: "en",
@@ -18,7 +18,6 @@ i18n.use(initReactI18next).init({
 
 const configureLanguage = async () => {
   try {
-    const { checkLanguage } = await import("../functions/storageManagement");
     const lng = await checkLanguage();
 
     await i18n.changeLanguage(lng);
@@ -28,6 +27,6 @@ const configureLanguage = async () => {
   }
 };
 
-setTimeout(configureLanguage, 0);
+setTimeout(configureLanguage, 1);
 
 export { i18n };

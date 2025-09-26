@@ -238,7 +238,11 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
 
 const runPrebuild = () => {
   const projectRoot = path.resolve(__dirname, "app");
-  const commands = [`cd ${projectRoot}`, "npm i", "npx expo prebuild"];
+  const commands = [
+    `cd ${projectRoot}`,
+    "npm i",
+    "npx expo prebuild --platform android",
+  ];
   if (!projectRoot.endsWith("app"))
     throw new Error("Project root does not end with 'app'");
   if (!fs.existsSync(path.join(projectRoot, "google-services.json")))
@@ -247,7 +251,7 @@ const runPrebuild = () => {
   try {
     console.log(chalk.blue("Running prebuild script..."));
     const output = execSync(
-      commands.join(isWindows ? " && " : " ; "),
+      commands.join(isWindows ? " && " : "; "),
     )?.toString();
 
     if (!output?.includes("Finished prebuild"))

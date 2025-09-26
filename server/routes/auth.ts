@@ -201,6 +201,8 @@ export const getStorageData = async (
     "@notifications": userNotificationsConfigToSave,
     "@languageKeyStorage": userConfigToSave.language,
     "@webSocketURL": userConfigToSave.webSocketURL || "",
+    "@clipboardWebSocketURL":
+      userConfigToSave.webSocketURL?.replace("/ws", "/clipboard") || "",
     "@theme": userConfigToSave.theme || "auto",
     "@pendingTasks": null,
     _Streamers: streamersUser
@@ -214,12 +216,14 @@ export const getStorageData = async (
 };
 
 export const initializeTables = async (userId: string, lang: string) => {
+  const updatedAt = new Date().toISOString();
   const [userConfig, userNotificationsConfig] = await Promise.all([
     insertIntoTable("UserConfig", {
       language: lang,
       userId,
       theme: "auto",
       hasAdmin: false,
+      updatedAt,
     }),
     insertIntoTable("UserNotificationsConfig", [
       {
@@ -227,12 +231,14 @@ export const initializeTables = async (userId: string, lang: string) => {
         enabled: false,
         interval: -1,
         userId,
+        updatedAt,
       },
       {
         reason: "cryptos",
         enabled: false,
         interval: 600000,
         userId,
+        updatedAt,
       },
     ]),
   ]);
@@ -306,6 +312,7 @@ export const handleLogin = async (
       userId: user.userId,
       token,
       deviceId,
+      updatedAt: new Date().toISOString(),
     });
 
     if (dataInsert.error || !dataInsert.data) {

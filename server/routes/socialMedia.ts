@@ -1,15 +1,14 @@
 import type {
   RequestAddStreamer,
-  RequestGetIsLiveStreamer,
   ResponseAddStreamer,
-  ResponseGetIsLiveStreamer,
   UserNotificationsConfig,
+  RequestGetIsLiveStreamer,
+  ResponseGetIsLiveStreamer,
 } from "./../../types/index";
 import axios from "axios";
-import express from "express";
-import { supabase } from "./../supabase/supabase.ts";
 import chalk from "chalk";
-import { updateInTable } from "../supabase/functions.ts";
+import express from "express";
+import { updateInTable, insertIntoTable } from "../supabase/functions.ts";
 
 const getLinkImageStreamer = async (streamer: string) => {
   streamer = streamer.toLowerCase().replace(/\s+/g, "");
@@ -72,15 +71,23 @@ export const addStreamer = async (
     return;
   }
   try {
-    const { data, error } = await supabase
-      .from("Streamers")
-      .insert({
+    const [, result] = await Promise.all([
+      insertIntoTable("UserNotificationsConfig", {
+        enabled: false,
+        interval: -1,
+        userId,
+        streamer: name,
+        reason: "streamers",
+        updatedAt: new Date().toISOString(),
+      }),
+      insertIntoTable("Streamers", {
         name,
         userId,
         linkImage: await getLinkImageStreamer(name),
-      })
-      .select()
-      .single();
+      }),
+    ]);
+
+    let { data } = result;
 
     const newNotificationFromStreamer: UserNotificationsConfig = {
       enabled: false,
@@ -107,12 +114,15 @@ export const addStreamer = async (
         error,
       );
     }
+    if (Array.isArray(data)) {
+      data = data[0] || null;
+    } else data = data || null;
 
     const streamer = data
       ? { ...data, isLive: await isLiveStreamer(data.name) }
       : null;
 
-    if (error) {
+    if (result.error) {
       res.status(500).json({ error: "Failed to add streamer" });
       return;
     }

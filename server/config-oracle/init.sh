@@ -2,10 +2,12 @@
 
 sudo apt update
 sudo apt upgrade -y
-sudo apt install nodejs npm -y
 sudo apt install git -y
 sudo apt install ufw -y
 sudo apt install wget curl -y
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+\. "$HOME/.nvm/nvm.sh"
+nvm install 24
 sudo npm install -g pm2
 npm install -g pm2
 

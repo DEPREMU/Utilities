@@ -21,4 +21,4 @@ export type Notifications = {
   intervals: Record<ReasonNotification, number | null>;
 };
 
-export type ChannelsId = "streamers" | "cryptos";
+export type ChannelsId = "streamers" | "cryptos" | "default";

@@ -335,32 +335,28 @@ const Streamers: React.FC = () => {
         if (!userData?.userId || !sessionToken) return;
         let data: Streamer[];
 
-        if (hasInternet) {
-          const res = await fetch(
-            await getRouteAPI("/supabase/fetch"),
-            fetchOptions<RequestSupabaseFetch>(
-              "POST",
-              {
-                table: "Streamers",
-                match: { userId: userData?.userId },
-                lang: language,
-              },
-              sessionToken,
-            ),
-          );
-          const { data: internetData, error } =
-            (await res.json()) as ResponseSupabaseFetch<"Streamers">;
+        const res = await fetch(
+          await getRouteAPI("/supabase/fetch"),
+          fetchOptions<RequestSupabaseFetch>(
+            "POST",
+            {
+              table: "Streamers",
+              match: { userId: userData?.userId },
+              lang: language,
+            },
+            sessionToken,
+          ),
+        );
+        const { data: internetData, error } =
+          (await res.json()) as ResponseSupabaseFetch<"Streamers">;
 
-          if (error) throw new Error(error);
+        if (error) throw new Error(error);
 
-          data = Array.isArray(internetData)
-            ? internetData
-            : internetData
-              ? [internetData]
-              : [];
-        } else {
-          data = (await loadDataSecure("_Streamers")) || [];
-        }
+        data = Array.isArray(internetData)
+          ? internetData
+          : internetData
+            ? [internetData]
+            : [];
 
         if (data && data.length === 0) return;
         if (!data) {
@@ -403,9 +399,7 @@ const Streamers: React.FC = () => {
     };
 
     if (!streamersLoaded.current) loadStreamers();
-    const id = setInterval(() => {
-      loadStreamers();
-    }, 15000);
+    const id = setInterval(() => loadStreamers(), 15000);
 
     return () => clearInterval(id);
   }, [closeModal, hasInternet, openModal, t, userData?.userId]);
