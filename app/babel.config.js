@@ -31,8 +31,10 @@ module.exports = function (api) {
         "babel-plugin-transform-replace-expressions",
         {
           replace: {
-            "Platform.OS": platform,
-            "process.env.NODE_ENV": process?.env?.NODE_ENV || "production",
+            "Platform.OS": JSON.stringify(platform),
+            "process.env.NODE_ENV": JSON.stringify(
+              process?.env?.NODE_ENV || "production",
+            ),
           },
           allowConflictingReplacements: true,
         },

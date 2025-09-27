@@ -49,7 +49,7 @@ const DeviceInformation: React.FC = () => {
   );
 
   const renderObject = useCallback(
-    (key: string, value: Object) => {
+    (key: string, value: object) => {
       if (!Array.isArray(value) && Object.keys(value || {}).length > 0) {
         return (
           <View key={key} style={styles.infoCard}>

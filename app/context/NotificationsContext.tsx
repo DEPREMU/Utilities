@@ -230,7 +230,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         try {
           content = await ExpoClipboard.getStringAsync();
         } catch {
-          // eslint-disable-next-line no-undef
           const electronApp = (window as Window)?.UtilitiesForPC;
           if (electronApp) content = electronApp?.readClipboard?.();
         }

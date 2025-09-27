@@ -3,7 +3,6 @@ import {
   typeLanguages,
   ReasonNotification,
   RequestSupabaseUpdate,
-  ResponseSupabaseUpdate,
 } from "@types";
 import {
   isFalsy,
@@ -12,7 +11,6 @@ import {
   fetchOptions,
   stringifyData,
   getNotifications,
-  log,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import { FlatList } from "react-native";
@@ -20,10 +18,10 @@ import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
+import { useBackgroundTask } from "@/context/BackgroundTaskContext";
 import useStylesNotifications from "@styles/components/settings/useStylesNotifications";
 import { Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useBackgroundTask } from "@/context/BackgroundTaskContext";
 
 interface NotificationsProps {
   onScrollableAreaTouch: (touching: boolean) => void;
@@ -109,7 +107,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         return updated;
       });
     },
-    [userData?.userId, sessionToken, language],
+    [userData?.userId, sessionToken, language, addTaskQueue],
   );
   const handleChangeNotificationInterval = useCallback(
     async (id: ReasonNotification, value: string) => {

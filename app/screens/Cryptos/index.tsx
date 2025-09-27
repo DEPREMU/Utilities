@@ -1,12 +1,11 @@
-/* eslint-disable indent */
+import React, { useCallback, useEffect, useState } from "react";
+import chalk from "chalk";
+import { View } from "react-native";
+import { loadDataSecure, logError, SelectedCryptos } from "@utils";
 import DisplayScreen from "./DisplayScreen";
 import SelectionScreen from "./SelectionScreen";
 import { BottomNavigation } from "react-native-paper";
 import useStylesCryptosNavigator from "@styles/components/cryptos/useStylesCryptosNavigator";
-import { loadDataSecure, logError, SelectedCryptos } from "@utils";
-import React, { useCallback, useEffect, useState } from "react";
-import { View } from "react-native";
-import chalk from "chalk";
 
 const CryptosNavigator: React.FC = () => {
   const { styles, colors } = useStylesCryptosNavigator();

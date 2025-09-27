@@ -1,4 +1,3 @@
-/* eslint-disable indent */
 import {
   Platform,
   TextStyle,
@@ -7,16 +6,16 @@ import {
   ScaledSize,
 } from "react-native";
 import React, {
-  createContext,
-  useContext,
+  useMemo,
   useState,
   useEffect,
   ReactNode,
+  useContext,
   useCallback,
-  useMemo,
+  createContext,
 } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "./ThemeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface LayoutProviderProps {
   children: ReactNode;

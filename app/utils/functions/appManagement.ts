@@ -39,7 +39,7 @@ const functionFallback = (functionName: string) => () =>
       `Function created after parsed data, original function name: "${functionName}"`,
     ),
   );
-const symbolFallback = (symbolName: String) =>
+const symbolFallback = (symbolName: string) =>
   Symbol(
     `Symbol created after parsed data, original symbol name: "${symbolName}"`,
   );

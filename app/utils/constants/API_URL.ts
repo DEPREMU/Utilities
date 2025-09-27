@@ -5,9 +5,9 @@ import { Platform } from "react-native";
 const isDev = process.env.NODE_ENV === "development" || __DEV__;
 
 export const fallbackAPI_URL: string =
-  Constants.expoConfig?.extra?.API_URL || "http://137.131.8.63:3000/api";
+  Constants.expoConfig?.extra?.API_URL || "http://158.101.7.150:3000/api";
 export const fallbackURL_WEB_SOCKET: string =
-  Constants.expoConfig?.extra?.WS_URL || "ws://137.131.8.63:3000/ws";
+  Constants.expoConfig?.extra?.WS_URL || "ws://158.101.7.150:3000/ws";
 
 if (!Constants.expoConfig?.extra?.API_URL && isDev) {
   console.warn(

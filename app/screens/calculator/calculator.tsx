@@ -42,20 +42,19 @@ const Calculator: React.FC = () => {
             <Button
               key={char}
               label={["d", "c"].includes(char) ? "" : char}
-              children={
-                char === "d" ? (
-                  <Icon source="backspace-outline" size={20} />
-                ) : char === "c" ? (
-                  <Icon source="delete" size={20} />
-                ) : null
-              }
               replaceStyles={{
                 button: styles.buttonInput,
                 textButton: styles.buttonText,
               }}
               touchableOpacity
               handlePress={() => handlePressInput(char)}
-            />
+            >
+              {char === "d" ? (
+                <Icon source="backspace-outline" size={20} />
+              ) : char === "c" ? (
+                <Icon source="delete" size={20} />
+              ) : null}
+            </Button>
           ))}
         </View>
       )),

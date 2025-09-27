@@ -48,7 +48,7 @@ const LanguagePicker: React.FC = () => {
       );
       await changeLang(lang);
     },
-    [changeLang, addTaskQueue, userData?.userId],
+    [changeLang, addTaskQueue, userData?.userId, sessionToken],
   );
 
   const itemsRendered = useMemo(
@@ -67,7 +67,7 @@ const LanguagePicker: React.FC = () => {
           onPress={() => changeLanguage(key as LanguagesSupported)}
         />
       )),
-    [changeLanguage, language, colors, t],
+    [changeLanguage, language, colors],
   );
 
   return (

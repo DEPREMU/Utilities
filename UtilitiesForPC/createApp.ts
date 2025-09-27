@@ -21,19 +21,60 @@ if (!__dirname.endsWith("UtilitiesForPC")) {
 if (!fs.existsSync(__dirname))
   throw new Error("__dirname does not exist: " + __dirname);
 
+const isWindows = process.platform === "win32";
+
 const buildApp = () => {
   console.log(chalk.blue("Building Electron app..."));
   execSync("npm run build", { cwd: __dirname });
   console.log(chalk.green("Electron app build command executed."));
 
   console.log(chalk.blue("Elevating permissions and packaging the app..."));
-  execSync(
-    `powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', 'cd \"${__dirname}\"; npx electron-builder; exit'"`,
-    { cwd: __dirname }
-  );
+  if (isWindows)
+    execSync(
+      `powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', 'cd \"${__dirname}\"; npx electron-builder --wi; exit'"`,
+      { cwd: __dirname }
+    );
+  else {
+    execSync("npx electron-builder", { cwd: __dirname });
+    console.log(
+      chalk.green("App packaged successfully. Now it will be installed.")
+    );
+    const dir = execSync("cd dist-electron; ls", { cwd: __dirname });
+    const packageName = dir
+      .toString()
+      .split("\n")
+      .find((file) => file.endsWith(".snap"));
+    if (!packageName) throw new Error("Failed to find the .snap package.");
+    execSync(
+      `sudo snap install dist-electron/${packageName} --dangerous; sudo apt install gnome-shell-extension-appindicator`,
+      {
+        cwd: __dirname,
+        stdio: "inherit",
+      }
+    );
+
+    execSync(
+      [
+        'echo "App installed successfully. Do you need to restart your computer, do you want to restart now? (y/n)"',
+        "read answer",
+        'if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then sudo reboot',
+        'else echo "You can restart later manually."',
+        "fi",
+        'echo "Do you want to open the app now? (y/n)"',
+        "read answer2",
+        'if [ "$answer2" = "y" ] || [ "$answer2" = "Y" ]; then snap run utilities-for-pc --no-sandbox',
+        "fi",
+      ].join("; "),
+      { cwd: __dirname, stdio: "inherit" }
+    );
+  }
   console.log(
     chalk.black.bgGreen.bold(
-      "App was packaged successfully. Now you can wait for the PowerShell window to close to install the app in the folder 'dist-electron'."
+      `App was packaged successfully. ${
+        isWindows
+          ? ""
+          : "Now you can wait for the PowerShell window to close to install the app in the folder 'dist-electron'."
+      }`
     )
   );
 };

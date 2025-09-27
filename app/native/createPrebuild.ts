@@ -102,11 +102,9 @@ const createModules = async () => {
         path.resolve(modulePath, module.name),
         "utf8",
       );
-      if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+      if (!process.env.API_URL) {
         console.error(
-          chalk.red(
-            "SUPABASE_URL or SUPABASE_KEY is not defined in environment variables",
-          ),
+          chalk.red("API_URL is not defined in environment variables"),
         );
         return;
       }

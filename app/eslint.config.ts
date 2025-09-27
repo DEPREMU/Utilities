@@ -1,9 +1,12 @@
 import js from "@eslint/js";
-import typescript from "@typescript-eslint/eslint-plugin";
+import globals from "globals";
+import tseslint from "@typescript-eslint/eslint-plugin";
+import stylistic from "@stylistic/eslint-plugin";
+import pluginReact from "eslint-plugin-react";
+import pluginReactHooks from "eslint-plugin-react-hooks";
 import typescriptParser from "@typescript-eslint/parser";
-import react from "eslint-plugin-react";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactNative from "eslint-plugin-react-native";
+// @ts-ignore
+import pluginReactNative from "eslint-plugin-react-native";
 
 export default [
   {
@@ -35,7 +38,7 @@ export default [
   },
   js.configs.recommended,
   {
-    files: ["**/*.{js,jsx,ts,tsx}"],
+    files: ["**/*.{js,ts,jsx,tsx}"],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -46,6 +49,7 @@ export default [
         sourceType: "module",
       },
       globals: {
+        ...globals.browser,
         console: "readonly",
         process: "readonly",
         __dirname: "readonly",
@@ -70,13 +74,13 @@ export default [
       },
     },
     plugins: {
-      "@typescript-eslint": typescript,
-      react,
-      "react-hooks": reactHooks,
-      "react-native": reactNative,
+      "@typescript-eslint": tseslint,
+      "@stylistic": stylistic,
+      react: pluginReact,
+      "react-native": pluginReactNative,
+      "react-hooks": pluginReactHooks,
     },
     rules: {
-      // TypeScript rules
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_" },
@@ -85,22 +89,13 @@ export default [
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-non-null-assertion": "warn",
-
-      // React rules
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
-      "react/display-name": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
-
-      // React Native rules
-      "react-native/no-unused-styles": "warn",
-      "react-native/split-platform-components": "error",
       "react-native/no-inline-styles": "warn",
-      "react-native/no-color-literals": "warn",
-      "react-native/no-raw-text": "off",
-
-      // General rules
+      "react-native/split-platform-components": "warn",
+      "react-native/no-raw-text": "warn",
       "no-console": "warn",
       "no-unused-vars": "off",
       "no-undef": "warn",
@@ -109,7 +104,8 @@ export default [
       "no-var": "error",
       semi: ["error", "always"],
       quotes: ["warn", "double"],
-      indent: ["warn", 2],
+      indent: "off",
+      "@stylistic/indent": ["warn", 2],
       "comma-dangle": ["warn", "always-multiline"],
       "object-curly-spacing": ["error", "always"],
       "array-bracket-spacing": ["error", "never"],
@@ -117,6 +113,9 @@ export default [
     },
     settings: {
       react: {
+        version: "detect",
+      },
+      "react-native": {
         version: "detect",
       },
     },

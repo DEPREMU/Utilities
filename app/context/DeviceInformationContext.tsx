@@ -58,29 +58,30 @@ const deviceInformationWithItsFunc = {
   hardware: "getHardware",
 } as const;
 
+const getDeviceInformation = async (): Promise<DeviceInformation> => {
+  const info = await Promise.all(
+    Object.entries(deviceInformationWithItsFunc).map(async ([key, func]) => {
+      try {
+        const funcTyped =
+          func as (typeof deviceInformationWithItsFunc)[keyof DeviceInformation];
+        const value = await DeviceInfo?.[funcTyped]?.();
+        return [key, value];
+      } catch (error) {
+        logError(`Error getting device info for ${key}:`, error);
+        return [key, null];
+      }
+    }),
+  );
+
+  return Object.fromEntries(info);
+};
+
 export const DeviceInformationProvider: React.FC<
   DeviceInformationProviderProps
 > = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInformation | null>(null);
   const [hasInternet, setHasInternet] = useState<boolean>(true);
-
-  const getDeviceInformation =
-    useCallback(async (): Promise<DeviceInformation> => {
-      const info = await Promise.all(
-        Object.entries(deviceInformationWithItsFunc).map(
-          async ([key, func]) => {
-            const funcTyped =
-              func as (typeof deviceInformationWithItsFunc)[keyof DeviceInformation];
-            const value = await DeviceInfo?.[funcTyped]?.();
-
-            return [key, value];
-          },
-        ),
-      );
-
-      return Object.fromEntries(info);
-    }, []);
 
   const refreshDeviceInfo = useCallback(async () => {
     setLoading(true);
@@ -92,7 +93,7 @@ export const DeviceInformationProvider: React.FC<
     } finally {
       setLoading(false);
     }
-  }, [getDeviceInformation]);
+  }, []);
 
   useEffect(() => {
     const listener = addNetworkStateListener((values) => {

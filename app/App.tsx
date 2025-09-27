@@ -21,13 +21,18 @@ const hasDeviceId = async (): Promise<boolean> => {
     if (deviceId) return true;
     if (Platform.OS === "web") await saveDataSecure("_deviceId", v4() + v4());
     else {
-      const res = await fetch(
-        await getRouteAPI("/getRandomUUID"),
-        fetchOptions("POST"),
-      );
+      let uuid: string | undefined = "";
+      try {
+        const res = await fetch(
+          await getRouteAPI("/getRandomUUID"),
+          fetchOptions("POST"),
+        );
 
-      const result = (await res.json()) as ResponseGetRandomUUID;
-      let uuid = result.uuid;
+        const result = (await res.json()) as ResponseGetRandomUUID;
+        uuid = result.uuid;
+      } catch (error) {
+        logError(chalk.red("Error saving device ID:", error));
+      }
       if (!uuid)
         uuid = Array.from({ length: 5 }, () =>
           Math.random().toString(36).substring(2, 15),

@@ -6,7 +6,6 @@ import {
   getRouteAPI,
   fetchOptions,
   saveDataSecure,
-  loadDataSecure,
 } from "@utils";
 import {
   Streamer,
@@ -313,7 +312,14 @@ const Streamers: React.FC = () => {
         ),
       );
     },
-    [notifications, setNotifications, userData?.userId, hasInternet],
+    [
+      notifications,
+      setNotifications,
+      userData?.userId,
+      hasInternet,
+      language,
+      sessionToken,
+    ],
   );
 
   useEffect(() => {
@@ -333,7 +339,6 @@ const Streamers: React.FC = () => {
     const loadStreamers = async () => {
       try {
         if (!userData?.userId || !sessionToken) return;
-        let data: Streamer[];
 
         const res = await fetch(
           await getRouteAPI("/supabase/fetch"),
@@ -352,7 +357,7 @@ const Streamers: React.FC = () => {
 
         if (error) throw new Error(error);
 
-        data = Array.isArray(internetData)
+        const data = Array.isArray(internetData)
           ? internetData
           : internetData
             ? [internetData]
@@ -402,7 +407,15 @@ const Streamers: React.FC = () => {
     const id = setInterval(() => loadStreamers(), 15000);
 
     return () => clearInterval(id);
-  }, [closeModal, hasInternet, openModal, t, userData?.userId]);
+  }, [
+    t,
+    userData?.userId,
+    language,
+    openModal,
+    closeModal,
+    hasInternet,
+    sessionToken,
+  ]);
 
   return (
     <View style={styles.container}>

@@ -1,5 +1,4 @@
 /* eslint-disable react-native/no-inline-styles */
-/* eslint-disable react-native/no-color-literals */
 import {
   View,
   Pressable,
@@ -13,9 +12,9 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { Text } from "react-native-paper";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 
 interface AnimatedCircleProps {
   x: number;

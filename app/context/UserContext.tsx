@@ -220,7 +220,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
         if (Platform.OS !== "web") return;
         if (typeof window === "undefined") return;
-        // eslint-disable-next-line no-undef
+
         (window as Window)?.UtilitiesForPC?.notifyLoginStatus?.(isLoggedIn);
       };
 

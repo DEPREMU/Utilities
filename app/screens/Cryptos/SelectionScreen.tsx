@@ -209,7 +209,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     };
 
     fetchOwnedCryptos();
-  }, [userData?.userId]);
+  }, [userData?.userId, sessionToken, language]);
 
   useEffect(() => {
     const id = setTimeout(() => {

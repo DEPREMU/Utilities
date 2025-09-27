@@ -1,8 +1,7 @@
-/* eslint-disable indent */
-import chalk from "chalk";
-import type { LanguagesSupported, typeLanguagesServer } from "../../types";
 import en from "./English.ts";
 import es from "./Spanish.ts";
+import chalk from "chalk";
+import type { LanguagesSupported, typeLanguagesServer } from "../../types";
 
 /**
  * Translates a given key into the specified language, with optional replacements.
@@ -22,26 +21,26 @@ export const t = (
   switch (lang) {
     case "en":
     default:
-       if (!key.includes("."))
-         value = en[key as keyof typeLanguagesServer] as string;
-       else {
-         const keys = key.split(".");
-         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-         let temp: any = en[keys[0] as keyof typeof en];
-         for (const k of keys.slice(1)) {
-           temp = temp?.[k];
-           if (!temp) break;
-         }
-         if (temp && typeof temp === "string") value = temp;
-         else {
-           console.log(
-             chalk.yellow(
-               `Missing translation for key "${key}" in language "${lang}"`,
-             ),
-           );
-           value = key;
-         }
-       }
+      if (!key.includes("."))
+        value = en[key as keyof typeLanguagesServer] as string;
+      else {
+        const keys = key.split(".");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let temp: any = en[keys[0] as keyof typeof en];
+        for (const k of keys.slice(1)) {
+          temp = temp?.[k];
+          if (!temp) break;
+        }
+        if (temp && typeof temp === "string") value = temp;
+        else {
+          console.log(
+            chalk.yellow(
+              `Missing translation for key "${key}" in language "${lang}"`,
+            ),
+          );
+          value = key;
+        }
+      }
       break;
     case "es":
       if (!key.includes("."))

@@ -1,5 +1,3 @@
-/* eslint-disable indent */
-/* eslint-disable no-undef */
 import {
   Window,
   WebSocketMessage,

@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 import {
   NativeStackNavigationProp,
   createNativeStackNavigator,
@@ -26,7 +27,7 @@ import { setupNotificationHandlers } from "@utils";
 import { navigateReplace, navigationRef } from "./navigationRef";
 import { NavigationContainer, RouteProp } from "@react-navigation/native";
 
-export type RootStackParamList = Record<ScreensAvailable, Object | undefined>;
+export type RootStackParamList = Record<ScreensAvailable, object | undefined>;
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

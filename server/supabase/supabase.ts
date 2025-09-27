@@ -1,5 +1,5 @@
-import chalk from "chalk";
 import env from "../env.ts";
+import chalk from "chalk";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = env.SUPABASE_URL as string | undefined;

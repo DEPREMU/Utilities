@@ -1,13 +1,13 @@
 import Button from "@components/common/ButtonComponent";
 import { Text } from "react-native-paper";
+import { fetchOptions, getRouteAPI, loadDataSecure } from "@utils";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
+import { RequestSupabaseInsert, ResponseSupabaseInsert } from "@types";
 import { useUserContext } from "@context/UserContext";
 import { View, TextInput } from "react-native";
 import useStylesSyncClipboard from "@styles/screens/clipboard/useStylesSyncClipboard";
-import { fetchOptions, getRouteAPI } from "@utils";
 import React, { useCallback, useState } from "react";
-import { RequestSupabaseInsert, ResponseSupabaseInsert } from "@types";
 
 const SyncClipboardScreen: React.FC = () => {
   const { styles } = useStylesSyncClipboard();
@@ -26,8 +26,12 @@ const SyncClipboardScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
+      const [url, deviceId] = await Promise.all([
+        getRouteAPI("/supabase/insert"),
+        loadDataSecure("_deviceId"),
+      ]);
       const res = await fetch(
-        await getRouteAPI("/supabase/insert"),
+        url,
         fetchOptions<RequestSupabaseInsert>(
           "POST",
           {
@@ -36,7 +40,7 @@ const SyncClipboardScreen: React.FC = () => {
             values: {
               content: inputText,
               createdAt: new Date().toISOString(),
-              deviceId: "local-device",
+              deviceId: deviceId || "local-device",
               userId: userData?.userId,
             },
           },

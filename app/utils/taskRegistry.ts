@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 import {
   logError,
   getRouteAPI,
@@ -13,7 +14,8 @@ import {
   RequestSupabaseInsert,
 } from "@types";
 
-type TaskFunction = Function;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TaskFunction = (...args: any[]) => Promise<void> | void;
 
 export type AvailableFunctions =
   | "insertIntoSupabase"

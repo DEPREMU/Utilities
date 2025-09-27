@@ -1,38 +1,16 @@
 import js from "@eslint/js";
-import typescript from "@typescript-eslint/eslint-plugin";
+import globals from "globals";
+import tseslint from "@typescript-eslint/eslint-plugin";
+import stylistic from "@stylistic/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
 
 export default [
   {
-    ignores: [
-      "node_modules/**",
-      "server/node_modules/**",
-      "server/dist/**",
-      "dist/**",
-      "build/**",
-      ".expo/**",
-      ".metro/**",
-      ".yarn/**",
-      "android/**",
-      "ios/**",
-      "assets/**",
-      "images/**",
-      "coverage/**",
-      "*.config.js",
-      "babel.config.js",
-      "metro.config.js",
-      "app.config.js",
-      "*.generated.*",
-      "*.d.ts",
-      "*.log",
-      ".env*",
-      ".DS_Store",
-      "Thumbs.db",
-    ],
+    ignores: ["node_modules/**"],
   },
   js.configs.recommended,
   {
-    files: ["**/*.{js,ts}"],
+    files: ["**/*.{js,ts,jsx,tsx}"],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -43,6 +21,7 @@ export default [
         sourceType: "module",
       },
       globals: {
+        ...globals.browser,
         console: "readonly",
         process: "readonly",
         __dirname: "readonly",
@@ -57,20 +36,17 @@ export default [
         clearInterval: "readonly",
         fetch: "readonly",
         FormData: "readonly",
-        localStorage: "readonly",
         document: "readonly",
-        __DEV__: "readonly",
         NodeJS: "readonly",
         KeyboardEvent: "readonly",
         Express: "readonly",
-        ReactNavigation: "readonly",
       },
     },
     plugins: {
-      "@typescript-eslint": typescript,
+      "@typescript-eslint": tseslint,
+      "@stylistic": stylistic,
     },
     rules: {
-      // TypeScript rules
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_" },
@@ -79,9 +55,7 @@ export default [
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-non-null-assertion": "warn",
-
-      // General rules
-      "no-console": "off",
+      "no-console": "warn",
       "no-unused-vars": "off",
       "no-undef": "warn",
       "no-empty": "warn",
@@ -89,12 +63,20 @@ export default [
       "no-var": "error",
       semi: ["error", "always"],
       quotes: ["warn", "double"],
-      indent: ["warn", 2],
+      indent: "off",
+      "@stylistic/indent": ["warn", 2],
       "comma-dangle": ["warn", "always-multiline"],
       "object-curly-spacing": ["error", "always"],
       "array-bracket-spacing": ["error", "never"],
       "require-yield": "warn",
     },
-    settings: {},
+    settings: {
+      react: {
+        version: "detect",
+      },
+      "react-native": {
+        version: "detect",
+      },
+    },
   },
 ];

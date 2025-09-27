@@ -1,9 +1,11 @@
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } from "electron";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const isWindows = process.platform === "win32";
 
 type LanguagesSupported = "en" | "es";
 
@@ -58,6 +60,33 @@ ipcMain.on("user-login-status", async (_, isLoggedIn: boolean) => {
   else mainWindow.show();
 });
 
+const addToStartup = (): void => {
+  if (process.platform !== "linux") return;
+  if (!app.isPackaged) return;
+  try {
+    const autostartDir = path.join(app.getPath("home"), ".config", "autostart");
+    const desktopFilePath = path.join(autostartDir, "utilities-for-pc.desktop");
+
+    const execPath = process.execPath;
+
+    const desktopEntry = `
+    [Desktop Entry]
+    Type=Application
+    Name=Utilities for PC
+    Exec="${execPath}" --no-sandbox
+    Hidden=false
+    X-GNOME-Autostart-enabled=true
+    Terminal=false
+    Comment=Auto-start Utilities for PC at login
+    `;
+
+    fs.mkdirSync(autostartDir, { recursive: true });
+    fs.writeFileSync(desktopFilePath, desktopEntry);
+  } catch (error) {
+    console.error("Error adding to startup:", error);
+  }
+};
+
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
     width: 1000,
@@ -101,23 +130,13 @@ const createWindow = (): void => {
 
 const createTray = (): void => {
   try {
-    let trayIconPath: string;
-
-    if (app.isPackaged)
-      trayIconPath = path.join(
-        process.resourcesPath,
-        "app.asar",
-        "dist",
-        "assets",
-        "tray-icon.ico"
-      );
-    else
-      trayIconPath = path.join(
-        path.dirname(__dirname),
-        "dist",
-        "assets",
-        "tray-icon.ico"
-      );
+    const trayIconPath = path.join(
+      process.resourcesPath,
+      "app.asar",
+      "dist",
+      "assets",
+      isWindows ? "tray-icon.ico" : "tray-icon.png"
+    );
 
     const trayIcon = nativeImage.createFromPath(trayIconPath);
 
@@ -165,6 +184,7 @@ const createTray = (): void => {
 
 app.whenReady().then(() => {
   language = getLanguage();
+  addToStartup();
   createWindow();
   createTray();
 });
