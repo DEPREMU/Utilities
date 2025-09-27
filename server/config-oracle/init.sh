@@ -7,7 +7,7 @@ sudo apt install ufw -y
 sudo apt install wget curl -y
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 \. "$HOME/.nvm/nvm.sh"
-nvm install 24
+nvm install 23
 sudo npm install -g pm2
 npm install -g pm2
 
