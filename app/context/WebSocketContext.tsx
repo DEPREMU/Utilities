@@ -26,12 +26,13 @@ import {
   getNotifications,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
+import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
 import { useLanguage } from "./LanguageContext";
 import ClipboardModule from "@/utils/modules/ClipboardModule";
+import { useForeground } from "./ForegroundContext";
 import { useUserContext } from "./UserContext";
 import { useNotifications } from "./NotificationsContext";
-import { AppState, Platform } from "react-native";
 
 interface WebSocketContextType {
   socket: WebSocket | null;
@@ -54,6 +55,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 }) => {
   const { userData } = useUserContext();
   const { t, language } = useLanguage();
+  const { isForeground } = useForeground();
   const { lastItemCopied } = useNotifications();
   const { openSnackBar, openModal, closeModal } = useModal();
 
@@ -371,45 +373,39 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, [language, sendMessage, isConnected]);
 
   useEffect(() => {
-    const listener = AppState.addEventListener("change", (nextAppState) => {
-      log(`AppState changed to: ${nextAppState}`);
+    if (!isForeground) {
+      log("App became active");
+      shouldConnect.current = true;
 
-      if (nextAppState === "active") {
-        log("App became active");
-        shouldConnect.current = true;
-
-        if (
-          !socketRef.current ||
-          socketRef.current.readyState !== WebSocket.OPEN
-        ) {
-          createWebSocketConnection(socketURL || URL_WEB_SOCKET);
-        }
-        return;
+      if (
+        !socketRef.current ||
+        socketRef.current.readyState !== WebSocket.OPEN
+      ) {
+        createWebSocketConnection(socketURL || URL_WEB_SOCKET);
       }
+      return;
+    }
 
-      shouldConnect.current = false;
-      if (socketRef.current) {
-        socketRef.current.close();
-        socketRef.current = null;
-        setSocket(null);
-      }
+    shouldConnect.current = false;
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+      setSocket(null);
+    }
 
-      if (connectionTimeoutId.current) {
-        clearTimeout(connectionTimeoutId.current);
-        connectionTimeoutId.current = null;
-      }
+    if (connectionTimeoutId.current) {
+      clearTimeout(connectionTimeoutId.current);
+      connectionTimeoutId.current = null;
+    }
 
-      if (pingIntervalId.current) {
-        clearInterval(pingIntervalId.current);
-        pingIntervalId.current = null;
-      }
+    if (pingIntervalId.current) {
+      clearInterval(pingIntervalId.current);
+      pingIntervalId.current = null;
+    }
 
-      setIsConnected(false);
-      isConnecting.current = false;
-    });
-
-    return () => listener.remove();
-  }, [socketURL, createWebSocketConnection]);
+    setIsConnected(false);
+    isConnecting.current = false;
+  }, [socketURL, createWebSocketConnection, isForeground]);
 
   return (
     <WebSocketContext.Provider value={{ socket, sendMessage, setSocketURL }}>

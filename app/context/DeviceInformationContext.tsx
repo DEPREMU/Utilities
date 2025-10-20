@@ -7,11 +7,11 @@ import React, {
   useCallback,
 } from "react";
 import axios from "axios";
+import _BackgroundTimer from "react-native-background-timer";
 import { DeviceInformation } from "@types";
 import { getRouteAPI, logError } from "@utils";
 import DeviceInfo, { PowerState } from "react-native-device-info";
 import { addNetworkStateListener } from "expo-network";
-
 interface DeviceInformationContextType {
   deviceInfo: DeviceInformation | null;
   loading: boolean;
@@ -101,7 +101,7 @@ export const DeviceInformationProvider: React.FC<
       setHasInternet(!!isConnected && !!isInternetReachable);
     });
 
-    const id = setInterval(async () => {
+    const id = _BackgroundTimer.setInterval(async () => {
       try {
         const res = await axios.get(await getRouteAPI("/health"), {
           timeout: 5000,
@@ -114,7 +114,7 @@ export const DeviceInformationProvider: React.FC<
     }, 10000);
 
     return () => {
-      clearInterval(id);
+      _BackgroundTimer.clearInterval(id);
       listener.remove();
     };
   }, []);
@@ -122,7 +122,7 @@ export const DeviceInformationProvider: React.FC<
   useEffect(() => {
     refreshDeviceInfo();
 
-    const interval = setInterval(async () => {
+    const interval = _BackgroundTimer.setInterval(async () => {
       const powerState = await DeviceInfo.getPowerState();
       setDeviceInfo((prev) => {
         const newValue: DeviceInformation = JSON.parse(
@@ -133,7 +133,7 @@ export const DeviceInformationProvider: React.FC<
       });
     }, 60000);
 
-    return () => clearInterval(interval);
+    return () => _BackgroundTimer.clearInterval(interval);
   }, [refreshDeviceInfo]);
 
   const value: DeviceInformationContextType = {

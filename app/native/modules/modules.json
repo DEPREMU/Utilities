@@ -7,8 +7,8 @@
     "permissions": [
       "android.permission.WAKE_LOCK",
       "android.permission.FOREGROUND_SERVICE",
-      "android.permission.RECEIVE_BOOT_COMPLETED",
       "android.permission.POST_NOTIFICATIONS",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
       "android.permission.FOREGROUND_SERVICE_DATA_SYNC"
     ]
   },
@@ -45,6 +45,22 @@
   },
   {
     "name": "KeyboardPackage.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
+  },
+  {
+    "name": "ForegroundServiceModule.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/",
+    "service": "<service \n  android:name=\".MyForegroundService\" \n  android:enabled=\"true\" \n  android:exported=\"false\" \n  android:foregroundServiceType=\"dataSync\" />"
+  },
+  {
+    "name": "ForegroundServicePackage.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
+  },
+  {
+    "name": "MyForegroundService.kt",
     "initPath": "app/native/modules/",
     "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
   }

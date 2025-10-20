@@ -21,17 +21,19 @@ import {
   getRouteAPI,
   fetchOptions,
   stringifyData,
-  getNotifications,
   loadDataSecure,
+  getNotifications,
 } from "@utils";
 import { v4 } from "uuid";
+import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
 import ClipboardModule from "@/utils/modules/ClipboardModule";
 import { useLanguage } from "./LanguageContext";
+import _BackgroundTimer from "react-native-background-timer";
+import { useForeground } from "./ForegroundContext";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
-import { AppState, Platform } from "react-native";
 import { useDeviceInformation } from "./DeviceInformationContext";
 
 type Notification = {
@@ -68,6 +70,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 }) => {
   const { t, language } = useLanguage();
   const { openSnackBar } = useModal();
+  const { isForeground } = useForeground();
   const { hasInternet, deviceInfo } = useDeviceInformation();
   const { sessionToken, userData } = useUserContext();
 
@@ -79,7 +82,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   const sendNotification = useCallback(
     (notification: Omit<Notification, "id" | "timestamp">) => {
-      if (AppState.currentState === "active") {
+      if (!isForeground) {
         openSnackBar(
           [notification.title, notification.message].join("\n"),
           8000,
@@ -97,7 +100,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         trigger: notification.trigger || null,
       });
     },
-    [openSnackBar],
+    [openSnackBar, isForeground],
   );
 
   const removeNotification = useCallback((id: string) => {
@@ -189,9 +192,9 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       });
     };
 
-    const id = setTimeout(handleBatteryNotifications, 5000);
+    const id = _BackgroundTimer.setTimeout(handleBatteryNotifications, 5000);
 
-    return () => clearTimeout(id);
+    return () => _BackgroundTimer.clearTimeout(id);
   }, [deviceInfo, sendNotification, t]);
 
   useEffect(() => {
@@ -263,9 +266,9 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       }
     };
 
-    const id = setInterval(handleInterval, 2500);
+    const id = _BackgroundTimer.setInterval(handleInterval, 2500);
 
-    return () => clearInterval(id);
+    return () => _BackgroundTimer.clearInterval(id);
   }, [
     t,
     language,

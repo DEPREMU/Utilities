@@ -10,6 +10,7 @@ import {
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
 import { Platform } from "react-native";
+import _BackgroundTimer from "react-native-background-timer";
 import { navigateReplace } from "@navigation/navigationRef";
 import { UserData, Window } from "@types";
 import React, { createContext, useState, useCallback, useEffect } from "react";
@@ -216,6 +217,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
    * Initialize user session on app start
    */
   useEffect(() => {
+    let id: number | null = null;
+
     const initializeAuth = async () => {
       const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
         if (Platform.OS !== "web") return;
@@ -241,6 +244,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           setIsLoggedIn(true);
           sendNotificationLoginStatus(true);
           log("Restored user session:", userData?.email);
+          id = _BackgroundTimer.setInterval(
+            () => refreshToken(),
+            24 * 60 * 60 * 1000,
+          );
         }
       } catch (error) {
         authSignOut();
@@ -252,7 +259,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
-  }, []);
+
+    return () => {
+      if (id) _BackgroundTimer.clearInterval(id);
+    };
+  }, [refreshToken]);
 
   const contextValue: UserContextType = {
     login,

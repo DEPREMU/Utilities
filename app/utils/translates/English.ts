@@ -220,6 +220,8 @@ const en: typeLanguages = {
   retry: "Retry",
   clipboardWebSocketError:
     "A connection error occurred with the clipboard service. Please check your internet connection and try reconnecting. While disconnected, clipboard syncing will not function.",
+  foregroundNotificationTitle: "Utilities Active",
+  foregroundNotificationMessage: "Utilities is running in the background.",
 } as const;
 
 export default en;

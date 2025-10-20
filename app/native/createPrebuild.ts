@@ -44,6 +44,7 @@ const editMainApplication = async () => {
       packageMA,
       "import com.utilities.depremu.ClipboardPackage",
       "import com.utilities.depremu.KeyboardPackage",
+      "import com.utilities.depremu.ForegroundServicePackage",
       "",
     ].join("\n"),
   );
@@ -68,7 +69,11 @@ const editMainApplication = async () => {
     return;
   }
 
-  const packages = ["ClipboardPackage()", "KeyboardPackage()"];
+  const packages = [
+    "ClipboardPackage()",
+    "KeyboardPackage()",
+    "ForegroundServicePackage()",
+  ];
 
   fs.writeFileSync(
     mainApplicationPath,

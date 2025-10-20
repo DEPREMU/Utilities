@@ -193,6 +193,8 @@ export type typeLanguages = Record<ReasonNotification, string> &
     pleaseEnterSomeText: string;
     clipboardWebSocketError: string;
     retry: string;
+    foregroundNotificationTitle: string;
+    foregroundNotificationMessage: string;
   };
 
 export type typeLanguagesServer = {

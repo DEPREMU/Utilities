@@ -224,6 +224,9 @@ const es: typeLanguages = {
   clipboardWebSocketError:
     "Ocurrió un error de conexión con el servicio de portapapeles. Por favor, verifica tu conexión a Internet e intenta reconectar. Mientras estés desconectado, la sincronización del portapapeles no funcionará.",
   retry: "Reintentar",
+  foregroundNotificationTitle: "Utilities Activo",
+  foregroundNotificationMessage:
+    "Utilities se está ejecutando en segundo plano.",
 } as const;
 
 export default es;
