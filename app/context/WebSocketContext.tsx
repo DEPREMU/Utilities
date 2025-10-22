@@ -30,7 +30,7 @@ import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
 import { useLanguage } from "./LanguageContext";
 import ClipboardModule from "@/utils/modules/ClipboardModule";
-import { useForeground } from "./ForegroundContext";
+import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import { useNotifications } from "./NotificationsContext";
 
@@ -55,7 +55,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 }) => {
   const { userData } = useUserContext();
   const { t, language } = useLanguage();
-  const { isForeground } = useForeground();
+  const { isBackground } = useBackground();
   const { lastItemCopied } = useNotifications();
   const { openSnackBar, openModal, closeModal } = useModal();
 
@@ -373,7 +373,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, [language, sendMessage, isConnected]);
 
   useEffect(() => {
-    if (!isForeground) {
+    if (!isBackground) {
       log("App became active");
       shouldConnect.current = true;
 
@@ -405,7 +405,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     setIsConnected(false);
     isConnecting.current = false;
-  }, [socketURL, createWebSocketConnection, isForeground]);
+  }, [socketURL, createWebSocketConnection, isBackground]);
 
   return (
     <WebSocketContext.Provider value={{ socket, sendMessage, setSocketURL }}>

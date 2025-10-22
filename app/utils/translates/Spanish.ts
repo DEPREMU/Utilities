@@ -227,6 +227,20 @@ const es: typeLanguages = {
   foregroundNotificationTitle: "Utilities Activo",
   foregroundNotificationMessage:
     "Utilities se está ejecutando en segundo plano.",
+  locationEnabled: "Verificar si la ubicación está habilitada",
+  LocationServicesEnabled: "Servicios de ubicación habilitados",
+  LocationServicesEnabledMessage:
+    "La aplicación detectó que los servicios de ubicación están habilitados.",
+  pause: "Pausar",
+  pauseNoInternetConnectionNotifications:
+    "Pausar notificaciones de sin conexión a Internet",
+  stopNoInternetConnectionNotifications:
+    "Detener notificaciones de sin conexión a Internet",
+  pauseLocationNotifications: "Pausar notificaciones de ubicación",
+  stop: "Detener",
+  stopLocationNotifications: "Detener notificaciones de ubicación",
+  pauseBatteryNotifications: "Pausar notificaciones de batería",
+  stopBatteryNotifications: "Detener notificaciones de batería",
 } as const;
 
 export default es;

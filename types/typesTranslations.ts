@@ -4,6 +4,8 @@ import { ReasonNotification } from "./typesNotifications";
 
 export type LanguagesSupported = "en" | "es";
 
+export type typeT = (key: keyof typeLanguages, options?: object) => string;
+
 /**
  * Represents the structure of language translations.
  *
@@ -195,6 +197,16 @@ export type typeLanguages = Record<ReasonNotification, string> &
     retry: string;
     foregroundNotificationTitle: string;
     foregroundNotificationMessage: string;
+    LocationServicesEnabled: string;
+    LocationServicesEnabledMessage: string;
+    pause: string;
+    pauseNoInternetConnectionNotifications: string;
+    stopNoInternetConnectionNotifications: string;
+    pauseLocationNotifications: string;
+    stop: string;
+    stopLocationNotifications: string;
+    pauseBatteryNotifications: string;
+    stopBatteryNotifications: string;
   };
 
 export type typeLanguagesServer = {

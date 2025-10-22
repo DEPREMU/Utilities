@@ -6,14 +6,13 @@ import React, {
   createContext,
   useCallback,
 } from "react";
+import en from "@/utils/translates/English";
+import es from "@/utils/translates/Spanish";
 import { i18n } from "@utils";
 import { useTranslation } from "react-i18next";
 import { checkLanguage, saveData } from "@utils";
-import { LanguagesSupported, typeLanguages } from "@types";
-import en from "@/utils/translates/English";
-import es from "@/utils/translates/Spanish";
+import { LanguagesSupported, typeLanguages, typeT } from "@types";
 
-type typeT = (key: keyof typeLanguages, options?: object) => string;
 interface LanguageContextProps {
   language: LanguagesSupported;
   changeLanguage: (lang: LanguagesSupported) => Promise<void>;

@@ -23,14 +23,17 @@ import {
   stringifyData,
   loadDataSecure,
   getNotifications,
+  isLocationEnabled,
+  askLocationPermission,
 } from "@utils";
 import { v4 } from "uuid";
 import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
+import * as Location from "expo-location";
 import ClipboardModule from "@/utils/modules/ClipboardModule";
 import { useLanguage } from "./LanguageContext";
 import _BackgroundTimer from "react-native-background-timer";
-import { useForeground } from "./ForegroundContext";
+import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
@@ -70,7 +73,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 }) => {
   const { t, language } = useLanguage();
   const { openSnackBar } = useModal();
-  const { isForeground } = useForeground();
+  const { isBackground } = useBackground();
   const { hasInternet, deviceInfo } = useDeviceInformation();
   const { sessionToken, userData } = useUserContext();
 
@@ -82,7 +85,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   const sendNotification = useCallback(
     (notification: Omit<Notification, "id" | "timestamp">) => {
-      if (!isForeground) {
+      if (!isBackground) {
         openSnackBar(
           [notification.title, notification.message].join("\n"),
           8000,
@@ -100,7 +103,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         trigger: notification.trigger || null,
       });
     },
-    [openSnackBar, isForeground],
+    [openSnackBar, isBackground],
   );
 
   const removeNotification = useCallback((id: string) => {
@@ -279,6 +282,33 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     deviceInfo?.model,
     sendNotification,
   ]);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+
+    let askingLocation = false;
+    const id = _BackgroundTimer.setInterval(async () => {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      const hasPermission = status === "granted";
+      if (askingLocation && !hasPermission) return;
+
+      if (!hasPermission) {
+        askingLocation = true;
+        askLocationPermission();
+        return;
+      }
+      const locationEnabled = await isLocationEnabled();
+      if (!locationEnabled) return;
+
+      sendNotification({
+        title: t("LocationServicesEnabled"),
+        message: t("LocationServicesEnabledMessage"),
+        type: "info",
+      });
+    }, 5000);
+
+    return () => _BackgroundTimer.clearInterval(id);
+  }, [sendNotification, t]);
 
   useEffect(() => {
     if (!sessionToken) return;

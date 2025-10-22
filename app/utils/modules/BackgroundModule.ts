@@ -6,11 +6,13 @@ import { Platform, TurboModuleRegistry } from "react-native";
 export interface Spec extends TurboModule {
   start: (titleNotification: string, messageNotification: string) => void;
   stop: () => void;
+  requestIgnoreBatteryOptimizations: () => void;
 }
 
 const defaultForegroundModule: Spec = {
   start: () => {},
   stop: () => {},
+  requestIgnoreBatteryOptimizations: () => {},
 };
 
 const ForegroundModule =

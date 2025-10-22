@@ -9,7 +9,9 @@
       "android.permission.FOREGROUND_SERVICE",
       "android.permission.POST_NOTIFICATIONS",
       "android.permission.RECEIVE_BOOT_COMPLETED",
-      "android.permission.FOREGROUND_SERVICE_DATA_SYNC"
+      "android.permission.ACCESS_BACKGROUND_LOCATION",
+      "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+      "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
     ]
   },
   {

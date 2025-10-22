@@ -16,7 +16,7 @@ class ForegroundClipboardService : Service() {
 
     companion object {
         const val CHANNEL_ID = "clipboard_service_channel"
-        const val NOTIFICATION_ID = 1
+        const val NOTIFICATION_ID = 2
     }
 
     private lateinit var clipboardManager: ClipboardManager

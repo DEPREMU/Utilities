@@ -222,6 +222,20 @@ const en: typeLanguages = {
     "A connection error occurred with the clipboard service. Please check your internet connection and try reconnecting. While disconnected, clipboard syncing will not function.",
   foregroundNotificationTitle: "Utilities Active",
   foregroundNotificationMessage: "Utilities is running in the background.",
+  locationEnabled: "Check if location is enabled",
+  LocationServicesEnabled: "Location Services Enabled",
+  LocationServicesEnabledMessage:
+    "The app detected that location services are enabled.",
+  pause: "Pause",
+  pauseNoInternetConnectionNotifications:
+    "Pause No Internet Connection Notifications",
+  stopNoInternetConnectionNotifications:
+    "Stop No Internet Connection Notifications",
+  pauseLocationNotifications: "Pause Location Notifications",
+  stop: "Stop",
+  stopLocationNotifications: "Stop Location Notifications",
+  pauseBatteryNotifications: "Pause Battery Notifications",
+  stopBatteryNotifications: "Stop Battery Notifications",
 } as const;
 
 export default en;

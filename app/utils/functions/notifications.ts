@@ -4,8 +4,8 @@ import {
   ScreensAvailable,
   ReasonNotification,
 } from "@types";
-import { Platform, Falsy } from "react-native";
 import * as notifications from "expo-notifications";
+import { Platform, Falsy } from "react-native";
 import { reasonNotification } from "../constants";
 import { log, logError, logWarn } from "./debug";
 import { getNotifications, stringifyData } from "./appManagement";
@@ -53,11 +53,17 @@ export const initializeNotificationsStorage =
       return notificationsData;
 
     const dataNotifications = {} as Notifications["data"];
+    const pausedNotifications = {} as Notifications["paused"];
     const enabledNotifications = {} as Notifications["enabled"];
     const intervalsNotifications = {} as Notifications["intervals"];
     reasonNotification.forEach((reason) => {
-      if (reason === "streamers") enabledNotifications[reason] = {};
-      else enabledNotifications[reason] = false;
+      if (reason === "streamers") {
+        enabledNotifications[reason] = {};
+        pausedNotifications[reason] = {};
+      } else {
+        enabledNotifications[reason] = false;
+        pausedNotifications[reason] = { isPaused: false, timePaused: -1 };
+      }
       dataNotifications[reason] = null;
       intervalsNotifications[reason] = null;
       if (reason === "cryptos") intervalsNotifications[reason] = 1000 * 60 * 10;
@@ -69,6 +75,7 @@ export const initializeNotificationsStorage =
         notificationsData = {
           enabled: { ...enabledNotifications, allNotifications: false },
           data: dataNotifications,
+          paused: pausedNotifications,
           intervals: intervalsNotifications,
         };
         saveData("@notifications", notificationsData);
@@ -78,6 +85,7 @@ export const initializeNotificationsStorage =
       notificationsData = {
         enabled: { ...enabledNotifications, allNotifications: true },
         data: dataNotifications,
+        paused: pausedNotifications,
         intervals: intervalsNotifications,
       };
       saveData("@notifications", notificationsData);
@@ -87,6 +95,7 @@ export const initializeNotificationsStorage =
     const newNotifications: Notifications = {
       data: { ...dataNotifications },
       enabled: { ...enabledNotifications, allNotifications: true },
+      paused: { ...pausedNotifications },
       intervals: { ...intervalsNotifications },
     };
 
@@ -268,6 +277,13 @@ export const configureNotificationChannel = async () => {
       sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffffff",
+    }),
+    notifications.setNotificationChannelAsync(channelIdDefault, {
+      name: "Location Alerts",
+      importance: notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250, 100],
+      lightColor: "#ff0000",
     }),
   ]);
 };

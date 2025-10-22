@@ -6,7 +6,7 @@ import { LayoutProvider } from "@context/LayoutContext";
 import { LanguageProvider } from "@context/LanguageContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { WebSocketProvider } from "./WebSocketContext";
-import { ForegroundProvider } from "./ForegroundContext";
+import { BackgroundProvider } from "./BackgroundContext";
 import { NotificationsProvider } from "./NotificationsContext";
 import { DeviceInformationProvider } from "./DeviceInformationContext";
 import { initializeNotificationsStorage } from "@utils";
@@ -18,7 +18,7 @@ interface AppProvidersProps {
 }
 
 const AppProviders: React.FC<AppProvidersProps> = ({ children }) => (
-  <ForegroundProvider>
+  <BackgroundProvider>
     <SafeAreaProvider>
       <ThemeProvider>
         <DeviceInformationProvider>
@@ -36,7 +36,7 @@ const AppProviders: React.FC<AppProvidersProps> = ({ children }) => (
         </DeviceInformationProvider>
       </ThemeProvider>
     </SafeAreaProvider>
-  </ForegroundProvider>
+  </BackgroundProvider>
 );
 
 export default AppProviders;
