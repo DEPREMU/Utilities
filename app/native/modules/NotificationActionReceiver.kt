@@ -20,7 +20,15 @@ class NotificationActionReceiver : BroadcastReceiver() {
         Log.d("NotificationAction", "Action received: $actionId for notification $notificationId")
         Log.d("NotificationAction", "Data: $dataJsonString")
 
-        // Convertir JSON string a WritableMap
+        if (actionId == "settings") {
+            Log.d("NotificationAction", "Opening app for settings action")
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            launchIntent?.apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            context.startActivity(launchIntent)
+        }
+
         val dataMap = Arguments.createMap()
         try {
             val jsonObject = JSONObject(dataJsonString)
@@ -32,21 +40,19 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     is Int -> dataMap.putInt(key, value)
                     is Double -> dataMap.putDouble(key, value)
                     is Boolean -> dataMap.putBoolean(key, value)
-                    // Añade más tipos si es necesario
                 }
             }
         } catch (e: Exception) {
             Log.e("NotificationAction", "Error parsing data JSON: ${e.message}")
         }
 
-        // Enviar evento a React Native con todos los datos
         val params = Arguments.createMap().apply {
             putString("actionId", actionId)
             putInt("notificationId", notificationId)
             putString("title", title)
             putString("message", message)
             putString("reasonNotification", reasonNotification)
-            putMap("data", dataMap) // ← Enviar datos personalizados
+            putMap("data", dataMap)
         }
 
         NotificationModule.sendEvent("onNotificationAction", params)

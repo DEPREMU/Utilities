@@ -74,18 +74,6 @@ class NotificationModule(private val reactContext: ReactApplicationContext) :
         promise: Promise
     ) {
         try {
-            Log.d("NotificationModule", "=== sendNotification called ===")
-            Log.d("NotificationModule", "ID: $notificationId")
-            Log.d("NotificationModule", "Title: $title")
-            Log.d("NotificationModule", "Message: $message")
-            Log.d("NotificationModule", "Channel: $channelId")
-            Log.d("NotificationModule", "Reason: $reasonNotification")
-            Log.d("NotificationModule", "Has data: ${data != null}")
-            Log.d("NotificationModule", "Actions: ${actions?.size() ?: 0}")
-
-            // Crear canal por defecto si no existe
-            createNotificationChannel(channelId, channelId, NotificationManager.IMPORTANCE_HIGH)
-
             val notificationBuilder = NotificationCompat.Builder(reactContext, channelId)
                 .setContentTitle(title)
                 .setContentText(message)
@@ -93,7 +81,6 @@ class NotificationModule(private val reactContext: ReactApplicationContext) :
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
 
-            // Intent para abrir la app al tocar la notificación
             val openAppIntent = reactContext.packageManager.getLaunchIntentForPackage(reactContext.packageName)
             val openAppPendingIntent = PendingIntent.getActivity(
                 reactContext,
@@ -103,7 +90,6 @@ class NotificationModule(private val reactContext: ReactApplicationContext) :
             )
             notificationBuilder.setContentIntent(openAppPendingIntent)
 
-            // Convertir ReadableMap a JSON String para pasar datos extras
             val dataJsonString = if (data != null) {
                 try {
                     readableMapToJson(data).toString()
@@ -116,7 +102,6 @@ class NotificationModule(private val reactContext: ReactApplicationContext) :
             }
             Log.d("NotificationModule", "Data JSON: $dataJsonString")
 
-            // Añadir botones de acción dinámicamente
             if (actions != null && actions.size() > 0) {
                 Log.d("NotificationModule", "Processing ${actions.size()} actions")
                 
@@ -131,11 +116,6 @@ class NotificationModule(private val reactContext: ReactApplicationContext) :
                         val actionId = action.getString("actionId")
                         val actionTitle = action.getString("title")
                         val iconName = action.getString("icon")
-
-                        Log.d("NotificationModule", "Action $i:")
-                        Log.d("NotificationModule", "  actionId: $actionId")
-                        Log.d("NotificationModule", "  title: $actionTitle")
-                        Log.d("NotificationModule", "  icon: $iconName")
 
                         if (actionId == null || actionTitle == null) {
                             Log.w("NotificationModule", "Action $i has null actionId or title")
@@ -224,7 +204,6 @@ class NotificationModule(private val reactContext: ReactApplicationContext) :
                 com.facebook.react.bridge.ReadableType.String -> json.put(key, readableMap.getString(key))
                 com.facebook.react.bridge.ReadableType.Map -> json.put(key, readableMapToJson(readableMap.getMap(key)!!))
                 com.facebook.react.bridge.ReadableType.Array -> {
-                    // Si necesitas arrays, implementa readableArrayToJsonArray
                 }
             }
         }

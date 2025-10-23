@@ -61,6 +61,5 @@ class CustomKeyboard : InputMethodService(), DefaultHardwareBackBtnHandler {
     }
 
     override fun invokeDefaultOnBackPressed() {
-        // No hay actividad atrás
     }
 }

@@ -94,8 +94,7 @@ const LayoutContext = createContext<LayoutContextProps>({
     _largeTabletValue: T,
     _webValue?: T,
   ): T => {
-    // Simulación básica para el valor por defecto
-    return phoneValue; // Por defecto retorna el valor de teléfono
+    return phoneValue;
   },
   getStylesSafeAreaContainer: () => {
     return {

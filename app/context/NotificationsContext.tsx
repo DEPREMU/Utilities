@@ -322,7 +322,10 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           type: "info",
           channelId: "batteryAlerts",
           reasonNotification: "batteryAlerts",
-          actions: [{ actionId: "dismiss", title: "Dismiss", icon: "delete" }],
+          actions: [
+            { actionId: "dismiss", title: t("dismiss"), icon: "delete" },
+            { actionId: "settings", title: t("settings"), icon: "settings" },
+          ],
         });
         return;
       } else if (
@@ -338,8 +341,9 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         channelId: "batteryAlerts",
         reasonNotification: "batteryAlerts",
         actions: [
-          { actionId: "dismiss", title: "Dismiss", icon: "delete" },
-          { actionId: "settings", title: "Settings", icon: "settings" },
+          { actionId: "dismiss", title: t("dismiss"), icon: "delete" },
+          { actionId: "settings", title: t("settings"), icon: "settings" },
+          { actionId: "stop", title: t("stop"), icon: "stop" },
         ],
       });
     };
