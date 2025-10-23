@@ -14,6 +14,7 @@ import {
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import { FlatList } from "react-native";
+import * as Location from "expo-location";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
@@ -50,32 +51,36 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
       }))
       .filter((item) => item.id !== "streamers")
       .sort((a, b) => (a.id > b.id ? 1 : -1));
-    return entries as { id: string; enabled: boolean }[];
+    return entries as { id: ReasonNotification; enabled: boolean }[];
   }, [notifications]);
 
   const handleChangeNotification = useCallback(
-    async (id: string) => {
+    async (reason: ReasonNotification) => {
       if (!sessionToken) return navigateReplace("Login");
       if (!userData?.userId) return;
+      if (reason === "locationEnabled") {
+        await Location.requestForegroundPermissionsAsync();
+        await Location.requestBackgroundPermissionsAsync();
+      }
 
       setNotifications((prev) => {
         if (!prev) return prev;
+        const id =
+          Date.now().toString() + Math.random().toString(36).substring(2, 8);
         const updated = {
           ...prev,
           enabled: {
             ...prev.enabled,
-            [id as ReasonNotification]: !prev.enabled[id as ReasonNotification],
+            [reason]: !prev.enabled[reason],
           },
         };
         getRouteAPI("/supabase/update").then((url) => {
-          const id =
-            Date.now().toString() + Math.random().toString(36).substring(2, 8);
           const values: RequestSupabaseUpdate["values"] = {
-            enabled: !!updated.enabled[id as ReasonNotification],
+            enabled: !!updated.enabled[reason],
           };
           const match: RequestSupabaseUpdate["match"] = {
             userId: userData.userId,
-            reason: id as ReasonNotification,
+            reason,
           };
           addTaskQueue(
             async () => {
@@ -109,6 +114,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
     },
     [userData?.userId, sessionToken, language, addTaskQueue],
   );
+
   const handleChangeNotificationInterval = useCallback(
     async (id: ReasonNotification, value: string) => {
       if (!sessionToken) return navigateReplace("Login");
@@ -166,10 +172,9 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
   );
 
   const renderNotificationItem = useCallback(
-    ({ item }: { item: { id: string; enabled: boolean } }) => {
-      const interval =
-        notifications?.intervals?.[item.id as ReasonNotification];
-      const minutesItem = minutes?.[item.id as ReasonNotification] || -1;
+    ({ item }: { item: { id: ReasonNotification; enabled: boolean } }) => {
+      const interval = notifications?.intervals?.[item.id];
+      const minutesItem = minutes?.[item.id] || -1;
 
       return (
         <>
@@ -227,6 +232,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
     const fetchNotifications = async () => {
       const data = await getNotifications();
       setNotifications(data);
+
       const mins = Object.fromEntries(
         Object.entries(data?.intervals || {}).map(([id, value]) => [
           id,

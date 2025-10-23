@@ -13,7 +13,13 @@ import { Platform } from "react-native";
 import _BackgroundTimer from "react-native-background-timer";
 import { navigateReplace } from "@navigation/navigationRef";
 import { UserData, Window } from "@types";
-import React, { createContext, useState, useCallback, useEffect } from "react";
+import React, {
+  createContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 
 interface UserContextType {
   sessionToken: string | null;
@@ -46,6 +52,8 @@ interface UserProviderProps {
 const UserContext = createContext<UserContextType | null>(null);
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
+  const sessionInitialized = useRef<boolean>(false);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [userData, setUserData] = useState<Omit<UserData, "password"> | null>(
     null,
@@ -80,6 +88,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           setUserData(userData ? userData : null);
           setSessionToken(token);
           setIsLoggedIn(true);
+          sessionInitialized.current = true;
           log("User logged in successfully:", userData.email);
           callback?.(true);
         } else {
@@ -193,7 +202,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
    * Refresh current session
    */
   const refreshToken = useCallback(async () => {
-    if (!sessionToken) return;
+    if (!sessionToken || sessionInitialized.current) return;
 
     try {
       const { userData, token, error } = await authRefreshSession(sessionToken);
@@ -206,6 +215,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       if (userData && token) {
         setUserData(userData);
         setSessionToken(token);
+        sessionInitialized.current = true;
         log("Token refreshed successfully");
       }
     } catch (error) {
@@ -243,9 +253,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           setUserData(userData ?? null);
           setIsLoggedIn(true);
           sendNotificationLoginStatus(true);
+          sessionInitialized.current = true;
           log("Restored user session:", userData?.email);
           id = _BackgroundTimer.setInterval(
-            () => refreshToken(),
+            () => {
+              sessionInitialized.current = false;
+              refreshToken();
+            },
             24 * 60 * 60 * 1000,
           );
         }
@@ -258,7 +272,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
     };
 
-    initializeAuth();
+    if (!sessionInitialized.current) initializeAuth();
 
     return () => {
       if (id) _BackgroundTimer.clearInterval(id);

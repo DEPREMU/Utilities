@@ -70,8 +70,9 @@ const editMainApplication = async () => {
   }
 
   const packages = [
-    "ClipboardPackage()",
     "KeyboardPackage()",
+    "ClipboardPackage()",
+    "NotificationPackage()",
     "ForegroundServicePackage()",
   ];
 

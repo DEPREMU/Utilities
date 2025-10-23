@@ -1,18 +1,17 @@
-import * as Network from "expo-network";
-import * as Localization from "expo-localization";
-import { initializeNotificationsStorage } from "./notifications";
 import {
-  LanguagesSupported,
   Notifications,
   ReasonNotification,
+  LanguagesSupported,
   RequestSupabaseFetch,
   ResponseSupabaseFetch,
 } from "@types";
-import { Falsy } from "react-native";
-import { fetchOptions, getRouteAPI } from "./APIManagement";
-import { log, logError } from "./debug";
-import { ExpectedStorageTypes } from "../constants";
 import chalk from "chalk";
+import { Falsy } from "react-native";
+import { log, logError } from "./debug";
+import * as Localization from "expo-localization";
+import { ExpectedStorageTypes } from "../constants";
+import { fetchOptions, getRouteAPI } from "./APIManagement";
+import { initializeNotificationsStorage } from "./notifications";
 
 export const getFormattedDate = (
   date: Date,
@@ -245,21 +244,6 @@ export const getDateWithDaysAhead = (days: number): Date => {
   const date = new Date();
   date.setDate(date.getDate() + days);
   return date;
-};
-
-/**
- * Checks if the device has an active internet connection.
- *
- * This function uses the `expo-network` library to determine the network state
- * and checks if the device is connected to the internet.
- *
- * @returns {Promise<boolean>} A promise that resolves to `true` if the device is connected to the internet, otherwise `false`.
- */
-export const hasInternetConnection = async (): Promise<boolean> => {
-  const { isConnected, isInternetReachable } =
-    await Network.getNetworkStateAsync();
-
-  return !!isConnected && !!isInternetReachable;
 };
 
 /**

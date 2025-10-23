@@ -326,5 +326,6 @@ export const checkLanguage = async (): Promise<LanguagesSupported> => {
 
 export const isSecureKey = (
   key: ALL_KEYS_STORAGE_TYPE,
-): key is SECURE_KEYS_STORAGE_TYPE =>
-  SECURE_KEYS_STORAGE.includes(key as SECURE_KEYS_STORAGE_TYPE);
+): key is SECURE_KEYS_STORAGE_TYPE => {
+  return SECURE_KEYS_STORAGE.includes(key as SECURE_KEYS_STORAGE_TYPE);
+};

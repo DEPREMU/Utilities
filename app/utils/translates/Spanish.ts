@@ -241,6 +241,16 @@ const es: typeLanguages = {
   stopLocationNotifications: "Detener notificaciones de ubicación",
   pauseBatteryNotifications: "Pausar notificaciones de batería",
   stopBatteryNotifications: "Detener notificaciones de batería",
+  batteryAlerts: "Alertas de batería",
+  noInternetConnection: "Sin conexión a Internet",
+  dismiss: "Descartar",
+  locationPermission: "Permiso de ubicación",
+  locationPermissionMessage:
+    "Esta aplicación requiere acceso a la ubicación para proporcionar notificaciones cuando los servicios de ubicación están activos. Por favor, habilita los permisos de ubicación en la configuración de tu dispositivo, solo si deseas recibir estas notificaciones. Debes permitir el acceso a la ubicación en todo momento para que esta función funcione correctamente.",
+  cancel: "Cancelar",
+  accept: "Aceptar",
+  InternetConnectionRestored: "Conexión a Internet restaurada",
+  YouAreBackOnline: "Has vuelto a estar en línea",
 } as const;
 
 export default es;

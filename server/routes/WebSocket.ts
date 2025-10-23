@@ -236,7 +236,10 @@ const connectionWss = (ws: WebSocket) => {
       ...users[data.userId].intervalsId,
       cryptos: intervalId,
       streamers: null,
+      batteryAlerts: null,
+      locationEnabled: null,
       allNotifications: null,
+      noInternetConnection: null,
     };
   };
 

@@ -3,13 +3,13 @@ import React, {
   ReactNode,
   useEffect,
   useContext,
-  createContext,
   useCallback,
+  createContext,
 } from "react";
 import axios from "axios";
+import { logError } from "@utils";
 import _BackgroundTimer from "react-native-background-timer";
 import { DeviceInformation } from "@types";
-import { getRouteAPI, logError } from "@utils";
 import DeviceInfo, { PowerState } from "react-native-device-info";
 import { addNetworkStateListener } from "expo-network";
 interface DeviceInformationContextType {
@@ -101,17 +101,17 @@ export const DeviceInformationProvider: React.FC<
       setHasInternet(!!isConnected && !!isInternetReachable);
     });
 
-    const id = _BackgroundTimer.setInterval(async () => {
+    const url = "https://www.google.com/generate_204";
+    const verifyInternetConnection = async () => {
       try {
-        const res = await axios.get(await getRouteAPI("/health"), {
-          timeout: 5000,
-        });
-        const data = res?.data || { status: null };
-        setHasInternet(data?.status === "running");
+        const res = await axios.get(url, { timeout: 5000 });
+        setHasInternet([200, 204].includes(res.status));
       } catch {
         setHasInternet(false);
       }
-    }, 10000);
+    };
+
+    const id = _BackgroundTimer.setInterval(verifyInternetConnection, 10000);
 
     return () => {
       _BackgroundTimer.clearInterval(id);
@@ -122,7 +122,7 @@ export const DeviceInformationProvider: React.FC<
   useEffect(() => {
     refreshDeviceInfo();
 
-    const interval = _BackgroundTimer.setInterval(async () => {
+    const handleIntervalDeviceInfo = async () => {
       const powerState = await DeviceInfo.getPowerState();
       setDeviceInfo((prev) => {
         const newValue: DeviceInformation = JSON.parse(
@@ -131,7 +131,12 @@ export const DeviceInformationProvider: React.FC<
         newValue.powerState = powerState as PowerState;
         return newValue;
       });
-    }, 60000);
+    };
+
+    const interval = _BackgroundTimer.setInterval(
+      handleIntervalDeviceInfo,
+      60000,
+    );
 
     return () => _BackgroundTimer.clearInterval(interval);
   }, [refreshDeviceInfo]);

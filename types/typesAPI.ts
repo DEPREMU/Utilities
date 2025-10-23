@@ -118,7 +118,7 @@ export type ResponseAuth = {
   token?: string;
   error?: string;
   success: boolean;
-  storageValues?: ExpectedStorageTypes;
+  storageValues?: ExpectedStorageTypes<"BOTH">;
 };
 
 export type RequestRefreshSession = {
@@ -148,7 +148,7 @@ export type ResponseSignOut = {
 export type RequestSupabaseInsert<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
-  values: Tables[T] | Tables[T][];
+  values: T extends "Users" ? Partial<Tables[T]> : Tables[T] | Tables[T][];
 };
 
 export type ResponseSupabaseInsert<T extends TablesKeys = TablesKeys> = {

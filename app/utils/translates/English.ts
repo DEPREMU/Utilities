@@ -236,6 +236,16 @@ const en: typeLanguages = {
   stopLocationNotifications: "Stop Location Notifications",
   pauseBatteryNotifications: "Pause Battery Notifications",
   stopBatteryNotifications: "Stop Battery Notifications",
+  batteryAlerts: "Battery Alerts",
+  noInternetConnection: "No Internet Connection",
+  dismiss: "Dismiss",
+  locationPermission: "Location Permission",
+  locationPermissionMessage:
+    "This app requires location access to provide notifications when location services are active. Please enable location permissions in your device settings only if you want to receive these notifications. You must allow location access all the time for this feature to work properly.",
+  cancel: "Cancel",
+  accept: "Accept",
+  InternetConnectionRestored: "Internet Connection Restored",
+  YouAreBackOnline: "You are back online",
 } as const;
 
 export default en;

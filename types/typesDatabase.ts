@@ -33,6 +33,8 @@ export type UserNotificationsConfig = {
   userId: string;
   reason: ReasonNotification;
   streamer?: string | null;
+  paused: boolean;
+  pauseTime: -1 | number;
   enabled: boolean;
   interval: -1 | number;
   updatedAt: string;
@@ -75,7 +77,7 @@ export type UserSessions = {
   deviceId: string;
   updatedAt: string;
   createdAt?: string;
-}
+};
 
 export type Tables = {
   Logs: Logs;

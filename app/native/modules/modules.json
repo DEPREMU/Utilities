@@ -65,5 +65,27 @@
     "name": "MyForegroundService.kt",
     "initPath": "app/native/modules/",
     "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
+  },
+  {
+    "name": "NotificationModule.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
+  },
+  {
+    "name": "NotificationPackage.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
+  },
+  {
+    "name": "NotificationActionReceiver.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/",
+    "service": "<receiver \n  android:name=\".NotificationActionReceiver\" \n  android:enabled=\"true\" \n  android:exported=\"false\" />"
+  },
+  {
+    "name": "RestartServiceReceiver.kt",
+    "initPath": "app/native/modules/",
+    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/",
+    "service": "<receiver \n  android:name=\".RestartServiceReceiver\" \n  android:enabled=\"true\" \n  android:exported=\"false\" />"
   }
 ]

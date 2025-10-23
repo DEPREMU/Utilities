@@ -59,7 +59,6 @@ export const initializeNotificationsStorage =
     reasonNotification.forEach((reason) => {
       if (reason === "streamers") {
         enabledNotifications[reason] = {};
-        pausedNotifications[reason] = {};
       } else {
         enabledNotifications[reason] = false;
         pausedNotifications[reason] = { isPaused: false, timePaused: -1 };
@@ -255,7 +254,10 @@ export const configureNotificationChannel = async () => {
 
   const channelIdCryptos: ChannelsId = "cryptos";
   const channelIdDefault: ChannelsId = "default";
+  const channelIdLocation: ChannelsId = "locationEnabled";
   const channelIdStreamers: ChannelsId = "streamers";
+  const channelIdBattery: ChannelsId = "batteryAlerts";
+  const channelIdNoInternet: ChannelsId = "noInternetConnection";
   await Promise.all([
     notifications.setNotificationChannelAsync(channelIdStreamers, {
       name: "Streamers",
@@ -278,12 +280,26 @@ export const configureNotificationChannel = async () => {
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffffff",
     }),
-    notifications.setNotificationChannelAsync(channelIdDefault, {
+    notifications.setNotificationChannelAsync(channelIdLocation, {
       name: "Location Alerts",
       importance: notifications.AndroidImportance.HIGH,
       sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ff0000",
+    }),
+    notifications.setNotificationChannelAsync(channelIdBattery, {
+      name: "Battery Alerts",
+      importance: notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250, 100],
+      lightColor: "#00ff00",
+    }),
+    notifications.setNotificationChannelAsync(channelIdNoInternet, {
+      name: "No Internet Connection",
+      importance: notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250, 100],
+      lightColor: "#ffff00",
     }),
   ]);
 };

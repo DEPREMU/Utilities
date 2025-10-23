@@ -77,7 +77,7 @@ const taskRegistry: TaskRegistry = {
 
   insertIntoSupabase: async <T extends TablesKeys>(
     table: T,
-    values: Tables[T] | Tables[T][],
+    values: RequestSupabaseInsert["values"],
   ) => {
     try {
       const [lang, token] = await Promise.all([

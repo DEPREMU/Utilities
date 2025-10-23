@@ -168,16 +168,28 @@ export const getStorageData = async (
       return acc;
     }, {} as SelectedCryptos) || {};
 
-  const userNotificationsConfigToSave = userNotificationsConfig.reduce(
-    (acc, config) => {
-      const reason = config.reason as ReasonNotification;
-      if (reason === "streamers") acc.enabled[reason] = streamers;
-      else acc.enabled[reason] = config.enabled;
-      acc.data[reason] = null;
-      acc.intervals[reason] = config.interval;
-      return acc;
-    },
-    { enabled: {}, data: {}, intervals: {} } as Notifications,
+  const userNotificationsConfigToSave: Notifications =
+    userNotificationsConfig.reduce(
+      (acc, config) => {
+        const reason = config.reason as ReasonNotification;
+        if (reason === "streamers") acc.enabled[reason] = streamers;
+        else {
+          acc.enabled[reason] = config.enabled;
+          acc.paused[reason] = {
+            isPaused: config.paused,
+            timePaused: config.pauseTime,
+          };
+        }
+        acc.data[reason] = null;
+        acc.intervals[reason] = config.interval;
+        return acc;
+      },
+      { enabled: {}, data: {}, intervals: {}, paused: {} } as Notifications,
+    );
+
+  console.log(
+    "User notifications config to save:",
+    userNotificationsConfigToSave,
   );
 
   const userConfigToSave: Tables["UserConfig"] = {
@@ -232,6 +244,8 @@ export const initializeTables = async (userId: string, lang: string) => {
         interval: -1,
         userId,
         updatedAt,
+        paused: false,
+        pauseTime: -1,
       },
       {
         reason: "cryptos",
@@ -239,6 +253,35 @@ export const initializeTables = async (userId: string, lang: string) => {
         interval: 600000,
         userId,
         updatedAt,
+        paused: false,
+        pauseTime: -1,
+      },
+      {
+        reason: "batteryAlerts",
+        enabled: true,
+        interval: -1,
+        userId,
+        updatedAt,
+        paused: false,
+        pauseTime: -1,
+      },
+      {
+        reason: "locationEnabled",
+        enabled: false,
+        interval: 600000,
+        userId,
+        updatedAt,
+        paused: false,
+        pauseTime: -1,
+      },
+      {
+        reason: "noInternetConnection",
+        enabled: true,
+        interval: 600000,
+        userId,
+        updatedAt,
+        paused: false,
+        pauseTime: -1,
       },
     ]),
   ]);

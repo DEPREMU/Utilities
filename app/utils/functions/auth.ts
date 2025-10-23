@@ -67,7 +67,7 @@ const getExpoPushToken = async (): Promise<string> => {
 };
 
 const saveStorageData = async (
-  storageValues?: ExpectedStorageTypes,
+  storageValues?: ExpectedStorageTypes<"BOTH">,
 ): Promise<boolean> => {
   if (!storageValues) return false;
 
@@ -75,8 +75,12 @@ const saveStorageData = async (
     Object.entries(storageValues).map(([key, value]) => {
       const keyTyped = key as KeyStorageValues;
       if (keyTyped === "_deviceId") return;
-      if (!isSecureKey(keyTyped)) saveData(keyTyped, value);
-      else saveDataSecure(keyTyped, value);
+
+      const valueTyped =
+        value as ExpectedStorageTypes<"BOTH">[KeyStorageValues];
+
+      if (!isSecureKey(keyTyped)) saveData(keyTyped, valueTyped);
+      else saveDataSecure(keyTyped, valueTyped);
     }),
   );
 

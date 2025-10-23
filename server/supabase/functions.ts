@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { supabase } from "./supabase.ts";
 import type { Falsy } from "../../app/node_modules/react-native/";
-import type { Tables, TablesKeys } from "../../types";
+import type { RequestSupabaseInsert, Tables, TablesKeys } from "../../types";
 import env from "../env.ts";
 
 /**
@@ -146,8 +146,8 @@ export const fetchFromTable = async <T extends TablesKeys = TablesKeys>(
  * Inserts data into a specified table
  */
 export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
-  table: T = "Users" as T,
-  data: T extends "Users" ? Partial<Tables[T]> : Tables[T] | Tables[T][],
+  table: T,
+  data: RequestSupabaseInsert["values"],
 ): Promise<{
   data?: Tables[T][] | Tables[T] | null;
   error?: string | null;
