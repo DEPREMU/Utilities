@@ -24,7 +24,10 @@ export interface Spec extends TurboModule {
     data: Record<string, unknown>,
     actions: NotificationAction[] | null,
   ): Promise<number>;
-  cancelNotification(notificationId: number): void;
+  cancelNotification(
+    notificationId: number,
+    reasonNotification: ReasonNotification,
+  ): void;
   cancelAllNotifications(): void;
 }
 

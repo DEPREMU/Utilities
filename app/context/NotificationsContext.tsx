@@ -34,7 +34,7 @@ import { v4 } from "uuid";
 import { useModal } from "./ModalContext";
 import * as Location from "expo-location";
 import { useLanguage } from "./LanguageContext";
-import ClipboardModule from "@/utils/modules/ClipboardModule";
+import BackgroundModule from "@/utils/modules/BackgroundModule";
 import _BackgroundTimer from "react-native-background-timer";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
@@ -50,7 +50,10 @@ interface NotificationsContextType {
     notification: Omit<Notification, "id" | "timestamp">,
   ) => Promise<string | undefined>;
   lastItemCopied: React.RefObject<string | null>;
-  removeNotification: (id: string) => void;
+  removeNotification: (
+    id: number,
+    reasonNotification: ReasonNotification,
+  ) => void;
   notifications?: NotificationsType | null;
   setNotifications: React.Dispatch<
     React.SetStateAction<NotificationsType | null>
@@ -152,19 +155,22 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     [openSnackBar],
   );
 
-  const removeNotification = useCallback((id: string) => {
-    if (Platform.OS === "web") return;
+  const removeNotification = useCallback(
+    (id: number, reasonNotification: ReasonNotification) => {
+      if (Platform.OS === "web") return;
 
-    if (Platform.OS === "android") {
-      try {
-        NotificationModule.cancelNotification(Number(id));
-      } catch (error) {
-        logError("Error canceling native notification", error);
+      if (Platform.OS === "android") {
+        try {
+          NotificationModule.cancelNotification(id, reasonNotification);
+        } catch (error) {
+          logError("Error canceling native notification", error);
+        }
       }
-    }
 
-    Notifications.cancelScheduledNotificationAsync(id);
-  }, []);
+      Notifications.cancelScheduledNotificationAsync(String(id));
+    },
+    [],
+  );
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
@@ -191,19 +197,17 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
                   noInternetConnection: 15,
                 };
 
-                return defaultTimes[reason] || 60;
+                return (defaultTimes[reason] || 60) * 60 * 1000;
               };
 
               if (event.reasonNotification === "streamers") break;
-              const notifications = await loadData("@notifications");
-              if (!notifications) return;
+              const notifications = await getNotifications();
 
               const newNotifications = { ...notifications };
               newNotifications.paused[event.reasonNotification] = {
                 isPaused: true,
                 timePaused:
-                  Date.now() +
-                  getTimeWithReason(event.reasonNotification) * 60 * 1000,
+                  Date.now() + getTimeWithReason(event.reasonNotification),
               };
 
               setNotifications(newNotifications);
@@ -231,7 +235,10 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           default:
             break;
         }
-        NotificationModule.cancelNotification(event.notificationId);
+        NotificationModule.cancelNotification(
+          event.notificationId,
+          event.reasonNotification,
+        );
       },
     );
 
@@ -378,16 +385,15 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     if (!sessionToken) return;
     if (Platform.OS === "android")
-      ClipboardModule?.isRunning().then((running) => {
+      BackgroundModule?.isRunning().then((running) => {
         if (running || !userData?.userId) return;
         loadDataSecure("_deviceId").then((deviceId) => {
-          ClipboardModule?.setUserData(
+          BackgroundModule?.setUserData(
             sessionToken,
             userData.userId,
             language,
             deviceId || "",
           );
-          ClipboardModule?.startClipboardService();
         });
       });
 
@@ -490,13 +496,12 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (!sessionToken) return;
 
     loadDataSecure("_deviceId").then((deviceId) => {
-      ClipboardModule?.setUserData(
+      BackgroundModule?.setUserData(
         sessionToken,
         userData?.userId || "",
         language,
         deviceId || "",
       );
-      ClipboardModule?.startClipboardService?.();
     });
   }, [sessionToken, userData?.userId, language]);
 

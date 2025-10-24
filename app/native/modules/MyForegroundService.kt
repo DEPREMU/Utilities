@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -16,6 +17,11 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.io.IOException
 
 class MyForegroundService : Service() {
     companion object {
@@ -27,6 +33,19 @@ class MyForegroundService : Service() {
     private var counter = 0
     private var title = "Servicio Activo"
     private var message = "Utilities está ejecutándose en segundo plano."
+    
+    // Clipboard functionality
+    private lateinit var clipboardManager: ClipboardManager
+    private var userId: String? = null
+    private var lastText: String = ""
+    private var deviceId: String = "${Build.MANUFACTURER} ${Build.MODEL}"
+    private var createdAt: String = ""
+    private var lang: String = "en"
+    private val table: String = "ClipboardSync"
+    private var userToken: String? = null
+    private val client = OkHttpClient()
+    private val serverURL = "{{serverURL}}"
+    private var clipboardEnabled = false
 
     private val task =
         object : Runnable {
@@ -42,11 +61,37 @@ class MyForegroundService : Service() {
                         putInt("counter", counter)
                     }
 
-                ForegroundServiceModule.sendEvent("onUpdateCounterForeground", params)
+                BackgroundServiceModule.sendEvent("onUpdateCounterForeground", params)
 
                 handler.postDelayed(this, 5000)
             }
         }
+    
+    private val clipListener =
+        ClipboardManager.OnPrimaryClipChangedListener {
+            if (!clipboardEnabled) return@OnPrimaryClipChangedListener
+            
+            val clip = clipboardManager.primaryClip
+            val item = clip?.getItemAt(0)
+            val text = item?.text?.toString() ?: return@OnPrimaryClipChangedListener
+
+            if (text != lastText && text.isNotBlank()) {
+                lastText = text
+                sendToSupabase(text)
+            }
+        }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Background Service",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+    }
 
     private fun setNotification() {
         val notification: Notification =
@@ -64,6 +109,14 @@ class MyForegroundService : Service() {
         handler.post(task)
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+        clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager.addPrimaryClipChangedListener(clipListener)
+        Log.d("MyForegroundService", "Service created")
+    }
+
     override fun onStartCommand(
         intent: Intent?,
         flags: Int,
@@ -71,8 +124,21 @@ class MyForegroundService : Service() {
     ): Int {
         title = intent?.getStringExtra("title") ?: "Servicio Activo"
         message = intent?.getStringExtra("message") ?: "Utilities está ejecutándose en segundo plano."
+        
+        val enableClipboard = intent?.getBooleanExtra("enableClipboard", false) ?: false
+        if (enableClipboard) {
+            lang = intent?.getStringExtra("lang") ?: lang
+            userId = intent?.getStringExtra("userId")
+            deviceId = intent?.getStringExtra("deviceId") ?: deviceId
+            userToken = intent?.getStringExtra("userToken")
+            
+            if (!userToken.isNullOrBlank() && !userId.isNullOrBlank()) {
+                clipboardEnabled = true
+                Log.d("MyForegroundService", "Clipboard monitoring enabled")
+            }
+        }
+        
         Log.d("MyForegroundService", "Service started with title: $title and message: $message")
-
         setNotification()
 
         return START_STICKY
@@ -97,10 +163,22 @@ class MyForegroundService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacks(task)
+        client.dispatcher.cancelAll()
+        clipboardManager.removePrimaryClipChangedListener(clipListener)
         Log.d("MyForegroundService", "Service destroyed, attempting to restart.")
 
-        setNotification()
-        val restartServiceIntent = Intent(applicationContext, MyForegroundService::class.java)
+        val restartServiceIntent = Intent(applicationContext, MyForegroundService::class.java).apply {
+            putExtra("title", title)
+            putExtra("message", message)
+            if (clipboardEnabled) {
+                putExtra("enableClipboard", true)
+                putExtra("lang", lang)
+                putExtra("userId", userId)
+                putExtra("deviceId", deviceId)
+                putExtra("userToken", userToken)
+            }
+        }
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(restartServiceIntent)
         } else {
@@ -109,4 +187,63 @@ class MyForegroundService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+    
+    private fun sendToSupabase(content: String) {
+        createdAt = java.time.Instant.now().toString()
+        if (userId.isNullOrBlank() || deviceId.isBlank() || userToken.isNullOrBlank()) return
+
+        val jsonToTable =
+            JSONObject().apply {
+                put("userId", userId)
+                put("content", content)
+                put("deviceId", deviceId)
+                put("createdAt", createdAt)
+            }
+
+        val jsonToServer =
+            JSONObject().apply {
+                put("lang", lang ?: "en")
+                put("table", table)
+                put("values", jsonToTable)
+            }
+
+        val mediaType = "application/json".toMediaType()
+        val body = jsonToServer.toString().toRequestBody(mediaType)
+        var fullServerURL = serverURL
+        if (fullServerURL.endsWith("/")) {
+            fullServerURL = fullServerURL.dropLast(1)
+        }
+
+        val request =
+            Request
+                .Builder()
+                .url("$fullServerURL/supabase/insert")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer $userToken")
+                .post(body)
+                .build()
+
+        client.newCall(request).enqueue(
+            object : Callback {
+                override fun onFailure(
+                    call: Call,
+                    e: IOException,
+                ) {
+                    Log.e("MyForegroundService", "Error uploading clipboard: ${e.message}")
+                }
+
+                override fun onResponse(
+                    call: Call,
+                    response: Response,
+                ) {
+                    if (!response.isSuccessful) {
+                        Log.e("MyForegroundService", "Failed to sync clipboard: ${response.code}")
+                    } else {
+                        Log.d("MyForegroundService", "Clipboard synced successfully")
+                    }
+                    response.close()
+                }
+            },
+        )
+    }
 }

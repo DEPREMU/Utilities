@@ -28,7 +28,7 @@ import Button from "@components/common/ButtonComponent";
 import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
 import { useLanguage } from "./LanguageContext";
-import ClipboardModule from "@/utils/modules/ClipboardModule";
+import BackgroundModule from "@/utils/modules/BackgroundModule";
 import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import { useNotifications } from "./NotificationsContext";
@@ -295,7 +295,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
           lastItemCopied.current = parsedMessage.content;
           if (Platform.OS === "android")
-            ClipboardModule?.setClipboardText?.(parsedMessage.content);
+            BackgroundModule?.setClipboardText?.(parsedMessage.content);
           else if (Platform.OS === "web") {
             (window as Window).UtilitiesForPC?.setClipboard?.(
               parsedMessage.content,

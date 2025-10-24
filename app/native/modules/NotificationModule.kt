@@ -88,7 +88,7 @@ class NotificationModule(
             val prevNotifyId = prevNotifyIdStr.toIntOrNull()
 
             if (prevNotifyId != null) {
-                cancelNotification(prevNotifyId)
+                cancelNotification(prevNotifyId, reasonNotification)
                 Log.d(
                     "NotificationModule",
                     "Cancelled previous notification for reason: $reasonNotification with ID: $prevNotifyId"
@@ -235,11 +235,17 @@ class NotificationModule(
     }
 
     @ReactMethod
-    fun cancelNotification(notificationId: Int) {
-        val notificationManager =
-            reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancel(notificationId)
-        Log.d("NotificationModule", "Notification cancelled: $notificationId")
+    fun cancelNotification(notificationId: Int, reasonNotification: String) {
+        try {
+            val notificationManager =
+                reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(notificationId)
+            reasonNotificationJSON.put(reasonNotification, "")
+
+            Log.d("NotificationModule", "Notification cancelled: $notificationId")
+        } catch (e: Exception) {
+            Log.e("NotificationModule", "Error cancelling notification $notificationId: ${e.message}", e)
+        }
     }
 
     @ReactMethod

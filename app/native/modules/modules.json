@@ -1,22 +1,5 @@
 [
   {
-    "name": "ForegroundClipboardService.kt",
-    "initPath": "app/native/modules/",
-    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/",
-    "service": "<service \n  android:name=\".ForegroundClipboardService\" \n  android:enabled=\"true\" \n  android:exported=\"false\" \n  android:foregroundServiceType=\"dataSync\" />",
-    "permissions": []
-  },
-  {
-    "name": "ClipboardPackage.kt",
-    "initPath": "app/native/modules/",
-    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
-  },
-  {
-    "name": "ClipboardModule.kt",
-    "initPath": "app/native/modules/",
-    "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
-  },
-  {
     "name": "CustomKeyboard.kt",
     "initPath": "app/native/modules/",
     "finalPath": "app/android/app/src/main/java/com/utilities/depremu/",
@@ -43,13 +26,13 @@
     "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
   },
   {
-    "name": "ForegroundServiceModule.kt",
+    "name": "BackgroundServiceModule.kt",
     "initPath": "app/native/modules/",
     "finalPath": "app/android/app/src/main/java/com/utilities/depremu/",
     "service": "<service \n  android:name=\".MyForegroundService\" \n  android:enabled=\"true\" \n  android:exported=\"false\" \n  android:foregroundServiceType=\"dataSync\" />"
   },
   {
-    "name": "ForegroundServicePackage.kt",
+    "name": "BackgroundServicePackage.kt",
     "initPath": "app/native/modules/",
     "finalPath": "app/android/app/src/main/java/com/utilities/depremu/"
   },

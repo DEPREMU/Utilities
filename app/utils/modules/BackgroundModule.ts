@@ -1,16 +1,34 @@
 import chalk from "chalk";
 import { logError } from "../functions";
 import type { TurboModule } from "react-native";
+import { LanguagesSupported } from "@types";
 import { Platform, TurboModuleRegistry } from "react-native";
 
 export interface Spec extends TurboModule {
   start: (titleNotification: string, messageNotification: string) => void;
   stop: () => void;
+  setUserData(
+    token: string,
+    userId: string,
+    lang: LanguagesSupported,
+    deviceId: string,
+  ): void;
+  isRunning(): Promise<boolean>;
+  getMethods(): Promise<string[]>;
+  setClipboardText(text: string): void;
+  stopClipboardService(): void;
+  startClipboardService(): void;
 }
 
 const defaultBackgroundModule: Spec = {
-  start: () => {},
-  stop: () => {},
+  start: () => { },
+  stop: () => { },
+  setUserData: () => { },
+  isRunning: async () => false,
+  getMethods: async () => [],
+  setClipboardText: () => { },
+  stopClipboardService: () => { },
+  startClipboardService: () => { },
 };
 
 const BackgroundModule =

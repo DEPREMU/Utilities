@@ -50,10 +50,9 @@ const editMainApplication = async () => {
     [
       packageMA,
       `import ${packageName}.KeyboardPackage`,
-      `import ${packageName}.ClipboardPackage`,
       `import ${packageName}.NotificationPackage`,
       `import ${packageName}.NativeFunctionsPackage`,
-      `import ${packageName}.ForegroundServicePackage`,
+      `import ${packageName}.BackgroundServicePackage`,
       "",
     ].join("\n"),
   );
@@ -80,10 +79,9 @@ const editMainApplication = async () => {
 
   const packages = [
     "KeyboardPackage()",
-    "ClipboardPackage()",
     "NotificationPackage()",
     "NativeFunctionsPackage()",
-    "ForegroundServicePackage()",
+    "BackgroundServicePackage()",
   ];
 
   fs.writeFileSync(
@@ -113,7 +111,7 @@ const createModules = async () => {
 
   modules.forEach((module) => {
     const modulePath = getPath(module.initPath);
-    if (module.name === "ForegroundClipboardService.kt") {
+    if (module.name === "MyForegroundService.kt") {
       const content = fs.readFileSync(
         path.resolve(modulePath, module.name),
         "utf8",
