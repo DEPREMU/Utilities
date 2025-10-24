@@ -25,13 +25,13 @@ import {
   getNotifications,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
-import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
 import { useLanguage } from "./LanguageContext";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
 import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import { useNotifications } from "./NotificationsContext";
+import { AppState, Platform } from "react-native";
 
 interface WebSocketContextType {
   socket: WebSocket | null;
@@ -219,26 +219,25 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   );
 
   useEffect(() => {
-    if (Platform.OS === "web" || Platform.OS === "android") return;
     if (!userData?.userId) return;
     if (clipboardSocketRef.current?.readyState === WebSocket.OPEN) return;
     if (clipboardSocketRef.current?.readyState === WebSocket.CONNECTING) return;
 
     const askRetryConnection = (socket: WebSocket) => {
+      const retry = () => {
+        clipboardSocketRef.current = null;
+        closeModal();
+        initWebSocket();
+        socket.close();
+      };
+      if (AppState.currentState !== "active") return retry();
+
       openModal(
         t("error"),
         t("clipboardWebSocketError"),
         <>
           <Button label={t("close")} handlePress={closeModal} />
-          <Button
-            label={t("retry")}
-            handlePress={() => {
-              clipboardSocketRef.current = null;
-              closeModal();
-              initWebSocket();
-              socket.close();
-            }}
-          />
+          <Button label={t("retry")} handlePress={retry} />
         </>,
       );
     };

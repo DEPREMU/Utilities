@@ -25,6 +25,9 @@ import java.io.IOException
 
 class MyForegroundService : Service() {
     companion object {
+        @Volatile
+        var lastText: String = ""
+
         private const val CHANNEL_ID = "ForegroundServiceChannel"
         private const val NOTIFICATION_ID = 198
     }
@@ -37,7 +40,6 @@ class MyForegroundService : Service() {
     // Clipboard functionality
     private lateinit var clipboardManager: ClipboardManager
     private var userId: String? = null
-    private var lastText: String = ""
     private var deviceId: String = "${Build.MANUFACTURER} ${Build.MODEL}"
     private var createdAt: String = ""
     private var lang: String = "en"

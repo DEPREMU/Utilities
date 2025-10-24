@@ -170,11 +170,16 @@ class BackgroundServiceModule(
 
     @ReactMethod
     fun setClipboardText(text: String) {
-        Log.d("BackgroundServiceModule", "setClipboardText() called")
-        val context = reactApplicationContext
-        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        val clip = android.content.ClipData.newPlainText("label", text)
-        clipboard.setPrimaryClip(clip)
-        Log.d("BackgroundServiceModule", "Text set to clipboard.")
+        try {
+            Log.d("BackgroundServiceModule", "setClipboardText() called")
+            val context = reactApplicationContext
+            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("label", text)
+            clipboard.setPrimaryClip(clip)
+            MyForegroundService.lastText = text
+            Log.d("BackgroundServiceModule", "Text set to clipboard.")
+        } catch (e: Exception) {
+            Log.e("BackgroundServiceModule", "Error setting clipboard text: ${e.message}")
+        }
     }
 }
