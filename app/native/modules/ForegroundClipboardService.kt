@@ -2,30 +2,30 @@ package com.utilities.depremu
 
 import android.app.*
 import android.content.*
+import android.content.ClipboardManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import android.content.ClipboardManager
 import okhttp3.*
-import org.json.JSONObject
-import java.io.IOException
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.io.IOException
 
 class ForegroundClipboardService : Service() {
-
     companion object {
         const val CHANNEL_ID = "clipboard_service_channel"
-        const val NOTIFICATION_ID = 2
+        const val NOTIFICATION_ID = 214
     }
 
     private lateinit var clipboardManager: ClipboardManager
+
     // Requirements to insert data in table "ClipboardSync"
     private var userId: String? = null
     private var lastText: String = ""
     private var deviceId: String = "${Build.MANUFACTURER} ${Build.MODEL}"
     private var createdAt: String = ""
-    
+
     // Requirements to send data to server insertion endpoint
     private var lang: String = "en"
     private val table: String = "ClipboardSync"
@@ -34,16 +34,17 @@ class ForegroundClipboardService : Service() {
     private val client = OkHttpClient()
     private val serverURL = "{{serverURL}}" // This will be replaced in build time
 
-    private val clipListener = ClipboardManager.OnPrimaryClipChangedListener {
-        val clip = clipboardManager.primaryClip
-        val item = clip?.getItemAt(0)
-        val text = item?.text?.toString() ?: return@OnPrimaryClipChangedListener
+    private val clipListener =
+        ClipboardManager.OnPrimaryClipChangedListener {
+            val clip = clipboardManager.primaryClip
+            val item = clip?.getItemAt(0)
+            val text = item?.text?.toString() ?: return@OnPrimaryClipChangedListener
 
-        if (text != lastText && text.isNotBlank()) {
-            lastText = text
-            sendToSupabase(text)
+            if (text != lastText && text.isNotBlank()) {
+                lastText = text
+                sendToSupabase(text)
+            }
         }
-    }
 
     override fun onCreate() {
         super.onCreate()
@@ -112,23 +113,28 @@ class ForegroundClipboardService : Service() {
     }
 
     private fun sendToSupabase(content: String) {
-        createdAt = java.time.Instant.now().toString() // Current timestamp in ISO 8601 format
+        createdAt =
+            java.time.Instant
+                .now()
+                .toString() // Current timestamp in ISO 8601 format
         if (userId.isNullOrBlank() || deviceId.isBlank() || userToken.isNullOrBlank()) return
 
         // This must be values previously set when starting the service
-        val jsonToTable = JSONObject().apply {
-            put("userId", userId)
-            put("content", content)
-            put("deviceId", deviceId)
-            put("createdAt", createdAt)
-        }
+        val jsonToTable =
+            JSONObject().apply {
+                put("userId", userId)
+                put("content", content)
+                put("deviceId", deviceId)
+                put("createdAt", createdAt)
+            }
 
         // This must be the same as the server expects in its insertion endpoint
-        val jsonToServer = JSONObject().apply {
-            put("lang", lang ?: "en")
-            put("table", table)
-            put("values", jsonToTable)
-        }
+        val jsonToServer =
+            JSONObject().apply {
+                put("lang", lang ?: "en")
+                put("table", table)
+                put("values", jsonToTable)
+            }
 
         val mediaType = "application/json".toMediaType()
         val body = jsonToServer.toString().toRequestBody(mediaType)
@@ -137,24 +143,34 @@ class ForegroundClipboardService : Service() {
             fullServerURL = fullServerURL.dropLast(1)
         }
 
-        val request = Request.Builder()
-            .url("$fullServerURL/supabase/insert")
-            .addHeader("Content-Type", "application/json")
-            .addHeader("Authorization", "Bearer $userToken")
-            .post(body)
-            .build()
+        val request =
+            Request
+                .Builder()
+                .url("$fullServerURL/supabase/insert")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer $userToken")
+                .post(body)
+                .build()
 
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                Log.e("SupabaseSync", "Error al subir: ${e.message}")
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                if (!response.isSuccessful) {
-                    Log.e("SupabaseSync", "Fallo al sincronizar: ${response.code}")
+        client.newCall(request).enqueue(
+            object : Callback {
+                override fun onFailure(
+                    call: Call,
+                    e: IOException,
+                ) {
+                    Log.e("SupabaseSync", "Error al subir: ${e.message}")
                 }
-                response.close()
-            }
-        })
+
+                override fun onResponse(
+                    call: Call,
+                    response: Response,
+                ) {
+                    if (!response.isSuccessful) {
+                        Log.e("SupabaseSync", "Fallo al sincronizar: ${response.code}")
+                    }
+                    response.close()
+                }
+            },
+        )
     }
 }

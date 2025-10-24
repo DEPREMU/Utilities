@@ -1,6 +1,5 @@
 import {
   Notifications,
-  ReasonNotification,
   LanguagesSupported,
   RequestSupabaseFetch,
   ResponseSupabaseFetch,
@@ -255,14 +254,7 @@ export const getDateWithDaysAhead = (days: number): Date => {
  * @returns A promise that resolves to the notifications data or null.
  */
 export const getNotifications = async (): Promise<Notifications> => {
-  const data = await initializeNotificationsStorage();
-
-  const keysData = Object.keys(data.data);
-  keysData.forEach((key) => {
-    data.data[key as ReasonNotification] = null;
-  });
-
-  return data;
+  return await initializeNotificationsStorage();
 };
 
 export const getCryptosFromSupabase = async (

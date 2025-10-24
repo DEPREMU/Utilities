@@ -11,16 +11,20 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
-class ForegroundServiceModule(reactContext: ReactApplicationContext) :
-    ReactContextBaseJavaModule(reactContext) {
-
+class ForegroundServiceModule(
+    reactContext: ReactApplicationContext,
+) : ReactContextBaseJavaModule(reactContext) {
     companion object {
-        const val NAME = "ForegroundServiceModule"
+        const val NAME = "BackgroundServiceModule"
         private var reactContext: ReactApplicationContext? = null
 
-        fun sendEvent(eventName: String, params: WritableMap?) {
+        fun sendEvent(
+            eventName: String,
+            params: WritableMap?,
+        ) {
             reactContext?.takeIf { it.hasActiveCatalystInstance() }?.let {
-                it.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                it
+                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                     .emit(eventName, params)
             }
         }
@@ -30,28 +34,19 @@ class ForegroundServiceModule(reactContext: ReactApplicationContext) :
         Companion.reactContext = reactContext
     }
 
-    override fun getName(): String {
-        return NAME
-    }
+    override fun getName(): String = NAME
 
     @ReactMethod
-    fun requestIgnoreBatteryOptimizations() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val intent = Intent().apply {
-                action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
-                data = Uri.parse("package:${reactApplicationContext.packageName}")
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            reactApplicationContext.startActivity(intent)
-        }
-    }
-
-    @ReactMethod
-    fun start(titleNotification: String, messageNotification: String) {
+    fun start(
+        titleNotification: String,
+        messageNotification: String,
+    ) {
+        Log.d("ForegroundServiceModule", "Starting foreground service with title: $titleNotification and message: $messageNotification")
         val serviceIntent = Intent(reactApplicationContext, MyForegroundService::class.java)
         serviceIntent.putExtra("title", titleNotification)
         serviceIntent.putExtra("message", messageNotification)
         reactApplicationContext.startForegroundService(serviceIntent)
+        Log.d("ForegroundServiceModule", "Foreground service started")
     }
 
     @ReactMethod

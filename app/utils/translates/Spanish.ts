@@ -232,15 +232,7 @@ const es: typeLanguages = {
   LocationServicesEnabledMessage:
     "La aplicación detectó que los servicios de ubicación están habilitados.",
   pause: "Pausar",
-  pauseNoInternetConnectionNotifications:
-    "Pausar notificaciones de sin conexión a Internet",
-  stopNoInternetConnectionNotifications:
-    "Detener notificaciones de sin conexión a Internet",
-  pauseLocationNotifications: "Pausar notificaciones de ubicación",
   stop: "Detener",
-  stopLocationNotifications: "Detener notificaciones de ubicación",
-  pauseBatteryNotifications: "Pausar notificaciones de batería",
-  stopBatteryNotifications: "Detener notificaciones de batería",
   batteryAlerts: "Alertas de batería",
   noInternetConnection: "Sin conexión a Internet",
   dismiss: "Descartar",
@@ -251,6 +243,9 @@ const es: typeLanguages = {
   accept: "Aceptar",
   InternetConnectionRestored: "Conexión a Internet restaurada",
   YouAreBackOnline: "Has vuelto a estar en línea",
+  overlayPermission: "Permiso de superposición",
+  overlayPermissionMessage:
+    "Para mejorar tu experiencia, la aplicación requiere permisos de superposición. Por favor, habilita este permiso en la configuración de tu dispositivo para permitir que la aplicación muestre contenido sobre otras aplicaciones, esto es importante para abrir la aplicación desde las notificaciones.",
 } as const;
 
 export default es;

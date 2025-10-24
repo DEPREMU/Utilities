@@ -1,7 +1,14 @@
-import { t } from "i18next";
+import {
+  loadDataSecure,
+  askLocationPermission,
+  askDisplayOverOtherAppsPermission,
+} from "@utils";
+import { typeT } from "@types";
 import ExpoUpdates from "expo-updates";
+import { t as i18n } from "i18next";
+import _BackgroundTimer from "react-native-background-timer";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
-import { loadDataSecure } from "@utils";
+import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
 import React, { createContext, useEffect } from "react";
 import { AppState, DeviceEventEmitter, Platform } from "react-native";
 
@@ -33,7 +40,8 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
   useEffect(() => {
     const initializeBackgroundModule = async () => {
-      if (Platform.OS === "android") return;
+      if (Platform.OS !== "android") return;
+
       let attempt = 0;
       while (!BackgroundModule.start && attempt < 5) {
         attempt++;
@@ -45,9 +53,11 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
         return;
       }
 
+      const t: typeT = i18n as typeT;
+
       loadDataSecure("_deviceId").then((deviceId) => {
         if (deviceId) return;
-        BackgroundModule?.requestIgnoreBatteryOptimizations?.();
+        NativeFunctionsModule?.requestIgnoreBatteryOptimizations?.();
       });
       BackgroundModule?.start?.(
         t("foregroundNotificationTitle"),
@@ -72,6 +82,16 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       subscriptionBackground.remove();
       BackgroundModule.stop();
     };
+  }, []);
+
+  useEffect(() => {
+    const askPermissions = async () => {
+      await askLocationPermission();
+      await askDisplayOverOtherAppsPermission();
+    };
+
+    const id = _BackgroundTimer.setTimeout(askPermissions, 5000);
+    return () => _BackgroundTimer.clearTimeout(id);
   }, []);
 
   const value: BackgroundContextType = {

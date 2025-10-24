@@ -6,25 +6,23 @@ import { Platform, TurboModuleRegistry } from "react-native";
 export interface Spec extends TurboModule {
   start: (titleNotification: string, messageNotification: string) => void;
   stop: () => void;
-  requestIgnoreBatteryOptimizations: () => void;
 }
 
-const defaultForegroundModule: Spec = {
+const defaultBackgroundModule: Spec = {
   start: () => {},
   stop: () => {},
-  requestIgnoreBatteryOptimizations: () => {},
 };
 
-const ForegroundModule =
+const BackgroundModule =
   Platform.OS === "android"
-    ? TurboModuleRegistry.getEnforcing<Spec>("ForegroundServiceModule")
-    : defaultForegroundModule;
+    ? TurboModuleRegistry.getEnforcing<Spec>("BackgroundServiceModule")
+    : defaultBackgroundModule;
 
 if (
   process.env.NODE_ENV === "development" &&
-  (!ForegroundModule || Object.keys(ForegroundModule).length === 0)
+  (!BackgroundModule || Object.keys(BackgroundModule).length === 0)
 ) {
-  logError(chalk.red("ForegroundServiceModule is not available"));
+  logError(chalk.red("BackgroundServiceModule is not available"));
 }
 
-export default ForegroundModule;
+export default BackgroundModule;

@@ -1,8 +1,12 @@
+import type {
+  ChannelsId,
+  NotificationAction,
+  ReasonNotification,
+} from "@types";
 import chalk from "chalk";
 import { logError } from "../functions";
 import type { TurboModule } from "react-native";
 import { Platform, TurboModuleRegistry } from "react-native";
-import type { NotificationAction, ReasonNotification } from "@types";
 
 export interface Spec extends TurboModule {
   createNotificationChannel(
@@ -11,13 +15,14 @@ export interface Spec extends TurboModule {
     importance: number,
   ): void;
   sendNotification(
-    notificationId: number,
+    data: Record<string, unknown>,
     title: string,
     message: string,
-    channelId: string,
+    actions: NotificationAction[] | null,
+    channelId: ChannelsId,
+    notificationId: number,
     reasonNotification: ReasonNotification,
-    data?: Record<string, unknown>,
-    actions?: NotificationAction[],
+    overrideNotification: boolean,
   ): Promise<number>;
   cancelNotification(notificationId: number): void;
   cancelAllNotifications(): void;

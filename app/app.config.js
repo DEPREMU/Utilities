@@ -47,14 +47,18 @@ export default {
         "INTERNET",
         "WAKE_LOCK",
         "NOTIFICATIONS",
+        "POST_NOTIFICATIONS",
         "FOREGROUND_SERVICE",
+        "SYSTEM_ALERT_WINDOW",
         "ACCESS_NETWORK_STATE",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE_DATA_SYNC",
+        "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
       ],
       googleServicesFile: "./google-services.json",
-      useNextNotificationsApi: true,
     },
     plugins: [
       "./plugins/handleCreateFiles.js",
@@ -62,6 +66,12 @@ export default {
       "expo-secure-store",
       "expo-localization",
       "expo-notifications",
+      [
+        "react-native-permissions",
+        {
+          iosPermissions: [],
+        },
+      ],
       [
         "expo-build-properties",
         {

@@ -7,9 +7,12 @@ import android.os.Build
 import android.util.Log
 
 class RestartServiceReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         Log.d("RestartServiceReceiver", "Service restart triggered")
-        
+
         val serviceIntent = Intent(context, MyForegroundService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(serviceIntent)

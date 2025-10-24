@@ -6,11 +6,8 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager
 
 class ForegroundServicePackage : ReactPackage {
-    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-        return emptyList()
-    }
+    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
 
-    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return listOf(ForegroundServiceModule(reactContext))
-    }
+    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
+        listOf(ForegroundServiceModule(reactContext))
 }

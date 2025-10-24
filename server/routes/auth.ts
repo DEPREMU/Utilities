@@ -180,11 +180,10 @@ export const getStorageData = async (
             timePaused: config.pauseTime,
           };
         }
-        acc.data[reason] = null;
         acc.intervals[reason] = config.interval;
         return acc;
       },
-      { enabled: {}, data: {}, intervals: {}, paused: {} } as Notifications,
+      { enabled: {}, intervals: {}, paused: {} } as Notifications,
     );
 
   console.log(

@@ -1,14 +1,3 @@
-import {
-  Window,
-  ChannelsId,
-  Notifications as NotificationsType,
-  ReasonNotification,
-  NotificationAction,
-  RequestSupabaseFetch,
-  RequestSupabaseInsert,
-  ResponseSupabaseFetch,
-  ActionNotification,
-} from "@types";
 import React, {
   useRef,
   useState,
@@ -18,6 +7,17 @@ import React, {
   useCallback,
   createContext,
 } from "react";
+import {
+  Window,
+  Notification,
+  Notifications as NotificationsType,
+  EventNativeModule,
+  ReasonNotification,
+  NotificationAction,
+  RequestSupabaseFetch,
+  RequestSupabaseInsert,
+  ResponseSupabaseFetch,
+} from "@types";
 import {
   isFalsy,
   logError,
@@ -29,45 +29,21 @@ import {
   loadDataSecure,
   getNotifications,
   isLocationEnabled,
-  askLocationPermission,
 } from "@utils";
 import { v4 } from "uuid";
-import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
 import * as Location from "expo-location";
-import ClipboardModule from "@/utils/modules/ClipboardModule";
 import { useLanguage } from "./LanguageContext";
+import ClipboardModule from "@/utils/modules/ClipboardModule";
 import _BackgroundTimer from "react-native-background-timer";
-import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
 import NotificationModule from "@/utils/modules/NotificationModule";
 import { navigateReplace } from "@/navigation/navigationRef";
-import { DeviceEventEmitter } from "react-native";
+import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
 import { useDeviceInformation } from "./DeviceInformationContext";
-
-type Notification = {
-  id: string;
-  title: string;
-  message: string;
-  type: "success" | "error" | "warning" | "info";
-  channelId: ChannelsId;
-  reasonNotification: ReasonNotification;
-  timestamp: Date;
-  trigger?: Notifications.NotificationTriggerInput;
-  actions?: NotificationAction[];
-  data?: Record<string, unknown>;
-};
-
-type EventNativeModule = {
-  actionId: ActionNotification;
-  notificationId: number;
-  title: string;
-  message: string;
-  reasonNotification: ReasonNotification;
-  data: Record<string, unknown>;
-};
+import { DeviceEventEmitter, AppState, Platform } from "react-native";
 
 interface NotificationsContextType {
   sendNotification: (
@@ -95,7 +71,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 }) => {
   const { t, language } = useLanguage();
   const { openSnackBar } = useModal();
-  const { isBackground } = useBackground();
   const { hasInternet, deviceInfo } = useDeviceInformation();
   const { sessionToken, userData } = useUserContext();
 
@@ -133,7 +108,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         logError("Error checking paused notifications", error);
       }
 
-      if (!isBackground) {
+      if (AppState.currentState === "active") {
         openSnackBar(
           [notification.title, notification.message].join("\n"),
           8000,
@@ -144,11 +119,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       if (!notifications?.enabled?.[notification.reasonNotification])
         return Promise.resolve("");
 
-      if (
-        Platform.OS === "android" &&
-        notification.actions &&
-        notification.actions.length > 0
-      ) {
+      if (Platform.OS === "android") {
         try {
           const notificationId = Math.floor(Math.random() * 1000000);
 
@@ -158,8 +129,9 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
             notification.message,
             notification.channelId,
             notification.reasonNotification,
+            true,
             notification.data || {},
-            notification.actions,
+            notification.actions || null,
           );
 
           return String(notificationId);
@@ -177,7 +149,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         trigger: notification.trigger || null,
       });
     },
-    [openSnackBar, isBackground],
+    [openSnackBar],
   );
 
   const removeNotification = useCallback((id: string) => {
@@ -209,6 +181,19 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
             break;
           case "pause":
             try {
+              const getTimeWithReason = (reason: ReasonNotification) => {
+                const defaultTimes: Record<ReasonNotification, number> = {
+                  cryptos: 30,
+                  streamers: 30,
+                  batteryAlerts: 30,
+                  locationEnabled: 30,
+                  allNotifications: 60,
+                  noInternetConnection: 15,
+                };
+
+                return defaultTimes[reason] || 60;
+              };
+
               if (event.reasonNotification === "streamers") break;
               const notifications = await loadData("@notifications");
               if (!notifications) return;
@@ -216,7 +201,9 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
               const newNotifications = { ...notifications };
               newNotifications.paused[event.reasonNotification] = {
                 isPaused: true,
-                timePaused: Date.now() + 60 * 60 * 1000,
+                timePaused:
+                  Date.now() +
+                  getTimeWithReason(event.reasonNotification) * 60 * 1000,
               };
 
               setNotifications(newNotifications);
@@ -313,6 +300,21 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (isFalsy(deviceInfo) || Platform.OS === "web") return;
 
     const handleBatteryNotifications = async () => {
+      const hasPermission =
+        await NativeFunctionsModule.checkOverlayPermission();
+      if (!hasPermission) return;
+
+      const actions: NotificationAction[] = [
+        { actionId: "dismiss", title: t("dismiss"), icon: "delete" },
+      ];
+      if (hasPermission) {
+        actions.push({
+          actionId: "pause",
+          title: t("pause"),
+          icon: "pause",
+        });
+      }
+
       if (["charging", "full"].includes(deviceInfo?.powerState?.batteryState)) {
         if (deviceInfo.powerState.batteryLevel <= 0.8) return;
 
@@ -322,10 +324,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           type: "info",
           channelId: "batteryAlerts",
           reasonNotification: "batteryAlerts",
-          actions: [
-            { actionId: "dismiss", title: t("dismiss"), icon: "delete" },
-            { actionId: "settings", title: t("settings"), icon: "settings" },
-          ],
+          actions,
+          overrideNotification: false,
         });
         return;
       } else if (
@@ -339,17 +339,17 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         message: t("YourBatteryIsLow"),
         type: "warning",
         channelId: "batteryAlerts",
+        overrideNotification: false,
         reasonNotification: "batteryAlerts",
         actions: [
-          { actionId: "dismiss", title: t("dismiss"), icon: "delete" },
-          { actionId: "settings", title: t("settings"), icon: "settings" },
+          ...actions,
           { actionId: "stop", title: t("stop"), icon: "stop" },
         ],
       });
     };
 
+    handleBatteryNotifications();
     const id = _BackgroundTimer.setTimeout(handleBatteryNotifications, 5000);
-
     return () => _BackgroundTimer.clearTimeout(id);
   }, [deviceInfo, sendNotification, t]);
 
@@ -359,10 +359,10 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         title: t("NoInternetConnection"),
         message: t("PleaseCheckInternetConnection"),
         type: "error",
+        overrideNotification: false,
         channelId: "noInternetConnection",
         reasonNotification: "noInternetConnection",
       });
-      ClipboardModule?.stopClipboardService?.();
       return;
     } else if (prevHasInternet !== null && !prevHasInternet && hasInternet) {
       sendNotification({
@@ -371,6 +371,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         type: "success",
         channelId: "noInternetConnection",
         reasonNotification: "noInternetConnection",
+        overrideNotification: false,
       });
     }
     if (prevHasInternet !== hasInternet) prevHasInternet = hasInternet;
@@ -450,17 +451,11 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   useEffect(() => {
     if (Platform.OS === "web") return;
 
-    let askingLocation = false;
     const verifyLocation = async () => {
-      const { status } = await Location.getForegroundPermissionsAsync();
+      const { status } = await Location.getBackgroundPermissionsAsync();
       const hasPermission = status === "granted";
-      if (askingLocation && !hasPermission) return;
+      if (!hasPermission) return;
 
-      if (!hasPermission) {
-        askingLocation = true;
-        askLocationPermission();
-        return;
-      }
       const locationEnabled = await isLocationEnabled();
       if (!locationEnabled) return;
 
@@ -470,6 +465,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         type: "info",
         channelId: "locationEnabled",
         reasonNotification: "locationEnabled",
+        overrideNotification: false,
         actions: [
           {
             actionId: "dismiss",
@@ -478,14 +474,15 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           },
           {
             actionId: "pause",
-            title: t("pauseLocationNotifications"),
+            title: t("pause"),
             icon: "pause",
           },
         ],
       });
     };
-    const id = _BackgroundTimer.setInterval(verifyLocation, 60000);
 
+    verifyLocation();
+    const id = _BackgroundTimer.setInterval(verifyLocation, 60000);
     return () => _BackgroundTimer.clearInterval(id);
   }, [sendNotification, t]);
 

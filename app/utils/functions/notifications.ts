@@ -1,15 +1,10 @@
-import {
-  ChannelsId,
-  Notifications,
-  ScreensAvailable,
-  ReasonNotification,
-} from "@types";
+import { log } from "./debug";
 import * as notifications from "expo-notifications";
 import { Platform, Falsy } from "react-native";
 import { reasonNotification } from "../constants";
-import { log, logError, logWarn } from "./debug";
+import { loadData, saveData } from "./storageManagement";
 import { getNotifications, stringifyData } from "./appManagement";
-import { loadData, loadDataSecure, saveData } from "./storageManagement";
+import { ChannelsId, Notifications, ScreensAvailable } from "@types";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -29,13 +24,11 @@ export const isNotificationsAlreadyInitialized = (
 ): notificationsData is Notifications => {
   if (!notificationsData) return false;
 
-  const { data, enabled, intervals } = notificationsData;
-  const keysData = Object.keys(data || {});
+  const { enabled, intervals } = notificationsData;
   const keysEnabled = Object.keys(enabled || {});
   const keysIntervals = Object.keys(intervals || {});
 
   return (
-    stringifyData(keysData) === stringifyData(reasonNotification) &&
     stringifyData(keysEnabled) === stringifyData(reasonNotification) &&
     stringifyData(keysIntervals) === stringifyData(reasonNotification)
   );
@@ -52,7 +45,6 @@ export const initializeNotificationsStorage =
     if (isNotificationsAlreadyInitialized(notificationsData))
       return notificationsData;
 
-    const dataNotifications = {} as Notifications["data"];
     const pausedNotifications = {} as Notifications["paused"];
     const enabledNotifications = {} as Notifications["enabled"];
     const intervalsNotifications = {} as Notifications["intervals"];
@@ -63,7 +55,6 @@ export const initializeNotificationsStorage =
         enabledNotifications[reason] = false;
         pausedNotifications[reason] = { isPaused: false, timePaused: -1 };
       }
-      dataNotifications[reason] = null;
       intervalsNotifications[reason] = null;
       if (reason === "cryptos") intervalsNotifications[reason] = 1000 * 60 * 10;
     });
@@ -73,7 +64,6 @@ export const initializeNotificationsStorage =
       if (status !== notifications.PermissionStatus.GRANTED) {
         notificationsData = {
           enabled: { ...enabledNotifications, allNotifications: false },
-          data: dataNotifications,
           paused: pausedNotifications,
           intervals: intervalsNotifications,
         };
@@ -83,7 +73,6 @@ export const initializeNotificationsStorage =
 
       notificationsData = {
         enabled: { ...enabledNotifications, allNotifications: true },
-        data: dataNotifications,
         paused: pausedNotifications,
         intervals: intervalsNotifications,
       };
@@ -92,7 +81,6 @@ export const initializeNotificationsStorage =
     }
 
     const newNotifications: Notifications = {
-      data: { ...dataNotifications },
       enabled: { ...enabledNotifications, allNotifications: true },
       paused: { ...pausedNotifications },
       intervals: { ...intervalsNotifications },
@@ -128,88 +116,6 @@ export const hasPushNotifications = async (): Promise<boolean> => {
   if (newStatus !== notifications.PermissionStatus.GRANTED) return false;
 
   return notificationsData.enabled.allNotifications;
-};
-
-/**
- * Cancels a notification based on the reason provided.
- *
- * This function loads existing notifications from storage, checks if a notification
- * with the specified reason exists, and cancels it if found.
- *
- * @param {Notifications} notificationsData - The current notifications data.
- * @param {string} reason - The reason for the notification to be canceled.
- */
-export const handleCancelNotification = async (
-  notificationsData: Notifications,
-  reason: ReasonNotification,
-  saveNewNotifications = false,
-) => {
-  const idNotification = notificationsData.data[reason]?.id;
-  if (!idNotification) return;
-  try {
-    await notifications.cancelScheduledNotificationAsync(idNotification);
-    if (saveNewNotifications) {
-      notificationsData.data[reason] = null;
-      saveData("@notifications", notificationsData);
-    }
-    log(`Notification with reason "${reason}" canceled successfully.`);
-  } catch (error) {
-    logError(`Error canceling notification with reason "${reason}":`, error);
-  }
-};
-
-export const sendNotification = async (
-  reason: ReasonNotification,
-  title: string,
-  body: string | null,
-  trigger: notifications.NotificationTriggerInput | null = null,
-  screen: ScreensAvailable = "Home",
-  data?: Record<string, unknown>,
-): Promise<void> => {
-  try {
-    if (Platform.OS === "web") {
-      logWarn("Notifications are not supported on web platform");
-      return;
-    }
-
-    const [notificationsData, sessionExpiry] = await Promise.all([
-      getNotifications(),
-      loadDataSecure("_sessionExpiry"),
-    ]);
-    if (
-      !notificationsData.enabled.allNotifications ||
-      !notificationsData.enabled[reason] ||
-      sessionExpiry === null
-    )
-      return;
-
-    handleCancelNotification(notificationsData, reason);
-
-    const id = await notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        data: {
-          ...data,
-          screen,
-        },
-      },
-      trigger,
-    });
-
-    notificationsData.data[reason] = {
-      id,
-      body,
-      data,
-      title,
-      screen,
-      trigger,
-    };
-
-    saveData("@notifications", stringifyData(notificationsData));
-  } catch (error) {
-    logError("Error sending notification:", error);
-  }
 };
 
 /**
@@ -254,10 +160,11 @@ export const configureNotificationChannel = async () => {
 
   const channelIdCryptos: ChannelsId = "cryptos";
   const channelIdDefault: ChannelsId = "default";
+  const channelIdBattery: ChannelsId = "batteryAlerts";
   const channelIdLocation: ChannelsId = "locationEnabled";
   const channelIdStreamers: ChannelsId = "streamers";
-  const channelIdBattery: ChannelsId = "batteryAlerts";
   const channelIdNoInternet: ChannelsId = "noInternetConnection";
+  const channelIdForegroundService: ChannelsId = "ForegroundServiceChannel";
   await Promise.all([
     notifications.setNotificationChannelAsync(channelIdStreamers, {
       name: "Streamers",
@@ -300,6 +207,12 @@ export const configureNotificationChannel = async () => {
       sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffff00",
+    }),
+    notifications.setNotificationChannelAsync(channelIdForegroundService, {
+      name: "Foreground Service",
+      importance: notifications.AndroidImportance.DEFAULT,
+      sound: null,
+      vibrationPattern: null,
     }),
   ]);
 };

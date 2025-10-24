@@ -7,6 +7,7 @@ import {
 import type {
   Cryptos,
   UserConfig,
+  Notification,
   Notifications,
   WebSocketMessage,
   ReasonNotification,
@@ -144,12 +145,9 @@ const insertNotifications = async (
 const connectionWss = (ws: WebSocket) => {
   const getNotificationCrypto = async (
     cryptos: Cryptos[],
-  ): Promise<{
-    body: string;
-    title: string;
-    reason: "cryptos";
-    screen: "Cryptos";
-  }> => {
+  ): Promise<Notification> => {
+    const id = Math.floor(Math.random() * 1000000);
+
     const fetchedData = await fetchFromTable("UserConfig", {
       userId,
     });
@@ -161,9 +159,13 @@ const connectionWss = (ws: WebSocket) => {
     if (!cryptos || cryptos?.length === 0)
       return {
         title: t("notificationNotCryptosSelectedTitle", language),
-        body: t("notificationNotCryptosSelectedBody", language),
-        reason: "cryptos",
-        screen: "Cryptos",
+        message: t("notificationNotCryptosSelectedBody", language),
+        reasonNotification: "cryptos",
+        channelId: "cryptos",
+        id,
+        type: "info",
+        timestamp: new Date(),
+        overrideNotification: false,
       };
 
     const res = await fetch("https://api.binance.com/api/v3/ticker/price");
@@ -178,7 +180,7 @@ const connectionWss = (ws: WebSocket) => {
     const percentageGains = prices.map((price, index) =>
       getPercentGain(price, cryptos[index]),
     );
-    const body = cryptos
+    const message = cryptos
       .map((crypto, index) =>
         t("notificationCryptoBody", language, {
           crypto: crypto.id,
@@ -189,12 +191,16 @@ const connectionWss = (ws: WebSocket) => {
       .join("\n");
 
     return {
-      body,
-      reason: "cryptos",
-      screen: "Cryptos",
+      message,
+      reasonNotification: "cryptos",
+      channelId: "cryptos",
       title: t("notificationCryptoTitle", language, {
         cryptos: cryptos.map((crypto) => crypto.id).join(", "),
       }),
+      id,
+      type: "info",
+      timestamp: new Date(),
+      overrideNotification: false,
     };
   };
 

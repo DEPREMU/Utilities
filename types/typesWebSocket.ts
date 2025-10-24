@@ -1,10 +1,11 @@
 import type {
+  ChannelsId,
+  Notification,
+  NotificationAction,
   ReasonNotification,
   Notifications as typeNotifications,
 } from "./typesNotifications";
-import type { ScreensAvailable } from "./typesNavigation";
 import type { LanguagesSupported } from "./typesTranslations";
-import type { NotificationTriggerInput } from "../app/node_modules/expo-notifications/build/index";
 
 export type WebSocketMessage =
   | {
@@ -38,14 +39,7 @@ export type WebSocketResponse =
     }
   | {
       type: "notification";
-      notification: {
-        reason: ReasonNotification;
-        title: string;
-        body: string;
-        trigger?: NotificationTriggerInput;
-        screen?: ScreensAvailable;
-        data?: Record<string, unknown>;
-      };
+      notification: Notification;
     }
   | {
       type: "pong";

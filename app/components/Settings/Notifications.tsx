@@ -11,10 +11,10 @@ import {
   fetchOptions,
   stringifyData,
   getNotifications,
+  askLocationPermission,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import { FlatList } from "react-native";
-import * as Location from "expo-location";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
@@ -58,10 +58,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
     async (reason: ReasonNotification) => {
       if (!sessionToken) return navigateReplace("Login");
       if (!userData?.userId) return;
-      if (reason === "locationEnabled") {
-        await Location.requestForegroundPermissionsAsync();
-        await Location.requestBackgroundPermissionsAsync();
-      }
+      if (reason === "locationEnabled") await askLocationPermission();
 
       setNotifications((prev) => {
         if (!prev) return prev;

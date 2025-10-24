@@ -22,7 +22,6 @@ import {
   URL_WEB_SOCKET,
   loadDataSecure,
   CLIPBOARD_WS_URL,
-  sendNotification,
   getNotifications,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
@@ -56,7 +55,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const { userData } = useUserContext();
   const { t, language } = useLanguage();
   const { isBackground } = useBackground();
-  const { lastItemCopied } = useNotifications();
+  const { lastItemCopied, sendNotification } = useNotifications();
   const { openSnackBar, openModal, closeModal } = useModal();
 
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -183,14 +182,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
               logError("No user ID provided:", parsedMessage.message);
               break;
             case "notification":
-              await sendNotification(
-                parsedMessage.notification?.reason,
-                parsedMessage.notification?.title,
-                parsedMessage.notification?.body,
-                parsedMessage.notification?.trigger,
-                parsedMessage.notification?.screen,
-                parsedMessage.notification?.data,
-              );
+              await sendNotification(parsedMessage.notification);
               break;
             case "pong":
               log("WebSocket pong received.");
@@ -223,7 +215,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
       setSocket(newSocket);
     },
-    [openSnackBar, t, userData?.name, userData?.userId],
+    [openSnackBar, t, userData?.name, userData?.userId, sendNotification],
   );
 
   useEffect(() => {

@@ -1,19 +1,10 @@
-import { ScreensAvailable } from "./typesNavigation";
+import type { NotificationTriggerInput } from "expo-notifications";
 
 export type NotificationAction = {
   actionId: "pause" | "stop" | "dismiss" | "info" | "settings";
   title: string;
   icon?: "pause" | "play" | "stop" | "delete" | "info" | "settings";
 };
-
-export type Notification = {
-  id: string;
-  title: string;
-  body: string | null;
-  data?: Record<string, unknown>;
-  screen: ScreensAvailable;
-  trigger: any | null;
-} | null;
 
 export type ReasonNotification =
   | "cryptos"
@@ -40,10 +31,25 @@ export type Notifications = {
     Exclude<ReasonNotification, "streamers">,
     typePausedNotification
   >;
-  data: Record<ReasonNotification, Notification>;
+
   intervals: Record<ReasonNotification, number | null>;
+};
+
+export type Notification = {
+  id: number;
+  title: string;
+  type: "success" | "error" | "warning" | "info";
+  message: string;
+  channelId: ChannelsId;
+  timestamp: Date;
+  reasonNotification: ReasonNotification;
+  overrideNotification: boolean;
+  data?: Record<string, unknown>;
+  trigger?: NotificationTriggerInput;
+  actions?: NotificationAction[];
 };
 
 export type ChannelsId =
   | Exclude<ReasonNotification, "allNotifications">
-  | "default";
+  | "default"
+  | "ForegroundServiceChannel";

@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import dotenv from "dotenv";
+import appConfig from "../app.config.js";
 import { execSync } from "child_process";
 
 dotenv.config({ path: "../.env" });
@@ -12,6 +13,12 @@ if (!process.env.API_URL)
 
 let __dirname = path.resolve();
 if (__dirname.endsWith("app")) __dirname = path.join(__dirname, "..");
+
+const appConfigPath = path.resolve(__dirname, "app", "app.config.js");
+if (!fs.existsSync(appConfigPath))
+  throw new Error("app.config.js file not found in app directory");
+
+const packageName = appConfig.expo.android.package;
 
 const isWindows = process.platform === "win32";
 
@@ -33,18 +40,20 @@ const editMainApplication = async () => {
   console.log(chalk.blue("Editing MainApplication.kt..."));
 
   const mainApplicationPath = getPath(
-    "app/android/app/src/main/java/com/utilities/depremu/MainApplication.kt",
+    `app/android/app/src/main/java/${packageName.replace(/\./g, "/")}/MainApplication.kt`,
   );
   const mainApplicationContent = fs.readFileSync(mainApplicationPath, "utf8");
-  const packageMA = "package com.utilities.depremu\n";
+  const packageMA = `package ${packageName}\n`;
 
   const newContent = mainApplicationContent.replace(
     packageMA,
     [
       packageMA,
-      "import com.utilities.depremu.ClipboardPackage",
-      "import com.utilities.depremu.KeyboardPackage",
-      "import com.utilities.depremu.ForegroundServicePackage",
+      `import ${packageName}.KeyboardPackage`,
+      `import ${packageName}.ClipboardPackage`,
+      `import ${packageName}.NotificationPackage`,
+      `import ${packageName}.NativeFunctionsPackage`,
+      `import ${packageName}.ForegroundServicePackage`,
       "",
     ].join("\n"),
   );
@@ -73,6 +82,7 @@ const editMainApplication = async () => {
     "KeyboardPackage()",
     "ClipboardPackage()",
     "NotificationPackage()",
+    "NativeFunctionsPackage()",
     "ForegroundServicePackage()",
   ];
 

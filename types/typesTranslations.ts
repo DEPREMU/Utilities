@@ -200,13 +200,7 @@ export type typeLanguages = Record<ReasonNotification, string> &
     LocationServicesEnabled: string;
     LocationServicesEnabledMessage: string;
     pause: string;
-    pauseNoInternetConnectionNotifications: string;
-    stopNoInternetConnectionNotifications: string;
-    pauseLocationNotifications: string;
     stop: string;
-    stopLocationNotifications: string;
-    pauseBatteryNotifications: string;
-    stopBatteryNotifications: string;
     dismiss: string;
     locationPermission: string;
     locationPermissionMessage: string;
@@ -214,6 +208,8 @@ export type typeLanguages = Record<ReasonNotification, string> &
     accept: string;
     InternetConnectionRestored: string;
     YouAreBackOnline: string;
+    overlayPermission: string;
+    overlayPermissionMessage: string;
   };
 
 export type typeLanguagesServer = {

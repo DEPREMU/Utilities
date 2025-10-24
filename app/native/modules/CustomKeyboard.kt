@@ -5,25 +5,51 @@ import android.view.View
 import android.widget.Button
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 
-class CustomKeyboard : InputMethodService(), DefaultHardwareBackBtnHandler {
-
+class CustomKeyboard :
+    InputMethodService(),
+    DefaultHardwareBackBtnHandler {
     private var capsLock = false
 
     override fun onCreateInputView(): View {
         val view = layoutInflater.inflate(R.layout.keyboard_layout, null)
 
-        val keys = listOf(
-            "q","w","e","r","t","y","u","i","o","p",
-            "a","s","d","f","g","h","j","k","l",
-            "z","x","c","v","b","n","m"
-        )
+        val keys =
+            listOf(
+                "q",
+                "w",
+                "e",
+                "r",
+                "t",
+                "y",
+                "u",
+                "i",
+                "o",
+                "p",
+                "a",
+                "s",
+                "d",
+                "f",
+                "g",
+                "h",
+                "j",
+                "k",
+                "l",
+                "z",
+                "x",
+                "c",
+                "v",
+                "b",
+                "n",
+                "m",
+            )
 
         for (key in keys) {
-            val button = view.findViewById<Button>(
-                resources.getIdentifier("key_$key", "id", packageName)
-            )
+            val button =
+                view.findViewById<Button>(
+                    resources.getIdentifier("key_$key", "id", packageName),
+                )
             button.setOnClickListener {
-                val char = if(capsLock) key.uppercase() else key
+                val char = if (capsLock) key.uppercase() else key
                 commitTextToInputConnection(char)
             }
         }
@@ -56,7 +82,7 @@ class CustomKeyboard : InputMethodService(), DefaultHardwareBackBtnHandler {
 
     fun sendEnter() {
         currentInputConnection?.sendKeyEvent(
-            android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER)
+            android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER),
         )
     }
 

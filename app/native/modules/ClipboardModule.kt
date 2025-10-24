@@ -1,13 +1,13 @@
 package com.utilities.depremu
 
+import android.app.ActivityManager
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
-import android.app.ActivityManager
-import com.facebook.react.bridge.Promise
 
 class ClipboardModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 

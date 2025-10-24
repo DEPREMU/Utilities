@@ -10,3 +10,4 @@ export * from "./typesWebSocket";
 export * from "./typesNavigation";
 export * from "./typesTranslations";
 export * from "./typesNotifications";
+export * from "./typesNativeModules";

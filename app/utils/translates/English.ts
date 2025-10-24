@@ -227,15 +227,7 @@ const en: typeLanguages = {
   LocationServicesEnabledMessage:
     "The app detected that location services are enabled.",
   pause: "Pause",
-  pauseNoInternetConnectionNotifications:
-    "Pause No Internet Connection Notifications",
-  stopNoInternetConnectionNotifications:
-    "Stop No Internet Connection Notifications",
-  pauseLocationNotifications: "Pause Location Notifications",
   stop: "Stop",
-  stopLocationNotifications: "Stop Location Notifications",
-  pauseBatteryNotifications: "Pause Battery Notifications",
-  stopBatteryNotifications: "Stop Battery Notifications",
   batteryAlerts: "Battery Alerts",
   noInternetConnection: "No Internet Connection",
   dismiss: "Dismiss",
@@ -246,6 +238,9 @@ const en: typeLanguages = {
   accept: "Accept",
   InternetConnectionRestored: "Internet Connection Restored",
   YouAreBackOnline: "You are back online",
+  overlayPermission: "Overlay Permission",
+  overlayPermissionMessage:
+    "To enhance your experience, the app requires overlay permissions. Please enable this permission in your device settings to allow the app to display content over other applications, this is important to open the app from notifications.",
 } as const;
 
 export default en;

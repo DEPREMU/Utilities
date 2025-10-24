@@ -90,11 +90,13 @@ export const addStreamer = async (
     let { data } = result;
 
     const newNotificationFromStreamer: UserNotificationsConfig = {
+      userId,
+      paused: false,
+      reason: "streamers",
       enabled: false,
       interval: -1,
-      userId,
       streamer: name,
-      reason: "streamers",
+      pauseTime: -1,
       updatedAt: new Date().toISOString(),
     };
 
