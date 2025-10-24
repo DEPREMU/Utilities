@@ -15,14 +15,14 @@ export interface Spec extends TurboModule {
     importance: number,
   ): void;
   sendNotification(
-    data: Record<string, unknown>,
+    notificationId: number,
     title: string,
     message: string,
-    actions: NotificationAction[] | null,
     channelId: ChannelsId,
-    notificationId: number,
     reasonNotification: ReasonNotification,
     overrideNotification: boolean,
+    data: Record<string, unknown>,
+    actions: NotificationAction[] | null,
   ): Promise<number>;
   cancelNotification(notificationId: number): void;
   cancelAllNotifications(): void;
