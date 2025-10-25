@@ -144,3 +144,68 @@ export const askDisplayOverOtherAppsPermission = async (): Promise<boolean> => {
   }
   return hasPermission;
 };
+
+/**
+ * Requests battery optimization permission on Android devices.
+ *
+ * This function checks if the app is already ignoring battery optimizations.
+ * If not, it prompts the user with an alert dialog to request the permission.
+ * After user acceptance, it opens the system settings and waits for the user
+ * to return to the app (up to 5 seconds) before rechecking the permission status.
+ *
+ * @returns A promise that resolves to `true` if battery optimization permission
+ * is granted or already enabled, `false` otherwise. Always returns `false` on non-Android platforms.
+ *
+ * @remarks
+ * - Only works on Android platform (returns `false` immediately on other platforms)
+ * - Uses native module `NativeFunctionsModule` to check and request permissions
+ * - Displays a localized alert dialog using i18n translations
+ * - Waits up to 5 seconds for the app to become active again after permission request
+ * - If user cancels the alert, immediately rechecks current permission status
+ */
+export const askBatteryOptimizationPermission = async (): Promise<boolean> => {
+  if (Platform.OS !== "android") return false;
+
+  let hasPermission =
+    await NativeFunctionsModule.isIgnoringBatteryOptimizations();
+  if (hasPermission) return true;
+
+  const t: typeT = i18n as typeT;
+
+  const alert = await new Promise((resolve) => {
+    Alert.alert(
+      t("batteryOptimizationPermission"),
+      t("batteryOptimizationPermissionMessage"),
+      [
+        {
+          text: t("cancel"),
+          style: "cancel",
+          onPress: () => resolve(false),
+        },
+        {
+          text: t("accept"),
+          onPress: () => {
+            NativeFunctionsModule.requestIgnoreBatteryOptimizations();
+            resolve(true);
+          },
+        },
+      ],
+    );
+  });
+  if (!alert)
+    return await NativeFunctionsModule.isIgnoringBatteryOptimizations();
+
+  hasPermission = await NativeFunctionsModule.isIgnoringBatteryOptimizations();
+  if (!hasPermission) {
+    NativeFunctionsModule.requestIgnoreBatteryOptimizations();
+
+    let seconds = 0;
+    while (AppState.currentState !== "active" && seconds < 5) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      seconds++;
+    }
+    hasPermission =
+      await NativeFunctionsModule.isIgnoringBatteryOptimizations();
+  }
+  return hasPermission;
+};

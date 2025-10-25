@@ -29,6 +29,22 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) : ReactContex
     }
 
     @ReactMethod
+    fun isIgnoringBatteryOptimizations(promise: Promise) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val pm = reactApplicationContext.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+                val isIgnoring = pm.isIgnoringBatteryOptimizations(reactApplicationContext.packageName)
+                promise.resolve(isIgnoring)
+            } else {
+                promise.resolve(true) 
+            }
+        } catch (e: Exception) {
+            Log.e("NativeFunctionsModule", "Error checking battery optimization status", e)
+            promise.reject("E_CHECK_BATTERY_OPTIMIZATIONS", "Error checking battery optimization status: ${e.message}", e)
+        }
+    }
+
+    @ReactMethod
     fun checkOverlayPermission(promise: Promise) {
         try {
             val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

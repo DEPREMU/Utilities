@@ -15,12 +15,14 @@ export const useStylesHomeScreen = () => {
           ...getCommonStyles("mainContainer", { fallbackValues: [10, 5] }),
           backgroundColor: colors.background,
         },
-        contentContainer: {
+        scrollViewContainer: {
           flex: 1,
           maxWidth: getResponsiveValue<DimensionValue>("95%", "95%", 800),
           width: "100%",
           paddingHorizontal: 20,
-          paddingVertical: 40,
+        },
+        scrollViewContentContainer: {
+          alignItems: "center",
           justifyContent: "flex-start",
         },
         buttonContainer: {

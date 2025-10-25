@@ -241,6 +241,11 @@ const en: typeLanguages = {
   overlayPermission: "Overlay Permission",
   overlayPermissionMessage:
     "To enhance your experience, the app requires overlay permissions. Please enable this permission in your device settings to allow the app to display content over other applications, this is important to open the app from notifications.",
+  markdownViewer: "Markdown Viewer",
+  markdownPlaceholder: "Enter your markdown text here...",
+  batteryOptimizationPermission: "Battery Optimization Permission",
+  batteryOptimizationPermissionMessage:
+    "To ensure the app functions correctly in the background, please disable battery optimization for this app in your device settings. This will help maintain consistent performance and prevent interruptions while using background features.",
 } as const;
 
 export default en;

@@ -14,9 +14,10 @@ import SignUpScreen from "@screens/auth/SignUpScreen";
 import { useTheme } from "@context/ThemeContext";
 import GamesNavigator from "@screens/Games";
 import SettingsScreen from "@screens/Settings";
-import ClipboardNavigator from "@/screens/Clipboard";
+import MarkdownViewer from "@screens/markdown/MarkdownViewer";
 import CryptosNavigator from "@screens/Cryptos";
 import DeviceInformation from "@screens/DeviceInformation/DeviceInfomation";
+import ClipboardNavigator from "@screens/Clipboard";
 import CalculatorNavigator from "@screens/calculator";
 import React, { useEffect } from "react";
 import { ScreensAvailable } from "@types";
@@ -67,6 +68,7 @@ const screens: Screens = {
   Calculator: { component: CalculatorNavigator },
   Minesweeper: { component: Minesweeper },
   SocialMedia: { component: SocialMediaNavigator },
+  MarkdownViewer: { component: MarkdownViewer },
   forgotPassword: { component: ForgotPasswordScreen },
   DeviceInformation: { component: DeviceInformation },
 };

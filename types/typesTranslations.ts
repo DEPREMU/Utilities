@@ -210,6 +210,10 @@ export type typeLanguages = Record<ReasonNotification, string> &
     YouAreBackOnline: string;
     overlayPermission: string;
     overlayPermissionMessage: string;
+    markdownViewer: string;
+    markdownPlaceholder: string;
+    batteryOptimizationPermission: string;
+    batteryOptimizationPermissionMessage: string;
   };
 
 export type typeLanguagesServer = {

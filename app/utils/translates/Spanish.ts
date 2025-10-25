@@ -246,6 +246,11 @@ const es: typeLanguages = {
   overlayPermission: "Permiso de superposición",
   overlayPermissionMessage:
     "Para mejorar tu experiencia, la aplicación requiere permisos de superposición. Por favor, habilita este permiso en la configuración de tu dispositivo para permitir que la aplicación muestre contenido sobre otras aplicaciones, esto es importante para abrir la aplicación desde las notificaciones.",
+  markdownViewer: "Visor de Markdown",
+  markdownPlaceholder: "Ingresa tu texto en markdown aquí...",
+  batteryOptimizationPermission: "Permiso de optimización de batería",
+  batteryOptimizationPermissionMessage:
+    "Para asegurar que la aplicación funcione correctamente en segundo plano, por favor desactiva la optimización de batería para esta aplicación en la configuración de tu dispositivo. Esto ayudará a mantener un rendimiento constante y evitará interrupciones mientras usas las funciones en segundo plano.",
 } as const;
 
 export default es;

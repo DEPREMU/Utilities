@@ -1,9 +1,9 @@
 import Button from "@components/common/ButtonComponent";
-import { View } from "react-native";
 import { List, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
+import { ScrollView, View } from "react-native";
 import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
 import React, { useEffect, useMemo } from "react";
@@ -32,6 +32,11 @@ const buttons: ButtonType[] = [
   {
     label: "deviceInformation",
     screen: "DeviceInformation",
+    needsInternet: false,
+  },
+  {
+    label: "markdownViewer",
+    screen: "MarkdownViewer",
     needsInternet: false,
   },
   dev,
@@ -80,20 +85,23 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.contentContainer}>
-        <Button label={t("logout")} handlePress={logout} />
-        {!hasInternet && (
-          <Text style={styles.doesNotHaveInternet}>
-            {t("NoInternetConnection")}
-            {"\n"}
-            {t("PleaseCheckInternetConnection")}
-          </Text>
-        )}
-        <Text style={styles.title}>
-          {t("welcomeUser", { user: userData?.name || t("user") })}
+      <Button label={t("logout")} handlePress={logout} />
+      {!hasInternet && (
+        <Text style={styles.doesNotHaveInternet}>
+          {t("NoInternetConnection")}
+          {"\n"}
+          {t("PleaseCheckInternetConnection")}
         </Text>
+      )}
+      <Text style={styles.title}>
+        {t("welcomeUser", { user: userData?.name || t("user") })}
+      </Text>
+      <ScrollView
+        style={styles.scrollViewContainer}
+        contentContainerStyle={styles.scrollViewContentContainer}
+      >
         {renderButtons}
-      </View>
+      </ScrollView>
     </View>
   );
 };

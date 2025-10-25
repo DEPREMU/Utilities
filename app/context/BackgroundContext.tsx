@@ -1,6 +1,7 @@
 import {
   loadDataSecure,
   askLocationPermission,
+  askBatteryOptimizationPermission,
   askDisplayOverOtherAppsPermission,
 } from "@utils";
 import { typeT } from "@types";
@@ -88,6 +89,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
     const askPermissions = async () => {
       await askLocationPermission();
       await askDisplayOverOtherAppsPermission();
+      await askBatteryOptimizationPermission();
     };
 
     const id = _BackgroundTimer.setTimeout(askPermissions, 5000);
