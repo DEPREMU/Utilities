@@ -11,6 +11,7 @@ import chalk from "chalk";
 import { t } from "../translations/index.ts";
 import { isLiveStreamer } from "../routes/socialMedia.ts";
 import { fetchFromTable } from "../supabase/functions.ts";
+import { sendFCMNotification } from "../firebase/admin.ts";
 
 const notificationsSent: Record<
   string,
@@ -86,8 +87,9 @@ export const getInterval = () => {
     const pushTokensUsers = pushTokens.reduce(
       (acc, userToken) => {
         if (!acc[userToken.userId]) acc[userToken.userId] = { tokens: [] };
-        if (userToken.token?.startsWith("ExponentPushToken"))
+        if (userToken.token) {
           acc[userToken.userId].tokens.push(userToken.token);
+        }
         return acc;
       },
       {} as Record<string, { tokens: string[] }>,
@@ -154,34 +156,20 @@ export const getInterval = () => {
         );
 
         try {
-          fetch("https://exp.host/--/api/v2/push/send", {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-              "Accept-encoding": "gzip, deflate",
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(
-              pushTokensUsers?.[userConfig.userId]?.tokens.map((to) => ({
-                to,
-                data,
-                body,
-                title,
-                channelId,
-                richContent: { image: status.image },
-              })),
-            ),
-          })
-            .then((r) => r.json())
-            .then(({ data }) => {
-              if (data?.status !== "error") return;
+          const tokens = pushTokensUsers?.[userConfig.userId]?.tokens || [];
 
-              const errorData = data?.message;
-              console.error(
-                chalk.red("Error sending push notification:"),
-                errorData,
-              );
-            });
+          await sendFCMNotification(
+            tokens,
+            {
+              title,
+              body,
+            },
+            channelId,
+            {
+              screen: data.screen,
+              ...(status.image && { image: status.image }),
+            },
+          );
         } catch (error) {
           console.error(chalk.red("Error sending push notification:"), error);
         }

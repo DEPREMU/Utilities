@@ -109,7 +109,7 @@ export type RequestAuth = {
   password: string;
   // Login:
   deviceId?: string;
-  expoToken?: string;
+  notificationToken?: string;
   rememberMe?: boolean;
 };
 
@@ -124,7 +124,7 @@ export type ResponseAuth = {
 export type RequestRefreshSession = {
   lang: LanguagesSupported;
   deviceId: string;
-  expoToken: string;
+  notificationToken: string;
 };
 
 export type ResponseRefreshSession = {
@@ -137,7 +137,7 @@ export type ResponseRefreshSession = {
 export type RequestSignOut = {
   lang: LanguagesSupported;
   deviceId: string;
-  expoToken: string;
+  notificationToken: string;
 };
 
 export type ResponseSignOut = {

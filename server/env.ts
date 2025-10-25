@@ -19,6 +19,7 @@ const REQUIRED_VARS: (keyof Env)[] = [
   "DELETE_OLD_SESSIONS",
   "DEEPL_TRANSLATOR_API",
   "PASSWORD_APP_SUPABASE",
+  "FIREBASE_SERVICE_ACCOUNT",
 ];
 
 export const validateServerEnv = () => {
@@ -48,6 +49,7 @@ const env: Env = {
   DELETE_OLD_SESSIONS: process.env.DELETE_OLD_SESSIONS === "true" || false,
   DEEPL_TRANSLATOR_API: process.env.DEEPL_TRANSLATOR_API || "",
   PASSWORD_APP_SUPABASE: process.env.PASSWORD_APP_SUPABASE || "",
+  FIREBASE_SERVICE_ACCOUNT: process.env.FIREBASE_SERVICE_ACCOUNT || "",
 };
 
 export default env;

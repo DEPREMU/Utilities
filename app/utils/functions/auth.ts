@@ -27,7 +27,6 @@ import {
   cleanAllStorageData,
 } from "../functions";
 import chalk from "chalk";
-import Constants from "expo-constants";
 import { isFalsy } from "./../functions/appManagement";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
@@ -49,20 +48,11 @@ export type AuthResponse = {
  * @returns A promise that resolves to the Expo push token string.
  * @throws Will throw an error if the project ID is not found or if there is an issue fetching the token.
  */
-const getExpoPushToken = async (): Promise<string> => {
+const getDevicePushToken = async (): Promise<string> => {
   if (Platform.OS === "web") return "Web";
-  const projectId =
-    Constants?.expoConfig?.extra?.eas?.projectId ??
-    Constants?.easConfig?.projectId;
-  if (!projectId) {
-    throw new Error("Project ID not found");
-  }
 
-  const token = (
-    await Notifications.getExpoPushTokenAsync({
-      projectId,
-    })
-  ).data;
+  const token = (await Notifications.getDevicePushTokenAsync()).data || "";
+
   return token;
 };
 
@@ -121,8 +111,8 @@ export const signInWithEmail = async (
       checkLanguage(),
       loadDataSecure("_deviceId"),
     ]);
-    let expoToken = "Web";
-    if (Platform.OS !== "web") expoToken = await getExpoPushToken();
+    let notificationToken = "Web";
+    if (Platform.OS !== "web") notificationToken = await getDevicePushToken();
 
     const res = await fetch(
       await getRouteAPI("/auth/login"),
@@ -131,7 +121,7 @@ export const signInWithEmail = async (
         email,
         password,
         deviceId: deviceId || undefined,
-        expoToken,
+        notificationToken,
         rememberMe,
       }),
     );
@@ -231,8 +221,8 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
     ]);
     if (!token) return { error: "No session token found" };
 
-    let expoToken = "Web";
-    if (Platform.OS !== "web") expoToken = await getExpoPushToken();
+    let notificationToken = "Web";
+    if (Platform.OS !== "web") notificationToken = await getDevicePushToken();
 
     const res = await fetch(
       await getRouteAPI("/auth/signOut"),
@@ -240,7 +230,7 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
         "POST",
         {
           deviceId: deviceId as string,
-          expoToken,
+          notificationToken,
           lang,
         },
         token,
@@ -305,8 +295,8 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
       loadDataSecure("_deviceId"),
     ]);
 
-    let expoToken = "Web";
-    if (Platform.OS !== "web") expoToken = await getExpoPushToken();
+    let notificationToken = "Web";
+    if (Platform.OS !== "web") notificationToken = await getDevicePushToken();
 
     if (!deviceId) {
       cleanAllStorageData();
@@ -321,7 +311,7 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
         {
           lang,
           deviceId,
-          expoToken,
+          notificationToken,
         },
         token,
       ),

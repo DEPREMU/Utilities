@@ -40,7 +40,7 @@ type TokenJWT = {
   userId: string;
   email: string;
   deviceId: string;
-  expoToken: string;
+  notificationToken: string;
 };
 
 const expiresIn = "17d";
@@ -301,7 +301,8 @@ export const handleLogin = async (
   req: Request<unknown, unknown, RequestAuth>,
   res: Response<ResponseAuth>,
 ) => {
-  const { email, password, deviceId, expoToken, rememberMe } = req.body || {};
+  const { email, password, deviceId, notificationToken, rememberMe } =
+    req.body || {};
   let { lang } = req.body;
   if (!lang) lang = "en";
   try {
@@ -340,14 +341,14 @@ export const handleLogin = async (
       email: user.email,
       deviceId,
       userId: user.userId,
-      expoToken: expoToken || "Web",
+      notificationToken: notificationToken || "Web",
     });
     await Promise.all([
       deleteInTable(user.userId, "UserSessions", {
         deviceId,
         userId: user.userId,
       }),
-      deleteInTable(user.userId, "PushTokens", { token: expoToken }),
+      deleteInTable(user.userId, "PushTokens", { token: notificationToken }),
     ]);
 
     const dataInsert = await insertIntoTable("UserSessions", {
@@ -366,7 +367,7 @@ export const handleLogin = async (
       return;
     }
 
-    const error = await insertTokenToDB(expoToken, user.userId);
+    const error = await insertTokenToDB(notificationToken, user.userId);
 
     if (error) console.error(chalk.red("Error inserting push token:"), error);
 
@@ -473,7 +474,7 @@ export const handleRefreshSession = async (
 ) => {
   let { lang } = req.body;
   if (!lang) lang = "en";
-  const { deviceId, expoToken } = req.body || {};
+  const { deviceId, notificationToken } = req.body || {};
   const { tokenDecoded: decoded, token } = req.user;
 
   try {
@@ -487,7 +488,7 @@ export const handleRefreshSession = async (
           token,
         }),
         deleteInTable("", "PushTokens", {
-          token: expoToken,
+          token: notificationToken,
         }),
       ]);
       return;
@@ -497,7 +498,7 @@ export const handleRefreshSession = async (
       email: decoded.email,
       deviceId: decoded.deviceId,
       userId: decoded.userId,
-      expoToken: decoded.expoToken,
+      notificationToken: decoded.notificationToken,
     });
 
     const updatedData = await updateInTable(
@@ -535,7 +536,7 @@ export const handleSignOut = async (
   res: Response<ResponseSignOut>,
 ) => {
   const { tokenDecoded: decoded } = req.user;
-  const { deviceId, expoToken } = req.body || {};
+  const { deviceId, notificationToken } = req.body || {};
   let { lang } = req.body;
   if (!lang) lang = "en";
 
@@ -556,7 +557,7 @@ export const handleSignOut = async (
         deleteInTable("", "UserSessions", {
           deviceId,
         }),
-        deleteInTable("", "PushTokens", { token: expoToken }),
+        deleteInTable("", "PushTokens", { token: notificationToken }),
       ]);
       return;
     }
@@ -578,7 +579,7 @@ export const handleSignOut = async (
 
     deleteInTable(decoded.userId, "PushTokens", {
       userId: decoded.userId,
-      token: decoded.expoToken,
+      token: decoded.notificationToken,
     });
 
     const deletedData = await deleteInTable(decoded.userId, "UserSessions", {

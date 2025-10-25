@@ -8,11 +8,18 @@ import express from "express";
 import { host, port } from "./config.ts";
 import { validateServerEnv } from "./env.ts";
 import type { WebSocketPathname } from "../types/typesWebSocket.ts";
+import { initializeFirebaseAdmin } from "./firebase/admin.ts";
 import { initWebSocket, initWebSocketClipboard } from "./routes/WebSocket.ts";
 
 const app = express();
 
 validateServerEnv();
+
+try {
+  initializeFirebaseAdmin();
+} catch (error) {
+  console.error(chalk.red("Failed to initialize Firebase Admin SDK:"), error);
+}
 
 app.use(express.json());
 app.use(cors());
