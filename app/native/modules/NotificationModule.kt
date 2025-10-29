@@ -23,7 +23,6 @@ class NotificationModule(
 ) : ReactContextBaseJavaModule(reactContext) {
     companion object {
         const val NAME = "NotificationModule"
-        private const val DEFAULT_CHANNEL_ID = "default_channel"
         private var reactContextInstance: ReactApplicationContext? = null
 
         fun sendEvent(
@@ -31,11 +30,9 @@ class NotificationModule(
             params: WritableMap?,
         ) {
             reactContextInstance
-                ?.takeIf { it.hasActiveCatalystInstance() }
-                ?.let {
-                    it.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                        .emit(eventName, params)
-                }
+                ?.takeIf { it.hasActiveReactInstance() }
+                ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                ?.emit(eventName, params)
         }
 
         private val reasonNotificationJSON = JSONObject()
@@ -65,10 +62,10 @@ class NotificationModule(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel =
                 NotificationChannel(
-                        channelId,
-                        channelName,
-                        importance,
-                    )
+                    channelId,
+                    channelName,
+                    importance,
+                )
                     .apply {
                         setShowBadge(false)
                         lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
@@ -120,6 +117,12 @@ class NotificationModule(
         }
 
         try {
+            val finalNotificationId = if (overrideNotification) {
+                reasonNotificationJSON.optString(reasonNotification).toIntOrNull() ?: notificationId
+            } else {
+                notificationId
+            }
+
             val notificationBuilder =
                 NotificationCompat.Builder(reactContext, channelId)
                     .setContentTitle(title)
@@ -136,7 +139,7 @@ class NotificationModule(
             val openAppPendingIntent =
                 PendingIntent.getActivity(
                     reactContext,
-                    notificationId,
+                    finalNotificationId,
                     openAppIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 )
@@ -181,7 +184,7 @@ class NotificationModule(
                         val actionIntent =
                             Intent(reactContext, NotificationActionReceiver::class.java).apply {
                                 putExtra("actionId", actionId)
-                                putExtra("notificationId", notificationId)
+                                putExtra("notificationId", finalNotificationId)
                                 putExtra("title", title)
                                 putExtra("message", message)
                                 putExtra("reasonNotification", reasonNotification)
@@ -191,7 +194,7 @@ class NotificationModule(
                         val actionPendingIntent =
                             PendingIntent.getBroadcast(
                                 reactContext,
-                                notificationId * 100 + i,
+                                finalNotificationId * 100 + i,
                                 actionIntent,
                                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                             )
@@ -208,25 +211,12 @@ class NotificationModule(
 
             val notificationManager =
                 reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            if (overrideNotification) {
-                val prevNotifyIdStr = reasonNotificationJSON.optString(reasonNotification)
-                val prevNotifyId = prevNotifyIdStr.toIntOrNull()
+            
+            notificationManager.notify(finalNotificationId, notificationBuilder.build())
+            reasonNotificationJSON.put(reasonNotification, finalNotificationId.toString())
 
-                if (prevNotifyId != null) {
-                    notificationManager.notify(prevNotifyId, notificationBuilder.build())
-                    reasonNotificationJSON.put(reasonNotification, prevNotifyId.toString())
-                    promise.resolve(prevNotifyId)
-                } else {
-                    notificationManager.notify(notificationId, notificationBuilder.build())
-                    reasonNotificationJSON.put(reasonNotification, notificationId.toString())
-                }
-            } else {
-                notificationManager.notify(notificationId, notificationBuilder.build())
-                reasonNotificationJSON.put(reasonNotification, notificationId.toString())
-            }
-
-            Log.d("NotificationModule", "Notification sent successfully with ID: $notificationId")
-            promise.resolve(notificationId)
+            Log.d("NotificationModule", "Notification sent successfully with ID: $finalNotificationId")
+            promise.resolve(finalNotificationId)
         } catch (e: Exception) {
             Log.e("NotificationModule", "Error sending notification: ${e.message}", e)
             e.printStackTrace()
@@ -244,7 +234,11 @@ class NotificationModule(
 
             Log.d("NotificationModule", "Notification cancelled: $notificationId")
         } catch (e: Exception) {
-            Log.e("NotificationModule", "Error cancelling notification $notificationId: ${e.message}", e)
+            Log.e(
+                "NotificationModule",
+                "Error cancelling notification $notificationId: ${e.message}",
+                e
+            )
         }
     }
 
@@ -281,12 +275,16 @@ class NotificationModule(
                 com.facebook.react.bridge.ReadableType.Null -> json.put(key, null)
                 com.facebook.react.bridge.ReadableType.Boolean ->
                     json.put(key, readableMap.getBoolean(key))
+
                 com.facebook.react.bridge.ReadableType.Number ->
                     json.put(key, readableMap.getDouble(key))
+
                 com.facebook.react.bridge.ReadableType.String ->
                     json.put(key, readableMap.getString(key))
+
                 com.facebook.react.bridge.ReadableType.Map ->
                     json.put(key, readableMapToJson(readableMap.getMap(key)!!))
+
                 com.facebook.react.bridge.ReadableType.Array -> {}
             }
         }

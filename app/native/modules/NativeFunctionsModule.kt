@@ -2,7 +2,6 @@ package com.utilities.depremu
 
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import com.facebook.react.bridge.Promise
@@ -10,68 +9,67 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 
-class NativeFunctionsModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+class NativeFunctionsModule(reactContext: ReactApplicationContext) :
+    ReactContextBaseJavaModule(reactContext) {
 
     override fun getName() = "NativeFunctionsModule"
 
 
     @ReactMethod
     fun requestIgnoreBatteryOptimizations() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val intent =
-                Intent().apply {
-                    action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
-                    data = Uri.parse("package:${reactApplicationContext.packageName}")
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-            reactApplicationContext.startActivity(intent)
-        }
+        val intent =
+            Intent().apply {
+                action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                data = Uri.parse("package:${reactApplicationContext.packageName}")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+        reactApplicationContext.startActivity(intent)
     }
 
     @ReactMethod
     fun isIgnoringBatteryOptimizations(promise: Promise) {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val pm = reactApplicationContext.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
-                val isIgnoring = pm.isIgnoringBatteryOptimizations(reactApplicationContext.packageName)
-                promise.resolve(isIgnoring)
-            } else {
-                promise.resolve(true) 
-            }
+            val pm =
+                reactApplicationContext.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+            val isIgnoring = pm.isIgnoringBatteryOptimizations(reactApplicationContext.packageName)
+            promise.resolve(isIgnoring)
         } catch (e: Exception) {
             Log.e("NativeFunctionsModule", "Error checking battery optimization status", e)
-            promise.reject("E_CHECK_BATTERY_OPTIMIZATIONS", "Error checking battery optimization status: ${e.message}", e)
+            promise.reject(
+                "E_CHECK_BATTERY_OPTIMIZATIONS",
+                "Error checking battery optimization status: ${e.message}",
+                e
+            )
         }
     }
 
     @ReactMethod
     fun checkOverlayPermission(promise: Promise) {
         try {
-            val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val hasPermission =
                 Settings.canDrawOverlays(reactApplicationContext)
-            } else {
-                true 
-            }
             promise.resolve(hasPermission)
         } catch (e: Exception) {
             Log.e("NativeFunctionsModule", "Error checking overlay permission", e)
-            promise.reject("E_CHECK_PERMISSION", "Error checking overlay permission: ${e.message}", e)
+            promise.reject(
+                "E_CHECK_PERMISSION",
+                "Error checking overlay permission: ${e.message}",
+                e
+            )
         }
     }
 
     @ReactMethod
     fun requestOverlayPermission(promise: Promise) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            promise.resolve("NOT_NEEDED")
-            return
-        }
-
         val context = reactApplicationContext
         val currentActivity = context.currentActivity
 
         if (currentActivity == null) {
             Log.w("NativeFunctionsModule", "Current activity is null. Cannot open settings screen.")
-            promise.reject("E_NO_ACTIVITY", "Current activity is null. Cannot open settings screen.")
+            promise.reject(
+                "E_NO_ACTIVITY",
+                "Current activity is null. Cannot open settings screen."
+            )
             return
         }
 
@@ -80,26 +78,26 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) : ReactContex
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:" + context.packageName)
             )
-            
+
             currentActivity.startActivity(intent)
-            promise.resolve("SETTINGS_OPENED") 
+            promise.resolve("SETTINGS_OPENED")
 
         } catch (e: Exception) {
             Log.e("NativeFunctionsModule", "Error opening overlay settings", e)
-            promise.reject("E_REQUEST_PERMISSION", "Error opening overlay settings: ${e.message}", e)
+            promise.reject(
+                "E_REQUEST_PERMISSION",
+                "Error opening overlay settings: ${e.message}",
+                e
+            )
         }
     }
 
     @ReactMethod
     fun requestDoNotDisturbPermission(promise: Promise) {
         try {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                promise.resolve("NOT_NEEDED")
-                return
-            }
-
             val context = reactApplicationContext
-            val nm = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            val nm =
+                context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
 
             if (nm.isNotificationPolicyAccessGranted) {
                 promise.resolve("ALREADY_GRANTED")
@@ -112,37 +110,37 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) : ReactContex
             promise.resolve("SETTINGS_OPENED")
         } catch (e: Exception) {
             Log.e("NativeFunctionsModule", "Error requesting DND permission", e)
-            promise.reject("E_REQUEST_DND_PERMISSION", "Error requesting DND permission: ${e.message}", e)
+            promise.reject(
+                "E_REQUEST_DND_PERMISSION",
+                "Error requesting DND permission: ${e.message}",
+                e
+            )
         }
     }
 
     @ReactMethod
     fun checkDoNotDisturbPermission(promise: Promise) {
         try {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                promise.resolve(false)
-                return
-            }
-
             val context = reactApplicationContext
-            val nm = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            val nm =
+                context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
             promise.resolve(nm.isNotificationPolicyAccessGranted)
         } catch (e: Exception) {
             Log.e("NativeFunctionsModule", "Error checking DND permission", e)
-            promise.reject("E_CHECK_DND_PERMISSION", "Error checking DND permission: ${e.message}", e)
+            promise.reject(
+                "E_CHECK_DND_PERMISSION",
+                "Error checking DND permission: ${e.message}",
+                e
+            )
         }
     }
 
     @ReactMethod
     fun enableDoNotDisturb(promise: Promise) {
         try {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                promise.resolve("NOT_SUPPORTED")
-                return
-            }
-
             val context = reactApplicationContext
-            val nm = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            val nm =
+                context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
 
             if (!nm.isNotificationPolicyAccessGranted) {
                 val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
@@ -163,13 +161,9 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) : ReactContex
     @ReactMethod
     fun disableDoNotDisturb(promise: Promise) {
         try {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                promise.resolve("NOT_SUPPORTED")
-                return
-            }
-
             val context = reactApplicationContext
-            val nm = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            val nm =
+                context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
 
             if (!nm.isNotificationPolicyAccessGranted) {
                 val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
@@ -184,6 +178,37 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) : ReactContex
         } catch (e: Exception) {
             Log.e("NativeFunctionsModule", "Error disabling DND", e)
             promise.reject("E_DISABLE_DND", "Error disabling DND: ${e.message}", e)
+        }
+    }
+
+    @ReactMethod
+    fun openApp(promise: Promise) {
+        try {
+            val packageName = reactApplicationContext.packageName
+            val launchIntent =
+                reactApplicationContext.packageManager.getLaunchIntentForPackage(packageName)
+                    ?.apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    }
+
+            if (launchIntent != null) {
+                Log.d("NativeFunctionsModule", "Intent flags: ${launchIntent.flags}")
+                Log.d("NativeFunctionsModule", "Starting activity...")
+                reactApplicationContext.startActivity(launchIntent)
+                Log.d("NativeFunctionsModule", "startActivity called successfully")
+                promise.resolve("APP_OPENED")
+            } else {
+                val errorMessage = "Could not get launch intent for package: $packageName"
+                Log.e("NativeFunctionsModule", errorMessage)
+                promise.reject("E_NO_LAUNCH_INTENT", errorMessage)
+            }
+        } catch (e: Exception) {
+            val errorMessage = "Error opening app: ${e.message}"
+            Log.e("NativeFunctionsModule", errorMessage, e)
+            promise.reject("E_OPEN_APP_ERROR", errorMessage, e)
         }
     }
 }

@@ -22,11 +22,8 @@ class BackgroundServiceModule(
             eventName: String,
             params: WritableMap?,
         ) {
-            reactContext?.takeIf { it.hasActiveCatalystInstance() }?.let {
-                it
-                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    .emit(eventName, params)
-            }
+            reactContext?.takeIf { it.hasActiveReactInstance() }?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                ?.emit(eventName, params)
         }
     }
 

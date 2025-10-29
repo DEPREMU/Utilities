@@ -51,6 +51,9 @@ export const askLocationPermission = async (): Promise<boolean> => {
     if (granted) return true;
   }
 
+  if (await NativeFunctionsModule?.checkOverlayPermission?.())
+    NativeFunctionsModule?.openApp?.();
+
   const t: typeT = i18n as typeT;
 
   granted = await new Promise((resolve) => {
@@ -169,6 +172,9 @@ export const askBatteryOptimizationPermission = async (): Promise<boolean> => {
   let hasPermission =
     await NativeFunctionsModule.isIgnoringBatteryOptimizations();
   if (hasPermission) return true;
+
+  if (await NativeFunctionsModule?.checkOverlayPermission?.())
+    NativeFunctionsModule?.openApp?.();
 
   const t: typeT = i18n as typeT;
 

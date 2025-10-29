@@ -9,12 +9,12 @@ import type { TurboModule } from "react-native";
 import { Platform, TurboModuleRegistry } from "react-native";
 
 export interface Spec extends TurboModule {
-  createNotificationChannel(
+  createNotificationChannel: (
     channelId: string,
     channelName: string,
     importance: number,
-  ): void;
-  sendNotification(
+  ) => void;
+  sendNotification: (
     notificationId: number,
     title: string,
     message: string,
@@ -23,19 +23,23 @@ export interface Spec extends TurboModule {
     overrideNotification: boolean,
     data: Record<string, unknown>,
     actions: NotificationAction[] | null,
-  ): Promise<number>;
-  cancelNotification(
+  ) => Promise<number>;
+  cancelNotification: (
     notificationId: number,
     reasonNotification: ReasonNotification,
-  ): void;
-  cancelAllNotifications(): void;
+  ) => void;
+  cancelPreviousReasonNotification: (
+    reasonNotification: ReasonNotification,
+  ) => void;
+  cancelAllNotifications: () => void;
 }
 
 const defaultNotificationModule: Spec = {
   createNotificationChannel: () => {},
   sendNotification: async () => 0,
   cancelNotification: () => {},
-  cancelAllNotifications: () => {},
+  cancelAllNotifications: () => { },
+  cancelPreviousReasonNotification: () => {},
 };
 
 const NotificationModule =

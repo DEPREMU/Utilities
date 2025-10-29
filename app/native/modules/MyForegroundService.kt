@@ -101,8 +101,8 @@ class MyForegroundService : Service() {
                 .Builder(this, CHANNEL_ID)
                 .setOngoing(true)
                 .setAutoCancel(false)
-                .setContentTitle(this.title ?: "Servicio Activo")
-                .setContentText(this.message ?: "Utilities está ejecutándose en segundo plano.")
+                .setContentTitle(this.title)
+                .setContentText(this.message)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .build()
 
@@ -129,10 +129,10 @@ class MyForegroundService : Service() {
         
         val enableClipboard = intent?.getBooleanExtra("enableClipboard", false) ?: false
         if (enableClipboard) {
-            lang = intent?.getStringExtra("lang") ?: lang
-            userId = intent?.getStringExtra("userId")
-            deviceId = intent?.getStringExtra("deviceId") ?: deviceId
-            userToken = intent?.getStringExtra("userToken")
+            lang = intent.getStringExtra("lang") ?: lang
+            userId = intent.getStringExtra("userId")
+            deviceId = intent.getStringExtra("deviceId") ?: deviceId
+            userToken = intent.getStringExtra("userToken")
             
             if (!userToken.isNullOrBlank() && !userId.isNullOrBlank()) {
                 clipboardEnabled = true
@@ -191,7 +191,9 @@ class MyForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
     
     private fun sendToSupabase(content: String) {
-        createdAt = java.time.Instant.now().toString()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createdAt = java.time.Instant.now().toString()
+        }
         if (userId.isNullOrBlank() || deviceId.isBlank() || userToken.isNullOrBlank()) return
 
         val jsonToTable =

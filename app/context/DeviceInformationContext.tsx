@@ -11,7 +11,7 @@ import { logError } from "@utils";
 import _BackgroundTimer from "react-native-background-timer";
 import { DeviceInformation } from "@types";
 import DeviceInfo, { PowerState } from "react-native-device-info";
-import { addNetworkStateListener } from "expo-network";
+
 interface DeviceInformationContextType {
   deviceInfo: DeviceInformation | null;
   loading: boolean;
@@ -96,11 +96,6 @@ export const DeviceInformationProvider: React.FC<
   }, []);
 
   useEffect(() => {
-    const listener = addNetworkStateListener((values) => {
-      const { isConnected, isInternetReachable } = values;
-      setHasInternet(!!isConnected && !!isInternetReachable);
-    });
-
     const url = "https://www.google.com/generate_204";
     const verifyInternetConnection = async () => {
       try {
@@ -115,7 +110,6 @@ export const DeviceInformationProvider: React.FC<
 
     return () => {
       _BackgroundTimer.clearInterval(id);
-      listener.remove();
     };
   }, []);
 
@@ -138,7 +132,9 @@ export const DeviceInformationProvider: React.FC<
       60000,
     );
 
-    return () => _BackgroundTimer.clearInterval(interval);
+    return () => {
+      _BackgroundTimer.clearInterval(interval);
+    };
   }, [refreshDeviceInfo]);
 
   const value: DeviceInformationContextType = {

@@ -68,20 +68,20 @@ interface NotificationsProviderProps {
   children: ReactNode;
 }
 
-let prevHasInternet: boolean | null = null;
 export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   children,
 }) => {
   const { t, language } = useLanguage();
   const { openSnackBar } = useModal();
-  const { hasInternet, deviceInfo } = useDeviceInformation();
   const { sessionToken, userData } = useUserContext();
+  const { hasInternet, deviceInfo } = useDeviceInformation();
 
   const notificationsFromStorage = useRef<NotificationsType | null>(null);
   const [notifications, setNotifications] = useState<NotificationsType | null>(
     null,
   );
   const lastItemCopied = useRef<string | null>(null);
+  const prevHasInternet = useRef<boolean | null>(null);
 
   const sendNotification = useCallback(
     async (notification: Omit<Notification, "id" | "timestamp">) => {
@@ -221,8 +221,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
             {
               if (event.reasonNotification == "streamers") break;
 
-              const notifications = await loadData("@notifications");
-              if (!notifications) return;
+              const notifications = await getNotifications();
 
               const newNotifications = { ...notifications };
               newNotifications.enabled[event.reasonNotification] = false;
@@ -305,21 +304,22 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   useEffect(() => {
     if (isFalsy(deviceInfo) || Platform.OS === "web") return;
+    const reasonNotification: ReasonNotification = "batteryAlerts";
 
     const handleBatteryNotifications = async () => {
-      const hasPermission =
-        await NativeFunctionsModule.checkOverlayPermission();
-      if (!hasPermission) return;
-
       const actions: NotificationAction[] = [
         { actionId: "dismiss", title: t("dismiss"), icon: "delete" },
       ];
-      if (hasPermission) {
+
+      if (await NativeFunctionsModule.checkOverlayPermission()) {
         actions.push({
           actionId: "pause",
           title: t("pause"),
           icon: "pause",
         });
+      }
+      if (Platform.OS === "android") {
+        NotificationModule.cancelPreviousReasonNotification(reasonNotification);
       }
 
       if (["charging", "full"].includes(deviceInfo?.powerState?.batteryState)) {
@@ -330,7 +330,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           message: t("YouCanUnplugYourDevice"),
           type: "info",
           channelId: "batteryAlerts",
-          reasonNotification: "batteryAlerts",
+          reasonNotification,
           actions,
           overrideNotification: false,
         });
@@ -347,7 +347,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         type: "warning",
         channelId: "batteryAlerts",
         overrideNotification: false,
-        reasonNotification: "batteryAlerts",
+        reasonNotification,
         actions: [
           ...actions,
           { actionId: "stop", title: t("stop"), icon: "stop" },
@@ -371,7 +371,11 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         reasonNotification: "noInternetConnection",
       });
       return;
-    } else if (prevHasInternet !== null && !prevHasInternet && hasInternet) {
+    } else if (
+      prevHasInternet.current !== null &&
+      !prevHasInternet.current &&
+      hasInternet
+    ) {
       sendNotification({
         title: t("InternetConnectionRestored"),
         message: t("YouAreBackOnline"),
@@ -381,23 +385,14 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         overrideNotification: false,
       });
     }
-    if (prevHasInternet !== hasInternet) prevHasInternet = hasInternet;
+    if (prevHasInternet.current !== hasInternet)
+      prevHasInternet.current = hasInternet;
+  }, [hasInternet, sendNotification, t]);
 
-    if (!sessionToken) return;
-    if (Platform.OS === "android")
-      BackgroundModule?.isRunning().then((running) => {
-        if (running || !userData?.userId) return;
-        loadDataSecure("_deviceId").then((deviceId) => {
-          BackgroundModule?.setUserData(
-            sessionToken,
-            userData.userId,
-            language,
-            deviceId || "",
-          );
-        });
-      });
-
+  useEffect(() => {
     if (Platform.OS !== "web") return;
+    if (!hasInternet) return;
+    if (!sessionToken) return;
 
     const handleIntervalClipboardWeb = async () => {
       if (isFalsy(typeof window) || !userData?.userId) return;
@@ -442,16 +437,16 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     };
 
     const id = _BackgroundTimer.setInterval(handleIntervalClipboardWeb, 2500);
-    return () => _BackgroundTimer.clearInterval(id);
+    return () => {
+      _BackgroundTimer.clearInterval(id);
+    };
   }, [
     t,
     language,
     hasInternet,
     sessionToken,
-    openSnackBar,
     userData?.userId,
     deviceInfo?.model,
-    sendNotification,
   ]);
 
   useEffect(() => {
@@ -493,15 +488,20 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, [sendNotification, t]);
 
   useEffect(() => {
+    if (Platform.OS !== "android") return;
     if (!sessionToken) return;
 
-    loadDataSecure("_deviceId").then((deviceId) => {
-      BackgroundModule?.setUserData(
-        sessionToken,
-        userData?.userId || "",
-        language,
-        deviceId || "",
-      );
+    BackgroundModule?.isRunning().then((running) => {
+      if (running || !userData?.userId) return;
+
+      loadDataSecure("_deviceId").then((deviceId) => {
+        BackgroundModule?.setUserData(
+          sessionToken,
+          userData.userId,
+          language,
+          deviceId || "",
+        );
+      });
     });
   }, [sessionToken, userData?.userId, language]);
 
