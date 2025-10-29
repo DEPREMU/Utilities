@@ -251,6 +251,14 @@ const es: typeLanguages = {
   batteryOptimizationPermission: "Permiso de optimización de batería",
   batteryOptimizationPermissionMessage:
     "Para asegurar que la aplicación funcione correctamente en segundo plano, por favor desactiva la optimización de batería para esta aplicación en la configuración de tu dispositivo. Esto ayudará a mantener un rendimiento constante y evitará interrupciones mientras usas las funciones en segundo plano.",
+  lastUpdateCheck: "Última verificación de actualización",
+  checkForUpdates: "Buscar actualizaciones",
+  updateAvailable: "Actualización disponible",
+  updateAvailableMessage:
+    "Hay una nueva actualización disponible. ¿Te gustaría actualizar ahora?",
+  later: "Más tarde",
+  updateNow: "Actualizar ahora",
+  noUpdates: "No hay actualizaciones disponibles",
 } as const;
 
 export default es;

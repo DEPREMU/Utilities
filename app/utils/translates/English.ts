@@ -246,6 +246,14 @@ const en: typeLanguages = {
   batteryOptimizationPermission: "Battery Optimization Permission",
   batteryOptimizationPermissionMessage:
     "To ensure the app functions correctly in the background, please disable battery optimization for this app in your device settings. This will help maintain consistent performance and prevent interruptions while using background features.",
+  lastUpdateCheck: "Last Update Check",
+  checkForUpdates: "Check for Updates",
+  updateAvailable: "Update Available",
+  updateAvailableMessage:
+    "A new update is available. Would you like to update now?",
+  later: "Later",
+  updateNow: "Update Now",
+  noUpdates: "No Updates Available",
 } as const;
 
 export default en;

@@ -21,7 +21,6 @@ import {
 import {
   isFalsy,
   logError,
-  loadData,
   saveData,
   getRouteAPI,
   fetchOptions,
@@ -85,10 +84,9 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   const sendNotification = useCallback(
     async (notification: Omit<Notification, "id" | "timestamp">) => {
-      const notifications = await loadData("@notifications");
+      const notifications = await getNotifications();
 
       try {
-        if (!notifications) return Promise.resolve("");
         if (
           notification.reasonNotification !== "streamers" &&
           notifications.paused[notification.reasonNotification]?.isPaused

@@ -1,18 +1,30 @@
+import {
+  log,
+  loadData,
+  saveData,
+  getRouteAPI,
+  fetchOptions,
+  loadDataSecure,
+  saveDataSecure,
+  getFormattedDate,
+  fetchAndApplyUpdate,
+  isNewUpdateAvailable,
+} from "@utils";
 import Button from "@components/common/ButtonComponent";
 import Constants from "expo-constants";
 import ThemePicker from "@components/Settings/ThemePicker";
+import { cloneDeep } from "lodash";
 import Notifications from "@components/Settings/Notifications";
 import LanguagePicker from "@components/Settings/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
-import { RequestSupabaseUpdate, typeLanguages } from "@types";
 import { useUserContext } from "@context/UserContext";
-import { Text, TextInput } from "react-native-paper";
-import { ScrollView, View } from "react-native";
+import { ActivityIndicator, Text, TextInput } from "react-native-paper";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
-import { fetchOptions, getRouteAPI, loadData, log, saveData } from "@utils";
+import { ScrollView, View, Alert, Platform } from "react-native";
+import { RequestSupabaseUpdate, typeLanguages } from "@types";
 import React, { useCallback, useEffect, useState } from "react";
 
 type Section = {
@@ -25,18 +37,29 @@ type Section = {
   labelButton: keyof typeLanguages;
 };
 
+type UpdatesData = {
+  updateState: "NO_UPDATES" | "NOT_VERIFIED";
+  lastUpdateCheck: Date;
+  lookingForUpdates: boolean;
+};
+
 const SettingsScreen: React.FC = () => {
-  const { styles } = useStylesSettingsScreen();
   const { t, language } = useLanguage();
   const { hasInternet } = useDeviceInformation();
   const { addTaskQueue } = useBackgroundTask();
   const { setSocketURL } = useWebSocket();
+  const { styles, colors } = useStylesSettingsScreen();
   const { userData, sessionToken } = useUserContext();
 
   const [apiURL, setApiURL] = useState<string | null>(null);
   const [password, setPassword] = useState<string>("");
   const [hasAdmin, setHasAdmin] = useState<boolean>(false);
   const [socketURL, setSocketURLState] = useState<string | null>(null);
+  const [updatesData, setUpdatesData] = useState<UpdatesData>({
+    updateState: "NOT_VERIFIED",
+    lastUpdateCheck: new Date(),
+    lookingForUpdates: false,
+  });
   const [isOtherScrollActive, setIsOtherScrollActive] =
     useState<boolean>(false);
 
@@ -184,6 +207,48 @@ const SettingsScreen: React.FC = () => {
     setIsOtherScrollActive(touching);
   }, []);
 
+  const handleCheckForUpdates = useCallback(async () => {
+    if (Platform.OS === "web") return;
+
+    saveDataSecure("_lastUpdateCheck", Date.now());
+    setUpdatesData({
+      updateState: "NOT_VERIFIED",
+      lastUpdateCheck: new Date(),
+      lookingForUpdates: true,
+    });
+
+    const hasUpdate = await isNewUpdateAvailable();
+    if (!hasUpdate) {
+      setTimeout(() => {
+        setUpdatesData((prevState) =>
+          cloneDeep({
+            ...prevState,
+            updateState: "NO_UPDATES",
+            lookingForUpdates: false,
+          }),
+        );
+      }, 1000);
+      return;
+    }
+    Alert.alert(
+      t("updateAvailable"),
+      t("updateAvailableMessage"),
+      [
+        {
+          text: t("later"),
+          style: "cancel",
+        },
+        {
+          text: t("updateNow"),
+          onPress: async () => {
+            await fetchAndApplyUpdate();
+          },
+        },
+      ],
+      { cancelable: false },
+    );
+  }, [t]);
+
   useEffect(() => {
     loadData("@hasAdminAccess").then((data) => {
       setHasAdmin(data || false);
@@ -193,6 +258,14 @@ const SettingsScreen: React.FC = () => {
     });
     loadData("@API_URL").then((data) => {
       setApiURL(data || "");
+    });
+    loadDataSecure("_lastUpdateCheck").then((data) => {
+      if (!data) return;
+      setUpdatesData({
+        updateState: "NOT_VERIFIED",
+        lastUpdateCheck: new Date(data),
+        lookingForUpdates: false,
+      });
     });
   }, []);
 
@@ -218,6 +291,35 @@ const SettingsScreen: React.FC = () => {
               <Notifications onScrollableAreaTouch={handleOtherScrollActive} />
             </View>
           )}
+
+          {Platform.OS === "android" && (
+            <View style={styles.section}>
+              <Text style={styles.subtitle}>{t("lastUpdateCheck")}</Text>
+              <Text style={styles.dateText}>
+                {getFormattedDate(updatesData?.lastUpdateCheck || new Date())}
+              </Text>
+              <Button
+                customStyles={{
+                  button: styles.button,
+                  textButton: styles.buttonLabel,
+                }}
+                handlePress={handleCheckForUpdates}
+                disabled={updatesData?.lookingForUpdates}
+              >
+                {updatesData?.lookingForUpdates ? (
+                  <ActivityIndicator
+                    style={styles.activityIndicator}
+                    color={colors.background}
+                  />
+                ) : updatesData?.updateState === "NO_UPDATES" ? (
+                  <Text style={styles.buttonLabel}>{t("noUpdates")}</Text>
+                ) : updatesData?.updateState === "NOT_VERIFIED" ? (
+                  <Text style={styles.buttonLabel}>{t("checkForUpdates")}</Text>
+                ) : null}
+              </Button>
+            </View>
+          )}
+
           {!hasAdmin && (
             <View style={styles.section}>
               <Text style={styles.subtitle}>{t("adminSection")}</Text>

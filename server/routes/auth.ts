@@ -207,6 +207,7 @@ export const getStorageData = async (
     _sessionExpiry: date,
     _selectedCryptos: cryptosToSave,
     _userSessionTokenStorage: token,
+    _lastUpdateCheck: Date.now(),
     "@API_URL": userConfigToSave.API_URL || "",
     "@hasAdminAccess": userConfigToSave.hasAdmin,
     "@notifications": userNotificationsConfigToSave,

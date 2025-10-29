@@ -13,6 +13,7 @@ export const SECURE_KEYS_STORAGE = [
   "_Streamers",
   "_sessionExpiry",
   "_selectedCryptos",
+  "_lastUpdateCheck",
   "_userSessionTokenStorage",
 ] as const;
 
@@ -46,6 +47,7 @@ export const ALL_KEYS_STORAGE: (
   "_Streamers",
   "_sessionExpiry",
   "_selectedCryptos",
+  "_lastUpdateCheck",
   "_userSessionTokenStorage",
 ] as const;
 
@@ -64,6 +66,7 @@ export type ExpectedSecureStorageTypes = {
   _Streamers: (Streamer & { isLive: boolean })[] | null;
   _sessionExpiry: number | -1;
   _selectedCryptos: SelectedCryptos | null;
+  _lastUpdateCheck: number | null;
   _userSessionTokenStorage: string | null;
 };
 

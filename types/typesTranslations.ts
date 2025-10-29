@@ -214,6 +214,13 @@ export type typeLanguages = Record<ReasonNotification, string> &
     markdownPlaceholder: string;
     batteryOptimizationPermission: string;
     batteryOptimizationPermissionMessage: string;
+    lastUpdateCheck: string;
+    checkForUpdates: string;
+    updateAvailable: string;
+    updateAvailableMessage: string;
+    later: string;
+    updateNow: string;
+    noUpdates: string;
   };
 
 export type typeLanguagesServer = {

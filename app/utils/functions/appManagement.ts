@@ -6,6 +6,7 @@ import {
 } from "@types";
 import chalk from "chalk";
 import { Falsy } from "react-native";
+import * as Updates from "expo-updates";
 import { log, logError } from "./debug";
 import * as Localization from "expo-localization";
 import { ExpectedStorageTypes } from "../constants";
@@ -296,4 +297,23 @@ export const getCryptosFromSupabase = async (
     },
     {} as ExpectedStorageTypes["_selectedCryptos"],
   );
+};
+
+export const isNewUpdateAvailable = async (): Promise<boolean> => {
+  return (await Updates.checkForUpdateAsync()).isAvailable;
+};
+
+export const fetchAndApplyUpdate = async (): Promise<void> => {
+  try {
+    const update = await Updates.fetchUpdateAsync();
+
+    if (update.isNew) {
+      log(chalk.green("New update downloaded, applying update..."));
+      await Updates.reloadAsync();
+    } else {
+      log(chalk.yellow("No new update available to fetch."));
+    }
+  } catch (error) {
+    logError(chalk.red("Error fetching or applying update:"), error);
+  }
 };
