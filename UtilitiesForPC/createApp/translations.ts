@@ -40,7 +40,8 @@ export type TranslationsKeys =
   | "failedToFindDesktopFile"
   | "enablingAutoStart"
   | "failedToEnableAutoStart"
-  | "enableAutoStartQuestion";
+  | "enableAutoStartQuestion"
+  | "autoStartEnabled";
 
 export type Translations = Record<
   Languages,
@@ -172,6 +173,10 @@ export const translations: Translations = {
       color: "red",
       message: "Failed to find the desktop file in the specified path: ",
     },
+    autoStartEnabled: {
+      color: "green",
+      message: "Auto-start enabled for the app.",
+    },
   },
   es: {
     buildingApp: {
@@ -299,6 +304,10 @@ export const translations: Translations = {
       color: "yellow",
       message:
         "¿Desea habilitar el inicio automático para la aplicación? (s/n): ",
+    },
+    autoStartEnabled: {
+      color: "green",
+      message: "Inicio automático habilitado para la aplicación.",
     },
   },
 };

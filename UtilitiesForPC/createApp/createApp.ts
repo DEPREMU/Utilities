@@ -75,6 +75,35 @@ const buildApp = async () => {
       }
     );
 
+    const answer0 = await askQuestion(t("enableAutoStartQuestion"))
+    if (answer0.toLowerCase() === "y") {
+      const homePath = process.env.HOME;
+      if (!homePath) throw new Error("HOME environment variable is not set");
+      const autoStartPath = path.join(
+        homePath || "",
+        ".config",
+        "autostart"
+      );
+      
+      const desktopEntry = `
+    [Desktop Entry]
+    Type=Application
+    Name=Utilities for PC
+    Exec=${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11
+    Hidden=false
+    X-GNOME-Autostart-enabled=true
+    Terminal=false
+    Comment=Auto-start Utilities for PC at login
+    `;
+      
+      if (!fs.existsSync(autoStartPath)) {
+        fs.mkdirSync(autoStartPath, { recursive: true });
+      }
+      const desktopFilePath = path.join(autoStartPath, `${dataBuild.appName}.desktop`);
+      fs.writeFileSync(desktopFilePath, desktopEntry);
+      console.log(t("autoStartEnabled"));
+    }
+
     const answer = await askQuestion(t("pleaseRestartComputer"));
     if (answer.toLowerCase() === "y") {
       console.log(t("restartNow"));

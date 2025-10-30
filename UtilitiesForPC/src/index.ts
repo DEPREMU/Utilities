@@ -1,4 +1,3 @@
-import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } from "electron";
@@ -59,33 +58,6 @@ ipcMain.on("user-login-status", async (_, isLoggedIn: boolean) => {
   if (userIsLoggedIn) mainWindow.hide();
   else mainWindow.show();
 });
-
-const addToStartup = (): void => {
-  if (process.platform !== "linux") return;
-  if (!app.isPackaged) return;
-  try {
-    const autostartDir = path.join(app.getPath("home"), ".config", "autostart");
-    const desktopFilePath = path.join(autostartDir, "utilities-for-pc.desktop");
-
-    const execPath = process.execPath;
-
-    const desktopEntry = `
-    [Desktop Entry]
-    Type=Application
-    Name=Utilities for PC
-    Exec="${execPath}" --no-sandbox
-    Hidden=false
-    X-GNOME-Autostart-enabled=true
-    Terminal=false
-    Comment=Auto-start Utilities for PC at login
-    `;
-
-    fs.mkdirSync(autostartDir, { recursive: true });
-    fs.writeFileSync(desktopFilePath, desktopEntry);
-  } catch (error) {
-    console.error("Error adding to startup:", error);
-  }
-};
 
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
@@ -184,7 +156,6 @@ const createTray = (): void => {
 
 app.whenReady().then(() => {
   language = getLanguage();
-  addToStartup();
   createWindow();
   createTray();
 });
