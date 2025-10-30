@@ -1,5 +1,7 @@
 import {
   loadDataSecure,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
   askLocationPermission,
   askBatteryOptimizationPermission,
   askDisplayOverOtherAppsPermission,
@@ -7,7 +9,6 @@ import {
 import { typeT } from "@types";
 import ExpoUpdates from "expo-updates";
 import { t as i18n } from "i18next";
-import _BackgroundTimer from "react-native-background-timer";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
 import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
 import React, { createContext, useEffect } from "react";
@@ -86,14 +87,16 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
   }, []);
 
   useEffect(() => {
+    if (Platform.OS !== "android") return;
+
     const askPermissions = async () => {
       await askLocationPermission();
       await askDisplayOverOtherAppsPermission();
       await askBatteryOptimizationPermission();
     };
 
-    const id = _BackgroundTimer.setTimeout(askPermissions, 5000);
-    return () => _BackgroundTimer.clearTimeout(id);
+    const id = setTimeoutPolyfill(askPermissions, 5000);
+    return () => clearTimeoutPolyfill(id);
   }, []);
 
   const value: BackgroundContextType = {

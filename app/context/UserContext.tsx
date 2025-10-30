@@ -1,3 +1,10 @@
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  createContext,
+} from "react";
 import {
   log,
   logError,
@@ -5,21 +12,15 @@ import {
   loadDataSecure,
   signInWithEmail,
   signUpWithEmail,
+  setIntervalPolyfill,
+  clearIntervalPolyfill,
   signOut as authSignOut,
   refreshSession as authRefreshSession,
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
 import { Platform } from "react-native";
-import _BackgroundTimer from "react-native-background-timer";
 import { navigateReplace } from "@navigation/navigationRef";
 import { UserData, Window } from "@types";
-import React, {
-  createContext,
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
 
 interface UserContextType {
   sessionToken: string | null;
@@ -227,7 +228,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
    * Initialize user session on app start
    */
   useEffect(() => {
-    let id: number | null = null;
+    let id: number | NodeJS.Timeout | null = null;
 
     const initializeAuth = async () => {
       const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
@@ -249,19 +250,18 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         );
 
         if (token) {
+          const handleRefreshToken = () => {
+            sessionInitialized.current = false;
+            refreshToken();
+          };
+
           setSessionToken(token);
           setUserData(userData ?? null);
           setIsLoggedIn(true);
           sendNotificationLoginStatus(true);
           sessionInitialized.current = true;
           log("Restored user session:", userData?.email);
-          id = _BackgroundTimer.setInterval(
-            () => {
-              sessionInitialized.current = false;
-              refreshToken();
-            },
-            24 * 60 * 60 * 1000,
-          );
+          id = setIntervalPolyfill(handleRefreshToken, 24 * 60 * 60 * 1000);
         }
       } catch (error) {
         authSignOut();
@@ -275,7 +275,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (!sessionInitialized.current) initializeAuth();
 
     return () => {
-      if (id) _BackgroundTimer.clearInterval(id);
+      if (!id) return;
+      clearIntervalPolyfill(id);
     };
   }, [refreshToken]);
 

@@ -11,10 +11,24 @@
 
 import fs from "fs";
 import path from "path";
-import chalk from "chalk";
+import { t } from "./translations.ts";
+import packageJson from "../package.json" with { type: "json" };
 import { execSync } from "child_process";
+import * as readline from "readline";
 
-let __dirname = path.resolve();
+const askQuestion = async (question: string): Promise<string> => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  const answer = await new Promise((resolve: (value: string) => void) => {
+    rl.question(question, resolve);
+  });
+  rl.close();
+  return answer;
+};
+
+let __dirname = path.resolve("../");
 if (!__dirname.endsWith("UtilitiesForPC")) {
   __dirname = path.resolve(__dirname, "UtilitiesForPC");
 }
@@ -23,102 +37,110 @@ if (!fs.existsSync(__dirname))
 
 const isWindows = process.platform === "win32";
 
-const buildApp = () => {
-  console.log(chalk.blue("Building Electron app..."));
-  execSync("npm run build", { cwd: __dirname });
-  console.log(chalk.green("Electron app build command executed."));
+const dataBuild = {
+      distElectron: packageJson.build.directories.output,
+      appName: packageJson.name,
+};
+    
 
-  console.log(chalk.blue("Elevating permissions and packaging the app..."));
+const buildApp = async () => {
+  console.log(t("buildingApp"));
+  execSync("npm run build", { cwd: __dirname });
+  console.log(t("appBuildCommandExecuted"));
+
+  console.log(t("elevatingPermissions"));
   if (isWindows)
     execSync(
       `powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', 'cd \"${__dirname}\"; npx electron-builder --wi; exit'"`,
       { cwd: __dirname }
     );
   else {
+    
+
     execSync("npx electron-builder", { cwd: __dirname });
-    console.log(
-      chalk.green("App packaged successfully. Now it will be installed.")
-    );
-    const dir = execSync("cd dist-electron; ls", { cwd: __dirname });
+    console.log(t("appPackagedSuccessfully"));
+    const dir = execSync(`cd ${dataBuild.distElectron}; ls`, {
+      cwd: __dirname,
+    });
     const packageName = dir
       .toString()
       .split("\n")
       .find((file) => file.endsWith(".snap"));
-    if (!packageName) throw new Error("Failed to find the .snap package.");
+    if (!packageName) throw new Error(t("FailedToFindSnapPackage"));
     execSync(
-      `sudo snap install dist-electron/${packageName} --dangerous; sudo apt install gnome-shell-extension-appindicator`,
+      `sudo snap install ${dataBuild.distElectron}/${packageName} --dangerous; sudo apt install gnome-shell-extension-appindicator`,
       {
         cwd: __dirname,
         stdio: "inherit",
       }
     );
 
-    execSync(
-      [
-        'echo "App installed successfully. Do you need to restart your computer, do you want to restart now? (y/n)"',
-        "read answer",
-        'if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then sudo reboot',
-        'else echo "You can restart later manually."',
-        "fi",
-        'echo "Do you want to open the app now? (y/n)"',
-        "read answer2",
-        'if [ "$answer2" = "y" ] || [ "$answer2" = "Y" ]; then snap run utilities-for-pc --no-sandbox',
-        "fi",
-      ].join("; "),
-      { cwd: __dirname, stdio: "inherit" }
-    );
+    const answer = await askQuestion(t("pleaseRestartComputer"));
+    if (answer.toLowerCase() === "y") {
+      console.log(t("restartNow"));
+      execSync("sudo reboot", { stdio: "inherit" });
+    } else {
+      console.log(t("restartingComputer"));
+    }
+
+    const answer2 = await askQuestion(t("openAppNow"));
+
+    if (answer2.toLowerCase() === "y") {
+      execSync(
+        `snap run ${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`,
+        {
+          cwd: __dirname,
+        }
+      );
+    }
   }
   console.log(
-    chalk.black.bgGreen.bold(
-      `App was packaged successfully. ${
-        isWindows
-          ? ""
-          : "Now you can wait for the PowerShell window to close to install the app in the folder 'dist-electron'."
-      }`
-    )
+    `App was packaged successfully. ${
+      isWindows ? "" : t("appPackagedSuccessMessage")
+    }`
   );
 };
 
 const exportWebApp = () => {
   const appPath = path.resolve(__dirname, "..", "app");
   if (!fs.existsSync(appPath))
-    throw new Error("App path does not exist: " + appPath);
+    throw new Error(t("appPathDoesNotExist") + appPath);
 
-  console.log(chalk.blue("Installing dependencies..."));
+  console.log(t("installingDependencies"));
   execSync("npm install", { cwd: appPath });
-  console.log(chalk.green("Dependencies installed."));
+  console.log(t("dependenciesInstalled"));
 
-  console.log(chalk.blue("Building web app..."));
+  console.log(t("buildingWebApp"));
   const data = execSync("npm run build:web", { cwd: appPath });
   if (!data.toString().includes("Exported: dist"))
-    throw new Error("Failed to build web app" + data.toString());
-  console.log(chalk.green("Web app built successfully."));
+    throw new Error(t("failedToBuildWebApp") + data.toString());
+  console.log(t("webAppBuiltSuccessfully"));
 
-  console.log(chalk.blue("Cleaning up old build directories..."));
-  ["dist", "dist-electron", "release", "build"].forEach((dir) => {
+  console.log(t("cleaningUpOldBuildDirectories"));
+  ["dist", dataBuild.distElectron, "release", "build"].forEach((dir) => {
     try {
       const fullPath = path.resolve(__dirname, dir);
       if (fs.existsSync(fullPath)) fs.rmSync(fullPath, { recursive: true });
     } catch {}
   });
-  console.log(chalk.green("Old build directories cleaned."));
+  console.log(t("oldBuildDirectoriesCleaned"));
 
-  console.log(chalk.blue("Preparing files for Electron app..."));
+  console.log(t("preparingFilesForElectronApp"));
   const distPath = path.resolve(appPath, "dist");
   const distPathToCopy = path.resolve(__dirname, "dist");
   fs.cpSync(distPath, distPathToCopy, { recursive: true });
   fs.rmSync(distPath, { recursive: true });
 
-  console.log(chalk.blue("Copying assets..."));
+  console.log(t("copyingAssets"));
   ["ico", "png"].forEach((ext) => {
     fs.copyFileSync(
       path.resolve(__dirname, "assets", `tray-icon.${ext}`),
       path.resolve(__dirname, "dist", "assets", `tray-icon.${ext}`)
     );
   });
-  console.log(chalk.green("Assets copied."));
+  console.log(t("assetsCopied"));
 
-  console.log(chalk.blue("Inlining JS and fonts into HTML..."));
+  console.log(t("inliningJSAndFontsIntoHTML"));
   const jsPath = path.resolve(
     __dirname,
     "dist",
@@ -128,12 +150,12 @@ const exportWebApp = () => {
     "web"
   );
   if (!fs.existsSync(jsPath))
-    throw new Error("Failed to find JS bundle: " + jsPath);
+    throw new Error(t("failedToFindJSBundle") + jsPath);
 
   const files = fs.readdirSync(jsPath);
   const mainFile = files.find((file) => file.endsWith(".js"));
 
-  if (!mainFile) throw new Error("Failed to find main JS bundle in: " + jsPath);
+  if (!mainFile) throw new Error(t("failedToFindMainJSBundle") + jsPath);
 
   const mainFilePath = path.resolve(jsPath, mainFile);
   const mainFileContent = fs.readFileSync(mainFilePath, "utf-8");
@@ -172,7 +194,7 @@ const exportWebApp = () => {
     );
   });
   fs.writeFileSync(path.resolve(__dirname, "dist", "index.html"), html);
-  console.log(chalk.green("JS and fonts inlined."));
+  console.log(t("jsAndFontsInlined"));
 
   buildApp();
 };

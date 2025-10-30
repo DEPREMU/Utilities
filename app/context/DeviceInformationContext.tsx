@@ -7,10 +7,9 @@ import React, {
   createContext,
 } from "react";
 import axios from "axios";
-import { logError } from "@utils";
-import _BackgroundTimer from "react-native-background-timer";
 import { DeviceInformation } from "@types";
 import DeviceInfo, { PowerState } from "react-native-device-info";
+import { clearIntervalPolyfill, logError, setIntervalPolyfill } from "@utils";
 
 interface DeviceInformationContextType {
   deviceInfo: DeviceInformation | null;
@@ -106,10 +105,10 @@ export const DeviceInformationProvider: React.FC<
       }
     };
 
-    const id = _BackgroundTimer.setInterval(verifyInternetConnection, 10000);
+    const id = setIntervalPolyfill(verifyInternetConnection, 10000);
 
     return () => {
-      _BackgroundTimer.clearInterval(id);
+      clearIntervalPolyfill(id);
     };
   }, []);
 
@@ -127,13 +126,10 @@ export const DeviceInformationProvider: React.FC<
       });
     };
 
-    const interval = _BackgroundTimer.setInterval(
-      handleIntervalDeviceInfo,
-      60000,
-    );
+    const interval = setIntervalPolyfill(handleIntervalDeviceInfo, 60000);
 
     return () => {
-      _BackgroundTimer.clearInterval(interval);
+      clearIntervalPolyfill(interval);
     };
   }, [refreshDeviceInfo]);
 

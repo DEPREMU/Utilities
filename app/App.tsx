@@ -5,7 +5,9 @@ import {
   loadDataSecure,
   saveDataSecure,
   fetchAndApplyUpdate,
+  setIntervalPolyfill,
   isNewUpdateAvailable,
+  clearIntervalPolyfill,
   configureNotificationChannel,
 } from "@utils";
 import chalk from "chalk";
@@ -14,7 +16,6 @@ import * as Updates from "expo-updates";
 import { Platform } from "react-native";
 import AppProviders from "./context/AppProviders";
 import AppNavigator from "./navigation/AppNavigator";
-import _BackgroundTimer from "react-native-background-timer";
 import React, { useEffect } from "react";
 import { ResponseGetRandomUUID } from "@types";
 
@@ -89,13 +90,10 @@ const App = () => {
     };
     handleCheckForUpdates();
 
-    const id = _BackgroundTimer.setInterval(
-      handleCheckForUpdates,
-      8 * 60 * 60 * 1000,
-    );
+    const id = setIntervalPolyfill(handleCheckForUpdates, 8 * 60 * 60 * 1000);
 
     return () => {
-      _BackgroundTimer.clearInterval(id);
+      clearIntervalPolyfill(id);
     };
   }, []);
 

@@ -44,5 +44,6 @@ google-services.json
 clirelease
 dist-electron
 builds
+build
 
 .trunk/

@@ -28,13 +28,16 @@ import {
   loadDataSecure,
   getNotifications,
   isLocationEnabled,
+  setTimeoutPolyfill,
+  setIntervalPolyfill,
+  clearTimeoutPolyfill,
+  clearIntervalPolyfill,
 } from "@utils";
 import { v4 } from "uuid";
 import { useModal } from "./ModalContext";
 import * as Location from "expo-location";
 import { useLanguage } from "./LanguageContext";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
-import _BackgroundTimer from "react-native-background-timer";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
@@ -354,8 +357,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     };
 
     handleBatteryNotifications();
-    const id = _BackgroundTimer.setTimeout(handleBatteryNotifications, 5000);
-    return () => _BackgroundTimer.clearTimeout(id);
+    const id = setTimeoutPolyfill(handleBatteryNotifications, 5000);
+    return () => clearTimeoutPolyfill(id);
   }, [deviceInfo, sendNotification, t]);
 
   useEffect(() => {
@@ -434,10 +437,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       }
     };
 
-    const id = _BackgroundTimer.setInterval(handleIntervalClipboardWeb, 2500);
-    return () => {
-      _BackgroundTimer.clearInterval(id);
-    };
+    const id = setInterval(handleIntervalClipboardWeb, 2500);
+    return () => clearInterval(id);
   }, [
     t,
     language,
@@ -481,8 +482,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     };
 
     verifyLocation();
-    const id = _BackgroundTimer.setInterval(verifyLocation, 60000);
-    return () => _BackgroundTimer.clearInterval(id);
+    const id = setIntervalPolyfill(verifyLocation, 60000);
+    return () => clearIntervalPolyfill(id);
   }, [sendNotification, t]);
 
   useEffect(() => {

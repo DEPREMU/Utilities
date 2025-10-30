@@ -4,10 +4,10 @@
   "description": "A collection of useful utilities for PC users.",
   "main": "build/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --project ./src/tsconfig.json",
     "start": "npm run build && npx electron .",
     "pack": "npm run build && npx electron-builder",
-    "build-app": "node createApp.ts",
+    "build-app": "node createApp/createApp.ts",
     "dist": "npm run build && npx electron-builder --publish=never"
   },
   "author": "DEPREMU",

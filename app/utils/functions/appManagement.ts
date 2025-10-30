@@ -5,10 +5,11 @@ import {
   ResponseSupabaseFetch,
 } from "@types";
 import chalk from "chalk";
-import { Falsy } from "react-native";
 import * as Updates from "expo-updates";
+import _BackgroundTimer from "react-native-background-timer";
 import { log, logError } from "./debug";
 import * as Localization from "expo-localization";
+import { Falsy, Platform } from "react-native";
 import { ExpectedStorageTypes } from "../constants";
 import { fetchOptions, getRouteAPI } from "./APIManagement";
 import { initializeNotificationsStorage } from "./notifications";
@@ -316,4 +317,32 @@ export const fetchAndApplyUpdate = async (): Promise<void> => {
   } catch (error) {
     logError(chalk.red("Error fetching or applying update:"), error);
   }
+};
+
+export const setTimeoutPolyfill = (
+  fn: (...args: unknown[]) => void,
+  timeout: number,
+): NodeJS.Timeout | number => {
+  if (Platform.OS === "android")
+    return _BackgroundTimer.setTimeout(fn, timeout);
+  else return setTimeout(fn, timeout);
+};
+
+export const clearTimeoutPolyfill = (id: NodeJS.Timeout | number): void => {
+  if (Platform.OS === "android") _BackgroundTimer.clearTimeout(id as number);
+  else clearTimeout(id as NodeJS.Timeout);
+};
+
+export const setIntervalPolyfill = (
+  fn: (...args: unknown[]) => void,
+  interval: number,
+): NodeJS.Timeout | number => {
+  if (Platform.OS === "android")
+    return _BackgroundTimer.setInterval(fn, interval);
+  else return setInterval(fn, interval);
+};
+
+export const clearIntervalPolyfill = (id: NodeJS.Timeout | number): void => {
+  if (Platform.OS === "android") _BackgroundTimer.clearInterval(id as number);
+  else clearInterval(id as NodeJS.Timeout);
 };

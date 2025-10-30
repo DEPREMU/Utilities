@@ -18,7 +18,7 @@
     "build:android": "echo \"Select one profile (development, preview, production)\" && read BUILD_PROFILE && export PLATFORM=android && export EAS_BUILD=false && rimraf android && npm run prebuild && echo \"You must delete android/ from .gitignore\" && export EAS_BUILD=true && taskset -c 0-5 eas build --platform android --profile $BUILD_PROFILE --local --output=./builds/android.apk && adb install -r ./builds/android.apk",
     "build-dev:android": "export PLATFORM=android && npx rimraf android && npm run prebuild && npm run android",
     "update": "export PLATFORM=android && export EAS_BUILD=true && export BUILD_PROFILE=production && npx eas update --channel production --platform $PLATFORM",
-    "build:web": "export PLATFORM=web && export EAS_BUILD=true && export BUILD_PROFILE=production && npx expo export --platform $PLATFORM",
+    "build:web": "export PLATFORM=web && export EAS_BUILD=false && export BUILD_PROFILE=production && export NODE_ENV=$BUILD_PROFILE && npx expo export --platform $PLATFORM",
     "prebuild": "node ../app/native/createPrebuild.ts",
     "format-all": "npx prettier --write \"**/*.{ts,tsx}\" --ignore-path ../.gitignore",
     "lint": "eslint .",
