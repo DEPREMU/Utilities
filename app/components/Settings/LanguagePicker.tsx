@@ -16,36 +16,40 @@ const LanguagePicker: React.FC = () => {
 
   const changeLanguage = useCallback(
     async (lang: LanguagesSupported) => {
-      if (!userData?.userId) return;
       const id =
         Date.now().toString() + Math.random().toString(36).substring(2);
 
-      addTaskQueue(
-        async () => {
-          if (!sessionToken) return navigateReplace("Login");
+      if (sessionToken && userData?.userId)
+        addTaskQueue(
+          async () => {
+            if (!sessionToken) return navigateReplace("Login");
 
-          fetch(
-            await getRouteAPI("/supabase/update"),
-            fetchOptions<RequestSupabaseUpdate>(
-              "POST",
-              {
-                lang,
-                match: { userId: userData?.userId },
-                table: "UserConfig",
-                values: { language: lang },
-              },
-              sessionToken,
-            ),
-          );
-        },
-        true,
-        {
+            fetch(
+              await getRouteAPI("/supabase/update"),
+              fetchOptions<RequestSupabaseUpdate>(
+                "POST",
+                {
+                  lang,
+                  match: { userId: userData?.userId },
+                  table: "UserConfig",
+                  values: { language: lang },
+                },
+                sessionToken,
+              ),
+            );
+          },
+          true,
+          {
+            id,
+            functionName: "updateFromSupabase",
+            args: [
+              "UserConfig",
+              { language: lang },
+              { userId: userData.userId },
+            ],
+          },
           id,
-          functionName: "updateFromSupabase",
-          args: ["UserConfig", { language: lang }, { userId: userData.userId }],
-        },
-        id,
-      );
+        );
       await changeLang(lang);
     },
     [changeLang, addTaskQueue, userData?.userId, sessionToken],

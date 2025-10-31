@@ -6,41 +6,54 @@ import { navigateReplace } from "@navigation/navigationRef";
 import { ScrollView, View } from "react-native";
 import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
-import React, { useEffect, useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { ScreensAvailable, typeLanguages } from "@types";
 
 type ButtonType = {
   label: keyof typeLanguages;
   screen: ScreensAvailable;
-  needsInternet?: boolean;
+  noNeedsSession?: boolean;
+  noNeedsInternet?: boolean;
 };
 
 const dev: ButtonType | undefined =
   __DEV__ || process.env.NODE_ENV === "development"
-    ? { label: "test", screen: "Test", needsInternet: false }
+    ? { label: "test", screen: "Test", noNeedsInternet: true }
     : undefined;
 
 const buttons: ButtonType[] = [
-  { label: "settings", screen: "Settings" },
-  { label: "infoIP", screen: "InfoIP" },
+  { label: "settings", screen: "Settings", noNeedsSession: true },
+  { label: "infoIP", screen: "InfoIP", noNeedsSession: true },
   { label: "cryptoInfo", screen: "Cryptos" },
-  { label: "calculator", screen: "Calculator", needsInternet: false },
-  { label: "games", screen: "Games", needsInternet: false },
+  {
+    label: "calculator",
+    screen: "Calculator",
+    noNeedsInternet: false,
+    noNeedsSession: true,
+  },
+  {
+    label: "games",
+    screen: "Games",
+    noNeedsInternet: false,
+    noNeedsSession: true,
+  },
   { label: "clipboard", screen: "Clipboard" },
   { label: "translator", screen: "Translator" },
   { label: "socialMedia", screen: "SocialMedia" },
   {
     label: "deviceInformation",
     screen: "DeviceInformation",
-    needsInternet: false,
+    noNeedsInternet: false,
+    noNeedsSession: true,
   },
   {
     label: "markdownViewer",
     screen: "MarkdownViewer",
-    needsInternet: false,
+    noNeedsInternet: false,
+    noNeedsSession: true,
   },
-  dev,
-].filter((btn): btn is ButtonType => btn !== undefined);
+];
+if (dev) buttons.push(dev);
 
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
@@ -55,18 +68,20 @@ const HomeScreen: React.FC = () => {
           style={styles.leftIcon}
           color={background}
           icon={
-            hasInternet ||
-            button.needsInternet === false ||
-            button.label === "settings"
+            (hasInternet ||
+              button.noNeedsInternet ||
+              button.label === "settings") &&
+            (isLoggedIn || button.noNeedsSession)
               ? "check-circle"
               : "cancel"
           }
         />
         <Button
           disabled={
-            !hasInternet &&
-            button.needsInternet !== false &&
-            button.label !== "settings"
+            (!hasInternet &&
+              !button.noNeedsInternet &&
+              button.label !== "settings") ||
+            (!button.noNeedsSession && !isLoggedIn)
           }
           label={t(button.label)}
           argsFuncHandlePress={button.screen}
@@ -75,17 +90,23 @@ const HomeScreen: React.FC = () => {
         />
       </View>
     ));
-  }, [t, hasInternet, styles.leftIcon, styles.buttonContainer, background]);
+  }, [
+    t,
+    hasInternet,
+    styles.leftIcon,
+    styles.buttonContainer,
+    background,
+    isLoggedIn,
+  ]);
 
-  useEffect(() => {
-    if (isLoggedIn) return;
-
-    navigateReplace("Login");
-  }, [isLoggedIn]);
+  const handleLoginPress = useCallback(() => navigateReplace("Login"), []);
 
   return (
     <View style={styles.container}>
-      <Button label={t("logout")} handlePress={logout} />
+      {isLoggedIn && <Button label={t("logout")} handlePress={logout} />}
+      {!isLoggedIn && (
+        <Button label={t("loginButton")} handlePress={handleLoginPress} />
+      )}
       {!hasInternet && (
         <Text style={styles.doesNotHaveInternet}>
           {t("NoInternetConnection")}
@@ -93,6 +114,7 @@ const HomeScreen: React.FC = () => {
           {t("PleaseCheckInternetConnection")}
         </Text>
       )}
+
       <Text style={styles.title}>
         {t("welcomeUser", { user: userData?.name || t("user") })}
       </Text>

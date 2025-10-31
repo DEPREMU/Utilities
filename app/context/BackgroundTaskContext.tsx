@@ -252,7 +252,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
     const onBackPress = () => {
       getCurrentScreen().then((currentScreen) => {
-        const isFirstScreen = currentScreen === "Home" || !isLoggedIn;
+        const isFirstScreen = currentScreen === "Home";
 
         Alert.alert(
           t(isFirstScreen ? "exitApp" : "back"),

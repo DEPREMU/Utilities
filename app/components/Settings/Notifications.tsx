@@ -56,8 +56,8 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
   const handleChangeNotification = useCallback(
     async (reason: ReasonNotification) => {
-      if (!sessionToken) return navigateReplace("Login");
-      if (!userData?.userId) return;
+      if (!sessionToken && reason === "cryptos")
+        return navigateReplace("Login");
       if (reason === "locationEnabled") await askLocationPermission();
 
       setNotifications((prev) => {
@@ -71,39 +71,40 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             [reason]: !prev.enabled[reason],
           },
         };
-        getRouteAPI("/supabase/update").then((url) => {
-          const values: RequestSupabaseUpdate["values"] = {
-            enabled: !!updated.enabled[reason],
-          };
-          const match: RequestSupabaseUpdate["match"] = {
-            userId: userData.userId,
-            reason,
-          };
-          addTaskQueue(
-            async () => {
-              fetch(
-                url,
-                fetchOptions<RequestSupabaseUpdate>(
-                  "POST",
-                  {
-                    match,
-                    table: "UserNotificationsConfig",
-                    values,
-                    lang: language,
-                  },
-                  sessionToken,
-                ),
-              );
-            },
-            true,
-            {
+        if (sessionToken && userData?.userId)
+          getRouteAPI("/supabase/update").then((url) => {
+            const values: RequestSupabaseUpdate["values"] = {
+              enabled: !!updated.enabled[reason],
+            };
+            const match: RequestSupabaseUpdate["match"] = {
+              userId: userData.userId,
+              reason,
+            };
+            addTaskQueue(
+              async () => {
+                fetch(
+                  url,
+                  fetchOptions<RequestSupabaseUpdate>(
+                    "POST",
+                    {
+                      match,
+                      table: "UserNotificationsConfig",
+                      values,
+                      lang: language,
+                    },
+                    sessionToken,
+                  ),
+                );
+              },
+              true,
+              {
+                id,
+                args: ["UserNotificationsConfig", values, match],
+                functionName: "updateFromSupabase",
+              },
               id,
-              args: ["UserNotificationsConfig", values, match],
-              functionName: "updateFromSupabase",
-            },
-            id,
-          );
-        });
+            );
+          });
 
         saveData("@notifications", updated);
         return updated;
