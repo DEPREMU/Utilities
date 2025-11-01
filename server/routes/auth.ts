@@ -1,6 +1,5 @@
 import type {
   SelectedCryptos,
-  KeyStorageValues,
   ExpectedStorageTypes,
 } from "./../../app/utils/constants/keysStorage";
 import {
@@ -8,7 +7,7 @@ import {
   updateInTable,
   fetchFromTable,
   insertIntoTable,
-} from "../supabase/functions.ts";
+} from "../database/functions.ts";
 import type {
   Tables,
   UserData,
@@ -109,7 +108,7 @@ export const getStorageData = async (
   userId: string,
   rememberMe: boolean,
   token: string,
-): Promise<Record<KeyStorageValues, unknown> | null> => {
+): Promise<ExpectedStorageTypes<"BOTH"> | null> => {
   if (!token) return null;
   if (!userId) return null;
 
@@ -206,8 +205,9 @@ export const getStorageData = async (
   const storageData: ExpectedStorageTypes<"BOTH"> = {
     _sessionExpiry: date,
     _selectedCryptos: cryptosToSave,
-    _userSessionTokenStorage: token,
     _lastUpdateCheck: Date.now(),
+    _downDetectorData: [],
+    _userSessionTokenStorage: token,
     "@API_URL": userConfigToSave.API_URL || "",
     "@hasAdminAccess": userConfigToSave.hasAdmin,
     "@notifications": userNotificationsConfigToSave,
@@ -434,7 +434,10 @@ export const handleSignIn = async (
   try {
     const { data: userExists } = await fetchFromTable("Users", { email });
 
-    if (!userExists || (Array.isArray(userExists) && userExists.length > 0)) {
+    if (
+      userExists ||
+      (Array.isArray(userExists) && (userExists as []).length > 0)
+    ) {
       res
         .status(400)
         .json({ success: false, error: t("auth.accountAlreadyExists", lang) });
@@ -447,6 +450,8 @@ export const handleSignIn = async (
       email: email,
       password: hashedPassword,
     });
+
+    console.log("Inserted data:", insertedData);
 
     let user = insertedData.data;
     if (Array.isArray(user)) user = user[0];

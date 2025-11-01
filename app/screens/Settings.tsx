@@ -24,7 +24,7 @@ import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { ScrollView, View, Alert, Platform } from "react-native";
-import { RequestSupabaseUpdate, typeLanguages } from "@types";
+import { RequestDatabaseUpdate, typeLanguages } from "@types";
 import React, { useCallback, useEffect, useState } from "react";
 
 type Section = {
@@ -85,8 +85,8 @@ const SettingsScreen: React.FC = () => {
         if (!sessionToken) return;
 
         await fetch(
-          await getRouteAPI("/supabase/update"),
-          fetchOptions<RequestSupabaseUpdate>(
+          await getRouteAPI("/database/update"),
+          fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
             "POST",
             {
               lang: language,
@@ -102,7 +102,7 @@ const SettingsScreen: React.FC = () => {
       true,
       {
         id,
-        functionName: "updateFromSupabase",
+        functionName: "updateFromDatabase",
         args: ["UserConfig", { API_URL: apiURL }, { userId: userData.userId }],
       },
       id,
@@ -121,8 +121,8 @@ const SettingsScreen: React.FC = () => {
         if (!sessionToken) return;
 
         await fetch(
-          await getRouteAPI("/supabase/update"),
-          fetchOptions<RequestSupabaseUpdate>(
+          await getRouteAPI("/database/update"),
+          fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
             "POST",
             {
               lang: language,
@@ -138,7 +138,7 @@ const SettingsScreen: React.FC = () => {
       true,
       {
         id,
-        functionName: "updateFromSupabase",
+        functionName: "updateFromDatabase",
         args: [
           "UserConfig",
           { webSocketURL: socketURL },

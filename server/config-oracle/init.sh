@@ -7,7 +7,7 @@ sudo apt install ufw -y
 sudo apt install wget curl -y
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 \. "$HOME/.nvm/nvm.sh"
-nvm install 23
+nvm install 24
 sudo npm install -g pm2
 npm install -g pm2
 
@@ -33,9 +33,19 @@ nordvpn set tpl on
 nordvpn set autoconnect enabled Mexico
 nordvpn set technology nordlynx
 
+
+# Initialize the database
+chmod +x /home/ubuntu/Utilities/server/config-oracle/init-db.sh
+/home/ubuntu/Utilities/server/config-oracle/init-db.sh
+
+sudo apt update -y
+sudo apt upgrade -y
+
 # Start the server
 chmod +x /home/ubuntu/Utilities/server/config-oracle/start.sh
 pm2 start /home/ubuntu/Utilities/server/config-oracle/start.sh --name Utilities
 pm2 save
 pm2 startup
 # Then copy and paste the output command to enable pm2 on startup
+
+sudo reboot

@@ -9,7 +9,7 @@ import type {
 } from "../../types/index.ts";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
-import { dataSupabase } from "./fetchData.ts";
+import { dataDatabase } from "./fetchData.ts";
 import { isLiveStreamer } from "../routes/socialMedia.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
 
@@ -19,10 +19,10 @@ const notificationsSent: Record<
 > = {};
 
 const handleSendNotificationsStreamers = async () => {
-  const pushTokens: PushTokens[] | null = dataSupabase.PushTokens;
-  const tableStreamers: Streamer[] | null = dataSupabase.Streamers;
+  const pushTokens: PushTokens[] | null = dataDatabase.PushTokens;
+  const tableStreamers: Streamer[] | null = dataDatabase.Streamers;
   const usersConfig: Record<string, UserConfig> | null =
-    dataSupabase.UserConfig.reduce(
+    dataDatabase.UserConfig.reduce(
       (acc, config) => {
         if (config.userId) acc[config.userId] = config;
         return acc;
@@ -30,7 +30,7 @@ const handleSendNotificationsStreamers = async () => {
       {} as Record<string, UserConfig>,
     );
   const notificationsConfig: UserNotificationsConfig[] | null =
-    dataSupabase.UserNotificationsConfig;
+    dataDatabase.UserNotificationsConfig;
 
   if (!tableStreamers || !notificationsConfig || !pushTokens) return;
 

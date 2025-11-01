@@ -82,7 +82,7 @@ const saveStorageData = async (
 };
 
 /**
- * Signs in a user using email and password authentication with Supabase.
+ * Signs in a user using email and password authentication with Database.
  *
  * @param email - The user's email address
  * @param password - The user's password
@@ -128,7 +128,7 @@ export const signInWithEmail = async (
     const dataInsert = (await res.json()) as ResponseAuth;
 
     if (isFalsy(dataInsert.user)) {
-      const errorMsg = "No session or user data received from Supabase";
+      const errorMsg = "No session or user data received from Database";
       logError(errorMsg);
       return { error: errorMsg };
     }
@@ -153,7 +153,7 @@ export const signInWithEmail = async (
 };
 
 /**
- * Signs up a new user with email and password using Supabase Auth
+ * Signs up a new user with email and password using Database Auth
  */
 export const signUpWithEmail = async (
   email: string,
@@ -191,7 +191,7 @@ export const forgotPasswordWithEmail = async (
   callback?: (success: boolean, error?: string) => void,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    // const { error } = await supabase.auth.resetPasswordForEmail(email);
+    // const { error } = await database.auth.resetPasswordForEmail(email);
     const error = { message: "Simulated error" }; //! Implement forgot password endpoint in Server
 
     if (!error) {
@@ -377,7 +377,7 @@ export const getUserData = async (
 };
 
 /**
- * Fetches the current user id from supabase auth.
+ * Fetches the current user id from database auth.
  *
  * @returns The user's id if the user is authenticated, otherwise null.
  */

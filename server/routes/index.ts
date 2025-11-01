@@ -1,4 +1,4 @@
-import "../Notifications/index.ts"; 
+import "../Notifications/index.ts";
 
 import {
   decryptHandler,
@@ -6,11 +6,11 @@ import {
   handleGetRandomUUID,
 } from "./encryption.ts";
 import {
-  handleUpdateToSupabase,
-  handleInsertToSupabase,
-  handleFetchFromSupabase,
-  handleDeleteFromSupabase,
-} from "./supabase.ts";
+  handleUpdateToDatabase,
+  handleInsertToDatabase,
+  handleFetchFromDatabase,
+  handleDeleteFromDatabase,
+} from "./database.ts";
 import {
   handleLogin,
   handleSignIn,
@@ -84,24 +84,24 @@ const routes: Record<RoutesAPI, Route> = {
     handler: handleSignOut,
     middlewares: [authMiddleware],
   },
-  "/supabase/fetch": {
+  "/database/fetch": {
     method: "post",
-    handler: handleFetchFromSupabase,
+    handler: handleFetchFromDatabase,
     middlewares: [authMiddleware],
   },
-  "/supabase/insert": {
+  "/database/insert": {
     method: "post",
-    handler: handleInsertToSupabase,
+    handler: handleInsertToDatabase,
     middlewares: [authMiddleware],
   },
-  "/supabase/update": {
+  "/database/update": {
     method: "post",
-    handler: handleUpdateToSupabase,
+    handler: handleUpdateToDatabase,
     middlewares: [authMiddleware],
   },
-  "/supabase/delete": {
+  "/database/delete": {
     method: "post",
-    handler: handleDeleteFromSupabase,
+    handler: handleDeleteFromDatabase,
     middlewares: [authMiddleware],
   },
   "/getRandomUUID": {

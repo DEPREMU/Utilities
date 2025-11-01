@@ -9,12 +9,12 @@ import {
   Tables,
   TablesKeys,
   DownDetector as DownDetectorType,
-  RequestSupabaseDelete,
-  RequestSupabaseFetch,
-  RequestSupabaseUpdate,
-  ResponseSupabaseDelete,
-  ResponseSupabaseFetch,
-  ResponseSupabaseUpdate,
+  RequestDatabaseFetch,
+  RequestDatabaseDelete,
+  RequestDatabaseUpdate,
+  ResponseDatabaseFetch,
+  ResponseDatabaseDelete,
+  ResponseDatabaseUpdate,
 } from "@types";
 import chalk from "chalk";
 import DownDetector from "./DownDetector";
@@ -61,8 +61,8 @@ const DownDetectorNavigator: React.FC = () => {
       if (!sessionToken) return logError("No session token available");
 
       const { error } = (await fetch(
-        await getRouteAPI("/supabase/delete"),
-        fetchOptions<RequestSupabaseDelete<typeof tableName>>(
+        await getRouteAPI("/database/delete"),
+        fetchOptions<RequestDatabaseDelete<typeof tableName>>(
           "POST",
           {
             lang: language,
@@ -71,7 +71,7 @@ const DownDetectorNavigator: React.FC = () => {
           },
           sessionToken,
         ),
-      ).then((res) => res.json())) as ResponseSupabaseDelete;
+      ).then((res) => res.json())) as ResponseDatabaseDelete;
 
       if (error) {
         logError(chalk.red("Error deleting downDetector item:"), error);
@@ -101,12 +101,12 @@ const DownDetectorNavigator: React.FC = () => {
           ...(prevData?.filter((item) => item.id !== id) || []),
         ];
 
-        getRouteAPI("/supabase/update").then(async (url) => {
+        getRouteAPI("/database/update").then(async (url) => {
           if (!sessionToken) return logError("No session token available");
 
           fetch(
             url,
-            fetchOptions<RequestSupabaseUpdate<typeof tableName>>(
+            fetchOptions<RequestDatabaseUpdate<typeof tableName>>(
               "POST",
               {
                 lang: language,
@@ -118,7 +118,7 @@ const DownDetectorNavigator: React.FC = () => {
             ),
           ).then(async (res) => {
             const { success, error } =
-              (await res.json()) as ResponseSupabaseUpdate<typeof tableName>;
+              (await res.json()) as ResponseDatabaseUpdate<typeof tableName>;
 
             if (error) {
               logError(
@@ -179,13 +179,13 @@ const DownDetectorNavigator: React.FC = () => {
   useEffect(() => {
     if (!userData?.userId) return;
 
-    const fetchDownDetectorDataFromSupabase = async () => {
+    const fetchDownDetectorDataFromDatabase = async () => {
       if (!sessionToken) return logError("No session token available");
 
       try {
         const res = await fetch(
-          await getRouteAPI("/supabase/fetch"),
-          fetchOptions<RequestSupabaseFetch<typeof tableName>>(
+          await getRouteAPI("/database/fetch"),
+          fetchOptions<RequestDatabaseFetch<typeof tableName>>(
             "POST",
             {
               table: tableName,
@@ -196,32 +196,29 @@ const DownDetectorNavigator: React.FC = () => {
           ),
         );
 
-        const { data, error } = (await res.json()) as ResponseSupabaseFetch<
+        const { data, error } = (await res.json()) as ResponseDatabaseFetch<
           typeof tableName
         >;
 
-        if (error || !data) {
-          logError(chalk.red("Error fetching downDetector data:"), error);
-          return;
+        if (!error && data) {
+          setTimeout(
+            () =>
+              setDownDetectorData(
+                (Array.isArray(data) ? data : [data]).sort((a, b) =>
+                  b.createdAt.localeCompare(a.createdAt),
+                ) ?? null,
+              ),
+            2000,
+          );
         }
-
-        setTimeout(
-          () =>
-            setDownDetectorData(
-              (Array.isArray(data) ? data : [data]).sort((a, b) =>
-                b.createdAt.localeCompare(a.createdAt),
-              ) ?? null,
-            ),
-          2000,
-        );
       } catch (error) {
         logError(chalk.red("Error fetching downDetector data:"), error);
-        const fallbackData = await loadDataSecure("_downDetectorData");
-        setDownDetectorData(fallbackData || null);
       }
+      const fallbackData = await loadDataSecure("_downDetectorData");
+      setTimeout(() => setDownDetectorData(fallbackData || null), 2000);
     };
 
-    fetchDownDetectorDataFromSupabase();
+    fetchDownDetectorDataFromDatabase();
   }, [userData?.userId, sessionToken, language]);
 
   return (

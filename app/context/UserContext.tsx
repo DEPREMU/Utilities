@@ -63,7 +63,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   /**
-   * Login function using Supabase auth
+   * Login function using Database auth
    */
   const login = useCallback(
     async <T = null,>(
@@ -109,7 +109,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   );
 
   /**
-   * Sign up function using Supabase auth
+   * Sign up function using Database auth
    */
   const signUp = useCallback(
     async <T = null,>(

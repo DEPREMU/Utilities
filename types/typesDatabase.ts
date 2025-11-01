@@ -1,5 +1,5 @@
-import { ReasonNotification } from "./typesNotifications";
 import type { UserData } from "./typesUser";
+import type { ReasonNotification } from "./typesNotifications";
 
 export type Logs = {
   id?: string;

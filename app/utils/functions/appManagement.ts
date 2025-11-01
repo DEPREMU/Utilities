@@ -1,8 +1,8 @@
 import {
   Notifications,
   LanguagesSupported,
-  RequestSupabaseFetch,
-  ResponseSupabaseFetch,
+  RequestDatabaseFetch,
+  ResponseDatabaseFetch,
 } from "@types";
 import chalk from "chalk";
 import * as Updates from "expo-updates";
@@ -259,14 +259,14 @@ export const getNotifications = async (): Promise<Notifications> => {
   return await initializeNotificationsStorage();
 };
 
-export const getCryptosFromSupabase = async (
+export const getCryptosFromDatabase = async (
   lang: LanguagesSupported,
   token: string,
 ): Promise<ExpectedStorageTypes["_selectedCryptos"]> => {
-  const url = await getRouteAPI("/supabase/fetch");
+  const url = await getRouteAPI("/database/fetch");
   const response = await fetch(
     url,
-    fetchOptions<RequestSupabaseFetch>(
+    fetchOptions<RequestDatabaseFetch>(
       "POST",
       {
         lang,
@@ -278,11 +278,11 @@ export const getCryptosFromSupabase = async (
   );
 
   if (!response.ok) {
-    logError("Error fetching cryptos from Supabase:", response.statusText);
+    logError("Error fetching cryptos from Database:", response.statusText);
     return null;
   }
 
-  const data = (await response.json()) as ResponseSupabaseFetch<"Cryptos">;
+  const data = (await response.json()) as ResponseDatabaseFetch<"Cryptos">;
 
   let cryptos = data.data;
   if (!cryptos) return null;

@@ -1,15 +1,9 @@
 import { Falsy } from "react-native";
-import type { UserData } from "./typesUser";
-import type {
-  Logs,
-  Streamer,
-  Tables,
-  TablesKeys,
-  UserConfig,
-} from "./typesDatabase";
 import type { Handler } from "express";
-import { LanguagesSupported } from "./typesTranslations";
-import { ExpectedStorageTypes } from "@/utils";
+import type { UserData } from "./typesUser";
+import type { LanguagesSupported } from "./typesTranslations";
+import type { ExpectedStorageTypes } from "../app/utils/index";
+import type { Logs, Streamer, Tables, TablesKeys } from "./typesDatabase";
 
 export type Route = {
   method: "get" | "post" | "put" | "delete";
@@ -31,10 +25,10 @@ export type RoutesAPI =
   | "/cryptos"
   | "/getIsLiveStreamer"
   | "/translate"
-  | "/supabase/update"
-  | "/supabase/delete"
-  | "/supabase/fetch"
-  | "/supabase/insert"
+  | "/database/update"
+  | "/database/delete"
+  | "/database/fetch"
+  | "/database/insert"
   | "/auth/login"
   | "/auth/signup"
   | "/auth/signOut"
@@ -145,49 +139,49 @@ export type ResponseSignOut = {
   error?: string;
 };
 
-export type RequestSupabaseInsert<T extends TablesKeys = TablesKeys> = {
+export type RequestDatabaseInsert<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
   values: T extends "Users" ? Partial<Tables[T]> : Tables[T] | Tables[T][];
 };
 
-export type ResponseSupabaseInsert<T extends TablesKeys = TablesKeys> = {
+export type ResponseDatabaseInsert<T extends TablesKeys = TablesKeys> = {
   data?: Tables[T] | Tables[T][] | null;
   error?: string;
   success: boolean;
 };
 
-export type RequestSupabaseFetch<T extends TablesKeys = TablesKeys> = {
+export type RequestDatabaseFetch<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
   match: Partial<Tables[T]> | null;
 };
 
-export type ResponseSupabaseFetch<T extends TablesKeys = TablesKeys> = {
+export type ResponseDatabaseFetch<T extends TablesKeys = TablesKeys> = {
   data?: Tables[T][] | Tables[T] | Falsy;
   error?: string;
 };
 
-export type RequestSupabaseUpdate<T extends TablesKeys = TablesKeys> = {
+export type RequestDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
   match: Partial<Tables[T]> | null;
   values: Partial<Tables[T]> | Partial<Tables[T]>[];
 };
 
-export type ResponseSupabaseUpdate<T extends TablesKeys = TablesKeys> = {
+export type ResponseDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
   data?: Tables[T] | Tables[T][] | Falsy;
   error?: string;
   success: boolean;
 };
 
-export type RequestSupabaseDelete<T extends TablesKeys = TablesKeys> = {
+export type RequestDatabaseDelete<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
   match: Partial<Tables[T]>;
 };
 
-export type ResponseSupabaseDelete = {
+export type ResponseDatabaseDelete = {
   success: boolean;
   error?: string;
 };

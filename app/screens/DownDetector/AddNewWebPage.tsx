@@ -3,11 +3,11 @@ import { View } from "react-native";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
-import { Switch, Text, TextInput } from "react-native-paper";
 import useStylesAddNewWebPage from "@styles/screens/downDetector/useStylesAddNewWebPage";
+import { Switch, Text, TextInput } from "react-native-paper";
 import { fetchOptions, getRouteAPI } from "@utils";
 import React, { useCallback, useState } from "react";
-import { RequestSupabaseInsert, ResponseSupabaseInsert, Tables } from "@types";
+import { RequestDatabaseInsert, ResponseDatabaseInsert, Tables } from "@types";
 
 interface AddNewWebPageScreenProps {
   addNewItem: (item: Tables["DownDetector"]) => void;
@@ -39,11 +39,11 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
 
     setIsLoading(true);
     try {
-      const url = await getRouteAPI("/supabase/insert");
+      const url = await getRouteAPI("/database/insert");
 
       const res = await fetch(
         url,
-        fetchOptions<RequestSupabaseInsert<typeof tableName>>(
+        fetchOptions<RequestDatabaseInsert<typeof tableName>>(
           "POST",
           {
             lang: language,
@@ -58,7 +58,7 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
           sessionToken,
         ),
       );
-      const { data, error } = (await res.json()) as ResponseSupabaseInsert<
+      const { data, error } = (await res.json()) as ResponseDatabaseInsert<
         typeof tableName
       >;
 

@@ -2,9 +2,9 @@ import { List } from "react-native-paper";
 import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
-import { useBackgroundTask } from "@/context/BackgroundTaskContext";
-import { fetchOptions, getRouteAPI } from "@/utils";
-import { RequestSupabaseUpdate, Theme } from "@types";
+import { useBackgroundTask } from "@context/BackgroundTaskContext";
+import { fetchOptions, getRouteAPI } from "@utils";
+import { RequestDatabaseUpdate, Theme } from "@types";
 import React, { memo, useCallback, useMemo } from "react";
 
 const ThemePicker: React.FC = () => {
@@ -21,8 +21,8 @@ const ThemePicker: React.FC = () => {
         if (!userData?.userId || !sessionToken) return;
 
         await fetch(
-          await getRouteAPI("/supabase/update"),
-          fetchOptions<RequestSupabaseUpdate>(
+          await getRouteAPI("/database/update"),
+          fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
             "POST",
             {
               lang: language,

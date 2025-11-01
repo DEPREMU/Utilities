@@ -27,7 +27,7 @@ const en: typeLanguagesServer = {
     tokenAndDeviceIdRequired: "Token and Device ID are required",
     deviceInfoIsRequired: "Device information is required",
   },
-  supabase: {
+  database: {
     fetchError: "Error fetching data from the database",
     insertError: "Error inserting data into the database",
     updateError: "Error updating data in the database",

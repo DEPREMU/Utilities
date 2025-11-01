@@ -3,29 +3,22 @@ import {
   fetchFromTable,
   insertIntoTable,
   deleteSessions,
-} from "../supabase/functions.ts";
+} from "../database/functions.ts";
 import type {
   Cryptos,
   UserConfig,
   Notification,
   Notifications,
   WebSocketMessage,
-  ReasonNotification,
   WebSocketResponse,
+  ReasonNotification,
   LanguagesSupported,
   UserNotificationsConfig,
   ClipboardWebSocketMessage,
 } from "./../../types/index";
-import env from "../env.ts";
-import { t } from "../translations/index.ts";
 import chalk from "chalk";
-import { supabase } from "../supabase/supabase.ts";
+import { t } from "../translations/index.ts";
 import WebSocket, { WebSocketServer } from "ws";
-
-const credentials = await supabase.auth.signInWithPassword({
-  email: env.EMAIL_APP_SUPABASE,
-  password: env.PASSWORD_APP_SUPABASE,
-});
 
 deleteSessions();
 
@@ -39,16 +32,6 @@ const users: Record<
     > | null;
   }
 > = {};
-
-setInterval(
-  async () => {
-    const { data } = await supabase.auth.refreshSession({
-      refresh_token: credentials.data.session?.refresh_token || "",
-    });
-    credentials.data.session = data.session;
-  },
-  50 * 60 * 1000,
-);
 
 const getPercentGain = (priceUsd: number, cryptoData: Cryptos) => {
   if (!cryptoData.firstPricePurchased) return "0%";
@@ -242,6 +225,7 @@ const connectionWss = (ws: WebSocket) => {
       ...users[data.userId].intervalsId,
       cryptos: intervalId,
       streamers: null,
+      downDetector: null,
       batteryAlerts: null,
       locationEnabled: null,
       allNotifications: null,

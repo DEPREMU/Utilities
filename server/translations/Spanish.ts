@@ -27,7 +27,7 @@ const es: typeLanguagesServer = {
     tokenAndDeviceIdRequired: "Se requieren token y ID de dispositivo",
     deviceInfoIsRequired: "Se requiere información del dispositivo",
   },
-  supabase: {
+  database: {
     fetchError: "Error al obtener datos de la base de datos",
     insertError: "Error al insertar datos en la base de datos",
     updateError: "Error al actualizar datos en la base de datos",

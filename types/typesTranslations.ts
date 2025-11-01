@@ -257,7 +257,7 @@ export type typeLanguagesServer = {
     tokenAndDeviceIdRequired: string;
     deviceInfoIsRequired: string;
   };
-  supabase: {
+  database: {
     fetchError: string;
     insertError: string;
     updateError: string;

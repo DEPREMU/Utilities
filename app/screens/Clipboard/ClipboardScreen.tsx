@@ -1,9 +1,9 @@
 import { Text } from "react-native-paper";
 import {
-  RequestSupabaseFetch,
-  RequestSupabaseUpdate,
-  ResponseSupabaseFetch,
-  ResponseSupabaseUpdate,
+  RequestDatabaseFetch,
+  RequestDatabaseUpdate,
+  ResponseDatabaseFetch,
+  ResponseDatabaseUpdate,
   Tables,
 } from "@types";
 import { fetchOptions, getRouteAPI, logError } from "@utils";
@@ -42,8 +42,8 @@ const ClipboardScreen: React.FC = () => {
       if (!sessionToken) return logError("No session token available");
 
       const { error } = (await fetch(
-        await getRouteAPI("/supabase/update"),
-        fetchOptions<RequestSupabaseUpdate>(
+        await getRouteAPI("/database/update"),
+        fetchOptions<RequestDatabaseUpdate<"ClipboardSync">>(
           "POST",
           {
             lang: language,
@@ -53,7 +53,7 @@ const ClipboardScreen: React.FC = () => {
           },
           sessionToken,
         ),
-      ).then((res) => res.json())) as ResponseSupabaseUpdate;
+      ).then((res) => res.json())) as ResponseDatabaseUpdate<"ClipboardSync">;
 
       if (error) {
         logError(chalk.red("Error deleting clipboard item:"), error);
@@ -107,12 +107,12 @@ const ClipboardScreen: React.FC = () => {
   useEffect(() => {
     if (!userData?.userId) return;
 
-    const fetchClipboardFromSupabase = async () => {
+    const fetchClipboardFromDatabase = async () => {
       if (!sessionToken) return logError("No session token available");
 
       const res = await fetch(
-        await getRouteAPI("/supabase/fetch"),
-        fetchOptions<RequestSupabaseFetch>(
+        await getRouteAPI("/database/fetch"),
+        fetchOptions<RequestDatabaseFetch<"ClipboardSync">>(
           "POST",
           {
             table: "ClipboardSync",
@@ -124,25 +124,28 @@ const ClipboardScreen: React.FC = () => {
       );
 
       const { data, error } =
-        (await res.json()) as ResponseSupabaseFetch<"ClipboardSync">;
+        (await res.json()) as ResponseDatabaseFetch<"ClipboardSync">;
 
-      if (error || !data) {
-        logError(chalk.red("Error fetching clipboard data:"), error);
+      if (error) {
+        logError("Error fetching clipboard data:", error);
         return;
       }
 
       setTimeout(
-        () =>
+        () => {
+          if (!data) return setClipboardData(null);
+
           setClipboardData(
             (Array.isArray(data) ? data : [data]).sort((a, b) =>
               b.createdAt.localeCompare(a.createdAt),
             ) ?? null,
-          ),
-        3000,
+          );
+        },
+        data ? 3000 : 2000,
       );
     };
 
-    fetchClipboardFromSupabase();
+    fetchClipboardFromDatabase();
   }, [userData?.userId, sessionToken, language]);
 
   return (

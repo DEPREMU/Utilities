@@ -2,7 +2,7 @@ import {
   Notifications,
   typeLanguages,
   ReasonNotification,
-  RequestSupabaseUpdate,
+  RequestDatabaseUpdate,
 } from "@types";
 import {
   isFalsy,
@@ -19,7 +19,7 @@ import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
-import { useBackgroundTask } from "@/context/BackgroundTaskContext";
+import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesNotifications from "@styles/components/settings/useStylesNotifications";
 import { Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -72,11 +72,11 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
           },
         };
         if (sessionToken && userData?.userId)
-          getRouteAPI("/supabase/update").then((url) => {
-            const values: RequestSupabaseUpdate["values"] = {
+          getRouteAPI("/database/update").then((url) => {
+            const values: RequestDatabaseUpdate["values"] = {
               enabled: !!updated.enabled[reason],
             };
-            const match: RequestSupabaseUpdate["match"] = {
+            const match: RequestDatabaseUpdate["match"] = {
               userId: userData.userId,
               reason,
             };
@@ -84,7 +84,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
               async () => {
                 fetch(
                   url,
-                  fetchOptions<RequestSupabaseUpdate>(
+                  fetchOptions<RequestDatabaseUpdate>(
                     "POST",
                     {
                       match,
@@ -100,7 +100,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
               {
                 id,
                 args: ["UserNotificationsConfig", values, match],
-                functionName: "updateFromSupabase",
+                functionName: "updateFromDatabase",
               },
               id,
             );
@@ -127,13 +127,13 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
           [id]: interval,
         } as typeMinutes;
 
-        getRouteAPI("/supabase/update").then((url) => {
+        getRouteAPI("/database/update").then((url) => {
           const taskId =
             Date.now().toString() + Math.random().toString(36).substring(2, 8);
-          const values: RequestSupabaseUpdate["values"] = {
+          const values: RequestDatabaseUpdate["values"] = {
             interval: interval * 60 * 1000,
           };
-          const match: RequestSupabaseUpdate["match"] = {
+          const match: RequestDatabaseUpdate["match"] = {
             userId: userData.userId,
             reason: id,
           };
@@ -141,7 +141,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             async () => {
               fetch(
                 url,
-                fetchOptions<RequestSupabaseUpdate>(
+                fetchOptions<RequestDatabaseUpdate>(
                   "POST",
                   {
                     match,
@@ -157,7 +157,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             {
               id: taskId,
               args: ["UserNotificationsConfig", values, match],
-              functionName: "updateFromSupabase",
+              functionName: "updateFromDatabase",
             },
             taskId,
           );

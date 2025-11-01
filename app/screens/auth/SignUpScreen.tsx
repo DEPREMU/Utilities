@@ -4,7 +4,6 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { log } from "@utils";
 import { useModal } from "@context/ModalContext";
 import ButtonComponent from "@components/common/ButtonComponent";
 import { useLanguage } from "@context/LanguageContext";
@@ -16,8 +15,8 @@ import { ActivityIndicator } from "react-native-paper";
 import { RootStackParamList } from "navigation/AppNavigator";
 import { View, Keyboard, Platform } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { useCallback, useState } from "react";
-import { isValidEmail, isValidPassword } from "@utils";
+import { log, isValidEmail, isValidPassword } from "@utils";
+import React, { useCallback, useRef, useState } from "react";
 
 type SignUpScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -33,7 +32,6 @@ const SignUpScreen: React.FC = () => {
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [signingUp, setSigningUp] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [validations, setValidations] = useState<
@@ -43,23 +41,25 @@ const SignUpScreen: React.FC = () => {
     isPasswordValid: true,
   });
 
+  const signingUpRef = useRef<boolean>(false);
+
   const handlePressSignUp = () => {
-    if (signingUp) return;
+    if (signingUpRef.current) return;
     handlerBlurInputEmail();
     handlerBlurInputPassword();
     if (!isValidEmail(email)) return;
     if (!isValidPassword(password)) return;
 
-    setSigningUp(true);
+    signingUpRef.current = true;
 
     signUp(email, password, (success, error) => {
       if (!success) {
         setError(error || "Sign up failed");
-        setSigningUp(false);
+        signingUpRef.current = false;
         return log("Sign up failed:", error, email);
       }
 
-      setSigningUp(false);
+      signingUpRef.current = false;
       openSnackBar(`${t("successSignUpMessage")}\n${t("verifyEmail")}`, 8000, {
         label: t("close"),
       });
@@ -200,9 +200,9 @@ const SignUpScreen: React.FC = () => {
         {!!error && <Text style={styles.errorText}>{error}</Text>}
 
         <ButtonComponent
-          label={!signingUp ? t("signUp") : ""}
+          label={!signingUpRef.current ? t("signUp") : ""}
           children={
-            signingUp ? (
+            signingUpRef.current ? (
               <ActivityIndicator
                 size="small"
                 color="#fff"
@@ -210,7 +210,7 @@ const SignUpScreen: React.FC = () => {
               />
             ) : null
           }
-          disabled={signingUp}
+          disabled={signingUpRef.current}
           touchableOpacity
           handlePress={handlePressSignUp}
           customStyles={{

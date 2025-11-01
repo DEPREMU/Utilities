@@ -3,24 +3,24 @@ import {
   deleteInTable,
   fetchFromTable,
   insertIntoTable,
-} from "../supabase/functions.ts";
+} from "../database/functions.ts";
 import type {
-  RequestSupabaseDelete,
-  RequestSupabaseFetch,
-  RequestSupabaseInsert,
-  RequestSupabaseUpdate,
-  ResponseSupabaseDelete,
-  ResponseSupabaseFetch,
-  ResponseSupabaseInsert,
-  ResponseSupabaseUpdate,
-} from "../../types";
+  RequestDatabaseDelete,
+  RequestDatabaseFetch,
+  RequestDatabaseInsert,
+  RequestDatabaseUpdate,
+  ResponseDatabaseDelete,
+  ResponseDatabaseFetch,
+  ResponseDatabaseInsert,
+  ResponseDatabaseUpdate,
+} from "../../types/index.ts";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
 import type { Request, Response } from "express";
 
-export const handleFetchFromSupabase = async (
-  req: Request<unknown, unknown, RequestSupabaseFetch>,
-  res: Response<ResponseSupabaseFetch>,
+export const handleFetchFromDatabase = async (
+  req: Request<unknown, unknown, RequestDatabaseFetch>,
+  res: Response<ResponseDatabaseFetch>,
 ) => {
   const lang = req.body.lang || "en";
   let { match } = req.body || { match: null };
@@ -37,21 +37,21 @@ export const handleFetchFromSupabase = async (
     const { data, error } = await fetchFromTable(table, match);
 
     if (error) {
-      console.error(chalk.red("Error fetching from Supabase:"), error);
-      res.status(500).json({ error: t("supabase.fetchError", lang) });
+      console.error(chalk.red("Error fetching from Database:"), error);
+      res.status(500).json({ error: t("database.fetchError", lang) });
       return;
     }
 
     res.json({ data });
   } catch (error) {
-    console.error(chalk.red("Error fetching from Supabase:"), error);
-    res.status(500).json({ error: t("supabase.fetchError", lang) });
+    console.error(chalk.red("Error fetching from Database:"), error);
+    res.status(500).json({ error: t("database.fetchError", lang) });
   }
 };
 
-export const handleInsertToSupabase = async (
-  req: Request<unknown, unknown, RequestSupabaseInsert>,
-  res: Response<ResponseSupabaseInsert>,
+export const handleInsertToDatabase = async (
+  req: Request<unknown, unknown, RequestDatabaseInsert>,
+  res: Response<ResponseDatabaseInsert>,
 ) => {
   const lang = req.body.lang || "en";
   try {
@@ -82,22 +82,22 @@ export const handleInsertToSupabase = async (
     if (error) {
       res
         .status(500)
-        .json({ success: false, error: t("supabase.insertError", lang) });
+        .json({ success: false, error: t("database.insertError", lang) });
       return;
     }
 
     return res.json({ success: true, data });
   } catch (error) {
-    console.error(chalk.red("Error inserting to Supabase:"), error);
+    console.error(chalk.red("Error inserting to Database:"), error);
     res
       .status(500)
-      .json({ success: false, error: t("supabase.insertError", lang) });
+      .json({ success: false, error: t("database.insertError", lang) });
   }
 };
 
-export const handleUpdateToSupabase = async (
-  req: Request<unknown, unknown, RequestSupabaseUpdate>,
-  res: Response<ResponseSupabaseUpdate>,
+export const handleUpdateToDatabase = async (
+  req: Request<unknown, unknown, RequestDatabaseUpdate>,
+  res: Response<ResponseDatabaseUpdate>,
 ) => {
   const lang = req.body.lang || "en";
 
@@ -118,22 +118,22 @@ export const handleUpdateToSupabase = async (
     if (error) {
       res
         .status(500)
-        .json({ success: false, error: t("supabase.updateError", lang) });
+        .json({ success: false, error: t("database.updateError", lang) });
       return;
     }
 
     res.json({ success: true, data });
   } catch (error) {
-    console.error(chalk.red("Error updating Supabase:"), error);
+    console.error(chalk.red("Error updating Database:"), error);
     res
       .status(500)
-      .json({ success: false, error: t("supabase.updateError", lang) });
+      .json({ success: false, error: t("database.updateError", lang) });
   }
 };
 
-export const handleDeleteFromSupabase = async (
-  req: Request<unknown, unknown, RequestSupabaseDelete>,
-  res: Response<ResponseSupabaseDelete>,
+export const handleDeleteFromDatabase = async (
+  req: Request<unknown, unknown, RequestDatabaseDelete>,
+  res: Response<ResponseDatabaseDelete>,
 ) => {
   const lang = req.body.lang || "en";
 
@@ -150,15 +150,15 @@ export const handleDeleteFromSupabase = async (
     if (error) {
       res
         .status(500)
-        .json({ success: false, error: t("supabase.deleteError", lang) });
+        .json({ success: false, error: t("database.deleteError", lang) });
       return;
     }
 
     res.json({ success });
   } catch (error) {
-    console.error(chalk.red("Error deleting from Supabase:"), error);
+    console.error(chalk.red("Error deleting from Database:"), error);
     res
       .status(500)
-      .json({ success: false, error: t("supabase.deleteError", lang) });
+      .json({ success: false, error: t("database.deleteError", lang) });
   }
 };

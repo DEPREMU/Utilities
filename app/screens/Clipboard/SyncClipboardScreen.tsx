@@ -1,13 +1,13 @@
 import Button from "@components/common/ButtonComponent";
 import { Text } from "react-native-paper";
-import { fetchOptions, getRouteAPI, loadDataSecure } from "@utils";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
-import { RequestSupabaseInsert, ResponseSupabaseInsert } from "@types";
 import { useUserContext } from "@context/UserContext";
 import { View, TextInput } from "react-native";
 import useStylesSyncClipboard from "@styles/screens/clipboard/useStylesSyncClipboard";
 import React, { useCallback, useState } from "react";
+import { fetchOptions, getRouteAPI, loadDataSecure } from "@utils";
+import { RequestDatabaseInsert, ResponseDatabaseInsert } from "@types";
 
 const SyncClipboardScreen: React.FC = () => {
   const { styles } = useStylesSyncClipboard();
@@ -27,12 +27,12 @@ const SyncClipboardScreen: React.FC = () => {
     setIsLoading(true);
     try {
       const [url, deviceId] = await Promise.all([
-        getRouteAPI("/supabase/insert"),
+        getRouteAPI("/database/insert"),
         loadDataSecure("_deviceId"),
       ]);
       const res = await fetch(
         url,
-        fetchOptions<RequestSupabaseInsert>(
+        fetchOptions<RequestDatabaseInsert<"ClipboardSync">>(
           "POST",
           {
             lang: language,
@@ -47,7 +47,8 @@ const SyncClipboardScreen: React.FC = () => {
           sessionToken,
         ),
       );
-      const { error } = (await res.json()) as ResponseSupabaseInsert;
+      const { error } =
+        (await res.json()) as ResponseDatabaseInsert<"ClipboardSync">;
 
       if (error) openSnackBar(t("errorOccurred", { error }));
       else {

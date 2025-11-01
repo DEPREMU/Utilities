@@ -1,8 +1,8 @@
 import {
   PriceBinanceAPI,
   ResponseCryptos,
-  RequestSupabaseDelete,
-  RequestSupabaseInsert,
+  RequestDatabaseDelete,
+  RequestDatabaseInsert,
   TablesKeys,
 } from "@types";
 import {
@@ -14,7 +14,7 @@ import {
   loadDataSecure,
   saveDataSecure,
   removeDataSecure,
-  getCryptosFromSupabase,
+  getCryptosFromDatabase,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import CryptoItem from "@components/Cryptos/CryptoItem";
@@ -204,7 +204,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         return setOwnedCryptos(owned);
       if (!userData?.userId || !sessionToken) return;
 
-      const newOwned = await getCryptosFromSupabase(language, sessionToken);
+      const newOwned = await getCryptosFromDatabase(language, sessionToken);
       if (newOwned) setOwnedCryptos(newOwned);
     };
 
@@ -235,21 +235,21 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     const save = async () => {
       const userId = userData?.userId;
       if (!userId || !sessionToken) return;
-      const cryptosFromSupabase = await getCryptosFromSupabase(
+      const cryptosFromDatabase = await getCryptosFromDatabase(
         language,
         sessionToken,
       );
 
       const cryptosToUpdate = Object.values(ownedCryptos).filter((crypto) => {
         return (
-          !!cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`] &&
+          !!cryptosFromDatabase?.[`${crypto.id}${crypto.currency}`] &&
           stringifyData(
-            cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`],
+            cryptosFromDatabase?.[`${crypto.id}${crypto.currency}`],
           ) !==
             stringifyData({
               ...crypto,
               firstPricePurchased: Number(crypto.firstPricePurchased),
-              uid: cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`]?.uid,
+              uid: cryptosFromDatabase?.[`${crypto.id}${crypto.currency}`]?.uid,
             })
         );
       });
@@ -258,8 +258,8 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         addTaskQueue(
           async () => {
             fetch(
-              await getRouteAPI("/supabase/update"),
-              fetchOptions<RequestSupabaseInsert>(
+              await getRouteAPI("/database/update"),
+              fetchOptions<RequestDatabaseInsert>(
                 "POST",
                 {
                   lang: language,
@@ -273,14 +273,14 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           true,
           {
             id,
-            functionName: "updateFromSupabase",
+            functionName: "updateFromDatabase",
             args: ["Cryptos", cryptosToUpdate, null],
           },
         );
       }
 
       const cryptosToAdd = Object.values(ownedCryptos).filter(
-        (crypto) => !cryptosFromSupabase?.[`${crypto.id}${crypto.currency}`],
+        (crypto) => !cryptosFromDatabase?.[`${crypto.id}${crypto.currency}`],
       );
       if (cryptosToAdd && cryptosToAdd.length > 0 && sessionToken) {
         const id = "insertCryptos";
@@ -288,8 +288,8 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         addTaskQueue(
           async () => {
             fetch(
-              await getRouteAPI("/supabase/insert"),
-              fetchOptions<RequestSupabaseInsert>(
+              await getRouteAPI("/database/insert"),
+              fetchOptions<RequestDatabaseInsert<typeof table>>(
                 "POST",
                 {
                   lang: language,
@@ -303,26 +303,26 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           true,
           {
             id,
-            functionName: "insertIntoSupabase",
+            functionName: "insertIntoDatabase",
             args: [table, cryptosToAdd],
           },
           id,
         );
       }
 
-      const cryptosToDelete = Object.values(cryptosFromSupabase || {})
+      const cryptosToDelete = Object.values(cryptosFromDatabase || {})
         .filter((crypto) => !ownedCryptos?.[`${crypto.id}${crypto.currency}`])
         .map((c) => c.uid as string);
 
       if (cryptosToDelete && cryptosToDelete.length > 0) {
-        const url = await getRouteAPI("/supabase/delete");
+        const url = await getRouteAPI("/database/delete");
 
         cryptosToDelete.map((uid) =>
           addTaskQueue(
             async () => {
               fetch(
                 url,
-                fetchOptions<RequestSupabaseDelete>(
+                fetchOptions<RequestDatabaseDelete>(
                   "POST",
                   {
                     lang: language,
@@ -336,7 +336,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
             true,
             {
               id: `deleteCrypto${uid}`,
-              functionName: "deleteFromSupabase",
+              functionName: "deleteFromDatabase",
               args: ["Cryptos", { uid }],
             },
           ),

@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import axios from "axios";
 import { t } from "../translations/index.ts";
-import { dataSupabase } from "./fetchData.ts";
+import { dataDatabase } from "./fetchData.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
 import type { LanguagesSupported } from "../../types/index.ts";
 
@@ -17,11 +17,10 @@ const isDown = async (url: string): Promise<boolean> => {
 
 const handleCheckDownServers = async () => {
   console.log("Running DownDetector check...");
-  // Check the status of the URL every minute
 
-  const dataPushTokens = dataSupabase.PushTokens;
-  const dataUserConfig = dataSupabase.UserConfig;
-  const dataDownDetector = dataSupabase.DownDetector;
+  const dataPushTokens = dataDatabase.PushTokens;
+  const dataUserConfig = dataDatabase.UserConfig;
+  const dataDownDetector = dataDatabase.DownDetector;
 
   dataDownDetector.forEach((downDetector) => {
     if (

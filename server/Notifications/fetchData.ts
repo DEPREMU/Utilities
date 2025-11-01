@@ -1,8 +1,8 @@
 import chalk from "chalk";
-import { fetchFromTable } from "../supabase/functions.ts";
+import { fetchFromTable } from "../database/functions.ts";
 import type { Tables, TablesKeys } from "../../types";
 
-export const dataSupabase = {
+export const dataDatabase = {
   Logs: [] as Tables["Logs"][],
   Users: [] as Tables["Users"][],
   Cryptos: [] as Tables["Cryptos"][],
@@ -15,22 +15,30 @@ export const dataSupabase = {
   UserNotificationsConfig: [] as Tables["UserNotificationsConfig"][],
 };
 
+const TablesNot: TablesKeys[] = [
+  "Logs",
+  "ClipboardSync",
+  "UserSessions",
+  "Users",
+];
+
 const handleFetchNewData = () => {
-  console.log(chalk.blue("Fetching new data from Supabase..."));
+  console.log(chalk.blue("Fetching new data from Database..."));
 
-  Object.keys(dataSupabase).forEach(async (table) => {
-    const fetchFromSupabase = await fetchFromTable(
-      table as keyof typeof dataSupabase,
-    );
-    if (!fetchFromSupabase.data) return;
+  Object.keys(dataDatabase).forEach(async (table) => {
+    const tableType = table as keyof typeof dataDatabase;
 
-    const tableData = Array.isArray(fetchFromSupabase.data)
-      ? fetchFromSupabase.data
-      : [fetchFromSupabase.data];
+    if (TablesNot.includes(tableType)) return;
+    const fetchFromDatabase = await fetchFromTable(tableType);
+    dataDatabase[table as TablesKeys] = [];
+    if (!fetchFromDatabase.data) return;
 
-    (dataSupabase as Record<TablesKeys, Tables[TablesKeys][]>)[
-      table as TablesKeys
-    ] = tableData;
+    const tableData = Array.isArray(fetchFromDatabase.data)
+      ? fetchFromDatabase.data
+      : [fetchFromDatabase.data];
+
+    (dataDatabase as Record<TablesKeys, Tables[TablesKeys][]>)[tableType] =
+      tableData;
     console.log(chalk.green(`\tFetched and updated data for table: ${table}`));
   });
 };
@@ -38,23 +46,9 @@ const handleFetchNewData = () => {
 const getInterval = () => {
   console.log(chalk.blue("Starting fetchData interval..."));
 
-  return setInterval(handleFetchNewData, 10 * 60 * 1000);
+  return setInterval(handleFetchNewData, 60 * 1000);
 };
 
-setInterval(() => {
-  dataSupabase.Logs = [
-    {
-      id: crypto.randomUUID(),
-      message: "Heartbeat log",
-      timestamp: new Date().toISOString(),
-      deviceId: "system",
-      deviceName: "system",
-      type: "log",
-      userId: "system",
-    },
-  ];
-}, 4000);
-
-setTimeout(handleFetchNewData, 2000);
+setTimeout(handleFetchNewData, 5000);
 
 export default getInterval();

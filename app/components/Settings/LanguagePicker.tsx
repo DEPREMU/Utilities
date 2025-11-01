@@ -5,7 +5,7 @@ import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import React, { memo, useCallback, useMemo } from "react";
-import { LanguagesSupported, RequestSupabaseUpdate } from "@types";
+import { LanguagesSupported, RequestDatabaseUpdate } from "@types";
 import { fetchOptions, getRouteAPI, languagesNames } from "@utils";
 
 const LanguagePicker: React.FC = () => {
@@ -25,8 +25,8 @@ const LanguagePicker: React.FC = () => {
             if (!sessionToken) return navigateReplace("Login");
 
             fetch(
-              await getRouteAPI("/supabase/update"),
-              fetchOptions<RequestSupabaseUpdate>(
+              await getRouteAPI("/database/update"),
+              fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
                 "POST",
                 {
                   lang,
@@ -41,7 +41,7 @@ const LanguagePicker: React.FC = () => {
           true,
           {
             id,
-            functionName: "updateFromSupabase",
+            functionName: "updateFromDatabase",
             args: [
               "UserConfig",
               { language: lang },

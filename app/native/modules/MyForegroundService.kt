@@ -79,7 +79,7 @@ class MyForegroundService : Service() {
 
             if (text != lastText && text.isNotBlank()) {
                 lastText = text
-                sendToSupabase(text)
+                sendToDatabase(text)
             }
         }
 
@@ -190,7 +190,7 @@ class MyForegroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
     
-    private fun sendToSupabase(content: String) {
+    private fun sendToDatabase(content: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createdAt = java.time.Instant.now().toString()
         }
@@ -221,7 +221,7 @@ class MyForegroundService : Service() {
         val request =
             Request
                 .Builder()
-                .url("$fullServerURL/supabase/insert")
+                .url("$fullServerURL/database/insert")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Authorization", "Bearer $userToken")
                 .post(body)

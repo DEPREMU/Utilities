@@ -14,9 +14,9 @@ import {
   EventNativeModule,
   ReasonNotification,
   NotificationAction,
-  RequestSupabaseFetch,
-  RequestSupabaseInsert,
-  ResponseSupabaseFetch,
+  RequestDatabaseFetch,
+  RequestDatabaseInsert,
+  ResponseDatabaseFetch,
 } from "@types";
 import {
   isFalsy,
@@ -192,6 +192,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
                 const defaultTimes: Record<ReasonNotification, number> = {
                   cryptos: 30,
                   streamers: 30,
+                  downDetector: 15,
                   batteryAlerts: 30,
                   locationEnabled: 30,
                   allNotifications: 60,
@@ -253,10 +254,10 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (!sessionToken) return;
     if (Platform.OS !== "web") return;
 
-    getRouteAPI("/supabase/fetch").then(async (url) => {
+    getRouteAPI("/database/fetch").then(async (url) => {
       const res = await fetch(
         url,
-        fetchOptions<RequestSupabaseFetch>(
+        fetchOptions<RequestDatabaseFetch<"ClipboardSync">>(
           "POST",
           {
             lang: language,
@@ -266,7 +267,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           sessionToken,
         ),
       );
-      const json = (await res.json()) as ResponseSupabaseFetch<"ClipboardSync">;
+      const json = (await res.json()) as ResponseDatabaseFetch<"ClipboardSync">;
       lastItemCopied.current = v4();
       if (isFalsy(json) || isFalsy(json.data)) return;
 
@@ -416,8 +417,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           deviceId = "Platform: " + Platform.OS;
 
         await fetch(
-          await getRouteAPI("/supabase/insert"),
-          fetchOptions<RequestSupabaseInsert<"ClipboardSync">>(
+          await getRouteAPI("/database/insert"),
+          fetchOptions<RequestDatabaseInsert<"ClipboardSync">>(
             "POST",
             {
               lang: language,

@@ -12,11 +12,11 @@ import {
   Notifications,
   RequestAddStreamer,
   ResponseAddStreamer,
-  RequestSupabaseFetch,
-  RequestSupabaseDelete,
-  ResponseSupabaseFetch,
-  RequestSupabaseUpdate,
-  ResponseSupabaseDelete,
+  RequestDatabaseFetch,
+  RequestDatabaseDelete,
+  ResponseDatabaseFetch,
+  RequestDatabaseUpdate,
+  ResponseDatabaseDelete,
   RequestGetIsLiveStreamer,
   ResponseGetIsLiveStreamer,
 } from "@types";
@@ -143,8 +143,8 @@ const Streamers: React.FC = () => {
       if (!userData?.userId || isFalsy(id) || !sessionToken) return;
 
       const res = await fetch(
-        await getRouteAPI("/supabase/delete"),
-        fetchOptions<RequestSupabaseDelete>(
+        await getRouteAPI("/database/delete"),
+        fetchOptions<RequestDatabaseDelete<"Streamers">>(
           "POST",
           {
             lang: language,
@@ -154,7 +154,7 @@ const Streamers: React.FC = () => {
           sessionToken,
         ),
       );
-      const { error } = (await res.json()) as ResponseSupabaseDelete;
+      const { error } = (await res.json()) as ResponseDatabaseDelete;
 
       if (error) {
         logError(error);
@@ -169,10 +169,10 @@ const Streamers: React.FC = () => {
       setStreamers((prev) => {
         const streamerExists = prev.find((streamer) => streamer.id === id);
         if (streamerExists)
-          getRouteAPI("/supabase/delete").then((url) =>
+          getRouteAPI("/database/delete").then((url) =>
             fetch(
               url,
-              fetchOptions<RequestSupabaseDelete>(
+              fetchOptions<RequestDatabaseDelete<"UserNotificationsConfig">>(
                 "POST",
                 {
                   lang: language,
@@ -295,8 +295,8 @@ const Streamers: React.FC = () => {
       if (!userData?.userId || !sessionToken) return;
 
       await fetch(
-        await getRouteAPI("/supabase/update"),
-        fetchOptions<RequestSupabaseUpdate>(
+        await getRouteAPI("/database/update"),
+        fetchOptions<RequestDatabaseUpdate<"UserNotificationsConfig">>(
           "POST",
           {
             lang: language,
@@ -341,8 +341,8 @@ const Streamers: React.FC = () => {
         if (!userData?.userId || !sessionToken) return;
 
         const res = await fetch(
-          await getRouteAPI("/supabase/fetch"),
-          fetchOptions<RequestSupabaseFetch>(
+          await getRouteAPI("/database/fetch"),
+          fetchOptions<RequestDatabaseFetch<"Streamers">>(
             "POST",
             {
               table: "Streamers",
@@ -353,7 +353,7 @@ const Streamers: React.FC = () => {
           ),
         );
         const { data: internetData, error } =
-          (await res.json()) as ResponseSupabaseFetch<"Streamers">;
+          (await res.json()) as ResponseDatabaseFetch<"Streamers">;
 
         if (error) throw new Error(error);
 

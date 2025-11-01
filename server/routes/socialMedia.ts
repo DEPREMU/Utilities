@@ -1,14 +1,12 @@
 import type {
   RequestAddStreamer,
   ResponseAddStreamer,
-  UserNotificationsConfig,
   RequestGetIsLiveStreamer,
   ResponseGetIsLiveStreamer,
 } from "./../../types/index";
 import axios from "axios";
-import chalk from "chalk";
 import express from "express";
-import { updateInTable, insertIntoTable } from "../supabase/functions.ts";
+import { insertIntoTable } from "../database/functions.ts";
 
 const getLinkImageStreamer = async (streamer: string) => {
   streamer = streamer.toLowerCase().replace(/\s+/g, "");
@@ -89,33 +87,6 @@ export const addStreamer = async (
 
     let { data } = result;
 
-    const newNotificationFromStreamer: UserNotificationsConfig = {
-      userId,
-      paused: false,
-      reason: "streamers",
-      enabled: false,
-      interval: -1,
-      streamer: name,
-      pauseTime: -1,
-      updatedAt: new Date().toISOString(),
-    };
-
-    try {
-      updateInTable("UserNotificationsConfig", newNotificationFromStreamer, {
-        userId,
-      }).then(({ error: errorInsert }) => {
-        if (errorInsert)
-          console.error(
-            chalk.red("Failed to create notification config for streamer:"),
-            errorInsert,
-          );
-      });
-    } catch (error) {
-      console.error(
-        chalk.red("Failed to create notification config for streamer:"),
-        error,
-      );
-    }
     if (Array.isArray(data)) {
       data = data[0] || null;
     } else data = data || null;

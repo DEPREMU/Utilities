@@ -1,10 +1,15 @@
 import { ReasonNotification } from "@types";
 
-export const reasonNotification: ReasonNotification[] = [
-  "cryptos",
-  "streamers",
-  "batteryAlerts",
-  "locationEnabled",
-  "allNotifications",
-  "noInternetConnection",
-];
+const objReasonNotification: Record<ReasonNotification, null> = {
+  cryptos: null,
+  streamers: null,
+  downDetector: null,
+  batteryAlerts: null,
+  locationEnabled: null,
+  allNotifications: null,
+  noInternetConnection: null,
+};
+
+export const reasonNotification: ReasonNotification[] = Object.keys(
+  objReasonNotification,
+) as ReasonNotification[];

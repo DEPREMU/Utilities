@@ -9,31 +9,31 @@ import {
 import {
   Tables,
   TablesKeys,
-  RequestSupabaseUpdate,
-  RequestSupabaseDelete,
-  RequestSupabaseInsert,
+  RequestDatabaseUpdate,
+  RequestDatabaseDelete,
+  RequestDatabaseInsert,
 } from "@types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TaskFunction = (...args: any[]) => Promise<void> | void;
 
 export type AvailableFunctions =
-  | "insertIntoSupabase"
-  | "updateFromSupabase"
-  | "deleteFromSupabase";
+  | "insertIntoDatabase"
+  | "updateFromDatabase"
+  | "deleteFromDatabase";
 
 type TaskRegistry = Record<AvailableFunctions, TaskFunction>;
 
 export type FunctionsArguments<T extends AvailableFunctions> =
-  T extends "insertIntoSupabase"
+  T extends "insertIntoDatabase"
     ? [table: TablesKeys, values: Tables[TablesKeys] | Tables[TablesKeys][]]
-    : T extends "updateFromSupabase"
+    : T extends "updateFromDatabase"
       ? [
           table: TablesKeys,
           values: Partial<Tables[TablesKeys]> | Partial<Tables[TablesKeys]>[],
           match: Partial<Tables[TablesKeys]> | null,
         ]
-      : T extends "deleteFromSupabase"
+      : T extends "deleteFromDatabase"
         ? [table: TablesKeys, match: Partial<Tables[TablesKeys]> | null]
         : never;
 
@@ -45,7 +45,7 @@ export interface SerializableTask {
 }
 
 const taskRegistry: TaskRegistry = {
-  updateFromSupabase: async <T extends TablesKeys>(
+  updateFromDatabase: async <T extends TablesKeys>(
     tableName: T,
     data: Partial<Tables[T]> | Partial<Tables[T]>[],
     condition: Partial<Tables[T]> | null,
@@ -58,8 +58,8 @@ const taskRegistry: TaskRegistry = {
       if (!token) return;
 
       await fetch(
-        await getRouteAPI("/supabase/update"),
-        fetchOptions<RequestSupabaseUpdate>(
+        await getRouteAPI("/database/update"),
+        fetchOptions<RequestDatabaseUpdate<typeof tableName>>(
           "POST",
           {
             table: tableName,
@@ -75,9 +75,9 @@ const taskRegistry: TaskRegistry = {
     }
   },
 
-  insertIntoSupabase: async <T extends TablesKeys>(
+  insertIntoDatabase: async <T extends TablesKeys>(
     table: T,
-    values: RequestSupabaseInsert["values"],
+    values: RequestDatabaseInsert["values"],
   ) => {
     try {
       const [lang, token] = await Promise.all([
@@ -86,8 +86,8 @@ const taskRegistry: TaskRegistry = {
       ]);
       if (!token) return;
       await fetch(
-        await getRouteAPI("/supabase/insert"),
-        fetchOptions<RequestSupabaseInsert>(
+        await getRouteAPI("/database/insert"),
+        fetchOptions<RequestDatabaseInsert>(
           "POST",
           {
             table,
@@ -102,7 +102,7 @@ const taskRegistry: TaskRegistry = {
     }
   },
 
-  deleteFromSupabase: async <T extends TablesKeys>(
+  deleteFromDatabase: async <T extends TablesKeys>(
     table: T,
     match: Partial<Tables[T]>,
   ) => {
@@ -114,8 +114,8 @@ const taskRegistry: TaskRegistry = {
       if (!token) return;
 
       await fetch(
-        await getRouteAPI("/supabase/delete"),
-        fetchOptions<RequestSupabaseDelete>(
+        await getRouteAPI("/database/delete"),
+        fetchOptions<RequestDatabaseDelete>(
           "POST",
           {
             table,

@@ -3,7 +3,7 @@ import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
 import { getCurrentUserId } from "./auth";
-import { RequestSupabaseInsert } from "@types";
+import { RequestDatabaseInsert } from "@types";
 import { fetchOptions, getRouteAPI } from "./APIManagement";
 import { checkLanguage, loadDataSecure } from "./storageManagement";
 
@@ -70,7 +70,7 @@ export const log = async (...args: unknown[]): Promise<void> => {
       )
       .join(" ");
 
-    getRouteAPI("/supabase/insert").then(async (url) => {
+    getRouteAPI("/database/insert").then(async (url) => {
       const [lang, userId, token, deviceInfo] = await Promise.all([
         checkLanguage(),
         getCurrentUserId(),
@@ -82,7 +82,7 @@ export const log = async (...args: unknown[]): Promise<void> => {
 
       fetch(
         url,
-        fetchOptions<RequestSupabaseInsert<"Logs">>(
+        fetchOptions<RequestDatabaseInsert<"Logs">>(
           "POST",
           {
             lang,
@@ -140,7 +140,7 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
       )
       .join(" ");
 
-    getRouteAPI("/supabase/insert").then(async (url) => {
+    getRouteAPI("/database/insert").then(async (url) => {
       const [lang, userId, token, deviceInfo] = await Promise.all([
         checkLanguage(),
         getCurrentUserId(),
@@ -152,7 +152,7 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
 
       fetch(
         url,
-        fetchOptions<RequestSupabaseInsert<"Logs">>(
+        fetchOptions<RequestDatabaseInsert<"Logs">>(
           "POST",
           {
             lang,
@@ -210,7 +210,7 @@ export const logError = async (...args: unknown[]): Promise<void> => {
       )
       .join(" ");
 
-    getRouteAPI("/supabase/insert").then(async (url) => {
+    getRouteAPI("/database/insert").then(async (url) => {
       const [lang, userId, token, deviceInfo] = await Promise.all([
         checkLanguage(),
         getCurrentUserId(),
@@ -222,7 +222,7 @@ export const logError = async (...args: unknown[]): Promise<void> => {
 
       fetch(
         url,
-        fetchOptions<RequestSupabaseInsert<"Logs">>(
+        fetchOptions<RequestDatabaseInsert<"Logs">>(
           "POST",
           {
             lang,
