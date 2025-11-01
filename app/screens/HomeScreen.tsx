@@ -52,6 +52,10 @@ const buttons: ButtonType[] = [
     noNeedsInternet: false,
     noNeedsSession: true,
   },
+  {
+    label: "downDetector",
+    screen: "DownDetector",
+  },
 ];
 if (dev) buttons.push(dev);
 

@@ -1,3 +1,5 @@
+import "../Notifications/index.ts"; 
+
 import {
   decryptHandler,
   encryptHandler,
@@ -18,8 +20,6 @@ import {
 } from "./auth.ts";
 import { Router } from "express";
 import { translate } from "./translate.ts";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { intervalId } from "../Notifications/streamers.ts";
 import type { Response, Request } from "express";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
 import type { ResponseHealth, Route, RoutesAPI } from "../../types/typesAPI.ts";

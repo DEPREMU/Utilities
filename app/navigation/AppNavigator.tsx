@@ -23,6 +23,7 @@ import React, { useEffect } from "react";
 import { ScreensAvailable } from "@types";
 import SocialMediaNavigator from "@screens/SocialMedia";
 import ForgotPasswordScreen from "@screens/auth/ForgotPasswordScreen";
+import DownDetectorNavigator from "@screens/DownDetector";
 import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
 import { setupNotificationHandlers } from "@utils";
 import { navigateReplace, navigationRef } from "./navigationRef";
@@ -68,6 +69,7 @@ const screens: Screens = {
   Calculator: { component: CalculatorNavigator },
   Minesweeper: { component: Minesweeper },
   SocialMedia: { component: SocialMediaNavigator },
+  DownDetector: { component: DownDetectorNavigator },
   MarkdownViewer: { component: MarkdownViewer },
   forgotPassword: { component: ForgotPasswordScreen },
   DeviceInformation: { component: DeviceInformation },

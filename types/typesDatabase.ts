@@ -79,6 +79,14 @@ export type UserSessions = {
   createdAt?: string;
 };
 
+export type DownDetector = {
+  id?: string;
+  url: string;
+  userId: string;
+  createdAt: string;
+  sendNotification: boolean;
+};
+
 export type Tables = {
   Logs: Logs;
   Users: UserData;
@@ -86,6 +94,7 @@ export type Tables = {
   Streamers: Streamer;
   UserConfig: UserConfig;
   PushTokens: PushTokens;
+  DownDetector: DownDetector;
   UserSessions: UserSessions;
   ClipboardSync: ClipboardSync;
   UserNotificationsConfig: UserNotificationsConfig;

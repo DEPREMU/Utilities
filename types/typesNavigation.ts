@@ -12,6 +12,7 @@ export type ScreensAvailable =
   | "Translator"
   | "SocialMedia"
   | "Minesweeper"
+  | "DownDetector"
   | "forgotPassword"
   | "MarkdownViewer"
   | "DeviceInformation";

@@ -259,6 +259,19 @@ const es: typeLanguages = {
   later: "Más tarde",
   updateNow: "Actualizar ahora",
   noUpdates: "No hay actualizaciones disponibles",
+  downDetector: "Detector de caídas",
+  addNewWebPage: "Agregar nueva página web",
+  downDetectorTitle: "Detector de caídas",
+  visitWebsite: "Visitar sitio web",
+  downDetectorEmptyDescription:
+    "No se encontraron sitios web monitorizados. Agrega una nueva página web para comenzar a monitorear su estado.",
+  noDownDetectorData: "No hay datos del Detector de caídas disponibles",
+  sendNotification: "Enviar notificación",
+  placeholderNewWebPage: "Ingresa la URL de la página web a monitorizar",
+  pleaseEnterWebPageURL: "Por favor, ingresa la URL de la página web",
+  webPageMustStartWithHTTP:
+    "La URL de la página web debe comenzar con http o https",
+  webPageAddedSuccessfully: "Página web agregada exitosamente",
 } as const;
 
 export default es;

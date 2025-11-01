@@ -2,6 +2,7 @@ import {
   Cryptos,
   Streamer,
   UserData,
+  DownDetector,
   Notifications,
   LanguagesSupported,
 } from "@types";
@@ -14,6 +15,7 @@ export const SECURE_KEYS_STORAGE = [
   "_sessionExpiry",
   "_selectedCryptos",
   "_lastUpdateCheck",
+  "_downDetectorData",
   "_userSessionTokenStorage",
 ] as const;
 
@@ -67,6 +69,7 @@ export type ExpectedSecureStorageTypes = {
   _sessionExpiry: number | -1;
   _selectedCryptos: SelectedCryptos | null;
   _lastUpdateCheck: number | null;
+  _downDetectorData: DownDetector[] | null;
   _userSessionTokenStorage: string | null;
 };
 

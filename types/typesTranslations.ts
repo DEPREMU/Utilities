@@ -221,6 +221,17 @@ export type typeLanguages = Record<ReasonNotification, string> &
     later: string;
     updateNow: string;
     noUpdates: string;
+    downDetector: string;
+    addNewWebPage: string;
+    downDetectorTitle: string;
+    visitWebsite: string;
+    downDetectorEmptyDescription: string;
+    noDownDetectorData: string;
+    placeholderNewWebPage: string;
+    sendNotification: string;
+    pleaseEnterWebPageURL: string;
+    webPageMustStartWithHTTP: string;
+    webPageAddedSuccessfully: string;
   };
 
 export type typeLanguagesServer = {
@@ -229,6 +240,8 @@ export type typeLanguagesServer = {
   notificationCryptoTitle: string;
   streamerLiveNotification: string;
   streamerLiveNotificationTitle: string;
+  downDetectorNotificationBody: string;
+  downDetectorNotificationTitle: string;
   notificationNotCryptosSelectedBody: string;
   notificationNotCryptosSelectedTitle: string;
   auth: {

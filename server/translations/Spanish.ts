@@ -10,6 +10,9 @@ const es: typeLanguagesServer = {
   streamerLiveNotification: "¡Tu streamer favorito {{streamer}} está en vivo!",
   streamerLiveNotificationTitle: "Streamer en vivo: {{streamer}}",
   internalError: "Error interno del servidor",
+  downDetectorNotificationTitle: "Servicio caído: {{service}}",
+  downDetectorNotificationBody:
+    "El servicio {{service}} está experimentando problemas actualmente.",
   auth: {
     passwordNotStrong:
       "La contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número",

@@ -254,6 +254,18 @@ const en: typeLanguages = {
   later: "Later",
   updateNow: "Update Now",
   noUpdates: "No Updates Available",
+  downDetector: "Down Detector",
+  addNewWebPage: "Add New Web Page",
+  downDetectorTitle: "Down Detector",
+  visitWebsite: "Visit Website",
+  downDetectorEmptyDescription:
+    "No monitored websites found. Add a new web page to start monitoring its status.",
+  noDownDetectorData: "No Down Detector Data Available",
+  sendNotification: "Send Notification",
+  placeholderNewWebPage: "Enter the URL of the web page to monitor",
+  pleaseEnterWebPageURL: "Please enter the web page URL",
+  webPageMustStartWithHTTP: "Web page URL must start with http or https",
+  webPageAddedSuccessfully: "Web page added successfully",
 } as const;
 
 export default en;

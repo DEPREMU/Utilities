@@ -12,7 +12,8 @@ export type ReasonNotification =
   | "streamers"
   | "locationEnabled"
   | "noInternetConnection"
-  | "batteryAlerts";
+  | "batteryAlerts"
+  | "downDetector";
 
 export type typeStreamerNotification = { name: string; enabled: boolean };
 

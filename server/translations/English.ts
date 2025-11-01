@@ -10,6 +10,9 @@ const en: typeLanguagesServer = {
   streamerLiveNotification: "Your favorite streamer {{streamer}} is now live!",
   streamerLiveNotificationTitle: "Streamer Live: {{streamer}}",
   internalError: "Internal server error",
+  downDetectorNotificationTitle: "Service Down: {{service}}",
+  downDetectorNotificationBody:
+    "The service {{service}} is currently experiencing issues.",
   auth: {
     passwordNotStrong:
       "Password must be at least 8 characters long and contain at least one letter and one number",
