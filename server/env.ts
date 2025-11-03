@@ -7,6 +7,7 @@ const REQUIRED_VARS: (keyof Env)[] = [
   "HOST",
   "PORT",
   "WS_URL",
+  "__DEV__",
   "DB_PORT",
   "DB_USER",
   "DB_PASS",
@@ -36,13 +37,14 @@ export const validateServerEnv = () => {
 };
 
 const env: Env = {
+  __DEV__: process.env.__DEV__ === "true" || false,
   HOST: process.env.HOST || "localhost",
   PORT: Number(process.env.PORT || "3000"),
   WS_URL: process.env.WS_URL || "ws://localhost:3000/",
   API_URL: process.env.API_URL || "http://localhost:3000/api",
   DB_USER: process.env.DB_USER || "Utilities",
   DB_PORT: Number(process.env.DB_PORT || "5432"),
-  DB_PASS: process.env.DB_PASS || "fny0a98dfnyac y389yas8dyawef89nywa98fa",
+  DB_PASS: process.env.DB_PASS || "fny0a98dfnyacy389yas8dyawef89nywa98fa",
   DB_NAME: process.env.DB_NAME || "UtilitiesDB",
   DB_HOST: process.env.DB_HOST || "localhost",
   USE_HTTPS: process.env.USE_HTTPS === "true" || false,

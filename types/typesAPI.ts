@@ -34,7 +34,8 @@ export type RoutesAPI =
   | "/auth/signOut"
   | "/auth/refreshSession"
   | "/getRandomUUID"
-  | "/health";
+  | "/health"
+  | "/doQueryDB";
 
 export type RequestBody = Logs | UserData;
 

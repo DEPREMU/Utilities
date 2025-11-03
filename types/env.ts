@@ -15,6 +15,7 @@ export type Env = {
   DB_NAME: string;
   DB_HOST: string;
   DB_PORT: number;
+  __DEV__: boolean;
   WS_URL: string;
   PORT: number;
 };

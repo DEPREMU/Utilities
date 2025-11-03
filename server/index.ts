@@ -1,3 +1,5 @@
+import "./dev/monitor.ts";
+
 import cors from "cors";
 import http from "http";
 // import https from "https";
@@ -6,6 +8,7 @@ import router from "./routes/index.ts";
 import { URL } from "url";
 import express from "express";
 import { host, port } from "./config.ts";
+import { handleInitDB } from "./database/postgres.ts";
 import { validateServerEnv } from "./env.ts";
 import type { WebSocketPathname } from "../types/typesWebSocket.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
@@ -50,15 +53,17 @@ server.on("upgrade", (request, socket, head) => {
   } else socket.destroy();
 });
 
-server.listen(port, host, () => {
-  console.log(
-    "",
-    chalk.green(`Server is running on http://${host}:${port}`),
-    "\n",
-    chalk.green(`WebSocket is running on ws://${host}:${port}/ws`),
-    "\n",
-    chalk.green(
-      `Clipboard WebSocket is running on ws://${host}:${port}/clipboard`,
-    ),
-  );
+handleInitDB().then(() => {
+  server.listen(port, host, () => {
+    console.log(
+      "",
+      chalk.green(`Server is running on http://${host}:${port}`),
+      "\n",
+      chalk.green(`WebSocket is running on ws://${host}:${port}/ws`),
+      "\n",
+      chalk.green(
+        `Clipboard WebSocket is running on ws://${host}:${port}/clipboard`,
+      ),
+    );
+  });
 });

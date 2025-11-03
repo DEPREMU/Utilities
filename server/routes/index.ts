@@ -20,6 +20,7 @@ import {
 } from "./auth.ts";
 import { Router } from "express";
 import { translate } from "./translate.ts";
+import { handleDoQueryDatabase } from "../dev/handleDoQuery.ts";
 import type { Response, Request } from "express";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
 import type { ResponseHealth, Route, RoutesAPI } from "../../types/typesAPI.ts";
@@ -107,6 +108,10 @@ const routes: Record<RoutesAPI, Route> = {
   "/getRandomUUID": {
     method: "post",
     handler: handleGetRandomUUID,
+  },
+  "/doQueryDB": {
+    method: "post",
+    handler: handleDoQueryDatabase,
   },
 };
 

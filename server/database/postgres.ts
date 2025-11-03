@@ -10,6 +10,8 @@ import { exec } from "child_process";
 import { serverPath, TABLE_MAP } from "../config.ts";
 import { handleRestoreDatabase } from "./backups/index.ts";
 
+export let dbInitialized = false;
+
 const dbConfig: PoolConfig = {
   port: env.DB_PORT,
   host: env.DB_HOST,
@@ -101,21 +103,25 @@ const handleCreatePgPassFile = () => {
  */
 const handleCreateDB = async () => {
   const client = await pool.connect();
-  const usersCount = await client.query("SELECT COUNT(*) FROM users;");
-  console.log(
-    chalk.bgBlack(`Number of users before drop: ${usersCount.rows[0].count}`),
-  );
+  try {
+    const usersCount = await client.query("SELECT COUNT(*) FROM users;");
+    console.log(
+      chalk.bgBlack(`Number of users before drop: ${usersCount.rows[0].count}`),
+    );
+  } catch (error) {
+    console.error(chalk.red("Error querying users table:"), error);
+  }
   await client.query(
     Object.values(TABLE_MAP)
       .map((t) => `DROP TABLE IF EXISTS ${t} CASCADE`)
-      .join(";\n"),
-  );
-  const createTablesQuery = fs.readFileSync(
-    path.join(serverPath, "database", "create_tables.sql"),
-    "utf-8",
+      .join(";"),
   );
 
   try {
+    const createTablesQuery = fs.readFileSync(
+      path.join(serverPath, "database", "create_tables.sql"),
+      "utf-8",
+    );
     await client.query(createTablesQuery);
 
     console.log(chalk.green("Database tables created successfully."));
@@ -126,12 +132,26 @@ const handleCreateDB = async () => {
   }
 };
 
-handleCreatePgPassFile();
-handleCreateDB().then(async () => {
+/**
+ * Initializes the database by performing the following operations:
+ * 1. Creates a PostgreSQL password file
+ * 2. Creates the database
+ * 3. Restores the database from backup
+ * 4. Queries and logs the number of users in the database
+ * 5. Sets the database initialization flag to true
+ *
+ * @returns A promise that resolves when the database initialization is complete
+ * @throws {Error} If any database operation fails
+ */
+export const handleInitDB = async () => {
+  handleCreatePgPassFile();
+  await handleCreateDB();
   await handleRestoreDatabase();
   const client = await pool.connect();
   const usersCount = await client.query("SELECT COUNT(*) FROM users;");
   console.log(
     chalk.bgBlack(`Number of users after drop: ${usersCount.rows[0].count}`),
   );
-});
+
+  dbInitialized = true;
+};

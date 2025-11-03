@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { dbInitialized } from "../database/postgres.ts";
 import { fetchFromTable } from "../database/functions.ts";
 import type { Tables, TablesKeys } from "../../types";
 
@@ -23,6 +24,7 @@ const TablesNot: TablesKeys[] = [
 ];
 
 const handleFetchNewData = () => {
+  if (!dbInitialized) return;
   console.log(chalk.blue("Fetching new data from Database..."));
 
   Object.keys(dataDatabase).forEach(async (table) => {
