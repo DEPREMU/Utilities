@@ -15,4 +15,5 @@ export type ScreensAvailable =
   | "DownDetector"
   | "forgotPassword"
   | "MarkdownViewer"
+  | "ComputerControl"
   | "DeviceInformation";

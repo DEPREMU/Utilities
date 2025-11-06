@@ -1,4 +1,4 @@
-import { DeviceInformation } from "./screens/";
+import { DeviceInformation } from "./screens";
 import type { BatteryState } from "react-native-device-info/src/internal/types";
 import { ReasonNotification } from "./typesNotifications";
 
@@ -232,6 +232,18 @@ export type typeLanguages = Record<ReasonNotification, string> &
     pleaseEnterWebPageURL: string;
     webPageMustStartWithHTTP: string;
     webPageAddedSuccessfully: string;
+    computerControl: string;
+    turnOffComputer: string;
+    restartComputer: string;
+    noDevices: string;
+    searchingDevices: string;
+    computerControlTitle: string;
+    scanning: string;
+    search: string;
+    turnOffCommandSent: string;
+    turnOffCommandFailed: string;
+    restartCommandSent: string;
+    restartCommandFailed: string;
   };
 
 export type typeLanguagesServer = {

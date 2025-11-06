@@ -1,0 +1,40 @@
+import { Server } from "http";
+import { Advertisement } from "dnssd";
+import { LanguagesSupported } from "./typesTranslations";
+import { ExpectedStorageTypes } from "./typesAPI";
+
+export type ElectronStoreType = {
+  get: <T extends keyof ExpectedStorageTypes<"UNSECURE">>(
+    key: T
+  ) => ExpectedStorageTypes<"UNSECURE">[T] | undefined;
+  set: <T extends keyof ExpectedStorageTypes<"UNSECURE">>(
+    key: T,
+    value: ExpectedStorageTypes<"UNSECURE">[T]
+  ) => void;
+  delete: <T extends keyof ExpectedStorageTypes<"UNSECURE">>(key: T) => void;
+};
+
+export type DataAppElectron = {
+  ad: Advertisement | null;
+  PORT: 3005;
+  tray: Electron.Tray | null;
+  lanIP: string;
+  server: Server | null;
+  logPath: string;
+  hasSudo: boolean;
+  deviceId: string;
+  language: LanguagesSupported;
+  __dirname: string;
+  isWindows: boolean;
+  isQuitting: boolean;
+  mainWindow: Electron.BrowserWindow | null;
+  SERVICE_NAME: string;
+  encryptionKey: string;
+  userIsLoggedIn: boolean;
+  reconnectAttempts: number;
+};
+
+export type AdvertisementTXT = {
+  lanIP: string;
+  deviceId: string;
+};

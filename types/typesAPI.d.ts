@@ -1,9 +1,49 @@
-import { Falsy } from "react-native";
+import type { Falsy } from "react-native";
 import type { Handler } from "express";
 import type { UserData } from "./typesUser";
 import type { LanguagesSupported } from "./typesTranslations";
-import type { ExpectedStorageTypes } from "../app/utils/index";
-import type { Logs, Streamer, Tables, TablesKeys } from "./typesDatabase";
+import type {
+  Cryptos,
+  DownDetector,
+  Logs,
+  Streamer,
+  Tables,
+  TablesKeys,
+} from "./typesDatabase";
+import { Notifications } from "./typesNotifications";
+import { SerializableTask } from "./typesTaskRegistry";
+
+export type SelectedCryptos = Record<string, Cryptos>;
+
+export type ExpectedSecureStorageTypes = {
+  _deviceId: string;
+  _userData: Omit<UserData, "password"> | null;
+  _Streamers: (Streamer & { isLive: boolean })[] | null;
+  _sessionExpiry: number | -1;
+  _selectedCryptos: SelectedCryptos | null;
+  _lastUpdateCheck: number | null;
+  _downDetectorData: DownDetector[] | null;
+  _userSessionTokenStorage: string | null;
+};
+
+export type ExpectedUnsecureStorageTypes = {
+  "@theme": "light" | "dark" | "auto";
+  "@API_URL": string | null;
+  "@pendingTasks": SerializableTask[] | null;
+  "@webSocketURL": string | null;
+  "@notifications": Notifications;
+  "@hasAdminAccess": boolean | null;
+  "@languageKeyStorage": LanguagesSupported;
+  "@clipboardWebSocketURL": string | null;
+};
+
+export type ExpectedStorageTypes<
+  T extends "SECURE" | "UNSECURE" | "BOTH" = "SECURE"
+> = T extends "BOTH"
+  ? ExpectedSecureStorageTypes & ExpectedUnsecureStorageTypes
+  : T extends "SECURE"
+  ? ExpectedSecureStorageTypes
+  : ExpectedUnsecureStorageTypes;
 
 export type Route = {
   method: "get" | "post" | "put" | "delete";

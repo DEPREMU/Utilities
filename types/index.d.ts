@@ -8,6 +8,8 @@ export * from "./typesStorage";
 export * from "./typesDatabase";
 export * from "./typesWebSocket";
 export * from "./typesNavigation";
+export * from "./typesTaskRegistry";
 export * from "./typesTranslations";
 export * from "./typesNotifications";
 export * from "./typesNativeModules";
+export * from "./typesUtilitiesForPC";
