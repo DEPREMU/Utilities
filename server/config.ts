@@ -1,6 +1,6 @@
 import env from "./env.ts";
 import path from "path";
-import type { TablesKeys } from "../types/typesDatabase.ts";
+import { TablesKeys } from "@types";
 
 export const host: string = env.HOST || "localhost";
 export const port: number = Number(env.PORT) || 3000;

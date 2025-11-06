@@ -21,9 +21,9 @@ import {
 import { Router } from "express";
 import { translate } from "./translate.ts";
 import { handleDoQueryDatabase } from "../dev/handleDoQuery.ts";
-import type { Response, Request } from "express";
+import { Response, Request } from "express";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
-import type { ResponseHealth, Route, RoutesAPI } from "../../types/typesAPI.ts";
+import { ResponseHealth, Route, RoutesAPI } from "@types";
 import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
 
 const handleHealthCheck = (_: Request, res: Response<ResponseHealth>) => {

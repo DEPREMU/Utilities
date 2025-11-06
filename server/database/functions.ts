@@ -2,9 +2,7 @@ import env from "../env.ts";
 import chalk from "chalk";
 import { pool } from "./postgres.ts";
 import { TABLE_MAP } from "../config.ts";
-import type { Falsy } from "../../app/node_modules/react-native/";
-import type { RequestDatabaseInsert, Tables, TablesKeys } from "../../types";
-
+import { RequestDatabaseInsert, Tables, TablesKeys, Falsy } from "@types";
 
 const getMatchObject = <T extends TablesKeys>(
   update: Partial<Tables[T]>,

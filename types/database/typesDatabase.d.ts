@@ -1,5 +1,6 @@
 import type { UserData } from "./typesUser";
-import type { ReasonNotification } from "./typesNotifications";
+import { LanguagesSupported } from "../typesTranslations";
+import type { ReasonNotification } from "../typesNotifications";
 
 export type Logs = {
   id?: string;
@@ -46,7 +47,7 @@ export type UserConfig = {
   theme: "light" | "dark" | "auto";
   userId: string;
   API_URL?: string;
-  language: string;
+  language: LanguagesSupported;
   hasAdmin: boolean;
   updatedAt: string;
   createdAt?: string;

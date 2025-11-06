@@ -2,8 +2,8 @@ import chalk from "chalk";
 import axios from "axios";
 import { t } from "../translations/index.ts";
 import { dataDatabase } from "./fetchData.ts";
+import { LanguagesSupported } from "@types";
 import { sendFCMNotification } from "../firebase/admin.ts";
-import type { LanguagesSupported } from "../../types/index.ts";
 
 const isDown = async (url: string): Promise<boolean> => {
   try {

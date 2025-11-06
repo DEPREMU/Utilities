@@ -1,8 +1,8 @@
 import env from "../env.ts";
+import chalk from "chalk";
 import express from "express";
 import { URLSearchParams } from "url";
-import type { RequestTranslate, ResponseTranslate } from "./../../types/index";
-import chalk from "chalk";
+import { RequestTranslate, ResponseTranslate } from "@types";
 
 export const translate = async (
   req: express.Request<unknown, unknown, RequestTranslate>,

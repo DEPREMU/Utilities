@@ -1,7 +1,7 @@
 import env from "../env.ts";
 import chalk from "chalk";
 import { pool } from "../database/postgres.ts";
-import type { Request, Response } from "express";
+import { Request, Response } from "express";
 
 export const handleDoQueryDatabase = async (
   req: Request<unknown, unknown, { query: string; showFields?: boolean }>,

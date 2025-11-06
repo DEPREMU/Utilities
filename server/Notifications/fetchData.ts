@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { dbInitialized } from "../database/postgres.ts";
 import { fetchFromTable } from "../database/functions.ts";
-import type { Tables, TablesKeys } from "../../types";
+import { Tables, TablesKeys } from "@types";
 
 export const dataDatabase = {
   Logs: [] as Tables["Logs"][],

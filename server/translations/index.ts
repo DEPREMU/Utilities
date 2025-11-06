@@ -1,7 +1,7 @@
 import en from "./English.ts";
 import es from "./Spanish.ts";
 import chalk from "chalk";
-import type { LanguagesSupported, typeLanguagesServer } from "../../types";
+import { LanguagesSupported, typeLanguagesServer } from "@types";
 
 /**
  * Translates a given key into the specified language, with optional replacements.

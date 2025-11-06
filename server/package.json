@@ -4,8 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npx nodemon --exec node index.ts",
-    "format-all": "npx prettier --write \"**/*.{ts,js,json}\" --ignore-path ../.gitignore",
+    "start": "node ./build.ts && node ./build/index.cjs",
+    "start-dev": "node ./build.ts && npx nodemon --exec node ./build/index.cjs",
+    "format-all": "npx prettier --write \"**/*.{ts,json}\" --ignore-path ../.gitignore",
+    "before-commit": "npm run lint:fix && npm run type-check",
+    "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:check": "eslint . --max-warnings 0"
@@ -21,6 +24,7 @@
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.2",
+    "esbuild": "^0.25.12",
     "express": "^5.1.0",
     "firebase-admin": "^13.5.0",
     "fs": "^0.0.1-security",

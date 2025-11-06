@@ -9,8 +9,8 @@ import { URL } from "url";
 import express from "express";
 import { host, port } from "./config.ts";
 import { handleInitDB } from "./database/postgres.ts";
+import { WebSocketPathname } from "@types";
 import { validateServerEnv } from "./env.ts";
-import type { WebSocketPathname } from "../types/typesWebSocket.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
 import { initWebSocket, initWebSocketClipboard } from "./routes/WebSocket.ts";
 

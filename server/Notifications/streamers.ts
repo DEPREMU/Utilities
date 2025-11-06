@@ -1,4 +1,4 @@
-import type {
+import {
   Streamer,
   ChannelsId,
   UserConfig,
@@ -6,7 +6,7 @@ import type {
   ScreensAvailable,
   LanguagesSupported,
   UserNotificationsConfig,
-} from "../../types/index.ts";
+} from "@types";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
 import { dataDatabase } from "./fetchData.ts";

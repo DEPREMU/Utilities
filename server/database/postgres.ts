@@ -4,9 +4,8 @@ import fs from "fs";
 import env from "../env.ts";
 import path from "path";
 import chalk from "chalk";
-import { Pool } from "pg";
-import type { PoolConfig } from "pg";
 import { exec } from "child_process";
+import { Pool, PoolConfig } from "pg";
 import { serverPath, TABLE_MAP } from "../config.ts";
 import { handleRestoreDatabase } from "./backups/index.ts";
 

@@ -6,11 +6,11 @@ import typescriptParser from "@typescript-eslint/parser";
 
 export default [
   {
-    ignores: ["node_modules/**"],
+    ignores: ["node_modules/**", "build/**"],
   },
   js.configs.recommended,
   {
-    files: ["**/*.{js,ts,jsx,tsx}"],
+    files: ["**/*.{ts,tsx}"],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {

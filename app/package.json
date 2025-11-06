@@ -15,6 +15,7 @@
     "clean:i": "npm run clean && npm i",
     "app": "npx expo start -c -g",
     "app-dev": "npx expo start -c -d",
+    "before-commit": "npm run lint:fix && npm run type-check",
     "build:android": "echo \"Select one profile (development, preview, production)\" && read BUILD_PROFILE && export PLATFORM=android && export EAS_BUILD=false && rimraf android && npm run prebuild && echo \"You must delete android/ from .gitignore\" && export EAS_BUILD=true && taskset -c 0-5 eas build --platform android --profile $BUILD_PROFILE --local --output=./builds/android.apk && adb install -r ./builds/android.apk",
     "build-dev:android": "export PLATFORM=android && npx rimraf android && npm run prebuild && npm run android",
     "update": "export PLATFORM=android && export EAS_BUILD=true && export BUILD_PROFILE=production && npx eas update --channel production --platform $PLATFORM",

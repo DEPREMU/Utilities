@@ -1,4 +1,4 @@
-import { Tables, TablesKeys } from "./typesDatabase";
+import { Tables, TablesKeys } from "./database/index";
 
 export interface SerializableTask {
   id: string;

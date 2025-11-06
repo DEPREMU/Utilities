@@ -1,14 +1,10 @@
-import type {
-  SelectedCryptos,
-  ExpectedStorageTypes,
-} from "./../../app/utils/constants/keysStorage";
 import {
   deleteInTable,
   updateInTable,
   fetchFromTable,
   insertIntoTable,
 } from "../database/functions.ts";
-import type {
+import {
   Tables,
   UserData,
   RequestAuth,
@@ -16,16 +12,19 @@ import type {
   Notifications,
   RequestSignOut,
   ResponseSignOut,
+  SelectedCryptos,
   ReasonNotification,
+  ExpectedStorageTypes,
   RequestRefreshSession,
   ResponseRefreshSession,
-} from "../../types";
+  LanguagesSupported,
+} from "@types";
 import jwt from "jsonwebtoken";
 import env from "../env.ts";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
 import bcrypt from "bcryptjs";
-import type { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 
 declare global {
   namespace Express {
@@ -185,11 +184,6 @@ export const getStorageData = async (
       { enabled: {}, intervals: {}, paused: {} } as Notifications,
     );
 
-  console.log(
-    "User notifications config to save:",
-    userNotificationsConfigToSave,
-  );
-
   const userConfigToSave: Tables["UserConfig"] = {
     userId,
     language: userConfig?.language || "en",
@@ -221,17 +215,20 @@ export const getStorageData = async (
       ?.map((streamer) => ({ ...streamer, isLive: false }))
       .filter(Boolean),
     _deviceId: "",
-    _userData: user || null,
+    _userData: (user as Omit<UserData, "password">) || null,
   };
 
   return storageData;
 };
 
-export const initializeTables = async (userId: string, lang: string) => {
+export const initializeTables = async (
+  userId: string,
+  language: LanguagesSupported,
+) => {
   const updatedAt = new Date().toISOString();
   const [userConfig, userNotificationsConfig] = await Promise.all([
     insertIntoTable("UserConfig", {
-      language: lang,
+      language,
       userId,
       theme: "auto",
       hasAdmin: false,

@@ -4,7 +4,7 @@ import {
   fetchFromTable,
   insertIntoTable,
 } from "../database/functions.ts";
-import type {
+import {
   RequestDatabaseDelete,
   RequestDatabaseFetch,
   RequestDatabaseInsert,
@@ -13,10 +13,10 @@ import type {
   ResponseDatabaseFetch,
   ResponseDatabaseInsert,
   ResponseDatabaseUpdate,
-} from "../../types/index.ts";
+} from "@types";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
-import type { Request, Response } from "express";
+import { Request, Response } from "express";
 
 export const handleFetchFromDatabase = async (
   req: Request<unknown, unknown, RequestDatabaseFetch>,

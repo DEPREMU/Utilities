@@ -4,7 +4,7 @@ import {
   insertIntoTable,
   deleteSessions,
 } from "../database/functions.ts";
-import type {
+import {
   Cryptos,
   UserConfig,
   Notification,
@@ -15,7 +15,7 @@ import type {
   LanguagesSupported,
   UserNotificationsConfig,
   ClipboardWebSocketMessage,
-} from "./../../types/index";
+} from "@types";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
 import WebSocket, { WebSocketServer } from "ws";

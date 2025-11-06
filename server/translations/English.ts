@@ -1,4 +1,4 @@
-import type { typeLanguagesServer } from "../../types";
+import { typeLanguagesServer } from "@types";
 
 const en: typeLanguagesServer = {
   notificationCryptoTitle: "Crypto Update: {{cryptos}}",

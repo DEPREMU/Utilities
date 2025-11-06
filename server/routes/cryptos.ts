@@ -1,11 +1,11 @@
-import chalk from "chalk";
-import type {
+import {
+  RequestCryptos,
+  PriceBinanceAPI,
+  ResponseCryptos,
   RequestCryptoPrice,
   ResponseCryptoPrice,
-  RequestCryptos,
-  ResponseCryptos,
-  PriceBinanceAPI,
-} from "./../../types/typesAPI";
+} from "@types";
+import chalk from "chalk";
 import express from "express";
 
 export const getCryptoPrice = async (

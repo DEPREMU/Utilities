@@ -1,13 +1,13 @@
-import type { Request, Response } from "express";
-import type {
+import {
   RequestDecrypt,
   RequestEncrypt,
   ResponseDecrypt,
   ResponseEncrypt,
   ResponseGetRandomUUID,
-} from "../../types/";
-import crypto from "crypto";
+} from "@types";
 import chalk from "chalk";
+import crypto from "crypto";
+import { Request, Response } from "express";
 
 /**
  * The secret key used for encryption and decryption operations.

@@ -1,17 +1,17 @@
+import type {
+  Logs,
+  Tables,
+  Cryptos,
+  Streamer,
+  UserData,
+  TablesKeys,
+  DownDetector,
+} from "./database";
 import type { Falsy } from "react-native";
 import type { Handler } from "express";
-import type { UserData } from "./typesUser";
-import type { LanguagesSupported } from "./typesTranslations";
-import type {
-  Cryptos,
-  DownDetector,
-  Logs,
-  Streamer,
-  Tables,
-  TablesKeys,
-} from "./typesDatabase";
 import { Notifications } from "./typesNotifications";
 import { SerializableTask } from "./typesTaskRegistry";
+import type { LanguagesSupported } from "./typesTranslations";
 
 export type SelectedCryptos = Record<string, Cryptos>;
 

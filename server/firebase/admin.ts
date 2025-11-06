@@ -1,7 +1,7 @@
 import chalk from "chalk";
-import type { ScreensAvailable, ChannelsId } from "../../types/index.ts";
 import env from "../env.ts";
 import admin from "firebase-admin";
+import { ScreensAvailable, ChannelsId } from "@types";
 
 let firebaseApp: admin.app.App | null = null;
 

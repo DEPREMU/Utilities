@@ -1,9 +1,9 @@
-import type {
+import {
   RequestAddStreamer,
   ResponseAddStreamer,
   RequestGetIsLiveStreamer,
   ResponseGetIsLiveStreamer,
-} from "./../../types/index";
+} from "@types";
 import axios from "axios";
 import express from "express";
 import { insertIntoTable } from "../database/functions.ts";
