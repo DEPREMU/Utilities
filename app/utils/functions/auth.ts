@@ -1,14 +1,10 @@
 import {
-  KeyStorageValues,
-  ExpectedStorageTypes,
-  ALL_KEYS_STORAGE_TYPE,
-} from "../constants";
-import {
   UserData,
   RequestAuth,
   ResponseAuth,
   RequestSignOut,
   ResponseSignOut,
+  ExpectedStorageTypes,
   RequestRefreshSession,
   ResponseRefreshSession,
 } from "@types";
@@ -31,6 +27,7 @@ import { isFalsy } from "./../functions/appManagement";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
+import { KeyStorageValues, ALL_KEYS_STORAGE_TYPE } from "../constants";
 
 /**
  * Auth response type for consistent error handling

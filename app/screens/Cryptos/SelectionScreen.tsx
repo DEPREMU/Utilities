@@ -22,7 +22,7 @@ import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@/components/common/SkeletonLoading";
 import { View, FlatList } from "react-native";
 import { useUserContext } from "@context/UserContext";
-import { SelectedCryptos } from "@utils";
+import { SelectedCryptos } from "@types";
 import { Text, TextInput } from "react-native-paper";
 import useStylesCryptoItem from "@styles/components/cryptos/useStylesCryptoItem";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";

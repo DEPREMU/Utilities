@@ -266,6 +266,18 @@ const en: typeLanguages = {
   pleaseEnterWebPageURL: "Please enter the web page URL",
   webPageMustStartWithHTTP: "Web page URL must start with http or https",
   webPageAddedSuccessfully: "Web page added successfully",
+  computerControl: "Computer Control",
+  turnOffComputer: "Turn Off Computer",
+  restartComputer: "Restart Computer",
+  noDevices: "No devices found on the network",
+  searchingDevices: "Searching for devices...",
+  computerControlTitle: "Computer Control",
+  scanning: "Scanning",
+  search: "Search",
+  turnOffCommandSent: "Turn off command sent",
+  turnOffCommandFailed: "Failed to send turn off command",
+  restartCommandSent: "Restart command sent",
+  restartCommandFailed: "Failed to send restart command",
 } as const;
 
 export default en;

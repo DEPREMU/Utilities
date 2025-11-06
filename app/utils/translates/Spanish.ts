@@ -272,6 +272,18 @@ const es: typeLanguages = {
   webPageMustStartWithHTTP:
     "La URL de la página web debe comenzar con http o https",
   webPageAddedSuccessfully: "Página web agregada exitosamente",
+  computerControl: "Control de computadora",
+  turnOffComputer: "Apagar computadora",
+  restartComputer: "Reiniciar computadora",
+  noDevices: "No se encontraron dispositivos en la red",
+  searchingDevices: "Buscando dispositivos...",
+  computerControlTitle: "Control de Computadora",
+  scanning: "Escaneando",
+  search: "Buscar",
+  turnOffCommandSent: "Comando de apagado enviado",
+  turnOffCommandFailed: "Error al enviar el comando de apagado",
+  restartCommandSent: "Comando de reinicio enviado",
+  restartCommandFailed: "Error al enviar el comando de reinicio",
 } as const;
 
 export default es;

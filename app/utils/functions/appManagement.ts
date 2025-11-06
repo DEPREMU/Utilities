@@ -5,12 +5,13 @@ import {
   ResponseDatabaseFetch,
 } from "@types";
 import chalk from "chalk";
+import axios from "axios";
 import * as Updates from "expo-updates";
 import _BackgroundTimer from "react-native-background-timer";
 import { log, logError } from "./debug";
 import * as Localization from "expo-localization";
 import { Falsy, Platform } from "react-native";
-import { ExpectedStorageTypes } from "../constants";
+import { ExpectedStorageTypes } from "@types";
 import { fetchOptions, getRouteAPI } from "./APIManagement";
 import { initializeNotificationsStorage } from "./notifications";
 
@@ -164,7 +165,7 @@ export const debounce = <T extends (...args: unknown[]) => unknown, K = void>(
   func: T,
   delay: number,
 ): (() => K) => {
-  let timeoutId: NodeJS.Timeout;
+  let timeoutId: NodeJS.Timeout | number;
   const debouncedFunc = (...args: unknown[]) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func(...args), delay);
@@ -345,4 +346,20 @@ export const setIntervalPolyfill = (
 export const clearIntervalPolyfill = (id: NodeJS.Timeout | number): void => {
   if (Platform.OS === "android") _BackgroundTimer.clearInterval(id as number);
   else clearInterval(id as NodeJS.Timeout);
+};
+
+export const checkUrlStatus = async (
+  url: string,
+  method: "get" | "post" = "get",
+): Promise<boolean> => {
+  const res = await axios.request({
+    url,
+    method,
+    timeout: 3000,
+    data: method === "post" ? {} : undefined,
+    responseType: "stream",
+    validateStatus: () => true,
+  });
+  res.data.destroy();
+  return res.status >= 200 && res.status < 400;
 };

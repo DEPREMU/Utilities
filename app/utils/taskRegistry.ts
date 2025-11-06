@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/indent */
 import {
   logError,
   getRouteAPI,
@@ -13,36 +12,12 @@ import {
   RequestDatabaseDelete,
   RequestDatabaseInsert,
 } from "@types";
+import { AvailableFunctions } from "@types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TaskFunction = (...args: any[]) => Promise<void> | void;
 
-export type AvailableFunctions =
-  | "insertIntoDatabase"
-  | "updateFromDatabase"
-  | "deleteFromDatabase";
-
 type TaskRegistry = Record<AvailableFunctions, TaskFunction>;
-
-export type FunctionsArguments<T extends AvailableFunctions> =
-  T extends "insertIntoDatabase"
-    ? [table: TablesKeys, values: Tables[TablesKeys] | Tables[TablesKeys][]]
-    : T extends "updateFromDatabase"
-      ? [
-          table: TablesKeys,
-          values: Partial<Tables[TablesKeys]> | Partial<Tables[TablesKeys]>[],
-          match: Partial<Tables[TablesKeys]> | null,
-        ]
-      : T extends "deleteFromDatabase"
-        ? [table: TablesKeys, match: Partial<Tables[TablesKeys]> | null]
-        : never;
-
-export interface SerializableTask {
-  id: string;
-  functionName: AvailableFunctions;
-  args: unknown[];
-  timestamp: number;
-}
 
 const taskRegistry: TaskRegistry = {
   updateFromDatabase: async <T extends TablesKeys>(

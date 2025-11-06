@@ -10,11 +10,12 @@
  */
 
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { t } from "./translations.ts";
-import packageJson from "../package.json" with { type: "json" };
 import { execSync } from "child_process";
 import * as readline from "readline";
+import type PACKAGE_JSON from "../package.json";
 
 const askQuestion = async (question: string): Promise<string> => {
   const rl = readline.createInterface({
@@ -35,13 +36,74 @@ if (!__dirname.endsWith("UtilitiesForPC")) {
 if (!fs.existsSync(__dirname))
   throw new Error("__dirname does not exist: " + __dirname);
 
-const isWindows = process.platform === "win32";
+const packageJson: typeof PACKAGE_JSON = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, "package.json"), "utf-8")
+) as typeof PACKAGE_JSON;
+const isWindows = os.platform() === "win32";
 
 const dataBuild = {
-      distElectron: packageJson.build.directories.output,
-      appName: packageJson.name,
+  distElectron: packageJson.build.directories.output,
+  appName: packageJson.name,
+  productName: packageJson.build.productName,
+} as const;
+
+const addStartupScriptWindows = (
+  runAppCommand: string,
+  fileSudoers: string
+) => {
+  //TODO : Implement Windows auto-start script addition
 };
-    
+
+const addAutostartLinux = async (runAppCommand: string) => {
+  const fileSudoers = "utilitiesforpc";
+
+  const sudoers = execSync("ls /etc/sudoers.d/").toString();
+  if (sudoers.includes(fileSudoers)) return;
+
+  const answer0 = await askQuestion(t("enableAutoStartQuestion"));
+  if (answer0.toLowerCase() !== "y") return;
+
+  const homePath = process.env.HOME;
+  if (!homePath) throw new Error("HOME environment variable is not set");
+
+  const configDir = path.join(homePath, ".config");
+  const startUpFile = path.join(configDir, "utilities-for-pc-autostart.sh");
+  const autoStartDir = path.join(configDir, "autostart");
+
+  if (!fs.existsSync(autoStartDir))
+    fs.mkdirSync(autoStartDir, { recursive: true });
+
+  const desktopFilePath = path.join(autoStartDir, "utilities-for-pc.desktop");
+  const desktopFileContent = `[Desktop Entry]
+Type=Application
+Exec=${startUpFile}
+Terminal=false
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Utilities for PC
+Comment=Start Utilities for PC on login
+`;
+
+  const sudoersEntry = `
+# UtilitiesForPC auto-start
+${process.env.USER || "%sudo"} ALL=(ALL) NOPASSWD: /opt/${
+    dataBuild.productName
+  }/${dataBuild.appName}
+`;
+  execSync(
+    `sudo sh -c 'echo "${sudoersEntry}" > /etc/sudoers.d/${fileSudoers}'`
+  );
+
+  fs.writeFileSync(desktopFilePath, desktopFileContent);
+  execSync(
+    `sudo echo "#!/bin/bash\nxhost +si:localuser:root\npkexec ${runAppCommand}" > ${startUpFile}`
+  );
+  execSync(`sudo chmod +x ${startUpFile}`);
+  execSync(`sudo chmod +x ${desktopFilePath}`);
+
+  console.log(t("autoStartEnabled"));
+};
 
 const buildApp = async () => {
   console.log(t("buildingApp"));
@@ -49,60 +111,43 @@ const buildApp = async () => {
   console.log(t("appBuildCommandExecuted"));
 
   console.log(t("elevatingPermissions"));
-  if (isWindows)
+  if (isWindows) {
     execSync(
       `powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', 'cd \"${__dirname}\"; npx electron-builder --wi; exit'"`,
       { cwd: __dirname }
     );
-  else {
-    
-
-    execSync("npx electron-builder", { cwd: __dirname });
-    console.log(t("appPackagedSuccessfully"));
-    const dir = execSync(`cd ${dataBuild.distElectron}; ls`, {
-      cwd: __dirname,
-    });
-    const packageName = dir
-      .toString()
-      .split("\n")
-      .find((file) => file.endsWith(".snap"));
-    if (!packageName) throw new Error(t("FailedToFindSnapPackage"));
+  } else {
     execSync(
-      `sudo snap install ${dataBuild.distElectron}/${packageName} --dangerous; sudo apt install gnome-shell-extension-appindicator`,
+      "sudo apt install -y build-essential fakeroot dpkg-dev dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-shell-extension-appindicator",
+      { stdio: "inherit" }
+    );
+
+    execSync("npx electron-builder --linux deb", {
+      cwd: __dirname,
+      stdio: "inherit",
+    });
+    console.log(t("appPackagedSuccessfully"));
+
+    const dir = execSync(`ls`, { cwd: dataBuild.distElectron })
+      .toString()
+      .split("\n");
+    const packageName = dir.find((file) => file.endsWith(".deb"));
+    if (!packageName) throw new Error(t("FailedToFindSnapPackage"));
+
+    execSync(
+      `sudo dpkg -i ${path.join(
+        dataBuild.distElectron,
+        packageName
+      )} && sudo apt-get install -f -y; sudo apt autoremove -y`,
       {
         cwd: __dirname,
         stdio: "inherit",
       }
     );
 
-    const answer0 = await askQuestion(t("enableAutoStartQuestion"))
-    if (answer0.toLowerCase() === "y") {
-      const homePath = process.env.HOME;
-      if (!homePath) throw new Error("HOME environment variable is not set");
-      const autoStartPath = path.join(
-        homePath || "",
-        ".config",
-        "autostart"
-      );
-      
-      const desktopEntry = `
-    [Desktop Entry]
-    Type=Application
-    Name=Utilities for PC
-    Exec=${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11
-    Hidden=false
-    X-GNOME-Autostart-enabled=true
-    Terminal=false
-    Comment=Auto-start Utilities for PC at login
-    `;
-      
-      if (!fs.existsSync(autoStartPath)) {
-        fs.mkdirSync(autoStartPath, { recursive: true });
-      }
-      const desktopFilePath = path.join(autoStartPath, `${dataBuild.appName}.desktop`);
-      fs.writeFileSync(desktopFilePath, desktopEntry);
-      console.log(t("autoStartEnabled"));
-    }
+    const runAppCommand = `/opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`;
+
+    await addAutostartLinux(runAppCommand);
 
     const answer = await askQuestion(t("pleaseRestartComputer"));
     if (answer.toLowerCase() === "y") {
@@ -113,19 +158,14 @@ const buildApp = async () => {
     }
 
     const answer2 = await askQuestion(t("openAppNow"));
-
     if (answer2.toLowerCase() === "y") {
-      execSync(
-        `snap run ${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`,
-        {
-          cwd: __dirname,
-        }
-      );
+      execSync(`${runAppCommand}`, { cwd: __dirname, stdio: "inherit" });
     }
   }
+
   console.log(
     `App was packaged successfully. ${
-      isWindows ? "" : t("appPackagedSuccessMessage")
+      isWindows ? t("appPackagedSuccessMessage") : ""
     }`
   );
 };

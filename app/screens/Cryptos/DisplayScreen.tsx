@@ -1,11 +1,12 @@
 import { useLanguage } from "@context/LanguageContext";
 import { CryptoPrice } from "@components/Cryptos/CryptoPrice";
 import SkeletonLoading from "@components/common/SkeletonLoading";
-import { useStylesDisplayScreen } from "@styles/components/cryptos/useStylesDisplayScreen";
+import { stringifyData } from "@utils";
+import { SelectedCryptos } from "@types";
+import { useStylesCryptoPrice } from "@styles/components/cryptos/useStylesCryptoPrice";
 import { View, Text, ScrollView } from "react-native";
+import { useStylesDisplayScreen } from "@styles/components/cryptos/useStylesDisplayScreen";
 import React, { useEffect, useMemo, useState } from "react";
-import { SelectedCryptos, stringifyData } from "@utils";
-import { useStylesCryptoPrice } from "@/styles/components/cryptos/useStylesCryptoPrice";
 
 interface DisplayScreenProps {
   selectedCryptos: SelectedCryptos;
@@ -16,11 +17,7 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
   const useStyles = useStylesDisplayScreen();
   const { styles: cryptoPriceStyles } = useStylesCryptoPrice();
 
-  const styles = useMemo(
-    () => useStyles.styles,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [stringifyData(useStyles.styles)],
-  );
+  const styles = useMemo(() => useStyles.styles, [useStyles.styles]);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [render, setRender] = useState<boolean>(false);

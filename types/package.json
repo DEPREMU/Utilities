@@ -1,5 +1,7 @@
 {
   "devDependencies": {
+    "@types/dnssd": "^0.4.5",
+    "@types/electron": "^1.4.38",
     "@types/express": "^5.0.3",
     "expo-notifications": "^0.32.12",
     "react-native-device-info": "^14.1.1"

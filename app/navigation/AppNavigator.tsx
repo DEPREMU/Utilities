@@ -15,6 +15,7 @@ import { useTheme } from "@context/ThemeContext";
 import GamesNavigator from "@screens/Games";
 import SettingsScreen from "@screens/Settings";
 import MarkdownViewer from "@screens/markdown/MarkdownViewer";
+import ComputerControl from "@screens/ComputerControl/ComputerControl";
 import CryptosNavigator from "@screens/Cryptos";
 import DeviceInformation from "@screens/DeviceInformation/DeviceInfomation";
 import ClipboardNavigator from "@screens/Clipboard";
@@ -72,6 +73,7 @@ const screens: Screens = {
   DownDetector: { component: DownDetectorNavigator },
   MarkdownViewer: { component: MarkdownViewer },
   forgotPassword: { component: ForgotPasswordScreen },
+  ComputerControl: { component: ComputerControl },
   DeviceInformation: { component: DeviceInformation },
 };
 

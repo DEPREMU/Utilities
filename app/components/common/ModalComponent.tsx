@@ -45,7 +45,7 @@ const ModalComponent: React.FC<ModalProps> = ({
   customStyles,
 }) => {
   const position: SharedValue<number> = useSharedValue(0);
-  const idTimeout = useRef<NodeJS.Timeout | null>(null);
+  const idTimeout = useRef<NodeJS.Timeout | number | null>(null);
   const { styles, height } = useStylesModalComponent();
 
   const animatedStyle = useAnimatedStyle(() => ({

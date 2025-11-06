@@ -3,9 +3,9 @@ import { List, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
-import { ScrollView, View } from "react-native";
 import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
+import { Platform, ScrollView, View } from "react-native";
 import React, { useCallback, useMemo } from "react";
 import { ScreensAvailable, typeLanguages } from "@types";
 
@@ -57,6 +57,14 @@ const buttons: ButtonType[] = [
     screen: "DownDetector",
   },
 ];
+if (Platform.OS !== "web") {
+  buttons.push({
+    label: "computerControl",
+    screen: "ComputerControl",
+    noNeedsInternet: true,
+    noNeedsSession: true,
+  });
+}
 if (dev) buttons.push(dev);
 
 const HomeScreen: React.FC = () => {

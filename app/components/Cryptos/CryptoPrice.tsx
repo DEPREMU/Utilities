@@ -3,14 +3,13 @@ import {
   getRouteAPI,
   fetchOptions,
   stringifyData,
-  SelectedCryptos,
   getFormattedDate,
 } from "@utils";
 import { View, Text } from "react-native";
 import SkeletonLoading from "@components/common/SkeletonLoading";
-import { ResponseCryptoPrice } from "@types";
 import { useStylesCryptoPrice } from "@styles/components/cryptos/useStylesCryptoPrice";
 import React, { useState, useEffect } from "react";
+import { ResponseCryptoPrice, SelectedCryptos } from "@types";
 
 type CryptoPriceProps = {
   cryptoData: SelectedCryptos[string];

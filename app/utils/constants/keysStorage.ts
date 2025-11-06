@@ -1,13 +1,3 @@
-import {
-  Cryptos,
-  Streamer,
-  UserData,
-  DownDetector,
-  Notifications,
-  LanguagesSupported,
-} from "@types";
-import { SerializableTask } from "../taskRegistry";
-
 export const SECURE_KEYS_STORAGE = [
   "_userData",
   "_deviceId",
@@ -59,50 +49,3 @@ export type ALL_KEYS_STORAGE_TYPE =
 
 export type KeyStorageValues<T extends "SECURE" | "UNSECURE" = "SECURE"> =
   T extends "SECURE" ? SECURE_KEYS_STORAGE_TYPE : UNSECURE_KEYS_STORAGE_TYPE;
-
-export type SelectedCryptos = Record<string, Cryptos>;
-
-export type ExpectedSecureStorageTypes = {
-  _deviceId: string;
-  _userData: Omit<UserData, "password"> | null;
-  _Streamers: (Streamer & { isLive: boolean })[] | null;
-  _sessionExpiry: number | -1;
-  _selectedCryptos: SelectedCryptos | null;
-  _lastUpdateCheck: number | null;
-  _downDetectorData: DownDetector[] | null;
-  _userSessionTokenStorage: string | null;
-};
-
-export type ExpectedUnsecureStorageTypes = {
-  "@theme": "light" | "dark" | "auto";
-  "@API_URL": string | null;
-  "@pendingTasks": SerializableTask[] | null;
-  "@webSocketURL": string | null;
-  "@notifications": Notifications;
-  "@hasAdminAccess": boolean | null;
-  "@languageKeyStorage": LanguagesSupported;
-  "@clipboardWebSocketURL": string | null;
-};
-
-export type ExpectedStorageTypes<
-  T extends "SECURE" | "UNSECURE" | "BOTH" = "SECURE",
-> = T extends "BOTH"
-  ? ExpectedSecureStorageTypes & ExpectedUnsecureStorageTypes
-  : T extends "SECURE"
-    ? ExpectedSecureStorageTypes
-    : ExpectedUnsecureStorageTypes;
-//   {
-//   "@theme": "light" | "dark" | "auto";
-//   "@API_URL": string | null;
-//   "@pendingTasks": SerializableTask[] | null;
-//   "@webSocketURL": string | null;
-//   "@notifications": Notifications;
-//   "@hasAdminAccess": boolean | null;
-//   "@languageKeyStorage": LanguagesSupported;
-//   _deviceId: string;
-//   _userData: Omit<UserData, "password"> | null;
-//   _Streamers: (Streamer & { isLive: boolean })[] | null;
-//   _sessionExpiry: number | -1;
-//   _selectedCryptos: SelectedCryptos | null;
-//   _userSessionTokenStorage: string | null;
-// };

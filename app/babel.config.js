@@ -22,7 +22,7 @@ module.exports = function (api) {
             "@navigation": "./navigation",
             "@context": "./context",
             "@styles": "./styles",
-            "@types": "../types/index.ts",
+            "@types": "../types/index.d.ts",
           },
         },
       ],

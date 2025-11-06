@@ -44,12 +44,12 @@ type ChannelsIpcRenderer<
   };
   "save-data": {
     functionReturn: Promise<{ success: boolean }>;
-    functionArgs: [key: T, value: K];
+    functionArgs: [key: T, value: string];
     typeIpc: "invoke";
   };
   "load-data": {
     functionArgs: [key: T];
-    functionReturn: Promise<K>;
+    functionReturn: Promise<string | null>;
     typeIpc: "invoke";
   };
   "remove-data": {
@@ -78,9 +78,9 @@ export type ContextBridgeType = {
       key: T,
       value: string
     ) => Promise<{ success: boolean }>;
-    loadData: <T extends ALL_KEYS_STORAGE>(
-      ...args: ChannelsIpcRenderer<T>["load-data"]["functionArgs"]
-    ) => ChannelsIpcRenderer<T>["load-data"]["functionReturn"];
+    loadData: (
+      ...args: ChannelsIpcRenderer["load-data"]["functionArgs"]
+    ) => ChannelsIpcRenderer["load-data"]["functionReturn"];
     removeData: <T extends ALL_KEYS_STORAGE>(
       key: T
     ) => Promise<ChannelsIpcRenderer<T>["remove-data"]["functionReturn"]>;

@@ -1,5 +1,4 @@
 import {
-  Window,
   WebSocketMessage,
   WebSocketResponse,
   ClipboardWebSocketMessage,
@@ -26,6 +25,7 @@ import {
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import { useModal } from "./ModalContext";
+import windowModule from "@/utils/modules/WindowModule";
 import { useLanguage } from "./LanguageContext";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
 import { useBackground } from "./BackgroundContext";
@@ -68,9 +68,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const isConnecting = useRef<boolean>(false);
   const shouldConnect = useRef<boolean>(true);
-  const pingIntervalId = useRef<NodeJS.Timeout | null>(null);
+  const pingIntervalId = useRef<NodeJS.Timeout | number | null>(null);
   const clipboardSocketRef = useRef<WebSocket | null>(null);
-  const connectionTimeoutId = useRef<NodeJS.Timeout | null>(null);
+  const connectionTimeoutId = useRef<NodeJS.Timeout | number | null>(null);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
     const currentSocket = socketRef.current;
@@ -295,11 +295,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           lastItemCopied.current = parsedMessage.content;
           if (Platform.OS === "android")
             BackgroundModule?.setClipboardText?.(parsedMessage.content);
-          else if (Platform.OS === "web") {
-            (window as Window).UtilitiesForPC?.setClipboard?.(
-              parsedMessage.content,
-            );
-          }
+          else if (Platform.OS === "web")
+            windowModule?.setClipboard?.(parsedMessage.content);
         } catch (error) {
           logError("Error parsing Clipboard WebSocket message:", error);
         }

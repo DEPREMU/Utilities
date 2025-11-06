@@ -11,13 +11,15 @@ nvm install 24
 sudo npm install -g pm2
 npm install -g pm2
 
+cd $HOME
 mkdir Utilities
 cd Utilities
 git clone https://github.com/DEPREMU/Utilities .
 git checkout mainVersion
 git pull origin mainVersion
 
-npm run install-all
+cd server
+npm i
 sudo ufw allow 3000
 
 # The API of Binance requires a connection from Mexico
@@ -35,15 +37,15 @@ nordvpn set technology nordlynx
 
 
 # Initialize the database
-chmod +x /home/ubuntu/Utilities/server/config-oracle/init-db.sh
-/home/ubuntu/Utilities/server/config-oracle/init-db.sh
+chmod +x $HOME/Utilities/server/config-oracle/init-db.sh
+$HOME/Utilities/server/config-oracle/init-db.sh
 
 sudo apt update -y
 sudo apt upgrade -y
 
 # Start the server
-chmod +x /home/ubuntu/Utilities/server/config-oracle/start.sh
-pm2 start /home/ubuntu/Utilities/server/config-oracle/start.sh --name Utilities
+chmod +x $HOME/Utilities/server/config-oracle/start.sh
+pm2 start $HOME/Utilities/server/config-oracle/start.sh --name Utilities
 pm2 save
 pm2 startup
 # Then copy and paste the output command to enable pm2 on startup

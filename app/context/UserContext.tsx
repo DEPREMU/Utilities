@@ -18,9 +18,10 @@ import {
   refreshSession as authRefreshSession,
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
+import { UserData } from "@types";
 import { Platform } from "react-native";
+import windowModule from "@/utils/modules/WindowModule";
 import { navigateReplace } from "@navigation/navigationRef";
-import { UserData, Window } from "@types";
 
 interface UserContextType {
   sessionToken: string | null;
@@ -233,9 +234,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
         if (Platform.OS !== "web") return;
-        if (typeof window === "undefined") return;
 
-        (window as Window)?.UtilitiesForPC?.notifyLoginStatus?.(isLoggedIn);
+        windowModule?.notifyLoginStatus?.(isLoggedIn);
       };
 
       try {

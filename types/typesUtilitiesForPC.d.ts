@@ -6,10 +6,10 @@ import { ExpectedStorageTypes } from "./typesAPI";
 export type ElectronStoreType = {
   get: <T extends keyof ExpectedStorageTypes<"UNSECURE">>(
     key: T
-  ) => ExpectedStorageTypes<"UNSECURE">[T] | undefined;
+  ) => string | undefined;
   set: <T extends keyof ExpectedStorageTypes<"UNSECURE">>(
     key: T,
-    value: ExpectedStorageTypes<"UNSECURE">[T]
+    value: string
   ) => void;
   delete: <T extends keyof ExpectedStorageTypes<"UNSECURE">>(key: T) => void;
 };

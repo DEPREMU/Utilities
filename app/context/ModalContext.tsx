@@ -76,7 +76,7 @@ const ModalContext = createContext<ModalContextProps | undefined>(undefined);
  * @property {function} closeModal - Function to close the modal and reset its state.
  */
 export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
-  const idTimeout = useRef<NodeJS.Timeout | null>(null);
+  const idTimeout = useRef<NodeJS.Timeout | number | null>(null);
   const [body, setBody] = useState<ReactNode | string>(null);
   const [title, setTitle] = useState<string>("");
   const [isOpen, setIsOpen] = useState<boolean>(false);

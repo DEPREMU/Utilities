@@ -2,6 +2,7 @@ import {
   logError,
   getRouteAPI,
   fetchOptions,
+  checkLanguage,
   loadDataSecure,
   saveDataSecure,
   fetchAndApplyUpdate,
@@ -18,13 +19,20 @@ import AppProviders from "./context/AppProviders";
 import AppNavigator from "./navigation/AppNavigator";
 import React, { useEffect } from "react";
 import { ResponseGetRandomUUID } from "@types";
+import windowModule from "./utils/modules/WindowModule";
 
 const hasDeviceId = async (): Promise<boolean> => {
   try {
     const deviceId = await loadDataSecure("_deviceId");
+    if (Platform.OS === "web" && deviceId)
+      windowModule.setData(deviceId, await checkLanguage());
+
     if (deviceId) return true;
-    if (Platform.OS === "web") await saveDataSecure("_deviceId", v4() + v4());
-    else {
+    if (Platform.OS === "web") {
+      const deviceId = v4() + v4();
+      windowModule.setData(deviceId, await checkLanguage());
+      await saveDataSecure("_deviceId", deviceId);
+    } else {
       let uuid: string | undefined = "";
       try {
         const res = await fetch(

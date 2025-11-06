@@ -1,4 +1,4 @@
 #!/bin/bash
 nordvpn connect Mexico
-cd /home/ubuntu/Utilities/server
+cd $HOME/Utilities/server
 node index.ts

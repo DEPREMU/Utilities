@@ -8,7 +8,6 @@ import React, {
   createContext,
 } from "react";
 import {
-  Window,
   Notification,
   Notifications as NotificationsType,
   EventNativeModule,
@@ -35,6 +34,7 @@ import {
 } from "@utils";
 import { v4 } from "uuid";
 import { useModal } from "./ModalContext";
+import windowModule from "@/utils/modules/WindowModule";
 import * as Location from "expo-location";
 import { useLanguage } from "./LanguageContext";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
@@ -397,7 +397,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (!sessionToken) return;
 
     const handleIntervalClipboardWeb = async () => {
-      if (isFalsy(typeof window) || !userData?.userId) return;
+      if (!userData?.userId) return;
 
       try {
         let content: string | undefined = undefined;
@@ -405,8 +405,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         try {
           content = await ExpoClipboard.getStringAsync();
         } catch {
-          const electronApp = (window as Window)?.UtilitiesForPC;
-          if (electronApp) content = electronApp?.readClipboard?.();
+          content = windowModule?.readClipboard?.();
         }
         if (isFalsy(content) || lastItemCopied.current === content) return;
 
