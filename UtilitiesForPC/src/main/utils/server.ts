@@ -4,17 +4,20 @@ import DNSSD from "dnssd";
 import express from "express";
 import dataApp from "./variables";
 import machineId from "node-machine-id";
+import { Server } from "http";
 import { writeLog } from "./logger";
 import { exec, execSync } from "child_process";
 import { AdvertisementTXT } from "@types";
 
-let idTimeout: NodeJS.Timeout | number | null = null;
+let idTimeoutServer: number | null = null;
+let isReconnecting = false;
+let isShuttingDown = false;
 
 export const turnOffComputer = async (): Promise<boolean> => {
   writeLog("Received turn-off-computer request", "warn");
   const command = dataApp.getValue("isWindows")
     ? "shutdown /s /f /t 10"
-    : "sudo shutdown -h +0.2";
+    : "sudo shutdown -h now";
 
   return await new Promise((resolve) => {
     exec(command, (error, stdout, stderr) => {
@@ -24,7 +27,6 @@ export const turnOffComputer = async (): Promise<boolean> => {
         console.error(message);
         resolve(false);
       }
-
       if (stdout) writeLog(`Shutdown stdout: ${stdout}`, "info");
       if (stderr) writeLog(`Shutdown stderr: ${stderr}`, "warn");
       resolve(true);
@@ -36,7 +38,7 @@ export const restartComputer = async (): Promise<boolean> => {
   writeLog("Received restart-computer request", "warn");
   const command = dataApp.getValue("isWindows")
     ? "shutdown /r /f /t 10"
-    : "sudo shutdown -r +0.2";
+    : "sudo shutdown -r now";
 
   return await new Promise((resolve) => {
     exec(command, (error, stdout, stderr) => {
@@ -46,7 +48,6 @@ export const restartComputer = async (): Promise<boolean> => {
         console.error(message);
         resolve(false);
       }
-
       if (stdout) writeLog(`Restart stdout: ${stdout}`, "info");
       if (stderr) writeLog(`Restart stderr: ${stderr}`, "warn");
       resolve(true);
@@ -61,6 +62,12 @@ const hasPermissionsMiddleware = (
 ) => {
   try {
     const { deviceId } = req.body || {};
+    writeLog(
+      `Received deviceId: ${deviceId}, expected: ${dataApp.getValue(
+        "deviceId"
+      )} areEqual: ${deviceId === dataApp.getValue("deviceId")}`,
+      "info"
+    );
     if (!deviceId || deviceId !== dataApp.getValue("deviceId")) {
       const message = "Unauthorized request: Invalid or missing deviceId";
       writeLog(message, "warn");
@@ -86,7 +93,51 @@ process.on("unhandledRejection", (reason) => {
   scheduleReconnect("unhandledRejection");
 });
 
-const scheduleReconnect = (reason: string) => {
+export const handleShutdown = () => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  writeLog("Shutting down gracefully...", "info");
+  cleanAdAndServer();
+  setTimeout(() => process.exit(0), 500);
+};
+
+process.on("SIGINT", handleShutdown); // Ctrl+C
+process.on("SIGTERM", handleShutdown); // 'kill'
+
+export const cleanAdAndServer = (): void => {
+  const ad: DNSSD.Advertisement | null = dataApp.getValue("ad");
+  const server: Server | null = dataApp.getValue("server");
+
+  if (ad) {
+    writeLog("Stopping mDNS advertisement...", "info");
+    try {
+      ad.stop?.();
+    } catch (e) {
+      writeLog(`Error stopping ad (ignoring): ${e}`, "warn");
+    }
+    dataApp.setValue("ad", null);
+  }
+  if (server) {
+    writeLog("Closing server...", "info");
+    try {
+      server.close?.();
+    } catch (e) {
+      writeLog(`Error closing server (ignoring): ${e}`, "warn");
+    }
+    dataApp.setValue("server", null);
+  }
+};
+
+export const scheduleReconnect = (reason: string) => {
+  if (isReconnecting || isShuttingDown) {
+    writeLog(
+      `Reconnect ignored: (Reason: ${reason}, isReconnecting: ${isReconnecting}, isShuttingDown: ${isShuttingDown})`,
+      "info"
+    );
+    return;
+  }
+  isReconnecting = true;
+
   const delay = Math.min(
     5000 * Math.pow(2, dataApp.getValue("reconnectAttempts")),
     60000
@@ -97,47 +148,53 @@ const scheduleReconnect = (reason: string) => {
     "warn"
   );
 
-  if (idTimeout) clearTimeout(idTimeout as NodeJS.Timeout);
-  idTimeout = setTimeout(() => {
+  if (idTimeoutServer) clearTimeout(idTimeoutServer);
+
+  idTimeoutServer = setTimeout(() => {
+    writeLog("Reconnect timeout elapsed. Attempting to restart...", "info");
     try {
-      dataApp.getValue("server")?.close?.(() => {
-        writeLog("Server closed, attempting to restart...", "info");
+      const server = dataApp.getValue("server");
+      if (server) {
+        server.close(() => {
+          writeLog("Existing server closed. Restarting...", "info");
+          initServer();
+        });
+      } else {
+        writeLog("No existing server found. Restarting...", "info");
         initServer();
-      });
-    } catch {
+      }
+    } catch (e) {
+      writeLog(
+        `Error during server close in reconnect: ${e}. Forcing restart.`,
+        "error"
+      );
       initServer();
     }
   }, delay);
 };
 
-export const createAdvertiser = (): void => {
-  const lanIP = dataApp.getValue("lanIP");
-  let ad = dataApp.getValue("ad");
-  if (ad) ad.stop();
-
-  const txt: AdvertisementTXT = {
-    lanIP,
-    deviceId: dataApp.getValue("deviceId"),
-  };
-
-  ad = new DNSSD.Advertisement(DNSSD.tcp("http"), dataApp.getValue("PORT"), {
-    name: lanIP.replace(/\./g, "-"),
-    txt,
-  });
-  ad?.start();
-  dataApp.setValue("ad", ad);
-};
-
 export const initServer = (): void => {
+  if (isShuttingDown) {
+    writeLog("Shutdown in progress. Aborting server init.", "warn");
+    return;
+  }
   writeLog("Initializing server...", "info");
 
-  if (!dataApp.getValue("hasSudo") && !dataApp.getValue("isWindows")) return;
+  if (!dataApp.getValue("hasSudo") && !dataApp.getValue("isWindows")) {
+    writeLog(
+      "Permissions missing (no sudo or not Windows). Server will not start.",
+      "error"
+    );
+    return;
+  }
 
-  if (!dataApp.getValue("deviceId"))
+  if (!dataApp.getValue("deviceId")) {
     dataApp.setValue("deviceId", machineId.machineIdSync());
+  }
 
   if (dataApp.getValue("hasSudo")) {
     try {
+      writeLog(`Configuring firewall...`, "info");
       execSync("sudo ufw allow 3005 && sudo ufw reload");
     } catch (err) {
       writeLog(`Error configuring firewall: ${err}`, "error");
@@ -145,6 +202,8 @@ export const initServer = (): void => {
   }
 
   try {
+    cleanAdAndServer();
+
     const app = express();
     app.use(express.json());
     app.use(cors());
@@ -170,9 +229,35 @@ export const initServer = (): void => {
     });
 
     const server = app.listen(dataApp.getValue("PORT"), "0.0.0.0", () => {
+      if (idTimeoutServer) clearTimeout(idTimeoutServer);
+      idTimeoutServer = null;
+
       writeLog(`Server listening on port ${dataApp.getValue("PORT")}`, "info");
+
+      isReconnecting = false;
       dataApp.setValue("reconnectAttempts", 0);
-      createAdvertiser();
+
+      try {
+        const lanIP = dataApp.getValue("lanIP");
+        const deviceId = dataApp.getValue("deviceId");
+        const txt: AdvertisementTXT = {
+          lanIP,
+          deviceId: deviceId,
+        };
+
+        const ad = new DNSSD.Advertisement(
+          DNSSD.tcp("http"),
+          dataApp.getValue("PORT"),
+          {
+            name: lanIP.replace(/\./g, "-"),
+            txt,
+          }
+        );
+        ad.start();
+        dataApp.setValue("ad", ad);
+      } catch (error) {
+        writeLog(`Error setting up mDNS: ${error}`, "error");
+      }
     });
 
     server.on("error", (err: NodeJS.ErrnoException) => {
@@ -181,17 +266,25 @@ export const initServer = (): void => {
         writeLog("Port 3005 already in use. Retrying...", "warn");
         scheduleReconnect("EADDRINUSE");
       } else {
-        scheduleReconnect("error");
+        scheduleReconnect("server_error");
       }
     });
 
     server.on("close", () => {
-      scheduleReconnect("close");
+      writeLog("Server 'close' event fired.", "info");
+      dataApp.setValue("server", null);
+
+      if (isReconnecting || isShuttingDown) {
+        writeLog("Server close was expected.", "info");
+      } else {
+        writeLog("Server closed unexpectedly. Scheduling reconnect...", "warn");
+        scheduleReconnect("unexpected_close");
+      }
     });
 
     dataApp.setValue("server", server);
   } catch (error) {
-    writeLog(`Error initializing server: ${error}`, "error");
-    setTimeout(() => initServer(), 3000);
+    writeLog(`Fatal error during server initialization: ${error}`, "error");
+    scheduleReconnect("init_catch");
   }
 };

@@ -27,7 +27,7 @@ build({
   ...baseConfig,
   outfile: "./build/index.cjs",
   platform: "node",
-  external: ["electron", "keytar"],
+  external: ["dnssd", "keytar", "electron"],
   entryPoints: ["./src/main/index.ts"],
   plugins: [
     pluginReplace([

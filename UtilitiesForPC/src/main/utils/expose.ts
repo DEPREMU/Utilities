@@ -5,9 +5,9 @@ import {
 } from "./storage";
 import dataApp from "./variables";
 import { writeLog } from "./logger";
-import { ChannelsIpcRenderer } from "@types";
+import { AdvertisementTXT, ChannelsIpcRenderer } from "@types";
 import { ipcMain, IpcMainEvent, IpcMainInvokeEvent } from "electron";
-import { createAdvertiser, restartComputer, turnOffComputer } from "./server";
+import { restartComputer, scheduleReconnect, turnOffComputer } from "./server";
 
 type IpcDictHybrid = {
   [K in keyof ChannelsIpcRenderer]:
@@ -47,12 +47,13 @@ const ipcDict: IpcDictHybrid = {
     func: (_event, deviceId, language) => {
       writeLog(
         "Received set-data-electron request: " +
-          JSON.stringify({ deviceId, language }),
+          JSON.stringify({ deviceId, language }, null, 2),
         "info"
       );
       dataApp.setValue("deviceId", deviceId);
       dataApp.setValue("language", language);
-      createAdvertiser();
+
+      scheduleReconnect("set-data-electron called");
     },
   },
   "turn-off-computer": {

@@ -352,14 +352,19 @@ export const checkUrlStatus = async (
   url: string,
   method: "get" | "post" = "get",
 ): Promise<boolean> => {
-  const res = await axios.request({
-    url,
-    method,
-    timeout: 3000,
-    data: method === "post" ? {} : undefined,
-    responseType: "stream",
-    validateStatus: () => true,
-  });
-  res.data.destroy();
-  return res.status >= 200 && res.status < 400;
+  try {
+    const res = await axios.request({
+      url,
+      method,
+      timeout: 3000,
+      data: method === "post" ? {} : undefined,
+      responseType: "stream",
+      validateStatus: () => true,
+    });
+    res?.data?.destroy?.();
+    return res.status >= 200 && res.status < 400;
+  } catch (error) {
+    logError(`Error checking URL status for ${url}:`, error);
+    return false;
+  }
 };

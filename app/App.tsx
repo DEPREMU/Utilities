@@ -48,7 +48,7 @@ const hasDeviceId = async (): Promise<boolean> => {
       if (!uuid)
         uuid = Array.from({ length: 5 }, () =>
           Math.random().toString(36).substring(2, 15),
-        ).join("");
+        ).join(".");
 
       await saveDataSecure(
         "_deviceId",

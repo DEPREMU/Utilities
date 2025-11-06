@@ -1,6 +1,6 @@
 import path from "path";
-import dataApp, { getLanguage, t, initServer } from "@utils";
 import { app, Tray, Menu, nativeImage, BrowserWindow } from "electron";
+import dataApp, { getLanguage, t, initServer, handleShutdown } from "@utils";
 
 const createWindow = (): void => {
   const mainWindow = new BrowserWindow({
@@ -108,7 +108,7 @@ app.whenReady().then(() => {
   initServer();
 });
 
-app.on("window-all-closed", () => app.quit());
+app.on("window-all-closed", handleShutdown);
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length > 0) return;
