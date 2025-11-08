@@ -73,6 +73,20 @@ const contextBridgeType: ContextBridgeType = {
       return await sendMessage("invoke", "restart-computer");
     },
 
+    getNativeData: async (
+      ...args: ChannelsIpcRenderer["get-native-data"]["functionArgs"]
+    ) => {
+      try {
+        return await sendMessage("invoke", "get-native-data", ...args);
+      } catch (error) {
+        sendLog(
+          `Error getting native data for key ${args[0]}: ` + String(error),
+          "error"
+        );
+        return "unknown";
+      }
+    },
+
     saveData: async (key, value) => {
       try {
         return await sendMessage("invoke", "save-data", key, value);
@@ -114,6 +128,10 @@ const contextBridgeType: ContextBridgeType = {
       const isElectron = await sendMessage("invoke", "is-electron-build");
       sendLog(`isElectronBuild: ${isElectron}`, "info");
       return isElectron;
+    },
+
+    sendNotification: (notification) => {
+      sendMessage("send", "send-notification", notification);
     },
   },
 };

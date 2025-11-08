@@ -1,6 +1,7 @@
 import { Server } from "http";
 import { Advertisement } from "dnssd";
 import { LanguagesSupported } from "./typesTranslations";
+import { ReasonNotification } from "./typesNotifications";
 import { ExpectedStorageTypes } from "./typesAPI";
 
 export type ElectronStoreType = {
@@ -37,4 +38,10 @@ export type DataAppElectron = {
 export type AdvertisementTXT = {
   lanIP: string;
   deviceId: string;
+};
+
+type NotificationsSaved = Record<ReasonNotification, (() => void) | null>;
+
+type ExpectedNativeWebData = {
+  hasBattery: boolean | "unknown";
 };

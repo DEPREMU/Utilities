@@ -351,12 +351,13 @@ export const clearIntervalPolyfill = (id: NodeJS.Timeout | number): void => {
 export const checkUrlStatus = async (
   url: string,
   method: "get" | "post" = "get",
+  timeout: number = 3000,
 ): Promise<boolean> => {
   try {
     const res = await axios.request({
       url,
       method,
-      timeout: 3000,
+      timeout,
       data: method === "post" ? {} : undefined,
       responseType: "stream",
       validateStatus: () => true,

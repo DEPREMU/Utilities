@@ -119,7 +119,20 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         );
         return Promise.resolve("");
       }
-      if (Platform.OS === "web") return Promise.resolve("");
+      if (Platform.OS === "web") {
+        windowModule.sendNotification({
+          body: notification.message,
+          title: notification.title,
+          actions: notification.actions?.map((action) => ({
+            type: "button",
+            text: action.title,
+          })),
+          closeButtonText: t("close"),
+          reasonNotification: notification.reasonNotification,
+        });
+
+        return Promise.resolve("");
+      }
       if (!notifications?.enabled?.[notification.reasonNotification])
         return Promise.resolve("");
 
@@ -153,7 +166,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         trigger: notification.trigger || null,
       });
     },
-    [openSnackBar],
+    [openSnackBar, t],
   );
 
   const removeNotification = useCallback(
@@ -305,7 +318,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, [notifications]);
 
   useEffect(() => {
-    if (isFalsy(deviceInfo) || Platform.OS === "web") return;
+    if (!deviceInfo?.powerState) return;
+
     const reasonNotification: ReasonNotification = "batteryAlerts";
 
     const handleBatteryNotifications = async () => {
@@ -357,10 +371,14 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       });
     };
 
-    handleBatteryNotifications();
     const id = setTimeoutPolyfill(handleBatteryNotifications, 5000);
+    if (Platform.OS === "web")
+      windowModule.getNativeData("hasBattery").then((hasBattery) => {
+        if (hasBattery) return;
+        clearTimeoutPolyfill(id);
+      });
     return () => clearTimeoutPolyfill(id);
-  }, [deviceInfo, sendNotification, t]);
+  }, [deviceInfo?.powerState, sendNotification, t]);
 
   useEffect(() => {
     if (!hasInternet && prevHasInternet) {

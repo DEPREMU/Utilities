@@ -40,6 +40,13 @@ class DataAppClass {
     this.dataApp[key] = value;
   };
 
+  /**
+   * Retrieves a value from the application data store by its key.
+   *
+   * @template T - A key type that extends the keys of DataAppElectron
+   * @param {T} key - The key of the value to retrieve from the data store, if key is "isWindows", this will be replaced while building the app automatically
+   * @returns {DataAppElectron[T]} The value associated with the specified key, typed according to the DataAppElectron interface
+   */
   public getValue = <T extends keyof DataAppElectron>(
     key: T
   ): DataAppElectron[T] => {

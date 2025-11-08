@@ -9,6 +9,9 @@ import useStylesComputerControl from "@styles/screens/ComputerControl/useStylesC
 import { ActivityIndicator, Card, List, Text, FAB } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
+type ServiceAdvertisementTXT = Service & { txt: AdvertisementTXT };
+type Device = ServiceAdvertisementTXT & { url: string; deviceId: string };
+
 const getUrl = (host: string, port: number): string => {
   return `http://${host}:${port}/status`;
 };
@@ -19,21 +22,22 @@ const tryUrls = async (
   const candidates = [
     getUrl(service.host, service.port),
     getUrl(service.txt.lanIP, service.port),
-    getUrl(service.addresses?.[0], service.port),
-  ].filter(Boolean);
+    ...service.addresses.map((addr) => getUrl(addr, service.port)),
+  ]
+    .filter(Boolean)
+    .filter((v, i, a) => a.indexOf(v) === i);
 
-  for (const url of candidates) {
-    try {
-      if (await checkUrlStatus(url)) return url.replace("/status", "");
-    } catch (error) {
-      logError(`Error while fetching ${url}:`, error);
-    }
-  }
-  return null;
+  return await new Promise((resolve: (value: string | null) => void) => {
+    candidates.forEach(async (url) => {
+      try {
+        if (await checkUrlStatus(url, "get", 2000))
+          resolve(url.replace("/status", ""));
+      } catch (error) {
+        logError(`Error while fetching ${url}:`, error);
+      }
+    });
+  });
 };
-
-type ServiceAdvertisementTXT = Service & { txt: AdvertisementTXT };
-type Device = ServiceAdvertisementTXT & { url: string; deviceId: string };
 
 const ComputerControl: React.FC = () => {
   const { t } = useLanguage();
@@ -42,53 +46,9 @@ const ComputerControl: React.FC = () => {
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [scanning, setScanning] = useState<boolean>(false);
+  const [scanning, setScanning] = useState<boolean>(true);
 
   const timeOutRef = useRef<NodeJS.Timeout | number | null>(null);
-
-  const turnOffComputer = useCallback(
-    async (baseUrl: string, deviceId: string) => {
-      let success = false;
-      try {
-        const res = await axios.post(
-          `${baseUrl}/turn-off-computer`,
-          { deviceId },
-          { timeout: 5000 },
-        );
-        const data = res.data;
-        success = data.success;
-      } catch (error) {
-        logError(`Error sending turn off command to ${baseUrl}:`, error);
-      }
-      openSnackBar(
-        t(success ? "turnOffCommandSent" : "turnOffCommandFailed"),
-        5000,
-      );
-    },
-    [openSnackBar, t],
-  );
-
-  const restartComputer = useCallback(
-    async (baseUrl: string, deviceId: string) => {
-      let success = false;
-      try {
-        const res = await axios.post(
-          `${baseUrl}/restart-computer`,
-          { deviceId },
-          { timeout: 5000 },
-        );
-        const data = res.data;
-        success = data.success;
-      } catch (error) {
-        logError(`Error sending restart command to ${baseUrl}:`, error);
-      }
-      openSnackBar(
-        t(success ? "restartCommandSent" : "restartCommandFailed"),
-        5000,
-      );
-    },
-    [openSnackBar, t],
-  );
 
   const scanNetwork = useCallback(() => {
     const zeroconf = new Zeroconf();
@@ -110,11 +70,21 @@ const ComputerControl: React.FC = () => {
       }
 
       setDevices((prev) => {
-        if (prev.find((d) => d.name === service.name)) return prev;
+        if (
+          prev.find((d) => {
+            return (
+              d.name.match(/\d+\.\d+\.\d+\.\d+/)?.[0] ===
+              service.name.match(/\d+\.\d+\.\d+\.\d+/)?.[0]
+            );
+          })
+        )
+          return prev;
+        setLoading(false);
         return [
           ...prev,
           {
             ...service,
+            name: service.name.split(" ")[0],
             url: validUrl,
             deviceId: service.txt.deviceId,
           },
@@ -127,6 +97,8 @@ const ComputerControl: React.FC = () => {
       setLoading(false);
       setScanning(false);
       zeroconf.removeDeviceListeners();
+      zeroconf.stop?.();
+      if (timeOutRef.current) clearTimeout(timeOutRef.current);
     };
 
     zeroconf.on("resolved", handleResolved);
@@ -139,18 +111,46 @@ const ComputerControl: React.FC = () => {
     zeroconf.scan("http", "tcp", "local.");
 
     if (timeOutRef.current) clearTimeout(timeOutRef.current);
-    timeOutRef.current = setTimeout(() => {
-      zeroconf.stop();
-    }, 30000);
+    timeOutRef.current = setTimeout(handleStop, 30000);
 
-    return () => {
-      zeroconf.stop();
-      zeroconf.removeDeviceListeners();
-      if (timeOutRef.current) clearTimeout(timeOutRef.current);
-    };
+    return () => handleStop();
   }, []);
 
-  useEffect(scanNetwork, [scanNetwork]);
+  const executeCommandOnDevice = useCallback(
+    async (
+      baseUrl: string,
+      deviceId: string,
+      command: "turn-off-computer" | "restart-computer",
+    ) => {
+      let success = false;
+      try {
+        const res = await axios.post(
+          `${baseUrl}/${command}`,
+          { deviceId },
+          { timeout: 5000 },
+        );
+        const data = res.data;
+        success = data.success;
+      } catch (error) {
+        logError(`Error sending ${command} command to ${baseUrl}:`, error);
+      }
+      let translate: "turnOff" | "restart" = "restart";
+      if (command === "turn-off-computer") translate = "turnOff";
+
+      openSnackBar(
+        t(success ? `${translate}CommandSent` : `${translate}CommandFailed`),
+        5000,
+      );
+      if (success) setScanning(true);
+    },
+    [openSnackBar, t],
+  );
+
+  useEffect(() => {
+    if (!scanning) return;
+
+    return scanNetwork();
+  }, [scanNetwork, scanning]);
 
   return (
     <View style={styles.container}>
@@ -158,12 +158,15 @@ const ComputerControl: React.FC = () => {
         {t("computerControlTitle")}
       </Text>
 
-      {loading && devices.length === 0 ? (
+      {scanning && loading && devices.length === 0 && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator animating={true} size="large" />
           <Text style={styles.loadingText}>{t("searchingDevices")}</Text>
         </View>
-      ) : devices.length > 0 ? (
+      )}
+
+      {!loading &&
+        devices.length > 0 &&
         devices.map((item) => (
           <Card key={item.name} style={styles.deviceCard}>
             <Card.Content>
@@ -182,7 +185,13 @@ const ComputerControl: React.FC = () => {
                   left={(props) => (
                     <List.Icon {...props} icon="power" color="#d32f2f" />
                   )}
-                  onPress={() => turnOffComputer(item.url, item.deviceId)}
+                  onPress={() =>
+                    executeCommandOnDevice(
+                      item.url,
+                      item.deviceId,
+                      "turn-off-computer",
+                    )
+                  }
                 />
 
                 <List.Item
@@ -191,20 +200,27 @@ const ComputerControl: React.FC = () => {
                   left={(props) => (
                     <List.Icon {...props} icon="restart" color="#1976d2" />
                   )}
-                  onPress={() => restartComputer(item.url, item.deviceId)}
+                  onPress={() =>
+                    executeCommandOnDevice(
+                      item.url,
+                      item.deviceId,
+                      "restart-computer",
+                    )
+                  }
                 />
               </List.Section>
             </Card.Content>
           </Card>
-        ))
-      ) : (
+        ))}
+
+      {!loading && devices.length === 0 && (
         <Text style={styles.emptyText}>{t("noDevices")}</Text>
       )}
 
       <FAB
         icon={scanning ? "refresh" : "magnify"}
         label={t(scanning ? "scanning" : "search")}
-        onPress={() => !scanning && scanNetwork()}
+        onPress={() => !scanning && setScanning(true)}
         style={styles.fab}
         loading={scanning}
       />

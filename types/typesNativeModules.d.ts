@@ -1,6 +1,7 @@
-import { ExpectedStorageTypes } from "./typesAPI";
-import { ActionNotification, ReasonNotification } from "./typesNotifications";
 import { LanguagesSupported } from "./typesTranslations";
+import { ExpectedStorageTypes } from "./typesAPI";
+import { ExpectedNativeWebData } from "./typesUtilitiesForPC";
+import { ActionNotification, ReasonNotification } from "./typesNotifications";
 
 export type EventNativeModule = {
   actionId: ActionNotification;
@@ -19,8 +20,7 @@ type ExpectedStorageTypesBoth = ExpectedStorageTypes &
   ExpectedStorageTypes<"UNSECURE">;
 
 type ChannelsIpcRenderer<
-  T extends ALL_KEYS_STORAGE = keyof ExpectedStorageTypes<"BOTH">,
-  K extends ExpectedStorageTypesBoth[T] = ExpectedStorageTypesBoth[T]
+  T extends ALL_KEYS_STORAGE = keyof ExpectedStorageTypes<"BOTH">
 > = {
   "user-login-status": {
     functionArgs: [isLoggedIn: boolean];
@@ -62,6 +62,27 @@ type ChannelsIpcRenderer<
     functionArgs: [];
     typeIpc: "invoke";
   };
+  "get-native-data": {
+    functionReturn: Promise<ExpectedNativeWebData[keyof ExpectedNativeWebData]>;
+    functionArgs: [key: keyof ExpectedNativeWebData];
+    typeIpc: "invoke";
+  };
+  "send-notification": {
+    functionReturn: void;
+    functionArgs: [args: NotificationElectron];
+    typeIpc: "send";
+  };
+};
+
+type NotificationElectron = {
+  title: string;
+  body: string;
+  actions?: Array<{
+    type: "button";
+    text: string;
+  }>;
+  closeButtonText?: string;
+  reasonNotification: ReasonNotification;
 };
 
 export type ContextBridgeType = {
@@ -85,5 +106,11 @@ export type ContextBridgeType = {
       key: T
     ) => Promise<ChannelsIpcRenderer<T>["remove-data"]["functionReturn"]>;
     isElectronBuild: () => Promise<boolean>;
+    sendNotification: (
+      ...args: ChannelsIpcRenderer["send-notification"]["functionArgs"]
+    ) => void;
+    getNativeData: (
+      ...args: ChannelsIpcRenderer["get-native-data"]["functionArgs"]
+    ) => ChannelsIpcRenderer["get-native-data"]["functionReturn"];
   };
 };

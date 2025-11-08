@@ -4,10 +4,12 @@ import {
   removeStorageFileValue,
 } from "./storage";
 import dataApp from "./variables";
+import nativeData from "./nativeData";
 import { writeLog } from "./logger";
-import { AdvertisementTXT, ChannelsIpcRenderer } from "@types";
+import { sendNotification } from "./notifications";
+import { ChannelsIpcRenderer } from "@types";
 import { ipcMain, IpcMainEvent, IpcMainInvokeEvent } from "electron";
-import { restartComputer, scheduleReconnect, turnOffComputer } from "./server";
+import { restartComputer, scheduleReconnect, turnOffComputer } from "./server"; 
 
 type IpcDictHybrid = {
   [K in keyof ChannelsIpcRenderer]:
@@ -56,6 +58,28 @@ const ipcDict: IpcDictHybrid = {
       scheduleReconnect("set-data-electron called");
     },
   },
+  "send-notification": {
+    type: "on",
+    func: (_event, notification) => {
+      writeLog(
+        `Received send-notification request: ${JSON.stringify(notification, null, 2)}`,
+        "info"
+      );
+      sendNotification(notification);
+    },
+  },
+  "get-native-data": {
+    type: "handle",
+    func: async (_event, key) => {
+      const result = nativeData.getValue(key);
+      writeLog(
+        `Received get-native-data request for key: ${key}, value: ${result}`,
+        "info"
+      );
+      return result;
+    },
+  },
+
   "turn-off-computer": {
     type: "handle",
     func: async () => {
@@ -70,7 +94,6 @@ const ipcDict: IpcDictHybrid = {
       return await restartComputer();
     },
   },
-
   "save-data": {
     type: "handle",
     func: async (_event, key, value) => {

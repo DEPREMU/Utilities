@@ -113,7 +113,7 @@ const buildApp = async () => {
   console.log(t("elevatingPermissions"));
   if (isWindows) {
     execSync(
-      `powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', 'cd \"${__dirname}\"; npx electron-builder --wi; exit'"`,
+      `powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', 'cd \"${__dirname}\"; npx electron-builder --win; exit'"`,
       { cwd: __dirname }
     );
   } else {

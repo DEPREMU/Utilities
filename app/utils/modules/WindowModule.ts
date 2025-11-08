@@ -1,22 +1,19 @@
 import { Platform } from "react-native";
-import {
-  ChannelsIpcRenderer,
-  ContextBridgeType,
-  ExpectedStorageTypes,
-} from "@types";
+import { ContextBridgeType } from "@types";
 
 const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
   notifyLoginStatus: () => {},
   readClipboard: () => "",
-  setClipboard: (_text: string) => {},
+  setClipboard: () => {},
   turnOffComputer: async () => false,
   restartComputer: async () => false,
   setData: () => {},
   saveData: async () => ({ success: false }),
-  loadData: async <T extends keyof ExpectedStorageTypes<"BOTH">>() =>
-    null as unknown as ChannelsIpcRenderer<T>["load-data"]["functionReturn"],
+  loadData: async () => null,
   isElectronBuild: async () => false,
   removeData: async () => false,
+  sendNotification: () => {},
+  getNativeData: async () => "unknown",
 };
 
 let windowModule: ContextBridgeType["UtilitiesForPC"] = defaultWindow;

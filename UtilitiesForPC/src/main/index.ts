@@ -1,6 +1,23 @@
+import dataApp, {
+  t,
+  writeLog,
+  initServer,
+  getLanguage,
+  handleShutdown,
+} from "@utils";
 import path from "path";
+import { exec } from "child_process";
 import { app, Tray, Menu, nativeImage, BrowserWindow } from "electron";
-import dataApp, { getLanguage, t, initServer, handleShutdown } from "@utils";
+
+if (dataApp.getValue("isWindows")) {
+  exec(
+    `schtasks /create /tn "UtilitiesForPC" /tr "${process.execPath}" /sc onlogon /rl highest /f`,
+    (error) => {
+      if (error) writeLog("Error creating task:" + error, "error");
+      else writeLog("Scheduled task created successfully.", "info");
+    }
+  );
+}
 
 const createWindow = (): void => {
   const mainWindow = new BrowserWindow({
