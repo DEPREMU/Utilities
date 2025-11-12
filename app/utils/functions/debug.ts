@@ -71,10 +71,11 @@ export const log = async (...args: unknown[]): Promise<void> => {
       .join(" ");
 
     getRouteAPI("/database/insert").then(async (url) => {
-      const [lang, userId, token, deviceInfo] = await Promise.all([
+      const [lang, userId, token, deviceId, deviceInfo] = await Promise.all([
         checkLanguage(),
         getCurrentUserId(),
         loadDataSecure("_userSessionTokenStorage"),
+        loadDataSecure("_deviceId"),
         getCurrentDeviceInfo(),
       ]);
 
@@ -87,6 +88,7 @@ export const log = async (...args: unknown[]): Promise<void> => {
           {
             lang,
             table: "Logs",
+            deviceId: deviceId || deviceInfo.deviceId,
             values: {
               type: "log",
               userId,
@@ -141,11 +143,12 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
       .join(" ");
 
     getRouteAPI("/database/insert").then(async (url) => {
-      const [lang, userId, token, deviceInfo] = await Promise.all([
+      const [lang, userId, token, deviceInfo, deviceId] = await Promise.all([
         checkLanguage(),
         getCurrentUserId(),
         loadDataSecure("_userSessionTokenStorage"),
         getCurrentDeviceInfo(),
+        loadDataSecure("_deviceId"),
       ]);
 
       if (!userId || !token) return;
@@ -156,6 +159,7 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
           "POST",
           {
             lang,
+            deviceId: deviceId || deviceInfo.deviceId,
             table: "Logs",
             values: {
               type: "warn",
@@ -211,11 +215,12 @@ export const logError = async (...args: unknown[]): Promise<void> => {
       .join(" ");
 
     getRouteAPI("/database/insert").then(async (url) => {
-      const [lang, userId, token, deviceInfo] = await Promise.all([
+      const [lang, userId, token, deviceInfo, deviceId] = await Promise.all([
         checkLanguage(),
         getCurrentUserId(),
         loadDataSecure("_userSessionTokenStorage"),
         getCurrentDeviceInfo(),
+        loadDataSecure("_deviceId"),
       ]);
 
       if (!userId || !token) return;
@@ -226,6 +231,7 @@ export const logError = async (...args: unknown[]): Promise<void> => {
           "POST",
           {
             lang,
+            deviceId: deviceId || deviceInfo.deviceId,
             table: "Logs",
             values: {
               type: "error",

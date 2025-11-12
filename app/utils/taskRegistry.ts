@@ -26,9 +26,10 @@ const taskRegistry: TaskRegistry = {
     condition: Partial<Tables[T]> | null,
   ) => {
     try {
-      const [lang, token] = await Promise.all([
+      const [lang, token, deviceId] = await Promise.all([
         checkLanguage(),
         loadDataSecure("_userSessionTokenStorage"),
+        loadDataSecure("_deviceId"),
       ]);
       if (!token) return;
 
@@ -41,6 +42,7 @@ const taskRegistry: TaskRegistry = {
             values: data,
             match: condition,
             lang,
+            deviceId: deviceId || "local-device",
           },
           token,
         ),
@@ -55,9 +57,10 @@ const taskRegistry: TaskRegistry = {
     values: RequestDatabaseInsert["values"],
   ) => {
     try {
-      const [lang, token] = await Promise.all([
+      const [lang, token, deviceId] = await Promise.all([
         checkLanguage(),
         loadDataSecure("_userSessionTokenStorage"),
+        loadDataSecure("_deviceId"),
       ]);
       if (!token) return;
       await fetch(
@@ -66,6 +69,7 @@ const taskRegistry: TaskRegistry = {
           "POST",
           {
             table,
+            deviceId: deviceId || "local-device",
             values,
             lang,
           },
@@ -82,9 +86,10 @@ const taskRegistry: TaskRegistry = {
     match: Partial<Tables[T]>,
   ) => {
     try {
-      const [lang, token] = await Promise.all([
+      const [lang, token, deviceId] = await Promise.all([
         checkLanguage(),
         loadDataSecure("_userSessionTokenStorage"),
+        loadDataSecure("_deviceId"),
       ]);
       if (!token) return;
 
@@ -95,6 +100,7 @@ const taskRegistry: TaskRegistry = {
           {
             table,
             match,
+            deviceId: deviceId || "local-device",
             lang,
           },
           token,

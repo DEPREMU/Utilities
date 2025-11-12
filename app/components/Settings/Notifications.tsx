@@ -10,6 +10,7 @@ import {
   getRouteAPI,
   fetchOptions,
   stringifyData,
+  loadDataSecure,
   getNotifications,
   askLocationPermission,
 } from "@utils";
@@ -72,7 +73,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
           },
         };
         if (sessionToken && userData?.userId)
-          getRouteAPI("/database/update").then((url) => {
+          getRouteAPI("/database/update").then(async (url) => {
             const values: RequestDatabaseUpdate["values"] = {
               enabled: !!updated.enabled[reason],
             };
@@ -80,6 +81,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
               userId: userData.userId,
               reason,
             };
+            const deviceId = await loadDataSecure("_deviceId");
             addTaskQueue(
               async () => {
                 fetch(
@@ -90,6 +92,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
                       match,
                       table: "UserNotificationsConfig",
                       values,
+                      deviceId: deviceId || "local-device",
                       lang: language,
                     },
                     sessionToken,
@@ -127,7 +130,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
           [id]: interval,
         } as typeMinutes;
 
-        getRouteAPI("/database/update").then((url) => {
+        getRouteAPI("/database/update").then(async (url) => {
           const taskId =
             Date.now().toString() + Math.random().toString(36).substring(2, 8);
           const values: RequestDatabaseUpdate["values"] = {
@@ -137,6 +140,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             userId: userData.userId,
             reason: id,
           };
+          const deviceId = await loadDataSecure("_deviceId");
           addTaskQueue(
             async () => {
               fetch(
@@ -145,6 +149,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
                   "POST",
                   {
                     match,
+                    deviceId: deviceId || "local-device",
                     table: "UserNotificationsConfig",
                     values,
                     lang: language,

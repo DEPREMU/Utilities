@@ -1,3 +1,9 @@
+import {
+  getRouteAPI,
+  fetchOptions,
+  languagesNames,
+  loadDataSecure,
+} from "@utils";
 import { List } from "react-native-paper";
 import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
@@ -6,7 +12,6 @@ import { navigateReplace } from "@navigation/navigationRef";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import React, { memo, useCallback, useMemo } from "react";
 import { LanguagesSupported, RequestDatabaseUpdate } from "@types";
-import { fetchOptions, getRouteAPI, languagesNames } from "@utils";
 
 const LanguagePicker: React.FC = () => {
   const { colors } = useTheme();
@@ -23,6 +28,7 @@ const LanguagePicker: React.FC = () => {
         addTaskQueue(
           async () => {
             if (!sessionToken) return navigateReplace("Login");
+            const deviceId = await loadDataSecure("_deviceId");
 
             fetch(
               await getRouteAPI("/database/update"),
@@ -33,6 +39,7 @@ const LanguagePicker: React.FC = () => {
                   match: { userId: userData?.userId },
                   table: "UserConfig",
                   values: { language: lang },
+                  deviceId: deviceId || "local-device",
                 },
                 sessionToken,
               ),

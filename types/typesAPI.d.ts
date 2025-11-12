@@ -188,8 +188,9 @@ export type ResponseSignOut = {
 
 export type RequestDatabaseInsert<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
-  table: T;
+  table: T;  
   values: T extends "Users" ? Partial<Tables[T]> : Tables[T] | Tables[T][];
+  deviceId: string;
 };
 
 export type ResponseDatabaseInsert<T extends TablesKeys = TablesKeys> = {
@@ -202,6 +203,7 @@ export type RequestDatabaseFetch<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
   match: Partial<Tables[T]> | null;
+  deviceId: string;
 };
 
 export type ResponseDatabaseFetch<T extends TablesKeys = TablesKeys> = {
@@ -214,6 +216,7 @@ export type RequestDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
   table: T;
   match: Partial<Tables[T]> | null;
   values: Partial<Tables[T]> | Partial<Tables[T]>[];
+  deviceId: string;
 };
 
 export type ResponseDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
@@ -226,6 +229,7 @@ export type RequestDatabaseDelete<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
   match: Partial<Tables[T]>;
+  deviceId: string;
 };
 
 export type ResponseDatabaseDelete = {

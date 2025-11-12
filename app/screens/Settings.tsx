@@ -19,11 +19,11 @@ import LanguagePicker from "@components/Settings/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
-import { ActivityIndicator, Text, TextInput } from "react-native-paper";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { ScrollView, View, Alert, Platform } from "react-native";
+import { ActivityIndicator, Text, TextInput } from "react-native-paper";
 import { RequestDatabaseUpdate, typeLanguages } from "@types";
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -84,11 +84,17 @@ const SettingsScreen: React.FC = () => {
         if (!userData?.userId) return;
         if (!sessionToken) return;
 
+        const [url, deviceId] = await Promise.all([
+          getRouteAPI("/database/update"),
+          loadDataSecure("_deviceId"),
+        ]);
+
         await fetch(
-          await getRouteAPI("/database/update"),
+          url,
           fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
             "POST",
             {
+              deviceId: deviceId || "local-device",
               lang: language,
               match: { userId: userData.userId },
               table: "UserConfig",
@@ -120,14 +126,20 @@ const SettingsScreen: React.FC = () => {
         if (!userData?.userId) return;
         if (!sessionToken) return;
 
+        const [url, deviceId] = await Promise.all([
+          getRouteAPI("/database/update"),
+          loadDataSecure("_deviceId"),
+        ]);
+
         await fetch(
-          await getRouteAPI("/database/update"),
+          url,
           fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
             "POST",
             {
               lang: language,
               match: { userId: userData.userId },
               table: "UserConfig",
+              deviceId: deviceId || "local-device",
               values: { webSocketURL: socketURL },
             },
             sessionToken,

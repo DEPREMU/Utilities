@@ -10,6 +10,7 @@ import * as Updates from "expo-updates";
 import _BackgroundTimer from "react-native-background-timer";
 import { log, logError } from "./debug";
 import * as Localization from "expo-localization";
+import { loadDataSecure } from "./storageManagement";
 import { Falsy, Platform } from "react-native";
 import { ExpectedStorageTypes } from "@types";
 import { fetchOptions, getRouteAPI } from "./APIManagement";
@@ -264,13 +265,17 @@ export const getCryptosFromDatabase = async (
   lang: LanguagesSupported,
   token: string,
 ): Promise<ExpectedStorageTypes["_selectedCryptos"]> => {
-  const url = await getRouteAPI("/database/fetch");
+  const [url, deviceId] = await Promise.all([
+    getRouteAPI("/database/fetch"),
+    loadDataSecure("_deviceId"),
+  ]);
   const response = await fetch(
     url,
     fetchOptions<RequestDatabaseFetch>(
       "POST",
       {
         lang,
+        deviceId: deviceId || "local-device",
         table: "Cryptos",
         match: null,
       },

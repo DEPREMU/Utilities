@@ -257,14 +257,19 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         const id = "updateCryptos";
         addTaskQueue(
           async () => {
+            const [url, deviceId] = await Promise.all([
+              getRouteAPI("/database/update"),
+              loadDataSecure("_deviceId"),
+            ]);
             fetch(
-              await getRouteAPI("/database/update"),
+              url,
               fetchOptions<RequestDatabaseInsert>(
                 "POST",
                 {
                   lang: language,
                   table: "Cryptos",
                   values: cryptosToUpdate,
+                  deviceId: deviceId || "local-device",
                 },
                 sessionToken,
               ),
@@ -287,12 +292,17 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         const table: TablesKeys = "Cryptos";
         addTaskQueue(
           async () => {
+            const [url, deviceId] = await Promise.all([
+              getRouteAPI("/database/insert"),
+              loadDataSecure("_deviceId"),
+            ]);
             fetch(
-              await getRouteAPI("/database/insert"),
+              url,
               fetchOptions<RequestDatabaseInsert<typeof table>>(
                 "POST",
                 {
                   lang: language,
+                  deviceId: deviceId || "local-device",
                   table,
                   values: cryptosToAdd,
                 },
@@ -315,7 +325,10 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         .map((c) => c.uid as string);
 
       if (cryptosToDelete && cryptosToDelete.length > 0) {
-        const url = await getRouteAPI("/database/delete");
+        const [url, deviceId] = await Promise.all([
+          getRouteAPI("/database/delete"),
+          loadDataSecure("_deviceId"),
+        ]);
 
         cryptosToDelete.map((uid) =>
           addTaskQueue(
@@ -326,6 +339,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
                   "POST",
                   {
                     lang: language,
+                    deviceId: deviceId || "local-device",
                     table: "Cryptos",
                     match: { uid },
                   },

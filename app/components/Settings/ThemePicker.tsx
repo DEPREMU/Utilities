@@ -3,9 +3,9 @@ import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
-import { fetchOptions, getRouteAPI } from "@utils";
 import { RequestDatabaseUpdate, Theme } from "@types";
 import React, { memo, useCallback, useMemo } from "react";
+import { fetchOptions, getRouteAPI, loadDataSecure } from "@utils";
 
 const ThemePicker: React.FC = () => {
   const { t, language } = useLanguage();
@@ -19,14 +19,19 @@ const ThemePicker: React.FC = () => {
       if (!userData?.userId || !sessionToken) return;
       addTaskQueue(async () => {
         if (!userData?.userId || !sessionToken) return;
+        const [url, deviceId] = await Promise.all([
+          getRouteAPI("/database/update"),
+          loadDataSecure("_deviceId"),
+        ]);
 
         await fetch(
-          await getRouteAPI("/database/update"),
+          url,
           fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
             "POST",
             {
               lang: language,
               table: "UserConfig",
+              deviceId: deviceId || "local-device",
               match: { userId: userData?.userId },
               values: { theme: newTheme },
             },

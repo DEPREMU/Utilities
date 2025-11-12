@@ -6,6 +6,7 @@ import {
   getRouteAPI,
   fetchOptions,
   saveDataSecure,
+  loadDataSecure,
 } from "@utils";
 import {
   Streamer,
@@ -142,11 +143,17 @@ const Streamers: React.FC = () => {
       closeModal();
       if (!userData?.userId || isFalsy(id) || !sessionToken) return;
 
+      const [url, deviceId] = await Promise.all([
+        getRouteAPI("/database/delete"),
+        loadDataSecure("_deviceId"),
+      ]);
+
       const res = await fetch(
-        await getRouteAPI("/database/delete"),
+        url,
         fetchOptions<RequestDatabaseDelete<"Streamers">>(
           "POST",
           {
+            deviceId: deviceId || "local-device",
             lang: language,
             table: "Streamers",
             match: { id, userId: userData?.userId },
@@ -176,6 +183,7 @@ const Streamers: React.FC = () => {
                 "POST",
                 {
                   lang: language,
+                  deviceId: deviceId || "local-device",
                   table: "UserNotificationsConfig",
                   match: {
                     userId: userData?.userId,
@@ -294,12 +302,18 @@ const Streamers: React.FC = () => {
       });
       if (!userData?.userId || !sessionToken) return;
 
+      const [url, deviceId] = await Promise.all([
+        getRouteAPI("/database/update"),
+        loadDataSecure("_deviceId"),
+      ]);
+
       await fetch(
-        await getRouteAPI("/database/update"),
+        url,
         fetchOptions<RequestDatabaseUpdate<"UserNotificationsConfig">>(
           "POST",
           {
             lang: language,
+            deviceId: deviceId || "local-device",
             table: "UserNotificationsConfig",
             match: {
               userId: userData?.userId,
@@ -340,12 +354,18 @@ const Streamers: React.FC = () => {
       try {
         if (!userData?.userId || !sessionToken) return;
 
+        const [url, deviceId] = await Promise.all([
+          getRouteAPI("/database/fetch"),
+          loadDataSecure("_deviceId"),
+        ]);
+
         const res = await fetch(
-          await getRouteAPI("/database/fetch"),
+          url,
           fetchOptions<RequestDatabaseFetch<"Streamers">>(
             "POST",
             {
               table: "Streamers",
+              deviceId: deviceId || "local-device",
               match: { userId: userData?.userId },
               lang: language,
             },

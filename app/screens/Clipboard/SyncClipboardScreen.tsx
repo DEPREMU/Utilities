@@ -37,6 +37,7 @@ const SyncClipboardScreen: React.FC = () => {
           {
             lang: language,
             table: "ClipboardSync",
+            deviceId: deviceId || "local-device",
             values: {
               content: inputText,
               createdAt: new Date().toISOString(),

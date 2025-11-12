@@ -1,20 +1,20 @@
-import { Text } from "react-native-paper";
 import {
+  Tables,
   RequestDatabaseFetch,
   RequestDatabaseUpdate,
   ResponseDatabaseFetch,
   ResponseDatabaseUpdate,
-  Tables,
 } from "@types";
-import { fetchOptions, getRouteAPI, logError } from "@utils";
+import chalk from "chalk";
+import { Text } from "react-native-paper";
 import * as Clipboard from "expo-clipboard";
 import { useLanguage } from "@context/LanguageContext";
 import { FlatList, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import RenderClipboardItem from "@components/Clipboard/RenderClipboardItem";
-import useStylesClipboardScreen from "@/styles/screens/clipboard/useStylesClipboardScreen";
+import useStylesClipboardScreen from "@styles/screens/clipboard/useStylesClipboardScreen";
 import React, { useCallback, useEffect, useState } from "react";
-import chalk from "chalk";
+import { fetchOptions, getRouteAPI, loadDataSecure, logError } from "@utils";
 
 const skeletonData: Tables["ClipboardSync"][] = Array.from({ length: 5 }).map(
   () =>
@@ -41,12 +41,18 @@ const ClipboardScreen: React.FC = () => {
       if (!id) return logError("No ID provided for deletion");
       if (!sessionToken) return logError("No session token available");
 
+      const [url, deviceId] = await Promise.all([
+        getRouteAPI("/database/update"),
+        loadDataSecure("_deviceId"),
+      ]);
+
       const { error } = (await fetch(
-        await getRouteAPI("/database/update"),
+        url,
         fetchOptions<RequestDatabaseUpdate<"ClipboardSync">>(
           "POST",
           {
             lang: language,
+            deviceId: deviceId || "local-device",
             match: { id },
             table: "ClipboardSync",
             values: { deleted: true },
@@ -110,12 +116,18 @@ const ClipboardScreen: React.FC = () => {
     const fetchClipboardFromDatabase = async () => {
       if (!sessionToken) return logError("No session token available");
 
+      const [url, deviceId] = await Promise.all([
+        getRouteAPI("/database/fetch"),
+        loadDataSecure("_deviceId"),
+      ]);
+
       const res = await fetch(
-        await getRouteAPI("/database/fetch"),
+        url,
         fetchOptions<RequestDatabaseFetch<"ClipboardSync">>(
           "POST",
           {
             table: "ClipboardSync",
+            deviceId: deviceId || "local-device",
             match: { userId: userData?.userId, deleted: false },
             lang: language,
           },

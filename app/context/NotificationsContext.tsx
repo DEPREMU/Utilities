@@ -268,12 +268,15 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (Platform.OS !== "web") return;
 
     getRouteAPI("/database/fetch").then(async (url) => {
+      const deviceId = await loadDataSecure("_deviceId");
+
       const res = await fetch(
         url,
         fetchOptions<RequestDatabaseFetch<"ClipboardSync">>(
           "POST",
           {
             lang: language,
+            deviceId: deviceId || "local-device",
             table: "ClipboardSync",
             match: { userId: userData.userId, deleted: false },
           },
@@ -428,22 +431,24 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         if (isFalsy(content) || lastItemCopied.current === content) return;
 
         lastItemCopied.current = content;
-        let deviceId = deviceInfo?.model;
 
-        if (isFalsy(deviceId) || deviceId === "unknown")
-          deviceId = "Platform: " + Platform.OS;
+        const [url, deviceId] = await Promise.all([
+          getRouteAPI("/database/insert"),
+          loadDataSecure("_deviceId"),
+        ]);
 
         await fetch(
-          await getRouteAPI("/database/insert"),
+          url,
           fetchOptions<RequestDatabaseInsert<"ClipboardSync">>(
             "POST",
             {
+              deviceId: deviceId || "local-device",
               lang: language,
               table: "ClipboardSync",
               values: {
                 userId: userData.userId,
                 content,
-                deviceId,
+                deviceId: deviceId || "local-device",
                 createdAt: new Date().toISOString(),
               },
             },

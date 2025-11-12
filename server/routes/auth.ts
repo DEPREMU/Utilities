@@ -14,10 +14,10 @@ import {
   ResponseSignOut,
   SelectedCryptos,
   ReasonNotification,
+  LanguagesSupported,
   ExpectedStorageTypes,
   RequestRefreshSession,
   ResponseRefreshSession,
-  LanguagesSupported,
 } from "@types";
 import jwt from "jsonwebtoken";
 import env from "../env.ts";
@@ -619,7 +619,7 @@ export const authMiddleware = (
     if (scheme !== "Bearer" || !token)
       return res.status(401).json({ error: "Invalid authorization format" });
 
-    const { deviceId } = (req.body as { deviceId: string }) || {};
+    const { deviceId } = (req.body as { deviceId: string | null }) || {};
     if (!deviceId)
       return res.status(400).json({ error: "Device ID is required" });
 

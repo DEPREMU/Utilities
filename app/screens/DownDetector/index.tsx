@@ -60,12 +60,17 @@ const DownDetectorNavigator: React.FC = () => {
       if (!id) return logError("No ID provided for deletion");
       if (!sessionToken) return logError("No session token available");
 
+      const [url, deviceId] = await Promise.all([
+        getRouteAPI("/database/delete"),
+        loadDataSecure("_deviceId"),
+      ]);
       const { error } = (await fetch(
-        await getRouteAPI("/database/delete"),
+        url,
         fetchOptions<RequestDatabaseDelete<typeof tableName>>(
           "POST",
           {
             lang: language,
+            deviceId: deviceId || "local-device",
             match: { id },
             table: tableName,
           },
@@ -104,12 +109,15 @@ const DownDetectorNavigator: React.FC = () => {
         getRouteAPI("/database/update").then(async (url) => {
           if (!sessionToken) return logError("No session token available");
 
+          const deviceId = await loadDataSecure("_deviceId");
+
           fetch(
             url,
             fetchOptions<RequestDatabaseUpdate<typeof tableName>>(
               "POST",
               {
                 lang: language,
+                deviceId: deviceId || "local-device",
                 table: tableName,
                 match: { id },
                 values: { sendNotification: newItem.sendNotification },
@@ -182,13 +190,19 @@ const DownDetectorNavigator: React.FC = () => {
     const fetchDownDetectorDataFromDatabase = async () => {
       if (!sessionToken) return logError("No session token available");
 
+      const [url, deviceId] = await Promise.all([
+        getRouteAPI("/database/fetch"),
+        loadDataSecure("_deviceId"),
+      ]);
+
       try {
         const res = await fetch(
-          await getRouteAPI("/database/fetch"),
+          url,
           fetchOptions<RequestDatabaseFetch<typeof tableName>>(
             "POST",
             {
               table: tableName,
+              deviceId: deviceId || "local-device",
               match: { userId: userData?.userId },
               lang: language,
             },

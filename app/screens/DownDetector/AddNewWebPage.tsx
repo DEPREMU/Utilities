@@ -5,8 +5,8 @@ import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import useStylesAddNewWebPage from "@styles/screens/downDetector/useStylesAddNewWebPage";
 import { Switch, Text, TextInput } from "react-native-paper";
-import { fetchOptions, getRouteAPI } from "@utils";
 import React, { useCallback, useState } from "react";
+import { fetchOptions, getRouteAPI, loadDataSecure } from "@utils";
 import { RequestDatabaseInsert, ResponseDatabaseInsert, Tables } from "@types";
 
 interface AddNewWebPageScreenProps {
@@ -39,7 +39,10 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
 
     setIsLoading(true);
     try {
-      const url = await getRouteAPI("/database/insert");
+      const [url, deviceId] = await Promise.all([
+        getRouteAPI("/database/insert"),
+        loadDataSecure("_deviceId"),
+      ]);
 
       const res = await fetch(
         url,
@@ -48,6 +51,7 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
           {
             lang: language,
             table: tableName,
+            deviceId: deviceId || "local-device",
             values: {
               createdAt: new Date().toISOString(),
               userId: userData?.userId,
