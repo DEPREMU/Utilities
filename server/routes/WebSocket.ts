@@ -15,6 +15,7 @@ import {
   LanguagesSupported,
   UserNotificationsConfig,
   ClipboardWebSocketMessage,
+  ClipboardSync,
 } from "@types";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
@@ -334,10 +335,12 @@ export const initWebSocketClipboard = () => {
       if (!dataLang) return;
       if (!Array.isArray(dataLang)) dataLang = [dataLang];
       if (dataLang.length === 0) return;
+      let lastItem: ClipboardSync = dataLang?.[0];
 
-      const lastItem = dataLang.sort((a, b) =>
-        b.createdAt.localeCompare(a.createdAt),
-      )?.[0];
+      if (dataLang.length > 1)
+        lastItem = dataLang.sort((a, b) =>
+          b.createdAt.localeCompare(a.createdAt),
+        )?.[0];
       if (!lastItem) return;
 
       const devicesEntries = Object.entries(devices);
