@@ -171,7 +171,7 @@ export const deleteInTable = async <T extends TablesKeys = "Users">(
  * Fetches data from a specified table
  */
 export const fetchFromTable = async <T extends TablesKeys = TablesKeys>(
-  table: T = "Users" as T,
+  table: T,
   match: Partial<Tables[T]> = {},
 ): Promise<{
   data?: Tables[T][] | Tables[T] | null;
@@ -220,7 +220,7 @@ export const fetchFromTable = async <T extends TablesKeys = TablesKeys>(
  */
 export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
   table: T,
-  data: RequestDatabaseInsert["values"],
+  data: RequestDatabaseInsert<T>["values"],
 ): Promise<{
   data?: Tables[T][] | Tables[T] | null;
   error?: string | null;

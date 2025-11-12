@@ -245,6 +245,8 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
       "@webSocketURL",
       "@notifications",
       "@hasAdminAccess",
+      "_userData",
+      "_Streamers",
       "_sessionExpiry",
       "_selectedCryptos",
       "_userSessionTokenStorage",
@@ -255,6 +257,8 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
         !isSecureKey(key) ? removeData(key) : removeDataSecure(key),
       ),
     );
+    if (Platform.OS !== "web") removeDataSecure("_terminalCommands");
+
     log("User signed out successfully");
     navigateReplace("Login");
     return { error: null };

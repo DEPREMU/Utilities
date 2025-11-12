@@ -4,8 +4,9 @@ import Store from "electron-store";
 import keytar from "keytar";
 import { app } from "electron";
 import dataApp from "./variables";
+import { exec } from "child_process";
 import { writeLog } from "./logger";
-import { ElectronStoreType, ExpectedStorageTypes } from "@types";
+import { Command, ElectronStoreType, ExpectedStorageTypes } from "@types";
 
 const initFileStorage = (): void => {
   try {
@@ -90,5 +91,62 @@ export const removeStorageFileValue = async (
     writeLog(`Error removing key ${String(key)}: ` + err, "error");
     console.error(`Error removing key ${String(key)}:`, error);
     return false;
+  }
+};
+
+export const executeTerminalCommands = async (when: Command["when"]) => {
+  if (!dataApp.getValue("hasSudo")) return;
+
+  const commands = await getStorageFileValue("_terminalCommands");
+  if (!commands) return;
+
+  try {
+    const commandsParsed = JSON.parse(commands) as Command[];
+    await Promise.all(
+      commandsParsed
+        ?.filter((cmd) => cmd.when === when)
+        ?.map((cmd) => {
+          return new Promise<1>((resolve) => {
+            try {
+              exec(cmd.command, (error, stdout, stderr) => {
+                if (error) {
+                  writeLog(
+                    `Command execution error for "${cmd.command}" for ${when}: ${error.message}`,
+                    "error"
+                  );
+                }
+                if (stderr) {
+                  writeLog(
+                    `Command execution stderr for "${cmd.command}" for ${when}: ${stderr}`,
+                    "error"
+                  );
+                }
+                if (stdout) {
+                  writeLog(
+                    `Command execution stdout for "${cmd.command}" for ${when}: ${stdout}`,
+                    "info"
+                  );
+                }
+
+                resolve(1);
+              });
+            } catch (error) {
+              writeLog(
+                `Error executing command "${cmd.command}" for ${when}: ` +
+                  (typeof error === "string" ? error : JSON.stringify(error)),
+                "error"
+              );
+            } finally {
+              resolve(1);
+            }
+          });
+        })
+    );
+  } catch (error) {
+    writeLog(
+      `Error executing terminal commands for ${when}: ` +
+        (typeof error === "string" ? error : JSON.stringify(error)),
+      "error"
+    );
   }
 };

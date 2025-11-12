@@ -6,6 +6,7 @@ export const SECURE_KEYS_STORAGE = [
   "_selectedCryptos",
   "_lastUpdateCheck",
   "_downDetectorData",
+  "_terminalCommands",
   "_userSessionTokenStorage",
 ] as const;
 
@@ -26,22 +27,7 @@ export type UNSECURE_KEYS_STORAGE_TYPE = (typeof UNSECURE_KEYS_STORAGE)[number];
 export const ALL_KEYS_STORAGE: (
   | SECURE_KEYS_STORAGE_TYPE
   | UNSECURE_KEYS_STORAGE_TYPE
-)[] = [
-  "@theme",
-  "@API_URL",
-  "@pendingTasks",
-  "@webSocketURL",
-  "@notifications",
-  "@hasAdminAccess",
-  "@languageKeyStorage",
-  "_userData",
-  "_deviceId",
-  "_Streamers",
-  "_sessionExpiry",
-  "_selectedCryptos",
-  "_lastUpdateCheck",
-  "_userSessionTokenStorage",
-] as const;
+)[] = [...SECURE_KEYS_STORAGE, ...UNSECURE_KEYS_STORAGE];
 
 export type ALL_KEYS_STORAGE_TYPE =
   | SECURE_KEYS_STORAGE_TYPE

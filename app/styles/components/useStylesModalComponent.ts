@@ -19,6 +19,7 @@ export const useStylesModalComponent = () => {
           left: 0,
           top: 0,
           height: height + (StatusBar?.currentHeight || 0),
+          maxHeight: height + (StatusBar?.currentHeight || 0),
           cursor: "auto",
         },
         modal: {
@@ -32,6 +33,9 @@ export const useStylesModalComponent = () => {
           gap: getResponsiveValue(10, 20, 30),
           borderWidth: 1,
           borderColor: colors.border,
+          flex: 1 / 2,
+          height: "auto",
+          maxHeight: height * 0.75,
         },
         title: {
           fontWeight: "bold",
@@ -40,13 +44,15 @@ export const useStylesModalComponent = () => {
           padding: getResponsiveValue(0, 15, 20),
           textAlign: "center",
           color: colors.primary,
+          flex: 1 / 5,
         },
         body: {
           paddingHorizontal: getResponsiveValue(10, 20, 30),
           borderRadius: 8,
           width: "100%",
           maxWidth: "100%",
-          overflow: "hidden",
+          overflow: "scroll",
+          flex: 1,
         },
         buttons: {
           flexDirection: "row",
@@ -64,6 +70,7 @@ export const useStylesModalComponent = () => {
           fontSize: getResponsiveValue(14, 18, 22),
           textAlign: "center",
           color: colors.text,
+          maxHeight: height * 0.5,
         },
       }),
     [getCommonStyles, colors, getResponsiveValue, height],

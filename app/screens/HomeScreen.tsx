@@ -64,13 +64,20 @@ if (Platform.OS !== "web") {
     noNeedsInternet: true,
     noNeedsSession: true,
   });
+} else {
+  buttons.push({
+    label: "terminalCommands",
+    screen: "TerminalCommands",
+    noNeedsInternet: true,
+    noNeedsSession: true,
+  });
 }
 if (dev) buttons.push(dev);
 
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { styles, background } = useStylesHomeScreen();
   const { hasInternet } = useDeviceInformation();
+  const { styles, background } = useStylesHomeScreen();
   const { userData, logout, isLoggedIn } = useUserContext();
 
   const renderButtons = useMemo(() => {

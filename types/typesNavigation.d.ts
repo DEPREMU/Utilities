@@ -16,4 +16,5 @@ export type ScreensAvailable =
   | "forgotPassword"
   | "MarkdownViewer"
   | "ComputerControl"
+  | "TerminalCommands"
   | "DeviceInformation";

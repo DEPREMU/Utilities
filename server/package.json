@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node ./build.ts && node ./build/index.cjs",
-    "start-dev": "node ./build.ts && npx nodemon --exec node ./build/index.cjs",
+    "start-dev": "npx nodemon -e ts,json --exec \"sleep 5; node ./build.ts; node ./build/index.cjs\"",
     "format-all": "npx prettier --write \"**/*.{ts,json}\" --ignore-path ../.gitignore",
     "before-commit": "npm run lint:fix && npm run type-check",
     "type-check": "tsc --noEmit",

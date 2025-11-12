@@ -14,6 +14,7 @@ const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
   removeData: async () => false,
   sendNotification: () => {},
   getNativeData: async () => "unknown",
+  executeCommand: async () => "",
 };
 
 let windowModule: ContextBridgeType["UtilitiesForPC"] = defaultWindow;

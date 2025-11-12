@@ -15,8 +15,9 @@ import { useTheme } from "@context/ThemeContext";
 import GamesNavigator from "@screens/Games";
 import SettingsScreen from "@screens/Settings";
 import MarkdownViewer from "@screens/markdown/MarkdownViewer";
-import ComputerControl from "@screens/ComputerControl/ComputerControl";
+import ComputerControl from "@/screens/phone/ComputerControl";
 import CryptosNavigator from "@screens/Cryptos";
+import TerminalCommands from "@screens/Web/TerminalCommands";
 import DeviceInformation from "@screens/DeviceInformation/DeviceInfomation";
 import ClipboardNavigator from "@screens/Clipboard";
 import CalculatorNavigator from "@screens/calculator";
@@ -74,6 +75,7 @@ const screens: Screens = {
   MarkdownViewer: { component: MarkdownViewer },
   forgotPassword: { component: ForgotPasswordScreen },
   ComputerControl: { component: ComputerControl },
+  TerminalCommands: { component: TerminalCommands },
   DeviceInformation: { component: DeviceInformation },
 };
 
@@ -104,7 +106,9 @@ const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer ref={navigationRef} theme={navigationTheme}>
       <BackgroundTaskProvider>
-        <Stack.Navigator initialRouteName="Home">{allScreens}</Stack.Navigator>
+        <Stack.Navigator initialRouteName="Home">
+          {allScreens}
+        </Stack.Navigator>
       </BackgroundTaskProvider>
     </NavigationContainer>
   );

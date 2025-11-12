@@ -278,6 +278,24 @@ const en: typeLanguages = {
   turnOffCommandFailed: "Failed to send turn off command",
   restartCommandSent: "Restart command sent",
   restartCommandFailed: "Failed to send restart command",
+  terminalCommands: "Terminal Commands",
+  command: "Command",
+  enterCommand: "Enter Command",
+  "executeOnStart-up": "Execute on Start-up",
+  "executeOnShut-down": "Execute on Shut-down",
+  addCommand: "Add Command",
+  noCommandsAdded: "No commands added",
+  commandExecuted: "Command Executed",
+  commandOutput: "Command Output",
+  askExecuteCommand: "Execute Command",
+  confirmExecuteCommand:
+    "Before adding a command, it is recommended to execute it first to ensure it works as expected. Do you want to execute the command now?",
+  execute: "Execute",
+  noOutput: "No Output",
+  commandSentSuccessfully: "Command sent successfully",
+  commandFailed: "Failed to send command",
+  commandExecutionFailed: "Command execution failed",
+  executingCommand: "Executing Command...",
 } as const;
 
 export default en;

@@ -133,6 +133,19 @@ const contextBridgeType: ContextBridgeType = {
     sendNotification: (notification) => {
       sendMessage("send", "send-notification", notification);
     },
+
+    executeCommand: async (command) => {
+      try {
+        const result = await sendMessage("invoke", "execute-command", command);
+        return result;
+      } catch (error) {
+        sendLog(
+          `Error executing command "${command}": ` + String(error),
+          "error"
+        );
+        return error instanceof Error ? error.message : String(error);
+      }
+    },
   },
 };
 

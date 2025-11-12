@@ -73,6 +73,8 @@ export const addStreamer = async (
       insertIntoTable("UserNotificationsConfig", {
         enabled: false,
         interval: -1,
+        paused: false,
+        pauseTime: -1,
         userId,
         streamer: name,
         reason: "streamers",

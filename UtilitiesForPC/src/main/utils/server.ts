@@ -1,4 +1,3 @@
-import os from "os";
 import cors from "cors";
 import DNSSD from "dnssd";
 import express from "express";
@@ -8,6 +7,7 @@ import { Server } from "http";
 import { writeLog } from "./logger";
 import { exec, execSync } from "child_process";
 import { AdvertisementTXT } from "@types";
+import { executeTerminalCommands } from "./storage";
 
 let idTimeoutServer: number | null = null;
 let isReconnecting = false;
@@ -93,9 +93,15 @@ process.on("unhandledRejection", (reason) => {
   scheduleReconnect("unhandledRejection");
 });
 
-export const handleShutdown = () => {
+export const handleShutdown = async () => {
   if (isShuttingDown) return;
   isShuttingDown = true;
+  try {
+    writeLog("Executing shutdown commands...", "info");
+    await executeTerminalCommands("Shut-down");
+  } catch (err) {
+    writeLog(`Error executing shutdown commands: ${err}`, "error");
+  }
   writeLog("Shutting down gracefully...", "info");
   cleanAdAndServer();
   setTimeout(() => process.exit(0), 500);

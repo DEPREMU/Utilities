@@ -244,6 +244,23 @@ export type typeLanguages = Record<ReasonNotification, string> &
     turnOffCommandFailed: string;
     restartCommandSent: string;
     restartCommandFailed: string;
+    terminalCommands: string;
+    command: string;
+    enterCommand: string;
+    "executeOnStart-up": string;
+    "executeOnShut-down": string;
+    addCommand: string;
+    noCommandsAdded: string;
+    commandSentSuccessfully: string;
+    commandFailed: string;
+    commandExecutionFailed: string;
+    commandExecuted: string;
+    commandOutput: string;
+    askExecuteCommand: string;
+    confirmExecuteCommand: string;
+    execute: string;
+    executingCommand: string;
+    noOutput: string;
   };
 
 export type typeLanguagesServer = {

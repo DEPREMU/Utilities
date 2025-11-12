@@ -284,6 +284,24 @@ const es: typeLanguages = {
   turnOffCommandFailed: "Error al enviar el comando de apagado",
   restartCommandSent: "Comando de reinicio enviado",
   restartCommandFailed: "Error al enviar el comando de reinicio",
+  terminalCommands: "Comandos de Terminal",
+  command: "Comando",
+  enterCommand: "Ingresar comando",
+  "executeOnStart-up": "Ejecutar al iniciar",
+  "executeOnShut-down": "Ejecutar al apagar",
+  addCommand: "Agregar comando",
+  noCommandsAdded: "No se han agregado comandos",
+  commandExecuted: "Comando ejecutado",
+  commandSentSuccessfully: "Comando enviado exitosamente",
+  commandFailed: "Error en el comando",
+  commandExecutionFailed: "Error al ejecutar el comando",
+  commandOutput: "Salida del comando",
+  askExecuteCommand: "¿Ejecutar comando?",
+  confirmExecuteCommand:
+    "Antes de ejecutar el comando, se recomienda probarlo primero para asegurarse de que funcione como se espera. ¿Quieres ejecutar el comando ahora?",
+  execute: "Ejecutar",
+  noOutput: "Sin salida",
+  executingCommand: "Ejecutando comando...",
 } as const;
 
 export default es;

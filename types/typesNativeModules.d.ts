@@ -72,6 +72,11 @@ type ChannelsIpcRenderer<
     functionArgs: [args: NotificationElectron];
     typeIpc: "send";
   };
+  "execute-command": {
+    functionReturn: Promise<string>;
+    functionArgs: [command: string];
+    typeIpc: "invoke";
+  };
 };
 
 type NotificationElectron = {
@@ -112,5 +117,8 @@ export type ContextBridgeType = {
     getNativeData: (
       ...args: ChannelsIpcRenderer["get-native-data"]["functionArgs"]
     ) => ChannelsIpcRenderer["get-native-data"]["functionReturn"];
+    executeCommand: (
+      ...args: ChannelsIpcRenderer["execute-command"]["functionArgs"]
+    ) => ChannelsIpcRenderer["execute-command"]["functionReturn"];
   };
 };

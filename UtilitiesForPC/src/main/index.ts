@@ -4,10 +4,17 @@ import dataApp, {
   initServer,
   getLanguage,
   handleShutdown,
+  executeTerminalCommands,
 } from "@utils";
 import path from "path";
 import { exec } from "child_process";
 import { app, Tray, Menu, nativeImage, BrowserWindow } from "electron";
+
+try {
+  executeTerminalCommands("Start-up");
+} catch (error) {
+  writeLog("Error executing start-up commands: " + String(error), "error");
+}
 
 if (dataApp.getValue("isWindows")) {
   exec(

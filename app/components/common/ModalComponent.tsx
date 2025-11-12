@@ -5,11 +5,12 @@ import Animated, {
   useAnimatedStyle,
   WithTimingConfig,
 } from "react-native-reanimated";
+import { Text } from "react-native-paper";
 import { StylesModal } from "@context/ModalContext";
-import { Pressable, Text, View } from "react-native";
-import { useStylesModalComponent } from "@/styles/components/useStylesModalComponent";
+import { useStylesModalComponent } from "@styles/components/useStylesModalComponent";
+import { Pressable, ScrollView, View } from "react-native";
 import React, { memo, useEffect, useRef } from "react";
-import { areEqualChildren, stringifyData } from "@/utils";
+import { areEqualChildren, stringifyData } from "@utils";
 
 interface ModalProps {
   title: string;
@@ -91,9 +92,15 @@ const ModalComponent: React.FC<ModalProps> = ({
             <View style={[styles.body, customStyles?.body]}>{body}</View>
           )}
           {body !== null && typeof body === "string" && (
-            <Text style={[styles.messageText, customStyles?.messageText]}>
-              {body}
-            </Text>
+            <ScrollView
+              style={[styles.body, customStyles?.body]}
+              scrollEnabled
+              showsVerticalScrollIndicator
+            >
+              <Text style={[styles.messageText, customStyles?.messageText]}>
+                {body}
+              </Text>
+            </ScrollView>
           )}
           {buttons !== null && (
             <View style={[styles.buttons, customStyles?.buttons]}>

@@ -13,6 +13,11 @@ import { Notifications } from "./typesNotifications";
 import { SerializableTask } from "./typesTaskRegistry";
 import type { LanguagesSupported } from "./typesTranslations";
 
+export type Command = {
+  when: "Start-up" | "Shut-down";
+  command: string;
+};
+
 export type SelectedCryptos = Record<string, Cryptos>;
 
 export type ExpectedSecureStorageTypes = {
@@ -22,6 +27,7 @@ export type ExpectedSecureStorageTypes = {
   _sessionExpiry: number | -1;
   _selectedCryptos: SelectedCryptos | null;
   _lastUpdateCheck: number | null;
+  _terminalCommands: Command[] | null;
   _downDetectorData: DownDetector[] | null;
   _userSessionTokenStorage: string | null;
 };

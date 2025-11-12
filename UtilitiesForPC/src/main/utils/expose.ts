@@ -4,12 +4,13 @@ import {
   removeStorageFileValue,
 } from "./storage";
 import dataApp from "./variables";
+import { exec } from "child_process";
 import nativeData from "./nativeData";
 import { writeLog } from "./logger";
 import { sendNotification } from "./notifications";
 import { ChannelsIpcRenderer } from "@types";
 import { ipcMain, IpcMainEvent, IpcMainInvokeEvent } from "electron";
-import { restartComputer, scheduleReconnect, turnOffComputer } from "./server"; 
+import { restartComputer, scheduleReconnect, turnOffComputer } from "./server";
 
 type IpcDictHybrid = {
   [K in keyof ChannelsIpcRenderer]:
@@ -62,7 +63,11 @@ const ipcDict: IpcDictHybrid = {
     type: "on",
     func: (_event, notification) => {
       writeLog(
-        `Received send-notification request: ${JSON.stringify(notification, null, 2)}`,
+        `Received send-notification request: ${JSON.stringify(
+          notification,
+          null,
+          2
+        )}`,
         "info"
       );
       sendNotification(notification);
@@ -80,6 +85,31 @@ const ipcDict: IpcDictHybrid = {
     },
   },
 
+  "execute-command": {
+    type: "handle",
+    func: async (_event, command) => {
+      writeLog(`Received execute-command request: ${command}`, "info");
+
+      const result = await new Promise<string>((resolve) => {
+        exec(command, (error, stdout, stderr) => {
+          if (error) {
+            writeLog(`Command execution error: ${error.message}`, "error");
+            resolve(error.message);
+            return;
+          }
+          if (stderr) {
+            writeLog(`Command execution stderr: ${stderr}`, "error");
+            resolve(stderr);
+            return;
+          }
+          writeLog(`Command execution stdout: ${stdout}`, "info");
+          resolve(stdout);
+        });
+      });
+
+      return result;
+    },
+  },
   "turn-off-computer": {
     type: "handle",
     func: async () => {
