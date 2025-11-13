@@ -43,6 +43,7 @@ export * from "./server";
 export * from "./storage";
 export * from "./variables";
 export * from "./translations";
+export * from "./memoryMonitor";
 export * from "./notifications";
 export * from "./nativeData/index";
 

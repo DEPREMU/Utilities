@@ -117,6 +117,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         log("WebSocket initialized successfully.");
       };
 
+      const handleCloseWs = () => {
+        isConnecting.current = false;
+        setIsConnected(false);
+        if (!pingIntervalId.current) return;
+
+        clearInterval(pingIntervalId.current);
+        pingIntervalId.current = null;
+      };
+
       const newSocket = new WebSocket(url);
 
       newSocket.onopen = async () => {
@@ -198,19 +207,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
       newSocket.onerror = (error) => {
         logError("WebSocket error:", error);
-        isConnecting.current = false;
-        setIsConnected(false);
+        handleCloseWs();
       };
 
       newSocket.onclose = (event) => {
         log("WebSocket connection closed:", event);
-        isConnecting.current = false;
-        setIsConnected(false);
-
-        if (pingIntervalId.current) {
-          clearInterval(pingIntervalId.current);
-          pingIntervalId.current = null;
-        }
+        handleCloseWs();
       };
 
       setSocket(newSocket);
@@ -375,6 +377,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     }
 
     shouldConnect.current = false;
+
+    if (clipboardSocketRef.current) {
+      clipboardSocketRef.current.close?.();
+      clipboardSocketRef.current = null;
+    }
+
     if (socketRef.current) {
       socketRef.current.close();
       socketRef.current = null;

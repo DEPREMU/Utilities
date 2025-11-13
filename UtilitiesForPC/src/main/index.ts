@@ -4,6 +4,7 @@ import dataApp, {
   initServer,
   getLanguage,
   handleShutdown,
+  startMemoryMonitor,
   executeTerminalCommands,
 } from "@utils";
 import path from "path";
@@ -16,7 +17,7 @@ try {
   writeLog("Error executing start-up commands: " + String(error), "error");
 }
 
-if (dataApp.getValue("isWindows")) {
+if (dataApp.getValue("isWindows") && app.isPackaged) {
   exec(
     `schtasks /create /tn "UtilitiesForPC" /tr "${process.execPath}" /sc onlogon /rl highest /f`,
     (error) => {
@@ -26,7 +27,31 @@ if (dataApp.getValue("isWindows")) {
   );
 }
 
+const getAssetsPath = (...segments: string[]): string => {
+  if (app.isPackaged) {
+    return path.join(
+      process.resourcesPath,
+      "app.asar",
+      "dist",
+      "assets",
+      ...segments
+    );
+  } else {
+    return path.join(path.dirname(__dirname), "dist", "assets", ...segments);
+  }
+};
+
+const getHtmlPath = (): string => {
+  if (app.isPackaged)
+    return path.join(process.resourcesPath, "app.asar", "dist", "index.html");
+  else return path.join(path.dirname(__dirname), "dist", "index.html");
+};
+
 const createWindow = (): void => {
+  const preloadPath = app.isPackaged
+    ? path.join(process.resourcesPath, "preload.cjs")
+    : path.join(path.dirname(__dirname), "build", "preload.cjs");
+
   const mainWindow = new BrowserWindow({
     width: 1000,
     height: 800,
@@ -36,20 +61,11 @@ const createWindow = (): void => {
       webSecurity: false,
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(process.resourcesPath, "preload.js"),
+      preload: preloadPath,
     },
   });
 
-  let htmlPath: string;
-
-  if (app.isPackaged)
-    htmlPath = path.join(
-      process.resourcesPath,
-      "app.asar",
-      "dist",
-      "index.html"
-    );
-  else htmlPath = path.join(path.dirname(__dirname), "dist", "index.html");
+  const htmlPath = getHtmlPath();
 
   mainWindow.loadFile(htmlPath).catch((err) => {
     console.error("Error loading file:", err);
@@ -71,11 +87,9 @@ const createWindow = (): void => {
 
 const createTray = (): void => {
   try {
-    const trayIconPath = path.join(
-      process.resourcesPath,
-      "app.asar",
-      "dist",
-      "assets",
+    console.log("Creating tray...");
+
+    const trayIconPath = getAssetsPath(
       dataApp.getValue("isWindows") ? "tray-icon.ico" : "tray-icon.png"
     );
 
@@ -113,9 +127,7 @@ const createTray = (): void => {
       if (!mainWindow?.isVisible()) {
         mainWindow?.show();
         mainWindow?.focus();
-        return;
-      }
-      mainWindow.hide();
+      } else mainWindow.hide();
     });
 
     dataApp.setValue("tray", tray);
@@ -130,6 +142,7 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
   initServer();
+  startMemoryMonitor();
 });
 
 app.on("window-all-closed", handleShutdown);

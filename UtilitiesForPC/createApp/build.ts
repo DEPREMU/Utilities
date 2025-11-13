@@ -14,7 +14,7 @@ const baseConfig: BuildOptions = {
 
 build({
   ...baseConfig,
-  outfile: "./build/preload.js",
+  outfile: "./build/preload.cjs",
   platform: "browser",
   external: ["electron"],
   entryPoints: ["./src/preload.ts"],

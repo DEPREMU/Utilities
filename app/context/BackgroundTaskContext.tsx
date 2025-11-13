@@ -66,6 +66,8 @@ interface BackgroundTaskProviderProps {
   children: React.ReactNode;
 }
 
+const MAX_PENDING_TASKS = 100;
+
 /**
  * BackgroundTaskContext provides a way to manage background tasks and status bar appearance in a React application.
  *
@@ -188,6 +190,14 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
           );
           return;
         }
+
+        if (executeWhenInternetRef.current.length >= MAX_PENDING_TASKS) {
+          logError(
+            `Max pending tasks limit (${MAX_PENDING_TASKS}) reached. Removing oldest task.`,
+          );
+          executeWhenInternetRef.current.shift();
+        }
+
         const metaData = {
           ...meta,
           id:

@@ -7,6 +7,7 @@ import { Server } from "http";
 import { writeLog } from "./logger";
 import { exec, execSync } from "child_process";
 import { AdvertisementTXT } from "@types";
+import { stopMemoryMonitor } from "./memoryMonitor";
 import { executeTerminalCommands } from "./storage";
 
 let idTimeoutServer: number | null = null;
@@ -104,6 +105,7 @@ export const handleShutdown = async () => {
   }
   writeLog("Shutting down gracefully...", "info");
   cleanAdAndServer();
+  stopMemoryMonitor();
   setTimeout(() => process.exit(0), 500);
 };
 
@@ -154,10 +156,15 @@ export const scheduleReconnect = (reason: string) => {
     "warn"
   );
 
-  if (idTimeoutServer) clearTimeout(idTimeoutServer);
+  if (idTimeoutServer) {
+    clearTimeout(idTimeoutServer);
+    idTimeoutServer = null;
+  }
 
   idTimeoutServer = setTimeout(() => {
     writeLog("Reconnect timeout elapsed. Attempting to restart...", "info");
+    idTimeoutServer = null;
+
     try {
       const server = dataApp.getValue("server");
       if (server) {
@@ -235,8 +242,10 @@ export const initServer = (): void => {
     });
 
     const server = app.listen(dataApp.getValue("PORT"), "0.0.0.0", () => {
-      if (idTimeoutServer) clearTimeout(idTimeoutServer);
-      idTimeoutServer = null;
+      if (idTimeoutServer) {
+        clearTimeout(idTimeoutServer);
+        idTimeoutServer = null;
+      }
 
       writeLog(`Server listening on port ${dataApp.getValue("PORT")}`, "info");
 

@@ -5,7 +5,8 @@
   "main": "build/index.cjs",
   "scripts": {
     "build": "node createApp/build.ts",
-    "start": "npm run build && npx electron .",
+    "start": "npm run build-app export-web && npm run build && npx electron . --expose-gc",
+    "start:debug": "npm run build-app export-web && npm run build && npx electron . --expose-gc --inspect=5858",
     "pack": "npm run build && npx electron-builder",
     "build-app": "node createApp/createApp.ts",
     "type-check": "tsc --project src/tsconfig.json --noEmit",
@@ -54,8 +55,8 @@
     ],
     "extraFiles": [
       {
-        "from": "build/preload.js",
-        "to": "resources/preload.js"
+        "from": "build/preload.cjs",
+        "to": "resources/preload.cjs"
       }
     ],
     "extraResources": [

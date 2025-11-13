@@ -55,7 +55,11 @@ const contextBridgeType: ContextBridgeType = {
       }
     },
     notifyLoginStatus: (isLoggedIn: boolean) => {
-      if (idleTimeout) clearTimeout(idleTimeout);
+      if (idleTimeout) {
+        clearTimeout(idleTimeout);
+        idleTimeout = null;
+      }
+
       idleTimeout = setTimeout(() => {
         idleTimeout = null;
         ipcRenderer.send("user-login-status", isLoggedIn);

@@ -17,6 +17,8 @@ import { execSync } from "child_process";
 import * as readline from "readline";
 import type PACKAGE_JSON from "../package.json";
 
+const args = process.argv.slice(2);
+
 const askQuestion = async (question: string): Promise<string> => {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -46,13 +48,6 @@ const dataBuild = {
   appName: packageJson.name,
   productName: packageJson.build.productName,
 } as const;
-
-const addStartupScriptWindows = (
-  runAppCommand: string,
-  fileSudoers: string
-) => {
-  //TODO : Implement Windows auto-start script addition
-};
 
 const addAutostartLinux = async (runAppCommand: string) => {
   const fileSudoers = "utilitiesforpc";
@@ -265,7 +260,7 @@ const exportWebApp = () => {
   fs.writeFileSync(path.resolve(__dirname, "dist", "index.html"), html);
   console.log(t("jsAndFontsInlined"));
 
-  buildApp();
+  if (!args.includes("export-web")) buildApp();
 };
 
 exportWebApp();

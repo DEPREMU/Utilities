@@ -85,6 +85,9 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   const lastItemCopied = useRef<string | null>(null);
   const prevHasInternet = useRef<boolean | null>(null);
 
+  const locationIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
+  const clipboardIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
+
   const sendNotification = useCallback(
     async (notification: Omit<Notification, "id" | "timestamp">) => {
       const notifications = await getNotifications();
@@ -460,8 +463,21 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       }
     };
 
-    const id = setInterval(handleIntervalClipboardWeb, 2500);
-    return () => clearInterval(id);
+    const clearIntervalIfExists = () => {
+      if (!clipboardIntervalRef.current) return;
+
+      clearIntervalPolyfill(clipboardIntervalRef.current);
+      clipboardIntervalRef.current = null;
+    };
+
+    clearIntervalIfExists();
+
+    clipboardIntervalRef.current = setIntervalPolyfill(
+      handleIntervalClipboardWeb,
+      2500,
+    );
+
+    return () => clearIntervalIfExists();
   }, [
     t,
     language,
@@ -504,9 +520,18 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       });
     };
 
+    const clearIntervalIfExists = () => {
+      if (!locationIntervalRef.current) return;
+
+      clearIntervalPolyfill(locationIntervalRef.current);
+      locationIntervalRef.current = null;
+    };
+    clearIntervalIfExists();
+
     verifyLocation();
-    const id = setIntervalPolyfill(verifyLocation, 60000);
-    return () => clearIntervalPolyfill(id);
+    locationIntervalRef.current = setIntervalPolyfill(verifyLocation, 60000);
+
+    return () => clearIntervalIfExists();
   }, [sendNotification, t]);
 
   useEffect(() => {
