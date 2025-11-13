@@ -335,11 +335,12 @@ export const initWebSocketClipboard = () => {
       if (!dataLang) return;
       if (!Array.isArray(dataLang)) dataLang = [dataLang];
       if (dataLang.length === 0) return;
-      let lastItem: ClipboardSync = dataLang?.[0];
+      let lastItem: ClipboardSync = dataLang[0];
 
       if (dataLang.length > 1)
-        lastItem = dataLang.sort((a, b) =>
-          b.createdAt.localeCompare(a.createdAt),
+        lastItem = dataLang.sort(
+          (a, b) =>
+            new Date(b?.createdAt).getTime() - new Date(a?.createdAt).getTime(),
         )?.[0];
       if (!lastItem) return;
 
