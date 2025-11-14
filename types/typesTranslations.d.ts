@@ -261,6 +261,7 @@ export type typeLanguages = Record<ReasonNotification, string> &
     execute: string;
     executingCommand: string;
     noOutput: string;
+    loggingIn: string;
   };
 
 export type typeLanguagesServer = {

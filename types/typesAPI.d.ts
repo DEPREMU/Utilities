@@ -64,24 +64,25 @@ export type Coin = {
 };
 
 export type RoutesAPI =
+  | "/log"
+  | "/health"
+  | "/cryptos"
   | "/decrypt"
   | "/encrypt"
+  | "/translate"
+  | "/doQueryDB"
+  | "/auth/login"
   | "/cryptoPrice"
   | "/addStreamer"
-  | "/cryptos"
-  | "/getIsLiveStreamer"
-  | "/translate"
-  | "/database/update"
-  | "/database/delete"
-  | "/database/fetch"
-  | "/database/insert"
-  | "/auth/login"
   | "/auth/signup"
   | "/auth/signOut"
-  | "/auth/refreshSession"
   | "/getRandomUUID"
-  | "/health"
-  | "/doQueryDB";
+  | "/database/fetch"
+  | "/database/update"
+  | "/database/insert"
+  | "/database/delete"
+  | "/getIsLiveStreamer"
+  | "/auth/refreshSession";
 
 export type RequestBody = Logs | UserData;
 
@@ -188,7 +189,7 @@ export type ResponseSignOut = {
 
 export type RequestDatabaseInsert<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
-  table: T;  
+  table: T;
   values: T extends "Users" ? Partial<Tables[T]> : Tables[T] | Tables[T][];
   deviceId: string;
 };
@@ -240,4 +241,12 @@ export type ResponseDatabaseDelete = {
 export type ResponseGetRandomUUID = {
   uuid?: string;
   error?: string;
+};
+
+export type RequestLogs = {
+  log: Logs;
+};
+
+export type ResponseLogs = {
+  success: boolean;
 };

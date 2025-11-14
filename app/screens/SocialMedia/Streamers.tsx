@@ -44,7 +44,7 @@ const Streamers: React.FC = () => {
 
   const [streamer, setStreamer] = useState<string>("");
   const [streamers, setStreamers] = useState<StreamerWithIsLive[]>([]);
-  const streamersLoaded = useRef<boolean>(false);
+  const streamersLoaded = useRef<boolean | null>(false);
 
   const addingStreamer = useCallback(async () => {
     if (isFalsy(streamer)) return;
@@ -338,6 +338,10 @@ const Streamers: React.FC = () => {
 
   useEffect(() => {
     streamersLoaded.current = streamers.length > 0;
+
+    return () => {
+      streamersLoaded.current = null;
+    };
   }, [streamers]);
 
   useEffect(() => {

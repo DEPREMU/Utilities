@@ -20,8 +20,9 @@ import {
 } from "./auth.ts";
 import { Router } from "express";
 import { translate } from "./translate.ts";
-import { handleDoQueryDatabase } from "../dev/handleDoQuery.ts";
+import { handleAddLog } from "./debug.ts";
 import { Response, Request } from "express";
+import { handleDoQueryDatabase } from "../dev/handleDoQuery.ts";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
 import { ResponseHealth, Route, RoutesAPI } from "@types";
 import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
@@ -112,6 +113,10 @@ const routes: Record<RoutesAPI, Route> = {
   "/doQueryDB": {
     method: "post",
     handler: handleDoQueryDatabase,
+  },
+  "/log": {
+    method: "post",
+    handler: handleAddLog,
   },
 };
 

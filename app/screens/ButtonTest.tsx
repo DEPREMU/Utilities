@@ -87,7 +87,7 @@ const AnimatedCircle: React.FC<AnimatedCircleProps> = memo(
 
 const ButtonWithLiquidEffectAndAnimatedCircles = () => {
   const pressRef = useRef<View>(null);
-  const lastPress = useRef<string[]>([]);
+  const lastPress = useRef<string[] | null>([]);
   const translateY = useSharedValue<number>(120);
   const [touches, setTouches] = useState<Touch[]>([]);
 
@@ -97,7 +97,7 @@ const ButtonWithLiquidEffectAndAnimatedCircles = () => {
       const touchY = event.nativeEvent.pageY - pageY;
 
       const key = Date.now().toString() + Math.random().toString();
-      lastPress.current.push(key);
+      lastPress.current?.push(key);
 
       setTouches((prev) => [
         ...prev,
@@ -110,13 +110,15 @@ const ButtonWithLiquidEffectAndAnimatedCircles = () => {
     if (!pressRef.current) return;
 
     setTouches((prev) => {
+      if (!lastPress.current) return prev;
+
       const lastTouch = prev.find((touch) =>
-        lastPress.current.includes(touch.key),
+        lastPress.current?.includes(touch.key),
       );
       if (!lastTouch) return prev;
 
       const filteredTouches = prev.filter(
-        (touch) => !lastPress.current.includes(touch.key),
+        (touch) => !lastPress.current?.includes(touch.key),
       );
       filteredTouches.push({ ...lastTouch, pressOut: true });
 
@@ -127,6 +129,14 @@ const ButtonWithLiquidEffectAndAnimatedCircles = () => {
       return filteredTouches;
     });
   }, []);
+
+  // Cleanup lastPress on unmount
+  useEffect(
+    () => () => {
+      lastPress.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     translateY.value = withRepeat(withTiming(60, { duration: 4000 }), -1, true);

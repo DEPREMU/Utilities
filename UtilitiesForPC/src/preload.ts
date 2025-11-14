@@ -49,7 +49,7 @@ const contextBridgeType: ContextBridgeType = {
     },
     setClipboard: (text: string) => {
       try {
-        clipboard.writeText(text);
+        if (text) clipboard.writeText(text);
       } catch {
         // ignore
       }
@@ -62,7 +62,7 @@ const contextBridgeType: ContextBridgeType = {
 
       idleTimeout = setTimeout(() => {
         idleTimeout = null;
-        ipcRenderer.send("user-login-status", isLoggedIn);
+        sendMessage("send", "user-login-status", isLoggedIn);
       }, 500);
     },
     setData: (deviceId: string, language: LanguagesSupported) => {

@@ -296,6 +296,7 @@ const en: typeLanguages = {
   commandFailed: "Failed to send command",
   commandExecutionFailed: "Command execution failed",
   executingCommand: "Executing Command...",
+  loggingIn: "Logging in...",
 } as const;
 
 export default en;

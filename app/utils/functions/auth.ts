@@ -25,6 +25,7 @@ import {
 import chalk from "chalk";
 import { isFalsy } from "./../functions/appManagement";
 import { Platform } from "react-native";
+import windowModule from "../modules/WindowModule";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
 import { KeyStorageValues, ALL_KEYS_STORAGE_TYPE } from "../constants";
@@ -289,11 +290,21 @@ export const getCurrentUser = async (): Promise<AuthResponse> => {
 /**
  * Refreshes the current session using a refresh token
  */
-export const refreshSession = async (token: string): Promise<AuthResponse> => {
+export const refreshSession = async (
+  token: string,
+  tries = 0,
+): Promise<AuthResponse> => {
+  if (tries > 10) {
+    const errorMsg = "Maximum retry attempts reached for refreshing session";
+    logError(errorMsg);
+    return { error: errorMsg };
+  }
+
   try {
-    const [lang, deviceId] = await Promise.all([
+    const [lang, deviceId, url] = await Promise.all([
       checkLanguage(),
       loadDataSecure("_deviceId"),
+      getRouteAPI("/auth/refreshSession"),
     ]);
 
     let notificationToken = "Web";
@@ -306,7 +317,7 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
     }
 
     const res = await fetch(
-      await getRouteAPI("/auth/refreshSession"),
+      url,
       fetchOptions<RequestRefreshSession>(
         "POST",
         {
@@ -316,11 +327,18 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
         },
         token,
       ),
-    );
+    ).catch(async (error) => {
+      logError(
+        `Error refreshing session, retrying... (${tries + 1}/10): ${error}`,
+      );
+      const data = await refreshSession(token, tries + 1);
+      return { json: () => data };
+    });
     const data = (await res.json()) as ResponseRefreshSession;
 
     if (data.error) {
       logError("Error refreshing session:", data.error);
+      if (Platform.OS === "web") windowModule.notifyLoginStatus?.(false);
       return { error: data.error };
     }
 

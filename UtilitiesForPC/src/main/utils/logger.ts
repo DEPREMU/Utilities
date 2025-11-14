@@ -26,7 +26,7 @@ export const writeLog = (message: string, level: "info" | "warn" | "error") => {
     const logEntry = `[${new Date().toLocaleString()}] [${level.toUpperCase()}]: ${message}`;
     if (dataApp.getValue("isWindows")) {
       execSync(
-        `echo "${logEntry.replace(/"/g, '\\"')}" >> "${dataApp.getValue(
+        `echo ${logEntry.replace(/"/g, '\\"')} >> "${dataApp.getValue(
           "logPath"
         )}"`
       );

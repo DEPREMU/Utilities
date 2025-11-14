@@ -69,7 +69,9 @@ let dataAppDefault: DataAppElectron = {
   deviceId: "",
   language: "en",
   __dirname: path.resolve(),
-  isWindows: isWindows,
+  isWindows,
+  wasSleeping: false,
+  webRestarted: false,
   logPath: isWindows
     ? "C:\\Windows\\Temp\\log-utilities-for-pc.txt"
     : "/tmp/log-utilities-for-pc.txt",

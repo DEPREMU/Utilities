@@ -302,6 +302,7 @@ const es: typeLanguages = {
   execute: "Ejecutar",
   noOutput: "Sin salida",
   executingCommand: "Ejecutando comando...",
+  loggingIn: "Iniciando sesión...",
 } as const;
 
 export default es;

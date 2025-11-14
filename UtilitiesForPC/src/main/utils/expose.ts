@@ -35,12 +35,16 @@ const ipcDict: IpcDictHybrid = {
   "user-login-status": {
     type: "on",
     func: (_event, isLoggedIn) => {
+      dataApp.setValue("userIsLoggedIn", isLoggedIn);
+
+      if (dataApp.getValue("webRestarted")) return;
+      dataApp.setValue("webRestarted", true);
+
+      const mainWindow = dataApp.getValue("mainWindow");
+      if (!mainWindow) return;
+
       writeLog(`Received user-login-status: ${isLoggedIn}`, "info");
 
-      dataApp.setValue("userIsLoggedIn", isLoggedIn);
-      const mainWindow = dataApp.getValue("mainWindow");
-
-      if (!mainWindow) return;
       if (isLoggedIn) mainWindow.hide();
       else mainWindow.show();
     },

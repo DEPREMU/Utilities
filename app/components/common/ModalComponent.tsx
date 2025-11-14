@@ -1,3 +1,9 @@
+import {
+  stringifyData,
+  areEqualChildren,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
+} from "@utils";
 import Animated, {
   withTiming,
   SharedValue,
@@ -10,7 +16,6 @@ import { StylesModal } from "@context/ModalContext";
 import { useStylesModalComponent } from "@styles/components/useStylesModalComponent";
 import { Pressable, ScrollView, View } from "react-native";
 import React, { memo, useEffect, useRef } from "react";
-import { areEqualChildren, stringifyData } from "@utils";
 
 interface ModalProps {
   title: string;
@@ -45,9 +50,10 @@ const ModalComponent: React.FC<ModalProps> = ({
   setHideModal,
   customStyles,
 }) => {
+  const { styles, height } = useStylesModalComponent();
+
   const position: SharedValue<number> = useSharedValue(0);
   const idTimeout = useRef<NodeJS.Timeout | number | null>(null);
-  const { styles, height } = useStylesModalComponent();
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: position.value }],
@@ -60,17 +66,28 @@ const ModalComponent: React.FC<ModalProps> = ({
       setHideModal(false);
       position.value = withTiming(0, options);
     } else {
-      idTimeout.current = setTimeout(() => setHideModal(true), 750);
+      idTimeout.current = setTimeoutPolyfill(() => setHideModal(true), 750);
       position.value = withTiming(height + 200, options);
     }
 
     return () => {
       if (!idTimeout.current) return;
 
-      clearTimeout(idTimeout.current);
+      clearTimeoutPolyfill(idTimeout.current);
       idTimeout.current = null;
     };
   }, [isOpen, height, position, setHideModal]);
+
+  // Cleanup timeout on unmount
+  useEffect(
+    () => () => {
+      if (!idTimeout.current) return;
+
+      clearTimeoutPolyfill(idTimeout.current);
+      idTimeout.current = null;
+    },
+    [],
+  );
 
   return (
     <Animated.View

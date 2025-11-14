@@ -70,7 +70,6 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
       else {
         openSnackBar(t("webPageAddedSuccessfully"));
         setInputText("");
-        setInterval("");
         if (!data) return;
         if (Array.isArray(data)) data.forEach((item) => addNewItem(item));
         else addNewItem(data);

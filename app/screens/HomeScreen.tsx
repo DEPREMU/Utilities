@@ -78,7 +78,7 @@ const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
   const { hasInternet } = useDeviceInformation();
   const { styles, background } = useStylesHomeScreen();
-  const { userData, logout, isLoggedIn } = useUserContext();
+  const { userData, logout, isLoggedIn, loggingIn } = useUserContext();
 
   const renderButtons = useMemo(() => {
     return buttons.map((button, i) => (
@@ -123,8 +123,11 @@ const HomeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       {isLoggedIn && <Button label={t("logout")} handlePress={logout} />}
-      {!isLoggedIn && (
-        <Button label={t("loginButton")} handlePress={handleLoginPress} />
+      {(!isLoggedIn || loggingIn) && (
+        <Button
+          label={t(loggingIn ? "loggingIn" : "loginButton")}
+          handlePress={handleLoginPress}
+        />
       )}
       {!hasInternet && (
         <Text style={styles.doesNotHaveInternet}>

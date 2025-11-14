@@ -1,7 +1,20 @@
-import { app } from "electron";
 import dataApp from "./variables";
 import { execSync } from "child_process";
+import { handleShutdown } from "./server";
+import { app, powerMonitor } from "electron";
 import { initNewLogSession, writeLog } from "./logger";
+
+powerMonitor.on("resume", () => {
+  dataApp.setValue("wasSleeping", true);
+});
+
+powerMonitor.on("unlock-screen", () => {
+  if (!dataApp.getValue("wasSleeping")) return;
+
+  writeLog("Restarting whole Electron app due to screen unlock...", "warn");
+  app.relaunch();
+  handleShutdown();
+});
 
 const elevatePrivileges = (): void => {
   if (dataApp.getValue("isWindows")) return;

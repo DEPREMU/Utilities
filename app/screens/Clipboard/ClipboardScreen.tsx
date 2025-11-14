@@ -13,7 +13,7 @@ import { FlatList, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import RenderClipboardItem from "@components/Clipboard/RenderClipboardItem";
 import useStylesClipboardScreen from "@styles/screens/clipboard/useStylesClipboardScreen";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { fetchOptions, getRouteAPI, loadDataSecure, logError } from "@utils";
 
 const skeletonData: Tables["ClipboardSync"][] = Array.from({ length: 5 }).map(
@@ -35,6 +35,8 @@ const ClipboardScreen: React.FC = () => {
   const [clipboardData, setClipboardData] = useState<
     Tables["ClipboardSync"][] | null
   >(skeletonData);
+
+  const idTimeoutRef = useRef<NodeJS.Timeout | number | null>(null);
 
   const deleteClipboardItem = useCallback(
     async (id: string) => {
@@ -93,6 +95,7 @@ const ClipboardScreen: React.FC = () => {
     ),
     [t, deleteClipboardItem, copyClipboardContent],
   );
+
   const renderEmptyComponent = useCallback(() => {
     return (
       <View style={styles.container}>
@@ -143,7 +146,11 @@ const ClipboardScreen: React.FC = () => {
         return;
       }
 
-      setTimeout(
+      if (idTimeoutRef.current) {
+        clearTimeout(idTimeoutRef.current as NodeJS.Timeout);
+        idTimeoutRef.current = null;
+      }
+      idTimeoutRef.current = setTimeout(
         () => {
           if (!data) return setClipboardData(null);
 
@@ -158,6 +165,12 @@ const ClipboardScreen: React.FC = () => {
     };
 
     fetchClipboardFromDatabase();
+    return () => {
+      if (!idTimeoutRef.current) return;
+
+      clearTimeout(idTimeoutRef.current as NodeJS.Timeout);
+      idTimeoutRef.current = null;
+    };
   }, [userData?.userId, sessionToken, language]);
 
   return (

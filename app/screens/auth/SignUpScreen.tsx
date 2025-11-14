@@ -16,7 +16,7 @@ import { RootStackParamList } from "navigation/AppNavigator";
 import { View, Keyboard, Platform } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { log, isValidEmail, isValidPassword } from "@utils";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type SignUpScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -31,9 +31,9 @@ const SignUpScreen: React.FC = () => {
   const { openSnackBar } = useModal();
 
   const [email, setEmail] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [validations, setValidations] = useState<
     Record<"isEmailValid" | "isPasswordValid", boolean>
   >({
@@ -41,7 +41,7 @@ const SignUpScreen: React.FC = () => {
     isPasswordValid: true,
   });
 
-  const signingUpRef = useRef<boolean>(false);
+  const signingUpRef = useRef<boolean | null>(false);
 
   const handlePressSignUp = () => {
     if (signingUpRef.current) return;
@@ -140,6 +140,14 @@ const SignUpScreen: React.FC = () => {
     if (typeof Keyboard.emit === "function") Keyboard?.emit("keyboardDidShow");
   }, []);
 
+  // Cleanup signingUpRef on unmount
+  useEffect(
+    () => () => {
+      signingUpRef.current = null;
+    },
+    [],
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -210,7 +218,7 @@ const SignUpScreen: React.FC = () => {
               />
             ) : null
           }
-          disabled={signingUpRef.current}
+          disabled={!!signingUpRef.current}
           touchableOpacity
           handlePress={handlePressSignUp}
           customStyles={{

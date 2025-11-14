@@ -25,7 +25,7 @@ import { navigateReplace } from "@navigation/navigationRef";
 
 interface UserContextType {
   sessionToken: string | null;
-  loading: boolean;
+  loggingIn: boolean;
   isLoggedIn: boolean;
   login: <T = null>(
     email: string,
@@ -56,12 +56,14 @@ const UserContext = createContext<UserContextType | null>(null);
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const sessionInitialized = useRef<boolean>(false);
 
-  const [loading, setLoading] = useState<boolean>(true);
   const [userData, setUserData] = useState<Omit<UserData, "password"> | null>(
     null,
   );
+  const [loggingIn, setLoggingIn] = useState<boolean>(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+
+  const idRefreshSession = useRef<NodeJS.Timeout | number | null>(null);
 
   /**
    * Login function using Database auth
@@ -74,7 +76,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       callback?: (success: boolean, error?: string) => void,
     ): Promise<T> => {
       try {
-        setLoading(true);
+        setLoggingIn(true);
         const { userData, token, error } = await signInWithEmail(
           email,
           password,
@@ -102,7 +104,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         logError(errorMsg);
         callback?.(false, errorMsg);
       } finally {
-        setLoading(false);
+        setLoggingIn(false);
       }
       return null as T;
     },
@@ -119,7 +121,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       callback: (success: boolean, error?: string) => T = () => null as T,
     ) => {
       try {
-        setLoading(true);
+        setLoggingIn(true);
         const { error } = await signUpWithEmail(email, password);
 
         if (error) return callback?.(false, error);
@@ -131,7 +133,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         logError(errorMsg);
         return callback?.(false, errorMsg);
       } finally {
-        setLoading(false);
+        setLoggingIn(false);
       }
       return callback?.(true);
     },
@@ -143,7 +145,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
    */
   const logout = useCallback(async (callback?: (success: boolean) => void) => {
     try {
-      setLoading(true);
+      setLoggingIn(true);
       const { error } = await authSignOut();
 
       if (error) {
@@ -162,7 +164,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       logError("Unexpected logout error:", error);
       callback?.(false);
     } finally {
-      setLoading(false);
+      setLoggingIn(false);
     }
   }, []);
 
@@ -180,7 +182,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       try {
-        setLoading(true);
+        setLoggingIn(true);
         const { success, error } = await authForgotPassword(email);
 
         if (!success || error) {
@@ -194,7 +196,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         logError("Unexpected forgot password error:", error);
         callback?.(false, error as string);
       } finally {
-        setLoading(false);
+        setLoggingIn(false);
       }
     },
     [],
@@ -229,8 +231,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
    * Initialize user session on app start
    */
   useEffect(() => {
-    let id: number | NodeJS.Timeout | null = null;
-
     const initializeAuth = async () => {
       const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
         if (Platform.OS !== "web") return;
@@ -245,38 +245,52 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           await authSignOut();
           return;
         }
-        const { userData, token } = await authRefreshSession(
-          (await loadDataSecure("_userSessionTokenStorage")) || "",
-        );
+        const sessionToken = await loadDataSecure("_userSessionTokenStorage");
 
-        if (token) {
+        if (!sessionToken) {
+          sendNotificationLoginStatus(false);
+          return;
+        }
+
+        const { userData, token } = await authRefreshSession(sessionToken);
+
+        if (token && userData) {
           const handleRefreshToken = () => {
             sessionInitialized.current = false;
             refreshToken();
+            if (!idRefreshSession.current) return;
+
+            clearIntervalPolyfill(idRefreshSession.current);
+            idRefreshSession.current = null;
           };
 
           setSessionToken(token);
-          setUserData(userData ?? null);
+          setUserData(userData);
           setIsLoggedIn(true);
           sendNotificationLoginStatus(true);
           sessionInitialized.current = true;
           log("Restored user session:", userData?.email);
-          id = setIntervalPolyfill(handleRefreshToken, 24 * 60 * 60 * 1000);
+          idRefreshSession.current = setIntervalPolyfill(
+            handleRefreshToken,
+            24 * 60 * 60 * 1000,
+          );
         }
       } catch (error) {
         authSignOut();
         sendNotificationLoginStatus(false);
         logError("Error initializing auth:", error);
       } finally {
-        setLoading(false);
+        setLoggingIn(false);
       }
     };
 
     if (!sessionInitialized.current) initializeAuth();
 
     return () => {
-      if (!id) return;
-      clearIntervalPolyfill(id);
+      if (!idRefreshSession.current) return;
+
+      clearIntervalPolyfill(idRefreshSession.current);
+      idRefreshSession.current = null;
     };
   }, [refreshToken]);
 
@@ -284,8 +298,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     login,
     signUp,
     logout,
-    loading,
     userData,
+    loggingIn,
     isLoggedIn,
     sessionToken,
     refreshToken,

@@ -29,7 +29,9 @@ export type DataAppElectron = {
   isWindows: boolean;
   isQuitting: boolean;
   mainWindow: Electron.BrowserWindow | null;
+  wasSleeping: boolean;
   SERVICE_NAME: string;
+  webRestarted: boolean;
   encryptionKey: string;
   userIsLoggedIn: boolean;
   reconnectAttempts: number;

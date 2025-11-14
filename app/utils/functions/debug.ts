@@ -2,10 +2,10 @@
 import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
+import { RequestLogs } from "@types";
+import { loadDataSecure } from "./storageManagement";
 import { getCurrentUserId } from "./auth";
-import { RequestDatabaseInsert } from "@types";
 import { fetchOptions, getRouteAPI } from "./APIManagement";
-import { checkLanguage, loadDataSecure } from "./storageManagement";
 
 type Return = {
   deviceId: string;
@@ -70,36 +70,25 @@ export const log = async (...args: unknown[]): Promise<void> => {
       )
       .join(" ");
 
-    getRouteAPI("/database/insert").then(async (url) => {
-      const [lang, userId, token, deviceId, deviceInfo] = await Promise.all([
-        checkLanguage(),
+    getRouteAPI("/log").then(async (url) => {
+      const [userId, deviceId, deviceInfo] = await Promise.all([
         getCurrentUserId(),
-        loadDataSecure("_userSessionTokenStorage"),
         loadDataSecure("_deviceId"),
         getCurrentDeviceInfo(),
       ]);
 
-      if (!userId || !token) return;
-
       fetch(
         url,
-        fetchOptions<RequestDatabaseInsert<"Logs">>(
-          "POST",
-          {
-            lang,
-            table: "Logs",
-            deviceId: deviceId || deviceInfo.deviceId,
-            values: {
-              type: "log",
-              userId,
-              message,
-              timestamp: date.toISOString(),
-              deviceId: deviceInfo.deviceId,
-              deviceName: deviceInfo.deviceName,
-            },
+        fetchOptions<RequestLogs>("POST", {
+          log: {
+            type: "log",
+            userId: userId || "",
+            message,
+            timestamp: date.toISOString(),
+            deviceId: deviceInfo.deviceId || deviceId || "",
+            deviceName: deviceInfo.deviceName,
           },
-          token,
-        ),
+        }),
       );
     });
   }
@@ -142,36 +131,25 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
       )
       .join(" ");
 
-    getRouteAPI("/database/insert").then(async (url) => {
-      const [lang, userId, token, deviceInfo, deviceId] = await Promise.all([
-        checkLanguage(),
+    getRouteAPI("/log").then(async (url) => {
+      const [userId, deviceInfo, deviceId] = await Promise.all([
         getCurrentUserId(),
-        loadDataSecure("_userSessionTokenStorage"),
         getCurrentDeviceInfo(),
         loadDataSecure("_deviceId"),
       ]);
 
-      if (!userId || !token) return;
-
       fetch(
         url,
-        fetchOptions<RequestDatabaseInsert<"Logs">>(
-          "POST",
-          {
-            lang,
-            deviceId: deviceId || deviceInfo.deviceId,
-            table: "Logs",
-            values: {
-              type: "warn",
-              userId,
-              message: warningMessage,
-              timestamp: date.toISOString(),
-              deviceId: deviceInfo.deviceId,
-              deviceName: deviceInfo.deviceName,
-            },
+        fetchOptions<RequestLogs>("POST", {
+          log: {
+            type: "warn",
+            userId: userId || "",
+            message: warningMessage,
+            timestamp: date.toISOString(),
+            deviceId: deviceInfo.deviceId || deviceId || "",
+            deviceName: deviceInfo.deviceName,
           },
-          token,
-        ),
+        }),
       );
     });
   }
@@ -214,36 +192,25 @@ export const logError = async (...args: unknown[]): Promise<void> => {
       )
       .join(" ");
 
-    getRouteAPI("/database/insert").then(async (url) => {
-      const [lang, userId, token, deviceInfo, deviceId] = await Promise.all([
-        checkLanguage(),
+    getRouteAPI("/log").then(async (url) => {
+      const [userId, deviceInfo, deviceId] = await Promise.all([
         getCurrentUserId(),
-        loadDataSecure("_userSessionTokenStorage"),
         getCurrentDeviceInfo(),
         loadDataSecure("_deviceId"),
       ]);
 
-      if (!userId || !token) return;
-
       fetch(
         url,
-        fetchOptions<RequestDatabaseInsert<"Logs">>(
-          "POST",
-          {
-            lang,
-            deviceId: deviceId || deviceInfo.deviceId,
-            table: "Logs",
-            values: {
-              type: "error",
-              userId,
-              message: errorMessage,
-              timestamp: date.toISOString(),
-              deviceId: deviceInfo.deviceId,
-              deviceName: deviceInfo.deviceName,
-            },
+        fetchOptions<RequestLogs>("POST", {
+          log: {
+            type: "error",
+            userId: userId || "",
+            message: errorMessage,
+            timestamp: date.toISOString(),
+            deviceId: deviceInfo.deviceId || deviceId || "",
+            deviceName: deviceInfo.deviceName,
           },
-          token,
-        ),
+        }),
       );
     });
   }

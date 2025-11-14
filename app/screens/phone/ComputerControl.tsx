@@ -99,6 +99,7 @@ const ComputerControl: React.FC = () => {
       zeroconf.removeDeviceListeners();
       zeroconf.stop?.();
       if (timeOutRef.current) clearTimeout(timeOutRef.current);
+      timeOutRef.current = null;
     };
 
     zeroconf.on("resolved", handleResolved);

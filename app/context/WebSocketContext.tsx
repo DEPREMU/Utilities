@@ -230,7 +230,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         clipboardSocketRef.current = null;
         closeModal();
         initWebSocket();
-        socket.close();
+        socket.close?.();
       };
       if (AppState.currentState !== "active") return retry();
 
@@ -307,12 +307,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     initWebSocket();
   }, [
-    clipboardSocketURL,
-    lastItemCopied,
-    userData?.userId,
+    t,
     openModal,
     closeModal,
-    t,
+    lastItemCopied,
+    userData?.userId,
+    clipboardSocketURL,
   ]);
 
   useEffect(() => {

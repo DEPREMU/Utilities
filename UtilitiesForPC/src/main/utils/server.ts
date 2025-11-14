@@ -84,16 +84,6 @@ const hasPermissionsMiddleware = (
   next();
 };
 
-process.on("uncaughtException", (err) => {
-  writeLog(`Uncaught exception: ${err}`, "error");
-  scheduleReconnect("uncaughtException");
-});
-
-process.on("unhandledRejection", (reason) => {
-  writeLog(`Unhandled promise rejection: ${reason}`, "error");
-  scheduleReconnect("unhandledRejection");
-});
-
 export const handleShutdown = async () => {
   if (isShuttingDown) return;
   isShuttingDown = true;
@@ -108,9 +98,6 @@ export const handleShutdown = async () => {
   stopMemoryMonitor();
   setTimeout(() => process.exit(0), 500);
 };
-
-process.on("SIGINT", handleShutdown); // Ctrl+C
-process.on("SIGTERM", handleShutdown); // 'kill'
 
 export const cleanAdAndServer = (): void => {
   const ad: DNSSD.Advertisement | null = dataApp.getValue("ad");
@@ -303,3 +290,16 @@ export const initServer = (): void => {
     scheduleReconnect("init_catch");
   }
 };
+
+process.on("uncaughtException", (err) => {
+  writeLog(`Uncaught exception: ${err}`, "error");
+  scheduleReconnect("uncaughtException");
+});
+
+process.on("unhandledRejection", (reason) => {
+  writeLog(`Unhandled promise rejection: ${reason}`, "error");
+  scheduleReconnect("unhandledRejection");
+});
+
+process.on("SIGINT", handleShutdown); // Ctrl+C
+process.on("SIGTERM", handleShutdown); // 'kill'
