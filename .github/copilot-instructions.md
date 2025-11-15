@@ -292,12 +292,22 @@ cd ../server && npm run lint:fix
 - Dependency management: keep dependencies up-to-date, audit for vulnerabilities, and prefer lightweight libraries for cross-platform compatibility.
 - Use early returns to reduce nesting and improve readability.
 - Documentation: while adding a new function or module, include JSDoc comments describing its purpose, parameters, and return values to aid future maintainers, only English.
-- Commenting: when a comment is added, it should finish with "//! DELETE", p.g:
+- Commenting: when a comment is added, it should finish with "//! DELETE", only if a comment is added for explanation or clarification, p.g:
+
   ```typescript
   // This function does X, Y, Z //! DELETE
   const example = () => { ... }
   const exampleVar = ...; // This variable holds ... //! DELETE
   ```
+
+  NOT:
+
+  ```typescript
+  // This function does X, Y, Z
+  const example = () => { ... }
+  const exampleVar = ...; //! DELETE
+  ```
+
 - Consistent formatting: adhere to the project's formatting rules (Prettier, ESLint) to maintain code consistency across the codebase.
 - Always use `async/await` for asynchronous code instead of `.then()` for better readability and error handling.
 - Avoid using `any` type; strive for precise typing to leverage TypeScript's strengths.
@@ -305,3 +315,4 @@ cd ../server && npm run lint:fix
 - When modifying shared types, ensure backward compatibility to prevent breaking changes in dependent workspaces.
 - Always use arrow functions while making functions for consistent syntax and lexical `this` binding.
 - If md files are added, make sure add it to folder implementation-md/ to avoid committing them.
+- Avoid using emojis in code comments or documentation within the codebase to maintain professionalism and clarity.

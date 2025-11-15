@@ -1,0 +1,23 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "main": "update.ts",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "form-data": "^4.0.4"
+  },
+  "devDependencies": {
+    "@types/axios": "^0.9.36",
+    "@types/form-data": "^2.2.1",
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}

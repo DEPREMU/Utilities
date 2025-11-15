@@ -82,6 +82,11 @@
       "icon": "assets/tray-icon.ico",
       "requestedExecutionLevel": "requireAdministrator"
     },
+    "linux": {
+      "target": "deb",
+      "icon": "assets/tray-icon.png",
+      "category": "Utility"
+    },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true

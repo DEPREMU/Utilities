@@ -1,12 +1,21 @@
 /**
- * This script builds the Electron app for Windows.
+ * This script builds the Electron app for Windows and Linux.
  * It first builds the web version of the app, then packages it using Electron Builder.
  * Make sure to run this script in an environment where you have the necessary permissions.
  * Requires Node.js and npm to be installed.
  * Run this script from the root directory Utilities/ where the UtilitiesForPC folder is located, or from the UtilitiesForPC directory.
  * Usage: `node createApp.js` or `node UtilitiesForPC/createApp.js`
- * * Note: This script uses PowerShell to elevate permissions for the build process on Windows.
  *
+ * Platform-specific builds:
+ * - Linux → Linux: Native build
+ * - Windows → Windows: Native build
+ * - Linux → Windows: Requires Wine (install: sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install wine64 wine32)
+ * - Windows → Linux: Requires WSL with dpkg-dev installed
+ *
+ * @example
+ * npm run build-app -- --platform=both  # Build for both platforms (requires Wine on Linux)
+ * npm run build-app -- --platform=linux  # Build only for Linux
+ * npm run build-app -- --platform=windows  # Build only for Windows
  */
 
 import fs from "fs";
@@ -18,6 +27,8 @@ import * as readline from "readline";
 import type PACKAGE_JSON from "../package.json";
 
 const args = process.argv.slice(2);
+
+type BuildPlatform = "linux" | "windows" | "both";
 
 const askQuestion = async (question: string): Promise<string> => {
   const rl = readline.createInterface({
@@ -42,12 +53,54 @@ const packageJson: typeof PACKAGE_JSON = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, "package.json"), "utf-8")
 ) as typeof PACKAGE_JSON;
 const isWindows = os.platform() === "win32";
+const isLinux = os.platform() === "linux";
 
 const dataBuild = {
   distElectron: packageJson.build.directories.output,
   appName: packageJson.name,
   productName: packageJson.build.productName,
 } as const;
+
+/**
+ * Checks if Wine is installed on Linux (required for Windows builds from Linux)
+ */
+const checkWineInstalled = (): boolean => {
+  if (!isLinux) return true;
+
+  try {
+    execSync("wine --version", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Installs Wine on Linux for cross-platform Windows builds
+ */
+const installWine = async (): Promise<void> => {
+  console.log(t("wineRequired"));
+  console.log(t("wineDescription"));
+
+  const answer = await askQuestion(t("installWinePrompt"));
+
+  if (answer.toLowerCase() !== "y") {
+    console.log(t("skipWineInstallation"));
+    console.log(t("installWineManually"));
+    throw new Error(t("wineNotInstalled"));
+  }
+
+  console.log(t("installingWine"));
+  try {
+    execSync(
+      "sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install -y wine64 wine32",
+      { stdio: "inherit" }
+    );
+    console.log(t("wineInstalledSuccessfully"));
+  } catch (error) {
+    throw new Error(t("failedToInstallWine"));
+  }
+};
 
 const addAutostartLinux = async (runAppCommand: string) => {
   const fileSudoers = "utilitiesforpc";
@@ -105,61 +158,141 @@ const buildApp = async () => {
   execSync("npm run build", { cwd: __dirname });
   console.log(t("appBuildCommandExecuted"));
 
-  console.log(t("elevatingPermissions"));
-  if (isWindows) {
-    execSync(
-      `powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', 'cd \"${__dirname}\"; npx electron-builder --win; exit'"`,
-      { cwd: __dirname }
-    );
+  let buildPlatform: BuildPlatform = "both";
+
+  const platformArg = args.find(
+    (arg) => arg.startsWith("--platform=") || arg.startsWith("-p=")
+  );
+  if (platformArg) {
+    const platform = platformArg.split("=")[1] as BuildPlatform;
+    if (["linux", "windows", "both"].includes(platform)) {
+      buildPlatform = platform;
+    }
   } else {
-    execSync(
-      "sudo apt install -y build-essential fakeroot dpkg-dev dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-shell-extension-appindicator",
-      { stdio: "inherit" }
-    );
+    buildPlatform = isWindows ? "windows" : "linux";
+  }
 
-    execSync("npx electron-builder --linux deb", {
-      cwd: __dirname,
-      stdio: "inherit",
-    });
-    console.log(t("appPackagedSuccessfully"));
+  console.log(t("elevatingPermissions"));
 
-    const dir = execSync(`ls`, { cwd: dataBuild.distElectron })
-      .toString()
-      .split("\n");
-    const packageName = dir.find((file) => file.endsWith(".deb"));
-    if (!packageName) throw new Error(t("FailedToFindSnapPackage"));
+  if (buildPlatform === "both") {
+    console.log(t("buildingBothPlatforms"));
 
-    execSync(
-      `sudo dpkg -i ${path.join(
-        dataBuild.distElectron,
-        packageName
-      )} && sudo apt-get install -f -y; sudo apt autoremove -y`,
-      {
+    if (isLinux && !checkWineInstalled()) await installWine();
+
+    console.log(t("buildingWindowsAndLinux"));
+    try {
+      execSync("npx electron-builder --win --linux deb", {
         cwd: __dirname,
         stdio: "inherit",
+      });
+      console.log(t("bothBuildsCompleted"));
+    } catch (error) {
+      console.error(t("buildFailed"));
+      if (isLinux) {
+        console.error(t("wineNotWorking"));
+        console.error(t("wineInstallCommand"));
       }
-    );
+      throw error;
+    }
+  } else if (buildPlatform === "windows") {
+    console.log(t("buildingWindowsExecutable"));
 
-    const runAppCommand = `/opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`;
-
-    await addAutostartLinux(runAppCommand);
-
-    const answer = await askQuestion(t("pleaseRestartComputer"));
-    if (answer.toLowerCase() === "y") {
-      console.log(t("restartNow"));
-      execSync("sudo reboot", { stdio: "inherit" });
-    } else {
-      console.log(t("restartingComputer"));
+    if (isLinux) {
+      const hasWine = checkWineInstalled();
+      if (!hasWine) {
+        console.log(t("buildingWindowsFromLinuxRequiresWine"));
+        await installWine();
+      }
     }
 
-    const answer2 = await askQuestion(t("openAppNow"));
-    if (answer2.toLowerCase() === "y") {
-      execSync(`${runAppCommand}`, { cwd: __dirname, stdio: "inherit" });
+    try {
+      execSync("npx electron-builder --win", {
+        cwd: __dirname,
+        stdio: "inherit",
+      });
+      console.log(t("windowsBuildCompleted"));
+    } catch (error) {
+      if (isLinux) {
+        console.error(t("windowsBuildFailed"));
+        console.error(t("wineRequiredForWindows"));
+      }
+      throw error;
+    }
+  } else if (buildPlatform === "linux") {
+    if (isWindows) {
+      console.log(t("buildingLinuxPackageFromWindows"));
+    }
+
+    console.log(t("buildingLinuxPackage"));
+
+    if (isLinux) {
+      console.log(t("installingLinuxDependencies"));
+      try {
+        execSync(
+          "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1",
+          { stdio: "inherit" }
+        );
+      } catch (error) {
+        console.log(t("someDependenciesInstalled"));
+      }
+    }
+
+    try {
+      execSync("npx electron-builder --linux deb", {
+        cwd: __dirname,
+        stdio: "inherit",
+      });
+      console.log("\n" + t("appPackagedSuccessfully"));
+    } catch (error) {
+      if (isWindows) {
+        console.error(t("linuxBuildFromWindowsRequiresWSL"));
+        console.error(t("installWSLInstructions"));
+      }
+      throw error;
+    }
+
+    if (isLinux) {
+      const dir = execSync(`ls`, { cwd: dataBuild.distElectron })
+        .toString()
+        .split("\n");
+      const packageName = dir.find((file) => file.endsWith(".deb"));
+      if (!packageName) throw new Error(t("FailedToFindSnapPackage"));
+
+      const installAnswer = await askQuestion(t("installDebPackagePrompt"));
+      if (installAnswer.toLowerCase() === "y") {
+        execSync(
+          `sudo dpkg -i ${path.join(
+            dataBuild.distElectron,
+            packageName
+          )} && sudo apt-get install -f -y; sudo apt autoremove -y`,
+          {
+            cwd: __dirname,
+            stdio: "inherit",
+          }
+        );
+
+        const runAppCommand = `/opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`;
+
+        await addAutostartLinux(runAppCommand);
+
+        const answer = await askQuestion(t("pleaseRestartComputer"));
+        if (answer.toLowerCase() === "y") {
+          console.log(t("restartNow"));
+          execSync("sudo reboot", { stdio: "inherit" });
+        } else {
+          console.log(t("restartingComputer"));
+        }
+
+        const answer2 = await askQuestion(t("openAppNow"));
+        if (answer2.toLowerCase() === "y") {
+          execSync(`${runAppCommand}`, { cwd: __dirname, stdio: "inherit" });
+        }
+      }
     }
   }
 
   console.log(
-    `App was packaged successfully. ${
+    `\n${t("appPackagedSuccessMessage")} ${
       isWindows ? t("appPackagedSuccessMessage") : ""
     }`
   );

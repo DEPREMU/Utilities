@@ -90,7 +90,10 @@ export const updateDataUploads = (
   deleteOldFile({
     buildType,
     platformOS,
-    version,
+    version:
+      buildType === "android"
+        ? dataUploads.old[buildType].version
+        : dataUploads.old[buildType][platformOS].version,
   });
   dataUploads.old = dataUploads.new;
   if (buildType === "android")

@@ -38,12 +38,19 @@ export type ResponseIsUpdateAvailable = {
   downloadUrl: string;
 };
 
-export type RequestUploadUpdate = {
-  buildType: BuildTypeUpdates;
-  version: string;
-  platformOS: PlatformsOS;
-  timestamp: number;
-};
+export type RequestUploadUpdate =
+  | {
+      version: string;
+      timestamp: number;
+      buildType: Exclude<BuildTypeUpdates, "android">;
+      platformOS: PlatformsOS;
+    }
+  | {
+      version: string;
+      timestamp: number;
+      buildType: "android";
+      platformOS: undefined;
+    };
 
 export type RequestCreateTempDownloadUrl = {
   buildType: BuildTypeUpdates;

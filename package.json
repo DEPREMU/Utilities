@@ -12,11 +12,20 @@
     "type-check": "cd app && npm run type-check",
     "i:a": "cd app && npm install",
     "i:s": "cd server && npm install",
-    "before-commit": "cd app && npm run before-commit && cd ../server && npm run before-commit && cd ../UtilitiesForPC && npm run before-commit"
+    "before-commit": "cd app && npm run before-commit && cd ../server && npm run before-commit && cd ../UtilitiesForPC && npm run before-commit && cd ../scripts && npm run type-check",
+    "update-assets": "node scripts/update.ts",
+    "build-upload-electron": "node scripts/build-app-upload.ts",
+    "build-upload-android": "node scripts/build-android-upload.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/DEPREMU/Utilities.git"
   },
-  "author": "DEPREMU"
+  "author": "DEPREMU",
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^6.1.1"
+  }
 }

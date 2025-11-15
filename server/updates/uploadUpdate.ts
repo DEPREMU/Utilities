@@ -1,9 +1,14 @@
+import {
+  UpdateInfo,
+  PlatformsOS,
+  PlatformsOSUpdates,
+  RequestUploadUpdate,
+} from "@types";
 import fs from "fs";
 import path from "path";
 import Busboy from "busboy";
 import { UPLOAD_DIR } from "config";
 import { Request, Response } from "express";
-import { RequestUploadUpdate } from "@types";
 import dataUploads, { updateDataUploads } from "./dataUploads";
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -12,11 +17,12 @@ export const getFinalFileName = (
   dataFile: Omit<RequestUploadUpdate, "timestamp">,
 ) => {
   let extension = "";
-  if (dataFile.buildType === "web") extension = ".html";
+  if (dataFile.buildType === "android") extension = ".apk";
+  else if (dataFile.buildType === "web") extension = ".html";
   else if (dataFile.platformOS === "windows") extension = ".exe";
   else extension = ".deb";
 
-  const finalName = `${dataFile.version}-${dataFile.buildType}-${dataFile.platformOS}${extension}`;
+  const finalName = `${dataFile.version}-${dataFile.buildType}-${extension === ".apk" ? "" : dataFile.platformOS}${extension}`;
 
   return finalName;
 };
@@ -34,10 +40,13 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
     try {
       dataFile = JSON.parse(val) as RequestUploadUpdate;
 
-      const existingData =
+      const data = dataUploads.new?.[dataFile.buildType];
+
+      const existingData = (
         dataFile.buildType === "android"
-          ? dataUploads.new?.[dataFile.buildType]
-          : dataUploads.new?.[dataFile.buildType]?.[dataFile.platformOS];
+          ? data
+          : (data as PlatformsOSUpdates)?.[dataFile?.platformOS as PlatformsOS]
+      ) as UpdateInfo;
 
       if (!existingData) {
         console.log("Invalid platform or OS");
@@ -115,7 +124,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
       await Promise.all(uploads);
       updateDataUploads(
         dataFile.buildType,
-        dataFile.platformOS,
+        dataFile.platformOS as PlatformsOS,
         dataFile.version,
       );
       console.log("All files written successfully");

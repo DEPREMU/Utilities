@@ -1,7 +1,11 @@
+import {
+  RequestUploadUpdate,
+  RequestIsUpdateAvailable,
+  ResponseIsUpdateAvailable,
+} from "@types";
 import data from "./dataUploads";
 import { Request, Response } from "express";
 import { createTempDownloadUrl } from "./tempDownloadUrl";
-import { RequestIsUpdateAvailable, ResponseIsUpdateAvailable } from "@types";
 
 export const handleIsUpdateAvailable = (
   req: Request<unknown, unknown, RequestIsUpdateAvailable>,
@@ -35,12 +39,25 @@ export const handleIsUpdateAvailable = (
     return;
   }
 
-  const downloadUrl = createTempDownloadUrl({
-    buildType,
-    platformOS,
-    timestamp: 0,
-    version: latestVersion,
-  });
+  let downloadUrl = "";
+  if (buildType === "android") {
+    downloadUrl = createTempDownloadUrl({
+      buildType: "android",
+      platformOS: undefined,
+      timestamp: 0,
+      version: latestVersion,
+    });
+  } else {
+    downloadUrl = createTempDownloadUrl({
+      buildType: buildType as Exclude<
+        RequestUploadUpdate["buildType"],
+        "android"
+      >,
+      platformOS,
+      timestamp: 0,
+      version: latestVersion,
+    });
+  }
   const updateAvailable = latestVersion !== currentVersion;
 
   res.status(200).json({
