@@ -4,9 +4,10 @@ import cors from "cors";
 import http from "http";
 // import https from "https";
 import chalk from "chalk";
-import router from "./routes/index.ts";
 import { URL } from "url";
 import express from "express";
+import routerAPI from "./routes/index.ts";
+import routerUpdates from "./updates/index.ts";
 import { host, port } from "./config.ts";
 import { handleInitDB } from "./database/postgres.ts";
 import { WebSocketPathname } from "@types";
@@ -26,7 +27,8 @@ try {
 
 app.use(express.json());
 app.use(cors());
-app.use("/api", router);
+app.use("/api", routerAPI);
+app.use("/updates", routerUpdates);
 
 const server = http.createServer(app);
 const generalWss = initWebSocket();

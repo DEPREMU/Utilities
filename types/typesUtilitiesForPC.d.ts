@@ -2,7 +2,7 @@ import { Server } from "http";
 import { Advertisement } from "dnssd";
 import { LanguagesSupported } from "./typesTranslations";
 import { ReasonNotification } from "./typesNotifications";
-import { ExpectedStorageTypes } from "./typesAPI";
+import { ExpectedStorageTypes } from "./API";
 
 export type ElectronStoreType = {
   get: <T extends keyof ExpectedStorageTypes<"UNSECURE">>(
@@ -34,7 +34,10 @@ export type DataAppElectron = {
   webRestarted: boolean;
   encryptionKey: string;
   userIsLoggedIn: boolean;
+  downloadFilePath: string;
   reconnectAttempts: number;
+  currentWebVersion: string;
+  currentElectronVersion: string;
 };
 
 export type AdvertisementTXT = {

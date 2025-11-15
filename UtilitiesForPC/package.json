@@ -9,7 +9,9 @@
     "start:debug": "npm run build-app export-web && npm run build && npx electron . --expose-gc --inspect=5858",
     "pack": "npm run build && npx electron-builder",
     "build-app": "node createApp/createApp.ts",
-    "type-check": "tsc --project src/tsconfig.json --noEmit",
+    "type-check-src": "tsc --project src/tsconfig.json --noEmit",
+    "type-check-createApp": "tsc --project createApp/tsconfig.json --noEmit",
+    "before-commit": "npm run type-check-src && npm run type-check-createApp",
     "dist": "npm run build && npx electron-builder --publish=never"
   },
   "homepage": "https://example.com",
@@ -20,6 +22,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "axios": "^1.13.2",
     "chalk": "^5.6.2",
     "cors": "^2.8.5",
     "dnssd": "^0.4.1",
@@ -30,6 +33,7 @@
   },
   "devDependencies": {
     "@espcom/esbuild-plugin-replace": "^1.3.2",
+    "@types/axios": "^0.9.36",
     "@types/chalk": "^0.4.31",
     "@types/cors": "^2.8.19",
     "@types/dnssd": "^0.4.5",

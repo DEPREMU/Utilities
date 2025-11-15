@@ -1,5 +1,6 @@
 import os from "os";
 import path from "path";
+import { app } from "electron";
 import machineId from "node-machine-id";
 import { writeLog } from "./logger";
 import { DataAppElectron } from "@types";
@@ -72,6 +73,10 @@ let dataAppDefault: DataAppElectron = {
   isWindows,
   wasSleeping: false,
   webRestarted: false,
+  downloadFilePath: path.join(
+    app.getPath("downloads"),
+    `UtilitiesForPC-Update${isWindows ? ".exe" : ".deb"}`
+  ),
   logPath: isWindows
     ? "C:\\Windows\\Temp\\log-utilities-for-pc.txt"
     : "/tmp/log-utilities-for-pc.txt",
@@ -81,6 +86,8 @@ let dataAppDefault: DataAppElectron = {
   encryptionKey: machineId.machineIdSync(),
   userIsLoggedIn: false,
   reconnectAttempts: 0,
+  currentWebVersion: "{{WEB_VERSION}}",
+  currentElectronVersion: "{{ELECTRON_VERSION}}",
 };
 
 dataApp = new DataAppClass(dataAppDefault);

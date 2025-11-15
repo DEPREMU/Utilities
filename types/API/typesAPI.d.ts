@@ -6,12 +6,12 @@ import type {
   UserData,
   TablesKeys,
   DownDetector,
-} from "./database";
+} from "../database";
 import type { Falsy } from "react-native";
 import type { Handler } from "express";
-import { Notifications } from "./typesNotifications";
-import { SerializableTask } from "./typesTaskRegistry";
-import type { LanguagesSupported } from "./typesTranslations";
+import { Notifications } from "../typesNotifications";
+import { SerializableTask } from "../typesTaskRegistry";
+import type { LanguagesSupported } from "../typesTranslations";
 
 export type Command = {
   when: "Start-up" | "Shut-down";

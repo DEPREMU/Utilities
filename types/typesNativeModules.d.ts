@@ -1,5 +1,5 @@
 import { LanguagesSupported } from "./typesTranslations";
-import { ExpectedStorageTypes } from "./typesAPI";
+import { ExpectedStorageTypes } from "./API/typesAPI";
 import { ExpectedNativeWebData } from "./typesUtilitiesForPC";
 import { ActionNotification, ReasonNotification } from "./typesNotifications";
 

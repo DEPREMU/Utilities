@@ -1,3 +1,8 @@
+import {
+  getHtmlPath,
+  verifyNewUpdate,
+  deleteDownloadedUpdate,
+} from "./utils/updates";
 import dataApp, {
   t,
   writeLog,
@@ -41,13 +46,7 @@ const getAssetsPath = (...segments: string[]): string => {
   }
 };
 
-const getHtmlPath = (): string => {
-  if (app.isPackaged)
-    return path.join(process.resourcesPath, "app.asar", "dist", "index.html");
-  else return path.join(path.dirname(__dirname), "dist", "index.html");
-};
-
-const createWindow = (): void => {
+const createWindow = async (): Promise<void> => {
   const preloadPath = app.isPackaged
     ? path.join(process.resourcesPath, "preload.cjs")
     : path.join(path.dirname(__dirname), "build", "preload.cjs");
@@ -137,7 +136,9 @@ const createTray = (): void => {
   }
 };
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await verifyNewUpdate("electron");
+  deleteDownloadedUpdate();
   dataApp.setValue("language", getLanguage());
   createWindow();
   createTray();

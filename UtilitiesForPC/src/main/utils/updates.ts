@@ -1,0 +1,161 @@
+import {
+  BuildTypeUpdates,
+  RequestIsUpdateAvailable,
+  ResponseIsUpdateAvailable,
+} from "@types";
+import fs from "fs";
+import path from "path";
+import axios from "axios";
+import dotenv from "dotenv";
+import { app } from "electron";
+import dataApp from "./variables";
+import { writeLog } from "./logger";
+import { handleShutdown } from "./server";
+import { execFileSync, execSync, spawn } from "child_process";
+
+if (!app.isPackaged)
+  dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
+
+let urlUpdates = process.env.API_URL;
+
+if (!urlUpdates) {
+  throw new Error("API_URL is not defined.");
+}
+
+export const getHtmlPath = (): string => {
+  if (app.isPackaged)
+    return path.join(process.resourcesPath, "app.asar", "dist", "index.html");
+  else return path.join(path.dirname(__dirname), "dist", "index.html");
+};
+
+export const deleteDownloadedUpdate = () => {
+  const downloadFilePath = dataApp.getValue("downloadFilePath");
+  if (!fs.existsSync(downloadFilePath)) return;
+
+  try {
+    fs.unlinkSync(downloadFilePath);
+    writeLog("Deleted downloaded update file.", "info");
+  } catch (error) {
+    writeLog(
+      "Error deleting downloaded update file: " + String(error),
+      "error"
+    );
+  }
+};
+
+const openInstallerOrInstall = async (filePath: string) => {
+  writeLog(`Opening installer at path: ${filePath}`, "info");
+  if (dataApp.getValue("isWindows")) {
+    const child = spawn(filePath, [], {
+      detached: true,
+      stdio: "ignore",
+    });
+
+    child.unref();
+
+    await handleShutdown();
+  } else {
+    execSync(`sudo dpkg -i "${filePath}" && sudo apt-get install -f -y`);
+  }
+};
+
+export const downloadNewUpdate = async (downloadUrl: string) => {
+  return new Promise<void>(async (resolve) => {
+    try {
+      const downloadFilePath = dataApp.getValue("downloadFilePath");
+      const response: any = await axios.get(downloadUrl, {
+        responseType: "stream",
+      });
+
+      response.data.pipe(fs.createWriteStream(downloadFilePath));
+
+      response.data.on("end", async () => {
+        openInstallerOrInstall(downloadFilePath);
+        resolve();
+      });
+
+      response.data.on("error", (err: unknown) => {
+        console.error("Error downloading the file", err);
+        resolve();
+      });
+    } catch (error) {
+      console.error("Error downloading the update:", error);
+      writeLog("Error downloading the update", "error");
+      resolve();
+    }
+  });
+};
+
+export const updateWebHTML = async (downloadUrl: string): Promise<void> => {
+  try {
+    const response = await axios.get<string>(downloadUrl, {
+      responseType: "text",
+    });
+
+    const html = response.data;
+
+    if (!html || typeof html !== "string" || html.length < 1000) {
+      writeLog(
+        "HTML recibido es demasiado pequeño o inválido. Se omite.",
+        "warn"
+      );
+      return;
+    }
+
+    const htmlPath = getHtmlPath();
+
+    if (dataApp.getValue("isWindows")) {
+      execSync(
+        `powershell -NoProfile -Command "Set-Content -LiteralPath '${htmlPath.replace(
+          /'/g,
+          "''"
+        )}' -Value $input"`,
+        {
+          input: html,
+          stdio: ["pipe", "ignore", "ignore"],
+        }
+      );
+    } else {
+      execFileSync("sudo", ["tee", htmlPath], {
+        input: html,
+        stdio: ["pipe", "ignore", "ignore"],
+      });
+    }
+
+    writeLog("Web HTML updated correctly.", "info");
+  } catch (error) {
+    console.error("Error updating Web HTML:", error);
+    writeLog("Error updating Web HTML", "error");
+  }
+};
+
+export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
+  const currentVersion = dataApp.getValue(
+    buildType === "electron" ? "currentElectronVersion" : "currentWebVersion"
+  );
+
+  try {
+    const body: RequestIsUpdateAvailable = {
+      buildType,
+      currentVersion,
+      platformOS: dataApp.getValue("isWindows") ? "windows" : "linux",
+    };
+    const fullURL = `${urlUpdates}/is-update-available`;
+    console.log("Checking for updates at:", fullURL);
+    const res = await fetch(fullURL, {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const data = (await res.json()) as ResponseIsUpdateAvailable;
+    if (!data?.updateAvailable) return;
+    if (buildType === "electron") await downloadNewUpdate(data.downloadUrl);
+    else await updateWebHTML(data.downloadUrl);
+  } catch (error) {
+    console.error("Error verifying new update:", error);
+    writeLog("Error verifying new update", "error");
+  }
+};

@@ -1,4 +1,12 @@
 import {
+  ResponseGetRandomUUID,
+  RequestIsUpdateAvailable,
+  ResponseIsUpdateAvailable,
+  typeT,
+} from "@types";
+import {
+  openURL,
+  API_URL,
   logError,
   getRouteAPI,
   fetchOptions,
@@ -13,13 +21,14 @@ import {
 } from "@utils";
 import chalk from "chalk";
 import { v4 } from "uuid";
+import Constants from "expo-constants";
 import * as Updates from "expo-updates";
-import { Platform } from "react-native";
 import AppProviders from "./context/AppProviders";
 import AppNavigator from "./navigation/AppNavigator";
-import React, { useEffect } from "react";
-import { ResponseGetRandomUUID } from "@types";
 import windowModule from "./utils/modules/WindowModule";
+import { t as i18n } from "i18next";
+import { Alert, Platform } from "react-native";
+import React, { useEffect } from "react";
 
 const hasDeviceId = async (): Promise<boolean> => {
   try {
@@ -82,8 +91,44 @@ const App = () => {
     });
     if (Platform.OS === "web") return setIsLoading(false);
 
+    const handleCheckForUpdatesNatively = async () => {
+      try {
+        const res = await fetch(
+          API_URL.replace("api", "updates/is-update-available"),
+          fetchOptions<RequestIsUpdateAvailable<"android">>("POST", {
+            buildType: "android",
+            currentVersion: Constants.expoConfig?.extra?.version || "0.0.0",
+            platformOS: undefined,
+          }),
+        );
+        const result = (await res.json()) as ResponseIsUpdateAvailable;
+        if (!result.updateAvailable) return;
+
+        const t = i18n as typeT;
+
+        return new Promise<void>((resolve) => {
+          Alert.alert(t("updateAvailable"), t("updateAvailableMessage"), [
+            {
+              text: t("cancel"),
+              style: "cancel",
+              onPress: () => resolve(),
+            },
+            {
+              text: t("updateNow"),
+              onPress: () => {
+                openURL(result.downloadUrl);
+                resolve();
+              },
+            },
+          ]);
+        });
+      } catch (error) {
+        logError("Error while updating the app", error);
+      }
+    };
     const handleCheckForUpdates = async () => {
       try {
+        await handleCheckForUpdatesNatively();
         saveDataSecure("_lastUpdateCheck", Date.now());
 
         const isAvailable = await isNewUpdateAvailable();
@@ -96,7 +141,6 @@ const App = () => {
         setIsLoading(false);
       }
     };
-    handleCheckForUpdates();
 
     const id = setIntervalPolyfill(handleCheckForUpdates, 8 * 60 * 60 * 1000);
 

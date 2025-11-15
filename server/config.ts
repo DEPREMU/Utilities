@@ -1,3 +1,4 @@
+import fs from "fs";
 import env from "./env.ts";
 import path from "path";
 import { TablesKeys } from "@types";
@@ -7,6 +8,16 @@ export const port: number = Number(env.PORT) || 3000;
 export const useHTTPS: boolean = env.USE_HTTPS;
 
 export const serverPath = path.resolve();
+export const UPLOAD_DIR = path.join(serverPath, "updates", "uploads");
+export const PATH_DATA_UPDATES = path.join(serverPath, "updates", "data.json");
+
+try {
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+} catch {
+  // ignore
+}
 
 export const TABLE_MAP: Record<TablesKeys, string> = {
   Logs: "logs",

@@ -50,3 +50,7 @@ build
 
 implementation-md/
 test.*
+uploads/
+
+# Building
+scripts/ 

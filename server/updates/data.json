@@ -1,0 +1,54 @@
+{
+  "old": {
+    "web": {
+      "linux": {
+        "version": "unknown",
+        "timestamp": -1
+      },
+      "windows": {
+        "version": "unknown",
+        "timestamp": -1
+      }
+    },
+    "electron": {
+      "linux": {
+        "version": "unknown",
+        "timestamp": -1
+      },
+      "windows": {
+        "version": "unknown",
+        "timestamp": -1
+      }
+    },
+    "android": {
+      "timestamp": -1,
+      "version": "unknown"
+    }
+  },
+  "new": {
+    "web": {
+      "linux": {
+        "version": "unknown",
+        "timestamp": -1
+      },
+      "windows": {
+        "version": "unknown",
+        "timestamp": -1
+      }
+    },
+    "electron": {
+      "linux": {
+        "version": "unknown",
+        "timestamp": -1
+      },
+      "windows": {
+        "version": "unknown",
+        "timestamp": -1
+      }
+    },
+    "android": {
+      "timestamp": -1,
+      "version": "unknown"
+    }
+  }
+}
