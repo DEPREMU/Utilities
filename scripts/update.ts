@@ -1,4 +1,9 @@
-import type { RequestUploadUpdate, PlatformsOS } from "./../types/";
+import type {
+  PlatformsOS,
+  RequestUploadUpdate,
+  RequestIsUpdateAvailable,
+  ResponseIsUpdateAvailable,
+} from "./../types/";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
@@ -12,13 +17,47 @@ if (!process.env.API_URL) {
   process.exit(1);
 }
 
+const version = fs
+  .readFileSync(path.join(process.cwd(), "app", "app.config.js"), "utf-8")
+  .match(/const version[^\n]*/g)?.[0]
+  ?.split('"')[1];
+
+const checkIsNewVersion = async () => {
+  if (!version) {
+    console.error("Version not found");
+    process.exit(1);
+  }
+
+  try {
+    const url = `${process.env.API_URL?.replace(
+      "api",
+      "updates"
+    )}/is-update-available`;
+    console.log("Checking for new version at URL:", url);
+    const body: RequestIsUpdateAvailable = {
+      buildType: "web",
+      platformOS: "windows",
+      currentVersion: version,
+    };
+    const res = await axios.post<ResponseIsUpdateAvailable>(url, body, {
+      timeout: 10000,
+    });
+    const data = res.data;
+    if (data.latestVersion !== version) return;
+    console.log("Your version is the same as the server:", data.latestVersion);
+    process.exit(0);
+  } catch (error) {
+    console.error(
+      "Error checking for new version:",
+      error instanceof Error ? error.message : String(error)
+    );
+    process.exit(1);
+  }
+};
+
 const uploadWeb = async () => {
   try {
-    const version = fs
-      .readFileSync(path.join(process.cwd(), "app", "app.config.js"), "utf-8")
-      .match(/const version[^\n]*/g)?.[0]
-      .split('"')[1];
-
+    await checkIsNewVersion();
     console.log("Building web version:", version);
 
     if (!version) throw new Error("Version not found");
@@ -30,11 +69,20 @@ const uploadWeb = async () => {
       "index.html"
     );
 
+    execSync("npm run build-web", {
+      stdio: "inherit",
+      cwd: path.join(process.cwd(), "UtilitiesForPC"),
+    });
     if (!fs.existsSync(buildPath)) {
       throw new Error(`Build file not found at ${buildPath}`);
     }
 
     const platformsOS: PlatformsOS[] = ["windows", "linux"];
+    const url = `${process.env.API_URL?.replace(
+      "api",
+      "updates"
+    )}/upload-update`;
+    console.log("Uploading updates to URL:", url);
 
     const uploadPromises = platformsOS.map(async (platformOS) => {
       try {
@@ -58,19 +106,15 @@ const uploadWeb = async () => {
           });
         });
 
-        const response = await axios.post(
-          `${process.env.API_URL?.replace("api", "")}/updates/upload-update`,
-          formData,
-          {
-            headers: {
-              ...formData.getHeaders(),
-              "Content-Length": contentLength,
-            },
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity,
-            timeout: 60000,
-          }
-        );
+        const response = await axios.post(url, formData, {
+          headers: {
+            ...formData.getHeaders(),
+            "Content-Length": contentLength,
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+          timeout: 60000,
+        });
 
         console.log(`Upload successful for ${platformOS}:`, response.data);
         return {
@@ -97,7 +141,9 @@ const uploadWeb = async () => {
       const status = result.success ? "Success" : "Failed";
       console.log(`${result.platformOS}: ${status}`);
       if (!result.success) {
-        console.log(`  Error: ${result.data.error}`);
+        console.log(
+          `  Error: ${result.data?.error || result?.error || "Unknown error"}`
+        );
       }
     });
 
@@ -118,7 +164,10 @@ const uploadWeb = async () => {
 };
 
 const uploadAndroidAssets = async () => {
-  execSync("cd app; npm run update", { stdio: "inherit", cwd: process.cwd() });
+  execSync("npm run update", {
+    stdio: "inherit",
+    cwd: path.join(process.cwd(), "app"),
+  });
 };
 
-uploadWeb().then(() => uploadAndroidAssets());
+uploadWeb().then(uploadAndroidAssets);

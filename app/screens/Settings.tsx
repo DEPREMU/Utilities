@@ -2,16 +2,17 @@ import {
   log,
   loadData,
   saveData,
+  APP_VERSION,
   getRouteAPI,
   fetchOptions,
   loadDataSecure,
   saveDataSecure,
+  ADMIN_PASSWORD,
   getFormattedDate,
   fetchAndApplyUpdate,
   isNewUpdateAvailable,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
-import Constants from "expo-constants";
 import ThemePicker from "@components/Settings/ThemePicker";
 import { cloneDeep } from "lodash";
 import Notifications from "@components/Settings/Notifications";
@@ -64,11 +65,10 @@ const SettingsScreen: React.FC = () => {
     useState<boolean>(false);
 
   const handleCheckPasswordAdminSection = useCallback(async () => {
-    const adminPassword = Constants.expoConfig?.extra?.ADMIN_PASSWORD;
-    log("Checking admin password:", password, "against:", adminPassword);
-    if (!password || !adminPassword) return;
+    log("Checking admin password:", password, "against:", ADMIN_PASSWORD);
+    if (!password || !ADMIN_PASSWORD) return;
 
-    if (password === adminPassword) {
+    if (password === ADMIN_PASSWORD) {
       setHasAdmin(true);
       await saveData("@hasAdminAccess", true);
     }
@@ -304,12 +304,19 @@ const SettingsScreen: React.FC = () => {
             </View>
           )}
 
-          {Platform.OS === "android" && (
-            <View style={styles.section}>
-              <Text style={styles.subtitle}>{t("lastUpdateCheck")}</Text>
-              <Text style={styles.dateText}>
-                {getFormattedDate(updatesData?.lastUpdateCheck || new Date())}
-              </Text>
+          <View style={styles.section}>
+            <Text style={styles.subtitle}>
+              {t(Platform.OS === "android" ? "lastUpdateCheck" : "appUpdates")}
+            </Text>
+            <Text style={styles.dateText}>
+              {t("currentVersion", { version: APP_VERSION })}
+            </Text>
+            <Text style={styles.dateText}>
+              {Platform.OS === "android"
+                ? getFormattedDate(updatesData?.lastUpdateCheck || new Date())
+                : t("appUpdatesExplanation")}
+            </Text>
+            {Platform.OS === "android" && (
               <Button
                 customStyles={{
                   button: styles.button,
@@ -329,8 +336,8 @@ const SettingsScreen: React.FC = () => {
                   <Text style={styles.buttonLabel}>{t("checkForUpdates")}</Text>
                 ) : null}
               </Button>
-            </View>
-          )}
+            )}
+          </View>
 
           {!hasAdmin && (
             <View style={styles.section}>

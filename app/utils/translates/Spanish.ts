@@ -303,6 +303,10 @@ const es: typeLanguages = {
   noOutput: "Sin salida",
   executingCommand: "Ejecutando comando...",
   loggingIn: "Iniciando sesión...",
+  currentVersion: "Versión actual: {{version}}",
+  appUpdates: "Actualizaciones de la aplicación",
+  appUpdatesExplanation:
+    "Las actualizaciones se descargan automáticamente en segundo plano. Si estás en Windows, es posible que veas un aviso de instalación al abrir la aplicación.",
 } as const;
 
 export default es;

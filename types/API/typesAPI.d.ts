@@ -94,6 +94,7 @@ export type PriceBinanceAPI = {
 export type ResponseHealth = {
   status: "running";
   timestamp: string;
+  uptime: number;
 };
 
 export type ResponseCryptoPrice = {

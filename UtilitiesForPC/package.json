@@ -1,14 +1,15 @@
 {
   "name": "utilities-for-pc",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A collection of useful utilities for PC users.",
   "main": "build/index.cjs",
   "scripts": {
     "build": "node createApp/build.ts",
-    "start": "npm run build-app export-web && npm run build && npx electron . --expose-gc",
-    "start:debug": "npm run build-app export-web && npm run build && npx electron . --expose-gc --inspect=5858",
+    "start": "npm run build-web && npm run build && npx electron . --expose-gc",
+    "start:debug": "npm run build-web && npm run build && npx electron . --expose-gc --inspect=5858",
     "pack": "npm run build && npx electron-builder",
     "build-app": "node createApp/createApp.ts",
+    "build-web": "node createApp/createApp.ts export-web",
     "type-check-src": "tsc --project src/tsconfig.json --noEmit",
     "type-check-createApp": "tsc --project createApp/tsconfig.json --noEmit",
     "before-commit": "npm run type-check-src && npm run type-check-createApp",

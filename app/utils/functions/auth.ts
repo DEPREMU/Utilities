@@ -331,6 +331,7 @@ export const refreshSession = async (
       logError(
         `Error refreshing session, retrying... (${tries + 1}/10): ${error}`,
       );
+      await new Promise((resolve) => setTimeout(resolve, 500 * (tries + 1)));
       const data = await refreshSession(token, tries + 1);
       return { json: () => data };
     });
@@ -342,11 +343,16 @@ export const refreshSession = async (
       return { error: data.error };
     }
 
-    await saveDataSecure("_userSessionTokenStorage", data.token || "");
+    if (!data.token || !data.userData) {
+      const errorMsg = "No token or user data received from refresh session";
+      logError(errorMsg);
+      signOut();
+      return { error: errorMsg };
+    }
+    await saveDataSecure("_userSessionTokenStorage", data.token);
     log("Session refreshed successfully");
     return {
       ...data,
-      error: null,
     };
   } catch (error) {
     const errorMsg = `Unexpected error refreshing session: ${error}`;

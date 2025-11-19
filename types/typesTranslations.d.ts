@@ -262,6 +262,9 @@ export type typeLanguages = Record<ReasonNotification, string> &
     executingCommand: string;
     noOutput: string;
     loggingIn: string;
+    currentVersion: string;
+    appUpdates: string;
+    appUpdatesExplanation: string;
   };
 
 export type typeLanguagesServer = {

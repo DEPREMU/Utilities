@@ -8,6 +8,7 @@ import {
   openURL,
   API_URL,
   logError,
+  APP_VERSION,
   getRouteAPI,
   fetchOptions,
   checkLanguage,
@@ -21,7 +22,6 @@ import {
 } from "@utils";
 import chalk from "chalk";
 import { v4 } from "uuid";
-import Constants from "expo-constants";
 import * as Updates from "expo-updates";
 import AppProviders from "./context/AppProviders";
 import AppNavigator from "./navigation/AppNavigator";
@@ -97,7 +97,7 @@ const App = () => {
           API_URL.replace("api", "updates/is-update-available"),
           fetchOptions<RequestIsUpdateAvailable<"android">>("POST", {
             buildType: "android",
-            currentVersion: Constants.expoConfig?.extra?.version || "0.0.0",
+            currentVersion: APP_VERSION,
             platformOS: undefined,
           }),
         );

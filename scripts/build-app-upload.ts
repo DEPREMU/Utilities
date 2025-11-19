@@ -1,11 +1,15 @@
+import type {
+  PlatformsOS,
+  RequestUploadUpdate,
+  RequestIsUpdateAvailable,
+} from "./../types/";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
 import dotenv from "dotenv";
 import FormData from "form-data";
-import type UtilitiesPackageJson from "../UtilitiesForPC/package.json";
 import { execSync } from "child_process";
-import type { RequestUploadUpdate, PlatformsOS } from "./../types/";
+import type UtilitiesPackageJson from "../UtilitiesForPC/package.json";
 
 dotenv.config();
 if (!process.env.API_URL) {
@@ -13,15 +17,57 @@ if (!process.env.API_URL) {
   process.exit(1);
 }
 
+const version = JSON.parse(
+  fs.readFileSync(
+    path.join(process.cwd(), "UtilitiesForPC", "package.json"),
+    "utf-8"
+  )
+) as typeof UtilitiesPackageJson;
+
+if (!version.version) {
+  console.error("Version not found in UtilitiesForPC/package.json.");
+  process.exit(1);
+}
+
+const checkIsNewVersion = async () => {
+  try {
+    const body: RequestIsUpdateAvailable = {
+      buildType: "electron",
+      currentVersion: version.version,
+      platformOS: "windows",
+    };
+
+    const res = await fetch(
+      process.env.API_URL?.replace("api", "updates/is-update-available")!,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const result = (await res.json()) as {
+      updateAvailable: boolean;
+      latestVersion: string;
+      downloadUrl: string;
+    };
+
+    if (result.latestVersion === version.version) {
+      console.log("Version already exists on the server.");
+      process.exit(0);
+    }
+  } catch (error) {
+    console.error(
+      "Error checking for new version:",
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+};
+
 const uploadElectronBuilds = async () => {
   try {
-    const version = JSON.parse(
-      fs.readFileSync(
-        path.join(process.cwd(), "UtilitiesForPC", "package.json"),
-        "utf-8"
-      )
-    ) as typeof UtilitiesPackageJson;
-
     console.log("Uploading Electron builds, version:", version.version);
 
     if (!version.version) throw new Error("Version not found in package.json");
@@ -101,7 +147,7 @@ const uploadElectronBuilds = async () => {
           });
 
           const response = await axios.post(
-            `${process.env.API_URL?.replace("api", "")}/updates/upload-update`,
+            process.env.API_URL?.replace("api", "updates/upload-update"),
             formData,
             {
               headers: {
@@ -117,7 +163,7 @@ const uploadElectronBuilds = async () => {
           console.log(`Upload successful for ${platformOS}:`, response.data);
           return {
             platformOS,
-            success: !response.data.error,
+            success: !response.data?.error,
             data: response.data,
           };
         } catch (error) {
@@ -137,7 +183,7 @@ const uploadElectronBuilds = async () => {
     console.log("\n=== Electron Upload Summary ===");
     const successCount = results.filter((r) => r.success).length;
     results.forEach((result) => {
-      const status = result.success ? "✓ Success" : "✗ Failed";
+      const status = result.success ? "Success" : "Failed";
       console.log(`${result.platformOS}: ${status}`);
       if (!result.success && "error" in result) {
         console.log(`  Error: ${result.error}`);
@@ -152,7 +198,7 @@ const uploadElectronBuilds = async () => {
       throw new Error("All Electron uploads failed");
     }
 
-    console.log("\n✓ Electron builds uploaded successfully!");
+    console.log("\nElectron builds uploaded successfully!");
   } catch (error) {
     console.error(
       "Fatal error during Electron upload:",
@@ -191,8 +237,10 @@ const buildElectronApp = () => {
 
 console.log("=== Electron Build and Upload Process ===\n");
 
-buildElectronApp();
-uploadElectronBuilds().catch((error) => {
-  console.error("Process failed:", error);
-  process.exit(1);
+checkIsNewVersion().then(() => {
+  buildElectronApp();
+  uploadElectronBuilds().catch((error) => {
+    console.error("Process failed:", error);
+    process.exit(1);
+  });
 });

@@ -28,7 +28,7 @@ export const createTempDownloadUrl = (data: RequestUploadUpdate) => {
     const id = v4();
     const url =
       env.API_URL.replace("api", "updates") +
-      `/download/${data.buildType}/${data.version}/${data.platformOS}/${id}`;
+      `/download/${data.buildType}/${data.version}/${data.platformOS || data.buildType}/${id}`;
 
     tempUrls[url] = {
       id,

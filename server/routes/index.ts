@@ -27,10 +27,13 @@ import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
 import { ResponseHealth, Route, RoutesAPI } from "@types";
 import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
 
+const startTime = Date.now();
 const handleHealthCheck = (_: Request, res: Response<ResponseHealth>) => {
-  res
-    .status(200)
-    .json({ status: "running", timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: "running",
+    timestamp: new Date().toISOString(),
+    uptime: Date.now() - startTime,
+  });
 };
 
 const router = Router();

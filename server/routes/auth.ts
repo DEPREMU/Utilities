@@ -302,8 +302,9 @@ export const handleLogin = async (
 ) => {
   const { email, password, deviceId, notificationToken, rememberMe } =
     req.body || {};
-  let { lang } = req.body;
+  let { lang } = req.body || { lang: "en" };
   if (!lang) lang = "en";
+
   try {
     if (!email || !password) {
       res
@@ -523,6 +524,7 @@ export const handleRefreshSession = async (
       return;
     }
     const userData = await fetchFromTable("Users", { userId: decoded.userId });
+    delete (userData.data as Partial<UserData>)?.["password"];
 
     res.json({
       success: true,

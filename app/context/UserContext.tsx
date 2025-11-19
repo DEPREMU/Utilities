@@ -39,7 +39,7 @@ interface UserContextType {
     callback?: (success: boolean, error?: string) => T,
   ) => Promise<T>;
   logout: (callback?: (success: boolean) => void) => Promise<void>;
-  refreshToken: () => Promise<void>;
+  refreshToken: (token: string) => Promise<void>;
   forgotPassword: (
     email: string,
     callback?: (success: boolean, error?: string) => void,
@@ -54,8 +54,6 @@ interface UserProviderProps {
 const UserContext = createContext<UserContextType | null>(null);
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const sessionInitialized = useRef<boolean>(false);
-
   const [userData, setUserData] = useState<Omit<UserData, "password"> | null>(
     null,
   );
@@ -64,6 +62,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   const idRefreshSession = useRef<NodeJS.Timeout | number | null>(null);
+  const sessionInitialized = useRef<boolean>(false);
 
   /**
    * Login function using Database auth
@@ -205,86 +204,77 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   /**
    * Refresh current session
    */
-  const refreshToken = useCallback(async () => {
-    if (!sessionToken || sessionInitialized.current) return;
+  const refreshToken = useCallback(
+    async (sessionToken: string): Promise<void> => {
+      setLoggingIn(true);
+      setIsLoggedIn(false);
+      if (!sessionToken || sessionInitialized.current) return;
 
-    try {
-      const { userData, token, error } = await authRefreshSession(sessionToken);
+      try {
+        const { userData, token, error } =
+          await authRefreshSession(sessionToken);
 
-      if (error) {
-        logError("Token refresh error:", error);
-        return;
-      }
+        if (error) {
+          logError("Token refresh error:", error);
+          return;
+        }
 
-      if (userData && token) {
+        if (!userData || !token) {
+          await authSignOut();
+          setLoggingIn(false);
+          return;
+        }
         setUserData(userData);
         setSessionToken(token);
+        setIsLoggedIn(true);
+        setLoggingIn(false);
         sessionInitialized.current = true;
         log("Token refreshed successfully");
+      } catch (error) {
+        logError("Unexpected refresh error:", error);
+        authSignOut();
       }
-    } catch (error) {
-      logError("Unexpected refresh error:", error);
-    }
-  }, [sessionToken]);
+    },
+    [],
+  );
 
   /**
    * Initialize user session on app start
    */
   useEffect(() => {
-    const initializeAuth = async () => {
-      const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
-        if (Platform.OS !== "web") return;
+    const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
+      if (Platform.OS !== "web") return;
 
-        windowModule?.notifyLoginStatus?.(isLoggedIn);
-      };
-
-      try {
-        const rememberMe = await loadDataSecure("_sessionExpiry");
-        if (!rememberMe || rememberMe < Date.now()) {
-          sendNotificationLoginStatus(false);
-          await authSignOut();
-          return;
-        }
-        const sessionToken = await loadDataSecure("_userSessionTokenStorage");
-
-        if (!sessionToken) {
-          sendNotificationLoginStatus(false);
-          return;
-        }
-
-        const { userData, token } = await authRefreshSession(sessionToken);
-
-        if (token && userData) {
-          const handleRefreshToken = () => {
-            sessionInitialized.current = false;
-            refreshToken();
-            if (!idRefreshSession.current) return;
-
-            clearIntervalPolyfill(idRefreshSession.current);
-            idRefreshSession.current = null;
-          };
-
-          setSessionToken(token);
-          setUserData(userData);
-          setIsLoggedIn(true);
-          sendNotificationLoginStatus(true);
-          sessionInitialized.current = true;
-          log("Restored user session:", userData?.email);
-          idRefreshSession.current = setIntervalPolyfill(
-            handleRefreshToken,
-            24 * 60 * 60 * 1000,
-          );
-        }
-      } catch (error) {
-        authSignOut();
-        sendNotificationLoginStatus(false);
-        logError("Error initializing auth:", error);
-      } finally {
-        setLoggingIn(false);
-      }
+      windowModule?.notifyLoginStatus?.(isLoggedIn);
     };
 
-    if (!sessionInitialized.current) initializeAuth();
+    const handleRefreshSession = async () => {
+      log("Refreshing user session...");
+      const [rememberMe, sessionToken] = await Promise.all([
+        loadDataSecure("_sessionExpiry"),
+        loadDataSecure("_userSessionTokenStorage"),
+      ]);
+
+      if (!rememberMe || rememberMe < Date.now()) {
+        sendNotificationLoginStatus(false);
+        await authSignOut();
+        return;
+      }
+
+      if (!sessionToken) {
+        sendNotificationLoginStatus(false);
+        return;
+      }
+
+      await refreshToken(sessionToken);
+      sendNotificationLoginStatus(true);
+    };
+
+    handleRefreshSession();
+    idRefreshSession.current = setIntervalPolyfill(
+      handleRefreshSession,
+      8 * 60 * 60 * 1000,
+    );
 
     return () => {
       if (!idRefreshSession.current) return;

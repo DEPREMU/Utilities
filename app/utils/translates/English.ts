@@ -297,6 +297,10 @@ const en: typeLanguages = {
   commandExecutionFailed: "Command execution failed",
   executingCommand: "Executing Command...",
   loggingIn: "Logging in...",
+  currentVersion: "Current Version: {{version}}",
+  appUpdates: "App Updates",
+  appUpdatesExplanation:
+    "Updates are automatically downloaded in the background. If you are in windows, you may see a prompt to install when opening the app.",
 } as const;
 
 export default en;

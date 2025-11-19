@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.2.0";
+const version = "1.2.4";
 
 export default {
   expo: {
@@ -23,7 +23,7 @@ export default {
     version,
     orientation: "portrait",
     icon: "./assets/icon.png",
-    userInterfaceStyle: "light",
+    userInterfaceStyle: "dark",
     newArchEnabled: true,
     platforms: ["android", "web"],
     extra: {
@@ -39,9 +39,6 @@ export default {
       image: "./assets/icon.png",
       resizeMode: "contain",
       backgroundColor: "#ffffff",
-    },
-    ios: {
-      supportsTablet: true,
     },
     android: {
       adaptiveIcon: {

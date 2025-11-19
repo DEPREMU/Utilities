@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "clean": "rimraf node_modules app/.expo app/node_modules app/package-lock.json server/node_modules server/package-lock.json UtilitiesForPC/node_modules UtilitiesForPC/package-lock.json UtilitiesForPC/dist UtilitiesForPC/dist-electron UtilitiesForPC/build types/node_modules types/package-lock.json && cd app && npm cache clean --force ",
+    "clean": "rimraf node_modules app/.expo app/node_modules app/package-lock.json server/node_modules server/package-lock.json UtilitiesForPC/node_modules UtilitiesForPC/package-lock.json UtilitiesForPC/dist UtilitiesForPC/dist-electron UtilitiesForPC/build types/node_modules types/package-lock.json scripts/node_modules scripts/package-lock.json && cd app && npm cache clean --force ",
     "clean:all": "npm run clean && npm run install-all",
     "format-all": "cd app && npm run format-all && cd ../server && npm run format-all",
-    "install-all": "cd app && npm i && cd ../UtilitiesForPC && npm i && cd ../server && npm i && cd ../types && npm i",
+    "install-all": "cd app && npm i && cd ../UtilitiesForPC && npm i && cd ../server && npm i && cd ../types && npm i && cd ../scripts && npm i",
     "app": "cd app && npm run start",
     "server": "cd server && npm run start",
     "type-check": "cd app && npm run type-check",

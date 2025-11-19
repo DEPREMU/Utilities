@@ -1,10 +1,13 @@
+import type {
+  RequestUploadUpdate,
+  RequestIsUpdateAvailable,
+} from "./../types/";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
 import dotenv from "dotenv";
 import FormData from "form-data";
 import { execSync } from "child_process";
-import type { RequestUploadUpdate } from "./../types/";
 
 dotenv.config();
 
@@ -29,16 +32,61 @@ fs.writeFileSync(
   prevGitignore.replace("android/", "")
 );
 
+const urlUpdates = process.env.API_URL?.replace("api", "updates/");
+
+if (!urlUpdates) {
+  console.error("API_URL is not defined in environment variables.");
+  process.exit(1);
+}
+
+const version = fs
+  ?.readFileSync(path.join(process.cwd(), "app", "app.config.js"), "utf-8")
+  ?.match(/const version[^\n]*/g)?.[0]
+  ?.split('"')[1];
+if (!version) throw new Error("Version not found in app.config.js");
+
+const checkIsNewVersion = async () => {
+  try {
+    const body: RequestIsUpdateAvailable<"android"> = {
+      buildType: "android",
+      currentVersion: version,
+      platformOS: undefined,
+    };
+
+    const res = await fetch(urlUpdates + "is-update-available", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const result = (await res.json()) as {
+      updateAvailable: boolean;
+      latestVersion: string;
+      downloadUrl: string;
+    };
+    console.log("Latest version on server:", result);
+
+    if (result.latestVersion === version) {
+      console.log("Version already exists on the server.");
+      process.exit(0);
+    }
+  } catch (error) {
+    console.error("Error checking for new version:", error);
+    process.exit(1);
+  }
+};
+
 const uploadAndroidBuild = async () => {
   try {
-    const version = fs
-      .readFileSync(path.join(process.cwd(), "app", "app.config.js"), "utf-8")
-      .match(/const version[^\n]*/g)?.[0]
-      .split('"')[1];
+    const url = process.env.API_URL?.replace("api", "updates/upload-update");
+
+    if (!url)
+      throw new Error("API_URL is not defined in environment variables.");
 
     console.log("Uploading Android build, version:", version);
-
-    if (!version) throw new Error("Version not found in app.config.js");
+    console.log(`Uploading to URL: ${url}`);
 
     const appBuildsPath = path.join(process.cwd(), "app", "builds");
 
@@ -76,18 +124,14 @@ const uploadAndroidBuild = async () => {
       });
     });
 
-    const response = await axios.post(
-      `${process.env.API_URL?.replace("api", "")}/updates/upload-update`,
-      formData,
-      {
-        headers: {
-          ...formData.getHeaders(),
-          "Content-Length": contentLength,
-        },
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-      }
-    );
+    const response = await axios.post(url, formData, {
+      headers: {
+        ...formData.getHeaders(),
+        "Content-Length": contentLength,
+      },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
 
     console.log("Upload successful:", response.data);
 
@@ -203,8 +247,10 @@ process.on("SIGTERM", () => {
   handleClose();
 });
 
-buildAndroidApp();
-uploadAndroidBuild().catch((error) => {
-  console.error("Process failed:", error);
-  process.exit(1);
+checkIsNewVersion().then(() => {
+  buildAndroidApp();
+  uploadAndroidBuild().catch((error) => {
+    console.error("Process failed:", error);
+    process.exit(1);
+  });
 });

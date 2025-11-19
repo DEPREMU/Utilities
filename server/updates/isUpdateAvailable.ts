@@ -1,4 +1,6 @@
+/* eslint-disable @stylistic/indent */
 import {
+  PlatformsOS,
   RequestUploadUpdate,
   RequestIsUpdateAvailable,
   ResponseIsUpdateAvailable,
@@ -6,6 +8,13 @@ import {
 import data from "./dataUploads";
 import { Request, Response } from "express";
 import { createTempDownloadUrl } from "./tempDownloadUrl";
+
+const getSumVersion = (version: string): number => {
+  const [major, minor, patch] = version
+    .split(".")
+    .map((num) => parseInt(num, 10));
+  return major * 10000 + minor * 100 + patch;
+};
 
 export const handleIsUpdateAvailable = (
   req: Request<unknown, unknown, RequestIsUpdateAvailable>,
@@ -19,7 +28,7 @@ export const handleIsUpdateAvailable = (
     downloadUrl: "",
   };
 
-  if (!currentVersion || !buildType || !platformOS) {
+  if (!currentVersion || !buildType) {
     res.status(400).json(defaultRes);
     return;
   }
@@ -27,7 +36,9 @@ export const handleIsUpdateAvailable = (
   const latestVersionData =
     buildType === "android"
       ? data.new?.[buildType]
-      : data.new?.[buildType]?.[platformOS] || null;
+      : data.new?.[buildType]?.[
+          platformOS as Exclude<PlatformsOS, undefined>
+        ] || null;
   if (!latestVersionData) {
     res.status(400).json(defaultRes);
     return;
@@ -53,12 +64,14 @@ export const handleIsUpdateAvailable = (
         RequestUploadUpdate["buildType"],
         "android"
       >,
-      platformOS,
+      platformOS: platformOS as PlatformsOS,
       timestamp: 0,
       version: latestVersion,
     });
   }
-  const updateAvailable = latestVersion !== currentVersion;
+
+  const updateAvailable =
+    getSumVersion(latestVersion) > getSumVersion(currentVersion);
 
   res.status(200).json({
     downloadUrl,

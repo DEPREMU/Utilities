@@ -11,16 +11,21 @@ import { app } from "electron";
 import dataApp from "./variables";
 import { writeLog } from "./logger";
 import { handleShutdown } from "./server";
+import type { UpdatesRoutes } from "./../../../../types";
 import { execFileSync, execSync, spawn } from "child_process";
 
 if (!app.isPackaged)
   dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
 
-let urlUpdates = process.env.API_URL;
+let urlUpdates = process.env.API_URL.replace("api", "updates");
 
 if (!urlUpdates) {
   throw new Error("API_URL is not defined.");
 }
+
+const getURLUpdates = (route: UpdatesRoutes): string => {
+  return `${urlUpdates}${route}`;
+};
 
 export const getHtmlPath = (): string => {
   if (app.isPackaged)
@@ -140,9 +145,7 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
       currentVersion,
       platformOS: dataApp.getValue("isWindows") ? "windows" : "linux",
     };
-    const fullURL = `${urlUpdates}/is-update-available`;
-    console.log("Checking for updates at:", fullURL);
-    const res = await fetch(fullURL, {
+    const res = await fetch(getURLUpdates("/is-update-available"), {
       method: "post",
       headers: {
         "Content-Type": "application/json",
