@@ -8,6 +8,8 @@ const en: typeLanguagesServer = {
     "No cryptos selected for notifications.\nGo to crypto selection to receive updates.",
   notificationNotCryptosSelectedTitle: "No Cryptos Selected",
   streamerLiveNotification: "Your favorite streamer {{streamer}} is now live!",
+  notificationServerRestartBody: "The server has been restarted.",
+  notificationServerRestartTitle: "Server Restarted",
   streamerLiveNotificationTitle: "Streamer Live: {{streamer}}",
   internalError: "Internal server error",
   downDetectorNotificationTitle: "Service Down: {{service}}",

@@ -56,14 +56,18 @@ const algorithm = "aes-256-cbc";
  * The input text is encrypted and the result is returned as a base64-encoded string.
  */
 const encrypt = (text: string): string => {
-  const cipher = crypto.createCipheriv(
-    algorithm,
-    Buffer.from(SECRET_KEY),
-    Buffer.from(IV),
-  );
-  let encrypted = cipher.update(text, "utf8", "base64");
-  encrypted += cipher.final("base64");
-  return encrypted;
+  try {
+    const cipher = crypto.createCipheriv(
+      algorithm,
+      Buffer.from(SECRET_KEY),
+      Buffer.from(IV),
+    );
+    let encrypted = cipher.update(text, "utf8", "base64");
+    encrypted += cipher.final("base64");
+    return encrypted;
+  } catch (error) {
+    throw new Error(`Encryption failed: ${error}`);
+  }
 };
 
 /**
@@ -75,14 +79,18 @@ const encrypt = (text: string): string => {
  * @throws {Error} If decryption fails due to invalid input or configuration.
  */
 const decrypt = (encryptedText: string): string => {
-  const decipher = crypto.createDecipheriv(
-    algorithm,
-    Buffer.from(SECRET_KEY),
-    Buffer.from(IV),
-  );
-  let decrypted = decipher.update(encryptedText, "base64", "utf8");
-  decrypted += decipher.final("utf8");
-  return decrypted;
+  try {
+    const decipher = crypto.createDecipheriv(
+      algorithm,
+      Buffer.from(SECRET_KEY),
+      Buffer.from(IV),
+    );
+    let decrypted = decipher.update(encryptedText, "base64", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (error) {
+    throw new Error(`Decryption failed: ${error}`);
+  }
 };
 
 /**
@@ -100,9 +108,17 @@ export const encryptHandler = async (
   req: Request<{}, {}, RequestEncrypt>,
   res: Response<ResponseEncrypt>,
 ) => {
-  const { dataToEncrypt } = req.body;
-
   try {
+    const { dataToEncrypt } = req.body || {};
+
+    if (!dataToEncrypt) {
+      res.status(400).json({
+        error: "No data provided to encrypt",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     const encryptedData = encrypt(dataToEncrypt);
     res.status(200).json({
       dataEncrypted: encryptedData,
@@ -110,10 +126,14 @@ export const encryptHandler = async (
     });
   } catch (error) {
     console.error(chalk.red("Encryption error:"), error);
-    res.status(500).json({
-      error: "Encryption failed",
-      timestamp: new Date().toISOString(),
-    });
+    try {
+      res.status(500).json({
+        error: "Encryption failed",
+        timestamp: new Date().toISOString(),
+      });
+    } catch {
+      // Ignore
+    }
   }
 };
 
@@ -132,9 +152,17 @@ export const decryptHandler = async (
   req: Request<{}, {}, RequestDecrypt>,
   res: Response<ResponseDecrypt>,
 ) => {
-  const { dataToDecrypt } = req.body;
-
   try {
+    const { dataToDecrypt } = req.body || {};
+
+    if (!dataToDecrypt) {
+      res.status(400).json({
+        error: "No data provided to decrypt",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     const decryptedData = decrypt(dataToDecrypt);
     res.status(200).json({
       decryptedValue: decryptedData,
@@ -142,10 +170,14 @@ export const decryptHandler = async (
     });
   } catch (error) {
     console.error(chalk.red("Decryption error:"), error);
-    res.status(500).json({
-      error: "Decryption failed",
-      timestamp: new Date().toISOString(),
-    });
+    try {
+      res.status(500).json({
+        error: "Decryption failed",
+        timestamp: new Date().toISOString(),
+      });
+    } catch {
+      // Ignore
+    }
   }
 };
 
@@ -158,8 +190,12 @@ export const handleGetRandomUUID = async (
     res.status(200).json({ uuid: UUIDs.join("") });
   } catch (error) {
     console.error(chalk.red("UUID generation error:"), error);
-    res.status(500).json({
-      error: "UUID generation failed",
-    });
+    try {
+      res.status(500).json({
+        error: "UUID generation failed",
+      });
+    } catch {
+      // Ignore
+    }
   }
 };

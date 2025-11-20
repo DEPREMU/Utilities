@@ -2,13 +2,15 @@ import env from "../env.ts";
 import chalk from "chalk";
 import { pool } from "../database/postgres.ts";
 import { Request, Response } from "express";
+import { RequestDoQuery, ResponseDoQuery } from "@types";
 
 export const handleDoQueryDatabase = async (
-  req: Request<unknown, unknown, { query: string; showFields?: boolean }>,
-  res: Response<{ result?: unknown | null; error?: string }>,
+  req: Request<unknown, unknown, RequestDoQuery>,
+  res: Response<ResponseDoQuery>,
 ) => {
   if (!env.__DEV__) {
     res.status(403).json({ error: "Not available" });
+    return;
   }
 
   try {
@@ -36,6 +38,10 @@ export const handleDoQueryDatabase = async (
     }
   } catch (error) {
     console.error(chalk.red("Error connecting to database:"), error);
-    res.status(500).json({ error: `Error connecting to database: ${error}` });
+    try {
+      res.status(500).json({ error: `Error connecting to database: ${error}` });
+    } catch (error) {
+      console.error(chalk.red("Error sending error response:"), error);
+    }
   }
 };

@@ -277,6 +277,8 @@ export type typeLanguagesServer = {
   streamerLiveNotificationTitle: string;
   downDetectorNotificationBody: string;
   downDetectorNotificationTitle: string;
+  notificationServerRestartBody: string;
+  notificationServerRestartTitle: string;
   notificationNotCryptosSelectedBody: string;
   notificationNotCryptosSelectedTitle: string;
   auth: {

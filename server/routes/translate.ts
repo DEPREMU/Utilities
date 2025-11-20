@@ -13,6 +13,7 @@ export const translate = async (
       res.status(400).json({ error: "Body missing" });
       return;
     }
+
     const { text, targetLang } = req.body;
     if (!text || !targetLang) {
       res.status(400).json({ error: "Params missing" });
@@ -41,7 +42,11 @@ export const translate = async (
     const data = await response.json();
     res.json({ translatedText: data.translations?.[0]?.text || "" });
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
     console.error(chalk.red("Error during translation request:"), error);
+    try {
+      res.status(500).json({ error: "Internal server error" });
+    } catch {
+      // Ignore
+    }
   }
 };

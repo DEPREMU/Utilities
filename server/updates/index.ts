@@ -34,6 +34,10 @@ Object.entries(routes).forEach(([path, route]) => {
     router[route.method](path, ...middlewares, route.handler);
   } catch (error) {
     console.log(`Error setting up route ${path}:`, error);
+    throw new Error(
+      `Error setting up route ${path}` +
+        (error instanceof Error ? error.message : error),
+    );
   }
 });
 

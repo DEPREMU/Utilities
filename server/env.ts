@@ -29,7 +29,7 @@ export const validateServerEnv = () => {
   const missing = REQUIRED_VARS.filter((k) => !process.env[k]);
   if (missing.length) {
     console.warn(
-      `⚠️  Missing environment variables: ${missing.join(
+      `Missing environment variables: ${missing.join(
         ", ",
       )}. Default values are used where applicable.`,
     );

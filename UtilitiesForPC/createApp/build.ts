@@ -26,7 +26,18 @@ const expoVersion = fs
   .match(/const version[^\n]*/g)?.[0]
   .split('"')[1];
 
-const isWindows = os.platform() === "win32";
+const args = process.argv.slice(2);
+
+let isWindows = os.platform() === "win32";
+
+if (args.includes("--isWindows") || args.includes("-w")) {
+  const index =
+    args.indexOf("--isWindows") !== -1
+      ? args.indexOf("--isWindows")
+      : args.indexOf("-w");
+  const value = args[index + 1];
+  isWindows = value === "true";
+}
 
 const baseConfig: BuildOptions = {
   bundle: true,
@@ -50,7 +61,7 @@ build({
   ...baseConfig,
   outfile: "./build/index.cjs",
   platform: "node",
-  external: ["dnssd", "keytar", "electron"],
+  external: ["dnssd", "electron"],
   entryPoints: ["./src/main/index.ts"],
   plugins: [
     pluginReplace([

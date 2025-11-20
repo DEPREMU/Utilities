@@ -20,7 +20,7 @@ export const getCryptoPrice = async (
     return parseFloat(data.price);
   } catch (error) {
     console.error(chalk.red("Error fetching crypto price:"), error);
-    throw new Error("Error fetching crypto price");
+    return -1;
   }
 };
 
@@ -33,10 +33,19 @@ export const handleGetCryptoPrice = async (
   try {
     const priceUSD = await getCryptoPrice(cryptoId, currency);
     const priceUSDTMXN = await getCryptoPrice("USDT", "MXN");
+    if (priceUSD === -1 || priceUSDTMXN === -1) {
+      res.json({ error: "Error fetching crypto price" });
+      return;
+    }
+
     res.json({ priceUSD, priceUSDTMXN });
   } catch (error) {
     console.error(chalk.red("Error fetching crypto price:"), error);
-    res.status(500).json({ error: "Error fetching crypto price" });
+    try {
+      res.status(500).json({ error: "Error fetching crypto price" });
+    } catch {
+      // Ignore
+    }
   }
 };
 
@@ -54,6 +63,10 @@ export const handleGetCryptos = async (
     res.json({ cryptos: cryptosFilteredByCurrency });
   } catch (error) {
     console.error(chalk.red("Error fetching cryptos:"), error);
-    res.status(500).json({ error: "Error fetching cryptos" });
+    try {
+      res.status(500).json({ error: "Error fetching cryptos" });
+    } catch {
+      // Ignore
+    }
   }
 };

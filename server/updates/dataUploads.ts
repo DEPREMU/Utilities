@@ -87,31 +87,35 @@ export const updateDataUploads = (
   platformOS: PlatformsOS,
   version: string,
 ) => {
-  deleteOldFile({
-    buildType,
-    platformOS,
-    version:
-      buildType === "android"
-        ? dataUploads.old[buildType].version
-        : dataUploads.old[buildType][platformOS].version,
-  });
-  dataUploads.old = dataUploads.new;
-  if (buildType === "android")
-    dataUploads.new[buildType] = {
-      version,
-      timestamp: Date.now(),
-    };
-  else
-    dataUploads.new[buildType][platformOS] = {
-      version,
-      timestamp: Date.now(),
-    };
+  try {
+    deleteOldFile({
+      buildType,
+      platformOS,
+      version:
+        buildType === "android"
+          ? dataUploads.old[buildType].version
+          : dataUploads.old[buildType][platformOS].version,
+    });
+    dataUploads.old = dataUploads.new;
+    if (buildType === "android")
+      dataUploads.new[buildType] = {
+        version,
+        timestamp: Date.now(),
+      };
+    else
+      dataUploads.new[buildType][platformOS] = {
+        version,
+        timestamp: Date.now(),
+      };
 
-  fs.writeFileSync(
-    PATH_DATA_UPDATES,
-    JSON.stringify(dataUploads, null, 2),
-    "utf-8",
-  );
+    fs.writeFileSync(
+      PATH_DATA_UPDATES,
+      JSON.stringify(dataUploads, null, 2),
+      "utf-8",
+    );
+  } catch (error) {
+    console.error("Error updating data uploads:", error);
+  }
 };
 
 export default dataUploads;

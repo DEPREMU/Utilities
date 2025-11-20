@@ -111,189 +111,199 @@ export const getStorageData = async (
   if (!token) return null;
   if (!userId) return null;
 
-  const [
-    usersData,
-    cryptosData,
-    userConfigData,
-    streamersUserData,
-    userNotificationsConfigData,
-  ] = await Promise.all([
-    fetchFromTable("Users", { userId }),
-    fetchFromTable("Cryptos", { userId }),
-    fetchFromTable("UserConfig", { userId }),
-    fetchFromTable("Streamers", { userId }),
-    fetchFromTable("UserNotificationsConfig", { userId }),
-  ]);
+  try {
+    const [
+      usersData,
+      cryptosData,
+      userConfigData,
+      streamersUserData,
+      userNotificationsConfigData,
+    ] = await Promise.all([
+      fetchFromTable("Users", { userId }),
+      fetchFromTable("Cryptos", { userId }),
+      fetchFromTable("UserConfig", { userId }),
+      fetchFromTable("Streamers", { userId }),
+      fetchFromTable("UserNotificationsConfig", { userId }),
+    ]);
 
-  let userData = usersData.data;
-  let cryptos = cryptosData.data;
-  let userConfig = userConfigData.data;
-  let streamersUser = streamersUserData.data;
-  const userNotificationsConfig = userNotificationsConfigData.data;
+    let userData = usersData.data;
+    let cryptos = cryptosData.data;
+    let userConfig = userConfigData.data;
+    let streamersUser = streamersUserData.data;
+    const userNotificationsConfig = userNotificationsConfigData.data;
 
-  if (Array.isArray(userData)) userData = userData[0];
-  if (Array.isArray(userConfig)) userConfig = userConfig[0];
-  if (!Array.isArray(streamersUser)) {
-    if (!streamersUser) streamersUser = [];
-    else streamersUser = [streamersUser];
-  }
-  if (!Array.isArray(cryptos)) {
-    if (!cryptos) cryptos = [];
-    else cryptos = [cryptos];
-  }
-  if (!Array.isArray(userNotificationsConfig)) return null;
-  if (!userData) return null;
+    if (Array.isArray(userData)) userData = userData[0];
+    if (Array.isArray(userConfig)) userConfig = userConfig[0];
+    if (!Array.isArray(streamersUser)) {
+      if (!streamersUser) streamersUser = [];
+      else streamersUser = [streamersUser];
+    }
+    if (!Array.isArray(cryptos)) {
+      if (!cryptos) cryptos = [];
+      else cryptos = [cryptos];
+    }
+    if (!Array.isArray(userNotificationsConfig)) return null;
+    if (!userData) return null;
 
-  const user: Partial<UserData> = { ...userData };
+    const user: Partial<UserData> = { ...userData };
 
-  delete user["password"];
+    delete user["password"];
 
-  const streamers: Notifications["enabled"]["streamers"] = Object.fromEntries(
-    userNotificationsConfig
-      ?.filter((config) => config.reason === "streamers" && !!config.streamer)
-      .map((config) => [
-        config.streamer,
-        {
-          name: config.streamer,
-          enabled: config.enabled,
-        },
-      ]) || [],
-  );
-
-  const cryptosToSave: SelectedCryptos =
-    cryptos?.reduce((acc, crypto) => {
-      acc[crypto.id + crypto.currency] = crypto;
-      return acc;
-    }, {} as SelectedCryptos) || {};
-
-  const userNotificationsConfigToSave: Notifications =
-    userNotificationsConfig.reduce(
-      (acc, config) => {
-        const reason = config.reason as ReasonNotification;
-        if (reason === "streamers") acc.enabled[reason] = streamers;
-        else {
-          acc.enabled[reason] = config.enabled;
-          acc.paused[reason] = {
-            isPaused: config.paused,
-            timePaused: config.pauseTime,
-          };
-        }
-        acc.intervals[reason] = config.interval;
-        return acc;
-      },
-      { enabled: {}, intervals: {}, paused: {} } as Notifications,
+    const streamers: Notifications["enabled"]["streamers"] = Object.fromEntries(
+      userNotificationsConfig
+        ?.filter((config) => config.reason === "streamers" && !!config.streamer)
+        .map((config) => [
+          config.streamer,
+          {
+            name: config.streamer,
+            enabled: config.enabled,
+          },
+        ]) || [],
     );
 
-  const userConfigToSave: Tables["UserConfig"] = {
-    userId,
-    language: userConfig?.language || "en",
-    hasAdmin: userConfig?.hasAdmin || false,
-    updatedAt: new Date().toISOString(),
-    theme: userConfig?.theme || "auto",
-    webSocketURL: userConfig?.webSocketURL || "",
-    API_URL: userConfig?.API_URL || "",
-  };
-  let date = -1;
-  if (rememberMe) date = getDateWithDaysAhead(15).getTime();
+    const cryptosToSave: SelectedCryptos =
+      cryptos?.reduce((acc, crypto) => {
+        acc[crypto.id + crypto.currency] = crypto;
+        return acc;
+      }, {} as SelectedCryptos) || {};
 
-  const storageData: ExpectedStorageTypes<"BOTH"> = {
-    _sessionExpiry: date,
-    _selectedCryptos: cryptosToSave,
-    _lastUpdateCheck: Date.now(),
-    _downDetectorData: [],
-    _userSessionTokenStorage: token,
-    _terminalCommands: null,
-    "@API_URL": userConfigToSave.API_URL || "",
-    "@hasAdminAccess": userConfigToSave.hasAdmin,
-    "@notifications": userNotificationsConfigToSave,
-    "@languageKeyStorage": userConfigToSave.language,
-    "@webSocketURL": userConfigToSave.webSocketURL || "",
-    "@clipboardWebSocketURL":
-      userConfigToSave.webSocketURL?.replace("/ws", "/clipboard") || "",
-    "@theme": userConfigToSave.theme || "auto",
-    "@pendingTasks": null,
-    _Streamers: streamersUser
-      ?.map((streamer) => ({ ...streamer, isLive: false }))
-      .filter(Boolean),
-    _deviceId: "",
-    _userData: (user as Omit<UserData, "password">) || null,
-  };
+    const userNotificationsConfigToSave: Notifications =
+      userNotificationsConfig.reduce(
+        (acc, config) => {
+          const reason = config.reason as ReasonNotification;
+          if (reason === "streamers") acc.enabled[reason] = streamers;
+          else {
+            acc.enabled[reason] = config.enabled;
+            acc.paused[reason] = {
+              isPaused: config.paused,
+              timePaused: config.pauseTime,
+            };
+          }
+          acc.intervals[reason] = config.interval;
+          return acc;
+        },
+        { enabled: {}, intervals: {}, paused: {} } as Notifications,
+      );
 
-  return storageData;
+    const userConfigToSave: Tables["UserConfig"] = {
+      userId,
+      language: userConfig?.language || "en",
+      hasAdmin: userConfig?.hasAdmin || false,
+      updatedAt: new Date().toISOString(),
+      theme: userConfig?.theme || "auto",
+      webSocketURL: userConfig?.webSocketURL || "",
+      API_URL: userConfig?.API_URL || "",
+    };
+    let date = -1;
+    if (rememberMe) date = getDateWithDaysAhead(15).getTime();
+
+    const storageData: ExpectedStorageTypes<"BOTH"> = {
+      _sessionExpiry: date,
+      _selectedCryptos: cryptosToSave,
+      _lastUpdateCheck: Date.now(),
+      _downDetectorData: [],
+      _userSessionTokenStorage: token,
+      _terminalCommands: null,
+      "@API_URL": userConfigToSave.API_URL || "",
+      "@hasAdminAccess": userConfigToSave.hasAdmin,
+      "@notifications": userNotificationsConfigToSave,
+      "@languageKeyStorage": userConfigToSave.language,
+      "@webSocketURL": userConfigToSave.webSocketURL || "",
+      "@clipboardWebSocketURL":
+        userConfigToSave.webSocketURL?.replace("/ws", "/clipboard") || "",
+      "@theme": userConfigToSave.theme || "auto",
+      "@pendingTasks": null,
+      _Streamers: streamersUser
+        ?.map((streamer) => ({ ...streamer, isLive: false }))
+        .filter(Boolean),
+      _deviceId: "",
+      _userData: (user as Omit<UserData, "password">) || null,
+    };
+
+    return storageData;
+  } catch (error) {
+    console.error(chalk.red("Error fetching storage data:"), error);
+    return null;
+  }
 };
 
 export const initializeTables = async (
   userId: string,
   language: LanguagesSupported,
 ) => {
-  const updatedAt = new Date().toISOString();
-  const [userConfig, userNotificationsConfig] = await Promise.all([
-    insertIntoTable("UserConfig", {
-      language,
-      userId,
-      theme: "auto",
-      hasAdmin: false,
-      updatedAt,
-    }),
-    insertIntoTable("UserNotificationsConfig", [
-      {
-        reason: "allNotifications",
-        enabled: false,
-        interval: -1,
+  try {
+    const updatedAt = new Date().toISOString();
+    const [userConfig, userNotificationsConfig] = await Promise.all([
+      insertIntoTable("UserConfig", {
+        language,
         userId,
+        theme: "auto",
+        hasAdmin: false,
         updatedAt,
-        paused: false,
-        pauseTime: -1,
-      },
-      {
-        reason: "cryptos",
-        enabled: false,
-        interval: 600000,
-        userId,
-        updatedAt,
-        paused: false,
-        pauseTime: -1,
-      },
-      {
-        reason: "batteryAlerts",
-        enabled: true,
-        interval: -1,
-        userId,
-        updatedAt,
-        paused: false,
-        pauseTime: -1,
-      },
-      {
-        reason: "locationEnabled",
-        enabled: false,
-        interval: 600000,
-        userId,
-        updatedAt,
-        paused: false,
-        pauseTime: -1,
-      },
-      {
-        reason: "noInternetConnection",
-        enabled: true,
-        interval: 600000,
-        userId,
-        updatedAt,
-        paused: false,
-        pauseTime: -1,
-      },
-    ]),
-  ]);
+      }),
+      insertIntoTable("UserNotificationsConfig", [
+        {
+          reason: "allNotifications",
+          enabled: false,
+          interval: -1,
+          userId,
+          updatedAt,
+          paused: false,
+          pauseTime: -1,
+        },
+        {
+          reason: "cryptos",
+          enabled: false,
+          interval: 600000,
+          userId,
+          updatedAt,
+          paused: false,
+          pauseTime: -1,
+        },
+        {
+          reason: "batteryAlerts",
+          enabled: true,
+          interval: -1,
+          userId,
+          updatedAt,
+          paused: false,
+          pauseTime: -1,
+        },
+        {
+          reason: "locationEnabled",
+          enabled: false,
+          interval: 600000,
+          userId,
+          updatedAt,
+          paused: false,
+          pauseTime: -1,
+        },
+        {
+          reason: "noInternetConnection",
+          enabled: true,
+          interval: 600000,
+          userId,
+          updatedAt,
+          paused: false,
+          pauseTime: -1,
+        },
+      ]),
+    ]);
 
-  const userConfigError = userConfig.error;
-  const userNotificationsConfigError = userNotificationsConfig.error;
-  if (userConfigError || userNotificationsConfigError) {
-    console.error(
-      chalk.red("Error initializing user tables:"),
-      userConfigError || userNotificationsConfigError,
-    );
+    const userConfigError = userConfig.error;
+    const userNotificationsConfigError = userNotificationsConfig.error;
+    if (userConfigError || userNotificationsConfigError) {
+      console.error(
+        chalk.red("Error initializing user tables:"),
+        userConfigError || userNotificationsConfigError,
+      );
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error(chalk.red("Error initializing user tables:"), error);
     return false;
   }
-  return true;
 };
 
 export const handleLogin = async (
@@ -402,8 +412,11 @@ export const handleLogin = async (
     });
   } catch (error) {
     console.error(chalk.red("Error logging in user:"), error);
-    res.status(500).json({ success: false, error: t("internalError", lang) });
-    return;
+    try {
+      res.status(500).json({ success: false, error: t("internalError", lang) });
+    } catch {
+      // Ignore
+    }
   }
 };
 
@@ -411,65 +424,79 @@ export const handleSignIn = async (
   req: Request<unknown, unknown, RequestAuth>,
   res: Response<ResponseAuth>,
 ) => {
-  const { email, password } = req.body;
-  let { lang } = req.body;
+  let { lang } = req.body || { lang: "en" };
   if (!lang) lang = "en";
-
-  if (!email || !password) {
-    res.status(400).json({
-      success: false,
-      error: t("auth.emailAndPasswordRequired", lang),
-    });
-    return;
-  }
-  const passwordRegex = /(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}/;
-  if (!passwordRegex.test(password)) {
-    res
-      .status(400)
-      .json({ success: false, error: t("auth.passwordNotStrong", lang) });
-    return;
-  }
+  const { email, password } = req.body || {};
 
   try {
-    const { data: userExists } = await fetchFromTable("Users", { email });
-
-    if (
-      userExists ||
-      (Array.isArray(userExists) && (userExists as []).length > 0)
-    ) {
+    if (!email || !password) {
+      res.status(400).json({
+        success: false,
+        error: t("auth.emailAndPasswordRequired", lang),
+      });
+      return;
+    }
+    const passwordRegex = /(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}/;
+    if (!passwordRegex.test(password)) {
       res
         .status(400)
-        .json({ success: false, error: t("auth.accountAlreadyExists", lang) });
+        .json({ success: false, error: t("auth.passwordNotStrong", lang) });
       return;
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    try {
+      const { data: userExists } = await fetchFromTable("Users", { email });
 
-    const insertedData = await insertIntoTable("Users", {
-      email: email,
-      password: hashedPassword,
-    });
+      if (
+        userExists ||
+        (Array.isArray(userExists) && (userExists as []).length > 0)
+      ) {
+        res.status(400).json({
+          success: false,
+          error: t("auth.accountAlreadyExists", lang),
+        });
+        return;
+      }
 
-    console.log("Inserted data:", insertedData);
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-    let user = insertedData.data;
-    if (Array.isArray(user)) user = user[0];
+      const insertedData = await insertIntoTable("Users", {
+        email: email,
+        password: hashedPassword,
+      });
 
-    if (!user) {
-      console.error(chalk.red("Error inserting user: No data returned"));
+      console.log("Inserted data:", insertedData);
+
+      let user = insertedData.data;
+      if (Array.isArray(user)) user = user[0];
+
+      if (!user) {
+        console.error(chalk.red("Error inserting user: No data returned"));
+        res
+          .status(500)
+          .json({ success: false, error: t("internalError", lang) });
+        return;
+      }
+
+      if (!(await initializeTables(user.userId, lang))) {
+        res
+          .status(500)
+          .json({ success: false, error: t("internalError", lang) });
+        return;
+      }
+
+      res.status(201).json({ success: !!user });
+    } catch (error) {
+      console.error(chalk.red("Error registering user:"), error);
       res.status(500).json({ success: false, error: t("internalError", lang) });
-      return;
     }
-
-    if (!(await initializeTables(user.userId, lang))) {
-      res.status(500).json({ success: false, error: t("internalError", lang) });
-      return;
-    }
-
-    res.status(201).json({ success: !!user });
   } catch (error) {
-    console.error(chalk.red("Error registering user:"), error);
-    res.status(500).json({ success: false, error: t("internalError", lang) });
+    console.error(chalk.red("Error in sign-in handler:"), error);
+    try {
+      res.status(500).json({ success: false, error: t("internalError", lang) });
+    } catch {
+      // Ignore
+    }
   }
 };
 
@@ -477,12 +504,13 @@ export const handleRefreshSession = async (
   req: Request<unknown, unknown, RequestRefreshSession>,
   res: Response<ResponseRefreshSession>,
 ) => {
-  let { lang } = req.body;
+  let { lang } = req.body || { lang: "en" };
   if (!lang) lang = "en";
-  const { deviceId, notificationToken } = req.body || {};
-  const { tokenDecoded: decoded, token } = req.user;
 
   try {
+    const { deviceId, notificationToken } = req.body || {};
+    const { tokenDecoded: decoded, token } = req.user || {};
+
     if (!decoded) {
       res
         .status(401)
@@ -533,7 +561,11 @@ export const handleRefreshSession = async (
     });
   } catch (error) {
     console.error(chalk.red("Error refreshing token:"), error);
-    res.status(401).json({ success: false, error: "Invalid token" });
+    try {
+      res.status(401).json({ success: false, error: "Invalid token" });
+    } catch {
+      // Ignore
+    }
   }
 };
 
@@ -541,9 +573,9 @@ export const handleSignOut = async (
   req: Request<unknown, unknown, RequestSignOut>,
   res: Response<ResponseSignOut>,
 ) => {
-  const { tokenDecoded: decoded } = req.user;
+  const { tokenDecoded: decoded } = req.user || {};
   const { deviceId, notificationToken } = req.body || {};
-  let { lang } = req.body;
+  let { lang } = req.body || { lang: "en" };
   if (!lang) lang = "en";
 
   try {
@@ -603,7 +635,11 @@ export const handleSignOut = async (
     res.json({ success: true });
   } catch (error) {
     console.error(chalk.red("Error signing out user:"), error);
-    res.status(500).json({ success: false, error: t("internalError", lang) });
+    try {
+      res.status(500).json({ success: false, error: t("internalError", lang) });
+    } catch {
+      // Ignore
+    }
   }
 };
 
@@ -638,6 +674,10 @@ export const authMiddleware = (
     next();
   } catch (err) {
     console.error(chalk.red("Error in auth middleware:"), err);
-    res.status(401).json({ error: "Invalid or expired token" });
+    try {
+      res.status(401).json({ error: "Invalid or expired token" });
+    } catch {
+      // Ignore
+    }
   }
 };

@@ -6,6 +6,8 @@ import { LanguagesSupported } from "@types";
 import { sendFCMNotification } from "../firebase/admin.ts";
 
 const isDown = async (url: string): Promise<boolean> => {
+  if (!url || !url.startsWith("http")) return false;
+
   try {
     const res = await axios.get(url, { timeout: 5000 });
     if (res.status >= 200 && res.status < 400) return false;
@@ -18,9 +20,9 @@ const isDown = async (url: string): Promise<boolean> => {
 const handleCheckDownServers = async () => {
   console.log("Running DownDetector check...");
 
-  const dataPushTokens = dataDatabase.PushTokens;
-  const dataUserConfig = dataDatabase.UserConfig;
-  const dataDownDetector = dataDatabase.DownDetector;
+  const dataPushTokens = dataDatabase.PushTokens || [];
+  const dataUserConfig = dataDatabase.UserConfig || [];
+  const dataDownDetector = dataDatabase.DownDetector || [];
 
   dataDownDetector.forEach((downDetector) => {
     if (

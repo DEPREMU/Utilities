@@ -10,20 +10,26 @@ if (language.indexOf("_") !== -1) {
 }
 
 const translations = {
-  "download-latest-version": {
-    en: "Download Latest Version",
-    es: "Descargar la última versión",
+  en: {
+    "download-latest-version": "Download Latest Version",
+    "error-loading-updates": "Error loading download links.",
+  },
+  es: {
+    "download-latest-version": "Descargar la última versión",
+    "error-loading-updates": "Error al cargar los enlaces de descarga.",
   },
 };
+
 const t = (key) => {
-  return translations?.[key] && translations[key][language]
-    ? translations[key][language]
-    : translations[key]["en"];
+  return translations?.[language] && translations[language][key]
+    ? translations[language][key]
+    : translations["en"][key];
 };
 
 window.addEventListener("DOMContentLoaded", async () => {
   const root = document.getElementById("root");
   document.title = t("download-latest-version");
+
   const links = (
     await Promise.all(
       ["windows", "linux", "android"].map(async (platform) => {
@@ -39,17 +45,22 @@ window.addEventListener("DOMContentLoaded", async () => {
               buildType: platform === "android" ? platform : "electron",
             }),
           });
+
           const data = await res.json();
 
-          const a = document.createElement("a");
-          a.textContent = `${t("download-latest-version")}: ${data.latestVersion}`;
-          a.href = data.downloadUrl;
+          const button = document.createElement("button");
+          button.textContent = `${t("download-latest-version")}: ${data.latestVersion}`;
+          button.className = "download-btn";
+
+          button.addEventListener("click", () => {
+            window.open(data.downloadUrl, "_blank");
+          });
 
           const div = document.createElement("div");
           div.textContent = platform.toUpperCase();
           div.className = "platform-link";
 
-          div.appendChild(a);
+          div.appendChild(button);
           return div;
         } catch (error) {
           console.error(error);
@@ -58,5 +69,11 @@ window.addEventListener("DOMContentLoaded", async () => {
       }),
     )
   ).filter((link) => link !== null);
-  links.forEach((link) => root.appendChild(link));
+
+  if (links.length > 0) links.forEach((link) => root.appendChild(link));
+  else {
+    const errorMsg = document.createElement("p");
+    errorMsg.textContent = t("error-loading-updates");
+    root.appendChild(errorMsg);
+  }
 });

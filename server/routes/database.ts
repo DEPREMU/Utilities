@@ -17,17 +17,22 @@ import {
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
 import { Request, Response } from "express";
+import { TABLE_MAP } from "config.ts";
 
 export const handleFetchFromDatabase = async (
   req: Request<unknown, unknown, RequestDatabaseFetch>,
   res: Response<ResponseDatabaseFetch>,
 ) => {
-  const lang = req.body.lang || "en";
+  const lang = req?.body?.lang || "en";
   let { match } = req.body || { match: null };
   try {
-    const { table } = req.body;
-    const { tokenDecoded: decode } = req.user;
+    const { table } = req.body || {};
+    const { tokenDecoded: decode } = req.user || {};
 
+    if (!table || !TABLE_MAP?.[table]) {
+      res.status(400).json({ error: t("database.invalidBody", lang) });
+      return;
+    }
     if (!decode) {
       res.status(401).json({ error: t("auth.invalidToken", lang) });
       return;
@@ -45,7 +50,11 @@ export const handleFetchFromDatabase = async (
     res.json({ data });
   } catch (error) {
     console.error(chalk.red("Error fetching from Database:"), error);
-    res.status(500).json({ error: t("database.fetchError", lang) });
+    try {
+      res.status(500).json({ error: t("database.fetchError", lang) });
+    } catch {
+      // ignore
+    }
   }
 };
 
@@ -53,10 +62,17 @@ export const handleInsertToDatabase = async (
   req: Request<unknown, unknown, RequestDatabaseInsert>,
   res: Response<ResponseDatabaseInsert>,
 ) => {
-  const lang = req.body.lang || "en";
+  const lang = req?.body?.lang || "en";
   try {
-    const { table, values } = req.body;
-    const { token, tokenDecoded: decode } = req.user;
+    const { table, values } = req.body || {};
+    const { token, tokenDecoded: decode } = req.user || {};
+
+    if (!table || !TABLE_MAP?.[table] || !values) {
+      res
+        .status(400)
+        .json({ success: false, error: t("database.invalidBody", lang) });
+      return;
+    }
 
     if (!decode) {
       res
@@ -89,9 +105,13 @@ export const handleInsertToDatabase = async (
     return res.json({ success: true, data });
   } catch (error) {
     console.error(chalk.red("Error inserting to Database:"), error);
-    res
-      .status(500)
-      .json({ success: false, error: t("database.insertError", lang) });
+    try {
+      res
+        .status(500)
+        .json({ success: false, error: t("database.insertError", lang) });
+    } catch {
+      // ignore
+    }
   }
 };
 
@@ -99,13 +119,19 @@ export const handleUpdateToDatabase = async (
   req: Request<unknown, unknown, RequestDatabaseUpdate>,
   res: Response<ResponseDatabaseUpdate>,
 ) => {
-  const lang = req.body.lang || "en";
+  const lang = req?.body?.lang || "en";
 
   try {
-    let { match } = req.body;
-    const { tokenDecoded: decode } = req.user;
-    const { table, values } = req.body;
+    let { match } = req.body || {};
+    const { tokenDecoded: decode } = req.user || {};
+    const { table, values } = req.body || {};
 
+    if (!table || !TABLE_MAP?.[table] || !values) {
+      res
+        .status(400)
+        .json({ success: false, error: t("database.invalidBody", lang) });
+      return;
+    }
     if (!decode) {
       res
         .status(401)
@@ -125,9 +151,13 @@ export const handleUpdateToDatabase = async (
     res.json({ success: true, data });
   } catch (error) {
     console.error(chalk.red("Error updating Database:"), error);
-    res
-      .status(500)
-      .json({ success: false, error: t("database.updateError", lang) });
+    try {
+      res
+        .status(500)
+        .json({ success: false, error: t("database.updateError", lang) });
+    } catch {
+      // ignore
+    }
   }
 };
 
@@ -135,11 +165,18 @@ export const handleDeleteFromDatabase = async (
   req: Request<unknown, unknown, RequestDatabaseDelete>,
   res: Response<ResponseDatabaseDelete>,
 ) => {
-  const lang = req.body.lang || "en";
+  const lang = req?.body?.lang || "en";
 
   try {
-    const { tokenDecoded: decode } = req.user;
-    const { table, match } = req.body;
+    const { tokenDecoded: decode } = req.user || {};
+    const { table, match } = req.body || {};
+
+    if (!table || !TABLE_MAP?.[table]) {
+      res
+        .status(400)
+        .json({ success: false, error: t("database.invalidBody", lang) });
+      return;
+    }
     if (!decode) {
       res
         .status(401)
@@ -157,8 +194,12 @@ export const handleDeleteFromDatabase = async (
     res.json({ success });
   } catch (error) {
     console.error(chalk.red("Error deleting from Database:"), error);
-    res
-      .status(500)
-      .json({ success: false, error: t("database.deleteError", lang) });
+    try {
+      res
+        .status(500)
+        .json({ success: false, error: t("database.deleteError", lang) });
+    } catch {
+      // ignore
+    }
   }
 };

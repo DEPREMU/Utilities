@@ -124,9 +124,13 @@ const routes: Record<RoutesAPI, Route> = {
 };
 
 Object.entries(routes).forEach(([path, route]) => {
-  if (route.middlewares?.length)
-    router[route.method](path, ...route.middlewares, route.handler);
-  else router[route.method](path, route.handler);
+  try {
+    if (route.middlewares?.length)
+      router[route.method](path, ...route.middlewares, route.handler);
+    else router[route.method](path, route.handler);
+  } catch (err) {
+    throw new Error(`Error setting up route ${path}: ${String(err)}`);
+  }
 });
 
 export default router;

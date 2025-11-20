@@ -28,20 +28,26 @@ const handleFetchNewData = () => {
   console.log(chalk.blue("Fetching new data from Database..."));
 
   Object.keys(dataDatabase).forEach(async (table) => {
-    const tableType = table as keyof typeof dataDatabase;
+    try {
+      const tableType = table as keyof typeof dataDatabase;
 
-    if (TablesNot.includes(tableType)) return;
-    const fetchFromDatabase = await fetchFromTable(tableType);
-    dataDatabase[table as TablesKeys] = [];
-    if (!fetchFromDatabase.data) return;
+      if (TablesNot.includes(tableType)) return;
+      const fetchFromDatabase = await fetchFromTable(tableType);
+      dataDatabase[table as TablesKeys] = [];
+      if (!fetchFromDatabase.data) return;
 
-    const tableData = Array.isArray(fetchFromDatabase.data)
-      ? fetchFromDatabase.data
-      : [fetchFromDatabase.data];
+      const tableData = Array.isArray(fetchFromDatabase.data)
+        ? fetchFromDatabase.data
+        : [fetchFromDatabase.data];
 
-    (dataDatabase as Record<TablesKeys, Tables[TablesKeys][]>)[tableType] =
-      tableData;
-    console.log(chalk.green(`\tFetched and updated data for table: ${table}`));
+      (dataDatabase as Record<TablesKeys, Tables[TablesKeys][]>)[tableType] =
+        tableData;
+      console.log(
+        chalk.green(`\tFetched and updated data for table: ${table}`),
+      );
+    } catch (error) {
+      console.error(`Error fetching data for table ${table}:`, error);
+    }
   });
 };
 

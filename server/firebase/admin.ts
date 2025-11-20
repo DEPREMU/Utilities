@@ -6,9 +6,7 @@ import { ScreensAvailable, ChannelsId } from "@types";
 let firebaseApp: admin.app.App | null = null;
 
 export const initializeFirebaseAdmin = () => {
-  if (firebaseApp) {
-    return firebaseApp;
-  }
+  if (firebaseApp) return firebaseApp;
 
   try {
     const serviceAccount = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT);
@@ -26,10 +24,7 @@ export const initializeFirebaseAdmin = () => {
 };
 
 export const getFirebaseAdmin = () => {
-  if (!firebaseApp) {
-    return initializeFirebaseAdmin();
-  }
-  return firebaseApp;
+  return firebaseApp || initializeFirebaseAdmin();
 };
 
 export const sendFCMNotification = async (
@@ -93,6 +88,5 @@ export const sendFCMNotification = async (
     return response;
   } catch (error) {
     console.error(chalk.red("Error sending FCM notification:"), error);
-    throw error;
   }
 };

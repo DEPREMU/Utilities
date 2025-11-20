@@ -7,55 +7,75 @@ import {
 import axios from "axios";
 import express from "express";
 import { insertIntoTable } from "../database/functions.ts";
+import chalk from "chalk";
 
 const getLinkImageStreamer = async (streamer: string) => {
-  streamer = streamer.toLowerCase().replace(/\s+/g, "");
-  const { data } = await axios.get(`https://www.twitch.tv/${streamer}`);
-  if (!data) return;
-  const imageElement = data
-    .split(">")
-    .find((e: string) => e.includes("og:image"));
+  try {
+    streamer = streamer.toLowerCase().replace(/\s+/g, "");
+    const { data } = await axios.get(`https://www.twitch.tv/${streamer}`);
+    if (!data) return;
+    const imageElement = data
+      .split(">")
+      .find((e: string) => e.includes("og:image"));
 
-  if (!imageElement) return;
-  const image = imageElement
-    .split(" ")
-    .find((e: string) => e.includes("content="))
-    // eslint-disable-next-line quotes
-    .split('"')[1];
+    if (!imageElement) return;
+    const image = imageElement
+      .split(" ")
+      .find((e: string) => e.includes("content="))
+      // eslint-disable-next-line quotes
+      .split('"')[1];
 
-  return image;
+    return image;
+  } catch (error) {
+    console.error("Error fetching streamer image:", error);
+    return;
+  }
 };
 
 export const isLiveStreamer = async (streamer: string): Promise<boolean> => {
-  if (!streamer) return false;
-  streamer = streamer.toLowerCase().replace(/\s/g, "");
-  const { data }: { data: string } = await axios.get(
-    `https://www.twitch.tv/${streamer}`,
-  );
+  try {
+    if (!streamer) return false;
+    streamer = streamer.toLowerCase().replace(/\s/g, "");
+    const { data }: { data: string } = await axios.get(
+      `https://www.twitch.tv/${streamer}`,
+    );
 
-  const script = data
-    .split(">")
-    .find((e: string) => e.includes("isLiveBroadcast"));
-  if (!script) return false;
+    const script = data
+      .split(">")
+      .find((e: string) => e.includes("isLiveBroadcast"));
+    if (!script) return false;
 
-  const json = JSON.parse(script.replace("</script", ""));
-  const isLive: boolean =
-    json?.["@graph"]?.[0]?.publication?.isLiveBroadcast || false;
-  return isLive;
+    const json = JSON.parse(script.replace("</script", ""));
+    const isLive: boolean =
+      json?.["@graph"]?.[0]?.publication?.isLiveBroadcast || false;
+    return isLive;
+  } catch (error) {
+    console.error("Error checking if streamer is live:", error);
+    return false;
+  }
 };
 
 export const getIsLiveStreamer = async (
   req: express.Request<unknown, unknown, RequestGetIsLiveStreamer>,
   res: express.Response<ResponseGetIsLiveStreamer>,
 ) => {
-  const { streamer } = req.body || { streamer: null };
-  if (!streamer) {
-    res.status(400).json({ error: "Streamer name is required" });
-    return;
-  }
+  try {
+    const { streamer } = req.body || { streamer: null };
+    if (!streamer) {
+      res.status(400).json({ error: "Streamer name is required" });
+      return;
+    }
 
-  const isLive = await isLiveStreamer(streamer.name);
-  res.status(200).json({ streamer: { ...streamer, isLive } });
+    const isLive = await isLiveStreamer(streamer.name);
+    res.status(200).json({ streamer: { ...streamer, isLive } });
+  } catch (error) {
+    console.error(chalk.red("Error in getIsLiveStreamer:"), error);
+    try {
+      res.status(500).json({ error: `Unexpected error: ${error}` });
+    } catch {
+      // Ignore
+    }
+  }
 };
 
 export const addStreamer = async (
@@ -103,7 +123,10 @@ export const addStreamer = async (
     }
     res.status(201).json({ streamer, success: true });
   } catch (error) {
-    res.status(500).json({ error: `Unexpected error: ${error}` });
-    return;
+    try {
+      res.status(500).json({ error: `Unexpected error: ${error}` });
+    } catch {
+      // Ignore
+    }
   }
 };

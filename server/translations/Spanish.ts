@@ -8,6 +8,8 @@ const es: typeLanguagesServer = {
     "No hay criptomonedas seleccionadas para notificaciones.\nVe a la selección de criptomonedas para recibir actualizaciones.",
   notificationNotCryptosSelectedTitle: "Sin criptomonedas seleccionadas",
   streamerLiveNotification: "¡Tu streamer favorito {{streamer}} está en vivo!",
+  notificationServerRestartBody: "El servidor ha sido reiniciado.",
+  notificationServerRestartTitle: "Servidor reiniciado",
   streamerLiveNotificationTitle: "Streamer en vivo: {{streamer}}",
   internalError: "Error interno del servidor",
   downDetectorNotificationTitle: "Servicio caído: {{service}}",

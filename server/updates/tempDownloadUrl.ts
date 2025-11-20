@@ -26,9 +26,10 @@ const tempUrls: TempUrls = {};
 export const createTempDownloadUrl = (data: RequestUploadUpdate) => {
   try {
     const id = v4();
-    const url =
-      env.API_URL.replace("api", "updates") +
-      `/download/${data.buildType}/${data.version}/${data.platformOS || data.buildType}/${id}`;
+    const url = env.API_URL.replace(
+      "api",
+      `updates/download/${data.buildType}/${data.version || "release"}/${data.platformOS || data.buildType}/${id}`,
+    );
 
     tempUrls[url] = {
       id,
@@ -49,11 +50,12 @@ export const handleDownload = (
 ) => {
   try {
     const { buildType, platformOS, version, id } =
-      req.params as RequestDownloadViaTempUrl;
+      (req.params as RequestDownloadViaTempUrl) || {};
 
-    const fullUrl =
-      env.API_URL.replace("api", "updates") +
-      `/download/${buildType}/${version}/${platformOS}/${id}`;
+    const fullUrl = env.API_URL.replace(
+      "api",
+      `updates/download/${buildType}/${version}/${platformOS}/${id}`,
+    );
     const infoUrl = tempUrls[fullUrl];
 
     if (!infoUrl) {
@@ -107,6 +109,6 @@ setInterval(() => {
   Object.entries(tempUrls).forEach(([url, info]) => {
     if (info.maxTime > now) return;
 
-    delete tempUrls[url];
+    delete tempUrls?.[url];
   });
 }, 60 * 1000);

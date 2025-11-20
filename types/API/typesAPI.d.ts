@@ -251,3 +251,13 @@ export type RequestLogs = {
 export type ResponseLogs = {
   success: boolean;
 };
+
+export type RequestDoQuery = {
+  query: string;
+  showFields?: boolean;
+};
+
+export type ResponseDoQuery = {
+  result?: unknown | null;
+  error?: string;
+};

@@ -7,11 +7,12 @@ import { pool } from "../postgres.ts";
 import { execSync } from "child_process";
 
 const backupPath = path.join(path.resolve("."), "database", "backups");
+const timeIntervalBackup = 1 * 60 * 60 * 1000;
 
 export const getInterval = () => {
   console.log("Starting database backup interval...");
 
-  return setInterval(handleBackupDatabase, 24 * 60 * 60 * 1000);
+  return setInterval(handleBackupDatabase, timeIntervalBackup);
 };
 
 export const encryptFile = (filePath: string, password: string) => {
@@ -149,7 +150,7 @@ export const deletePreviousBackups = async () => {
       const fileDate = new Date(correctDate);
       const now = new Date();
       const diffTime = Math.abs(now.getTime() - fileDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.ceil(diffTime / timeIntervalBackup);
 
       if (diffDays <= 7) return Promise.resolve();
 

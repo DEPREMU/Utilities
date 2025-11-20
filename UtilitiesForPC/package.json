@@ -1,6 +1,6 @@
 {
   "name": "utilities-for-pc",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A collection of useful utilities for PC users.",
   "main": "build/index.cjs",
   "scripts": {
@@ -29,7 +29,6 @@
     "dnssd": "^0.4.1",
     "electron-store": "^11.0.2",
     "express": "^5.1.0",
-    "keytar": "^7.9.0",
     "node-machine-id": "^1.1.12"
   },
   "devDependencies": {
@@ -39,7 +38,6 @@
     "@types/cors": "^2.8.19",
     "@types/dnssd": "^0.4.5",
     "@types/express": "^5.0.5",
-    "@types/keytar": "^4.4.0",
     "electron": "^39.1.0",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.12",

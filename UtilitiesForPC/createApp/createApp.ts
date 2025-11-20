@@ -219,10 +219,6 @@ ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
 };
 
 const buildApp = async () => {
-  console.log(t("buildingApp"));
-  execSync("npm run build", { cwd: __dirname });
-  console.log(t("appBuildCommandExecuted"));
-
   let buildPlatform: BuildPlatform = "both";
 
   const platformArg = args.find(
@@ -239,24 +235,59 @@ const buildApp = async () => {
 
   console.log(t("elevatingPermissions"));
 
+  const compileSource = (forWindows: boolean) => {
+    console.log(t("buildingApp") + ` (isWindows=${forWindows})`);
+    execSync(`npm run build -- -w ${forWindows}`, {
+      cwd: __dirname,
+      stdio: "inherit",
+    });
+    console.log(t("appBuildCommandExecuted"));
+  };
+
   if (buildPlatform === "both") {
     console.log(t("buildingBothPlatforms"));
 
     if (isLinux && !checkWineInstalled()) await installWine();
 
-    console.log(t("buildingWindowsAndLinux"));
+    console.log(t("buildingWindowsExecutable"));
+    compileSource(true);
     try {
-      execSync("npx electron-builder --win --linux deb", {
+      execSync("npx electron-builder --win", {
         cwd: __dirname,
         stdio: "inherit",
       });
-      console.log(t("bothBuildsCompleted"));
+      console.log(t("windowsBuildCompleted"));
     } catch (error) {
       console.error(t("buildFailed"));
       if (isLinux) {
         console.error(t("wineNotWorking"));
         console.error(t("wineInstallCommand"));
       }
+      throw error;
+    }
+
+    console.log(t("buildingLinuxPackage"));
+    compileSource(false);
+
+    if (isLinux) {
+      console.log(t("installingLinuxDependencies"));
+      try {
+        execSync(
+          "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
+          { stdio: "inherit" }
+        );
+      } catch (error) {
+        console.log(t("someDependenciesInstalled"));
+      }
+    }
+
+    try {
+      execSync("npx electron-builder --linux deb", {
+        cwd: __dirname,
+        stdio: "inherit",
+      });
+      console.log(t("appPackagedSuccessfully"));
+    } catch (error) {
       throw error;
     }
   } else if (buildPlatform === "windows") {
@@ -269,6 +300,8 @@ const buildApp = async () => {
         await installWine();
       }
     }
+
+    compileSource(true);
 
     try {
       execSync("npx electron-builder --win", {
@@ -289,6 +322,8 @@ const buildApp = async () => {
     }
 
     console.log(t("buildingLinuxPackage"));
+
+    compileSource(false);
 
     if (isLinux) {
       console.log(t("installingLinuxDependencies"));

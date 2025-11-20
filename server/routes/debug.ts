@@ -14,12 +14,15 @@ export const handleAddLog = async (
   let success = false;
 
   try {
-    const { log } = req.body;
-    await insertIntoTable("Logs", log);
-    success = true;
+    const { log } = req.body || {};
+    const { error } = await insertIntoTable("Logs", log);
+    success = !error;
   } catch (error) {
     console.error("Error adding log:", error);
   }
-
-  res.status(200).json({ success });
+  try {
+    res.status(200).json({ success });
+  } catch {
+    // Ignore
+  }
 };

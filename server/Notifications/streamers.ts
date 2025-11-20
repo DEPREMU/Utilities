@@ -19,8 +19,14 @@ const notificationsSent: Record<
 > = {};
 
 const handleSendNotificationsStreamers = async () => {
-  const pushTokens: PushTokens[] | null = dataDatabase.PushTokens;
-  const tableStreamers: Streamer[] | null = dataDatabase.Streamers;
+  const pushTokens: PushTokens[] | null = dataDatabase.PushTokens || null;
+  const tableStreamers: Streamer[] | null = dataDatabase.Streamers || null;
+
+  const notificationsConfig: UserNotificationsConfig[] | null =
+    dataDatabase.UserNotificationsConfig || null;
+
+  if (!tableStreamers || !notificationsConfig || !pushTokens) return;
+
   const usersConfig: Record<string, UserConfig> | null =
     dataDatabase.UserConfig.reduce(
       (acc, config) => {
@@ -29,10 +35,6 @@ const handleSendNotificationsStreamers = async () => {
       },
       {} as Record<string, UserConfig>,
     );
-  const notificationsConfig: UserNotificationsConfig[] | null =
-    dataDatabase.UserNotificationsConfig;
-
-  if (!tableStreamers || !notificationsConfig || !pushTokens) return;
 
   const streamersSet = new Set(tableStreamers.map((s) => s.name.toLowerCase()));
   const streamers = Array.from(streamersSet);
@@ -79,58 +81,62 @@ const handleSendNotificationsStreamers = async () => {
 
   for (const status of liveStatuses) {
     for (const userConfig of status.usersConfig) {
-      if (!userConfig.enabled) continue;
-      if (!userConfig.userId) continue;
-      if (!notificationsEnabled[userConfig.userId]?.enabled) continue;
-      if (!pushTokensUsers[userConfig.userId]?.tokens) continue;
-      if (
-        notificationsSent[userConfig.userId]?.streamer === status.streamer &&
-        (notificationsSent[userConfig.userId]?.timestamp || 0) +
-          8 * 60 * 60 * 1000 >
-          Date.now()
-      )
-        continue;
-
-      notificationsSent[userConfig.userId] = {
-        streamer: status.streamer,
-        timestamp: Date.now(),
-      };
-
-      const lang: LanguagesSupported =
-        (usersConfig?.[userConfig.userId]?.language as LanguagesSupported) ||
-        "en";
-
-      const config = { streamer: status.streamer };
-      const title = t("streamerLiveNotificationTitle", lang, config);
-      const body = t("streamerLiveNotification", lang, config);
-
-      console.log(
-        chalk.green(
-          `Sending notification to user ${userConfig.userId} that ${status.streamer} is live`,
-        ),
-        config,
-        pushTokensUsers[userConfig.userId]?.tokens,
-        title,
-        body,
-      );
-
       try {
-        const tokens = pushTokensUsers?.[userConfig.userId]?.tokens || [];
+        if (!userConfig.enabled) continue;
+        if (!userConfig.userId) continue;
+        if (!notificationsEnabled[userConfig.userId]?.enabled) continue;
+        if (!pushTokensUsers[userConfig.userId]?.tokens) continue;
+        if (
+          notificationsSent[userConfig.userId]?.streamer === status.streamer &&
+          (notificationsSent[userConfig.userId]?.timestamp || 0) +
+            8 * 60 * 60 * 1000 >
+            Date.now()
+        )
+          continue;
 
-        await sendFCMNotification(
-          tokens,
-          {
-            title,
-            body,
-          },
-          channelId,
-          {
-            screen: data.screen,
-            ...(status.image && { image: status.image }),
-          },
+        notificationsSent[userConfig.userId] = {
+          streamer: status.streamer,
+          timestamp: Date.now(),
+        };
+
+        const lang: LanguagesSupported =
+          (usersConfig?.[userConfig.userId]?.language as LanguagesSupported) ||
+          "en";
+
+        const config = { streamer: status.streamer };
+        const title = t("streamerLiveNotificationTitle", lang, config);
+        const body = t("streamerLiveNotification", lang, config);
+
+        console.log(
+          chalk.green(
+            `Sending notification to user ${userConfig.userId} that ${status.streamer} is live`,
+          ),
+          config,
+          pushTokensUsers[userConfig.userId]?.tokens,
+          title,
+          body,
         );
-      } catch (error) {
-        console.error(chalk.red("Error sending push notification:"), error);
+
+        try {
+          const tokens = pushTokensUsers?.[userConfig.userId]?.tokens || [];
+
+          await sendFCMNotification(
+            tokens,
+            {
+              title,
+              body,
+            },
+            channelId,
+            {
+              screen: data.screen,
+              ...(status.image && { image: status.image }),
+            },
+          );
+        } catch (error) {
+          console.error(chalk.red("Error sending push notification:"), error);
+        }
+      } catch {
+        // Ignore
       }
     }
   }

@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 import {
   UpdateInfo,
   PlatformsOS,
@@ -6,6 +7,7 @@ import {
 } from "@types";
 import fs from "fs";
 import path from "path";
+import chalk from "chalk";
 import Busboy from "busboy";
 import { UPLOAD_DIR } from "config";
 import { Request, Response } from "express";
@@ -22,120 +24,129 @@ export const getFinalFileName = (
   else if (dataFile.platformOS === "windows") extension = ".exe";
   else extension = ".deb";
 
-  const finalName = `${dataFile.version}-${dataFile.buildType}-${extension === ".apk" ? "" : dataFile.platformOS}${extension}`;
-
-  return finalName;
+  return `${dataFile.version}-${dataFile.buildType}-${extension === ".apk" ? "android" : dataFile.platformOS}${extension}`;
 };
 
 export const handleUploadUpdate = (req: Request, res: Response) => {
-  const busboy = Busboy({ headers: req.headers });
-  const uploads: Promise<void>[] = [];
-  let dataFile: RequestUploadUpdate | null = null;
-  let isNewVersion = false;
-  let connectionClosed = false;
+  try {
+    const busboy = Busboy({ headers: req.headers });
+    const uploads: Promise<void>[] = [];
+    let dataFile: RequestUploadUpdate | null = null;
+    let isNewVersion = false;
+    let connectionClosed = false;
 
-  busboy.on("field", (fieldName, val) => {
-    if (fieldName !== "data") return;
+    busboy.on("field", (fieldName, val) => {
+      if (fieldName !== "data") return;
 
-    try {
-      dataFile = JSON.parse(val) as RequestUploadUpdate;
+      try {
+        dataFile = JSON.parse(val) as RequestUploadUpdate;
 
-      const data = dataUploads.new?.[dataFile.buildType];
+        const data = dataUploads.new?.[dataFile.buildType];
 
-      const existingData = (
-        dataFile.buildType === "android"
-          ? data
-          : (data as PlatformsOSUpdates)?.[dataFile?.platformOS as PlatformsOS]
-      ) as UpdateInfo;
+        const existingData = (
+          dataFile.buildType === "android"
+            ? data
+            : (data as PlatformsOSUpdates)?.[
+                dataFile?.platformOS as PlatformsOS
+              ]
+        ) as UpdateInfo;
 
-      if (!existingData) {
-        console.log("Invalid platform or OS");
-        isNewVersion = false;
-        return;
-      }
-
-      if (dataFile.version === existingData.version) {
-        console.log("Version already exists:", dataFile.version);
-        isNewVersion = false;
-        return;
-      }
-
-      isNewVersion = true;
-    } catch {
-      console.error("JSON not valid");
-    }
-  });
-
-  busboy.on("file", (_, file) => {
-    if (!dataFile || !isNewVersion) {
-      console.log("Version not new, discarding file...");
-
-      file.on("end", () => {
-        if (!connectionClosed) {
-          connectionClosed = true;
-          res.json({
-            error: "Version already exists or invalid platform/OS",
-          });
+        if (!existingData) {
+          console.log("Invalid platform or OS");
+          isNewVersion = false;
+          return;
         }
-      });
-      file.resume();
-      return;
-    }
 
-    const finalName = getFinalFileName(dataFile);
-    const saveTo = path.join(UPLOAD_DIR, finalName);
+        if (dataFile.version === existingData.version) {
+          console.log("Version already exists:", dataFile.version);
+          isNewVersion = false;
+          return;
+        }
 
-    console.log(`Saving file to: ${saveTo}`);
-
-    const writeStream = fs.createWriteStream(saveTo);
-
-    const uploadPromise = new Promise<void>((resolve, reject) => {
-      file.pipe(writeStream);
-
-      file.on("end", resolve);
-      file.on("error", (err) => {
-        console.error("Error in file stream:", err);
-        writeStream.destroy();
-        fs.unlink(saveTo, () => {});
-        reject(err);
-      });
-
-      writeStream.on("finish", resolve);
-      writeStream.on("error", (err) => {
-        console.error("Error writing file:", err);
-        file.unpipe(writeStream);
-        fs.unlink(saveTo, () => {});
-        reject(err);
-      });
+        isNewVersion = true;
+      } catch {
+        console.error("JSON not valid");
+      }
     });
 
-    uploads.push(uploadPromise);
-  });
+    busboy.on("file", (_, file) => {
+      if (!dataFile || !isNewVersion) {
+        console.log("Version not new, discarding file...");
 
-  busboy.on("finish", async () => {
-    if (!dataFile) {
-      res.json({ error: "Missing or invalid data field" });
-      return;
-    }
-
-    if (!isNewVersion) return;
-
-    try {
-      await Promise.all(uploads);
-      updateDataUploads(
-        dataFile.buildType,
-        dataFile.platformOS as PlatformsOS,
-        dataFile.version,
-      );
-      console.log("All files written successfully");
-      res.status(200).json({ ok: true });
-    } catch (err) {
-      console.error("Error uploading:", err);
-      if (!connectionClosed) {
-        res.status(500).json({ error: "Error uploading files" });
+        file.on("end", () => {
+          if (!connectionClosed) {
+            connectionClosed = true;
+            res.json({
+              error: "Version already exists or invalid platform/OS",
+            });
+          }
+        });
+        file.resume();
+        return;
       }
-    }
-  });
 
-  req.pipe(busboy);
+      const finalName = getFinalFileName(dataFile);
+      const saveTo = path.join(UPLOAD_DIR, finalName);
+
+      console.log(`Saving file to: ${saveTo}`);
+
+      const writeStream = fs.createWriteStream(saveTo);
+
+      const uploadPromise = new Promise<void>((resolve, reject) => {
+        file.pipe(writeStream);
+
+        file.on("end", resolve);
+        file.on("error", (err) => {
+          console.error("Error in file stream:", err);
+          writeStream.destroy();
+          fs.unlink(saveTo, () => {});
+          reject(err);
+        });
+
+        writeStream.on("finish", resolve);
+        writeStream.on("error", (err) => {
+          console.error("Error writing file:", err);
+          file.unpipe(writeStream);
+          fs.unlink(saveTo, () => {});
+          reject(err);
+        });
+      });
+
+      uploads.push(uploadPromise);
+    });
+
+    busboy.on("finish", async () => {
+      if (!dataFile) {
+        res.json({ error: "Missing or invalid data field" });
+        return;
+      }
+
+      if (!isNewVersion) return;
+
+      try {
+        await Promise.all(uploads);
+        updateDataUploads(
+          dataFile.buildType,
+          dataFile.platformOS as PlatformsOS,
+          dataFile.version,
+        );
+        console.log("All files written successfully");
+        res.status(200).json({ ok: true });
+      } catch (err) {
+        console.error("Error uploading:", err);
+        if (!connectionClosed) {
+          res.status(500).json({ error: "Error uploading files" });
+        }
+      }
+    });
+
+    req.pipe(busboy);
+  } catch (error) {
+    console.error(chalk.red("Error handling upload:"), error);
+    try {
+      res.status(500).json({ error: "Internal server error" });
+    } catch {
+      // Ignore
+    }
+  }
 };

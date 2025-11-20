@@ -89,8 +89,12 @@ const monitorDB = async () => {
 };
 
 export const monitorServerUsage = () => {
-  monitorServer();
-  monitorDB();
+  try {
+    monitorServer();
+    monitorDB();
+  } catch (error) {
+    console.error("Error in monitorServerUsage:", error);
+  }
 };
 
 export default env.__DEV__ ? setInterval(monitorServerUsage, 10000) : undefined;

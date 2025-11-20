@@ -10,72 +10,92 @@ import { Request, Response } from "express";
 import { createTempDownloadUrl } from "./tempDownloadUrl";
 
 const getSumVersion = (version: string): number => {
-  const [major, minor, patch] = version
-    .split(".")
-    .map((num) => parseInt(num, 10));
-  return major * 10000 + minor * 100 + patch;
+  try {
+    const versionSum = version
+      .split(".")
+      .map((num, index) => parseInt(num, 10) || index)
+      .reduce((sum, part, index) => sum + part * Math.pow(1000, 2 - index), 0);
+    return versionSum;
+  } catch {
+    return 0;
+  }
 };
 
 export const handleIsUpdateAvailable = (
   req: Request<unknown, unknown, RequestIsUpdateAvailable>,
   res: Response<ResponseIsUpdateAvailable>,
 ) => {
-  const { currentVersion, buildType, platformOS } = req.body || {};
-
   const defaultRes: ResponseIsUpdateAvailable = {
     updateAvailable: false,
     latestVersion: "",
     downloadUrl: "",
   };
 
-  if (!currentVersion || !buildType) {
-    res.status(400).json(defaultRes);
-    return;
-  }
+  try {
+    const { currentVersion, buildType, platformOS } = req.body || {};
 
-  const latestVersionData =
-    buildType === "android"
-      ? data.new?.[buildType]
-      : data.new?.[buildType]?.[
-          platformOS as Exclude<PlatformsOS, undefined>
-        ] || null;
-  if (!latestVersionData) {
-    res.status(400).json(defaultRes);
-    return;
-  }
+    if (!currentVersion || !buildType) {
+      res.status(400).json(defaultRes);
+      return;
+    }
 
-  const latestVersion = latestVersionData.version;
-  if (!latestVersion || latestVersion === "unknown") {
-    res.status(400).json(defaultRes);
-    return;
-  }
+    const latestVersionData =
+      buildType === "android"
+        ? data.new?.[buildType]
+        : data.new?.[buildType]?.[
+            platformOS as Exclude<PlatformsOS, undefined>
+          ] || null;
+    if (!latestVersionData) {
+      res.status(400).json(defaultRes);
+      return;
+    }
 
-  let downloadUrl = "";
-  if (buildType === "android") {
-    downloadUrl = createTempDownloadUrl({
-      buildType: "android",
-      platformOS: undefined,
-      timestamp: 0,
-      version: latestVersion,
+    const latestVersion = latestVersionData.version;
+    if (!latestVersion || latestVersion === "unknown") {
+      res.status(400).json(defaultRes);
+      return;
+    }
+
+    let downloadUrl = "";
+    if (buildType === "android") {
+      downloadUrl = createTempDownloadUrl({
+        buildType: "android",
+        platformOS: undefined,
+        timestamp: 0,
+        version: latestVersion,
+      });
+    } else {
+      downloadUrl = createTempDownloadUrl({
+        buildType: buildType as Exclude<
+          RequestUploadUpdate["buildType"],
+          "android"
+        >,
+        platformOS: platformOS as PlatformsOS,
+        timestamp: 0,
+        version: latestVersion,
+      });
+    }
+
+    const updateAvailable =
+      getSumVersion(latestVersion) > getSumVersion(currentVersion);
+
+    res.status(200).json({
+      downloadUrl,
+      latestVersion,
+      updateAvailable,
     });
-  } else {
-    downloadUrl = createTempDownloadUrl({
-      buildType: buildType as Exclude<
-        RequestUploadUpdate["buildType"],
-        "android"
-      >,
-      platformOS: platformOS as PlatformsOS,
-      timestamp: 0,
-      version: latestVersion,
-    });
+  } catch (error) {
+    console.error(
+      "Error in handleIsUpdateAvailable:",
+      error instanceof Error ? error.message : String(error),
+    );
+    try {
+      res.status(500).json(defaultRes);
+    } catch (error) {
+      console.error(
+        "Error sending error response in handleIsUpdateAvailable:",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }
-
-  const updateAvailable =
-    getSumVersion(latestVersion) > getSumVersion(currentVersion);
-
-  res.status(200).json({
-    downloadUrl,
-    latestVersion,
-    updateAvailable,
-  });
 };
