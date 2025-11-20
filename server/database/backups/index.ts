@@ -87,6 +87,7 @@ export const decryptFile = (filePath: string, password: string) => {
  * ```
  */
 export const handleBackupDatabase = async () => {
+  await deletePreviousBackups();
   const client = await pool.connect();
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -160,71 +161,6 @@ export const deletePreviousBackups = async () => {
       return Promise.resolve();
     }),
   );
-};
-
-/**
- * Restores the database from the latest encrypted backup file.
- *
- * This function scans the backup directory for encrypted SQL backup files (.sql.gpg),
- * selects the most recent one based on filename sorting, decrypts it using GPG,
- * and restores it to the PostgreSQL database.
- *
- * @returns {Promise<boolean | undefined>} A promise that resolves to:
- * - `true` if the database was restored successfully
- * - `false` if an error occurred during restoration
- * - `undefined` if no backup files were found
- *
- * @remarks
- * - Requires GPG and psql to be installed and available in the system PATH
- * - Uses environment variables for database connection and encryption passphrase
- * - Backup files must have the `.sql.gpg` extension
- * - The latest backup is determined by reverse alphabetical sort of filenames
- *
- * @example
- * ```typescript
- * const success = await handleRestoreDatabase();
- * if (success) {
- *   console.log("Restoration completed");
- * }
- * ```
- */
-export const handleRestoreDatabase = async () => {
-  await deletePreviousBackups();
-  const files = fs.readdirSync(backupPath);
-  const backupFiles = files.filter((file) => file.endsWith(".sql"));
-
-  if (backupFiles.length === 0) {
-    console.log(chalk.yellow("No backup files found for restoration."));
-    return;
-  }
-  const latestBackupFile = backupFiles.sort().reverse()[0];
-  const backupFilePath = path.join(backupPath, latestBackupFile);
-
-  const file = decryptFile(backupFilePath, env.DB_ENCRYPTION_PASS);
-  const query = file
-    .split("\n")
-    .filter(
-      (line) =>
-        line.trim() !== "" &&
-        !line.startsWith("--") &&
-        !line.startsWith("\\") &&
-        !line.startsWith("SET") &&
-        !line.startsWith("SELECT"),
-    )
-    .join("\n")
-    .replace(/public\./g, "");
-
-  try {
-    const client = await pool.connect();
-    await client.query(query);
-    const usersCount = await client.query("SELECT COUNT(*) FROM users;");
-    console.log(
-      chalk.bgBlack(`Number of users after drop: ${usersCount.rows[0].count}`),
-    );
-    client.release();
-  } catch (error) {
-    console.error("Error during database restoration:", error);
-  }
 };
 
 export default getInterval();

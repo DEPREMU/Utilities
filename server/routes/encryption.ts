@@ -5,6 +5,7 @@ import {
   ResponseEncrypt,
   ResponseGetRandomUUID,
 } from "@types";
+import env from "env";
 import chalk from "chalk";
 import crypto from "crypto";
 import { Request, Response } from "express";
@@ -19,8 +20,7 @@ import { Request, Response } from "express";
  * - Ensure that the secret key is kept secure and not exposed in version control.
  * - The default value is intended for development purposes only and should be overridden in production.
  */
-const SECRET_KEY =
-  process.env.SECRET_KEY_TO_ENCRYPTION || "0123456789abcdef0123456789abcdef";
+const SECRET_KEY = env.SECRET_KEY_TO_ENCRYPTION;
 
 /**
  * Initialization Vector (IV) used for encryption algorithms.

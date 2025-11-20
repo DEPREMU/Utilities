@@ -52,9 +52,29 @@ window.addEventListener("DOMContentLoaded", async () => {
           button.textContent = `${t("download-latest-version")}: ${data.latestVersion}`;
           button.className = "download-btn";
 
-          button.addEventListener("click", () => {
-            window.open(data.downloadUrl, "_blank");
-          });
+          const handlePress = async (downloadUrl) => {
+            window.open(downloadUrl, "_blank");
+            try {
+              const res = await fetch("{{UPDATES_SERVER_URL}}/log-download", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  platformOS: platform,
+                  currentVersion: "0.0.0",
+                  buildType: platform === "android" ? platform : "electron",
+                }),
+              });
+              const data = await res.json();
+              button.onclick = () => handlePress(data.downloadUrl);
+            } catch (error) {
+              console.error("Error logging download:", error);
+              button.remove();
+            }
+          };
+
+          button.addEventListener("click", () => handlePress(data.downloadUrl));
 
           const div = document.createElement("div");
           div.textContent = platform.toUpperCase();

@@ -16,6 +16,7 @@ const REQUIRED_VARS: (keyof Env)[] = [
   "API_URL",
   "USE_HTTPS",
   "JWT_SECRET",
+  "ADMIN_EMAIL",
   "ADMIN_PASSWORD",
   "VAPID_PUBLIC_KEY",
   "VAPID_PRIVATE_KEY",
@@ -23,6 +24,7 @@ const REQUIRED_VARS: (keyof Env)[] = [
   "DELETE_OLD_SESSIONS",
   "DEEPL_TRANSLATOR_API",
   "FIREBASE_SERVICE_ACCOUNT",
+  "SECRET_KEY_TO_ENCRYPTION",
 ];
 
 export const validateServerEnv = () => {
@@ -56,6 +58,9 @@ const env: Env = {
   DELETE_OLD_SESSIONS: process.env.DELETE_OLD_SESSIONS === "true" || false,
   DEEPL_TRANSLATOR_API: process.env.DEEPL_TRANSLATOR_API || "",
   FIREBASE_SERVICE_ACCOUNT: process.env.FIREBASE_SERVICE_ACCOUNT || "",
+  SECRET_KEY_TO_ENCRYPTION:
+    process.env.SECRET_KEY_TO_ENCRYPTION || "0123456789abcdef0123456789abcdef",
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || "",
 };
 
 export default env;

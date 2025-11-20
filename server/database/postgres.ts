@@ -5,9 +5,8 @@ import env from "../env.ts";
 import path from "path";
 import chalk from "chalk";
 import { exec } from "child_process";
+import { serverPath } from "../config.ts";
 import { Pool, PoolConfig } from "pg";
-import { serverPath, TABLE_MAP } from "../config.ts";
-import { handleRestoreDatabase } from "./backups/index.ts";
 
 export let dbInitialized = false;
 
@@ -82,39 +81,28 @@ const handleCreatePgPassFile = () => {
 };
 
 /**
- * Handles the creation of database tables by dropping existing tables and recreating them.
+ * Initializes the database by creating required tables.
  *
- * This function performs the following operations:
- * 1. Connects to the database pool
- * 2. Queries and logs all rows from the users table
- * 3. Drops all existing tables defined in TABLE_MAP with CASCADE
- * 4. Reads the SQL schema from create_tables.sql file
- * 5. Executes the SQL to create new database tables
+ * This asynchronous function:
+ * - Obtains a client from the configured connection pool.
+ * - Reads the SQL schema file "create_tables.sql" from the server's database directory.
+ * - Executes the SQL against the connected PostgreSQL client.
+ * - Logs success or error messages to the console using chalk for coloring.
+ * - Ensures the client is always released back to the pool in a finally block.
  *
- * @returns A promise that resolves when the database tables are created successfully
+ * Notes:
+ * - The SQL file is read synchronously (fs.readFileSync), which may block the event loop for large files.
+ * - Errors during the read or query execution are caught and logged; they are not rethrown by this function.
  *
- * @throws Will log an error if table creation fails, but does not throw
+ * @async
+ * @returns Promise<void> A promise that resolves when the operation completes (either successfully or after logging an error).
  *
- * @remarks
- * - The client connection is always released in the finally block
- * - Success and error messages are logged to console with color formatting
- * - This operation is destructive and will delete all existing data in the dropped tables
+ * @example
+ * // Create database tables at application startup
+ * await handleCreateDB();
  */
 const handleCreateDB = async () => {
   const client = await pool.connect();
-  try {
-    const usersCount = await client.query("SELECT COUNT(*) FROM users;");
-    console.log(
-      chalk.bgBlack(`Number of users before drop: ${usersCount.rows[0].count}`),
-    );
-  } catch (error) {
-    console.error(chalk.red("Error querying users table:"), error);
-  }
-  await client.query(
-    Object.values(TABLE_MAP)
-      .map((t) => `DROP TABLE IF EXISTS ${t} CASCADE`)
-      .join(";"),
-  );
 
   try {
     const createTablesQuery = fs.readFileSync(
@@ -145,12 +133,16 @@ const handleCreateDB = async () => {
 export const handleInitDB = async () => {
   handleCreatePgPassFile();
   await handleCreateDB();
-  await handleRestoreDatabase();
-  const client = await pool.connect();
-  const usersCount = await client.query("SELECT COUNT(*) FROM users;");
-  console.log(
-    chalk.bgBlack(`Number of users after drop: ${usersCount.rows[0].count}`),
-  );
+  try {
+    const client = await pool.connect();
+    const usersCount = await client.query("SELECT COUNT(*) FROM users;");
+    console.log(
+      chalk.bgBlack(`Number of users after drop: ${usersCount.rows[0].count}`),
+    );
+  } catch (error) {
+    console.error(chalk.red("Error querying users count:"), error);
+    throw new Error("Failed to query users count" + (error as Error).message);
+  }
 
   dbInitialized = true;
 };

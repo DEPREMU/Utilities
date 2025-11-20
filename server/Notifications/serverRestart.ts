@@ -2,11 +2,12 @@ import { fetchFromTable } from "database/functions.ts";
 import chalk from "chalk";
 import { sendFCMNotification } from "firebase/admin.ts";
 import { t } from "translations/index.ts";
+import env from "env";
 
 const handleSendNotificationToAdmin = async () => {
   try {
     const fetch = await fetchFromTable("Users", {
-      email: process.env.ADMIN_EMAIL || "",
+      email: env.ADMIN_EMAIL,
     });
 
     const user = Array.isArray(fetch.data) ? fetch.data[0] : fetch.data;

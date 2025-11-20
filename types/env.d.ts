@@ -4,9 +4,11 @@ export type Env = {
   DB_USER: string;
   DB_PASS: string;
   JWT_SECRET: string;
+  ADMIN_EMAIL: string;
   VAPID_PRIVATE_KEY: string;
   DELETE_OLD_SESSIONS: boolean;
   DEEPL_TRANSLATOR_API: string;
+  SECRET_KEY_TO_ENCRYPTION: string;
   FIREBASE_SERVICE_ACCOUNT: string;
   DB_ENCRYPTION_PASS: string;
   VAPID_PUBLIC_KEY: string;
