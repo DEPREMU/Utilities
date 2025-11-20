@@ -1,4 +1,5 @@
 import express from "express";
+import handleSendWebPage from "./web-page/handleSendWebPage";
 import { handleDownload } from "./tempDownloadUrl";
 import { handleUploadUpdate } from "./uploadUpdate";
 import { Route, UpdatesRoutes } from "@types";
@@ -20,6 +21,10 @@ const routes: Routes = {
   "/upload-update": {
     method: "post",
     handler: handleUploadUpdate,
+  },
+  "/web-page": {
+    method: "get",
+    handler: handleSendWebPage,
   },
 };
 

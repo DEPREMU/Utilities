@@ -11,6 +11,15 @@ import FormData from "form-data";
 import { execSync } from "child_process";
 import type UtilitiesPackageJson from "../UtilitiesForPC/package.json";
 
+const getSumVersion = (version: string): number => {
+  return version
+    .split(".")
+    .reduce(
+      (sum, part, index) => sum + parseInt(part) * Math.pow(1000, 2 - index),
+      0
+    );
+};
+
 dotenv.config();
 if (!process.env.API_URL) {
   console.error("API_URL is not defined in environment variables.");
@@ -23,18 +32,20 @@ const version = JSON.parse(
     "utf-8"
   )
 ) as typeof UtilitiesPackageJson;
+let isNewVersionLinux: boolean;
+let isNewVersionWindows: boolean;
 
 if (!version.version) {
   console.error("Version not found in UtilitiesForPC/package.json.");
   process.exit(1);
 }
 
-const checkIsNewVersion = async () => {
+const isNewVersion = async (platformOS: PlatformsOS) => {
   try {
     const body: RequestIsUpdateAvailable = {
       buildType: "electron",
       currentVersion: version.version,
-      platformOS: "windows",
+      platformOS,
     };
 
     const res = await fetch(
@@ -54,16 +65,14 @@ const checkIsNewVersion = async () => {
       downloadUrl: string;
     };
 
-    if (result.latestVersion === version.version) {
-      console.log("Version already exists on the server.");
-      process.exit(0);
-    }
+    return getSumVersion(result.latestVersion) < getSumVersion(version.version);
   } catch (error) {
     console.error(
       "Error checking for new version:",
       error instanceof Error ? error.message : String(error)
     );
   }
+  return true;
 };
 
 const uploadElectronBuilds = async () => {
@@ -93,14 +102,14 @@ const uploadElectronBuilds = async () => {
       file: string;
     }> = [];
 
-    if (linuxDebFile) {
+    if (linuxDebFile && isNewVersionLinux) {
       availablePlatforms.push({
         platformOS: "linux",
         file: path.join(distElectronPath, linuxDebFile),
       });
     }
 
-    if (windowsExeFile) {
+    if (windowsExeFile && isNewVersionWindows) {
       availablePlatforms.push({
         platformOS: "windows",
         file: path.join(distElectronPath, windowsExeFile),
@@ -123,6 +132,15 @@ const uploadElectronBuilds = async () => {
     const uploadPromises = availablePlatforms.map(
       async ({ platformOS, file }) => {
         try {
+          if (
+            !(platformOS === "linux" ? isNewVersionLinux : isNewVersionWindows)
+          ) {
+            return {
+              platformOS,
+              success: false,
+              error: `Version ${version.version} already exists on the server for ${platformOS}`,
+            };
+          }
           const data: RequestUploadUpdate = {
             buildType: "electron",
             platformOS,
@@ -156,7 +174,7 @@ const uploadElectronBuilds = async () => {
               },
               maxContentLength: Infinity,
               maxBodyLength: Infinity,
-              timeout: 600000,
+              timeout: 1000 * 60 * 5,
             }
           );
 
@@ -223,7 +241,28 @@ const buildElectronApp = () => {
   const platformArg = args.find(
     (arg) => arg.startsWith("--platform=") || arg.startsWith("-p=")
   );
-  const platform = platformArg ? platformArg.split("=")[1] : "both";
+  let platform = platformArg ? platformArg.split("=")[1] : "both";
+
+  if (platform === "both") {
+    if (!isNewVersionLinux) {
+      console.log(
+        `Building only for Linux as Windows is up to date for version ${version.version}.`
+      );
+      platform = "linux";
+    }
+    if (!isNewVersionWindows) {
+      console.log(
+        `Building only for Windows as Linux is up to date for version ${version.version}.`
+      );
+      platform = "windows";
+    }
+    if (!isNewVersionLinux && !isNewVersionWindows) {
+      console.log(
+        "No new updates available for either platform. Skipping build."
+      );
+      process.exit(0);
+    }
+  }
 
   console.log(`Building Electron app for platform: ${platform}`);
 
@@ -237,10 +276,13 @@ const buildElectronApp = () => {
 
 console.log("=== Electron Build and Upload Process ===\n");
 
-checkIsNewVersion().then(() => {
+const run = async () => {
+  isNewVersionLinux = await isNewVersion("linux");
+  isNewVersionWindows = await isNewVersion("windows");
   buildElectronApp();
   uploadElectronBuilds().catch((error) => {
     console.error("Process failed:", error);
     process.exit(1);
   });
-});
+};
+run();

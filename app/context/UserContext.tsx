@@ -120,7 +120,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       callback: (success: boolean, error?: string) => T = () => null as T,
     ) => {
       try {
-        setLoggingIn(true);
         const { error } = await signUpWithEmail(email, password);
 
         if (error) return callback?.(false, error);
@@ -144,7 +143,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
    */
   const logout = useCallback(async (callback?: (success: boolean) => void) => {
     try {
-      setLoggingIn(true);
       const { error } = await authSignOut();
 
       if (error) {
@@ -249,25 +247,31 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     };
 
     const handleRefreshSession = async () => {
-      log("Refreshing user session...");
-      const [rememberMe, sessionToken] = await Promise.all([
-        loadDataSecure("_sessionExpiry"),
-        loadDataSecure("_userSessionTokenStorage"),
-      ]);
+      try {
+        log("Refreshing user session...");
+        const [rememberMe, sessionToken] = await Promise.all([
+          loadDataSecure("_sessionExpiry"),
+          loadDataSecure("_userSessionTokenStorage"),
+        ]);
 
-      if (!rememberMe || rememberMe < Date.now()) {
-        sendNotificationLoginStatus(false);
-        await authSignOut();
-        return;
+        if (!rememberMe || rememberMe < Date.now()) {
+          sendNotificationLoginStatus(false);
+          await authSignOut();
+          return;
+        }
+
+        if (!sessionToken) {
+          sendNotificationLoginStatus(false);
+          return;
+        }
+
+        await refreshToken(sessionToken);
+        sendNotificationLoginStatus(true);
+      } catch (error) {
+        logError("Error during session refresh:", error);
+      } finally {
+        setLoggingIn(false);
       }
-
-      if (!sessionToken) {
-        sendNotificationLoginStatus(false);
-        return;
-      }
-
-      await refreshToken(sessionToken);
-      sendNotificationLoginStatus(true);
     };
 
     handleRefreshSession();

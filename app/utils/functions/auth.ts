@@ -62,10 +62,12 @@ const saveStorageData = async (
   const results = await Promise.all(
     Object.entries(storageValues).map(([key, value]) => {
       const keyTyped = key as KeyStorageValues;
-      if (keyTyped === "_deviceId") return;
+      if (keyTyped === "_deviceId" || keyTyped === "_terminalCommands") return;
 
-      const valueTyped =
-        value as ExpectedStorageTypes<"BOTH">[KeyStorageValues];
+      const valueTyped = value as ExpectedStorageTypes<"BOTH">[Exclude<
+        KeyStorageValues,
+        "_deviceId" | "_terminalCommands"
+      >];
 
       if (!isSecureKey(keyTyped)) saveData(keyTyped, valueTyped);
       else saveDataSecure(keyTyped, valueTyped);

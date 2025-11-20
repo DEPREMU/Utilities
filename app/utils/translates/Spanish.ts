@@ -307,6 +307,8 @@ const es: typeLanguages = {
   appUpdates: "Actualizaciones de la aplicación",
   appUpdatesExplanation:
     "Las actualizaciones se descargan automáticamente en segundo plano. Si estás en Windows, es posible que veas un aviso de instalación al abrir la aplicación.",
+  openUpdatesWebPage: "Abrir página web de actualizaciones",
+  ourUpdatesWebPage: "Nuestra página web de actualizaciones",
 } as const;
 
 export default es;

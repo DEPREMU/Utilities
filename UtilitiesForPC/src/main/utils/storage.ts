@@ -1,11 +1,12 @@
 import fs from "fs";
 import path from "path";
 import Store from "electron-store";
+import crypto from "crypto";
 import keytar from "keytar";
-import { app } from "electron";
 import dataApp from "./variables";
 import { exec } from "child_process";
 import { writeLog } from "./logger";
+import { app, safeStorage } from "electron";
 import { Command, ElectronStoreType, ExpectedStorageTypes } from "@types";
 
 const initFileStorage = (): void => {
@@ -25,6 +26,48 @@ const store = new Store({
   clearInvalidConfig: true,
 }) as unknown as ElectronStoreType;
 
+const getMachineKey = (): Buffer => {
+  try {
+    let machineId = "";
+    if (fs.existsSync("/etc/machine-id")) {
+      machineId = fs.readFileSync("/etc/machine-id", "utf-8").trim();
+    } else if (fs.existsSync("/var/lib/dbus/machine-id")) {
+      machineId = fs.readFileSync("/var/lib/dbus/machine-id", "utf-8").trim();
+    } else {
+      machineId = "fallback-machine-id-utilities-pc";
+    }
+    return crypto.createHash("sha256").update(machineId).digest();
+  } catch (error) {
+    console.error("Error getting machine ID:", error);
+    return crypto.createHash("sha256").update("fallback-error-key").digest();
+  }
+};
+
+const encryptFallback = (text: string): string => {
+  const iv = crypto.randomBytes(16);
+  const key = getMachineKey();
+  const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+  let encrypted = cipher.update(text, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  return iv.toString("hex") + ":" + encrypted;
+};
+
+const decryptFallback = (text: string): string | null => {
+  try {
+    const textParts = text.split(":");
+    const iv = Buffer.from(textParts.shift()!, "hex");
+    const encryptedText = textParts.join(":");
+    const key = getMachineKey();
+    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+    let decrypted = decipher.update(encryptedText, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (error) {
+    console.error("Error decrypting fallback:", error);
+    return null;
+  }
+};
+
 const isSecureKey = (
   key: keyof ExpectedStorageTypes<"BOTH">
 ): key is keyof ExpectedStorageTypes => {
@@ -35,14 +78,45 @@ export const getStorageFileValue = async (
   key: keyof ExpectedStorageTypes<"BOTH">
 ): Promise<string | null> => {
   try {
-    if (isSecureKey(key)) {
-      const secret = await keytar.getPassword(
-        dataApp.getValue("SERVICE_NAME"),
-        key
-      );
-      return secret;
+    if (!isSecureKey(key)) return (store.get(key) as string) ?? null;
+
+    if (dataApp.getValue("isWindows")) {
+      try {
+        const secret = await keytar.getPassword(
+          dataApp.getValue("SERVICE_NAME"),
+          key
+        );
+        return secret;
+      } catch (e) {
+        writeLog(`Keytar error on Windows for ${String(key)}: ${e}`, "error");
+        return null;
+      }
     } else {
-      return (store.get(key) as string) ?? null;
+      const storedValue = store.get(key as any) as string;
+      if (!storedValue) return null;
+
+      if (safeStorage.isEncryptionAvailable()) {
+        try {
+          const buffer = Buffer.from(storedValue, "base64");
+          const decrypted = safeStorage.decryptString(buffer);
+          return decrypted;
+        } catch (e) {
+          const fallbackDecrypted = decryptFallback(storedValue);
+          if (fallbackDecrypted) return fallbackDecrypted;
+
+          writeLog(`Error decrypting key ${String(key)}: ${e}`, "error");
+          return null;
+        }
+      } else {
+        const fallbackDecrypted = decryptFallback(storedValue);
+        if (fallbackDecrypted) return fallbackDecrypted;
+
+        writeLog(
+          `Encryption not available and fallback failed for key ${String(key)}`,
+          "error"
+        );
+        return null;
+      }
     }
   } catch (error) {
     const err = typeof error === "string" ? error : JSON.stringify(error);
@@ -61,11 +135,26 @@ export const saveStorageFileValue = async <
   try {
     const jsonValue = typeof value === "string" ? value : JSON.stringify(value);
     if (isSecureKey(key)) {
-      await keytar.setPassword(
-        dataApp.getValue("SERVICE_NAME"),
-        key,
-        jsonValue
-      );
+      if (dataApp.getValue("isWindows")) {
+        await keytar.setPassword(
+          dataApp.getValue("SERVICE_NAME"),
+          key,
+          jsonValue
+        );
+      } else {
+        if (safeStorage.isEncryptionAvailable()) {
+          try {
+            const encrypted = safeStorage.encryptString(jsonValue);
+            store.set(key, encrypted.toString("base64"));
+          } catch (e) {
+            const fallbackEncrypted = encryptFallback(jsonValue);
+            store.set(key, fallbackEncrypted);
+          }
+        } else {
+          const fallbackEncrypted = encryptFallback(jsonValue);
+          store.set(key, fallbackEncrypted);
+        }
+      }
     } else {
       store.set(key, value);
     }
@@ -82,9 +171,14 @@ export const removeStorageFileValue = async (
   key: keyof ExpectedStorageTypes<"BOTH">
 ): Promise<boolean> => {
   try {
-    if (isSecureKey(key))
-      await keytar.deletePassword(dataApp.getValue("SERVICE_NAME"), key);
-    else store.delete(key);
+    if (isSecureKey(key)) {
+      if (dataApp.getValue("isWindows")) {
+        await keytar.deletePassword(dataApp.getValue("SERVICE_NAME"), key);
+      } else store.delete(key);
+    } else {
+      store.delete(key);
+    }
+
     return true;
   } catch (error) {
     const err = typeof error === "string" ? error : JSON.stringify(error);

@@ -1,6 +1,7 @@
 export type UpdatesRoutes =
-  | "/is-update-available"
+  | "/web-page"
   | "/upload-update"
+  | "/is-update-available"
   | "/download/:buildType/:version/:platformOS/:id";
 
 export type PlatformsOS = "linux" | "windows";

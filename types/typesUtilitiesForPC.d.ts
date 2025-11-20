@@ -5,14 +5,14 @@ import { ReasonNotification } from "./typesNotifications";
 import { ExpectedStorageTypes } from "./API";
 
 export type ElectronStoreType = {
-  get: <T extends keyof ExpectedStorageTypes<"UNSECURE">>(
+  get: <T extends keyof ExpectedStorageTypes<"BOTH">>(
     key: T
   ) => string | undefined;
-  set: <T extends keyof ExpectedStorageTypes<"UNSECURE">>(
+  set: <T extends keyof ExpectedStorageTypes<"BOTH">>(
     key: T,
     value: string
   ) => void;
-  delete: <T extends keyof ExpectedStorageTypes<"UNSECURE">>(key: T) => void;
+  delete: <T extends keyof ExpectedStorageTypes<"BOTH">>(key: T) => void;
 };
 
 export type DataAppElectron = {

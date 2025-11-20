@@ -103,25 +103,75 @@ const installWine = async (): Promise<void> => {
 };
 
 const addAutostartLinux = async (runAppCommand: string) => {
-  const fileSudoers = "utilitiesforpc";
-
-  const sudoers = execSync("ls /etc/sudoers.d/").toString();
-  if (sudoers.includes(fileSudoers)) return;
-
   const answer0 = await askQuestion(t("enableAutoStartQuestion"));
   if (answer0.toLowerCase() !== "y") return;
 
   const homePath = process.env.HOME;
   if (!homePath) throw new Error("HOME environment variable is not set");
 
+  const userName = process.env.USER || process.env.USERNAME;
+  if (!userName) throw new Error("USER environment variable is not set");
+
   const configDir = path.join(homePath, ".config");
   const startUpFile = path.join(configDir, "utilities-for-pc-autostart.sh");
   const autoStartDir = path.join(configDir, "autostart");
+  const wrapperScriptPath = `/opt/${dataBuild.productName}/utilities-for-pc-root.sh`;
 
   if (!fs.existsSync(autoStartDir))
     fs.mkdirSync(autoStartDir, { recursive: true });
 
   const desktopFilePath = path.join(autoStartDir, "utilities-for-pc.desktop");
+
+  const wrapperScriptContent = `#!/bin/bash
+
+USER_ID=$1
+USER_HOME=$2
+USER_NAME=$3
+DBUS_ADDR=$4
+
+if [ -z "$USER_ID" ] || [ -z "$USER_HOME" ]; then
+    echo "Error: Missing arguments"
+    exit 1
+fi
+
+export DISPLAY=:0
+export XAUTHORITY="$USER_HOME/.Xauthority"
+export DBUS_SESSION_BUS_ADDRESS="$DBUS_ADDR"
+export XDG_RUNTIME_DIR="/run/user/$USER_ID"
+export ORIGINAL_USER="$USER_NAME"
+export ORIGINAL_HOME="$USER_HOME"
+
+echo "Starting app as root..."
+echo "User: $USER_NAME (ID: $USER_ID)"
+echo "DBus: $DBUS_SESSION_BUS_ADDRESS"
+
+exec /opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11 "\${@:5}"
+`;
+
+  const startupScriptContent = `#!/bin/bash
+
+xhost +si:localuser:root 2>/dev/null || true
+
+USER_ID=$(id -u ${userName})
+USER_HOME="${homePath}"
+USER_NAME="${userName}"
+
+DBUS_ADDR="$DBUS_SESSION_BUS_ADDRESS"
+if [ -z "$DBUS_ADDR" ]; then
+    DBUS_ADDR="unix:path=/run/user/$USER_ID/bus"
+fi
+
+LOG_FILE="${homePath}/.config/utilities-for-pc-startup.log"
+mkdir -p "$(dirname "$LOG_FILE")"
+
+echo "[$(date)] Starting Utilities for PC (Autostart)..." >> "$LOG_FILE"
+echo "DBUS_ADDR: $DBUS_ADDR" >> "$LOG_FILE"
+
+sudo ${wrapperScriptPath} "$USER_ID" "$USER_HOME" "$USER_NAME" "$DBUS_ADDR" >> "$LOG_FILE" 2>&1 &
+
+echo "[$(date)] Startup script completed" >> "$LOG_FILE"
+`;
+
   const desktopFileContent = `[Desktop Entry]
 Type=Application
 Exec=${startUpFile}
@@ -130,25 +180,40 @@ Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
 Name=Utilities for PC
-Comment=Start Utilities for PC on login
+Comment=Start Utilities for PC on login with root privileges
+Categories=Utility;
+StartupNotify=false
 `;
 
+  const fileSudoers = "utilitiesforpc";
   const sudoersEntry = `
-# UtilitiesForPC auto-start
-${process.env.USER || "%sudo"} ALL=(ALL) NOPASSWD: /opt/${
-    dataBuild.productName
-  }/${dataBuild.appName}
+${userName} ALL=(ALL) NOPASSWD: ${wrapperScriptPath}
+${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
 `;
-  execSync(
-    `sudo sh -c 'echo "${sudoersEntry}" > /etc/sudoers.d/${fileSudoers}'`
-  );
+
+  try {
+    const tempWrapper = path.join(
+      os.tmpdir(),
+      `utilities-for-pc-root-${Date.now()}.sh`
+    );
+    fs.writeFileSync(tempWrapper, wrapperScriptContent);
+    execSync(`sudo mv ${tempWrapper} ${wrapperScriptPath}`);
+    execSync(`sudo chmod +x ${wrapperScriptPath}`);
+
+    execSync(
+      `sudo sh -c 'echo "${sudoersEntry}" > /etc/sudoers.d/${fileSudoers}'`
+    );
+    execSync(`sudo chmod 0440 /etc/sudoers.d/${fileSudoers}`);
+  } catch (error) {
+    console.error("Failed to configure system files:", error);
+    throw error;
+  }
+
+  fs.writeFileSync(startUpFile, startupScriptContent);
+  execSync(`chmod +x ${startUpFile}`);
 
   fs.writeFileSync(desktopFilePath, desktopFileContent);
-  execSync(
-    `sudo echo "#!/bin/bash\nxhost +si:localuser:root\npkexec ${runAppCommand}" > ${startUpFile}`
-  );
-  execSync(`sudo chmod +x ${startUpFile}`);
-  execSync(`sudo chmod +x ${desktopFilePath}`);
+  execSync(`chmod +x ${desktopFilePath}`);
 
   console.log(t("autoStartEnabled"));
 };
@@ -229,7 +294,7 @@ const buildApp = async () => {
       console.log(t("installingLinuxDependencies"));
       try {
         execSync(
-          "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1; sudo apt update -y; sudo apt upgrade -y",
+          "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
           { stdio: "inherit" }
         );
       } catch (error) {

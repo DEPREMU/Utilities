@@ -1,5 +1,7 @@
 import {
   log,
+  openURL,
+  API_URL,
   loadData,
   saveData,
   APP_VERSION,
@@ -261,6 +263,12 @@ const SettingsScreen: React.FC = () => {
     );
   }, [t]);
 
+  const openUrlUpdatesWebPage = useCallback(async () => {
+    const updatesWebPageUrl = API_URL.replace("api", "updates/web-page");
+    log("Opening updates web page URL:", updatesWebPageUrl);
+    openURL(updatesWebPageUrl);
+  }, []);
+
   useEffect(() => {
     loadData("@hasAdminAccess").then((data) => {
       setHasAdmin(data || false);
@@ -337,6 +345,18 @@ const SettingsScreen: React.FC = () => {
                 ) : null}
               </Button>
             )}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.subtitle}>{t("ourUpdatesWebPage")}</Text>
+            <Button
+              customStyles={{
+                button: styles.button,
+                textButton: styles.buttonLabel,
+              }}
+              handlePress={openUrlUpdatesWebPage}
+              label={t("openUpdatesWebPage")}
+            />
           </View>
 
           {!hasAdmin && (

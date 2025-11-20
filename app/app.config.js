@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.2.4";
+const version = "1.2.5";
 
 export default {
   expo: {
@@ -19,7 +19,7 @@ export default {
     updates: {
       url: "https://u.expo.dev/7dd2c093-0c91-4638-a5b9-828d458e8be0",
     },
-    runtimeVersion: version,
+    runtimeVersion: version.split(".").slice(0, 2).join("."),
     version,
     orientation: "portrait",
     icon: "./assets/icon.png",

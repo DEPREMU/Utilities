@@ -51,16 +51,32 @@ export const deleteDownloadedUpdate = () => {
 const openInstallerOrInstall = async (filePath: string) => {
   writeLog(`Opening installer at path: ${filePath}`, "info");
   if (dataApp.getValue("isWindows")) {
-    const child = spawn(filePath, [], {
-      detached: true,
-      stdio: "ignore",
-    });
+    try {
+      const child = spawn(filePath, [], {
+        detached: true,
+        stdio: "ignore",
+      });
 
-    child.unref();
-
-    await handleShutdown();
+      child.unref();
+      writeLog("Installer spawned on Windows.", "info");
+      await handleShutdown();
+    } catch (e) {
+      writeLog("Error spawning installer on Windows: " + String(e), "error");
+    }
   } else {
-    execSync(`sudo dpkg -i "${filePath}" && sudo apt-get install -f -y`);
+    try {
+      const isRoot = process.getuid && process.getuid() === 0;
+      const cmd = isRoot
+        ? `dpkg -i "${filePath}" && apt-get install -f -y`
+        : `sudo dpkg -i "${filePath}" && sudo apt-get install -f -y`;
+
+      writeLog(`Executing Linux install command: ${cmd}`, "info");
+      execSync(cmd);
+      writeLog("Linux installation command executed.", "info");
+      await handleShutdown();
+    } catch (e) {
+      writeLog("Error installing on Linux: " + String(e), "error");
+    }
   }
 };
 
@@ -68,24 +84,41 @@ export const downloadNewUpdate = async (downloadUrl: string) => {
   return new Promise<void>(async (resolve) => {
     try {
       const downloadFilePath = dataApp.getValue("downloadFilePath");
+      writeLog(
+        `Starting download from ${downloadUrl} to ${downloadFilePath}`,
+        "info"
+      );
+
       const response: any = await axios.get(downloadUrl, {
         responseType: "stream",
       });
 
-      response.data.pipe(fs.createWriteStream(downloadFilePath));
+      const writer = fs.createWriteStream(downloadFilePath);
+      response.data.pipe(writer);
 
-      response.data.on("end", async () => {
-        openInstallerOrInstall(downloadFilePath);
+      writer.on("finish", async () => {
+        writeLog("Download finished successfully.", "info");
+        writer.close();
+        await openInstallerOrInstall(downloadFilePath);
+        resolve();
+      });
+
+      writer.on("error", (err: unknown) => {
+        console.error("Error writing file", err);
+        writeLog("Error writing update file: " + String(err), "error");
+        writer.close();
         resolve();
       });
 
       response.data.on("error", (err: unknown) => {
         console.error("Error downloading the file", err);
+        writeLog("Error downloading the file stream: " + String(err), "error");
+        writer.close();
         resolve();
       });
     } catch (error) {
       console.error("Error downloading the update:", error);
-      writeLog("Error downloading the update", "error");
+      writeLog("Error downloading the update: " + String(error), "error");
       resolve();
     }
   });

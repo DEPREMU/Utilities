@@ -265,6 +265,8 @@ export type typeLanguages = Record<ReasonNotification, string> &
     currentVersion: string;
     appUpdates: string;
     appUpdatesExplanation: string;
+    openUpdatesWebPage: string;
+    ourUpdatesWebPage: string;
   };
 
 export type typeLanguagesServer = {

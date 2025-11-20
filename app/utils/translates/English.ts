@@ -301,6 +301,8 @@ const en: typeLanguages = {
   appUpdates: "App Updates",
   appUpdatesExplanation:
     "Updates are automatically downloaded in the background. If you are in windows, you may see a prompt to install when opening the app.",
+  openUpdatesWebPage: "Open Updates Web Page",
+  ourUpdatesWebPage: "Our Updates Web Page",
 } as const;
 
 export default en;

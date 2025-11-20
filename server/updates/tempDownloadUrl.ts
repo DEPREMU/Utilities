@@ -33,7 +33,7 @@ export const createTempDownloadUrl = (data: RequestUploadUpdate) => {
     tempUrls[url] = {
       id,
       version: data.version,
-      maxTime: Date.now() + 10 * 60 * 1000,
+      maxTime: Date.now() + 5 * 60 * 1000,
       buildType: data.buildType,
     };
 
@@ -94,8 +94,11 @@ export const handleDownload = (
     });
   } catch (error) {
     console.error(chalk.red("Error processing download via temp URL:"), error);
-    res.status(500).json({ error: "Internal server error" });
-    return;
+    try {
+      res.status(500).json({ error: "Internal server error" });
+    } catch {
+      // Ignore
+    }
   }
 };
 
