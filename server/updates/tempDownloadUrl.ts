@@ -89,9 +89,13 @@ export const handleDownload = (
 
     delete tempUrls[fullUrl];
     res.download(filePath, (err) => {
-      if (err) {
-        console.error("Error downloading file:", err);
+      if (!err) return;
+
+      console.error("Error downloading file:", err);
+      try {
         res.status(500).json({ error: "Error downloading file" });
+      } catch {
+        // Ignore
       }
     });
   } catch (error) {
