@@ -64,6 +64,16 @@ let dataAppDefault: DataAppElectron = {
   ad: null,
   PORT: 3005,
   tray: null,
+  username:
+    process.env.ORIGINAL_USER ||
+    process.env.SUDO_USER ||
+    process.env.USER ||
+    process.env.USERNAME,
+  userHome:
+    process.env.ORIGINAL_HOME ||
+    (process.env.SUDO_USER && process.env.SUDO_USER !== "root"
+      ? `/home/${process.env.SUDO_USER}`
+      : process.env.HOME),
   lanIP: getLocalIP(),
   server: null,
   hasSudo: false,

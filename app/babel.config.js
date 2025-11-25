@@ -26,6 +26,9 @@ module.exports = function (api) {
           },
         },
       ],
+      "babel-plugin-transform-remove-undefined",
+      "babel-plugin-minify-guarded-expressions",
+      "babel-plugin-minify-dead-code-elimination",
       "react-native-worklets/plugin",
       [
         "babel-plugin-transform-replace-expressions",
@@ -35,6 +38,9 @@ module.exports = function (api) {
             "process.env.NODE_ENV": JSON.stringify(
               process?.env?.NODE_ENV || "production",
             ),
+            " log": "(()=>{})",
+            " logWarn": "(()=>{})",
+            " logError": "(()=>{})",
           },
           allowConflictingReplacements: true,
         },

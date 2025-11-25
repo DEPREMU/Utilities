@@ -17,7 +17,10 @@ import { AvailableFunctions } from "@types";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TaskFunction = (...args: any[]) => Promise<void> | void;
 
-type TaskRegistry = Record<AvailableFunctions, TaskFunction>;
+type TaskRegistry = Record<
+  Exclude<AvailableFunctions, "refreshSession">,
+  TaskFunction
+>;
 
 const taskRegistry: TaskRegistry = {
   updateFromDatabase: async <T extends TablesKeys>(
@@ -118,6 +121,11 @@ export const executeRegisteredTask = async (
   functionName: AvailableFunctions,
   args: unknown[],
 ): Promise<void> => {
+  if (functionName === "refreshSession") {
+    logError("refreshSession should not be executed via executeRegisteredTask");
+    return;
+  }
+
   const taskFunction = taskRegistry[functionName];
 
   if (!taskFunction) {

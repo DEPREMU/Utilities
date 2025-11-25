@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -36,6 +37,7 @@ class MyForegroundService : Service() {
     private var counter = 0
     private var title = "Servicio Activo"
     private var message = "Utilities está ejecutándose en segundo plano."
+    private var wakeLock: PowerManager.WakeLock? = null
     
     // Clipboard functionality
     private lateinit var clipboardManager: ClipboardManager
@@ -114,6 +116,11 @@ class MyForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Utilities:ForegroundServiceWakeLock")
+        wakeLock?.acquire()
+
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener(clipListener)
         Log.d("MyForegroundService", "Service created")
@@ -163,7 +170,10 @@ class MyForegroundService : Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        super.onCreate()
+        if (wakeLock?.isHeld == true) {
+            wakeLock?.release()
+        }
         handler.removeCallbacks(task)
         client.dispatcher.cancelAll()
         clipboardManager.removePrimaryClipChangedListener(clipListener)

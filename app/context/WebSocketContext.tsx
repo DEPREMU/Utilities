@@ -23,7 +23,7 @@ import {
   CLIPBOARD_WS_URL,
   getNotifications,
 } from "@utils";
-import Button from "@components/common/ButtonComponent";
+import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
 import { useLanguage } from "./LanguageContext";
@@ -31,7 +31,6 @@ import BackgroundModule from "@/utils/modules/BackgroundModule";
 import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import { useNotifications } from "./NotificationsContext";
-import { AppState, Platform } from "react-native";
 
 interface WebSocketContextType {
   socket: WebSocket | null;
@@ -225,23 +224,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (clipboardSocketRef.current?.readyState === WebSocket.OPEN) return;
     if (clipboardSocketRef.current?.readyState === WebSocket.CONNECTING) return;
 
-    const askRetryConnection = (socket: WebSocket) => {
-      const retry = () => {
-        clipboardSocketRef.current = null;
-        closeModal();
-        initWebSocket();
-        socket.close?.();
-      };
-      if (AppState.currentState !== "active") return retry();
-
-      openModal(
-        t("error"),
-        t("clipboardWebSocketError"),
-        <>
-          <Button label={t("close")} handlePress={closeModal} />
-          <Button label={t("retry")} handlePress={retry} />
-        </>,
-      );
+    const retryConnection = (socket: WebSocket) => {
+      clipboardSocketRef.current = null;
+      closeModal();
+      initWebSocket();
+      socket.close?.();
     };
 
     const initWebSocket = async () => {
@@ -277,12 +264,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
       socket.onerror = (error) => {
         logError("Clipboard WebSocket error:", error);
-        askRetryConnection(socket);
+        retryConnection(socket);
       };
 
       socket.onclose = () => {
         log("Clipboard WebSocket connection closed.");
-        askRetryConnection(socket);
+        retryConnection(socket);
       };
 
       socket.onmessage = (event) => {

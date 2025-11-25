@@ -16,7 +16,6 @@ import {
   ResponseDatabaseDelete,
   ResponseDatabaseUpdate,
 } from "@types";
-import chalk from "chalk";
 import DownDetector from "./DownDetector";
 import AddNewWebPage from "./AddNewWebPage";
 import { useLanguage } from "@context/LanguageContext";
@@ -79,7 +78,7 @@ const DownDetectorNavigator: React.FC = () => {
       ).then((res) => res.json())) as ResponseDatabaseDelete;
 
       if (error) {
-        logError(chalk.red("Error deleting downDetector item:"), error);
+        logError("Error deleting downDetector item:", error);
         return;
       }
 
@@ -129,12 +128,9 @@ const DownDetectorNavigator: React.FC = () => {
               (await res.json()) as ResponseDatabaseUpdate<typeof tableName>;
 
             if (error) {
-              logError(
-                chalk.red("Error updating sendNotification status:"),
-                error,
-              );
+              logError("Error updating sendNotification status:", error);
             } else if (!success) {
-              logError(chalk.red("Failed to update sendNotification status"));
+              logError("Failed to update sendNotification status");
               setDownDetectorData(prevData);
               return;
             }
@@ -226,7 +222,7 @@ const DownDetectorNavigator: React.FC = () => {
           );
         }
       } catch (error) {
-        logError(chalk.red("Error fetching downDetector data:"), error);
+        logError("Error fetching downDetector data:", error);
       }
       const fallbackData = await loadDataSecure("_downDetectorData");
       setTimeout(() => setDownDetectorData(fallbackData || null), 2000);

@@ -4,7 +4,6 @@ import {
   RequestDatabaseFetch,
   ResponseDatabaseFetch,
 } from "@types";
-import chalk from "chalk";
 import axios from "axios";
 import * as Updates from "expo-updates";
 import _BackgroundTimer from "react-native-background-timer";
@@ -37,9 +36,7 @@ export const getFormattedDate = (
 
 const functionFallback = (functionName: string) => () =>
   log(
-    chalk.green(
-      `Function created after parsed data, original function name: "${functionName}"`,
-    ),
+    `Function created after parsed data, original function name: "${functionName}"`,
   );
 const symbolFallback = (symbolName: string) =>
   Symbol(
@@ -148,7 +145,7 @@ export const stringifyData = (value: unknown): string => {
 
     return JSON.stringify(value);
   } catch (error) {
-    logError(chalk.red("Error stringifying data:"), error, value);
+    logError("Error stringifying data:", error, value);
     return "notValid";
   }
 };
@@ -206,12 +203,6 @@ export const interpolateMessage = (message: string, values: string[]) => {
  *
  * @param str - The string to capitalize.
  * @returns The string with the first letter capitalized, or the original string if it is empty.
- *
- * @example
- * ```typescript
- * const result = capitalize("hello");
- * log(result); // Output: "Hello"
- * ```
  */
 export const capitalize = (str: string): string => {
   if (!str) return str;
@@ -315,13 +306,13 @@ export const fetchAndApplyUpdate = async (): Promise<void> => {
     const update = await Updates.fetchUpdateAsync();
 
     if (update.isNew) {
-      log(chalk.green("New update downloaded, applying update..."));
+      log("New update downloaded, applying update...");
       await Updates.reloadAsync();
     } else {
-      log(chalk.yellow("No new update available to fetch."));
+      log("No new update available to fetch.");
     }
   } catch (error) {
-    logError(chalk.red("Error fetching or applying update:"), error);
+    logError("Error fetching or applying update:", error);
   }
 };
 

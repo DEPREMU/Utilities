@@ -2,70 +2,44 @@ import type {
   PlatformsOS,
   RequestUploadUpdate,
   RequestIsUpdateAvailable,
-} from "./../types/";
+} from "../types/index";
+import {
+  ARGS,
+  isNewVersion,
+  versionElectron,
+  getRouteUpdates,
+  UTILITIES_FOR_PC_PATH,
+  getArgs,
+} from "./config.ts";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
-import dotenv from "dotenv";
 import FormData from "form-data";
 import { execSync } from "child_process";
-import type UtilitiesPackageJson from "../UtilitiesForPC/package.json";
+import type * as Types from "@types";
 
-const getSumVersion = (version: string): number => {
-  return version
-    .split(".")
-    .reduce(
-      (sum, part, index) => sum + parseInt(part) * Math.pow(1000, 2 - index),
-      0
-    );
-};
-
-dotenv.config();
-if (!process.env.API_URL) {
-  console.error("API_URL is not defined in environment variables.");
-  process.exit(1);
-}
-
-const version = JSON.parse(
-  fs.readFileSync(
-    path.join(process.cwd(), "UtilitiesForPC", "package.json"),
-    "utf-8"
-  )
-) as typeof UtilitiesPackageJson;
 let isNewVersionLinux: boolean;
 let isNewVersionWindows: boolean;
 
-if (!version.version) {
-  console.error("Version not found in UtilitiesForPC/package.json.");
-  process.exit(1);
-}
-
-const isNewVersion = async (platformOS: PlatformsOS) => {
+const isNewVersionPlatform = async (platformOS: PlatformsOS) => {
   try {
     const body: RequestIsUpdateAvailable = {
       buildType: "electron",
-      currentVersion: version.version,
+      currentVersion: versionElectron,
       platformOS,
     };
 
-    const res = await fetch(
-      process.env.API_URL?.replace("api", "updates/is-update-available")!,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      }
-    );
+    const res = await fetch(getRouteUpdates("/is-update-available"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
 
-    const result = (await res.json()) as {
-      updateAvailable: boolean;
-      latestVersion: string;
-      downloadUrl: string;
-    };
+    const result = (await res.json()) as Types.ResponseIsUpdateAvailable;
 
-    return getSumVersion(result.latestVersion) < getSumVersion(version.version);
+    return isNewVersion(versionElectron, result.latestVersion);
   } catch (error) {
     console.error(
       "Error checking for new version:",
@@ -77,14 +51,9 @@ const isNewVersion = async (platformOS: PlatformsOS) => {
 
 const uploadElectronBuilds = async () => {
   try {
-    console.log("Uploading Electron builds, version:", version.version);
+    console.log("Uploading Electron builds, version:", versionElectron);
 
-    if (!version.version) throw new Error("Version not found in package.json");
-    const distElectronPath = path.join(
-      process.cwd(),
-      "UtilitiesForPC",
-      "dist-electron"
-    );
+    const distElectronPath = path.join(UTILITIES_FOR_PC_PATH, "dist-electron");
 
     if (!fs.existsSync(distElectronPath)) {
       throw new Error(
@@ -138,14 +107,14 @@ const uploadElectronBuilds = async () => {
             return {
               platformOS,
               success: false,
-              error: `Version ${version.version} already exists on the server for ${platformOS}`,
+              error: `Version ${versionElectron} already exists on the server for ${platformOS}`,
             };
           }
           const data: RequestUploadUpdate = {
             buildType: "electron",
             platformOS,
             timestamp: Date.now(),
-            version: version.version,
+            version: versionElectron,
           };
 
           console.log(
@@ -165,7 +134,7 @@ const uploadElectronBuilds = async () => {
           });
 
           const response = await axios.post(
-            process.env.API_URL?.replace("api", "updates/upload-update"),
+            getRouteUpdates("/upload-update"),
             formData,
             {
               headers: {
@@ -174,7 +143,7 @@ const uploadElectronBuilds = async () => {
               },
               maxContentLength: Infinity,
               maxBodyLength: Infinity,
-              timeout: 1000 * 60 * 5,
+              timeout: 10 * 60 * 1000,
             }
           );
 
@@ -229,30 +198,24 @@ const uploadElectronBuilds = async () => {
 const buildElectronApp = () => {
   console.log("Starting Electron app build process...");
 
-  const utilitiesForPCPath = path.join(process.cwd(), "UtilitiesForPC");
-
-  if (!fs.existsSync(utilitiesForPCPath)) {
+  if (!fs.existsSync(UTILITIES_FOR_PC_PATH)) {
     throw new Error(
-      `UtilitiesForPC directory not found at ${utilitiesForPCPath}`
+      `UtilitiesForPC directory not found at ${UTILITIES_FOR_PC_PATH}`
     );
   }
 
-  const args = process.argv.slice(2);
-  const platformArg = args.find(
-    (arg) => arg.startsWith("--platform=") || arg.startsWith("-p=")
-  );
-  let platform = platformArg ? platformArg.split("=")[1] : "both";
+  let platform = ARGS.platform || "both";
 
   if (platform === "both") {
-    if (!isNewVersionLinux) {
+    if (isNewVersionLinux) {
       console.log(
-        `Building only for Linux as Windows is up to date for version ${version.version}.`
+        `Building only for Linux as Windows is up to date for version ${versionElectron}.`
       );
       platform = "linux";
     }
-    if (!isNewVersionWindows) {
+    if (isNewVersionWindows) {
       console.log(
-        `Building only for Windows as Linux is up to date for version ${version.version}.`
+        `Building only for Windows as Linux is up to date for version ${versionElectron}.`
       );
       platform = "windows";
     }
@@ -266,10 +229,18 @@ const buildElectronApp = () => {
 
   console.log(`Building Electron app for platform: ${platform}`);
 
-  execSync(`npm run build-app -- --platform=${platform}`, {
-    cwd: utilitiesForPCPath,
-    stdio: "inherit",
-  });
+  const args = getArgs();
+
+  execSync(
+    `npm run build-app -- ${
+      args.includes("platform") ? args : `${args} --platform=${platform}`
+    }`,
+    {
+      cwd: UTILITIES_FOR_PC_PATH,
+      stdio: "inherit",
+      killSignal: "SIGINT",
+    }
+  );
 
   console.log("Electron app build completed!");
 };
@@ -277,8 +248,8 @@ const buildElectronApp = () => {
 console.log("=== Electron Build and Upload Process ===\n");
 
 const run = async () => {
-  isNewVersionLinux = await isNewVersion("linux");
-  isNewVersionWindows = await isNewVersion("windows");
+  isNewVersionLinux = await isNewVersionPlatform("linux");
+  isNewVersionWindows = await isNewVersionPlatform("windows");
   buildElectronApp();
   uploadElectronBuilds().catch((error) => {
     console.error("Process failed:", error);

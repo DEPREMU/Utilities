@@ -3,7 +3,6 @@ import type {
   NotificationAction,
   ReasonNotification,
 } from "@types";
-import chalk from "chalk";
 import { logError } from "../functions";
 import type { TurboModule } from "react-native";
 import { Platform, TurboModuleRegistry } from "react-native";
@@ -31,14 +30,12 @@ export interface Spec extends TurboModule {
   cancelPreviousReasonNotification: (
     reasonNotification: ReasonNotification,
   ) => void;
-  cancelAllNotifications: () => void;
 }
 
 const defaultNotificationModule: Spec = {
   createNotificationChannel: () => {},
   sendNotification: async () => 0,
   cancelNotification: () => {},
-  cancelAllNotifications: () => { },
   cancelPreviousReasonNotification: () => {},
 };
 
@@ -51,7 +48,7 @@ if (
   process.env.NODE_ENV === "development" &&
   (!NotificationModule || Object.keys(NotificationModule).length === 0)
 ) {
-  logError(chalk.red("NotificationModule is not available"));
+  logError("NotificationModule is not available");
 }
 
 export default NotificationModule;

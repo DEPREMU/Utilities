@@ -1,5 +1,6 @@
 import {
   SerializableTask,
+  MetaInfoFunctions,
   AvailableFunctions,
   FunctionsArguments,
 } from "@types";
@@ -10,23 +11,31 @@ import React, {
   useCallback,
   createContext,
 } from "react";
+import {
+  log,
+  signOut,
+  logError,
+  loadData,
+  saveData,
+  loadDataSecure,
+  setIntervalPolyfill,
+  clearIntervalPolyfill,
+  executeRegisteredTask,
+} from "@utils";
+import windowModule from "@/utils/modules/WindowModule";
 import { useLanguage } from "./LanguageContext";
 import { useUserContext } from "./UserContext";
-import { Alert, BackHandler } from "react-native";
 import { useDeviceInformation } from "./DeviceInformationContext";
+import { Alert, BackHandler, Platform } from "react-native";
 import { getCurrentScreen, navigateReplace } from "@navigation/navigationRef";
-import { logError, loadData, saveData, executeRegisteredTask } from "@utils";
 
 type BackgroundTask = () => void | Promise<void>;
 
-type BackgroundTaskWithMeta = {
-  task: BackgroundTask;
-  meta?: {
-    id: string;
-    functionName: AvailableFunctions;
-    args: unknown[];
+type BackgroundTaskWithMeta<T extends AvailableFunctions = AvailableFunctions> =
+  {
+    task: BackgroundTask;
+    meta?: MetaInfoFunctions<T>;
   };
-};
 
 /**
  * Context type for managing background tasks and status bar appearance.
@@ -115,37 +124,40 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   children,
 }) => {
   const { t } = useLanguage();
-  const { isLoggedIn } = useUserContext();
-  const { hasInternet } = useDeviceInformation();
+  const { hasInternetRef, hasInternet } = useDeviceInformation();
+  const { isLoggedIn, refreshToken, setLoggingIn } = useUserContext();
 
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);
+  const idRefreshSession = useRef<NodeJS.Timeout | number | null>(null);
   const executeWhenInternetRef = useRef<BackgroundTaskWithMeta[]>([]);
 
-  const persistPendingTasks = useCallback(async (removeTaskWithId?: string) => {
-    try {
-      const serializableTasks: SerializableTask[] =
-        executeWhenInternetRef.current
-          .filter(
-            (taskWithMeta) =>
-              !!taskWithMeta.meta && taskWithMeta.meta.id !== removeTaskWithId,
-          )
-          .map((taskWithMeta) => {
-            const meta = taskWithMeta.meta;
-            if (!meta) throw new Error("Meta is required");
-            return {
-              id: meta.id,
-              functionName: meta.functionName,
-              args: meta.args,
-              timestamp: Date.now(),
-            };
-          });
+  const persistPendingTasks = useCallback(
+    async <T extends AvailableFunctions>(removeTaskWithId?: string) => {
+      try {
+        const serializableTasks: SerializableTask<T>[] =
+          executeWhenInternetRef.current
+            .filter(
+              (taskWithMeta) =>
+                !!taskWithMeta.meta &&
+                taskWithMeta.meta.id !== removeTaskWithId,
+            )
+            .map((taskWithMeta) => {
+              const meta = taskWithMeta.meta;
+              if (!meta) throw new Error("Meta is required");
+              return {
+                ...meta,
+                timestamp: Date.now(),
+              } as SerializableTask<T>;
+            });
 
-      await saveData("@pendingTasks", serializableTasks);
-    } catch (error) {
-      logError("Error persisting tasks:", error);
-    }
-  }, []);
+        await saveData("@pendingTasks", serializableTasks);
+      } catch (error) {
+        logError("Error persisting tasks:", error);
+      }
+    },
+    [],
+  );
 
   const processQueue = useCallback(async () => {
     if (isProcessingRef.current) return;
@@ -167,55 +179,50 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   }, []);
 
   const addTaskQueue = useCallback(
-    (
+    <T extends AvailableFunctions>(
       task: BackgroundTask,
       executeWhenInternet: boolean = false,
-      meta?: {
-        id: string;
-        args: unknown[];
-        functionName: AvailableFunctions;
-      },
+      meta?: MetaInfoFunctions<T>,
       removeTaskWithId?: string,
     ) => {
-      if (hasInternet) {
+      if (hasInternetRef.current) {
         taskQueueRef.current.push(task);
         processQueue();
         return;
       }
 
-      if (executeWhenInternet) {
-        if (!meta) {
-          logError(
-            "Meta is required for tasks that execute when internet is available",
-          );
-          return;
-        }
+      if (!executeWhenInternet) return processQueue();
 
-        if (executeWhenInternetRef.current.length >= MAX_PENDING_TASKS) {
-          logError(
-            `Max pending tasks limit (${MAX_PENDING_TASKS}) reached. Removing oldest task.`,
-          );
-          executeWhenInternetRef.current.shift();
-        }
-
-        const metaData = {
-          ...meta,
-          id:
-            Date.now().toString() + Math.random().toString(36).substring(2, 8),
-        };
-        const taskWithMeta: BackgroundTaskWithMeta = {
-          task,
-          meta: metaData,
-        };
-
-        executeWhenInternetRef.current.push(taskWithMeta);
-
-        persistPendingTasks(removeTaskWithId);
+      if (!meta) {
+        logError(
+          "Meta is required for tasks that execute when internet is available",
+        );
+        return;
       }
 
-      processQueue();
+      if (executeWhenInternetRef.current.length >= MAX_PENDING_TASKS) {
+        logError(
+          `Max pending tasks limit (${MAX_PENDING_TASKS}) reached. Removing oldest task.`,
+        );
+        executeWhenInternetRef.current.shift();
+      }
+
+      const metaData = {
+        ...meta,
+        id:
+          meta?.id ||
+          Date.now().toString() + Math.random().toString(36).substring(2, 8),
+      };
+      const taskWithMeta: BackgroundTaskWithMeta = {
+        task,
+        meta: metaData,
+      };
+
+      executeWhenInternetRef.current.push(taskWithMeta);
+
+      persistPendingTasks(removeTaskWithId);
     },
-    [processQueue, hasInternet, persistPendingTasks],
+    [processQueue, hasInternetRef, persistPendingTasks],
   );
 
   const runTask = useCallback(async (task: BackgroundTask) => {
@@ -230,19 +237,19 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     const loadPersistedTasks = async () => {
       try {
         const persistedTasks = await loadData("@pendingTasks");
-        if (persistedTasks && persistedTasks.length > 0) {
-          const rebuiltTasks = persistedTasks.map((taskData) => ({
-            task: () =>
-              executeRegisteredTask(taskData.functionName, taskData.args),
-            meta: {
-              id: taskData.id,
-              functionName: taskData.functionName,
-              args: taskData.args,
-            },
-          }));
+        if (!persistedTasks || persistedTasks.length === 0) return;
 
-          executeWhenInternetRef.current = rebuiltTasks;
-        }
+        const rebuiltTasks = persistedTasks.map((taskData) => ({
+          task: () =>
+            executeRegisteredTask(taskData.functionName, taskData.args),
+          meta: {
+            id: taskData.id,
+            functionName: taskData.functionName,
+            args: taskData.args,
+          },
+        }));
+
+        executeWhenInternetRef.current = rebuiltTasks;
       } catch (error) {
         logError("Error loading persisted tasks:", error);
       }
@@ -300,6 +307,71 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     saveData("@pendingTasks", []);
     processQueue();
   }, [hasInternet, processQueue]);
+
+  useEffect(() => {
+    const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
+      if (Platform.OS !== "web") return;
+
+      windowModule?.notifyLoginStatus?.(isLoggedIn);
+    };
+
+    const handleRefreshSession = async () => {
+      try {
+        log("Refreshing user session...");
+        const [rememberMe, sessionToken] = await Promise.all([
+          loadDataSecure("_sessionExpiry"),
+          loadDataSecure("_userSessionTokenStorage"),
+        ]);
+
+        if (!rememberMe || rememberMe < Date.now()) {
+          sendNotificationLoginStatus(false);
+          await signOut();
+          return;
+        }
+
+        if (!sessionToken) {
+          sendNotificationLoginStatus(false);
+          return;
+        }
+
+        await refreshToken(sessionToken);
+        sendNotificationLoginStatus(true);
+      } catch (error) {
+        logError("Error during session refresh:", error);
+      } finally {
+        setLoggingIn(false);
+      }
+    };
+
+    const handleRefreshSessionWithInternet = () => {
+      const id =
+        Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
+
+      addTaskQueue(
+        handleRefreshSession,
+        true,
+        {
+          id,
+          functionName: "refreshSession",
+          args: [],
+        },
+        id,
+      );
+    };
+
+    handleRefreshSessionWithInternet();
+    idRefreshSession.current = setIntervalPolyfill(
+      handleRefreshSessionWithInternet,
+      8 * 60 * 60 * 1000,
+    );
+
+    return () => {
+      if (!idRefreshSession.current) return;
+
+      clearIntervalPolyfill(idRefreshSession.current);
+      idRefreshSession.current = null;
+    };
+  }, [refreshToken, setLoggingIn, addTaskQueue]);
 
   return (
     <BackgroundTaskContext.Provider value={{ runTask, addTaskQueue }}>

@@ -1,4 +1,5 @@
 import React, {
+  useRef,
   useState,
   ReactNode,
   useEffect,
@@ -7,6 +8,7 @@ import React, {
   createContext,
 } from "react";
 import axios from "axios";
+import { cloneDeep } from "lodash";
 import { DeviceInformation } from "@types";
 import DeviceInfo, { PowerState } from "react-native-device-info";
 import { clearIntervalPolyfill, logError, setIntervalPolyfill } from "@utils";
@@ -16,6 +18,7 @@ interface DeviceInformationContextType {
   loading: boolean;
   hasInternet: boolean;
   refreshDeviceInfo: () => Promise<void>;
+  hasInternetRef: React.RefObject<boolean>;
 }
 
 const DeviceInformationContext = createContext<
@@ -82,6 +85,8 @@ export const DeviceInformationProvider: React.FC<
   const [deviceInfo, setDeviceInfo] = useState<DeviceInformation | null>(null);
   const [hasInternet, setHasInternet] = useState<boolean>(true);
 
+  const hasInternetRef = useRef<boolean>(hasInternet);
+
   const refreshDeviceInfo = useCallback(async () => {
     setLoading(true);
     try {
@@ -98,8 +103,8 @@ export const DeviceInformationProvider: React.FC<
     const url = "https://www.google.com/generate_204";
     const verifyInternetConnection = async () => {
       try {
-        const res = await axios.get(url, { timeout: 5000 });
-        setHasInternet([200, 204].includes(res.status));
+        const res = await axios.get(url, { timeout: 10000 });
+        setHasInternet(res.status < 400 && res.status >= 200);
       } catch {
         setHasInternet(false);
       }
@@ -118,9 +123,7 @@ export const DeviceInformationProvider: React.FC<
     const handleIntervalDeviceInfo = async () => {
       const powerState = await DeviceInfo.getPowerState();
       setDeviceInfo((prev) => {
-        const newValue: DeviceInformation = JSON.parse(
-          JSON.stringify(prev || {}),
-        );
+        const newValue = cloneDeep(prev || {}) as DeviceInformation;
         newValue.powerState = powerState as PowerState;
         return newValue;
       });
@@ -133,10 +136,15 @@ export const DeviceInformationProvider: React.FC<
     };
   }, [refreshDeviceInfo]);
 
+  useEffect(() => {
+    hasInternetRef.current = hasInternet;
+  }, [hasInternet]);
+
   const value: DeviceInformationContextType = {
     loading,
     deviceInfo,
     hasInternet,
+    hasInternetRef,
     refreshDeviceInfo,
   };
 

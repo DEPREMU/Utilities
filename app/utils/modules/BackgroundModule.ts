@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { logError } from "../functions";
 import type { TurboModule } from "react-native";
 import { LanguagesSupported } from "@types";
@@ -21,14 +20,14 @@ export interface Spec extends TurboModule {
 }
 
 const defaultBackgroundModule: Spec = {
-  start: () => { },
-  stop: () => { },
-  setUserData: () => { },
+  start: () => {},
+  stop: () => {},
+  setUserData: () => {},
   isRunning: async () => false,
   getMethods: async () => [],
-  setClipboardText: () => { },
-  stopClipboardService: () => { },
-  startClipboardService: () => { },
+  setClipboardText: () => {},
+  stopClipboardService: () => {},
+  startClipboardService: () => {},
 };
 
 const BackgroundModule =
@@ -40,7 +39,7 @@ if (
   process.env.NODE_ENV === "development" &&
   (!BackgroundModule || Object.keys(BackgroundModule).length === 0)
 ) {
-  logError(chalk.red("BackgroundServiceModule is not available"));
+  logError("BackgroundServiceModule is not available");
 }
 
 export default BackgroundModule;

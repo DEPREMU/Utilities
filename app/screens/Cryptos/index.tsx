@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { View } from "react-native";
 import DisplayScreen from "./DisplayScreen";
 import SelectionScreen from "./SelectionScreen";
@@ -63,10 +62,7 @@ const CryptosNavigator: React.FC = () => {
         const storedCryptos = await loadDataSecure("_selectedCryptos");
         if (storedCryptos) setSelectedCryptos(storedCryptos);
       } catch (error) {
-        logError(
-          chalk.red("Error loading selected cryptocurrencies from storage"),
-          error,
-        );
+        logError("Error loading selected cryptocurrencies from storage", error);
       }
     };
     loadSelectedCryptos();

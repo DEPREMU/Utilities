@@ -102,7 +102,7 @@ const installWine = async (): Promise<void> => {
   }
 };
 
-const addAutostartLinux = async (runAppCommand: string) => {
+const addAutostartLinux = async () => {
   const answer0 = await askQuestion(t("enableAutoStartQuestion"));
   if (answer0.toLowerCase() !== "y") return;
 
@@ -373,7 +373,7 @@ const buildApp = async () => {
 
         const runAppCommand = `/opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`;
 
-        await addAutostartLinux(runAppCommand);
+        await addAutostartLinux();
 
         const answer = await askQuestion(t("pleaseRestartComputer"));
         if (answer.toLowerCase() === "y") {

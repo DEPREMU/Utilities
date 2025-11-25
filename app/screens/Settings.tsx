@@ -3,6 +3,7 @@ import {
   openURL,
   API_URL,
   loadData,
+  logError,
   saveData,
   APP_VERSION,
   getRouteAPI,
@@ -69,12 +70,36 @@ const SettingsScreen: React.FC = () => {
   const handleCheckPasswordAdminSection = useCallback(async () => {
     log("Checking admin password:", password, "against:", ADMIN_PASSWORD);
     if (!password || !ADMIN_PASSWORD) return;
+    if (!userData?.userId || !sessionToken) return;
+    if (password !== ADMIN_PASSWORD) return;
 
-    if (password === ADMIN_PASSWORD) {
-      setHasAdmin(true);
-      await saveData("@hasAdminAccess", true);
+    const [deviceId, url] = await Promise.all([
+      loadDataSecure("_deviceId"),
+      getRouteAPI("/database/update"),
+    ]);
+    if (!deviceId || !url) return;
+
+    setHasAdmin(true);
+    saveData("@hasAdminAccess", true);
+    try {
+      await fetch(
+        url,
+        fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
+          "POST",
+          {
+            lang: language,
+            match: { userId: userData?.userId },
+            table: "UserConfig",
+            values: { hasAdmin: true },
+            deviceId,
+          },
+          sessionToken,
+        ),
+      );
+    } catch (error) {
+      logError("Error updating lastAdminAccess:", error);
     }
-  }, [password]);
+  }, [password, userData?.userId, sessionToken, language]);
 
   const saveApiURL = useCallback(async () => {
     if (!apiURL || !userData?.userId) return;

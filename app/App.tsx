@@ -20,7 +20,6 @@ import {
   clearIntervalPolyfill,
   configureNotificationChannel,
 } from "@utils";
-import chalk from "chalk";
 import { v4 } from "uuid";
 import * as Updates from "expo-updates";
 import AppProviders from "./context/AppProviders";
@@ -52,7 +51,7 @@ const hasDeviceId = async (): Promise<boolean> => {
         const result = (await res.json()) as ResponseGetRandomUUID;
         uuid = result.uuid;
       } catch (error) {
-        logError(chalk.red("Error saving device ID:", error));
+        logError("Error saving device ID:", error);
       }
       if (!uuid)
         uuid = Array.from({ length: 5 }, () =>
@@ -80,12 +79,12 @@ const App = () => {
       try {
         if (!exists) {
           if (process.env.NODE_ENV === "development" || __DEV__)
-            logError(chalk.red("Error setting up device ID:"));
+            logError("Error setting up device ID:");
           else Updates.reloadAsync();
         }
       } catch (error) {
         if (process.env.NODE_ENV === "development" || __DEV__)
-          logError(chalk.red("Error setting up device ID:", error));
+          logError("Error setting up device ID:", error);
         else Updates.reloadAsync();
       }
     });

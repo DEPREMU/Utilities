@@ -41,13 +41,14 @@ class NotificationModule(
     init {
         reactContextInstance = reactContext
         // Needed "cryptos" | "allNotifications" | "streamers" | "locationEnabled" |
-        // "noInternetConnection" | "batteryAlerts"
+        // "noInternetConnection" | "batteryAlerts" | "downDetector"
         reasonNotificationJSON.put("cryptos", "")
         reasonNotificationJSON.put("allNotifications", "")
         reasonNotificationJSON.put("streamers", "")
         reasonNotificationJSON.put("locationEnabled", "")
         reasonNotificationJSON.put("noInternetConnection", "")
         reasonNotificationJSON.put("batteryAlerts", "")
+        reasonNotificationJSON.put("downDetector", "")
         Log.d("NotificationModule", "NotificationModule initialized")
     }
 

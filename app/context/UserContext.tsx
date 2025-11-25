@@ -1,27 +1,16 @@
-import React, {
-  useRef,
-  useState,
-  useEffect,
-  useCallback,
-  createContext,
-} from "react";
 import {
   log,
   logError,
   isValidEmail,
-  loadDataSecure,
   signInWithEmail,
   signUpWithEmail,
-  setIntervalPolyfill,
-  clearIntervalPolyfill,
   signOut as authSignOut,
   refreshSession as authRefreshSession,
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
 import { UserData } from "@types";
-import { Platform } from "react-native";
-import windowModule from "@/utils/modules/WindowModule";
 import { navigateReplace } from "@navigation/navigationRef";
+import React, { useRef, useState, useCallback, createContext } from "react";
 
 interface UserContextType {
   sessionToken: string | null;
@@ -45,6 +34,7 @@ interface UserContextType {
     callback?: (success: boolean, error?: string) => void,
   ) => Promise<void>;
   userData: Omit<UserData, "password"> | null;
+  setLoggingIn: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 interface UserProviderProps {
@@ -61,7 +51,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  const idRefreshSession = useRef<NodeJS.Timeout | number | null>(null);
   const sessionInitialized = useRef<boolean>(false);
 
   /**
@@ -236,58 +225,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     [],
   );
 
-  /**
-   * Initialize user session on app start
-   */
-  useEffect(() => {
-    const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
-      if (Platform.OS !== "web") return;
-
-      windowModule?.notifyLoginStatus?.(isLoggedIn);
-    };
-
-    const handleRefreshSession = async () => {
-      try {
-        log("Refreshing user session...");
-        const [rememberMe, sessionToken] = await Promise.all([
-          loadDataSecure("_sessionExpiry"),
-          loadDataSecure("_userSessionTokenStorage"),
-        ]);
-
-        if (!rememberMe || rememberMe < Date.now()) {
-          sendNotificationLoginStatus(false);
-          await authSignOut();
-          return;
-        }
-
-        if (!sessionToken) {
-          sendNotificationLoginStatus(false);
-          return;
-        }
-
-        await refreshToken(sessionToken);
-        sendNotificationLoginStatus(true);
-      } catch (error) {
-        logError("Error during session refresh:", error);
-      } finally {
-        setLoggingIn(false);
-      }
-    };
-
-    handleRefreshSession();
-    idRefreshSession.current = setIntervalPolyfill(
-      handleRefreshSession,
-      8 * 60 * 60 * 1000,
-    );
-
-    return () => {
-      if (!idRefreshSession.current) return;
-
-      clearIntervalPolyfill(idRefreshSession.current);
-      idRefreshSession.current = null;
-    };
-  }, [refreshToken]);
-
   const contextValue: UserContextType = {
     login,
     signUp,
@@ -297,6 +234,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     isLoggedIn,
     sessionToken,
     refreshToken,
+    setLoggingIn,
     forgotPassword,
   };
 

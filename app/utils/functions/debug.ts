@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 /* eslint-disable no-console */
 import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
@@ -11,6 +12,11 @@ type Return = {
   deviceId: string;
   deviceName: string;
 };
+
+const env = process.env.NODE_ENV;
+const isDev: boolean = __DEV__ || env === "development";
+const isPreview: boolean = env === "preview";
+const isProduction: boolean = env === "production";
 
 const getCurrentDeviceInfo = async (): Promise<Return> => {
   const fallback = "Platform: " + Platform.OS;
@@ -43,56 +49,53 @@ const getCurrentDeviceInfo = async (): Promise<Return> => {
  * - In preview mode, sends the log to a server endpoint.
  * - In production mode, does nothing.
  */
-export const log = async (...args: unknown[]): Promise<void> => {
-  const env = process.env.NODE_ENV;
-  const isProduction: boolean = env === "production";
-  if (isProduction) return;
-  const isDev: boolean = __DEV__ || env === "development";
-  const isPreview: boolean = env === "preview";
-  if (!isPreview && !isDev) return;
+export const log = isProduction
+  ? () => {}
+  : async (...args: unknown[]): Promise<void> => {
+      if (!isPreview && !isDev) return;
 
-  const date = new Date();
+      const date = new Date();
 
-  const firstMessage = `Log - ${date.toLocaleString()} ::\n`;
+      const firstMessage = `Log - ${date.toLocaleString()} ::\n`;
 
-  if (isDev)
-    console.log(
-      Chalk.blue.bold(firstMessage),
-      ...args.map((arg) =>
-        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-      ),
-    );
-  else if (isPreview) {
-    const message = [firstMessage, ...args]
-      .filter(Boolean)
-      .map((arg) =>
-        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-      )
-      .join(" ");
+      if (isDev)
+        console.log(
+          Chalk.blue.bold(firstMessage),
+          ...args.map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+          ),
+        );
+      else if (isPreview) {
+        const message = [firstMessage, ...args]
+          .filter(Boolean)
+          .map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+          )
+          .join(" ");
 
-    getRouteAPI("/log").then(async (url) => {
-      const [userId, deviceId, deviceInfo] = await Promise.all([
-        getCurrentUserId(),
-        loadDataSecure("_deviceId"),
-        getCurrentDeviceInfo(),
-      ]);
+        getRouteAPI("/log").then(async (url) => {
+          const [userId, deviceId, deviceInfo] = await Promise.all([
+            getCurrentUserId(),
+            loadDataSecure("_deviceId"),
+            getCurrentDeviceInfo(),
+          ]);
 
-      fetch(
-        url,
-        fetchOptions<RequestLogs>("POST", {
-          log: {
-            type: "log",
-            userId: userId || "",
-            message,
-            timestamp: date.toISOString(),
-            deviceId: deviceInfo.deviceId || deviceId || "",
-            deviceName: deviceInfo.deviceName,
-          },
-        }),
-      );
-    });
-  }
-};
+          fetch(
+            url,
+            fetchOptions<RequestLogs>("POST", {
+              log: {
+                type: "log",
+                userId: userId || "",
+                message,
+                timestamp: date.toISOString(),
+                deviceId: deviceInfo.deviceId || deviceId || "",
+                deviceName: deviceInfo.deviceName,
+              },
+            }),
+          );
+        });
+      }
+    };
 
 /**
  * Logs warning messages based on the current environment.
@@ -110,50 +113,47 @@ export const log = async (...args: unknown[]): Promise<void> => {
  * await logWarn("API rate limit exceeded");
  * ```
  */
-export const logWarn = async (...args: unknown[]): Promise<void> => {
-  const env = process.env.NODE_ENV;
-  const isDev = env === "development" || __DEV__;
-  const isPreview = env === "preview";
-  const isProduction = env === "production";
+export const logWarn = isProduction
+  ? () => {}
+  : async (...args: unknown[]): Promise<void> => {
+      if (!isPreview && !isDev) return;
 
-  if (isProduction && !isPreview && !isDev) return;
+      const date = new Date();
 
-  const date = new Date();
+      const firstMessage = `Warning - ${date.toLocaleString()} ::\n`;
 
-  const firstMessage = `Warning - ${date.toLocaleString()} ::\n`;
+      if (isDev) console.warn(Chalk.yellow.bold(firstMessage), ...args);
+      else if (isPreview) {
+        const warningMessage = [firstMessage, ...args]
+          .filter(Boolean)
+          .map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+          )
+          .join(" ");
 
-  if (isDev) console.warn(Chalk.yellow.bold(firstMessage), ...args);
-  else if (isPreview) {
-    const warningMessage = [firstMessage, ...args]
-      .filter(Boolean)
-      .map((arg) =>
-        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-      )
-      .join(" ");
+        getRouteAPI("/log").then(async (url) => {
+          const [userId, deviceInfo, deviceId] = await Promise.all([
+            getCurrentUserId(),
+            getCurrentDeviceInfo(),
+            loadDataSecure("_deviceId"),
+          ]);
 
-    getRouteAPI("/log").then(async (url) => {
-      const [userId, deviceInfo, deviceId] = await Promise.all([
-        getCurrentUserId(),
-        getCurrentDeviceInfo(),
-        loadDataSecure("_deviceId"),
-      ]);
-
-      fetch(
-        url,
-        fetchOptions<RequestLogs>("POST", {
-          log: {
-            type: "warn",
-            userId: userId || "",
-            message: warningMessage,
-            timestamp: date.toISOString(),
-            deviceId: deviceInfo.deviceId || deviceId || "",
-            deviceName: deviceInfo.deviceName,
-          },
-        }),
-      );
-    });
-  }
-};
+          fetch(
+            url,
+            fetchOptions<RequestLogs>("POST", {
+              log: {
+                type: "warn",
+                userId: userId || "",
+                message: warningMessage,
+                timestamp: date.toISOString(),
+                deviceId: deviceInfo.deviceId || deviceId || "",
+                deviceName: deviceInfo.deviceName,
+              },
+            }),
+          );
+        });
+      }
+    };
 
 /**
  * Logs an error message to the console or sends it to a server.
@@ -165,53 +165,49 @@ export const logWarn = async (...args: unknown[]): Promise<void> => {
  * - In preview mode, sends the log to a server endpoint.
  * - In production mode, does nothing.
  */
-export const logError = async (...args: unknown[]): Promise<void> => {
-  const env = process.env.NODE_ENV;
-  const isDev = env === "development" || __DEV__;
-  const isPreview = env === "preview";
-  const isProduction = env === "production";
+export const logError = isProduction
+  ? () => {}
+  : async (...args: unknown[]): Promise<void> => {
+      if (!isPreview && !isDev) return;
 
-  if (isProduction && !isPreview && !isDev) return;
+      const date = new Date();
+      const firstMessage = `Error - ${date.toLocaleString()} ::\n`;
 
-  const date = new Date();
+      if (isDev)
+        console.error(
+          Chalk.red.bold(firstMessage),
+          ...args.map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+          ),
+        );
+      else if (isPreview) {
+        const errorMessage = [firstMessage, ...args]
+          .filter(Boolean)
+          .map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+          )
+          .join(" ");
 
-  const firstMessage = `Error - ${date.toLocaleString()} ::\n`;
+        getRouteAPI("/log").then(async (url) => {
+          const [userId, deviceInfo, deviceId] = await Promise.all([
+            getCurrentUserId(),
+            getCurrentDeviceInfo(),
+            loadDataSecure("_deviceId"),
+          ]);
 
-  if (isDev)
-    console.error(
-      Chalk.red.bold(firstMessage),
-      ...args.map((arg) =>
-        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-      ),
-    );
-  else if (isPreview) {
-    const errorMessage = [firstMessage, ...args]
-      .filter(Boolean)
-      .map((arg) =>
-        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-      )
-      .join(" ");
-
-    getRouteAPI("/log").then(async (url) => {
-      const [userId, deviceInfo, deviceId] = await Promise.all([
-        getCurrentUserId(),
-        getCurrentDeviceInfo(),
-        loadDataSecure("_deviceId"),
-      ]);
-
-      fetch(
-        url,
-        fetchOptions<RequestLogs>("POST", {
-          log: {
-            type: "error",
-            userId: userId || "",
-            message: errorMessage,
-            timestamp: date.toISOString(),
-            deviceId: deviceInfo.deviceId || deviceId || "",
-            deviceName: deviceInfo.deviceName,
-          },
-        }),
-      );
-    });
-  }
-};
+          fetch(
+            url,
+            fetchOptions<RequestLogs>("POST", {
+              log: {
+                type: "error",
+                userId: userId || "",
+                message: errorMessage,
+                timestamp: date.toISOString(),
+                deviceId: deviceInfo.deviceId || deviceId || "",
+                deviceName: deviceInfo.deviceName,
+              },
+            }),
+          );
+        });
+      }
+    };

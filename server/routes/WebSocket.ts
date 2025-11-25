@@ -302,24 +302,32 @@ const connectionWss = (ws: WebSocket) => {
     console.log(chalk.green("New client connected"));
 
     ws.on("message", (message) => {
-      const data = JSON.parse(message.toString()) as WebSocketMessage;
-      switch (data.type) {
-        case "init":
-          userId = handleInitWebSocket(data, ws);
-          break;
-        case "ping":
-          ws.send(JSON.stringify({ type: "pong" }));
-          break;
-        case "notifications":
-          handleNotifications(data, ws);
-          break;
-        case "language-change":
-          if (!users[userId]) return;
-          updateInTable("UserConfig", { language: data.language }, { userId });
-          break;
-        default:
-          console.log(chalk.yellow("Unknown message type:"), data);
-          break;
+      try {
+        const data = JSON.parse(message.toString()) as WebSocketMessage;
+        switch (data.type) {
+          case "init":
+            userId = handleInitWebSocket(data, ws);
+            break;
+          case "ping":
+            ws.send(JSON.stringify({ type: "pong" }));
+            break;
+          case "notifications":
+            handleNotifications(data, ws);
+            break;
+          case "language-change":
+            if (!users[userId]) return;
+            updateInTable(
+              "UserConfig",
+              { language: data.language },
+              { userId },
+            );
+            break;
+          default:
+            console.log(chalk.yellow("Unknown message type:"), data);
+            break;
+        }
+      } catch (error) {
+        console.error(chalk.red("Error handling WebSocket message:"), error);
       }
     });
 
@@ -360,8 +368,9 @@ export const initWebSocketClipboard = () => {
     } = {};
 
     const deleteDevice = (data: { userId: string; deviceId: string }) => {
-      delete usersClipboard[data.userId]?.[data.deviceId];
       if (!usersClipboard[data.userId]) return;
+
+      delete usersClipboard[data.userId]?.[data.deviceId];
       if (Object.keys(usersClipboard[data.userId]).length > 0) return;
 
       delete usersClipboard[data.userId];
@@ -377,6 +386,7 @@ export const initWebSocketClipboard = () => {
           });
           let dataLang = fetchedData.data;
           if (!dataLang) return;
+
           if (!Array.isArray(dataLang)) dataLang = [dataLang];
           if (dataLang.length === 0) return;
           let lastItem: ClipboardSync = dataLang[0];
@@ -424,14 +434,13 @@ export const initWebSocketClipboard = () => {
       };
 
       connectionClipboard.on("message", (buffer) => {
-        console.log(buffer.toString());
         const message = JSON.parse(
           buffer.toString(),
         ) as ClipboardWebSocketMessage;
 
         if (message.type !== "init") return;
         if (!message.userId || !message.deviceId) {
-          connectionClipboard.close();
+          connectionClipboard.close?.();
           return;
         }
         data = { userId: message.userId, deviceId: message.deviceId };

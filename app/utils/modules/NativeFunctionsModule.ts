@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { logError } from "../functions";
 import type { TurboModule } from "react-native";
 import { Platform, TurboModuleRegistry } from "react-native";
@@ -41,7 +40,7 @@ const NativeFunctionsModule =
     : TurboModuleRegistry.getEnforcing<Spec>("NativeFunctionsModule");
 
 if (process.env.NODE_ENV === "development" && Platform.OS === "android") {
-  logError(chalk.red("NativeFunctionsModule is not available."));
+  logError("NativeFunctionsModule is not available.");
 }
 
 export default NativeFunctionsModule;

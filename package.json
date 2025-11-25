@@ -3,29 +3,29 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "clean": "rimraf node_modules app/.expo app/node_modules app/package-lock.json server/node_modules server/package-lock.json UtilitiesForPC/node_modules UtilitiesForPC/package-lock.json UtilitiesForPC/dist UtilitiesForPC/dist-electron UtilitiesForPC/build types/node_modules types/package-lock.json scripts/node_modules scripts/package-lock.json && cd app && npm cache clean --force ",
-    "clean:all": "npm run clean && npm run install-all",
-    "format-all": "cd app && npm run format-all && cd ../server && npm run format-all",
-    "install-all": "cd app && npm i && cd ../UtilitiesForPC && npm i && cd ../server && npm i && cd ../types && npm i && cd ../scripts && npm i",
-    "app": "cd app && npm run start",
-    "server": "cd server && npm run start",
-    "type-check": "cd app && npm run type-check",
-    "i:a": "cd app && npm install",
-    "i:s": "cd server && npm install",
-    "before-commit": "cd app && npm run before-commit && cd ../server && npm run before-commit && cd ../UtilitiesForPC && npm run before-commit && cd ../scripts && npm run type-check",
+    "__ROOT__": "______________________________________________",
+    "clean": "node scripts/root-commands.ts --action=clean",
+    "clean:all": "node scripts/root-commands.ts --action=clean-all",
+    "format-all": "node scripts/root-commands.ts --action=format-all",
+    "install-all": "node scripts/root-commands.ts --action=install-all",
+    "app": "node scripts/root-commands.ts --action=app",
+    "server": "node scripts/root-commands.ts --action=server",
+    "type-check": "node scripts/root-commands.ts --action=type-check",
+    "i:a": "node scripts/root-commands.ts --action=i-a",
+    "i:s": "node scripts/root-commands.ts --action=i-s",
+    "before-commit": "node scripts/root-commands.ts --action=before-commit",
+    "__APP__": "_______________________________________________",
+    "app-prebuild-android": "node scripts/app/app-prebuild.ts",
+    "app-build-dev-android": "node scripts/app/app-build-dev-android.ts",
+    "__SCRIPTS__": "___________________________________________",
     "update-assets": "node scripts/update.ts",
-    "build-upload-electron": "node scripts/build-app-upload.ts",
-    "build-upload-android": "node scripts/build-android-upload.ts"
+    "build-android": "node scripts/build-android.ts",
+    "build-upload-electron": "node scripts/build-upload-electron.ts",
+    "build-upload-android": "node scripts/build-upload-android.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/DEPREMU/Utilities.git"
   },
-  "author": "DEPREMU",
-  "dependencies": {
-    "dotenv": "^17.2.3"
-  },
-  "devDependencies": {
-    "@types/dotenv": "^6.1.1"
-  }
+  "author": "DEPREMU"
 }

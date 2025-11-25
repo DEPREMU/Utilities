@@ -17,7 +17,7 @@ import { execFileSync, execSync, spawn } from "child_process";
 if (!app.isPackaged)
   dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
 
-let urlUpdates = process.env.API_URL.replace("api", "updates");
+let urlUpdates = process.env.API_URL.replace("api", "updates"); // API_URL replaced in build process
 
 if (!urlUpdates) {
   throw new Error("API_URL is not defined.");
@@ -29,7 +29,7 @@ const getURLUpdates = (route: UpdatesRoutes): string => {
 
 export const getHtmlPath = (): string => {
   if (app.isPackaged)
-    return path.join(process.resourcesPath, "app.asar", "dist", "index.html");
+    return path.join(process.resourcesPath, "dist", "index.html");
   else return path.join(path.dirname(__dirname), "dist", "index.html");
 };
 
@@ -51,28 +51,41 @@ export const deleteDownloadedUpdate = () => {
 const openInstallerOrInstall = async (filePath: string) => {
   writeLog(`Opening installer at path: ${filePath}`, "info");
   if (dataApp.getValue("isWindows")) {
+    await new Promise<void>((resolve) =>
+      setTimeout(async () => {
+        try {
+          const child = spawn(filePath, [], {
+            detached: true,
+            stdio: "ignore",
+          });
+
+          child.unref();
+          writeLog("Installer spawned on Windows.", "info");
+          await handleShutdown();
+        } catch (e) {
+          writeLog(
+            "Error spawning installer on Windows: " + String(e),
+            "error"
+          );
+        } finally {
+          resolve();
+        }
+      }, 5000)
+    );
+  } else {
     try {
-      const child = spawn(filePath, [], {
+      const cmd = `sudo dpkg -i "${filePath}" && sudo apt-get install -f -y && ${path.join(
+        dataApp.getValue("userHome"),
+        ".config",
+        "utilities-for-pc-autostart.sh"
+      )}`;
+
+      writeLog(`Executing Linux install command: ${cmd}`, "info");
+      const child = spawn(cmd, [], {
         detached: true,
         stdio: "ignore",
       });
-
       child.unref();
-      writeLog("Installer spawned on Windows.", "info");
-      await handleShutdown();
-    } catch (e) {
-      writeLog("Error spawning installer on Windows: " + String(e), "error");
-    }
-  } else {
-    try {
-      const isRoot = process.getuid && process.getuid() === 0;
-      const cmd = isRoot
-        ? `dpkg -i "${filePath}" && apt-get install -f -y`
-        : `sudo dpkg -i "${filePath}" && sudo apt-get install -f -y`;
-
-      writeLog(`Executing Linux install command: ${cmd}`, "info");
-      execSync(cmd);
-      writeLog("Linux installation command executed.", "info");
       await handleShutdown();
     } catch (e) {
       writeLog("Error installing on Linux: " + String(e), "error");

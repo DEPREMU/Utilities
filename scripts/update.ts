@@ -7,23 +7,14 @@ import type {
 import fs from "fs";
 import path from "path";
 import axios from "axios";
-import dotenv from "dotenv";
 import FormData from "form-data";
 import { execSync } from "child_process";
+import { isNewVersion, versionExpo } from "./config.ts";
 
-dotenv.config();
-if (!process.env.API_URL) {
-  console.error("API_URL is not defined in environment variables.");
-  process.exit(1);
-}
-
-const version = fs
-  .readFileSync(path.join(process.cwd(), "app", "app.config.js"), "utf-8")
-  .match(/const version[^\n]*/g)?.[0]
-  ?.split('"')[1];
+const args = process.argv.slice(2);
 
 const checkIsNewVersion = async () => {
-  if (!version) {
+  if (!versionExpo) {
     console.error("Version not found");
     process.exit(1);
   }
@@ -37,30 +28,28 @@ const checkIsNewVersion = async () => {
     const body: RequestIsUpdateAvailable = {
       buildType: "web",
       platformOS: "windows",
-      currentVersion: version,
+      currentVersion: versionExpo,
     };
     const res = await axios.post<ResponseIsUpdateAvailable>(url, body, {
       timeout: 10000,
     });
     const data = res.data;
-    if (data.latestVersion !== version) return;
+    if (!isNewVersion(versionExpo, data.latestVersion)) return;
     console.log("Your version is the same as the server:", data.latestVersion);
-    process.exit(0);
+    return true;
   } catch (error) {
     console.error(
       "Error checking for new version:",
       error instanceof Error ? error.message : String(error)
     );
-    process.exit(1);
   }
+  return false;
 };
 
-const uploadWeb = async () => {
+const uploadWeb = async (): Promise<boolean> => {
   try {
-    await checkIsNewVersion();
-    console.log("Building web version:", version);
-
-    if (!version) throw new Error("Version not found");
+    if (!(await checkIsNewVersion())) return false;
+    console.log("Building web version:", versionExpo);
 
     const buildPath = path.join(
       process.cwd(),
@@ -90,7 +79,7 @@ const uploadWeb = async () => {
           buildType: "web",
           platformOS,
           timestamp: Date.now(),
-          version,
+          version: versionExpo,
         };
 
         console.log(`Uploading web build for ${platformOS}...`, data);
@@ -154,12 +143,13 @@ const uploadWeb = async () => {
     if (successCount === 0) {
       throw new Error("All uploads failed");
     }
+    return true;
   } catch (error) {
     console.error(
       "Fatal error:",
       error instanceof Error ? error.message : String(error)
     );
-    process.exit(1);
+    return false;
   }
 };
 
@@ -170,4 +160,13 @@ const uploadAndroidAssets = async () => {
   });
 };
 
-uploadWeb().then(uploadAndroidAssets);
+const run = async () => {
+  const onlyAndroid = args.includes("--only-android") || args.includes("-a");
+  if (onlyAndroid) {
+    console.log("Uploading only Android assets...");
+    await uploadAndroidAssets();
+    return;
+  }
+  if (await uploadWeb()) await uploadAndroidAssets();
+};
+run();

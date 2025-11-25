@@ -5,7 +5,6 @@ import {
   ResponseDatabaseFetch,
   ResponseDatabaseUpdate,
 } from "@types";
-import chalk from "chalk";
 import { Text } from "react-native-paper";
 import * as Clipboard from "expo-clipboard";
 import { useLanguage } from "@context/LanguageContext";
@@ -64,7 +63,7 @@ const ClipboardScreen: React.FC = () => {
       ).then((res) => res.json())) as ResponseDatabaseUpdate<"ClipboardSync">;
 
       if (error) {
-        logError(chalk.red("Error deleting clipboard item:"), error);
+        logError("Error deleting clipboard item:", error);
         return;
       }
 

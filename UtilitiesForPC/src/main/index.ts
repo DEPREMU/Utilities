@@ -12,9 +12,11 @@ import dataApp, {
   startMemoryMonitor,
   executeTerminalCommands,
 } from "@utils";
+import fs from "fs";
+import os from "os";
 import path from "path";
-import { app, Tray, Menu, nativeImage, BrowserWindow } from "electron";
 import { exec, execSync } from "child_process";
+import { app, Tray, Menu, nativeImage, BrowserWindow } from "electron";
 
 if (!dataApp.getValue("isWindows") && app.isPackaged) {
   try {
@@ -51,37 +53,41 @@ const setupAutostart = () => {
         }
       );
     } else {
-      const userName =
-        process.env.ORIGINAL_USER ||
-        process.env.SUDO_USER ||
-        process.env.USER ||
-        process.env.USERNAME;
-      const userHome =
-        process.env.ORIGINAL_HOME ||
-        (process.env.SUDO_USER && process.env.SUDO_USER !== "root"
-          ? `/home/${process.env.SUDO_USER}`
-          : process.env.HOME);
+      const sudo = (cmd: string) => {
+        try {
+          return execSync(`sudo bash -c "${cmd.replace(/"/g, '\\"')}"`);
+        } catch (error) {
+          return null;
+        }
+      };
 
-      if (!userName || !userHome) {
-        writeLog("Cannot setup autostart: USER or HOME not defined", "error");
-        return;
-      }
+      try {
+        const userName = dataApp.getValue("username");
+        const userHome = dataApp.getValue("userHome");
 
-      const configDir = path.join(userHome, ".config");
-      const autoStartDir = path.join(configDir, "autostart");
-      const startUpFile = path.join(configDir, "utilities-for-pc-autostart.sh");
-      const desktopFilePath = path.join(
-        autoStartDir,
-        "utilities-for-pc.desktop"
-      );
-      const wrapperScriptPath = `/opt/UtilitiesForPC/utilities-for-pc-root.sh`;
+        if (!userName || !userHome) {
+          writeLog("Cannot setup autostart: USER or HOME not defined", "error");
+          return;
+        }
 
-      if (!require("fs").existsSync(autoStartDir)) {
-        require("fs").mkdirSync(autoStartDir, { recursive: true });
-        execSync(`chown -R ${userName}:${userName} ${configDir}`);
-      }
+        const configDir = path.join(userHome, ".config");
+        const autoStartDir = path.join(configDir, "autostart");
+        const startUpFile = path.join(
+          configDir,
+          "utilities-for-pc-autostart.sh"
+        );
+        const desktopFilePath = path.join(
+          autoStartDir,
+          "utilities-for-pc.desktop"
+        );
+        const wrapperScriptPath = `/opt/UtilitiesForPC/utilities-for-pc-root.sh`;
 
-      const wrapperScriptContent = `#!/bin/bash
+        if (!fs.existsSync(autoStartDir)) {
+          fs.mkdirSync(autoStartDir, { recursive: true });
+          sudo(`chown -R ${userName}:${userName} "${configDir}"`);
+        }
+
+        const wrapperScriptContent = `#!/bin/bash
 # Wrapper to run UtilitiesForPC as root with correct environment
 # Usage: ./utilities-for-pc-root.sh <USER_ID> <USER_HOME> <USER_NAME> <DBUS_ADDR>
 
@@ -95,7 +101,6 @@ if [ -z "$USER_ID" ] || [ -z "$USER_HOME" ]; then
     exit 1
 fi
 
-# Configure environment for root to access user session
 export DISPLAY=:0
 export XAUTHORITY="$USER_HOME/.Xauthority"
 export DBUS_SESSION_BUS_ADDRESS="$DBUS_ADDR"
@@ -103,11 +108,10 @@ export XDG_RUNTIME_DIR="/run/user/$USER_ID"
 export ORIGINAL_USER="$USER_NAME"
 export ORIGINAL_HOME="$USER_HOME"
 
-# Run the app
 exec ${process.execPath} --no-sandbox --disable-gpu --ozone-platform=x11 "\${@:5}"
 `;
 
-      const startupScriptContent = `#!/bin/bash
+        const startupScriptContent = `#!/bin/bash
 
 xhost +si:localuser:root 2>/dev/null || true
 
@@ -131,7 +135,7 @@ sudo ${wrapperScriptPath} "$USER_ID" "$USER_HOME" "$USER_NAME" "$DBUS_ADDR" >> "
 echo "[$(date)] Startup script completed" >> "$LOG_FILE"
 `;
 
-      const desktopFileContent = `[Desktop Entry]
+        const desktopFileContent = `[Desktop Entry]
 Type=Application
 Exec=${startUpFile}
 Terminal=false
@@ -144,43 +148,34 @@ Categories=Utility;
 StartupNotify=false
 `;
 
-      require("fs").writeFileSync(startUpFile, startupScriptContent);
-      require("fs").writeFileSync(desktopFilePath, desktopFileContent);
+        fs.writeFileSync(startUpFile, startupScriptContent);
+        fs.writeFileSync(desktopFilePath, desktopFileContent);
 
-      const tempWrapper = path.join(
-        require("os").tmpdir(),
-        `utilities-for-pc-root-${Date.now()}.sh`
-      );
-      try {
-        require("fs").writeFileSync(tempWrapper, wrapperScriptContent);
-        execSync(`cp ${tempWrapper} ${wrapperScriptPath}`);
-        execSync(`chmod +x ${wrapperScriptPath}`);
-      } catch (e) {
-        try {
-          execSync(`mv ${tempWrapper} ${wrapperScriptPath}`);
-          execSync(`chmod +x ${wrapperScriptPath}`);
-        } catch (err) {
-          writeLog("Failed to update wrapper script: " + String(err), "error");
-        }
-      }
+        const tempWrapper = path.join(
+          os.tmpdir(),
+          `utilities-for-pc-root-${Date.now()}.sh`
+        );
+        fs.writeFileSync(tempWrapper, wrapperScriptContent);
 
-      execSync(`chmod +x ${startUpFile}`);
-      execSync(`chmod +x ${desktopFilePath}`);
-      execSync(`chown ${userName}:${userName} ${startUpFile}`);
-      execSync(`chown ${userName}:${userName} ${desktopFilePath}`);
+        sudo(`cp "${tempWrapper}" "${wrapperScriptPath}"`);
+        sudo(`chmod +x "${wrapperScriptPath}"`);
 
-      const fileSudoers = "utilitiesforpc";
-      const sudoersEntry = `# UtilitiesForPC auto-start with root privileges
+        sudo(`chmod +x "${startUpFile}"`);
+        sudo(`chmod +x "${desktopFilePath}"`);
+        sudo(`chown ${userName}:${userName} "${startUpFile}"`);
+        sudo(`chown ${userName}:${userName} "${desktopFilePath}"`);
+
+        const sudoersEntry = `# UtilitiesForPC auto-start with root privileges
 ${userName} ALL=(ALL) NOPASSWD: ${wrapperScriptPath}
 ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
 `;
 
-      try {
-        execSync(`echo "${sudoersEntry}" > /etc/sudoers.d/${fileSudoers}`);
-        execSync(`chmod 0440 /etc/sudoers.d/${fileSudoers}`);
+        sudo(`echo "${sudoersEntry}" > /etc/sudoers.d/utilitiesforpc`);
+        sudo(`chmod 0440 /etc/sudoers.d/utilitiesforpc`);
+
         writeLog("Linux autostart configured successfully.", "info");
       } catch (error) {
-        writeLog("Error configuring sudoers: " + String(error), "error");
+        writeLog("Error configuring autostart: " + String(error), "error");
       }
     }
   } catch (error) {

@@ -24,6 +24,8 @@ export type DataAppElectron = {
   logPath: string;
   hasSudo: boolean;
   deviceId: string;
+  username: string;
+  userHome: string;
   language: LanguagesSupported;
   __dirname: string;
   isWindows: boolean;

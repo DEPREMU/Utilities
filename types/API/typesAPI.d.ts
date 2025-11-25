@@ -10,8 +10,8 @@ import type {
 import type { Falsy } from "react-native";
 import type { Handler } from "express";
 import { Notifications } from "../typesNotifications";
-import { SerializableTask } from "../typesTaskRegistry";
 import type { LanguagesSupported } from "../typesTranslations";
+import { AvailableFunctions, SerializableTask } from "../typesTaskRegistry";
 
 export type Command = {
   when: "Start-up" | "Shut-down";
@@ -35,7 +35,7 @@ export type ExpectedSecureStorageTypes = {
 export type ExpectedUnsecureStorageTypes = {
   "@theme": "light" | "dark" | "auto";
   "@API_URL": string | null;
-  "@pendingTasks": SerializableTask[] | null;
+  "@pendingTasks": SerializableTask<AvailableFunctions>[] | null;
   "@webSocketURL": string | null;
   "@notifications": Notifications;
   "@hasAdminAccess": boolean | null;

@@ -5,7 +5,6 @@ import {
   CLIPBOARD_WS_URL,
   fallbackURL_WEB_SOCKET,
 } from "../constants/API_URL";
-import chalk from "chalk";
 import axios from "axios";
 import { isFalsy } from "@utils";
 import { logError, logWarn } from "./debug";
@@ -29,7 +28,7 @@ export const fetchOptions = <T = RequestBody>(
   try {
     if (body) body = stringifyData(body) as T;
   } catch (error) {
-    logError(chalk.red("Error stringifying request body:", error));
+    logError("Error stringifying request body:", error);
     body = undefined;
   }
   return {
@@ -54,12 +53,6 @@ export const fetchOptions = <T = RequestBody>(
  * For example, if the base API URL is "https://example.com/api/v1"
  * and the route is "users", the resulting URL will be:
  * "https://example.com/api/v1/users".
- *
- * @example
- * ```typescript
- * const userRoute = getRouteAPI("/users");
- * log(userRoute); // Outputs: "https://example.com/api/v1/users"
- * ```
  */
 export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
   let isOk: boolean = false;
@@ -110,12 +103,6 @@ export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
  * For example, if the base API URL is "https://example.com/api/v1"
  * and the filename is "/images/photo.jpg", the resulting URL will be:
  * "https://example.com/images/photo.jpg".
- *
- * @example
- * ```typescript
- * const imageRoute = getRouteImage("/images/photo.jpg");
- * log(imageRoute); // Outputs: "https://example.com/images/photo.jpg"
- * ```
  */
 export const getRouteImage = async (filename: string): Promise<string> => {
   const apiUrl = await loadData("@API_URL").then((data) => data || API_URL);

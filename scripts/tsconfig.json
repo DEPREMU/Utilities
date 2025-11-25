@@ -6,15 +6,18 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "allowJs": false,
+    "allowJs": true,
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": ".",
-    "baseUrl": ".",
+    "allowImportingTsExtensions": true,
     "noEmit": true,
     "isolatedModules": false,
-    "types": ["node"]
-  }
+    "types": ["node", "../types/index.d.ts"],
+    "paths": {
+      "@types": ["../types/index.d.ts"]
+    }
+  },
+  "include": ["../app/app.config.js", "./**/*.ts"],
+  "exclude": ["node_modules"]
 }

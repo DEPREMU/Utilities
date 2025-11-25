@@ -22,7 +22,6 @@ import {
   removeDataSecure,
   cleanAllStorageData,
 } from "../functions";
-import chalk from "chalk";
 import { isFalsy } from "./../functions/appManagement";
 import { Platform } from "react-native";
 import windowModule from "../modules/WindowModule";
@@ -88,16 +87,6 @@ const saveStorageData = async (
  * @param password - The user's password
  * @param rememberMe - Whether to persist the session for longer duration (default: false)
  * @returns Promise that resolves to an AuthResponse object containing user data, session, and userData on success, or error message on failure
- *
- * @example
- * ```typescript
- * const result = await signInWithEmail("user@example.com", "password123", true);
- * if (result.error) {
- *   logError("Sign in failed:", result.error);
- * } else {
- *   log("User signed in:", result.user?.email);
- * }
- * ```
  *
  * @throws Will catch and return any unexpected errors that occur during the authentication process
  */
@@ -314,7 +303,7 @@ export const refreshSession = async (
 
     if (!deviceId) {
       cleanAllStorageData();
-      logError(chalk.red("No device ID found"));
+      logError("No device ID found");
       return { error: "No device ID found" };
     }
 
@@ -370,16 +359,6 @@ export const refreshSession = async (
  * @returns A promise that resolves to an object containing either the user data or an error message
  * @returns userData - The user data if successfully retrieved, null if not found, undefined if error occurred
  * @returns error - Error message if an error occurred, null if successful
- *
- * @example
- * ```typescript
- * const { userData, error } = await getUserData("user-123");
- * if (error) {
- *   logError("Failed to get user data:", error);
- * } else {
- *   log("User data:", userData);
- * }
- * ```
  */
 export const getUserData = async (
   userId: string,
