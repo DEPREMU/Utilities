@@ -383,8 +383,9 @@ export const initWebSocketClipboard = () => {
         try {
           const fetchedData = await fetchFromTable("ClipboardSync", {
             userId,
+            deleted: false,
           });
-          let dataLang = fetchedData.data;
+          let dataLang = fetchedData?.data;
           if (!dataLang) return;
 
           if (!Array.isArray(dataLang)) dataLang = [dataLang];
@@ -425,7 +426,7 @@ export const initWebSocketClipboard = () => {
           );
         }
       });
-    }, 2500);
+    }, 1000);
 
     wss.on("connection", (connectionClipboard) => {
       let data: { userId: string; deviceId: string } = {

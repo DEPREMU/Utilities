@@ -440,6 +440,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           loadDataSecure("_deviceId"),
         ]);
 
+        if (!url || !deviceId) return;
+
         await fetch(
           url,
           fetchOptions<RequestDatabaseInsert<"ClipboardSync">>(
@@ -451,7 +453,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
               values: {
                 userId: userData.userId,
                 content,
-                deviceId: deviceId || "local-device",
+                deviceId,
                 createdAt: new Date().toISOString(),
               },
             },
@@ -474,7 +476,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     clipboardIntervalRef.current = setIntervalPolyfill(
       handleIntervalClipboardWeb,
-      2500,
+      500,
     );
 
     return () => clearIntervalIfExists();
