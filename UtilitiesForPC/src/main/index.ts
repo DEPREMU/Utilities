@@ -210,10 +210,11 @@ const createWindow = async (): Promise<void> => {
     show: false,
     webPreferences: {
       sandbox: false,
+      preload: preloadPath,
       webSecurity: false,
       nodeIntegration: false,
       contextIsolation: true,
-      preload: preloadPath,
+      backgroundThrottling: false,
     },
   });
 

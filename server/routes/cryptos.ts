@@ -8,16 +8,35 @@ import {
 import chalk from "chalk";
 import express from "express";
 
+export let dataBinance: PriceBinanceAPI = [];
+
+const fetchData = async () => {
+  try {
+    const res = await fetch("https://api.binance.com/api/v3/ticker/price");
+    const data = await res.json();
+    if (!data || !Array.isArray(data)) return;
+
+    dataBinance = data.map((item: { symbol: string; price: string }) => ({
+      symbol: item.symbol,
+      price: parseFloat(item.price),
+    }));
+  } catch (error) {
+    console.error(chalk.red("Error fetching Binance data:"), error);
+  }
+};
+
+fetchData();
+setInterval(fetchData, 500);
+
 export const getCryptoPrice = async (
   cryptoId: string,
   currency: string,
 ): Promise<number> => {
   try {
-    const response = await fetch(
-      `https://api.binance.com/api/v3/ticker/price?symbol=${cryptoId.toUpperCase()}${currency.toUpperCase()}`,
+    return (
+      dataBinance?.find((item) => item.symbol === `${cryptoId}${currency}`)
+        ?.price ?? -1
     );
-    const data = await response.json();
-    return parseFloat(data.price);
   } catch (error) {
     console.error(chalk.red("Error fetching crypto price:"), error);
     return -1;
@@ -54,13 +73,11 @@ export const handleGetCryptos = async (
   res: express.Response<ResponseCryptos>,
 ) => {
   try {
-    const response = await fetch("https://api.binance.com/api/v3/ticker/price");
-    const cryptos = (await response.json()) as PriceBinanceAPI;
-    const cryptosFilteredByCurrency = cryptos.filter((item) =>
+    const cryptosFilteredByCurrency = dataBinance?.filter((item) =>
       item.symbol.endsWith(req?.body?.currency || ""),
     ) as PriceBinanceAPI;
 
-    res.json({ cryptos: cryptosFilteredByCurrency });
+    res.json({ cryptos: cryptosFilteredByCurrency || [] });
   } catch (error) {
     console.error(chalk.red("Error fetching cryptos:"), error);
     try {

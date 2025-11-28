@@ -246,6 +246,9 @@ const en: typeLanguages = {
   batteryOptimizationPermission: "Battery Optimization Permission",
   batteryOptimizationPermissionMessage:
     "To ensure the app functions correctly in the background, please disable battery optimization for this app in your device settings. This will help maintain consistent performance and prevent interruptions while using background features.",
+  autoStartPermission: "Auto Start Permission",
+  autoStartPermissionMessage:
+    "To allow the app to start automatically when you power on your device, please enable auto start permission in your device settings. This will ensure the app functions properly in the background without needing to open it manually.",
   lastUpdateCheck: "Last Update Check",
   checkForUpdates: "Check for Updates",
   updateAvailable: "Update Available",

@@ -77,7 +77,9 @@ const handleSendNotificationsStreamers = async () => {
   ).filter((status) => status.isLive);
 
   const channelId: ChannelsId = "streamers";
-  const data: { screen: ScreensAvailable } = { screen: "SocialMedia" };
+  const data: { screen: ScreensAvailable } = {
+    screen: "SocialMedia",
+  };
 
   for (const status of liveStatuses) {
     for (const userConfig of status.usersConfig) {
@@ -128,7 +130,7 @@ const handleSendNotificationsStreamers = async () => {
             },
             channelId,
             {
-              screen: data.screen,
+              ...data,
               ...(status.image && { image: status.image }),
             },
           );

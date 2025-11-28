@@ -1,10 +1,16 @@
+import {
+  ChannelsId,
+  Notifications,
+  ScreensAvailable,
+  ReasonNotification,
+} from "@types";
 import { log } from "./debug";
 import * as notifications from "expo-notifications";
+import NotificationModule from "../modules/NotificationModule";
 import { Platform, Falsy } from "react-native";
 import { reasonNotification } from "../constants";
 import { loadData, saveData } from "./storageManagement";
 import { getNotifications, stringifyData } from "./appManagement";
-import { ChannelsId, Notifications, ScreensAvailable } from "@types";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -146,6 +152,12 @@ export const setupNotificationHandlers = (
   const foregroundListener = notifications.addNotificationReceivedListener(
     (notification) => {
       log("Notification received in foreground:", notification.request.content);
+      const data = notification.request?.content?.data as NotificationData;
+      if (!data) return;
+      if (data.reason)
+        NotificationModule.cancelPreviousReasonNotification?.(
+          data.reason as ReasonNotification,
+        );
     },
   );
 

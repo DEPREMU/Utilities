@@ -130,10 +130,6 @@ export const ARGS = args.reduce((acc, arg) => {
     prevArg = arg.replace(/^-+/, "");
   }
 
-  console.log(
-    `Processing argument: key='${key}', value='${value}', prevArg='${prevArg}'`
-  );
-
   if (!key) return acc;
   if (argsProcessed.includes(key)) {
     throw new Error(`Duplicate argument: ${key}`);

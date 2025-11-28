@@ -211,4 +211,98 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
             promise.reject("E_OPEN_APP_ERROR", errorMessage, e)
         }
     }
+
+    @ReactMethod
+    fun requestAutoStartPermission(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val manufacturer = android.os.Build.MANUFACTURER.lowercase()
+            
+            val intent = when (manufacturer) {
+                "xiaomi", "redmi" -> {
+                    Intent().apply {
+                        component = android.content.ComponentName(
+                            "com.miui.securitycenter",
+                            "com.miui.permcenter.autostart.AutoStartManagementActivity"
+                        )
+                    }
+                }
+                "oppo" -> {
+                    Intent().apply {
+                        component = android.content.ComponentName(
+                            "com.coloros.safecenter",
+                            "com.coloros.safecenter.permission.startup.StartupAppListActivity"
+                        )
+                    }
+                }
+                "vivo" -> {
+                    Intent().apply {
+                        component = android.content.ComponentName(
+                            "com.vivo.permissionmanager",
+                            "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"
+                        )
+                    }
+                }
+                "letv" -> {
+                    Intent().apply {
+                        component = android.content.ComponentName(
+                            "com.letv.android.letvsafe",
+                            "com.letv.android.letvsafe.AutobootManageActivity"
+                        )
+                    }
+                }
+                "honor" -> {
+                    Intent().apply {
+                        component = android.content.ComponentName(
+                            "com.huawei.systemmanager",
+                            "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"
+                        )
+                    }
+                }
+                "huawei" -> {
+                    Intent().apply {
+                        component = android.content.ComponentName(
+                            "com.huawei.systemmanager",
+                            "com.huawei.systemmanager.optimize.process.ProtectActivity"
+                        )
+                    }
+                }
+                "asus" -> {
+                    Intent().apply {
+                        component = android.content.ComponentName(
+                            "com.asus.mobilemanager",
+                            "com.asus.mobilemanager.MainActivity"
+                        )
+                    }
+                }
+                else -> {
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                    }
+                }
+            }
+
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            
+            try {
+                context.startActivity(intent)
+                promise.resolve("SETTINGS_OPENED")
+            } catch (e: Exception) {
+                Log.w("NativeFunctionsModule", "Failed to open specific autostart settings, trying generic: ${e.message}")
+                val fallbackIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(fallbackIntent)
+                promise.resolve("GENERIC_SETTINGS_OPENED")
+            }
+        } catch (e: Exception) {
+            Log.e("NativeFunctionsModule", "Error requesting autostart permission", e)
+            promise.reject(
+                "E_REQUEST_AUTOSTART",
+                "Error requesting autostart permission: ${e.message}",
+                e
+            )
+        }
+    }
 }

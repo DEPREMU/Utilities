@@ -35,24 +35,22 @@ export const isValidPassword = (password: string): boolean => {
  * @returns The cleaned float string.
  */
 export const cleanFloat = (text: string): string => {
-  let cleanedText = "";
-  const lenText = text.length;
-  for (let i = 0; i < lenText; i++) {
-    const char = text[i];
-    if (char === "0" && text[i + 1] === ".") continue;
-    if (
-      char === "0" &&
-      (Number(text[i + 1] || "0") === 0 || Number(text[i + 1]) > 0)
-    )
-      continue;
-    if (char === "." && cleanedText.includes(".")) continue;
-    if (char === "." && Number(text.slice(i)) === 0) continue;
-    cleanedText += char;
-  }
-  if (!cleanedText) cleanedText = "0";
-  if (cleanedText.startsWith(".")) cleanedText = "0" + cleanedText;
+  let cleaned = text.replace(/[^0-9.]/g, "");
 
-  return cleanedText;
+  const parts = cleaned.split(".");
+  if (parts.length > 2) {
+    cleaned = parts.shift() + "." + parts.join("");
+  }
+
+  while (cleaned.length > 1 && cleaned.startsWith("0") && cleaned[1] !== ".") {
+    cleaned = cleaned.substring(1);
+  }
+
+  if (cleaned.startsWith(".")) {
+    cleaned = "0" + cleaned;
+  }
+
+  return cleaned || "0";
 };
 
 /**

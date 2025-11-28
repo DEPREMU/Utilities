@@ -22,6 +22,8 @@ import {
   loadDataSecure,
   CLIPBOARD_WS_URL,
   getNotifications,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
 } from "@utils";
 import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
@@ -70,6 +72,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const pingIntervalId = useRef<NodeJS.Timeout | number | null>(null);
   const clipboardSocketRef = useRef<WebSocket | null>(null);
   const connectionTimeoutId = useRef<NodeJS.Timeout | number | null>(null);
+  const clipboardReconnectTimeoutRef = useRef<NodeJS.Timeout | number | null>(
+    null,
+  );
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
     const currentSocket = socketRef.current;
@@ -94,7 +99,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       }
 
       if (connectionTimeoutId.current) {
-        clearTimeout(connectionTimeoutId.current);
+        clearTimeoutPolyfill(connectionTimeoutId.current);
         connectionTimeoutId.current = null;
       }
       if (pingIntervalId.current) {
@@ -227,8 +232,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     const retryConnection = (socket: WebSocket) => {
       clipboardSocketRef.current = null;
       closeModal();
-      initWebSocket();
       socket.close?.();
+
+      if (clipboardReconnectTimeoutRef.current)
+        clearTimeoutPolyfill(clipboardReconnectTimeoutRef.current);
+
+      clipboardReconnectTimeoutRef.current = setTimeoutPolyfill(
+        initWebSocket,
+        3000,
+      );
     };
 
     const initWebSocket = async () => {
@@ -293,6 +305,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     };
 
     initWebSocket();
+
+    return () => {
+      if (!clipboardReconnectTimeoutRef.current) return;
+
+      clearTimeoutPolyfill(clipboardReconnectTimeoutRef.current);
+    };
   }, [
     t,
     openModal,
@@ -326,7 +344,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       !socketRef.current ||
       socketRef.current.readyState === WebSocket.CLOSED
     ) {
-      connectionTimeoutId.current = setTimeout(() => {
+      connectionTimeoutId.current = setTimeoutPolyfill(() => {
         createWebSocketConnection(socketURL || URL_WEB_SOCKET);
       }, 1500);
     }
@@ -334,7 +352,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     return () => {
       if (!connectionTimeoutId.current) return;
 
-      clearTimeout(connectionTimeoutId.current);
+      clearTimeoutPolyfill(connectionTimeoutId.current);
       connectionTimeoutId.current = null;
     };
   }, [socketURL, createWebSocketConnection]);
@@ -365,11 +383,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     shouldConnect.current = false;
 
-    if (clipboardSocketRef.current) {
-      clipboardSocketRef.current.close?.();
-      clipboardSocketRef.current = null;
-    }
-
     if (socketRef.current) {
       socketRef.current.close();
       socketRef.current = null;
@@ -377,7 +390,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     }
 
     if (connectionTimeoutId.current) {
-      clearTimeout(connectionTimeoutId.current);
+      clearTimeoutPolyfill(connectionTimeoutId.current);
       connectionTimeoutId.current = null;
     }
 

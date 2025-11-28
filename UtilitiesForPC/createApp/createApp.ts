@@ -408,7 +408,9 @@ const exportWebApp = () => {
   console.log(t("dependenciesInstalled"));
 
   console.log(t("buildingWebApp"));
-  const data = execSync("npm run build:web", { cwd: appPath });
+  const data = execSync("npm run build-web", {
+    cwd: path.resolve(__dirname, ".."),
+  });
   if (!data.toString().includes("Exported: dist"))
     throw new Error(t("failedToBuildWebApp") + data.toString());
   console.log(t("webAppBuiltSuccessfully"));
@@ -417,7 +419,8 @@ const exportWebApp = () => {
   ["dist", dataBuild.distElectron, "release", "build"].forEach((dir) => {
     try {
       const fullPath = path.resolve(__dirname, dir);
-      if (fs.existsSync(fullPath)) fs.rmSync(fullPath, { recursive: true });
+      if (fs.existsSync(fullPath))
+        fs.rmSync(fullPath, { recursive: true, force: true });
     } catch {}
   });
   console.log(t("oldBuildDirectoriesCleaned"));

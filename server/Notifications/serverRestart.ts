@@ -1,8 +1,9 @@
-import { fetchFromTable } from "database/functions.ts";
-import chalk from "chalk";
-import { sendFCMNotification } from "firebase/admin.ts";
-import { t } from "translations/index.ts";
 import env from "env";
+import chalk from "chalk";
+import { t } from "translations/index.ts";
+import { fetchFromTable } from "database/functions.ts";
+import { ReasonNotification } from "@types";
+import { sendFCMNotification } from "firebase/admin.ts";
 
 const handleSendNotificationToAdmin = async () => {
   try {
@@ -35,7 +36,15 @@ const handleSendNotificationToAdmin = async () => {
       ? fetchUserConfig.data[0]
       : fetchUserConfig.data;
 
+    if (validTokens.length === 0) {
+      console.log(
+        chalk.yellow("No valid tokens found for admin notification."),
+      );
+      return;
+    }
+
     try {
+      const reason: ReasonNotification = "downDetector";
       const res = await sendFCMNotification(
         validTokens,
         {
@@ -49,6 +58,7 @@ const handleSendNotificationToAdmin = async () => {
           ),
         },
         "downDetector",
+        { screen: "Home", reason },
       );
       console.log(
         chalk.green(

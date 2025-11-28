@@ -4,6 +4,7 @@ import {
   ARGS,
   APP_PATH,
   ANDROID_PATH,
+  UTILITIES_PATH,
   handleExitFromScript,
   deleteAndroidFromGitIgnore,
 } from "../config.ts";
@@ -44,10 +45,10 @@ const build = async () => {
   if (!ARGS["skip-prebuild-android"]) {
     fs.rmSync(ANDROID_PATH, { recursive: true, force: true });
 
-    execSync("npm run prebuild", {
+    execSync("npm run app-prebuild-android", {
       env,
       stdio: "inherit",
-      cwd: APP_PATH,
+      cwd: UTILITIES_PATH,
       killSignal: "SIGINT",
     });
   }

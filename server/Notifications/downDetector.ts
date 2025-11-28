@@ -2,8 +2,8 @@ import chalk from "chalk";
 import axios from "axios";
 import { t } from "../translations/index.ts";
 import { dataDatabase } from "./fetchData.ts";
-import { LanguagesSupported } from "@types";
 import { sendFCMNotification } from "../firebase/admin.ts";
+import { LanguagesSupported, ReasonNotification } from "@types";
 
 const isDown = async (url: string): Promise<boolean> => {
   if (!url || !url.startsWith("http")) return false;
@@ -95,9 +95,12 @@ const handleCheckDownServers = async () => {
       const body = t("downDetectorNotificationBody", langType, {
         service: webURL,
       });
+      if (tokens.length === 0) return;
+      const reason: ReasonNotification = "downDetector";
       sendFCMNotification(tokens, { title, body }, "downDetector", {
         screen: "DownDetector",
         url: webURL,
+        reason,
       });
     });
   });

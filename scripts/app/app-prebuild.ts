@@ -85,7 +85,7 @@ const editMainApplication = async () => {
 };
 
 const createModules = async () => {
-  const modulesPath = getPath("native/modules/modules.json");
+  const modulesPath = getPath("native/modules.json");
 
   console.log(chalk.blue("Creating native modules..."));
   const modules = JSON.parse(fs.readFileSync(modulesPath, "utf8")) as {
@@ -235,6 +235,10 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
 };
 
 const runPrebuild = () => {
+  const androidPath = path.join(APP_PATH, "android");
+  if (fs.existsSync(androidPath))
+    fs.rmSync(androidPath, { recursive: true, force: true });
+
   const commands = ["npm i", "npx expo prebuild --platform android"];
   if (!fs.existsSync(path.join(APP_PATH, "google-services.json")))
     throw new Error("Missing google-services.json file");

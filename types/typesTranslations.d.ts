@@ -214,6 +214,8 @@ export type typeLanguages = Record<ReasonNotification, string> &
     markdownPlaceholder: string;
     batteryOptimizationPermission: string;
     batteryOptimizationPermissionMessage: string;
+    autoStartPermission: string;
+    autoStartPermissionMessage: string;
     lastUpdateCheck: string;
     checkForUpdates: string;
     updateAvailable: string;

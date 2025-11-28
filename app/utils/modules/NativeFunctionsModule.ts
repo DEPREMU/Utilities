@@ -20,6 +20,9 @@ export interface Spec extends TurboModule {
   requestIgnoreBatteryOptimizations: () => void;
   isIgnoringBatteryOptimizations: () => Promise<boolean>;
   openApp: () => void;
+  requestAutoStartPermission: () => Promise<
+    "SETTINGS_OPENED" | "GENERIC_SETTINGS_OPENED"
+  >;
 }
 
 const defaultNativeFunctionsModule: Spec = {
@@ -32,6 +35,7 @@ const defaultNativeFunctionsModule: Spec = {
   isIgnoringBatteryOptimizations: async () => false,
   requestIgnoreBatteryOptimizations: () => {},
   openApp: () => {},
+  requestAutoStartPermission: async () => "GENERIC_SETTINGS_OPENED",
 };
 
 const NativeFunctionsModule =

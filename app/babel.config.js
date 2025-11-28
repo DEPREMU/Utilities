@@ -1,6 +1,7 @@
 module.exports = function (api) {
   api.cache(true);
   const platform = process?.env?.PLATFORM;
+  const isProduction = process?.env?.NODE_ENV === "production";
 
   if (!platform) {
     throw new Error("PLATFORM environment variable is not set");
@@ -38,9 +39,13 @@ module.exports = function (api) {
             "process.env.NODE_ENV": JSON.stringify(
               process?.env?.NODE_ENV || "production",
             ),
-            " log": "(()=>{})",
-            " logWarn": "(()=>{})",
-            " logError": "(()=>{})",
+            ...(isProduction
+              ? {
+                  " log": "(()=>{})",
+                  " logWarn": "(()=>{})",
+                  " logError": "(()=>{})",
+                }
+              : {}),
           },
           allowConflictingReplacements: true,
         },

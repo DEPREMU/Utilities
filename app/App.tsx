@@ -18,6 +18,7 @@ import {
   setIntervalPolyfill,
   isNewUpdateAvailable,
   clearIntervalPolyfill,
+  askAutoStartPermission,
   configureNotificationChannel,
 } from "@utils";
 import { v4 } from "uuid";
@@ -36,6 +37,7 @@ const hasDeviceId = async (): Promise<boolean> => {
       windowModule.setData(deviceId, await checkLanguage());
 
     if (deviceId) return true;
+    askAutoStartPermission();
     if (Platform.OS === "web") {
       const deviceId = v4() + v4();
       windowModule.setData(deviceId, await checkLanguage());

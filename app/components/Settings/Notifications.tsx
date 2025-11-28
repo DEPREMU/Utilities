@@ -5,7 +5,6 @@ import {
   RequestDatabaseUpdate,
 } from "@types";
 import {
-  isFalsy,
   saveData,
   getRouteAPI,
   fetchOptions,
@@ -30,6 +29,20 @@ interface NotificationsProps {
 }
 
 type typeMinutes = Record<ReasonNotification, number | null> | null;
+
+const intervalValues: Record<ReasonNotification, number> = {
+  cryptos: 0,
+  locationEnabled: -1,
+  streamers: -1,
+  allNotifications: -1,
+  batteryAlerts: -1,
+  downDetector: -1,
+  noInternetConnection: -1,
+};
+
+const getDefaultMinutes = (reason: ReasonNotification): number => {
+  return intervalValues?.[reason] ?? -1;
+};
 
 const NotificationsComponent: React.FC<NotificationsProps> = ({
   onScrollableAreaTouch,
@@ -122,7 +135,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
       if (!userData?.userId) return;
 
       let interval = parseFloat(value);
-      if (isNaN(interval)) interval = -1;
+      if (isNaN(interval)) interval = getDefaultMinutes(id);
 
       setMinutes((prev) => {
         const updated = {
@@ -130,11 +143,13 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
           [id]: interval,
         } as typeMinutes;
 
+        if (interval <= 0) return updated;
+
         getRouteAPI("/database/update").then(async (url) => {
           const taskId =
             Date.now().toString() + Math.random().toString(36).substring(2, 8);
           const values: RequestDatabaseUpdate["values"] = {
-            interval: interval * 60 * 1000,
+            interval: interval > 0 ? interval * 60 * 1000 : -1,
           };
           const match: RequestDatabaseUpdate["match"] = {
             userId: userData.userId,
@@ -176,8 +191,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
   const renderNotificationItem = useCallback(
     ({ item }: { item: { id: ReasonNotification; enabled: boolean } }) => {
-      const interval = notifications?.intervals?.[item.id];
-      const minutesItem = minutes?.[item.id] || -1;
+      const minutesItem = minutes?.[item.id] ?? getDefaultMinutes(item.id);
 
       return (
         <>
@@ -196,7 +210,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
               </Text>
             </>
           </Button>
-          {item.enabled && !isFalsy(interval) && minutesItem > 0 && (
+          {item.enabled && minutesItem > -1 && (
             <TextInput
               value={minutesItem?.toString()}
               onChangeText={(text) =>
@@ -217,7 +231,6 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
       t,
       styles,
       minutes,
-      notifications,
       handleChangeNotification,
       handleChangeNotificationInterval,
     ],
@@ -239,9 +252,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
       const mins = Object.fromEntries(
         Object.entries(data?.intervals || {}).map(([id, value]) => [
           id,
-          value !== null || value !== -1
-            ? (value as number) / (60 * 1000)
-            : null,
+          value && value > 0 ? value / (60 * 1000) : null,
         ]),
       ) as Record<ReasonNotification, number | null>;
       setMinutes(mins);
@@ -262,7 +273,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
           ...Object.fromEntries(
             Object.entries(minutes || {}).map(([id, value]) => [
               id,
-              (value || 0) * 60 * 1000,
+              value && value > 0 ? value * 60 * 1000 : null,
             ]),
           ),
         },

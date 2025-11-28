@@ -43,6 +43,13 @@ const run = () => {
     case "server":
       execSync("npm run start", { cwd: SERVER_PATH, stdio: "inherit", env });
       break;
+    case "server-dev":
+      execSync("npm run start-dev", {
+        cwd: SERVER_PATH,
+        stdio: "inherit",
+        env,
+      });
+      break;
     case "type-check":
       execSync("npm run type-check", { cwd: APP_PATH, stdio: "inherit", env });
       break;
@@ -55,6 +62,19 @@ const run = () => {
     case "before-commit":
       beforeCommit();
       break;
+    case "build-web": {
+      const envWeb = {
+        ...env,
+        PLATFORM: "web",
+        NODE_ENV: env.BUILD_PROFILE || "production",
+      };
+      execSync("npx expo export -c -p web", {
+        cwd: APP_PATH,
+        stdio: "inherit",
+        env: envWeb,
+      });
+      break;
+    }
     default:
       throw new Error(`Unknown action: ${action}`);
   }
@@ -95,7 +115,10 @@ const clean = () => {
   try {
     execSync("npm cache clean --force", { cwd: APP_PATH, stdio: "inherit" });
   } catch (e) {
-    console.warn("Failed to clean npm cache in app, continuing...");
+    console.warn(
+      "Failed to clean npm cache in app, continuing...",
+      e instanceof Error ? e.message : e
+    );
   }
 };
 

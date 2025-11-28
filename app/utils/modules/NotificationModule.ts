@@ -48,7 +48,7 @@ if (
   process.env.NODE_ENV === "development" &&
   (!NotificationModule || Object.keys(NotificationModule).length === 0)
 ) {
-  logError("NotificationModule is not available");
+  logError?.("NotificationModule is not available");
 }
 
 export default NotificationModule;

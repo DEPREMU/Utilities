@@ -9,16 +9,19 @@ import {
   UserConfig,
   Notification,
   Notifications,
+  ClipboardSync,
+  ScreensAvailable,
   WebSocketMessage,
   WebSocketResponse,
   ReasonNotification,
   LanguagesSupported,
   UserNotificationsConfig,
   ClipboardWebSocketMessage,
-  ClipboardSync,
 } from "@types";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
+import { dataBinance } from "./cryptos.ts";
+import { sendFCMNotification } from "firebase/admin.ts";
 import WebSocket, { WebSocketServer } from "ws";
 
 deleteSessions();
@@ -165,14 +168,15 @@ const connectionWss = (ws: WebSocket) => {
             type: "info",
             timestamp: new Date(),
             overrideNotification: false,
+            data: {
+              screen: "Cryptos",
+            },
           };
 
-        const res = await fetch("https://api.binance.com/api/v3/ticker/price");
-        const data = await res.json();
+        if (!dataBinance || !Array.isArray(dataBinance)) return null;
         const prices = cryptos?.map((crypto) => {
-          const priceData = data.find(
-            (item: { symbol: string; price: number }) =>
-              item.symbol === `${crypto.id}${crypto.currency}`,
+          const priceData = dataBinance?.find(
+            (item) => item.symbol === `${crypto.id}${crypto.currency}`,
           );
           return priceData ? priceData.price : 0;
         });
@@ -189,7 +193,7 @@ const connectionWss = (ws: WebSocket) => {
           )
           .join("\n");
 
-        return {
+        const notification: Notification = {
           message,
           reasonNotification: "cryptos",
           channelId: "cryptos",
@@ -200,7 +204,11 @@ const connectionWss = (ws: WebSocket) => {
           type: "info",
           timestamp: new Date(),
           overrideNotification: false,
+          data: {
+            screen: "Cryptos",
+          },
         };
+        return notification;
       } catch (error) {
         console.error(chalk.red("Error in getNotificationCrypto:"), error);
         return null;
@@ -221,14 +229,16 @@ const connectionWss = (ws: WebSocket) => {
             intervalsId: null,
           };
         }
-        const fetchedData = await fetchFromTable("Cryptos", {
-          userId: data.userId,
-        });
-        let cryptos = fetchedData.data;
-        if (!cryptos) cryptos = [];
-        if (!Array.isArray(cryptos)) cryptos = [cryptos];
 
         const handleInterval = async () => {
+          const fetchedData = await fetchFromTable("Cryptos", {
+            userId: data.userId,
+          });
+
+          let cryptos = fetchedData.data;
+          if (!cryptos) cryptos = [];
+          if (!Array.isArray(cryptos)) cryptos = [cryptos];
+
           if (!cryptos || cryptos.length === 0) return;
           const notification = await getNotificationCrypto(cryptos);
           if (!notification) return;
@@ -239,21 +249,44 @@ const connectionWss = (ws: WebSocket) => {
           };
 
           if (ws.readyState === WebSocket.OPEN)
-            ws.send(JSON.stringify(message));
+            return ws.send(JSON.stringify(message));
+
+          const tokens = await fetchFromTable("PushTokens", {
+            userId: data.userId,
+          });
+          let pushTokens = tokens.data;
+          if (!pushTokens) pushTokens = [];
+          if (!Array.isArray(pushTokens)) pushTokens = [pushTokens];
+
+          sendFCMNotification(
+            pushTokens.map((token) => token.token).filter(Boolean),
+            {
+              title: notification.title,
+              body: notification.message,
+            },
+            notification.channelId,
+            {
+              ...(notification.data || {}),
+              screen:
+                (notification.data?.screen as ScreensAvailable) || "Cryptos",
+            },
+          );
         };
 
         const intervalOld = users[data.userId].intervalsId?.cryptos;
         if (intervalOld) clearInterval(intervalOld);
+
         const intervalId = setInterval(handleInterval, interval);
         users[data.userId].intervalsId = {
-          ...users[data.userId].intervalsId,
+          ...(users[data.userId].intervalsId || {
+            streamers: null,
+            downDetector: null,
+            batteryAlerts: null,
+            locationEnabled: null,
+            allNotifications: null,
+            noInternetConnection: null,
+          }),
           cryptos: intervalId,
-          streamers: null,
-          downDetector: null,
-          batteryAlerts: null,
-          locationEnabled: null,
-          allNotifications: null,
-          noInternetConnection: null,
         };
       } catch (error) {
         console.error(chalk.red("Error in handleNotificationCrypto:"), error);

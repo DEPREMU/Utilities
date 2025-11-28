@@ -215,3 +215,58 @@ export const askBatteryOptimizationPermission = async (): Promise<boolean> => {
   }
   return hasPermission;
 };
+
+/**
+ * Requests autostart permission on Android devices for specific manufacturers.
+ *
+ * This function opens the device-specific autostart settings page where the user
+ * can enable automatic app launch on device boot. Different manufacturers (Xiaomi,
+ * Oppo, Vivo, Huawei, Honor, Asus, etc.) have different settings locations, so
+ * this function detects the manufacturer and opens the appropriate settings screen.
+ *
+ * Before opening settings, if the app has overlay permission, it will automatically
+ * open the app to show the permission dialog. This ensures the user sees the request
+ * even if the app is in the background.
+ *
+ * @returns A promise that resolves to `true` if settings were successfully opened,
+ *          `false` otherwise. Always returns `false` on non-Android platforms.
+ *
+ * @remarks
+ * - Only works on Android platform (returns `false` immediately on other platforms)
+ * - Uses native module `NativeFunctionsModule` to open manufacturer-specific settings
+ * - Opens the app before showing the permission dialog if overlay permission exists
+ * - Displays a localized alert dialog using i18n translations
+ * - Falls back to generic app settings if manufacturer-specific settings fail
+ * - Supports: Xiaomi, Redmi, Oppo, Vivo, Letv, Honor, Huawei, Asus, and generic devices
+ */
+export const askAutoStartPermission = async (): Promise<boolean> => {
+  if (Platform.OS !== "android") return false;
+
+  if (await NativeFunctionsModule?.checkOverlayPermission?.())
+    NativeFunctionsModule?.openApp?.();
+
+  const t: typeT = i18n as typeT;
+
+  const alert = await new Promise((resolve) => {
+    Alert.alert(t("autoStartPermission"), t("autoStartPermissionMessage"), [
+      {
+        text: t("cancel"),
+        style: "cancel",
+        onPress: () => resolve(false),
+      },
+      {
+        text: t("accept"),
+        onPress: () => resolve(true),
+      },
+    ]);
+  });
+
+  if (!alert) return false;
+
+  try {
+    const result = await NativeFunctionsModule.requestAutoStartPermission();
+    return ["GENERIC_SETTINGS_OPENED", "SETTINGS_OPENED"].includes(result);
+  } catch {
+    return false;
+  }
+};

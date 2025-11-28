@@ -12,7 +12,9 @@
   "scripts": {
     "before-commit": "npm run lint:fix && npm run type-check",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

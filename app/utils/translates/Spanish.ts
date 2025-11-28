@@ -251,6 +251,9 @@ const es: typeLanguages = {
   batteryOptimizationPermission: "Permiso de optimización de batería",
   batteryOptimizationPermissionMessage:
     "Para asegurar que la aplicación funcione correctamente en segundo plano, por favor desactiva la optimización de batería para esta aplicación en la configuración de tu dispositivo. Esto ayudará a mantener un rendimiento constante y evitará interrupciones mientras usas las funciones en segundo plano.",
+  autoStartPermission: "Permiso de inicio automático",
+  autoStartPermissionMessage:
+    "Para que la aplicación se inicie automáticamente al encender tu dispositivo, por favor habilita el permiso de inicio automático en la configuración de tu dispositivo. Esto asegurará que la aplicación funcione correctamente en segundo plano sin que tengas que abrirla manualmente.",
   lastUpdateCheck: "Última verificación de actualización",
   checkForUpdates: "Buscar actualizaciones",
   updateAvailable: "Actualización disponible",

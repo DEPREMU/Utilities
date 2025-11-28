@@ -10,21 +10,25 @@ const run = () => {
     fs.rmSync(androidPath, { recursive: true, force: true });
   }
 
+  const localEnv = {
+    ...env,
+    PLATFORM: "android",
+    NODE_ENV: "development",
+    BUILD_PROFILE: "development",
+  };
+
   console.log("Running prebuild...");
   execSync("npm run app-prebuild-android", {
     cwd: UTILITIES_PATH,
     stdio: "inherit",
-    env,
+    env: localEnv,
   });
 
   console.log("Running android build...");
   execSync("npx expo run:android", {
     cwd: APP_PATH,
     stdio: "inherit",
-    env: {
-      ...env,
-      PLATFORM: "android",
-    },
+    env: localEnv,
   });
 };
 
