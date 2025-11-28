@@ -350,7 +350,7 @@ export const checkUrlStatus = async (
   timeout: number = 3000,
 ): Promise<boolean> => {
   try {
-    const res = await axios.request({
+    const res = await axios.request<{ destroy?: () => void }>({
       url,
       method,
       timeout,

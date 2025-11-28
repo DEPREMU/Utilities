@@ -34,9 +34,15 @@ import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import { useNotifications } from "./NotificationsContext";
 
+type WebSockets = "clipboard" | "main";
 interface WebSocketContextType {
   socket: WebSocket | null;
-  sendMessage: (message: WebSocketMessage) => void;
+  sendMessage: <T extends WebSockets>(
+    ws: T,
+    message: T extends "clipboard"
+      ? ClipboardWebSocketMessage
+      : WebSocketMessage,
+  ) => void;
   setSocketURL: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
@@ -69,18 +75,26 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const isConnecting = useRef<boolean>(false);
   const shouldConnect = useRef<boolean>(true);
-  const pingIntervalId = useRef<NodeJS.Timeout | number | null>(null);
   const clipboardSocketRef = useRef<WebSocket | null>(null);
   const connectionTimeoutId = useRef<NodeJS.Timeout | number | null>(null);
   const clipboardReconnectTimeoutRef = useRef<NodeJS.Timeout | number | null>(
     null,
   );
 
-  const sendMessage = useCallback((message: WebSocketMessage) => {
-    const currentSocket = socketRef.current;
-    if (!currentSocket || currentSocket.readyState !== WebSocket.OPEN) return;
-    currentSocket.send(stringifyData(message));
-  }, []);
+  const sendMessage = useCallback(
+    <T extends WebSockets>(
+      ws: T,
+      message: T extends "clipboard"
+        ? ClipboardWebSocketMessage
+        : WebSocketMessage,
+    ) => {
+      const currentSocket =
+        ws === "clipboard" ? clipboardSocketRef.current : socketRef.current;
+      if (!currentSocket || currentSocket.readyState !== WebSocket.OPEN) return;
+      currentSocket.send(JSON.stringify(message));
+    },
+    [],
+  );
 
   const createWebSocketConnection = useCallback(
     (url: string) => {
@@ -102,10 +116,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         clearTimeoutPolyfill(connectionTimeoutId.current);
         connectionTimeoutId.current = null;
       }
-      if (pingIntervalId.current) {
-        clearInterval(pingIntervalId.current);
-        pingIntervalId.current = null;
-      }
 
       log(`Creating WebSocket connection to: ${url}`);
       isConnecting.current = true;
@@ -124,10 +134,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       const handleCloseWs = () => {
         isConnecting.current = false;
         setIsConnected(false);
-        if (!pingIntervalId.current) return;
-
-        clearInterval(pingIntervalId.current);
-        pingIntervalId.current = null;
       };
 
       const newSocket = new WebSocket(url);
@@ -162,16 +168,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
               data: notifications,
               userId: userData?.userId || "",
             };
-            newSocket.send(stringifyData(notificationMessage));
+            newSocket.send(JSON.stringify(notificationMessage));
           }
-
-          pingIntervalId.current = setInterval(() => {
-            if (newSocket.readyState === WebSocket.OPEN) {
-              const pingMessage: WebSocketMessage = { type: "ping" };
-              newSocket.send(stringifyData(pingMessage));
-              log("WebSocket ping sent.");
-            }
-          }, 29000);
         } catch (error) {
           logError("Error during WebSocket initialization:", error);
         }
@@ -196,9 +194,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
               break;
             case "notification":
               await sendNotification(parsedMessage.notification);
-              break;
-            case "pong":
-              log("WebSocket pong received.");
               break;
             default:
               log("Unknown message type:", parsedMessage);
@@ -361,7 +356,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (!isConnected || socketRef.current?.readyState !== WebSocket.OPEN)
       return;
 
-    sendMessage({
+    sendMessage("main", {
       type: "language-change",
       language,
     });
@@ -392,11 +387,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (connectionTimeoutId.current) {
       clearTimeoutPolyfill(connectionTimeoutId.current);
       connectionTimeoutId.current = null;
-    }
-
-    if (pingIntervalId.current) {
-      clearInterval(pingIntervalId.current);
-      pingIntervalId.current = null;
     }
 
     setIsConnected(false);

@@ -14,7 +14,6 @@ import {
   ReasonNotification,
   NotificationAction,
   RequestDatabaseFetch,
-  RequestDatabaseInsert,
   ResponseDatabaseFetch,
 } from "@types";
 import {
@@ -37,6 +36,7 @@ import { useModal } from "./ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
 import * as Location from "expo-location";
 import { useLanguage } from "./LanguageContext";
+import { useWebSocket } from "./WebSocketContext";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
@@ -74,6 +74,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   children,
 }) => {
   const { t, language } = useLanguage();
+  const { sendMessage } = useWebSocket();
   const { openSnackBar } = useModal();
   const { sessionToken, userData } = useUserContext();
   const { hasInternet, deviceInfo } = useDeviceInformation();
@@ -420,56 +421,36 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (!hasInternet) return;
     if (!sessionToken) return;
 
-    const handleIntervalClipboardWeb = async () => {
-      if (!userData?.userId) return;
-
-      try {
-        let content: string | undefined = undefined;
-
-        try {
-          content = await ExpoClipboard.getStringAsync();
-        } catch {
-          content = windowModule?.readClipboard?.();
-        }
-        if (isFalsy(content) || lastItemCopied.current === content) return;
-
-        lastItemCopied.current = content;
-
-        const [url, deviceId] = await Promise.all([
-          getRouteAPI("/database/insert"),
-          loadDataSecure("_deviceId"),
-        ]);
-
-        if (!url || !deviceId) return;
-
-        await fetch(
-          url,
-          fetchOptions<RequestDatabaseInsert<"ClipboardSync">>(
-            "POST",
-            {
-              deviceId: deviceId || "local-device",
-              lang: language,
-              table: "ClipboardSync",
-              values: {
-                userId: userData.userId,
-                content,
-                deviceId,
-                createdAt: new Date().toISOString(),
-              },
-            },
-            sessionToken,
-          ),
-        );
-      } catch (error) {
-        logError("Error reading clipboard content", error);
-      }
-    };
-
     const clearIntervalIfExists = () => {
       if (!clipboardIntervalRef.current) return;
 
       clearIntervalPolyfill(clipboardIntervalRef.current);
       clipboardIntervalRef.current = null;
+    };
+
+    const handleIntervalClipboardWeb = async () => {
+      if (!userData?.userId) return;
+
+      try {
+        let content: string | null = null;
+
+        try {
+          content = windowModule?.readClipboard?.();
+          if (isFalsy(content)) content = await ExpoClipboard.getStringAsync();
+        } catch {
+          return;
+        }
+        if (isFalsy(content) || lastItemCopied.current === content) return;
+
+        lastItemCopied.current = content;
+
+        sendMessage("clipboard", {
+          type: "add-new-item",
+          content,
+        });
+      } catch (error) {
+        logError("Error reading clipboard content", error);
+      }
     };
 
     clearIntervalIfExists();
@@ -480,14 +461,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     );
 
     return () => clearIntervalIfExists();
-  }, [
-    t,
-    language,
-    hasInternet,
-    sessionToken,
-    userData?.userId,
-    deviceInfo?.model,
-  ]);
+  }, [hasInternet, sessionToken, userData?.userId, sendMessage]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;

@@ -285,7 +285,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         return;
 
       setNotifications(updatedNotifications);
-      sendMessage({
+      sendMessage("main", {
         type: "notifications",
         data: updatedNotifications,
         userId: userData.userId,

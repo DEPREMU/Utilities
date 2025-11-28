@@ -5,7 +5,7 @@ import { TablesKeys } from "@types";
 
 export const host: string = env.HOST || "localhost";
 export const port: number = Number(env.PORT) || 3000;
-export const useHTTPS: boolean = env.USE_HTTPS;
+export const useHTTPS: boolean = env.USE_HTTPS === "true";
 
 export const serverPath = path.resolve();
 export const UPLOAD_DIR = path.join(serverPath, "updates", "uploads");

@@ -16,7 +16,6 @@ export type WebSocketMessage =
       hasAdmin: boolean;
       theme: "light" | "dark" | "auto";
     }
-  | { type: "ping" }
   | {
       type: "notifications";
       data: typeNotifications;
@@ -40,9 +39,6 @@ export type WebSocketResponse =
   | {
       type: "notification";
       notification: Notification;
-    }
-  | {
-      type: "pong";
     };
 
 export type ClipboardWebSocketMessage =
@@ -54,6 +50,10 @@ export type ClipboardWebSocketMessage =
       type: "init";
       userId: string;
       deviceId: string;
+    }
+  | {
+      type: "add-new-item";
+      content: string;
     };
 
 export type WebSocketPathname = "/ws" | "/clipboard";

@@ -125,13 +125,12 @@ const ComputerControl: React.FC = () => {
     ) => {
       let success = false;
       try {
-        const res = await axios.post(
+        const res = await axios.post<{ success: boolean }>(
           `${baseUrl}/${command}`,
           { deviceId },
           { timeout: 5000 },
         );
-        const data = res.data;
-        success = data.success;
+        success = res?.data?.success;
       } catch (error) {
         logError(`Error sending ${command} command to ${baseUrl}:`, error);
       }

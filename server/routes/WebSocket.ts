@@ -34,6 +34,8 @@ const users: Record<
       ReasonNotification,
       NodeJS.Timeout | number | null
     > | null;
+    pingTimeoutId: NodeJS.Timeout | number | null;
+    pingIntervalId: NodeJS.Timeout | number | null;
   }
 > = {};
 
@@ -66,10 +68,34 @@ const handleInitWebSocket = (data: WebSocketMessage, ws: WebSocket): string => {
   if (data.type !== "init") return "";
 
   try {
+    const pingIntervalIdOld = users?.[data.userId]?.pingIntervalId;
+    if (pingIntervalIdOld) clearInterval(pingIntervalIdOld);
+
+    const pingIntervalId = setInterval(() => {
+      users[data.userId].pingTimeoutId = setTimeout(() => {
+        console.log(
+          chalk.red("Terminating unresponsive client:"),
+          chalk.yellow(data.userId),
+        );
+        ws.close?.();
+      }, 10000);
+      ws.ping();
+    }, 29000);
+
+    ws.on("pong", () => {
+      if (!users[data.userId]) return;
+
+      const timeoutId = users[data.userId].pingTimeoutId;
+      if (timeoutId) clearTimeout(timeoutId);
+      users[data.userId].pingTimeoutId = null;
+    });
+
     if (!users[data.userId]) {
       users[data.userId] = {
         ws,
         intervalsId: null,
+        pingTimeoutId: null,
+        pingIntervalId,
       };
     }
     insertNotifications(data.userId, data.notifications || null);
@@ -227,6 +253,8 @@ const connectionWss = (ws: WebSocket) => {
           users[data.userId] = {
             ws,
             intervalsId: null,
+            pingTimeoutId: null,
+            pingIntervalId: null,
           };
         }
 
@@ -303,6 +331,8 @@ const connectionWss = (ws: WebSocket) => {
           users[data.userId] = {
             ws,
             intervalsId: null,
+            pingTimeoutId: null,
+            pingIntervalId: null,
           };
         }
         if (!data.data.enabled.allNotifications) return;
@@ -340,9 +370,6 @@ const connectionWss = (ws: WebSocket) => {
         switch (data.type) {
           case "init":
             userId = handleInitWebSocket(data, ws);
-            break;
-          case "ping":
-            ws.send(JSON.stringify({ type: "pong" }));
             break;
           case "notifications":
             handleNotifications(data, ws);
@@ -396,7 +423,12 @@ export const initWebSocketClipboard = () => {
     const wss = new WebSocketServer({ noServer: true });
     const usersClipboard: {
       [userId: string]: {
-        [deviceId: string]: { ws: WebSocket; lastContent: string | null };
+        [deviceId: string]: {
+          ws: WebSocket;
+          lastContent: string | null;
+          pingTimeoutId: NodeJS.Timeout | number | null;
+          pingIntervalId: NodeJS.Timeout | number | null;
+        };
       };
     } = {};
 
@@ -467,29 +499,108 @@ export const initWebSocketClipboard = () => {
         deviceId: "",
       };
 
-      connectionClipboard.on("message", (buffer) => {
+      connectionClipboard.on("message", async (buffer) => {
         const message = JSON.parse(
           buffer.toString(),
         ) as ClipboardWebSocketMessage;
 
-        if (message.type !== "init") return;
-        if (!message.userId || !message.deviceId) {
-          connectionClipboard.close?.();
-          return;
+        switch (message.type) {
+          case "init": {
+            if (!message.userId || !message.deviceId) {
+              connectionClipboard.close?.();
+              return;
+            }
+            data = { userId: message.userId, deviceId: message.deviceId };
+
+            console.log(
+              chalk.green("New clipboard client connected:"),
+              chalk.yellow(data.userId),
+              chalk.green("Device ID:"),
+              chalk.yellow(data.deviceId),
+            );
+
+            const pingIntervalId = setInterval(() => {
+              if (!usersClipboard[data.userId]) return;
+              if (!usersClipboard[data.userId][data.deviceId]) return;
+
+              usersClipboard[data.userId][data.deviceId].pingTimeoutId =
+                setTimeout(() => {
+                  console.log(
+                    chalk.red("Terminating unresponsive clipboard client:"),
+                    chalk.yellow(data.userId),
+                    chalk.green("-"),
+                    chalk.yellow(data.deviceId),
+                  );
+                  connectionClipboard.close();
+                }, 10000);
+              connectionClipboard.ping();
+            }, 29000);
+
+            connectionClipboard.on("pong", () => {
+              if (!usersClipboard[data.userId]) return;
+              if (!usersClipboard[data.userId][data.deviceId]) return;
+
+              const timeoutId =
+                usersClipboard[data.userId][data.deviceId].pingTimeoutId;
+              if (timeoutId) clearTimeout(timeoutId);
+
+              usersClipboard[data.userId][data.deviceId].pingTimeoutId = null;
+            });
+
+            usersClipboard[data.userId] = {
+              ...usersClipboard[data.userId],
+              [data.deviceId]: {
+                ws: connectionClipboard,
+                lastContent: null,
+                pingTimeoutId: null,
+                pingIntervalId: pingIntervalId,
+              },
+            };
+            break;
+          }
+          case "add-new-item": {
+            const value: ClipboardSync = {
+              deviceId: data.deviceId,
+              content: message.content,
+              createdAt: new Date().toISOString(),
+              userId: data.userId,
+            };
+
+            const result = await insertIntoTable("ClipboardSync", value);
+            if (result.error) {
+              console.error(
+                chalk.red("Error inserting clipboard item into database:"),
+                result.error,
+              );
+              return;
+            }
+            const devices = usersClipboard[data.userId];
+            if (!devices) return;
+            Object.entries(devices).forEach(([deviceId, device]) => {
+              try {
+                if (deviceId === data.deviceId) return;
+                if (device.ws.readyState !== WebSocket.OPEN) {
+                  deleteDevice({ userId: data.userId, deviceId });
+                  return;
+                }
+                const msg: ClipboardWebSocketMessage = {
+                  type: "new-clipboard-item",
+                  content: message.content,
+                };
+                device.ws.send(JSON.stringify(msg));
+              } catch {
+                // Ignore
+              }
+            });
+            break;
+          }
+          default:
+            console.log(
+              chalk.yellow("Unknown clipboard message type:"),
+              message,
+            );
+            break;
         }
-        data = { userId: message.userId, deviceId: message.deviceId };
-
-        console.log(
-          chalk.green("New clipboard client connected:"),
-          chalk.yellow(data.userId),
-          chalk.green("Device ID:"),
-          chalk.yellow(data.deviceId),
-        );
-
-        usersClipboard[data.userId] = {
-          ...usersClipboard[data.userId],
-          [data.deviceId]: { ws: connectionClipboard, lastContent: null },
-        };
       });
 
       connectionClipboard.on("close", () => {

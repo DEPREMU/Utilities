@@ -11,7 +11,7 @@ import { Pool, PoolConfig } from "pg";
 export let dbInitialized = false;
 
 const dbConfig: PoolConfig = {
-  port: env.DB_PORT,
+  port: Number(env.DB_PORT),
   host: env.DB_HOST,
   user: env.DB_USER,
   password: env.DB_PASS,

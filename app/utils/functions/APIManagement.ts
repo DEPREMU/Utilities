@@ -61,12 +61,9 @@ export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
   if (isFalsy(apiUrl)) {
     apiUrl = API_URL;
     try {
-      const res = await axios.get<unknown, { data: ResponseHealth }>(
-        apiUrl + "/health",
-        {
-          timeout: 5000,
-        },
-      );
+      const res = await axios.get<ResponseHealth>(apiUrl + "/health", {
+        timeout: 5000,
+      });
       isOk = res.data.status === "running";
     } catch {
       logWarn("Error fetching API URL health");
