@@ -92,8 +92,11 @@ export const getSumVersion = (version: string): number => {
     );
 };
 
-export const isNewVersion = (current: string, latest: string): boolean => {
-  return getSumVersion(latest) > getSumVersion(current);
+export const isNewVersion = (
+  current: string,
+  serverVersion: string
+): boolean => {
+  return getSumVersion(serverVersion) < getSumVersion(current);
 };
 
 export const handleExitFromScript = (fun: () => void) => {

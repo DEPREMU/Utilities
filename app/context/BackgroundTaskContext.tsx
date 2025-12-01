@@ -18,9 +18,12 @@ import {
   loadData,
   saveData,
   loadDataSecure,
+  setTimeoutPolyfill,
   setIntervalPolyfill,
+  clearTimeoutPolyfill,
   clearIntervalPolyfill,
   executeRegisteredTask,
+  hasInternetConnection,
 } from "@utils";
 import windowModule from "@/utils/modules/WindowModule";
 import { useLanguage } from "./LanguageContext";
@@ -29,7 +32,10 @@ import { useDeviceInformation } from "./DeviceInformationContext";
 import { Alert, BackHandler, Platform } from "react-native";
 import { getCurrentScreen, navigateReplace } from "@navigation/navigationRef";
 
-type BackgroundTask = () => void | Promise<void>;
+type BackgroundTask = {
+  requiresInternet: boolean;
+  func: () => void | Promise<void>;
+};
 
 type BackgroundTaskWithMeta<T extends AvailableFunctions = AvailableFunctions> =
   {
@@ -61,7 +67,6 @@ type BackgroundTaskContextType = {
    */
   addTaskQueue: <T extends AvailableFunctions>(
     task: BackgroundTask,
-    executeWhenInternet?: boolean,
     meta?: {
       id: string;
       args: FunctionsArguments<T>;
@@ -125,7 +130,8 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 }) => {
   const { t } = useLanguage();
   const { hasInternetRef, hasInternet } = useDeviceInformation();
-  const { isLoggedIn, refreshToken, setLoggingIn } = useUserContext();
+  const { isLoggedIn, refreshToken, setLoggingIn, setIsLoggedIn } =
+    useUserContext();
 
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);
@@ -169,7 +175,14 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       if (!task) continue;
 
       try {
-        await task();
+        if (task.requiresInternet) {
+          const hasInternet = await hasInternetConnection();
+          if (!hasInternet) {
+            taskQueueRef.current.unshift(task);
+            break;
+          }
+        }
+        await task.func();
       } catch (err) {
         logError("Error in background task:", err);
       }
@@ -181,17 +194,14 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   const addTaskQueue = useCallback(
     <T extends AvailableFunctions>(
       task: BackgroundTask,
-      executeWhenInternet: boolean = false,
       meta?: MetaInfoFunctions<T>,
       removeTaskWithId?: string,
     ) => {
-      if (hasInternetRef.current) {
+      if (hasInternetRef.current || !task.requiresInternet) {
         taskQueueRef.current.push(task);
         processQueue();
         return;
       }
-
-      if (!executeWhenInternet) return processQueue();
 
       if (!meta) {
         logError(
@@ -227,7 +237,11 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
   const runTask = useCallback(async (task: BackgroundTask) => {
     try {
-      await task();
+      if (!task.requiresInternet) return await task.func();
+
+      const hasInternet = await hasInternetConnection();
+      if (!hasInternet) executeWhenInternetRef.current.push({ task });
+      else await task.func();
     } catch {
       logError("Error running task:", task);
     }
@@ -240,8 +254,11 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
         if (!persistedTasks || persistedTasks.length === 0) return;
 
         const rebuiltTasks = persistedTasks.map((taskData) => ({
-          task: () =>
-            executeRegisteredTask(taskData.functionName, taskData.args),
+          task: {
+            func: () =>
+              executeRegisteredTask(taskData.functionName, taskData.args),
+            requiresInternet: true,
+          },
           meta: {
             id: taskData.id,
             functionName: taskData.functionName,
@@ -309,13 +326,17 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   }, [hasInternet, processQueue]);
 
   useEffect(() => {
-    const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
-      if (Platform.OS !== "web") return;
-
-      windowModule?.notifyLoginStatus?.(isLoggedIn);
-    };
-
     const handleRefreshSession = async () => {
+      const sendNotificationLoginStatus = (isLoggedIn: boolean) => {
+        if (Platform.OS !== "web") return;
+
+        windowModule?.notifyLoginStatus?.(isLoggedIn);
+      };
+      const handleNotLoggedIn = () => {
+        setLoggingIn(false);
+        setIsLoggedIn(false);
+      };
+
       try {
         log("Refreshing user session...");
         const [rememberMe, sessionToken] = await Promise.all([
@@ -325,12 +346,14 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
         if (!rememberMe || rememberMe < Date.now()) {
           sendNotificationLoginStatus(false);
+          handleNotLoggedIn();
           await signOut();
           return;
         }
 
         if (!sessionToken) {
           sendNotificationLoginStatus(false);
+          handleNotLoggedIn();
           return;
         }
 
@@ -348,8 +371,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
         Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
 
       addTaskQueue(
-        handleRefreshSession,
-        true,
+        { func: handleRefreshSession, requiresInternet: true },
         {
           id,
           functionName: "refreshSession",
@@ -359,19 +381,20 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       );
     };
 
-    handleRefreshSessionWithInternet();
+    const id = setTimeoutPolyfill(handleRefreshSessionWithInternet, 2000);
     idRefreshSession.current = setIntervalPolyfill(
       handleRefreshSessionWithInternet,
       8 * 60 * 60 * 1000,
     );
 
     return () => {
+      if (id) clearTimeoutPolyfill(id);
       if (!idRefreshSession.current) return;
 
       clearIntervalPolyfill(idRefreshSession.current);
       idRefreshSession.current = null;
     };
-  }, [refreshToken, setLoggingIn, addTaskQueue]);
+  }, [refreshToken, setLoggingIn, addTaskQueue, setIsLoggedIn]);
 
   return (
     <BackgroundTaskContext.Provider value={{ runTask, addTaskQueue }}>

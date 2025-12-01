@@ -1,13 +1,57 @@
 import type {
   Logs,
-  Tables,
   Cryptos,
   Streamer,
   UserData,
   TablesKeys,
   DownDetector,
 } from "../database";
-import type { Falsy } from "react-native";
+import {
+  WebPageFetch,
+  UpdatesRoutes,
+  UploadUpdateFetch,
+  DownloadUploadFetch,
+  IsUpdateAvailableFetch,
+  DownloadViaTempUrlFetch,
+} from "./typesUpdates";
+import type {
+  ResponseAuth,
+  ResponseLogs,
+  ResponseHealth,
+  ResponseCryptos,
+  ResponseDecrypt,
+  ResponseSignOut,
+  ResponseDoQuery,
+  ResponseEncrypt,
+  ResponseTranslate,
+  ResponseCryptoPrice,
+  ResponseAddStreamer,
+  ResponseGetRandomUUID,
+  ResponseDatabaseFetch,
+  ResponseDatabaseUpdate,
+  ResponseDatabaseInsert,
+  ResponseDatabaseDelete,
+  ResponseRefreshSession,
+  ResponseGetIsLiveStreamer,
+} from "./Response";
+
+import {
+  RequestAuth,
+  RequestCryptos,
+  RequestDecrypt,
+  RequestDoQuery,
+  RequestEncrypt,
+  RequestSignOut,
+  RequestTranslate,
+  RequestCryptoPrice,
+  RequestAddStreamer,
+  RequestDatabaseFetch,
+  RequestDatabaseInsert,
+  RequestDatabaseUpdate,
+  RequestDatabaseDelete,
+  RequestRefreshSession,
+  RequestGetIsLiveStreamer,
+} from "./Request";
 import type { Handler } from "express";
 import { Notifications } from "../typesNotifications";
 import type { LanguagesSupported } from "../typesTranslations";
@@ -17,6 +61,11 @@ export type Command = {
   when: "Start-up" | "Shut-down";
   command: string;
 };
+
+export type PriceBinanceAPI = {
+  symbol: string;
+  price: number;
+}[];
 
 export type SelectedCryptos = Record<string, Cryptos>;
 
@@ -51,10 +100,18 @@ export type ExpectedStorageTypes<
   ? ExpectedSecureStorageTypes
   : ExpectedUnsecureStorageTypes;
 
-export type Route = {
-  method: "get" | "post" | "put" | "delete";
-  middlewares?: any[];
+export type MethodsAvailableInAPI = {
+  get: "get";
+  put: "put";
+  post: "post";
+};
+
+export type Route<T extends RoutesAPI | UpdatesRoutes> = {
+  method: Extract<FetchAPI, { url: T }>["method"];
   handler: Handler;
+  middlewares?: Extract<FetchAPI, { url: T }> extends { middlewares: infer M }
+    ? M
+    : undefined;
 };
 
 export type Coin = {
@@ -63,201 +120,188 @@ export type Coin = {
   symbol: string;
 };
 
-export type RoutesAPI =
-  | "/log"
-  | "/health"
-  | "/cryptos"
-  | "/decrypt"
-  | "/encrypt"
-  | "/translate"
-  | "/doQueryDB"
-  | "/auth/login"
-  | "/cryptoPrice"
-  | "/addStreamer"
-  | "/auth/signup"
-  | "/auth/signOut"
-  | "/getRandomUUID"
-  | "/database/fetch"
-  | "/database/update"
-  | "/database/insert"
-  | "/database/delete"
-  | "/getIsLiveStreamer"
-  | "/auth/refreshSession";
-
-export type RequestBody = Logs | UserData;
-
-export type PriceBinanceAPI = {
-  symbol: string;
-  price: number;
-}[];
-
-export type ResponseHealth = {
-  status: "running";
-  timestamp: string;
-  uptime: number;
+export type LogFetch = {
+  url: "/log";
+  method: MethodsAvailableInAPI["post"];
+  body: Logs;
+  response: ResponseLogs;
+};
+export type HealthFetch = {
+  url: "/health";
+  method: MethodsAvailableInAPI["get"];
+  response: ResponseHealth;
+};
+export type CryptosFetch = {
+  url: "/cryptos";
+  method: MethodsAvailableInAPI["post"];
+  body: RequestCryptos;
+  response: ResponseCryptos;
+};
+export type DecryptFetch = {
+  url: "/decrypt";
+  method: MethodsAvailableInAPI["post"];
+  body: RequestEncrypt;
+  response: ResponseDecrypt;
+};
+export type EncryptFetch = {
+  url: "/encrypt";
+  method: MethodsAvailableInAPI["post"];
+  body: RequestDecrypt;
+  response: ResponseEncrypt;
+};
+export type TranslateFetch = {
+  url: "/translate";
+  body: RequestTranslate;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseTranslate;
+};
+export type DoQueryFetch = {
+  url: "/doQueryDB";
+  body: RequestDoQuery;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseDoQuery;
+};
+export type AuthLoginFetch = {
+  url: "/auth/login";
+  body: RequestAuth<"login">;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseAuth;
+};
+export type CryptoPriceFetch = {
+  url: "/cryptoPrice";
+  body: RequestCryptoPrice;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseCryptoPrice;
+};
+export type AddStreamerFetch = {
+  url: "/addStreamer";
+  body: RequestAddStreamer;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseAddStreamer;
+};
+export type AuthSignUpFetch = {
+  url: "/auth/signup";
+  body: RequestAuth<"signup">;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseAuth;
+};
+export type AuthSignOutFetch = {
+  url: "/auth/signOut";
+  body: RequestSignOut;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseSignOut;
+  middlewares: any[];
+};
+export type GetRandomUUIDFetch = {
+  url: "/getRandomUUID";
+  method: MethodsAvailableInAPI["get"];
+  response: ResponseGetRandomUUID;
+};
+export type DatabaseFetchFetch<T extends TablesKeys = TablesKeys> = {
+  url: "/database/fetch";
+  body: RequestDatabaseFetch<T>;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseDatabaseFetch<T>;
+  middlewares: any[];
+};
+export type DatabaseUpdateFetch<T extends TablesKeys = TablesKeys> = {
+  url: "/database/update";
+  body: RequestDatabaseUpdate<T>;
+  method: MethodsAvailableInAPI["put"];
+  response: ResponseDatabaseUpdate<T>;
+  middlewares: any[];
+};
+export type DatabaseInsertFetch<T extends TablesKeys = TablesKeys> = {
+  url: "/database/insert";
+  body: RequestDatabaseInsert<T>;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseDatabaseInsert<T>;
+  middlewares: any[];
+};
+export type DatabaseDeleteFetch<T extends TablesKeys = TablesKeys> = {
+  url: "/database/delete";
+  body: RequestDatabaseDelete<T>;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseDatabaseDelete;
+  middlewares: any[];
+};
+export type GetIsLiveStreamerFetch = {
+  url: "/getIsLiveStreamer";
+  body: RequestGetIsLiveStreamer;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseGetIsLiveStreamer;
+};
+export type AuthRefreshSessionFetch = {
+  url: "/auth/refreshSession";
+  body: RequestRefreshSession;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseRefreshSession;
+  middlewares: any[];
 };
 
-export type ResponseCryptoPrice = {
-  priceUSD?: number;
-  priceUSDTMXN?: number;
-  error?: string;
-};
-export type RequestCryptoPrice = {
-  cryptoId: string;
-  currency: string;
+export type FetchAPI<T extends TablesKeys = TablesKeys> =
+  | LogFetch
+  | HealthFetch
+  | CryptosFetch
+  | DecryptFetch
+  | EncryptFetch
+  | WebPageFetch
+  | TranslateFetch
+  | DoQueryFetch
+  | AuthLoginFetch
+  | AuthSignUpFetch
+  | AuthSignOutFetch
+  | CryptoPriceFetch
+  | AddStreamerFetch
+  | UploadUpdateFetch
+  | GetRandomUUIDFetch
+  | DownloadUploadFetch
+  | DatabaseFetchFetch<T>
+  | DatabaseUpdateFetch<T>
+  | DatabaseInsertFetch<T>
+  | DatabaseDeleteFetch<T>
+  | IsUpdateAvailableFetch
+  | GetIsLiveStreamerFetch
+  | DownloadViaTempUrlFetch
+  | AuthRefreshSessionFetch;
+
+export type RoutesAPIWithItsMethod = {
+  [K in RoutesAPI | UpdatesRoutes]: {
+    method: Extract<FetchAPI, { url: K }>["method"];
+    type: "updates" | "api";
+  };
 };
 
-export type RequestCryptos = {
-  currency?: string;
-};
+type RoutesPostAPI = Extract<
+  FetchAPI,
+  { method: MethodsAvailableInAPI["post"] }
+>["url"];
 
-export type ResponseCryptos = {
-  cryptos?: PriceBinanceAPI;
-  error?: string;
-};
+type RoutesPutAPI = Extract<
+  FetchAPI,
+  { method: MethodsAvailableInAPI["put"] }
+>["url"];
 
-export type RequestTranslate = {
-  text: string;
-  targetLang: string;
-};
+type RoutesDeleteAPI = Extract<
+  FetchAPI,
+  { method: MethodsAvailableInAPI["post"] }
+>["url"];
 
-export type ResponseTranslate = {
-  translatedText?: string;
-  error?: string;
-};
+type RoutesGetAPI = Extract<
+  FetchAPI,
+  { method: MethodsAvailableInAPI["get"] }
+>["url"];
 
-export type RequestAddStreamer = {
-  name: string;
-  userId: string;
-};
-
-export type ResponseAddStreamer = {
-  success?: boolean;
-  streamer?: (Streamer & { isLive: boolean }) | null;
-  error?: string;
-};
-
-export type RequestGetIsLiveStreamer = {
-  streamer: Streamer;
-};
-
-export type ResponseGetIsLiveStreamer = {
-  streamer?: Streamer & { isLive: boolean };
-  error?: string;
-};
-
-export type RequestAuth = {
-  lang: LanguagesSupported;
-  email: string;
-  password: string;
-  // Login:
-  deviceId?: string;
-  notificationToken?: string;
-  rememberMe?: boolean;
-};
-
-export type ResponseAuth = {
-  user?: Omit<UserData, "password">;
-  token?: string;
-  error?: string;
-  success: boolean;
-  storageValues?: ExpectedStorageTypes<"BOTH">;
-};
-
-export type RequestRefreshSession = {
-  lang: LanguagesSupported;
-  deviceId: string;
-  notificationToken: string;
-};
-
-export type ResponseRefreshSession = {
-  token?: string;
-  error?: string;
-  success: boolean;
-  userData?: Omit<UserData, "password"> | null;
-};
-
-export type RequestSignOut = {
-  lang: LanguagesSupported;
-  deviceId: string;
-  notificationToken: string;
-};
-
-export type ResponseSignOut = {
-  success: boolean;
-  error?: string;
-};
-
-export type RequestDatabaseInsert<T extends TablesKeys = TablesKeys> = {
-  lang: LanguagesSupported;
-  table: T;
-  values: T extends "Users" ? Partial<Tables[T]> : Tables[T] | Tables[T][];
-  deviceId: string;
-};
-
-export type ResponseDatabaseInsert<T extends TablesKeys = TablesKeys> = {
-  data?: Tables[T] | Tables[T][] | null;
-  error?: string;
-  success: boolean;
-};
-
-export type RequestDatabaseFetch<T extends TablesKeys = TablesKeys> = {
-  lang: LanguagesSupported;
-  table: T;
-  match: Partial<Tables[T]> | null;
-  deviceId: string;
-};
-
-export type ResponseDatabaseFetch<T extends TablesKeys = TablesKeys> = {
-  data?: Tables[T][] | Tables[T] | Falsy;
-  error?: string;
-};
-
-export type RequestDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
-  lang: LanguagesSupported;
-  table: T;
-  match: Partial<Tables[T]> | null;
-  values: Partial<Tables[T]> | Partial<Tables[T]>[];
-  deviceId: string;
-};
-
-export type ResponseDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
-  data?: Tables[T] | Tables[T][] | Falsy;
-  error?: string;
-  success: boolean;
-};
-
-export type RequestDatabaseDelete<T extends TablesKeys = TablesKeys> = {
-  lang: LanguagesSupported;
-  table: T;
-  match: Partial<Tables[T]>;
-  deviceId: string;
-};
-
-export type ResponseDatabaseDelete = {
-  success: boolean;
-  error?: string;
-};
-
-export type ResponseGetRandomUUID = {
-  uuid?: string;
-  error?: string;
-};
-
-export type RequestLogs = {
-  log: Logs;
-};
-
-export type ResponseLogs = {
-  success: boolean;
-};
-
-export type RequestDoQuery = {
-  query: string;
-  showFields?: boolean;
-};
-
-export type ResponseDoQuery = {
-  result?: unknown | null;
-  error?: string;
-};
+export type RoutesAPI<
+  T extends keyof MethodsAvailableInAPI | "middleware" | undefined = undefined
+> = T extends "post"
+  ? RoutesPostAPI
+  : T extends "get"
+  ? RoutesGetAPI
+  : T extends "put"
+  ? RoutesPutAPI
+  : T extends "delete"
+  ? RoutesDeleteAPI
+  : T extends "middleware"
+  ? Extract<FetchAPI, { middlewares: any[] }>["url"]
+  : FetchAPI["url"];

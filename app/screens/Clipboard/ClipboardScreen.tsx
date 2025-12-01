@@ -1,19 +1,13 @@
-import {
-  Tables,
-  RequestDatabaseFetch,
-  RequestDatabaseUpdate,
-  ResponseDatabaseFetch,
-  ResponseDatabaseUpdate,
-} from "@types";
 import { Text } from "react-native-paper";
+import { Tables } from "@types";
 import * as Clipboard from "expo-clipboard";
 import { useLanguage } from "@context/LanguageContext";
 import { FlatList, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import RenderClipboardItem from "@components/Clipboard/RenderClipboardItem";
 import useStylesClipboardScreen from "@styles/screens/clipboard/useStylesClipboardScreen";
+import { fetchToServer, loadDataSecure, logError } from "@utils";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { fetchOptions, getRouteAPI, loadDataSecure, logError } from "@utils";
 
 const skeletonData: Tables["ClipboardSync"][] = Array.from({ length: 5 }).map(
   () =>
@@ -42,25 +36,21 @@ const ClipboardScreen: React.FC = () => {
       if (!id) return logError("No ID provided for deletion");
       if (!sessionToken) return logError("No session token available");
 
-      const [url, deviceId] = await Promise.all([
-        getRouteAPI("/database/update"),
-        loadDataSecure("_deviceId"),
-      ]);
+      const deviceId = await loadDataSecure("_deviceId");
 
-      const { error } = (await fetch(
-        url,
-        fetchOptions<RequestDatabaseUpdate<"ClipboardSync">>(
-          "POST",
-          {
-            lang: language,
-            deviceId: deviceId || "local-device",
-            match: { id },
-            table: "ClipboardSync",
-            values: { deleted: true },
-          },
-          sessionToken,
-        ),
-      ).then((res) => res.json())) as ResponseDatabaseUpdate<"ClipboardSync">;
+      const res = await fetchToServer(
+        "/database/update",
+        {
+          lang: language,
+          deviceId: deviceId || "local-device",
+          match: { id },
+          table: "ClipboardSync",
+          values: { deleted: true },
+        },
+        sessionToken,
+      );
+
+      const { error } = res.data || { error: res.errorText || "Unknown error" };
 
       if (error) {
         logError("Error deleting clipboard item:", error);
@@ -118,27 +108,22 @@ const ClipboardScreen: React.FC = () => {
     const fetchClipboardFromDatabase = async () => {
       if (!sessionToken) return logError("No session token available");
 
-      const [url, deviceId] = await Promise.all([
-        getRouteAPI("/database/fetch"),
-        loadDataSecure("_deviceId"),
-      ]);
+      const deviceId = await loadDataSecure("_deviceId");
 
-      const res = await fetch(
-        url,
-        fetchOptions<RequestDatabaseFetch<"ClipboardSync">>(
-          "POST",
-          {
-            table: "ClipboardSync",
-            deviceId: deviceId || "local-device",
-            match: { userId: userData?.userId, deleted: false },
-            lang: language,
-          },
-          sessionToken,
-        ),
+      const res = await fetchToServer(
+        "/database/fetch",
+        {
+          table: "ClipboardSync",
+          deviceId: deviceId || "local-device",
+          match: { userId: userData?.userId, deleted: false },
+          lang: language,
+        },
+        sessionToken,
       );
 
-      const { data, error } =
-        (await res.json()) as ResponseDatabaseFetch<"ClipboardSync">;
+      const { data, error } = res.data || {
+        error: res.errorText || "Unknown error",
+      };
 
       if (error) {
         logError("Error fetching clipboard data:", error);

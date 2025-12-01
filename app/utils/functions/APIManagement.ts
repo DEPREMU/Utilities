@@ -5,12 +5,19 @@ import {
   CLIPBOARD_WS_URL,
   fallbackURL_WEB_SOCKET,
 } from "../constants/API_URL";
+import {
+  RoutesAPI,
+  RequestBody,
+  ResponseFetch,
+  UpdatesRoutes,
+  ResponseHealth,
+  RoutesAPIWithItsMethod,
+} from "@types";
 import axios from "axios";
 import { isFalsy } from "@utils";
-import { logError, logWarn } from "./debug";
 import { stringifyData } from "./appManagement";
+import { logError, logWarn } from "./debug";
 import { loadData, saveData } from "./storageManagement";
-import { RequestBody, ResponseHealth, RoutesAPI } from "@types";
 
 /**
  * Generates an options object for a fetch request.
@@ -20,11 +27,7 @@ import { RequestBody, ResponseHealth, RoutesAPI } from "@types";
  *               If provided, it will be stringified and included in the request.
  * @returns An object containing the HTTP method, headers, and optionally the stringified body.
  */
-export const fetchOptions = <T = RequestBody>(
-  method: "POST" | "GET" | "PUT" | "DELETE",
-  body?: T,
-  token?: string,
-) => {
+export const fetchOptions = <T = RequestBody>(body?: T, token?: string) => {
   try {
     if (body) body = stringifyData(body) as T;
   } catch (error) {
@@ -32,7 +35,6 @@ export const fetchOptions = <T = RequestBody>(
     body = undefined;
   }
   return {
-    method,
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -54,7 +56,9 @@ export const fetchOptions = <T = RequestBody>(
  * and the route is "users", the resulting URL will be:
  * "https://example.com/api/v1/users".
  */
-export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
+export const getRouteAPI = async (
+  route: RoutesAPI | UpdatesRoutes,
+): Promise<string> => {
   let isOk: boolean = false;
   let apiUrl = await loadData("@API_URL");
 
@@ -85,6 +89,8 @@ export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
     }
   }
   if (apiUrl.endsWith("/")) apiUrl = apiUrl.slice(0, -1);
+  if (routes[route].type === "updates")
+    apiUrl = apiUrl.replace("api", "updates");
 
   return `${apiUrl}${route}`;
 };
@@ -104,4 +110,85 @@ export const getRouteAPI = async (route: RoutesAPI): Promise<string> => {
 export const getRouteImage = async (filename: string): Promise<string> => {
   const apiUrl = await loadData("@API_URL").then((data) => data || API_URL);
   return `${apiUrl.replace("/api/v1", "")}${filename}`;
+};
+
+const routes: RoutesAPIWithItsMethod = {
+  "/log": { method: "post", type: "api" },
+  "/health": { method: "get", type: "api" },
+  "/cryptos": { method: "post", type: "api" },
+  "/cryptoPrice": { method: "post", type: "api" },
+  "/translate": { method: "post", type: "api" },
+  "/addStreamer": { method: "post", type: "api" },
+  "/getIsLiveStreamer": { method: "post", type: "api" },
+  "/auth/login": { method: "post", type: "api" },
+  "/auth/refreshSession": { method: "post", type: "api" },
+  "/auth/signOut": { method: "post", type: "api" },
+  "/auth/signup": { method: "post", type: "api" },
+  "/database/fetch": { method: "post", type: "api" },
+  "/database/insert": { method: "post", type: "api" },
+  "/database/update": { method: "put", type: "api" },
+  "/database/delete": { method: "post", type: "api" },
+  "/doQueryDB": { method: "post", type: "api" },
+  "/encrypt": { method: "post", type: "api" },
+  "/decrypt": { method: "post", type: "api" },
+  "/getRandomUUID": { method: "get", type: "api" },
+  "/upload-update": { method: "post", type: "updates" },
+  "/is-update-available": { method: "post", type: "updates" },
+  "/web-page": { method: "get", type: "updates" },
+  "/download/:buildType/:version/:platformOS/:id": {
+    method: "get",
+    type: "updates",
+  },
+};
+
+export const fetchToServer = async <
+  T extends RoutesAPI | UpdatesRoutes,
+  U extends RequestBody<T>,
+>(
+  route: T,
+  ...bodyAndToken: T extends RoutesAPI<"get">
+    ? []
+    : T extends RoutesAPI<"middleware">
+      ? [body: U, token: string]
+      : [body: U]
+): Promise<ResponseFetch<T, U>> => {
+  try {
+    const apiRoute = await getRouteAPI(route);
+
+    const method = routes[route].method;
+
+    const body = bodyAndToken?.[0];
+    const token = bodyAndToken?.[1];
+
+    const isBodyMethod = ["post", "put"].includes(method);
+
+    const data = isBodyMethod && body ? stringifyData(body) : undefined;
+
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    };
+
+    const res = await axios[method](
+      apiRoute,
+      ...(isBodyMethod ? [data, config] : [config]),
+    );
+
+    return {
+      ok: res.status >= 200 && res.status < 300,
+      data: (res.data as ResponseFetch<T, U>["data"]) || null,
+      errorText: res.statusText || undefined,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logError?.(`Error fetching to server at route ${route}:`, errorMessage);
+    return {
+      ok: false,
+      data: null,
+      errorText: errorMessage,
+    };
+  }
 };

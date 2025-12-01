@@ -13,15 +13,12 @@ import {
   EventNativeModule,
   ReasonNotification,
   NotificationAction,
-  RequestDatabaseFetch,
-  ResponseDatabaseFetch,
 } from "@types";
 import {
   isFalsy,
   logError,
   saveData,
-  getRouteAPI,
-  fetchOptions,
+  fetchToServer,
   stringifyData,
   loadDataSecure,
   getNotifications,
@@ -271,28 +268,21 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (!sessionToken) return;
     if (Platform.OS !== "web") return;
 
-    getRouteAPI("/database/fetch").then(async (url) => {
-      const deviceId = await loadDataSecure("_deviceId");
-
-      const res = await fetch(
-        url,
-        fetchOptions<RequestDatabaseFetch<"ClipboardSync">>(
-          "POST",
-          {
-            lang: language,
-            deviceId: deviceId || "local-device",
-            table: "ClipboardSync",
-            match: { userId: userData.userId, deleted: false },
-          },
-          sessionToken,
-        ),
+    loadDataSecure("_deviceId").then(async (deviceId) => {
+      const res = await fetchToServer(
+        "/database/fetch",
+        {
+          lang: language,
+          deviceId: deviceId || "local-device",
+          table: "ClipboardSync",
+          match: { userId: userData.userId, deleted: false },
+        },
+        sessionToken,
       );
-      const json = (await res.json()) as ResponseDatabaseFetch<"ClipboardSync">;
+      const { data } = res.data || {};
       lastItemCopied.current = v4();
-      if (isFalsy(json) || isFalsy(json.data)) return;
+      if (isFalsy(data)) return;
 
-      let data = json.data;
-      if (!Array.isArray(data)) data = [data];
       if (data.length === 0) return;
       lastItemCopied.current = data.sort(
         (a, b) =>

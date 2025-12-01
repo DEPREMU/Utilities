@@ -107,11 +107,16 @@ export const addStreamer = async (
       }),
     ]);
 
-    let { data } = result;
+    const data = result.data?.[0];
 
-    if (Array.isArray(data)) {
-      data = data[0] || null;
-    } else data = data || null;
+    if (!data) {
+      res
+        .status(500)
+        .json({
+          error: "Failed to add streamer: " + result.error || "Unknown error",
+        });
+      return;
+    }
 
     const streamer = data
       ? { ...data, isLive: await isLiveStreamer(data.name) }

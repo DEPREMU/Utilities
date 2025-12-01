@@ -1,6 +1,5 @@
 import { logError } from "../debug";
-import { fetchOptions, getRouteAPI } from "../APIManagement";
-import { RequestTranslate, ResponseTranslate } from "@types";
+import { fetchToServer } from "../APIManagement";
 
 export const translate = async (
   text: string,
@@ -8,19 +7,17 @@ export const translate = async (
 ): Promise<string> => {
   if (!text || !targetLang) return `Error: ${text}`;
   try {
-    const res = await fetch(
-      await getRouteAPI("/translate"),
-      fetchOptions<RequestTranslate>("POST", {
-        text,
-        targetLang,
-      }),
-    );
+    const res = await fetchToServer("/translate", {
+      targetLang,
+      text,
+    });
+
     if (!res.ok) {
-      logError(`Error while translating: ${res.statusText}`);
-      return `Error: ${res.statusText}`;
+      logError(`Error while translating: ${res.errorText || "Unknown error"}`);
+      return `Error: ${res.errorText || "Unknown error"}`;
     }
-    const data = (await res.json()) as ResponseTranslate;
-    return data.translatedText || "No translation available";
+
+    return res.data?.translatedText || "No translation available";
   } catch (error) {
     return `Error: ${error}`;
   }

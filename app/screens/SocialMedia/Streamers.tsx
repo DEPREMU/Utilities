@@ -3,24 +3,10 @@ import {
   openURL,
   logError,
   capitalize,
-  getRouteAPI,
-  fetchOptions,
+  fetchToServer,
   saveDataSecure,
   loadDataSecure,
 } from "@utils";
-import {
-  Streamer,
-  Notifications,
-  RequestAddStreamer,
-  ResponseAddStreamer,
-  RequestDatabaseFetch,
-  RequestDatabaseDelete,
-  ResponseDatabaseFetch,
-  RequestDatabaseUpdate,
-  ResponseDatabaseDelete,
-  RequestGetIsLiveStreamer,
-  ResponseGetIsLiveStreamer,
-} from "@types";
 import Button from "@components/common/ButtonComponent";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
@@ -29,6 +15,7 @@ import { View, ScrollView } from "react-native";
 import { useNotifications } from "@context/NotificationsContext";
 import { useStylesStreamers } from "@styles/screens/SocialMedia/useStylesStreamers";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
+import { Streamer, Notifications } from "@types";
 import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -66,18 +53,17 @@ const Streamers: React.FC = () => {
     }
 
     try {
-      const res = await fetch(
-        await getRouteAPI("/addStreamer"),
-        fetchOptions<RequestAddStreamer>("POST", {
-          name: streamer,
-          userId: userData?.userId || "",
-        }),
-      );
+      const res = await fetchToServer("/addStreamer", {
+        name: streamer,
+        userId: userData?.userId || "",
+      });
 
-      const data = (await res.json()) as ResponseAddStreamer;
+      const data = res.data;
 
-      if (data.error) {
-        logError(data.error);
+      if (!data || data.error) {
+        logError(
+          data?.error || res.errorText || "Unknown error adding streamer",
+        );
         return;
       }
       if (!data.success || !data.streamer) {
@@ -143,25 +129,19 @@ const Streamers: React.FC = () => {
       closeModal();
       if (!userData?.userId || isFalsy(id) || !sessionToken) return;
 
-      const [url, deviceId] = await Promise.all([
-        getRouteAPI("/database/delete"),
-        loadDataSecure("_deviceId"),
-      ]);
+      const deviceId = await loadDataSecure("_deviceId");
 
-      const res = await fetch(
-        url,
-        fetchOptions<RequestDatabaseDelete<"Streamers">>(
-          "POST",
-          {
-            deviceId: deviceId || "local-device",
-            lang: language,
-            table: "Streamers",
-            match: { id, userId: userData?.userId },
-          },
-          sessionToken,
-        ),
+      const res = await fetchToServer(
+        "/database/delete",
+        {
+          deviceId: deviceId || "local-device",
+          lang: language,
+          table: "Streamers",
+          match: { id, userId: userData?.userId },
+        },
+        sessionToken,
       );
-      const { error } = (await res.json()) as ResponseDatabaseDelete;
+      const { error } = res.data || { error: res.errorText || "Unknown error" };
 
       if (error) {
         logError(error);
@@ -176,24 +156,19 @@ const Streamers: React.FC = () => {
       setStreamers((prev) => {
         const streamerExists = prev.find((streamer) => streamer.id === id);
         if (streamerExists)
-          getRouteAPI("/database/delete").then((url) =>
-            fetch(
-              url,
-              fetchOptions<RequestDatabaseDelete<"UserNotificationsConfig">>(
-                "POST",
-                {
-                  lang: language,
-                  deviceId: deviceId || "local-device",
-                  table: "UserNotificationsConfig",
-                  match: {
-                    userId: userData?.userId,
-                    reason: "streamers",
-                    streamer: streamerExists.name,
-                  },
-                },
-                sessionToken,
-              ),
-            ),
+          fetchToServer(
+            "/database/delete",
+            {
+              lang: language,
+              deviceId: deviceId || "local-device",
+              table: "UserNotificationsConfig",
+              match: {
+                userId: userData?.userId,
+                reason: "streamers",
+                streamer: streamerExists.name,
+              },
+            },
+            sessionToken,
           );
 
         return prev.filter((streamer) => streamer.id !== id);
@@ -302,28 +277,22 @@ const Streamers: React.FC = () => {
       });
       if (!userData?.userId || !sessionToken) return;
 
-      const [url, deviceId] = await Promise.all([
-        getRouteAPI("/database/update"),
-        loadDataSecure("_deviceId"),
-      ]);
+      const deviceId = await loadDataSecure("_deviceId");
 
-      await fetch(
-        url,
-        fetchOptions<RequestDatabaseUpdate<"UserNotificationsConfig">>(
-          "POST",
-          {
-            lang: language,
-            deviceId: deviceId || "local-device",
-            table: "UserNotificationsConfig",
-            match: {
-              userId: userData?.userId,
-              reason: "streamers",
-              streamer: streamerName,
-            },
-            values: { enabled: newBool },
+      await fetchToServer(
+        "/database/update",
+        {
+          lang: language,
+          deviceId: deviceId || "local-device",
+          table: "UserNotificationsConfig",
+          match: {
+            userId: userData?.userId,
+            reason: "streamers",
+            streamer: streamerName,
           },
-          sessionToken,
-        ),
+          values: { enabled: newBool },
+        },
+        sessionToken,
       );
     },
     [
@@ -358,28 +327,31 @@ const Streamers: React.FC = () => {
       try {
         if (!userData?.userId || !sessionToken) return;
 
-        const [url, deviceId] = await Promise.all([
-          getRouteAPI("/database/fetch"),
-          loadDataSecure("_deviceId"),
-        ]);
+        const deviceId = await loadDataSecure("_deviceId");
 
-        const res = await fetch(
-          url,
-          fetchOptions<RequestDatabaseFetch<"Streamers">>(
-            "POST",
-            {
-              table: "Streamers",
-              deviceId: deviceId || "local-device",
-              match: { userId: userData?.userId },
-              lang: language,
-            },
-            sessionToken,
-          ),
+        const res = await fetchToServer(
+          "/database/fetch",
+          {
+            table: "Streamers",
+            deviceId: deviceId || "local-device",
+            match: { userId: userData?.userId },
+            lang: language,
+          },
+          sessionToken,
         );
-        const { data: internetData, error } =
-          (await res.json()) as ResponseDatabaseFetch<"Streamers">;
+        const { data: internetData, error } = res.data || {
+          error: res.errorText || "Unknown error",
+        };
 
-        if (error) throw new Error(error);
+        if (error) {
+          logError(error);
+          openModal(
+            t("error"),
+            t("errorLoadingStreamers", { error }),
+            <Button label={t("close")} handlePress={closeModal} />,
+          );
+          return;
+        }
 
         const data = Array.isArray(internetData)
           ? internetData
@@ -407,14 +379,10 @@ const Streamers: React.FC = () => {
         if (hasInternet)
           newData = await Promise.all(
             allStreamers.map(async (streamer: StreamerWithIsLive) => {
-              const response = await fetch(
-                await getRouteAPI("/getIsLiveStreamer"),
-                fetchOptions<RequestGetIsLiveStreamer>("POST", {
-                  streamer,
-                }),
-              );
-              const result =
-                (await response.json()) as ResponseGetIsLiveStreamer;
+              const res = await fetchToServer("/getIsLiveStreamer", {
+                streamer,
+              });
+              const result = res.data;
 
               return result?.streamer || { ...streamer, isLive: false };
             }),

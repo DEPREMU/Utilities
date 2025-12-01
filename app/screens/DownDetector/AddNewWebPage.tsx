@@ -1,13 +1,13 @@
 import Button from "@components/common/ButtonComponent";
 import { View } from "react-native";
+import { Tables } from "@types";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import useStylesAddNewWebPage from "@styles/screens/downDetector/useStylesAddNewWebPage";
 import { Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useState } from "react";
-import { fetchOptions, getRouteAPI, loadDataSecure } from "@utils";
-import { RequestDatabaseInsert, ResponseDatabaseInsert, Tables } from "@types";
+import { fetchToServer, loadDataSecure } from "@utils";
 
 interface AddNewWebPageScreenProps {
   addNewItem: (item: Tables["DownDetector"]) => void;
@@ -39,32 +39,26 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
 
     setIsLoading(true);
     try {
-      const [url, deviceId] = await Promise.all([
-        getRouteAPI("/database/insert"),
-        loadDataSecure("_deviceId"),
-      ]);
+      const deviceId = await loadDataSecure("_deviceId");
 
-      const res = await fetch(
-        url,
-        fetchOptions<RequestDatabaseInsert<typeof tableName>>(
-          "POST",
-          {
-            lang: language,
-            table: tableName,
-            deviceId: deviceId || "local-device",
-            values: {
-              createdAt: new Date().toISOString(),
-              userId: userData?.userId,
-              url: inputText.trim(),
-              sendNotification,
-            },
+      const res = await fetchToServer(
+        "/database/insert",
+        {
+          lang: language,
+          table: tableName,
+          deviceId: deviceId || "local-device",
+          values: {
+            createdAt: new Date().toISOString(),
+            userId: userData?.userId,
+            url: inputText.trim(),
+            sendNotification,
           },
-          sessionToken,
-        ),
+        },
+        sessionToken,
       );
-      const { data, error } = (await res.json()) as ResponseDatabaseInsert<
-        typeof tableName
-      >;
+      const { data, error } = res.data || {
+        error: res.errorText || "Unknown error",
+      };
 
       if (error) openSnackBar(t("errorOccurred", { error }));
       else {

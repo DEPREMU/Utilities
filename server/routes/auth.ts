@@ -126,14 +126,12 @@ export const getStorageData = async (
       fetchFromTable("UserNotificationsConfig", { userId }),
     ]);
 
-    let userData = usersData.data;
+    const userData = usersData.data?.[0];
     let cryptos = cryptosData.data;
-    let userConfig = userConfigData.data;
+    const userConfig = userConfigData.data?.[0];
     let streamersUser = streamersUserData.data;
     const userNotificationsConfig = userNotificationsConfigData.data;
 
-    if (Array.isArray(userData)) userData = userData[0];
-    if (Array.isArray(userConfig)) userConfig = userConfig[0];
     if (!Array.isArray(streamersUser)) {
       if (!streamersUser) streamersUser = [];
       else streamersUser = [streamersUser];
@@ -307,7 +305,7 @@ export const initializeTables = async (
 };
 
 export const handleLogin = async (
-  req: Request<unknown, unknown, RequestAuth>,
+  req: Request<unknown, unknown, RequestAuth<"login">>,
   res: Response<ResponseAuth>,
 ) => {
   const { email, password, deviceId, notificationToken, rememberMe } =
@@ -329,8 +327,7 @@ export const handleLogin = async (
       return;
     }
 
-    let { data: user } = await fetchFromTable("Users", { email });
-    if (Array.isArray(user)) user = user[0];
+    const user = (await fetchFromTable("Users", { email })).data?.[0];
 
     if (!user) {
       res
@@ -381,8 +378,8 @@ export const handleLogin = async (
 
     if (error) console.error(chalk.red("Error inserting push token:"), error);
 
-    let userSession = dataInsert.data;
-    if (Array.isArray(userSession)) userSession = userSession[0];
+    const userSession = dataInsert.data?.[0];
+
     const storageValues = await getStorageData(
       user.userId,
       !!rememberMe,
@@ -421,7 +418,7 @@ export const handleLogin = async (
 };
 
 export const handleSignIn = async (
-  req: Request<unknown, unknown, RequestAuth>,
+  req: Request<unknown, unknown, RequestAuth<"signup">>,
   res: Response<ResponseAuth>,
 ) => {
   let { lang } = req.body || { lang: "en" };
@@ -467,8 +464,7 @@ export const handleSignIn = async (
 
       console.log("Inserted data:", insertedData);
 
-      let user = insertedData.data;
-      if (Array.isArray(user)) user = user[0];
+      const user = insertedData.data?.[0];
 
       if (!user) {
         console.error(chalk.red("Error inserting user: No data returned"));
@@ -543,8 +539,16 @@ export const handleRefreshSession = async (
       { token, userId: decoded.userId, deviceId: decoded.deviceId },
     );
 
-    let update = updatedData.data;
-    if (Array.isArray(update)) update = update[0];
+    if (updatedData.error || !updatedData.data) {
+      console.error(
+        chalk.red("Error updating user session:"),
+        updatedData.error,
+      );
+      res.status(500).json({ success: false, error: t("internalError", lang) });
+      return;
+    }
+
+    const update = updatedData.data?.[0];
 
     if (!update) {
       console.error(chalk.red("Error updating user session: No data returned"));
@@ -557,7 +561,7 @@ export const handleRefreshSession = async (
     res.json({
       success: true,
       token: update.token,
-      userData: (userData.data as UserData) || null,
+      userData: userData.data?.[0] || null,
     });
   } catch (error) {
     console.error(chalk.red("Error refreshing token:"), error);

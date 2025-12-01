@@ -6,9 +6,8 @@ import {
 } from "@types";
 import {
   saveData,
-  getRouteAPI,
-  fetchOptions,
   stringifyData,
+  fetchToServer,
   loadDataSecure,
   getNotifications,
   askLocationPermission,
@@ -86,7 +85,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
           },
         };
         if (sessionToken && userData?.userId)
-          getRouteAPI("/database/update").then(async (url) => {
+          loadDataSecure("_deviceId").then(async (deviceId) => {
             const values: RequestDatabaseUpdate["values"] = {
               enabled: !!updated.enabled[reason],
             };
@@ -94,13 +93,12 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
               userId: userData.userId,
               reason,
             };
-            const deviceId = await loadDataSecure("_deviceId");
             addTaskQueue(
-              async () => {
-                fetch(
-                  url,
-                  fetchOptions<RequestDatabaseUpdate>(
-                    "POST",
+              {
+                requiresInternet: true,
+                func: async () => {
+                  fetchToServer(
+                    "/database/update",
                     {
                       match,
                       table: "UserNotificationsConfig",
@@ -109,10 +107,9 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
                       lang: language,
                     },
                     sessionToken,
-                  ),
-                );
+                  );
+                },
               },
-              true,
               {
                 id,
                 args: ["UserNotificationsConfig", values, match],
@@ -145,7 +142,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
         if (interval <= 0) return updated;
 
-        getRouteAPI("/database/update").then(async (url) => {
+        loadDataSecure("_deviceId").then(async (deviceId) => {
           const taskId =
             Date.now().toString() + Math.random().toString(36).substring(2, 8);
           const values: RequestDatabaseUpdate["values"] = {
@@ -155,13 +152,12 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             userId: userData.userId,
             reason: id,
           };
-          const deviceId = await loadDataSecure("_deviceId");
           addTaskQueue(
-            async () => {
-              fetch(
-                url,
-                fetchOptions<RequestDatabaseUpdate>(
-                  "POST",
+            {
+              requiresInternet: true,
+              func: async () => {
+                fetchToServer(
+                  "/database/update",
                   {
                     match,
                     deviceId: deviceId || "local-device",
@@ -170,10 +166,9 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
                     lang: language,
                   },
                   sessionToken,
-                ),
-              );
+                );
+              },
             },
-            true,
             {
               id: taskId,
               args: ["UserNotificationsConfig", values, match],

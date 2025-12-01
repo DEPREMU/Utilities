@@ -15,8 +15,10 @@ export const handleAddLog = async (
 
   try {
     const { log } = req.body || {};
-    const { error } = await insertIntoTable("Logs", log);
-    success = !error;
+    if (log) {
+      const { error } = await insertIntoTable("Logs", log);
+      success = !error;
+    }
   } catch (error) {
     console.error("Error adding log:", error);
   }

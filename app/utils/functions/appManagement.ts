@@ -1,19 +1,16 @@
-import {
-  Notifications,
-  LanguagesSupported,
-  RequestDatabaseFetch,
-  ResponseDatabaseFetch,
-} from "@types";
 import axios from "axios";
 import * as Updates from "expo-updates";
 import _BackgroundTimer from "react-native-background-timer";
 import { log, logError } from "./debug";
+import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
 import { loadDataSecure } from "./storageManagement";
 import { Falsy, Platform } from "react-native";
 import { ExpectedStorageTypes } from "@types";
-import { fetchOptions, getRouteAPI } from "./APIManagement";
 import { initializeNotificationsStorage } from "./notifications";
+import { Notifications, LanguagesSupported } from "@types";
+
+const URL_GOOGLE_204 = "https://www.google.com/generate_204";
 
 export const getFormattedDate = (
   date: Date,
@@ -256,34 +253,30 @@ export const getCryptosFromDatabase = async (
   lang: LanguagesSupported,
   token: string,
 ): Promise<ExpectedStorageTypes["_selectedCryptos"]> => {
-  const [url, deviceId] = await Promise.all([
-    getRouteAPI("/database/fetch"),
-    loadDataSecure("_deviceId"),
-  ]);
-  const response = await fetch(
-    url,
-    fetchOptions<RequestDatabaseFetch>(
-      "POST",
-      {
-        lang,
-        deviceId: deviceId || "local-device",
-        table: "Cryptos",
-        match: null,
-      },
-      token,
-    ),
+  const deviceId = await loadDataSecure("_deviceId");
+
+  const response = await fetchToServer(
+    "/database/fetch",
+    {
+      lang,
+      deviceId: deviceId || "local-device",
+      table: "Cryptos",
+      match: null,
+    },
+    token,
   );
 
   if (!response.ok) {
-    logError("Error fetching cryptos from Database:", response.statusText);
+    logError(
+      "Error fetching cryptos from Database:",
+      response.errorText || "Unknown error",
+    );
     return null;
   }
 
-  const data = (await response.json()) as ResponseDatabaseFetch<"Cryptos">;
+  const cryptos = response.data?.data;
 
-  let cryptos = data.data;
   if (!cryptos) return null;
-  if (!Array.isArray(cryptos)) cryptos = [cryptos];
 
   return cryptos.reduce(
     (acc, crypto) => {
@@ -362,6 +355,23 @@ export const checkUrlStatus = async (
     return res.status >= 200 && res.status < 400;
   } catch (error) {
     logError(`Error checking URL status for ${url}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Checks if the device has an active internet connection by attempting to reach a Google server.
+ *
+ * This function performs a GET request to a predefined Google server URL with a 10-second timeout.
+ * It considers the connection active if the request returns a status code in the range of 200-399.
+ *
+ * @returns {Promise<boolean>} A promise that resolves to `true` if the internet connection is verified, or `false` if the request fails or times out.
+ */
+export const hasInternetConnection = async (): Promise<boolean> => {
+  try {
+    const res = await axios.get(URL_GOOGLE_204, { timeout: 10000 });
+    return res.status < 400 && res.status >= 200;
+  } catch {
     return false;
   }
 };

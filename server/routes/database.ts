@@ -13,6 +13,7 @@ import {
   ResponseDatabaseFetch,
   ResponseDatabaseInsert,
   ResponseDatabaseUpdate,
+  TablesKeys,
 } from "@types";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
@@ -21,7 +22,7 @@ import { TABLE_MAP } from "config.ts";
 
 export const handleFetchFromDatabase = async (
   req: Request<unknown, unknown, RequestDatabaseFetch>,
-  res: Response<ResponseDatabaseFetch>,
+  res: Response<ResponseDatabaseFetch<TablesKeys>>,
 ) => {
   const lang = req?.body?.lang || "en";
   let { match } = req.body || { match: null };

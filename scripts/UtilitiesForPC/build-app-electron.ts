@@ -18,45 +18,33 @@
  * npm run build-app -- --platform=windows  # Build only for Windows
  */
 
+import {
+  ask,
+  ARGS,
+  APP_PATH,
+  UTILITIES_PATH,
+  UTILITIES_FOR_PC_PATH,
+} from "../config.ts";
 import fs from "fs";
 import os from "os";
 import path from "path";
 import { t } from "./translations.ts";
 import { execSync } from "child_process";
-import * as readline from "readline";
-import type PACKAGE_JSON from "../package.json";
-
-const args = process.argv.slice(2);
+import type PACKAGE_JSON from "../../UtilitiesForPC/package.json";
 
 type BuildPlatform = "linux" | "windows" | "both";
 
-const askQuestion = async (question: string): Promise<string> => {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  const answer = await new Promise((resolve: (value: string) => void) => {
-    rl.question(question, resolve);
-  });
-  rl.close();
-  return answer;
-};
-
-let __dirname = path.resolve("../");
-if (!__dirname.endsWith("UtilitiesForPC")) {
-  __dirname = path.resolve(__dirname, "UtilitiesForPC");
-}
-if (!fs.existsSync(__dirname))
-  throw new Error("__dirname does not exist: " + __dirname);
-
 const packageJson: typeof PACKAGE_JSON = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, "package.json"), "utf-8")
+  fs.readFileSync(path.resolve(UTILITIES_FOR_PC_PATH, "package.json"), "utf-8")
 ) as typeof PACKAGE_JSON;
-const isWindows = os.platform() === "win32";
 const isLinux = os.platform() === "linux";
+const isWindows = os.platform() === "win32";
 
 const dataBuild = {
-  distElectron: packageJson.build.directories.output,
+  distElectron: path.join(
+    UTILITIES_FOR_PC_PATH,
+    packageJson.build.directories.output
+  ),
   appName: packageJson.name,
   productName: packageJson.build.productName,
 } as const;
@@ -82,7 +70,7 @@ const installWine = async (): Promise<void> => {
   console.log(t("wineRequired"));
   console.log(t("wineDescription"));
 
-  const answer = await askQuestion(t("installWinePrompt"));
+  const answer = ARGS.yes ? "y" : await ask(t("installWinePrompt"));
 
   if (answer.toLowerCase() !== "y") {
     console.log(t("skipWineInstallation"));
@@ -103,7 +91,7 @@ const installWine = async (): Promise<void> => {
 };
 
 const addAutostartLinux = async () => {
-  const answer0 = await askQuestion(t("enableAutoStartQuestion"));
+  const answer0 = ARGS.yes ? "y" : await ask(t("enableAutoStartQuestion"));
   if (answer0.toLowerCase() !== "y") return;
 
   const homePath = process.env.HOME;
@@ -221,9 +209,7 @@ ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
 const buildApp = async () => {
   let buildPlatform: BuildPlatform = "both";
 
-  const platformArg = args.find(
-    (arg) => arg.startsWith("--platform=") || arg.startsWith("-p=")
-  );
+  const platformArg = ARGS.platform;
   if (platformArg) {
     const platform = platformArg.split("=")[1] as BuildPlatform;
     if (["linux", "windows", "both"].includes(platform)) {
@@ -237,8 +223,8 @@ const buildApp = async () => {
 
   const compileSource = (forWindows: boolean) => {
     console.log(t("buildingApp") + ` (isWindows=${forWindows})`);
-    execSync(`npm run build -- -w ${forWindows}`, {
-      cwd: __dirname,
+    execSync(`npm run build-resources-electron -- --isWindows=${forWindows}`, {
+      cwd: UTILITIES_PATH,
       stdio: "inherit",
     });
     console.log(t("appBuildCommandExecuted"));
@@ -253,7 +239,7 @@ const buildApp = async () => {
     compileSource(true);
     try {
       execSync("npx electron-builder --win", {
-        cwd: __dirname,
+        cwd: UTILITIES_FOR_PC_PATH,
         stdio: "inherit",
       });
       console.log(t("windowsBuildCompleted"));
@@ -283,7 +269,7 @@ const buildApp = async () => {
 
     try {
       execSync("npx electron-builder --linux deb", {
-        cwd: __dirname,
+        cwd: UTILITIES_FOR_PC_PATH,
         stdio: "inherit",
       });
       console.log(t("appPackagedSuccessfully"));
@@ -305,7 +291,7 @@ const buildApp = async () => {
 
     try {
       execSync("npx electron-builder --win", {
-        cwd: __dirname,
+        cwd: UTILITIES_FOR_PC_PATH,
         stdio: "inherit",
       });
       console.log(t("windowsBuildCompleted"));
@@ -339,7 +325,7 @@ const buildApp = async () => {
 
     try {
       execSync("npx electron-builder --linux deb", {
-        cwd: __dirname,
+        cwd: UTILITIES_FOR_PC_PATH,
         stdio: "inherit",
       });
       console.log("\n" + t("appPackagedSuccessfully"));
@@ -352,21 +338,24 @@ const buildApp = async () => {
     }
 
     if (isLinux) {
-      const dir = execSync(`ls`, { cwd: dataBuild.distElectron })
+      const dir = execSync(`ls`, {
+        cwd: dataBuild.distElectron,
+      })
         .toString()
         .split("\n");
       const packageName = dir.find((file) => file.endsWith(".deb"));
       if (!packageName) throw new Error(t("FailedToFindSnapPackage"));
 
-      const installAnswer = await askQuestion(t("installDebPackagePrompt"));
+      const installAnswer = ARGS.yes
+        ? "y"
+        : await ask(t("installDebPackagePrompt"));
       if (installAnswer.toLowerCase() === "y") {
         execSync(
-          `sudo dpkg -i ${path.join(
-            dataBuild.distElectron,
-            packageName
-          )} && sudo apt-get install -f -y; sudo apt autoremove -y`,
+          `sudo dpkg -i ${
+            dataBuild.distElectron
+          } && sudo apt-get install -f -y; sudo apt autoremove -y`,
           {
-            cwd: __dirname,
+            cwd: UTILITIES_FOR_PC_PATH,
             stdio: "inherit",
           }
         );
@@ -375,7 +364,7 @@ const buildApp = async () => {
 
         await addAutostartLinux();
 
-        const answer = await askQuestion(t("pleaseRestartComputer"));
+        const answer = await ask(t("pleaseRestartComputer"));
         if (answer.toLowerCase() === "y") {
           console.log(t("restartNow"));
           execSync("sudo reboot", { stdio: "inherit" });
@@ -383,9 +372,12 @@ const buildApp = async () => {
           console.log(t("restartingComputer"));
         }
 
-        const answer2 = await askQuestion(t("openAppNow"));
+        const answer2 = await ask(t("openAppNow"));
         if (answer2.toLowerCase() === "y") {
-          execSync(`${runAppCommand}`, { cwd: __dirname, stdio: "inherit" });
+          execSync(`${runAppCommand}`, {
+            cwd: UTILITIES_FOR_PC_PATH,
+            stdio: "inherit",
+          });
         }
       }
     }
@@ -399,17 +391,16 @@ const buildApp = async () => {
 };
 
 const exportWebApp = () => {
-  const appPath = path.resolve(__dirname, "..", "app");
-  if (!fs.existsSync(appPath))
-    throw new Error(t("appPathDoesNotExist") + appPath);
+  if (!fs.existsSync(APP_PATH))
+    throw new Error(t("appPathDoesNotExist") + APP_PATH);
 
   console.log(t("installingDependencies"));
-  execSync("npm install", { cwd: appPath });
+  execSync("npm install", { cwd: APP_PATH });
   console.log(t("dependenciesInstalled"));
 
   console.log(t("buildingWebApp"));
   const data = execSync("npm run build-web", {
-    cwd: path.resolve(__dirname, ".."),
+    cwd: UTILITIES_PATH,
   });
   if (!data.toString().includes("Exported: dist"))
     throw new Error(t("failedToBuildWebApp") + data.toString());
@@ -418,31 +409,33 @@ const exportWebApp = () => {
   console.log(t("cleaningUpOldBuildDirectories"));
   ["dist", dataBuild.distElectron, "release", "build"].forEach((dir) => {
     try {
-      const fullPath = path.resolve(__dirname, dir);
+      const fullPath = path.resolve(UTILITIES_FOR_PC_PATH, dir);
       if (fs.existsSync(fullPath))
         fs.rmSync(fullPath, { recursive: true, force: true });
+      else if (fs.existsSync(dir))
+        fs.rmSync(dir, { recursive: true, force: true });
     } catch {}
   });
   console.log(t("oldBuildDirectoriesCleaned"));
 
   console.log(t("preparingFilesForElectronApp"));
-  const distPath = path.resolve(appPath, "dist");
-  const distPathToCopy = path.resolve(__dirname, "dist");
+  const distPath = path.resolve(APP_PATH, "dist");
+  const distPathToCopy = path.resolve(UTILITIES_FOR_PC_PATH, "dist");
   fs.cpSync(distPath, distPathToCopy, { recursive: true });
   fs.rmSync(distPath, { recursive: true });
 
   console.log(t("copyingAssets"));
   ["ico", "png"].forEach((ext) => {
     fs.copyFileSync(
-      path.resolve(__dirname, "assets", `tray-icon.${ext}`),
-      path.resolve(__dirname, "dist", "assets", `tray-icon.${ext}`)
+      path.resolve(UTILITIES_FOR_PC_PATH, "assets", `tray-icon.${ext}`),
+      path.resolve(UTILITIES_FOR_PC_PATH, "dist", "assets", `tray-icon.${ext}`)
     );
   });
   console.log(t("assetsCopied"));
 
   console.log(t("inliningJSAndFontsIntoHTML"));
   const jsPath = path.resolve(
-    __dirname,
+    UTILITIES_FOR_PC_PATH,
     "dist",
     "_expo",
     "static",
@@ -461,10 +454,15 @@ const exportWebApp = () => {
   const mainFileContent = fs.readFileSync(mainFilePath, "utf-8");
 
   let html = fs.readFileSync(
-    path.resolve(__dirname, "dist", "index.html"),
+    path.resolve(UTILITIES_FOR_PC_PATH, "dist", "index.html"),
     "utf-8"
   );
-  const fontsPath = path.resolve(__dirname, "dist", "assets", "fonts");
+  const fontsPath = path.resolve(
+    UTILITIES_FOR_PC_PATH,
+    "dist",
+    "assets",
+    "fonts"
+  );
 
   if (!fs.existsSync(fontsPath))
     fs.mkdirSync(fontsPath, {
@@ -472,7 +470,7 @@ const exportWebApp = () => {
     });
 
   const MaterialCommunityIcons = path.resolve(
-    appPath,
+    APP_PATH,
     "node_modules",
     "react-native-vector-icons",
     "Fonts",
@@ -493,10 +491,13 @@ const exportWebApp = () => {
       'url("./assets/fonts/MaterialCommunityIcons.ttf") format("truetype")'
     );
   });
-  fs.writeFileSync(path.resolve(__dirname, "dist", "index.html"), html);
+  fs.writeFileSync(
+    path.resolve(UTILITIES_FOR_PC_PATH, "dist", "index.html"),
+    html
+  );
   console.log(t("jsAndFontsInlined"));
 
-  if (!args.includes("export-web")) buildApp();
+  if (!ARGS["export-web"]) buildApp();
 };
 
 exportWebApp();

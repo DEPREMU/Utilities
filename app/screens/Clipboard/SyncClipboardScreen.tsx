@@ -6,8 +6,7 @@ import { useUserContext } from "@context/UserContext";
 import { View, TextInput } from "react-native";
 import useStylesSyncClipboard from "@styles/screens/clipboard/useStylesSyncClipboard";
 import React, { useCallback, useState } from "react";
-import { fetchOptions, getRouteAPI, loadDataSecure } from "@utils";
-import { RequestDatabaseInsert, ResponseDatabaseInsert } from "@types";
+import { fetchToServer, loadDataSecure } from "@utils";
 
 const SyncClipboardScreen: React.FC = () => {
   const { styles } = useStylesSyncClipboard();
@@ -26,30 +25,26 @@ const SyncClipboardScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const [url, deviceId] = await Promise.all([
-        getRouteAPI("/database/insert"),
-        loadDataSecure("_deviceId"),
-      ]);
-      const res = await fetch(
-        url,
-        fetchOptions<RequestDatabaseInsert<"ClipboardSync">>(
-          "POST",
-          {
-            lang: language,
-            table: "ClipboardSync",
+      const deviceId = await loadDataSecure("_deviceId");
+
+      const res = await fetchToServer(
+        "/database/insert",
+        {
+          lang: language,
+          table: "ClipboardSync",
+          deviceId: deviceId || "local-device",
+          values: {
+            content: inputText,
+            createdAt: new Date().toISOString(),
             deviceId: deviceId || "local-device",
-            values: {
-              content: inputText,
-              createdAt: new Date().toISOString(),
-              deviceId: deviceId || "local-device",
-              userId: userData?.userId,
-            },
+            userId: userData?.userId,
           },
-          sessionToken,
-        ),
+        },
+        sessionToken,
       );
-      const { error } =
-        (await res.json()) as ResponseDatabaseInsert<"ClipboardSync">;
+      const { error } = res.data || {
+        error: res.errorText || "Unknown error",
+      };
 
       if (error) openSnackBar(t("errorOccurred", { error }));
       else {

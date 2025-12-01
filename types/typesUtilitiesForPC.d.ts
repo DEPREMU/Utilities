@@ -51,4 +51,5 @@ type NotificationsSaved = Record<ReasonNotification, (() => void) | null>;
 
 type ExpectedNativeWebData = {
   hasBattery: boolean | "unknown";
+  version: string;
 };

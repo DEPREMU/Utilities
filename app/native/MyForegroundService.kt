@@ -167,10 +167,11 @@ class MyForegroundService : Service() {
         } else {
             startService(restartServiceIntent)
         }
+        bringAppToFront()
     }
 
     override fun onDestroy() {
-        super.onCreate()
+        super.onDestroy()
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
@@ -196,9 +197,22 @@ class MyForegroundService : Service() {
         } else {
             startService(restartServiceIntent)
         }
+        bringAppToFront()
     }
-
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun bringAppToFront() {
+        try {
+            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(launchIntent)
+                Log.d("MyForegroundService", "Activity started from service")
+            }
+        } catch (e: Exception) {
+            Log.e("MyForegroundService", "Error starting activity: ${e.message}")
+        }
+    }
     
     private fun sendToDatabase(content: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -1,3 +1,7 @@
+import { RequestIsUpdateAvailable } from "./Request";
+import { ResponseIsUpdateAvailable } from "./Response";
+import { MethodsAvailableInAPI } from "./typesAPI";
+
 export type UpdatesRoutes =
   | "/web-page"
   | "/upload-update"
@@ -25,50 +29,37 @@ export type DataUpdates = {
   new: CommonData;
 };
 
-export type RequestIsUpdateAvailable<
-  T extends BuildTypeUpdates = BuildTypeUpdates
-> = {
-  buildType: T;
-  currentVersion: string;
-  platformOS: T extends "android" ? undefined : PlatformsOS;
-};
-
-export type ResponseIsUpdateAvailable = {
-  updateAvailable: boolean;
-  latestVersion: string;
-  downloadUrl: string;
-};
-
-export type RequestUploadUpdate =
-  | {
-      version: string;
-      timestamp: number;
-      buildType: Exclude<BuildTypeUpdates, "android">;
-      platformOS: PlatformsOS;
-    }
-  | {
-      version: string;
-      timestamp: number;
-      buildType: "android";
-      platformOS: undefined;
-    };
-
-export type RequestCreateTempDownloadUrl = {
-  buildType: BuildTypeUpdates;
-  version: string;
-};
-
-export type ResponseCreateTempDownloadUrl = {
-  url: string;
-};
-
-export type RequestDownloadViaTempUrl = {
-  buildType: BuildTypeUpdates;
-  platformOS: PlatformsOS;
-  version: string;
-  id: string;
-};
-
 export type ResponseDownloadUpload = {
   error?: string;
+};
+
+export type IsUpdateAvailableFetch = {
+  url: "/is-update-available";
+  body: RequestIsUpdateAvailable;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseIsUpdateAvailable;
+};
+export type UploadUpdateFetch = {
+  url: "/upload-update";
+  body: undefined;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseIsUpdateAvailable;
+};
+export type DownloadViaTempUrlFetch = {
+  url: "/download/:buildType/:version/:platformOS/:id";
+  body: unknown;
+  method: MethodsAvailableInAPI["get"];
+  response: unknown;
+};
+export type DownloadUploadFetch = {
+  url: "/download/:buildType/:version/:platformOS/:id";
+  body: unknown;
+  method: MethodsAvailableInAPI["get"];
+  response: unknown;
+};
+export type WebPageFetch = {
+  url: "/web-page";
+  body: unknown;
+  method: MethodsAvailableInAPI["get"];
+  response: unknown;
 };

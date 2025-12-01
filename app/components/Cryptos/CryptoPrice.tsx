@@ -1,15 +1,14 @@
 import {
   logError,
-  getRouteAPI,
-  fetchOptions,
   stringifyData,
+  fetchToServer,
   getFormattedDate,
 } from "@utils";
 import { View, Text } from "react-native";
 import SkeletonLoading from "@components/common/SkeletonLoading";
+import { SelectedCryptos } from "@types";
 import { useStylesCryptoPrice } from "@styles/components/cryptos/useStylesCryptoPrice";
 import React, { useState, useEffect } from "react";
-import { ResponseCryptoPrice, SelectedCryptos } from "@types";
 
 type CryptoPriceProps = {
   cryptoData: SelectedCryptos[string];
@@ -45,14 +44,15 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        const data = await fetch(
-          await getRouteAPI("/cryptoPrice"),
-          fetchOptions("POST", {
-            cryptoId: cryptoData.id,
-            currency: cryptoData.currency,
-          }),
-        ).then(async (r) => (await r.json()) as ResponseCryptoPrice);
-        const { priceUSD, error, priceUSDTMXN } = data;
+        const res = await fetchToServer("/cryptoPrice", {
+          cryptoId: cryptoData.id,
+          currency: cryptoData.currency,
+        });
+        const data = res.data;
+        const { priceUSD, error, priceUSDTMXN } = data || {
+          error: res.errorText || "No data served",
+        };
+
         if (error) {
           setPriceUsd(null);
           setPriceMxn(null);

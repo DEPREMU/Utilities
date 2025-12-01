@@ -1,21 +1,9 @@
 import {
   logError,
-  getRouteAPI,
-  fetchOptions,
+  fetchToServer,
   saveDataSecure,
   loadDataSecure,
 } from "@utils";
-import {
-  Tables,
-  TablesKeys,
-  DownDetector as DownDetectorType,
-  RequestDatabaseFetch,
-  RequestDatabaseDelete,
-  RequestDatabaseUpdate,
-  ResponseDatabaseFetch,
-  ResponseDatabaseDelete,
-  ResponseDatabaseUpdate,
-} from "@types";
 import DownDetector from "./DownDetector";
 import AddNewWebPage from "./AddNewWebPage";
 import { useLanguage } from "@context/LanguageContext";
@@ -23,6 +11,7 @@ import { useUserContext } from "@context/UserContext";
 import { BottomNavigation } from "react-native-paper";
 import useStylesDownDetectorNavigator from "@styles/screens/downDetector/useStylesDownDetectorNavigator";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Tables, TablesKeys, DownDetector as DownDetectorType } from "@types";
 
 const tableName: TablesKeys = "DownDetector" as const;
 const skeletonData: Tables[typeof tableName][] = Array.from({ length: 5 }).map(
@@ -59,23 +48,19 @@ const DownDetectorNavigator: React.FC = () => {
       if (!id) return logError("No ID provided for deletion");
       if (!sessionToken) return logError("No session token available");
 
-      const [url, deviceId] = await Promise.all([
-        getRouteAPI("/database/delete"),
-        loadDataSecure("_deviceId"),
-      ]);
-      const { error } = (await fetch(
-        url,
-        fetchOptions<RequestDatabaseDelete<typeof tableName>>(
-          "POST",
-          {
-            lang: language,
-            deviceId: deviceId || "local-device",
-            match: { id },
-            table: tableName,
-          },
-          sessionToken,
-        ),
-      ).then((res) => res.json())) as ResponseDatabaseDelete;
+      const deviceId = await loadDataSecure("_deviceId");
+
+      const res = await fetchToServer(
+        "/database/delete",
+        {
+          lang: language,
+          deviceId: deviceId || "local-device",
+          match: { id },
+          table: tableName,
+        },
+        sessionToken,
+      );
+      const { error } = res.data || { error: res.errorText || "Unknown error" };
 
       if (error) {
         logError("Error deleting downDetector item:", error);
@@ -105,27 +90,23 @@ const DownDetectorNavigator: React.FC = () => {
           ...(prevData?.filter((item) => item.id !== id) || []),
         ];
 
-        getRouteAPI("/database/update").then(async (url) => {
+        loadDataSecure("_deviceId").then(async (deviceId) => {
           if (!sessionToken) return logError("No session token available");
 
-          const deviceId = await loadDataSecure("_deviceId");
-
-          fetch(
-            url,
-            fetchOptions<RequestDatabaseUpdate<typeof tableName>>(
-              "POST",
-              {
-                lang: language,
-                deviceId: deviceId || "local-device",
-                table: tableName,
-                match: { id },
-                values: { sendNotification: newItem.sendNotification },
-              },
-              sessionToken,
-            ),
-          ).then(async (res) => {
-            const { success, error } =
-              (await res.json()) as ResponseDatabaseUpdate<typeof tableName>;
+          fetchToServer(
+            "/database/update",
+            {
+              lang: language,
+              deviceId: deviceId || "local-device",
+              table: tableName,
+              match: { id },
+              values: { sendNotification: newItem.sendNotification },
+            },
+            sessionToken,
+          ).then((res) => {
+            const { success, error } = res.data || {
+              error: res.errorText || "Unknown error",
+            };
 
             if (error) {
               logError("Error updating sendNotification status:", error);
@@ -186,29 +167,23 @@ const DownDetectorNavigator: React.FC = () => {
     const fetchDownDetectorDataFromDatabase = async () => {
       if (!sessionToken) return logError("No session token available");
 
-      const [url, deviceId] = await Promise.all([
-        getRouteAPI("/database/fetch"),
-        loadDataSecure("_deviceId"),
-      ]);
+      const deviceId = await loadDataSecure("_deviceId");
 
       try {
-        const res = await fetch(
-          url,
-          fetchOptions<RequestDatabaseFetch<typeof tableName>>(
-            "POST",
-            {
-              table: tableName,
-              deviceId: deviceId || "local-device",
-              match: { userId: userData?.userId },
-              lang: language,
-            },
-            sessionToken,
-          ),
+        const res = await fetchToServer(
+          "/database/fetch",
+          {
+            table: tableName,
+            deviceId: deviceId || "local-device",
+            match: { userId: userData?.userId },
+            lang: language,
+          },
+          sessionToken,
         );
 
-        const { data, error } = (await res.json()) as ResponseDatabaseFetch<
-          typeof tableName
-        >;
+        const { data, error } = res.data || {
+          error: res.errorText || "Unknown error",
+        };
 
         if (!error && data) {
           setTimeout(

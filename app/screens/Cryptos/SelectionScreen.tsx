@@ -1,15 +1,7 @@
 import {
-  PriceBinanceAPI,
-  ResponseCryptos,
-  RequestDatabaseDelete,
-  RequestDatabaseInsert,
-  TablesKeys,
-} from "@types";
-import {
   logError,
   cleanFloat,
-  getRouteAPI,
-  fetchOptions,
+  fetchToServer,
   stringifyData,
   loadDataSecure,
   saveDataSecure,
@@ -27,6 +19,7 @@ import { Text, TextInput } from "react-native-paper";
 import useStylesCryptoItem from "@styles/components/cryptos/useStylesCryptoItem";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSelectionScreen from "@styles/components/cryptos/useStylesSelectionScreen";
+import { PriceBinanceAPI, TablesKeys } from "@types";
 import React, { useState, useEffect, useCallback } from "react";
 
 interface SelectionScreenProps {
@@ -214,11 +207,15 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
   useEffect(() => {
     const id = setTimeout(() => {
       const loadCryptos = async () => {
-        const route = await getRouteAPI("/cryptos");
-        const response = await fetch(route, fetchOptions("POST", { currency }));
-        const data = ((await response.json()) || {}) as ResponseCryptos;
-        if (data?.error || response.status !== 200) {
-          logError("Error fetching cryptos:", data?.error);
+        const response = await fetchToServer("/cryptos", {
+          currency,
+        });
+        const data = response.data;
+        if (!data || data?.error || !response.ok) {
+          logError(
+            "Error fetching cryptos:",
+            data?.error || response.errorText || "Unknown error",
+          );
           setCryptos(null);
           return;
         }
@@ -256,26 +253,24 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       if (cryptosToUpdate && cryptosToUpdate.length > 0 && sessionToken) {
         const id = "updateCryptos";
         addTaskQueue(
-          async () => {
-            const [url, deviceId] = await Promise.all([
-              getRouteAPI("/database/update"),
-              loadDataSecure("_deviceId"),
-            ]);
-            fetch(
-              url,
-              fetchOptions<RequestDatabaseInsert>(
-                "POST",
+          {
+            requiresInternet: true,
+            func: async () => {
+              const deviceId = await loadDataSecure("_deviceId");
+
+              fetchToServer(
+                "/database/update",
                 {
                   lang: language,
+                  match: null,
                   table: "Cryptos",
                   values: cryptosToUpdate,
                   deviceId: deviceId || "local-device",
                 },
                 sessionToken,
-              ),
-            );
+              );
+            },
           },
-          true,
           {
             id,
             functionName: "updateFromDatabase",
@@ -291,15 +286,13 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         const id = "insertCryptos";
         const table: TablesKeys = "Cryptos";
         addTaskQueue(
-          async () => {
-            const [url, deviceId] = await Promise.all([
-              getRouteAPI("/database/insert"),
-              loadDataSecure("_deviceId"),
-            ]);
-            fetch(
-              url,
-              fetchOptions<RequestDatabaseInsert<typeof table>>(
-                "POST",
+          {
+            requiresInternet: true,
+            func: async () => {
+              const deviceId = await loadDataSecure("_deviceId");
+
+              fetchToServer(
+                "/database/insert",
                 {
                   lang: language,
                   deviceId: deviceId || "local-device",
@@ -307,10 +300,9 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
                   values: cryptosToAdd,
                 },
                 sessionToken,
-              ),
-            );
+              );
+            },
           },
-          true,
           {
             id,
             functionName: "insertIntoDatabase",
@@ -325,18 +317,15 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         .map((c) => c.uid as string);
 
       if (cryptosToDelete && cryptosToDelete.length > 0) {
-        const [url, deviceId] = await Promise.all([
-          getRouteAPI("/database/delete"),
-          loadDataSecure("_deviceId"),
-        ]);
+        const deviceId = await loadDataSecure("_deviceId");
 
         cryptosToDelete.map((uid) =>
           addTaskQueue(
-            async () => {
-              fetch(
-                url,
-                fetchOptions<RequestDatabaseDelete>(
-                  "POST",
+            {
+              requiresInternet: true,
+              func: async () => {
+                fetchToServer(
+                  "/database/delete",
                   {
                     lang: language,
                     deviceId: deviceId || "local-device",
@@ -344,10 +333,9 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
                     match: { uid },
                   },
                   sessionToken,
-                ),
-              );
+                );
+              },
             },
-            true,
             {
               id: `deleteCrypto${uid}`,
               functionName: "deleteFromDatabase",

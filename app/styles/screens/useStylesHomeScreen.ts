@@ -53,6 +53,15 @@ export const useStylesHomeScreen = () => {
           marginBottom: 20,
           letterSpacing: 0.5,
         },
+        footer: {
+          fontSize: getResponsiveValue(12, 14, 16),
+          fontWeight: "400",
+          color: colors.text,
+          textAlign: "right",
+          marginVertical: 10,
+          letterSpacing: 0.5,
+          width: "100%",
+        },
       }),
     [colors.background, getCommonStyles, getResponsiveValue, colors.text],
   );

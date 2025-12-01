@@ -1,4 +1,6 @@
 import Button from "@components/common/ButtonComponent";
+import { isDev } from "@utils";
+import windowModule from "@/utils/modules/WindowModule";
 import { List, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
@@ -6,8 +8,8 @@ import { navigateReplace } from "@navigation/navigationRef";
 import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { Platform, ScrollView, View } from "react-native";
-import React, { useCallback, useMemo } from "react";
 import { ScreensAvailable, typeLanguages } from "@types";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 type ButtonType = {
   label: keyof typeLanguages;
@@ -15,11 +17,6 @@ type ButtonType = {
   noNeedsSession?: boolean;
   noNeedsInternet?: boolean;
 };
-
-const dev: ButtonType | undefined =
-  __DEV__ || process.env.NODE_ENV === "development"
-    ? { label: "test", screen: "Test", noNeedsInternet: true }
-    : undefined;
 
 const buttons: ButtonType[] = [
   { label: "settings", screen: "Settings", noNeedsSession: true },
@@ -72,13 +69,30 @@ if (Platform.OS !== "web") {
     noNeedsSession: true,
   });
 }
-if (dev) buttons.push(dev);
+if (isDev)
+  buttons.push({
+    label: "test",
+    screen: "Test",
+    noNeedsInternet: true,
+  });
 
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
   const { hasInternet } = useDeviceInformation();
   const { styles, background } = useStylesHomeScreen();
   const { userData, logout, isLoggedIn, loggingIn } = useUserContext();
+
+  const [version, setVersion] = useState<string>("");
+
+  useEffect(() => {
+    const fetchVersion = async () => {
+      if (Platform.OS !== "web") return;
+
+      const version = await windowModule.getNativeData("version");
+      setVersion(String(version));
+    };
+    fetchVersion();
+  }, []);
 
   const renderButtons = useMemo(() => {
     return buttons.map((button, i) => (
@@ -146,6 +160,11 @@ const HomeScreen: React.FC = () => {
       >
         {renderButtons}
       </ScrollView>
+      {Platform.OS === "web" && (
+        <Text style={styles.footer}>
+          {t("appVersion")} - {version}
+        </Text>
+      )}
     </View>
   );
 };

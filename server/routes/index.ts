@@ -24,8 +24,8 @@ import { handleAddLog } from "./debug.ts";
 import { Response, Request } from "express";
 import { handleDoQueryDatabase } from "../dev/handleDoQuery.ts";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
-import { ResponseHealth, Route, RoutesAPI } from "@types";
 import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
+import { ResponseHealth, Route, RoutesAPI, UpdatesRoutes } from "@types";
 
 const startTime = Date.now();
 const handleHealthCheck = (_: Request, res: Response<ResponseHealth>) => {
@@ -38,7 +38,9 @@ const handleHealthCheck = (_: Request, res: Response<ResponseHealth>) => {
 
 const router = Router();
 
-const routes: Record<RoutesAPI, Route> = {
+const routes: {
+  [K in Exclude<RoutesAPI, UpdatesRoutes>]: Route<K>;
+} = {
   "/cryptoPrice": {
     method: "post",
     handler: handleGetCryptoPrice,
@@ -100,7 +102,7 @@ const routes: Record<RoutesAPI, Route> = {
     middlewares: [authMiddleware],
   },
   "/database/update": {
-    method: "post",
+    method: "put",
     handler: handleUpdateToDatabase,
     middlewares: [authMiddleware],
   },
@@ -110,7 +112,7 @@ const routes: Record<RoutesAPI, Route> = {
     middlewares: [authMiddleware],
   },
   "/getRandomUUID": {
-    method: "post",
+    method: "get",
     handler: handleGetRandomUUID,
   },
   "/doQueryDB": {

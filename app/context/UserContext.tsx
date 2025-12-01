@@ -35,6 +35,7 @@ interface UserContextType {
   ) => Promise<void>;
   userData: Omit<UserData, "password"> | null;
   setLoggingIn: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsLoggedIn: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 interface UserProviderProps {
@@ -193,9 +194,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
    */
   const refreshToken = useCallback(
     async (sessionToken: string): Promise<void> => {
+      const handleNotLoggedIn = () => {
+        setLoggingIn(false);
+        setIsLoggedIn(false);
+      };
+
       setLoggingIn(true);
-      setIsLoggedIn(false);
-      if (!sessionToken || sessionInitialized.current) return;
+      if (!sessionToken || sessionInitialized.current)
+        return handleNotLoggedIn();
 
       try {
         const { userData, token, error } =
@@ -203,12 +209,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
         if (error) {
           logError("Token refresh error:", error);
+          handleNotLoggedIn();
           return;
         }
 
         if (!userData || !token) {
           await authSignOut();
-          setLoggingIn(false);
+          handleNotLoggedIn();
           return;
         }
         setUserData(userData);
@@ -219,6 +226,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         log("Token refreshed successfully");
       } catch (error) {
         logError("Unexpected refresh error:", error);
+        handleNotLoggedIn();
         authSignOut();
       }
     },
@@ -235,6 +243,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     sessionToken,
     refreshToken,
     setLoggingIn,
+    setIsLoggedIn,
     forgotPassword,
   };
 

@@ -2,15 +2,16 @@ import type {
   PlatformsOS,
   RequestUploadUpdate,
   RequestIsUpdateAvailable,
-} from "../types/index";
+} from "../../types/index";
 import {
   ARGS,
+  getArgs,
   isNewVersion,
+  UTILITIES_PATH,
   versionElectron,
   getRouteUpdates,
   UTILITIES_FOR_PC_PATH,
-  getArgs,
-} from "./config.ts";
+} from "../config.ts";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
@@ -39,7 +40,14 @@ const isNewVersionPlatform = async (platformOS: PlatformsOS) => {
 
     const result = (await res.json()) as Types.ResponseIsUpdateAvailable;
 
-    return isNewVersion(versionElectron, result.latestVersion);
+    const isNew = isNewVersion(versionElectron, result.latestVersion);
+    if (!isNew) {
+      console.log(
+        `No new ${platformOS} version available. Current: ${versionElectron}, Latest: ${result.latestVersion}`
+      );
+    }
+
+    return isNew;
   } catch (error) {
     console.error(
       "Error checking for new version:",
@@ -207,13 +215,13 @@ const buildElectronApp = () => {
   let platform = ARGS.platform || "both";
 
   if (platform === "both") {
-    if (isNewVersionLinux) {
+    if (isNewVersionLinux && !isNewVersionWindows) {
       console.log(
         `Building only for Linux as Windows is up to date for version ${versionElectron}.`
       );
       platform = "linux";
     }
-    if (isNewVersionWindows) {
+    if (isNewVersionWindows && !isNewVersionLinux) {
       console.log(
         `Building only for Windows as Linux is up to date for version ${versionElectron}.`
       );
@@ -232,11 +240,11 @@ const buildElectronApp = () => {
   const args = getArgs();
 
   execSync(
-    `npm run build-app -- ${
+    `npm run build-app-electron -- ${
       args.includes("platform") ? args : `${args} --platform=${platform}`
     }`,
     {
-      cwd: UTILITIES_FOR_PC_PATH,
+      cwd: UTILITIES_PATH,
       stdio: "inherit",
       killSignal: "SIGINT",
     }
@@ -250,7 +258,7 @@ console.log("=== Electron Build and Upload Process ===\n");
 const run = async () => {
   isNewVersionLinux = await isNewVersionPlatform("linux");
   isNewVersionWindows = await isNewVersionPlatform("windows");
-  buildElectronApp();
+  if (!ARGS["skip-build-electron"]) buildElectronApp();
   uploadElectronBuilds().catch((error) => {
     console.error("Process failed:", error);
     process.exit(1);

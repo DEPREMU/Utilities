@@ -1,3 +1,9 @@
+import {
+  logError,
+  setIntervalPolyfill,
+  clearIntervalPolyfill,
+  hasInternetConnection,
+} from "@utils";
 import React, {
   useRef,
   useState,
@@ -7,11 +13,9 @@ import React, {
   useCallback,
   createContext,
 } from "react";
-import axios from "axios";
 import { cloneDeep } from "lodash";
 import { DeviceInformation } from "@types";
 import DeviceInfo, { PowerState } from "react-native-device-info";
-import { clearIntervalPolyfill, logError, setIntervalPolyfill } from "@utils";
 
 interface DeviceInformationContextType {
   deviceInfo: DeviceInformation | null;
@@ -85,7 +89,7 @@ export const DeviceInformationProvider: React.FC<
   const [deviceInfo, setDeviceInfo] = useState<DeviceInformation | null>(null);
   const [hasInternet, setHasInternet] = useState<boolean>(true);
 
-  const hasInternetRef = useRef<boolean>(hasInternet);
+  const hasInternetRef = useRef<boolean>(true);
 
   const refreshDeviceInfo = useCallback(async () => {
     setLoading(true);
@@ -100,18 +104,9 @@ export const DeviceInformationProvider: React.FC<
   }, []);
 
   useEffect(() => {
-    const url = "https://www.google.com/generate_204";
-    const verifyInternetConnection = async () => {
-      try {
-        const res = await axios.get(url, { timeout: 10000 });
-        setHasInternet(res.status < 400 && res.status >= 200);
-      } catch {
-        setHasInternet(false);
-      }
-    };
-
-    const id = setIntervalPolyfill(verifyInternetConnection, 10000);
-
+    const id = setIntervalPolyfill(async () => {
+      setHasInternet(await hasInternetConnection());
+    }, 10000);
     return () => {
       clearIntervalPolyfill(id);
     };

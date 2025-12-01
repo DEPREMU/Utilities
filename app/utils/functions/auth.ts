@@ -1,22 +1,11 @@
 import {
-  UserData,
-  RequestAuth,
-  ResponseAuth,
-  RequestSignOut,
-  ResponseSignOut,
-  ExpectedStorageTypes,
-  RequestRefreshSession,
-  ResponseRefreshSession,
-} from "@types";
-import {
   log,
   logError,
   saveData,
   removeData,
   isSecureKey,
-  getRouteAPI,
-  fetchOptions,
   checkLanguage,
+  fetchToServer,
   saveDataSecure,
   loadDataSecure,
   removeDataSecure,
@@ -28,6 +17,7 @@ import windowModule from "../modules/WindowModule";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
 import { KeyStorageValues, ALL_KEYS_STORAGE_TYPE } from "../constants";
+import { UserData, ExpectedStorageTypes, ResponseFetch } from "@types";
 
 /**
  * Auth response type for consistent error handling
@@ -102,21 +92,24 @@ export const signInWithEmail = async (
     ]);
     let notificationToken = "Web";
     if (Platform.OS !== "web") notificationToken = await getDevicePushToken();
+    if (!deviceId) {
+      const errorMsg = "No device ID found";
+      logError(errorMsg);
+      return { error: errorMsg };
+    }
 
-    const res = await fetch(
-      await getRouteAPI("/auth/login"),
-      fetchOptions<RequestAuth>("POST", {
-        lang,
-        email,
-        password,
-        deviceId: deviceId || undefined,
-        notificationToken,
-        rememberMe,
-      }),
-    );
-    const dataInsert = (await res.json()) as ResponseAuth;
+    const res = await fetchToServer("/auth/login", {
+      lang,
+      email,
+      password,
+      deviceId,
+      rememberMe,
+      notificationToken,
+    });
 
-    if (isFalsy(dataInsert.user)) {
+    const dataInsert = res.data;
+
+    if (!dataInsert || isFalsy(dataInsert?.user)) {
       const errorMsg = "No session or user data received from Database";
       logError(errorMsg);
       return { error: errorMsg };
@@ -149,19 +142,18 @@ export const signUpWithEmail = async (
   password: string,
 ): Promise<AuthResponse> => {
   try {
-    const res = await fetch(
-      await getRouteAPI("/auth/signup"),
-      fetchOptions<RequestAuth>("POST", {
-        lang: await checkLanguage(),
-        email,
-        password,
-      }),
-    );
-    const data = (await res.json()) as ResponseAuth;
+    const res = await fetchToServer("/auth/signup", {
+      lang: await checkLanguage(),
+      email,
+      password,
+    });
 
-    if (data.error) {
-      logError("Error signing up:", data.error);
-      return { error: data.error };
+    const data = res.data;
+
+    if (data?.error || !res.ok) {
+      const message = data?.error || res.errorText || "Unknown error";
+      logError("Error signing up:", message);
+      return { error: message };
     }
 
     return { error: null };
@@ -213,19 +205,22 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
     let notificationToken = "Web";
     if (Platform.OS !== "web") notificationToken = await getDevicePushToken();
 
-    const res = await fetch(
-      await getRouteAPI("/auth/signOut"),
-      fetchOptions<RequestSignOut>(
-        "POST",
-        {
-          deviceId: deviceId as string,
-          notificationToken,
-          lang,
-        },
-        token,
-      ),
+    const res = await fetchToServer(
+      "/auth/signOut",
+      {
+        deviceId: deviceId as string,
+        notificationToken,
+        lang,
+      },
+      token,
     );
-    const data = (await res.json()) as ResponseSignOut;
+
+    const data = res.data;
+    if (!res.ok || !data) {
+      const message = res.errorText || "Unknown error";
+      logError("Error signing out:", message);
+      return { error: message };
+    }
 
     if (data.error) {
       logError("Error signing out:", data.error);
@@ -281,21 +276,11 @@ export const getCurrentUser = async (): Promise<AuthResponse> => {
 /**
  * Refreshes the current session using a refresh token
  */
-export const refreshSession = async (
-  token: string,
-  tries = 0,
-): Promise<AuthResponse> => {
-  if (tries > 10) {
-    const errorMsg = "Maximum retry attempts reached for refreshing session";
-    logError(errorMsg);
-    return { error: errorMsg };
-  }
-
+export const refreshSession = async (token: string): Promise<AuthResponse> => {
   try {
-    const [lang, deviceId, url] = await Promise.all([
+    const [lang, deviceId] = await Promise.all([
       checkLanguage(),
       loadDataSecure("_deviceId"),
-      getRouteAPI("/auth/refreshSession"),
     ]);
 
     let notificationToken = "Web";
@@ -307,26 +292,42 @@ export const refreshSession = async (
       return { error: "No device ID found" };
     }
 
-    const res = await fetch(
-      url,
-      fetchOptions<RequestRefreshSession>(
-        "POST",
-        {
-          lang,
-          deviceId,
-          notificationToken,
-        },
-        token,
-      ),
-    ).catch(async (error) => {
-      logError(
-        `Error refreshing session, retrying... (${tries + 1}/10): ${error}`,
-      );
-      await new Promise((resolve) => setTimeout(resolve, 500 * (tries + 1)));
-      const data = await refreshSession(token, tries + 1);
-      return { json: () => data };
-    });
-    const data = (await res.json()) as ResponseRefreshSession;
+    let res: ResponseFetch<"/auth/refreshSession"> | null = null;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 100));
+        res = await fetchToServer(
+          "/auth/refreshSession",
+          {
+            lang,
+            deviceId,
+            notificationToken,
+          },
+          token,
+        );
+
+        if (res.ok) break;
+
+        logError(
+          `Attempt ${attempt + 1} to refresh session failed: ${res.errorText || "Unknown error"}`,
+        );
+        res = null;
+      } catch (error) {
+        logError("Error refreshing session:", error);
+      }
+    }
+    if (!res) {
+      const errorMsg = "Failed to refresh session after multiple attempts";
+      logError(errorMsg);
+      return { error: errorMsg };
+    }
+
+    const data = res.data;
+    if (!data) {
+      const errorMsg = "No data received from refresh session";
+      logError(errorMsg);
+      return { error: errorMsg };
+    }
 
     if (data.error) {
       logError("Error refreshing session:", data.error);
@@ -340,6 +341,7 @@ export const refreshSession = async (
       signOut();
       return { error: errorMsg };
     }
+
     await saveDataSecure("_userSessionTokenStorage", data.token);
     log("Session refreshed successfully");
     return {

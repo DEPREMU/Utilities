@@ -3,17 +3,16 @@ import {
   openURL,
   API_URL,
   loadData,
-  logError,
   saveData,
   APP_VERSION,
   getRouteAPI,
-  fetchOptions,
   loadDataSecure,
   saveDataSecure,
   ADMIN_PASSWORD,
   getFormattedDate,
   fetchAndApplyUpdate,
   isNewUpdateAvailable,
+  fetchToServer,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import ThemePicker from "@components/Settings/ThemePicker";
@@ -22,13 +21,13 @@ import Notifications from "@components/Settings/Notifications";
 import LanguagePicker from "@components/Settings/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
+import { typeLanguages } from "@types";
 import { useUserContext } from "@context/UserContext";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { ScrollView, View, Alert, Platform } from "react-native";
 import { ActivityIndicator, Text, TextInput } from "react-native-paper";
-import { RequestDatabaseUpdate, typeLanguages } from "@types";
 import React, { useCallback, useEffect, useState } from "react";
 
 type Section = {
@@ -81,24 +80,18 @@ const SettingsScreen: React.FC = () => {
 
     setHasAdmin(true);
     saveData("@hasAdminAccess", true);
-    try {
-      await fetch(
-        url,
-        fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
-          "POST",
-          {
-            lang: language,
-            match: { userId: userData?.userId },
-            table: "UserConfig",
-            values: { hasAdmin: true },
-            deviceId,
-          },
-          sessionToken,
-        ),
-      );
-    } catch (error) {
-      logError("Error updating lastAdminAccess:", error);
-    }
+
+    await fetchToServer(
+      "/database/update",
+      {
+        lang: language,
+        match: { userId: userData?.userId },
+        table: "UserConfig",
+        values: { hasAdmin: true },
+        deviceId,
+      },
+      sessionToken,
+    );
   }, [password, userData?.userId, sessionToken, language]);
 
   const saveApiURL = useCallback(async () => {
@@ -107,19 +100,16 @@ const SettingsScreen: React.FC = () => {
       Date.now().toString() + Math.random().toString(36).substring(2, 8);
 
     addTaskQueue(
-      async () => {
-        if (!userData?.userId) return;
-        if (!sessionToken) return;
+      {
+        requiresInternet: true,
+        func: async () => {
+          if (!userData?.userId) return;
+          if (!sessionToken) return;
 
-        const [url, deviceId] = await Promise.all([
-          getRouteAPI("/database/update"),
-          loadDataSecure("_deviceId"),
-        ]);
+          const deviceId = await loadDataSecure("_deviceId");
 
-        await fetch(
-          url,
-          fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
-            "POST",
+          await fetchToServer(
+            "/database/update",
             {
               deviceId: deviceId || "local-device",
               lang: language,
@@ -128,11 +118,10 @@ const SettingsScreen: React.FC = () => {
               values: { API_URL: apiURL },
             },
             sessionToken,
-          ),
-        );
-        await saveData("@API_URL", apiURL);
+          );
+          await saveData("@API_URL", apiURL);
+        },
       },
-      true,
       {
         id,
         functionName: "updateFromDatabase",
@@ -149,19 +138,16 @@ const SettingsScreen: React.FC = () => {
 
     setSocketURL(socketURL);
     addTaskQueue(
-      async () => {
-        if (!userData?.userId) return;
-        if (!sessionToken) return;
+      {
+        requiresInternet: true,
+        func: async () => {
+          if (!userData?.userId) return;
+          if (!sessionToken) return;
 
-        const [url, deviceId] = await Promise.all([
-          getRouteAPI("/database/update"),
-          loadDataSecure("_deviceId"),
-        ]);
+          const deviceId = await loadDataSecure("_deviceId");
 
-        await fetch(
-          url,
-          fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
-            "POST",
+          await fetchToServer(
+            "/database/update",
             {
               lang: language,
               match: { userId: userData.userId },
@@ -170,11 +156,10 @@ const SettingsScreen: React.FC = () => {
               values: { webSocketURL: socketURL },
             },
             sessionToken,
-          ),
-        );
-        await saveData("@webSocketURL", socketURL);
+          );
+          await saveData("@webSocketURL", socketURL);
+        },
       },
-      true,
       {
         id,
         functionName: "updateFromDatabase",

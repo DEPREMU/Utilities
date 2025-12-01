@@ -19,11 +19,14 @@
     "__APP__": "_______________________________________________",
     "app-prebuild-android": "node scripts/app/app-prebuild.ts",
     "app-build-dev-android": "node scripts/app/app-build-dev-android.ts",
+    "__UTILITIES_FOR_PC__": "__________________________________",
+    "build-app-electron": "node scripts/UtilitiesForPC/build-app-electron.ts",
+    "build-resources-electron": "node scripts/UtilitiesForPC/build-resources-electron.ts",
     "__SCRIPTS__": "___________________________________________",
     "update-assets": "node scripts/update.ts",
     "build-android": "node scripts/app/build-android.ts",
-    "build-upload-electron": "node scripts/build-upload-electron.ts",
-    "build-upload-android": "node scripts/build-upload-android.ts"
+    "build-upload-electron": "node scripts/UtilitiesForPC/build-upload-electron.ts",
+    "build-upload-android": "node scripts/app/build-upload-android.ts"
   },
   "repository": {
     "type": "git",

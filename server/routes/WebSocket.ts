@@ -26,6 +26,8 @@ import WebSocket, { WebSocketServer } from "ws";
 
 deleteSessions();
 
+let idIntervalClipboard: NodeJS.Timeout | number | null = null;
+
 const users: Record<
   string,
   {
@@ -54,8 +56,7 @@ const insertUserConfig = async (config: UserConfig) => {
     const fetchedData = await fetchFromTable("UserConfig", {
       userId: config.userId,
     });
-    let data = fetchedData.data;
-    if (Array.isArray(data)) data = null;
+    const data = fetchedData.data?.[0];
 
     if (!data) return await insertIntoTable("UserConfig", config);
     updateInTable("UserConfig", { id: data.id }, { id: data.id });
@@ -97,7 +98,8 @@ const handleInitWebSocket = (data: WebSocketMessage, ws: WebSocket): string => {
         pingTimeoutId: null,
         pingIntervalId,
       };
-    }
+    } else users[data.userId].pingIntervalId = pingIntervalId;
+
     insertNotifications(data.userId, data.notifications || null);
     insertUserConfig({
       userId: data.userId,
@@ -169,6 +171,9 @@ const insertNotifications = async (
 };
 
 const connectionWss = (ws: WebSocket) => {
+  let userId: string;
+  console.log(chalk.green("New client connected"));
+
   try {
     const getNotificationCrypto = async (
       cryptos: Cryptos[],
@@ -180,8 +185,7 @@ const connectionWss = (ws: WebSocket) => {
           userId,
         });
 
-        let dataLang = fetchedData.data;
-        if (Array.isArray(dataLang)) dataLang = dataLang[0];
+        const dataLang = fetchedData.data?.[0];
         const language = (dataLang?.language || "en") as LanguagesSupported;
 
         if (!cryptos || cryptos?.length === 0)
@@ -361,8 +365,22 @@ const connectionWss = (ws: WebSocket) => {
       }
     };
 
-    let userId: string;
-    console.log(chalk.green("New client connected"));
+    const handleClose = () => {
+      if (!users[userId]) return;
+
+      const pingTimeoutId = users[userId].pingTimeoutId;
+      if (pingTimeoutId) clearTimeout(pingTimeoutId);
+
+      const pingIntervalId = users[userId].pingIntervalId;
+      if (pingIntervalId) clearInterval(pingIntervalId);
+
+      const intervalsId = users[userId].intervalsId;
+      if (!intervalsId) return;
+
+      Object.values(intervalsId).forEach((intervalId) => {
+        if (intervalId) clearInterval(intervalId);
+      });
+    };
 
     ws.on("message", (message) => {
       try {
@@ -399,6 +417,18 @@ const connectionWss = (ws: WebSocket) => {
         code,
         chalk.yellow(reason.toString()),
       );
+      handleClose();
+    });
+
+    ws.on("error", (error) => {
+      console.log(
+        chalk.red("WebSocket error for client:"),
+        chalk.yellow(userId),
+        chalk.red("-"),
+        error,
+      );
+      handleClose();
+      ws.close?.();
     });
   } catch (error) {
     console.error(chalk.red("Error in connectionWss:"), error);
@@ -441,7 +471,8 @@ export const initWebSocketClipboard = () => {
       delete usersClipboard[data.userId];
     };
 
-    setInterval(() => {
+    if (idIntervalClipboard) clearInterval(idIntervalClipboard);
+    idIntervalClipboard = setInterval(() => {
       const users = Object.entries(usersClipboard || {});
 
       users?.forEach(async ([userId, devices]) => {
@@ -497,6 +528,20 @@ export const initWebSocketClipboard = () => {
       let data: { userId: string; deviceId: string } = {
         userId: "",
         deviceId: "",
+      };
+
+      const handleClose = () => {
+        if (!usersClipboard[data.userId]) return;
+
+        const pingTimeoutId =
+          usersClipboard[data.userId][data.deviceId]?.pingTimeoutId;
+        if (pingTimeoutId) clearTimeout(pingTimeoutId);
+
+        const pingIntervalId =
+          usersClipboard[data.userId][data.deviceId]?.pingIntervalId;
+        if (pingIntervalId) clearInterval(pingIntervalId);
+
+        deleteDevice(data);
       };
 
       connectionClipboard.on("message", async (buffer) => {
@@ -604,13 +649,19 @@ export const initWebSocketClipboard = () => {
       });
 
       connectionClipboard.on("close", () => {
-        deleteDevice(data);
+        console.log(
+          chalk.red("Clipboard client disconnected:"),
+          chalk.yellow(data.userId),
+          chalk.green("Device ID:"),
+          chalk.yellow(data.deviceId),
+        );
+        handleClose();
       });
 
       connectionClipboard.on("error", (error) => {
         console.log("Clipboard WebSocket error:", error);
+        handleClose();
         connectionClipboard.close();
-        deleteDevice(data);
       });
     });
 

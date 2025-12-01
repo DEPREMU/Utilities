@@ -6,7 +6,9 @@ export type TYPE_ARGS = {
   platform?: "linux" | "windows" | "both";
   profile?: string;
   "skip-build-android"?: boolean;
+  "skip-build-electron"?: boolean;
   "skip-prebuild-android"?: boolean;
+  "platform-update-assets"?: "android" | "web" | "both";
   yes?: boolean;
   lan?: boolean;
   dev?: boolean;
@@ -15,6 +17,8 @@ export type TYPE_ARGS = {
   check?: boolean;
   action?: string;
   install?: boolean;
+  isWindows?: boolean;
+  "export-web"?: boolean;
 };
 
 const showHelp = () => {
@@ -28,21 +32,27 @@ const showHelp = () => {
   const isAppLint = fileCalled?.includes("app-lint");
   const isAppStart = fileCalled?.includes("app-start");
   const isAppClean = fileCalled?.includes("app-clean");
+  const isUpdate = fileCalled?.includes("update");
+  const isBuildAppElectron = fileCalled?.includes("build-app-electron");
+  const isBuildResourcesElectron = fileCalled?.includes(
+    "build-resources-electron"
+  );
 
   if (isBuildUploadAndroid) {
     options.push(
-      `  -s, --skip-build-android   Skip the Android build process and only upload the existing APK`
+      `  -sba, --skip-build-android   Skip the Android build process and only upload the existing APK`
     );
   }
   if (isBuildAndroid || isBuildUploadAndroid) {
     options.push(
       `  -f, --profile=<profile>      Specify the build profile (development, preview, production)`,
-      `  -p, --skip-prebuild-android   Skip the Android prebuild process`
+      `  -spa, --skip-prebuild-android   Skip the Android prebuild process`
     );
   }
-  if (isUploadElectron) {
+  if (isUploadElectron || isBuildAppElectron) {
     options.push(
-      `  -p, --platform=<platform>    Specify the platform to build for (windows, linux, both)`
+      `  -p, --platform=<platform>    Specify the platform to build for (windows, linux, both)
+  -sbe, --skip-build-electron   Skip the Electron app build process and only export the web version`
     );
   }
   if (isAppStart) {
@@ -62,6 +72,22 @@ const showHelp = () => {
       `  --check                      Run eslint with --max-warnings 0`
     );
   }
+  if (isUpdate) {
+    options.push(
+      `  -pua, --platform-update-assets=<platform>   Specify the platform assets to update (android, web, both)
+  -f, --profile=<profile>      Specify the profile for the update (development, preview, production)`
+    );
+  }
+  if (isBuildAppElectron) {
+    options.push(
+      `  --export-web                 Export web version of the Electron app and skip building the Electron app`
+    );
+  }
+  if (isBuildResourcesElectron) {
+    options.push(
+      `  --isWindows                  Specify if the build is for Windows (true/false)`
+    );
+  }
 
   console.log(`Usage: [command] [options]
 Options:
@@ -73,49 +99,56 @@ ${options.join("\n")}
 
 let prevArg = "";
 const argsProcessed: string[] = [];
-export const ARGS = args.reduce((acc, arg) => {
+export const ARGS = args.reduce((acc, arg, index) => {
   const includesEqual = arg.includes("=");
   const isArg = arg.startsWith("-");
   if (!isArg && !prevArg) throw new Error(`Unknown argument: ${arg}`);
 
-  switch (arg) {
-    case "--help":
-    case "-h":
-      showHelp();
-      process.exit(0);
-    case "--skip-build-android":
-    case "-s":
-      acc["skip-build-android"] = true;
-      return acc;
-    case "--skip-prebuild-android":
-    case "-p":
-      acc["skip-prebuild-android"] = true;
-      return acc;
-    case "-y":
-    case "--yes":
-      acc["yes"] = true;
-      return acc;
-    case "--lan":
-      acc["lan"] = true;
-      return acc;
-    case "--dev":
-      acc["dev"] = true;
-      return acc;
-    case "--fix":
-      acc["fix"] = true;
-      return acc;
-    case "--check":
-      acc["check"] = true;
-      return acc;
-    case "--install":
-      acc["install"] = true;
-      return acc;
-    case "--web":
-      acc["web"] = true;
-      return acc;
-    default:
-      break;
+  if (["-h", "--help"].includes(arg)) {
+    showHelp();
+    process.exit(0);
   }
+
+  const nextArg = args[index + 1];
+  if (isArg && (nextArg?.startsWith("-") || !nextArg))
+    switch (arg) {
+      case "--skip-build-android":
+      case "-sba":
+        acc["skip-build-android"] = true;
+        return acc;
+      case "--skip-prebuild-android":
+      case "-spa":
+        acc["skip-prebuild-android"] = true;
+        return acc;
+      case "--skip-build-electron":
+      case "-sbe":
+        acc["skip-build-electron"] = true;
+        return acc;
+      case "-y":
+      case "--yes":
+        acc["yes"] = true;
+        return acc;
+      case "--lan":
+        acc["lan"] = true;
+        return acc;
+      case "--dev":
+        acc["dev"] = true;
+        return acc;
+      case "--fix":
+        acc["fix"] = true;
+        return acc;
+      case "--check":
+        acc["check"] = true;
+        return acc;
+      case "--install":
+        acc["install"] = true;
+        return acc;
+      case "--web":
+        acc["web"] = true;
+        return acc;
+      default:
+        break;
+    }
 
   let key = "";
   let value: unknown = "";
@@ -131,9 +164,8 @@ export const ARGS = args.reduce((acc, arg) => {
   }
 
   if (!key) return acc;
-  if (argsProcessed.includes(key)) {
+  if (argsProcessed.includes(key))
     throw new Error(`Duplicate argument: ${key}`);
-  }
 
   switch (key) {
     case "platform":
@@ -159,10 +191,29 @@ export const ARGS = args.reduce((acc, arg) => {
     case "action":
       acc.action = value as string;
       break;
+    case "platform-update-assets":
+    case "pua":
+      if (["android", "web", "both"].includes(value as string)) {
+        acc["platform-update-assets"] = value as "android" | "web" | "both";
+      } else {
+        throw new Error(
+          `Invalid platform for update assets: ${value}. Valid options: android, web, both`
+        );
+      }
+      break;
+    case "isWindows":
+      if (["true", "false"].includes(value as string)) {
+        acc.isWindows = value === "true";
+      } else {
+        throw new Error(
+          `Invalid value for isWindows: ${value}. Valid options: true, false`
+        );
+      }
     default:
       break;
   }
   argsProcessed.push(key);
+  prevArg = "";
 
   return acc;
 }, {} as TYPE_ARGS);

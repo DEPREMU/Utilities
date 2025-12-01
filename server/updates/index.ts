@@ -7,7 +7,7 @@ import { handleIsUpdateAvailable } from "./isUpdateAvailable";
 
 const router = express.Router();
 
-type Routes = Record<UpdatesRoutes, Route>;
+type Routes = Record<UpdatesRoutes, Route<UpdatesRoutes>>;
 
 const routes: Routes = {
   "/is-update-available": {

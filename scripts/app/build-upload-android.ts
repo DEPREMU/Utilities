@@ -44,7 +44,7 @@ const checkIsNewVersion = async () => {
 
     const result = (await res.json()) as Types.ResponseIsUpdateAvailable;
 
-    if (isNewVersion(versionExpo, result.latestVersion)) {
+    if (!isNewVersion(versionExpo, result.latestVersion)) {
       console.log("Version already exists on the server.");
       process.exit(0);
     } else

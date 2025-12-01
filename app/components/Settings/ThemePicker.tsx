@@ -1,11 +1,11 @@
 import { List } from "react-native-paper";
+import { Theme } from "@types";
 import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
-import { RequestDatabaseUpdate, Theme } from "@types";
+import { fetchToServer, loadDataSecure } from "@utils";
 import React, { memo, useCallback, useMemo } from "react";
-import { fetchOptions, getRouteAPI, loadDataSecure } from "@utils";
 
 const ThemePicker: React.FC = () => {
   const { t, language } = useLanguage();
@@ -17,28 +17,26 @@ const ThemePicker: React.FC = () => {
     (newTheme: Theme) => {
       setThemeState(newTheme);
       if (!userData?.userId || !sessionToken) return;
-      addTaskQueue(async () => {
-        if (!userData?.userId || !sessionToken) return;
-        const [url, deviceId] = await Promise.all([
-          getRouteAPI("/database/update"),
-          loadDataSecure("_deviceId"),
-        ]);
+      addTaskQueue({
+        requiresInternet: true,
+        func: async () => {
+          if (!userData?.userId || !sessionToken) return;
+          const deviceId = await loadDataSecure("_deviceId");
+          if (!deviceId) return;
 
-        await fetch(
-          url,
-          fetchOptions<RequestDatabaseUpdate<"UserConfig">>(
-            "POST",
+          await fetchToServer(
+            "/database/update",
             {
               lang: language,
               table: "UserConfig",
-              deviceId: deviceId || "local-device",
+              deviceId,
               match: { userId: userData?.userId },
               values: { theme: newTheme },
             },
             sessionToken,
-          ),
-        );
-      }, true);
+          );
+        },
+      });
     },
     [setThemeState, userData, addTaskQueue, sessionToken, language],
   );

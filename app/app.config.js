@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.2.6";
+const version = "1.3.1";
 
 export default {
   expo: {
@@ -28,8 +28,8 @@ export default {
     platforms: ["android", "web"],
     extra: {
       version,
-      WS_URL: process.env.WS_URL,
-      API_URL: process.env.API_URL,
+      WS_URL_BASE: process.env.WS_URL,
+      API_URL_BASE: process.env.API_URL,
       ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
       eas: {
         projectId: "7dd2c093-0c91-4638-a5b9-828d458e8be0",

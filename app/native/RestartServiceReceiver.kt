@@ -29,11 +29,15 @@ class RestartServiceReceiver : BroadcastReceiver() {
             Log.d("RestartServiceReceiver", "Service restart triggered")
         }
 
-        val serviceIntent = Intent(context, MyForegroundService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(serviceIntent)
-        } else {
-            context.startService(serviceIntent)
+        try {
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(launchIntent)
+                Log.d("RestartServiceReceiver", "Activity started from receiver")
+            }
+        } catch (e: Exception) {
+            Log.e("RestartServiceReceiver", "Error starting activity: ${e.message}")
         }
     }
 }

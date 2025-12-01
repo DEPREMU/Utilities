@@ -16,6 +16,7 @@ class NativeData {
 }
 const nativeData = new NativeData({
   hasBattery: checkBattery(),
+  version: "{{ELECTRON_VERSION}}",
 });
 
 export * from "./checkBattery";

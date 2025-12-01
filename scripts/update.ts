@@ -9,11 +9,16 @@ import path from "path";
 import axios from "axios";
 import FormData from "form-data";
 import { execSync } from "child_process";
-import { isNewVersion, versionExpo } from "./config.ts";
+import { isNewVersion, versionExpo, ARGS, env, APP_PATH } from "./config.ts";
 
-const args = process.argv.slice(2);
+let isNewVersionWeb = {
+  linux: false,
+  windows: false,
+};
 
-const checkIsNewVersion = async () => {
+const checkIsNewVersion = async (
+  buildType: "web" | "android" = "android"
+): Promise<boolean> => {
   if (!versionExpo) {
     console.error("Version not found");
     process.exit(1);
@@ -25,30 +30,56 @@ const checkIsNewVersion = async () => {
       "updates"
     )}/is-update-available`;
     console.log("Checking for new version at URL:", url);
-    const body: RequestIsUpdateAvailable = {
-      buildType: "web",
-      platformOS: "windows",
-      currentVersion: versionExpo,
-    };
-    const res = await axios.post<ResponseIsUpdateAvailable>(url, body, {
-      timeout: 10000,
-    });
-    const data = res.data;
-    if (!isNewVersion(versionExpo, data.latestVersion)) return;
-    console.log("Your version is the same as the server:", data.latestVersion);
-    return true;
+    if (buildType === "android") {
+      const body: RequestIsUpdateAvailable<typeof buildType> = {
+        buildType,
+        platformOS: undefined,
+        currentVersion: versionExpo,
+      };
+      const res = await axios.post<ResponseIsUpdateAvailable>(url, body, {
+        timeout: 10000,
+      });
+      return isNewVersion(versionExpo, res.data?.latestVersion);
+    } else {
+      const body: RequestIsUpdateAvailable<typeof buildType> = {
+        buildType,
+        platformOS: "windows",
+        currentVersion: versionExpo,
+      };
+      const [res1, res2] = await Promise.all([
+        axios.post<ResponseIsUpdateAvailable>(url, body, {
+          timeout: 10000,
+        }),
+        axios.post<ResponseIsUpdateAvailable>(
+          url,
+          { ...body, platformOS: "linux" },
+          {
+            timeout: 10000,
+          }
+        ),
+      ]);
+      const isNewForWindows = isNewVersion(
+        versionExpo,
+        res1.data?.latestVersion
+      );
+      const isNewForLinux = isNewVersion(versionExpo, res2.data?.latestVersion);
+
+      isNewVersionWeb.windows = isNewForWindows;
+      isNewVersionWeb.linux = isNewForLinux;
+
+      return isNewForWindows || isNewForLinux;
+    }
   } catch (error) {
     console.error(
       "Error checking for new version:",
       error instanceof Error ? error.message : String(error)
     );
+    return false;
   }
-  return false;
 };
 
 const uploadWeb = async (): Promise<boolean> => {
   try {
-    if (!(await checkIsNewVersion())) return false;
     console.log("Building web version:", versionExpo);
 
     const buildPath = path.join(
@@ -66,7 +97,10 @@ const uploadWeb = async (): Promise<boolean> => {
       throw new Error(`Build file not found at ${buildPath}`);
     }
 
-    const platformsOS: PlatformsOS[] = ["windows", "linux"];
+    const platformsOS: PlatformsOS[] = [];
+    if (isNewVersionWeb.windows) platformsOS.push("windows");
+    if (isNewVersionWeb.linux) platformsOS.push("linux");
+
     const url = `${process.env.API_URL?.replace(
       "api",
       "updates"
@@ -154,19 +188,34 @@ const uploadWeb = async (): Promise<boolean> => {
 };
 
 const uploadAndroidAssets = async () => {
-  execSync("npm run update", {
-    stdio: "inherit",
-    cwd: path.join(process.cwd(), "app"),
-  });
+  const NODE_ENV = ARGS["profile"] || "production";
+
+  execSync(
+    `npx eas update --channel ${NODE_ENV} --platform android --clear-cache`,
+    {
+      stdio: "inherit",
+      cwd: APP_PATH,
+      env: {
+        ...env,
+        PLATFORM: "android",
+        EAS_BUILD: "true",
+        NODE_ENV,
+        BUILD_PROFILE: NODE_ENV,
+      },
+    }
+  );
 };
 
 const run = async () => {
-  const onlyAndroid = args.includes("--only-android") || args.includes("-a");
-  if (onlyAndroid) {
-    console.log("Uploading only Android assets...");
+  const isNewVersionWeb = await checkIsNewVersion("web");
+  const isNewVersionAndroid = await checkIsNewVersion("android");
+
+  const platformUpdateAssets = ARGS["platform-update-assets"] ?? "both";
+
+  if (isNewVersionWeb && ["web", "both"].includes(platformUpdateAssets))
+    await uploadWeb();
+
+  if (isNewVersionAndroid && ["android", "both"].includes(platformUpdateAssets))
     await uploadAndroidAssets();
-    return;
-  }
-  if (await uploadWeb()) await uploadAndroidAssets();
 };
 run();

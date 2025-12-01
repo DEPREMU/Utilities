@@ -71,7 +71,7 @@ export const updateInTable = async <T extends TablesKeys>(
   updates: Partial<Tables[T]> | Partial<Tables[T]>[],
   match?: Partial<Tables[T]>,
 ): Promise<{
-  data?: Tables[T][] | Tables[T] | Falsy;
+  data: Tables[T][] | Falsy;
   error?: string | null;
 }> => {
   const client = await pool.connect();
@@ -118,18 +118,14 @@ export const updateInTable = async <T extends TablesKeys>(
     const query = `UPDATE ${tableName} SET ${setClauses.query} WHERE ${whereClause.query} RETURNING *`;
     const result = await client.query(query, values);
 
-    if (result.rows.length === 0) {
-      return { error: "No record found to update" };
-    }
-
     return {
-      data: result.rows[0] as Tables[T],
+      data: result.rows.length > 0 ? result.rows : null,
       error: null,
     };
   } catch (error) {
     const errorMsg = `Unexpected error updating user record: ${error}`;
     console.error(chalk.red(errorMsg));
-    return { error: errorMsg };
+    return { error: errorMsg, data: null };
   } finally {
     client.release();
   }
@@ -174,7 +170,7 @@ export const fetchFromTable = async <T extends TablesKeys = TablesKeys>(
   table: T,
   match: Partial<Tables[T]> = {},
 ): Promise<{
-  data?: Tables[T][] | Tables[T] | null;
+  data: Tables[T][] | null;
   error?: string | null;
 }> => {
   const client = await pool.connect();
@@ -198,10 +194,6 @@ export const fetchFromTable = async <T extends TablesKeys = TablesKeys>(
 
     const data = result.rows.map((row: Record<string, unknown>) => row);
 
-    if (data.length === 1) {
-      return { data: data[0] as Tables[T], error: null };
-    }
-
     return {
       data: data as Tables[T][],
       error: null,
@@ -209,7 +201,7 @@ export const fetchFromTable = async <T extends TablesKeys = TablesKeys>(
   } catch (error) {
     const errorMsg = `Unexpected error fetching data from table: ${error}`;
     console.error(chalk.red(errorMsg));
-    return { error: errorMsg };
+    return { error: errorMsg, data: null };
   } finally {
     client.release();
   }
@@ -222,7 +214,7 @@ export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
   table: T,
   data: RequestDatabaseInsert<T>["values"],
 ): Promise<{
-  data?: Tables[T][] | Tables[T] | null;
+  data: Tables[T][] | null;
   error?: string | null;
 }> => {
   const client = await pool.connect();
@@ -257,17 +249,17 @@ export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
     const result = await client.query(query, values);
 
     if (result.rows.length === 0) {
-      return { error: "Failed to insert record" };
+      return { error: "Failed to insert record", data: null };
     }
 
     return {
-      data: result.rows[0] as Tables[T],
+      data: result.rows,
       error: null,
     };
   } catch (error) {
     const errorMsg = `Unexpected error inserting user record: ${error}`;
     console.error(chalk.red(errorMsg));
-    return { error: errorMsg };
+    return { error: errorMsg, data: null };
   } finally {
     client.release();
   }

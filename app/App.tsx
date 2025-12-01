@@ -1,16 +1,8 @@
 import {
-  ResponseGetRandomUUID,
-  RequestIsUpdateAvailable,
-  ResponseIsUpdateAvailable,
-  typeT,
-} from "@types";
-import {
   openURL,
-  API_URL,
   logError,
   APP_VERSION,
-  getRouteAPI,
-  fetchOptions,
+  fetchToServer,
   checkLanguage,
   loadDataSecure,
   saveDataSecure,
@@ -22,6 +14,7 @@ import {
   configureNotificationChannel,
 } from "@utils";
 import { v4 } from "uuid";
+import { typeT } from "@types";
 import * as Updates from "expo-updates";
 import AppProviders from "./context/AppProviders";
 import AppNavigator from "./navigation/AppNavigator";
@@ -45,13 +38,10 @@ const hasDeviceId = async (): Promise<boolean> => {
     } else {
       let uuid: string | undefined = "";
       try {
-        const res = await fetch(
-          await getRouteAPI("/getRandomUUID"),
-          fetchOptions("POST"),
-        );
+        const res = await fetchToServer("/getRandomUUID");
 
-        const result = (await res.json()) as ResponseGetRandomUUID;
-        uuid = result.uuid;
+        const result = res.data;
+        uuid = result?.uuid;
       } catch (error) {
         logError("Error saving device ID:", error);
       }
@@ -94,16 +84,14 @@ const App = () => {
 
     const handleCheckForUpdatesNatively = async () => {
       try {
-        const res = await fetch(
-          API_URL.replace("api", "updates/is-update-available"),
-          fetchOptions<RequestIsUpdateAvailable<"android">>("POST", {
-            buildType: "android",
-            currentVersion: APP_VERSION,
-            platformOS: undefined,
-          }),
-        );
-        const result = (await res.json()) as ResponseIsUpdateAvailable;
-        if (!result.updateAvailable) return;
+        const res = await fetchToServer("/is-update-available", {
+          buildType: "android",
+          currentVersion: APP_VERSION,
+          platformOS: undefined,
+        });
+        const result = res.data;
+
+        if (!result?.updateAvailable) return;
 
         const t = i18n as typeT;
 

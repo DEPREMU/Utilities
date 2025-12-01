@@ -3,22 +3,17 @@
 import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
-import { RequestLogs } from "@types";
+import { fetchToServer } from "./APIManagement";
 import { loadDataSecure } from "./storageManagement";
 import { getCurrentUserId } from "./auth";
-import { fetchOptions, getRouteAPI } from "./APIManagement";
+import { isDev, isPreview, isProduction } from "../constants/constants";
 
-type Return = {
+type ReturnDeviceInfo = {
   deviceId: string;
   deviceName: string;
 };
 
-const env = process.env.NODE_ENV;
-const isDev: boolean = __DEV__ || env === "development";
-const isPreview: boolean = env === "preview";
-const isProduction: boolean = env === "production";
-
-const getCurrentDeviceInfo = async (): Promise<Return> => {
+const getCurrentDeviceInfo = async (): Promise<ReturnDeviceInfo> => {
   const fallback = "Platform: " + Platform.OS;
   try {
     let [deviceId, deviceName] = await Promise.all([
@@ -50,7 +45,7 @@ const getCurrentDeviceInfo = async (): Promise<Return> => {
  * - In production mode, does nothing.
  */
 export const log = isProduction
-  ? () => {}
+  ? async () => {}
   : async (...args: unknown[]): Promise<void> => {
       if (!isPreview && !isDev) return;
 
@@ -66,34 +61,29 @@ export const log = isProduction
           ),
         );
       else if (isPreview) {
-        const message = [firstMessage, ...args]
-          .filter(Boolean)
-          .map((arg) =>
-            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-          )
-          .join(" ");
+        try {
+          const message = [firstMessage, ...args]
+            .filter(Boolean)
+            .map((arg) =>
+              typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+            )
+            .join(" ");
 
-        getRouteAPI("/log").then(async (url) => {
-          const [userId, deviceId, deviceInfo] = await Promise.all([
+          const [userId, deviceInfo] = await Promise.all([
             getCurrentUserId(),
-            loadDataSecure("_deviceId"),
             getCurrentDeviceInfo(),
           ]);
 
-          fetch(
-            url,
-            fetchOptions<RequestLogs>("POST", {
-              log: {
-                type: "log",
-                userId: userId || "",
-                message,
-                timestamp: date.toISOString(),
-                deviceId: deviceInfo.deviceId || deviceId || "",
-                deviceName: deviceInfo.deviceName,
-              },
-            }),
-          );
-        });
+          fetchToServer("/log", {
+            type: "log",
+            userId: userId || "",
+            message,
+            timestamp: date.toISOString(),
+            ...deviceInfo,
+          });
+        } catch (error) {
+          console.error("Failed to log message to server:", error);
+        }
       }
     };
 
@@ -114,7 +104,7 @@ export const log = isProduction
  * ```
  */
 export const logWarn = isProduction
-  ? () => {}
+  ? async () => {}
   : async (...args: unknown[]): Promise<void> => {
       if (!isPreview && !isDev) return;
 
@@ -124,34 +114,30 @@ export const logWarn = isProduction
 
       if (isDev) console.warn(Chalk.yellow.bold(firstMessage), ...args);
       else if (isPreview) {
-        const warningMessage = [firstMessage, ...args]
-          .filter(Boolean)
-          .map((arg) =>
-            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-          )
-          .join(" ");
+        try {
+          const warningMessage = [firstMessage, ...args]
+            .filter(Boolean)
+            .map((arg) =>
+              typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+            )
+            .join(" ");
 
-        getRouteAPI("/log").then(async (url) => {
-          const [userId, deviceInfo, deviceId] = await Promise.all([
+          const [userId, deviceInfo] = await Promise.all([
             getCurrentUserId(),
             getCurrentDeviceInfo(),
-            loadDataSecure("_deviceId"),
           ]);
 
-          fetch(
-            url,
-            fetchOptions<RequestLogs>("POST", {
-              log: {
-                type: "warn",
-                userId: userId || "",
-                message: warningMessage,
-                timestamp: date.toISOString(),
-                deviceId: deviceInfo.deviceId || deviceId || "",
-                deviceName: deviceInfo.deviceName,
-              },
-            }),
-          );
-        });
+          fetchToServer("/log", {
+            type: "warn",
+            userId: userId || "",
+            message: warningMessage,
+            timestamp: date.toISOString(),
+            deviceId: deviceInfo.deviceId || "",
+            deviceName: deviceInfo.deviceName,
+          });
+        } catch (error) {
+          console.error("Failed to log warning to server:", error);
+        }
       }
     };
 
@@ -166,7 +152,7 @@ export const logWarn = isProduction
  * - In production mode, does nothing.
  */
 export const logError = isProduction
-  ? () => {}
+  ? async () => {}
   : async (...args: unknown[]): Promise<void> => {
       if (!isPreview && !isDev) return;
 
@@ -181,33 +167,29 @@ export const logError = isProduction
           ),
         );
       else if (isPreview) {
-        const errorMessage = [firstMessage, ...args]
-          .filter(Boolean)
-          .map((arg) =>
-            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-          )
-          .join(" ");
+        try {
+          const errorMessage = [firstMessage, ...args]
+            .filter(Boolean)
+            .map((arg) =>
+              typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+            )
+            .join(" ");
 
-        getRouteAPI("/log").then(async (url) => {
-          const [userId, deviceInfo, deviceId] = await Promise.all([
+          const [userId, deviceInfo] = await Promise.all([
             getCurrentUserId(),
             getCurrentDeviceInfo(),
-            loadDataSecure("_deviceId"),
           ]);
 
-          fetch(
-            url,
-            fetchOptions<RequestLogs>("POST", {
-              log: {
-                type: "error",
-                userId: userId || "",
-                message: errorMessage,
-                timestamp: date.toISOString(),
-                deviceId: deviceInfo.deviceId || deviceId || "",
-                deviceName: deviceInfo.deviceName,
-              },
-            }),
-          );
-        });
+          fetchToServer("/log", {
+            type: "error",
+            userId: userId || "",
+            message: errorMessage,
+            timestamp: date.toISOString(),
+            deviceId: deviceInfo.deviceId || "",
+            deviceName: deviceInfo.deviceName,
+          });
+        } catch (error) {
+          console.error("Failed to log error to server:", error);
+        }
       }
     };

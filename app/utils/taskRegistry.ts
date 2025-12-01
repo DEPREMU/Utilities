@@ -1,18 +1,6 @@
-import {
-  logError,
-  getRouteAPI,
-  fetchOptions,
-  checkLanguage,
-  loadDataSecure,
-} from "@utils";
-import {
-  Tables,
-  TablesKeys,
-  RequestDatabaseUpdate,
-  RequestDatabaseDelete,
-  RequestDatabaseInsert,
-} from "@types";
 import { AvailableFunctions } from "@types";
+import { Tables, TablesKeys, RequestDatabaseInsert } from "@types";
+import { logError, checkLanguage, loadDataSecure, fetchToServer } from "@utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TaskFunction = (...args: any[]) => Promise<void> | void;
@@ -36,19 +24,16 @@ const taskRegistry: TaskRegistry = {
       ]);
       if (!token) return;
 
-      await fetch(
-        await getRouteAPI("/database/update"),
-        fetchOptions<RequestDatabaseUpdate<typeof tableName>>(
-          "POST",
-          {
-            table: tableName,
-            values: data,
-            match: condition,
-            lang,
-            deviceId: deviceId || "local-device",
-          },
-          token,
-        ),
+      fetchToServer(
+        "/database/update",
+        {
+          table: tableName,
+          values: data,
+          match: condition,
+          lang,
+          deviceId: deviceId || "local-device",
+        },
+        token,
       );
     } catch (error) {
       logError(`Error updating ${tableName}:`, error);
@@ -66,18 +51,15 @@ const taskRegistry: TaskRegistry = {
         loadDataSecure("_deviceId"),
       ]);
       if (!token) return;
-      await fetch(
-        await getRouteAPI("/database/insert"),
-        fetchOptions<RequestDatabaseInsert>(
-          "POST",
-          {
-            table,
-            deviceId: deviceId || "local-device",
-            values,
-            lang,
-          },
-          token,
-        ),
+      await fetchToServer(
+        "/database/insert",
+        {
+          table,
+          values,
+          deviceId: deviceId || "local-device",
+          lang,
+        },
+        token,
       );
     } catch (error) {
       logError(`Error inserting into ${table}:`, error);
@@ -96,18 +78,15 @@ const taskRegistry: TaskRegistry = {
       ]);
       if (!token) return;
 
-      await fetch(
-        await getRouteAPI("/database/delete"),
-        fetchOptions<RequestDatabaseDelete>(
-          "POST",
-          {
-            table,
-            match,
-            deviceId: deviceId || "local-device",
-            lang,
-          },
-          token,
-        ),
+      await fetchToServer(
+        "/database/delete",
+        {
+          table,
+          match,
+          deviceId: deviceId || "local-device",
+          lang,
+        },
+        token,
       );
     } catch (error) {
       logError(`Error deleting from ${table}:`, error);

@@ -13,7 +13,10 @@ const getSumVersion = (version: string): number => {
   try {
     const versionSum = version
       .split(".")
-      .map((num, index) => parseInt(num, 10) || index)
+      .map((num) => {
+        const number = Number(num);
+        return !isNaN(number) ? number : 0;
+      })
       .reduce((sum, part, index) => sum + part * Math.pow(1000, 2 - index), 0);
     return versionSum;
   } catch {
