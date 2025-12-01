@@ -1,4 +1,5 @@
 import os from "os";
+import fs from "fs";
 import path from "path";
 import { app } from "electron";
 import machineId from "node-machine-id";
@@ -60,6 +61,40 @@ class DataAppClass {
 }
 
 const isWindows = os.platform() === "win32";
+
+const userHome =
+  process.env.ORIGINAL_HOME ||
+  (process.env.SUDO_USER && process.env.SUDO_USER !== "root"
+    ? `/home/${process.env.SUDO_USER}`
+    : process.env.HOME);
+
+const getDownloadsPath = (): string => {
+  if (isWindows)
+    return path.join(app.getPath("downloads"), `UtilitiesForPC-Update.exe`);
+
+  let downloadsPath = path.join(userHome, "Downloads");
+  try {
+    const configPath = path.join(userHome, ".config/user-dirs.dirs");
+    if (fs.existsSync(configPath)) {
+      const content = fs.readFileSync(configPath, "utf8");
+      const match = content.match(/XDG_DOWNLOAD_DIR="([^"]+)"/);
+      if (match && match[1]) {
+        writeLog(`Found Downloads path in user-dirs.dirs: ${match[1]}`, "info");
+        downloadsPath = match[1].replace("$HOME", userHome);
+      }
+    }
+  } catch (e) {
+    writeLog(
+      "Error reading user-dirs.dirs, using default Downloads path" +
+        (e instanceof Error ? `: ${e.message}` : String(e)),
+      "warn"
+    );
+  }
+
+  writeLog(`Using Downloads path: ${downloadsPath}`, "info");
+  return path.join(downloadsPath, "UtilitiesForPC-Update.deb");
+};
+
 let dataAppDefault: DataAppElectron = {
   ad: null,
   PORT: 3005,
@@ -69,11 +104,7 @@ let dataAppDefault: DataAppElectron = {
     process.env.SUDO_USER ||
     process.env.USER ||
     process.env.USERNAME,
-  userHome:
-    process.env.ORIGINAL_HOME ||
-    (process.env.SUDO_USER && process.env.SUDO_USER !== "root"
-      ? `/home/${process.env.SUDO_USER}`
-      : process.env.HOME),
+  userHome,
   lanIP: getLocalIP(),
   server: null,
   hasSudo: false,
@@ -81,12 +112,10 @@ let dataAppDefault: DataAppElectron = {
   language: "en",
   __dirname: path.resolve(),
   isWindows,
+  isUpdating: false,
   wasSleeping: false,
   webRestarted: false,
-  downloadFilePath: path.join(
-    app.getPath("downloads"),
-    `UtilitiesForPC-Update${isWindows ? ".exe" : ".deb"}`
-  ),
+  downloadFilePath: getDownloadsPath(),
   logPath: isWindows
     ? "C:\\Windows\\Temp\\log-utilities-for-pc.txt"
     : "/tmp/log-utilities-for-pc.txt",

@@ -51,14 +51,17 @@ export const getRouteUpdates = (route: Types.UpdatesRoutes): string => {
   return `${URL_UPDATES}${route}`;
 };
 
-export const ask = (question: string): Promise<string> => {
+export const ask = async (question: string): Promise<string> => {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
 
-  return new Promise((resolve) => {
-    const id = setTimeout(() => resolve(""), 5000);
+  return await new Promise<string>((resolve) => {
+    const id = setTimeout(() => {
+      rl?.close?.();
+      resolve("");
+    }, 5000);
     rl.question(question, (answer) => {
       rl.close();
       clearTimeout(id);

@@ -29,6 +29,7 @@ export type DataAppElectron = {
   language: LanguagesSupported;
   __dirname: string;
   isWindows: boolean;
+  isUpdating: boolean;
   isQuitting: boolean;
   mainWindow: Electron.BrowserWindow | null;
   wasSleeping: boolean;

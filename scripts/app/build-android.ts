@@ -9,6 +9,7 @@ import {
   deleteAndroidFromGitIgnore,
 } from "../config.ts";
 import fs from "fs";
+import path from "path";
 import { execSync } from "child_process";
 
 const updateEasCLI = () => {
@@ -40,6 +41,7 @@ const build = async () => {
       profile = "preview";
     else profile = "production";
   }
+  env.NODE_ENV = profile;
   env.BUILD_PROFILE = profile;
 
   if (!ARGS["skip-prebuild-android"]) {
@@ -56,9 +58,10 @@ const build = async () => {
     throw new Error("Android directory does not exist.");
 
   env.EAS_BUILD = "true";
+  const androidPath = path.join(APP_PATH, "builds", `android-${profile}.apk`);
 
   execSync(
-    `taskset -c 0-5 eas build --platform android --profile ${profile} --local --output=./builds/android.apk`,
+    `taskset -c 0-5 eas build --platform android --profile ${profile} --local --output=${androidPath}`,
     {
       env,
       stdio: "inherit",
@@ -82,7 +85,7 @@ const build = async () => {
 
   console.log("Installing APK on connected device...");
 
-  execSync(`adb install -r ./builds/android.apk`, {
+  execSync(`adb install -r ${androidPath}`, {
     env,
     stdio: "inherit",
     cwd: APP_PATH,

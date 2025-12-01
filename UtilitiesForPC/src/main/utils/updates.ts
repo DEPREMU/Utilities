@@ -34,6 +34,9 @@ export const getHtmlPath = (): string => {
 };
 
 export const deleteDownloadedUpdate = () => {
+  if (!dataApp) return;
+  if (dataApp.getValue("isUpdating")) return;
+
   const downloadFilePath = dataApp.getValue("downloadFilePath");
   if (!fs.existsSync(downloadFilePath)) return;
 
@@ -41,10 +44,22 @@ export const deleteDownloadedUpdate = () => {
     fs.unlinkSync(downloadFilePath);
     writeLog("Deleted downloaded update file.", "info");
   } catch (error) {
-    writeLog(
-      "Error deleting downloaded update file: " + String(error),
-      "error"
-    );
+    try {
+      if (dataApp.getValue("isWindows"))
+        execSync(
+          `powershell -NoProfile -Command "Remove-Item -LiteralPath '${downloadFilePath.replace(
+            /'/g,
+            "''"
+          )}' -Force"`,
+          { stdio: "ignore" }
+        );
+      else execSync(`rm -f "${downloadFilePath.replace(/"/g, '\\"')}"`);
+    } catch (error) {
+      writeLog(
+        "Error deleting downloaded update file: " + String(error),
+        "error"
+      );
+    }
   }
 };
 
@@ -74,7 +89,7 @@ const openInstallerOrInstall = async (filePath: string) => {
     );
   } else {
     try {
-      const cmd = `sudo dpkg -i "${filePath}" && sudo apt-get install -f -y && ${path.join(
+      const cmd = `sudo dpkg -i "${filePath}" & sudo apt-get install -f -y & ${path.join(
         dataApp.getValue("userHome"),
         ".config",
         "utilities-for-pc-autostart.sh"
@@ -82,8 +97,9 @@ const openInstallerOrInstall = async (filePath: string) => {
 
       writeLog(`Executing Linux install command: ${cmd}`, "info");
       const child = spawn(cmd, [], {
-        detached: true,
+        shell: true,
         stdio: "ignore",
+        detached: true,
       });
       child.unref();
       await handleShutdown();
@@ -146,10 +162,7 @@ export const updateWebHTML = async (downloadUrl: string): Promise<void> => {
     const html = response.data;
 
     if (!html || typeof html !== "string" || html.length < 1000) {
-      writeLog(
-        "HTML recibido es demasiado pequeño o inválido. Se omite.",
-        "warn"
-      );
+      writeLog("HTML received is too small or invalid. Skipping.", "warn");
       return;
     }
 
@@ -191,6 +204,29 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
       currentVersion,
       platformOS: dataApp.getValue("isWindows") ? "windows" : "linux",
     };
+
+    for (let attempts = 0; attempts < 5; attempts++) {
+      try {
+        const res = await axios.get("https://www.google.com/generate_204", {
+          timeout: 2500,
+        });
+        if (res.status >= 200 && res.status < 300) break;
+      } catch (error) {
+        writeLog(
+          `No internet connection detected. Retry attempt ${attempts + 1}/5`,
+          "warn"
+        );
+        if (attempts === 4) {
+          writeLog(
+            "No internet connection detected after 5 attempts.",
+            "error"
+          );
+          throw new Error("No internet connection.");
+        }
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    }
+
     const res = await fetch(getURLUpdates("/is-update-available"), {
       method: "post",
       headers: {
@@ -199,8 +235,11 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
       },
       body: JSON.stringify(body),
     });
+
     const data = (await res.json()) as ResponseIsUpdateAvailable;
     if (!data?.updateAvailable) return;
+    dataApp.setValue("isUpdating", true);
+
     if (buildType === "electron") await downloadNewUpdate(data.downloadUrl);
     else await updateWebHTML(data.downloadUrl);
   } catch (error) {

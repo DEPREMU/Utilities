@@ -351,9 +351,10 @@ const buildApp = async () => {
         : await ask(t("installDebPackagePrompt"));
       if (installAnswer.toLowerCase() === "y") {
         execSync(
-          `sudo dpkg -i ${
-            dataBuild.distElectron
-          } && sudo apt-get install -f -y; sudo apt autoremove -y`,
+          `sudo dpkg -i ${path.join(
+            dataBuild.distElectron,
+            packageName
+          )} && sudo apt-get install -f -y; sudo apt autoremove -y`,
           {
             cwd: UTILITIES_FOR_PC_PATH,
             stdio: "inherit",

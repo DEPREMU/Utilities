@@ -22,6 +22,8 @@ export const initNewLogSession = () => {
 };
 
 export const writeLog = (message: string, level: "info" | "warn" | "error") => {
+  if (!dataApp) return console[level === "info" ? "log" : level](message);
+
   try {
     const logEntry = `[${new Date().toLocaleString()}] [${level.toUpperCase()}]: ${message}`;
     if (dataApp.getValue("isWindows")) {

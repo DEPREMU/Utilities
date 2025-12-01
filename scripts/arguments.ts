@@ -143,6 +143,9 @@ export const ARGS = args.reduce((acc, arg, index) => {
       case "--install":
         acc["install"] = true;
         return acc;
+      case "--export-web":
+        acc["export-web"] = true;
+        return acc;
       case "--web":
         acc["web"] = true;
         return acc;
