@@ -1,9 +1,9 @@
-import { isFalsy } from "@utils";
 import { View, Text } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesIP_API from "@styles/components/connectivity/useStylesIP_API";
 import { dataIP_API_JSON, typeLanguages } from "@types";
 import React, { memo, useEffect, useMemo, useState } from "react";
+import { clearTimeoutPolyfill, isFalsy, setTimeoutPolyfill } from "@utils";
 
 const dataIPLocal: dataIP_API_JSON = {
   status: "false",
@@ -73,21 +73,19 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
   useEffect(() => {
     if (dataIP.status === "success") return;
 
-    const id = setTimeout(() => {
+    const id = setTimeoutPolyfill(() => {
       if (dataIP.status !== "success") setShow(false);
     }, 10000);
 
-    return () => clearTimeout(id);
+    return () => clearTimeoutPolyfill(id);
   }, [dataIP]);
 
   useEffect(() => {
     if (!data) return;
 
-    const idTimeout = setTimeout(() => {
-      setDataIP(data);
-    }, 2500);
+    const idTimeout = setTimeoutPolyfill(() => setDataIP(data), 2500);
 
-    return () => clearTimeout(idTimeout);
+    return () => clearTimeoutPolyfill(idTimeout);
   }, [data]);
 
   const renderData = useMemo(

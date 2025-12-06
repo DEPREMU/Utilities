@@ -58,10 +58,10 @@ const build = async () => {
     throw new Error("Android directory does not exist.");
 
   env.EAS_BUILD = "true";
-  const androidPath = path.join(APP_PATH, "builds", `android-${profile}.apk`);
+  const buildPath = path.join(APP_PATH, "builds", `android-${profile}.apk`);
 
   execSync(
-    `taskset -c 0-5 eas build --platform android --profile ${profile} --local --output=${androidPath}`,
+    `taskset -c 0-5 eas build --platform android --profile ${profile} --local --output=${buildPath}`,
     {
       env,
       stdio: "inherit",
@@ -85,7 +85,7 @@ const build = async () => {
 
   console.log("Installing APK on connected device...");
 
-  execSync(`adb install -r ${androidPath}`, {
+  execSync(`adb install -r "${buildPath}"`, {
     env,
     stdio: "inherit",
     cwd: APP_PATH,

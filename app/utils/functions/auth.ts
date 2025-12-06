@@ -11,11 +11,12 @@ import {
   removeDataSecure,
   cleanAllStorageData,
 } from "../functions";
-import { isFalsy } from "./../functions/appManagement";
 import { Platform } from "react-native";
+import * as Updates from "expo-updates";
 import windowModule from "../modules/WindowModule";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
+import { isFalsy, setTimeoutPolyfill } from "./../functions/appManagement";
 import { KeyStorageValues, ALL_KEYS_STORAGE_TYPE } from "../constants";
 import { UserData, ExpectedStorageTypes, ResponseFetch } from "@types";
 
@@ -289,13 +290,17 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
     if (!deviceId) {
       cleanAllStorageData();
       logError("No device ID found");
+      if (Platform.OS === "android") await Updates.reloadAsync();
+      else window?.location?.reload();
       return { error: "No device ID found" };
     }
 
     let res: ResponseFetch<"/auth/refreshSession"> | null = null;
-    for (let attempt = 0; attempt < 10; attempt++) {
+    for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        await new Promise((resolve) => setTimeout(resolve, attempt * 100));
+        await new Promise((resolve) =>
+          setTimeoutPolyfill(resolve, attempt * 500),
+        );
         res = await fetchToServer(
           "/auth/refreshSession",
           {
@@ -324,7 +329,12 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
 
     const data = res.data;
     if (!data) {
-      const errorMsg = "No data received from refresh session";
+      const errorMsg =
+        "No data received from refresh session" +
+        JSON.stringify(res.data || {}, null, 2) +
+        res.errorText
+          ? `: ${res.errorText} `
+          : "";
       logError(errorMsg);
       return { error: errorMsg };
     }
@@ -342,7 +352,8 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
       return { error: errorMsg };
     }
 
-    await saveDataSecure("_userSessionTokenStorage", data.token);
+    saveDataSecure("_userData", data.userData);
+    saveDataSecure("_userSessionTokenStorage", data.token);
     log("Session refreshed successfully");
     return {
       ...data,

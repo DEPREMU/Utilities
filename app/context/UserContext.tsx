@@ -1,7 +1,10 @@
+/* eslint-disable @stylistic/indent */
 import {
   log,
+  signOut,
   logError,
   isValidEmail,
+  loadDataSecure,
   signInWithEmail,
   signUpWithEmail,
   signOut as authSignOut,
@@ -9,30 +12,40 @@ import {
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
 import { UserData } from "@types";
+import { Platform } from "react-native";
+import windowModule from "@/utils/modules/WindowModule";
 import { navigateReplace } from "@navigation/navigationRef";
-import React, { useRef, useState, useCallback, createContext } from "react";
+import React, { useState, useCallback, createContext, useEffect } from "react";
 
 interface UserContextType {
   sessionToken: string | null;
   loggingIn: boolean;
   isLoggedIn: boolean;
-  login: <T = null>(
-    email: string,
-    password: string,
-    rememberMe?: boolean,
-    callback?: (success: boolean, error?: string) => T,
-  ) => Promise<T>;
-  signUp: <T = void>(
-    email: string,
-    password: string,
-    callback?: (success: boolean, error?: string) => T,
-  ) => Promise<T>;
-  logout: (callback?: (success: boolean) => void) => Promise<void>;
-  refreshToken: (token: string) => Promise<void>;
-  forgotPassword: (
-    email: string,
-    callback?: (success: boolean, error?: string) => void,
-  ) => Promise<void>;
+  loginRef: React.RefObject<
+    <T = null>(
+      email: string,
+      password: string,
+      rememberMe?: boolean,
+      callback?: (success: boolean, error?: string) => T,
+    ) => Promise<T>
+  >;
+  signUpRef: React.RefObject<
+    <T = void>(
+      email: string,
+      password: string,
+      callback?: (success: boolean, error?: string) => T,
+    ) => Promise<T>
+  >;
+  logoutRef: React.RefObject<
+    (callback?: (success: boolean) => void) => Promise<void>
+  >;
+  refreshTokenRef: React.RefObject<() => Promise<boolean>>;
+  forgotPasswordRef: React.RefObject<
+    (
+      email: string,
+      callback?: (success: boolean, error?: string) => void,
+    ) => Promise<void>
+  >;
   userData: Omit<UserData, "password"> | null;
   setLoggingIn: React.Dispatch<React.SetStateAction<boolean>>;
   setIsLoggedIn: React.Dispatch<React.SetStateAction<boolean>>;
@@ -51,8 +64,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [loggingIn, setLoggingIn] = useState<boolean>(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-
-  const sessionInitialized = useRef<boolean>(false);
 
   /**
    * Login function using Database auth
@@ -81,7 +92,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           setUserData(userData ? userData : null);
           setSessionToken(token);
           setIsLoggedIn(true);
-          sessionInitialized.current = true;
           log("User logged in successfully:", userData.email);
           callback?.(true);
         } else {
@@ -192,59 +202,83 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   /**
    * Refresh current session
    */
-  const refreshToken = useCallback(
-    async (sessionToken: string): Promise<void> => {
-      const handleNotLoggedIn = () => {
-        setLoggingIn(false);
-        setIsLoggedIn(false);
-      };
+  const refreshToken = useCallback(async (): Promise<boolean> => {
+    const sendNotificationLoginStatus =
+      Platform.OS !== "web"
+        ? () => {}
+        : (isLoggedIn: boolean) =>
+            windowModule?.notifyLoginStatus?.(isLoggedIn);
+    const handleNotLoggedIn = () => {
+      sendNotificationLoginStatus(false);
+      setLoggingIn(false);
+      setIsLoggedIn(false);
+      return false as const;
+    };
+    const handleLoggedIn = () => {
+      setIsLoggedIn(true);
+      setLoggingIn(false);
+      sendNotificationLoginStatus(true);
+      return true as const;
+    };
+
+    try {
+      const [rememberMe, sessionToken] = await Promise.all([
+        loadDataSecure("_sessionExpiry"),
+        loadDataSecure("_userSessionTokenStorage"),
+      ]);
+
+      if (!rememberMe || !sessionToken) return handleNotLoggedIn();
+
+      if (rememberMe < Date.now()) {
+        await signOut();
+        return handleNotLoggedIn();
+      }
 
       setLoggingIn(true);
-      if (!sessionToken || sessionInitialized.current)
+
+      const { userData, token, error } = await authRefreshSession(sessionToken);
+
+      if (error) return handleNotLoggedIn();
+
+      if (!userData || !token) {
+        await authSignOut();
         return handleNotLoggedIn();
-
-      try {
-        const { userData, token, error } =
-          await authRefreshSession(sessionToken);
-
-        if (error) {
-          logError("Token refresh error:", error);
-          handleNotLoggedIn();
-          return;
-        }
-
-        if (!userData || !token) {
-          await authSignOut();
-          handleNotLoggedIn();
-          return;
-        }
-        setUserData(userData);
-        setSessionToken(token);
-        setIsLoggedIn(true);
-        setLoggingIn(false);
-        sessionInitialized.current = true;
-        log("Token refreshed successfully");
-      } catch (error) {
-        logError("Unexpected refresh error:", error);
-        handleNotLoggedIn();
-        authSignOut();
       }
-    },
-    [],
-  );
+
+      setUserData(userData);
+      setSessionToken(token);
+      return handleLoggedIn();
+    } catch {
+      authSignOut();
+      return handleNotLoggedIn();
+    }
+  }, []);
+
+  const loginRef = React.useRef(login);
+  const signUpRef = React.useRef(signUp);
+  const logoutRef = React.useRef(logout);
+  const refreshTokenRef = React.useRef(refreshToken);
+  const forgotPasswordRef = React.useRef(forgotPassword);
+  useEffect(() => {
+    loginRef.current = login;
+    signUpRef.current = signUp;
+    logoutRef.current = logout;
+    refreshTokenRef.current = refreshToken;
+    forgotPasswordRef.current = forgotPassword;
+  }, [login, signUp, logout, refreshToken, forgotPassword]);
 
   const contextValue: UserContextType = {
-    login,
-    signUp,
-    logout,
+    loginRef,
+    signUpRef,
+    logoutRef,
     userData,
     loggingIn,
     isLoggedIn,
     sessionToken,
-    refreshToken,
     setLoggingIn,
     setIsLoggedIn,
-    forgotPassword,
+    refreshTokenRef,
+    forgotPasswordRef,
   };
 
   return (

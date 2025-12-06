@@ -98,8 +98,8 @@ export const loadDataSecure = async <
 ): Promise<U | undefined> => {
   if (Platform.OS !== "web") {
     const value = await SecureStore.getItemAsync(key);
-    const parsed = parseData<U>(value);
-    if (callback) return callback?.(parsed);
+    const parsed = parseData<U>(value) || (undefined as U);
+    if (callback) return callback(parsed);
     return parsed;
   }
 
@@ -109,7 +109,7 @@ export const loadDataSecure = async <
       return callback?.(null as U, new Error("Not an Electron build")) as U;
 
     const response = await windowModule.loadData(key);
-    const parsedResponse = parseData<U>(response);
+    const parsedResponse = parseData<U>(response) || (undefined as U);
     if (callback) return callback?.(parsedResponse);
     return parsedResponse;
   } catch (error) {
@@ -117,7 +117,7 @@ export const loadDataSecure = async <
     return callback?.(
       null as U,
       error instanceof Error ? error : new Error(String(error)),
-    ) as U;
+    );
   }
 };
 
@@ -232,7 +232,7 @@ export const loadData = async <
       else value = null;
     }
 
-    const parsed = parseData<U>(value);
+    const parsed = parseData<U>(value) || (undefined as U);
     if (callback) return callback(parsed);
     return parsed;
   } catch (error) {

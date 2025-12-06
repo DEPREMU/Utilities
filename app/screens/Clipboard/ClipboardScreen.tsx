@@ -1,3 +1,10 @@
+import {
+  logError,
+  fetchToServer,
+  loadDataSecure,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
+} from "@utils";
 import { Text } from "react-native-paper";
 import { Tables } from "@types";
 import * as Clipboard from "expo-clipboard";
@@ -6,7 +13,6 @@ import { FlatList, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import RenderClipboardItem from "@components/Clipboard/RenderClipboardItem";
 import useStylesClipboardScreen from "@styles/screens/clipboard/useStylesClipboardScreen";
-import { fetchToServer, loadDataSecure, logError } from "@utils";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const skeletonData: Tables["ClipboardSync"][] = Array.from({ length: 5 }).map(
@@ -131,10 +137,10 @@ const ClipboardScreen: React.FC = () => {
       }
 
       if (idTimeoutRef.current) {
-        clearTimeout(idTimeoutRef.current as NodeJS.Timeout);
+        clearTimeoutPolyfill(idTimeoutRef.current as NodeJS.Timeout);
         idTimeoutRef.current = null;
       }
-      idTimeoutRef.current = setTimeout(
+      idTimeoutRef.current = setTimeoutPolyfill(
         () => {
           if (!data) return setClipboardData(null);
 
@@ -152,7 +158,7 @@ const ClipboardScreen: React.FC = () => {
     return () => {
       if (!idTimeoutRef.current) return;
 
-      clearTimeout(idTimeoutRef.current as NodeJS.Timeout);
+      clearTimeoutPolyfill(idTimeoutRef.current as NodeJS.Timeout);
       idTimeoutRef.current = null;
     };
   }, [userData?.userId, sessionToken, language]);

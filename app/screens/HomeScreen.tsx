@@ -3,10 +3,10 @@ import { isDev } from "@utils";
 import windowModule from "@/utils/modules/WindowModule";
 import { List, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
+import { useBackground } from "@context/BackgroundContext";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
-import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { Platform, ScrollView, View } from "react-native";
 import { ScreensAvailable, typeLanguages } from "@types";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -78,9 +78,9 @@ if (isDev)
 
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { hasInternet } = useDeviceInformation();
+  const { hasInternet } = useBackground();
   const { styles, background } = useStylesHomeScreen();
-  const { userData, logout, isLoggedIn, loggingIn } = useUserContext();
+  const { userData, logoutRef, isLoggedIn, loggingIn } = useUserContext();
 
   const [version, setVersion] = useState<string>("");
 
@@ -136,7 +136,9 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {isLoggedIn && <Button label={t("logout")} handlePress={logout} />}
+      {isLoggedIn && (
+        <Button label={t("logout")} handlePress={logoutRef.current} />
+      )}
       {(!isLoggedIn || loggingIn) && (
         <Button
           label={t(loggingIn ? "loggingIn" : "loginButton")}

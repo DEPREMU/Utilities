@@ -6,13 +6,14 @@ import {
   saveData,
   APP_VERSION,
   getRouteAPI,
+  fetchToServer,
   loadDataSecure,
   saveDataSecure,
   ADMIN_PASSWORD,
   getFormattedDate,
+  setTimeoutPolyfill,
   fetchAndApplyUpdate,
   isNewUpdateAvailable,
-  fetchToServer,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import ThemePicker from "@components/Settings/ThemePicker";
@@ -22,10 +23,10 @@ import LanguagePicker from "@components/Settings/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { typeLanguages } from "@types";
+import { useBackground } from "@context/BackgroundContext";
 import { useUserContext } from "@context/UserContext";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
-import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { ScrollView, View, Alert, Platform } from "react-native";
 import { ActivityIndicator, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useState } from "react";
@@ -48,7 +49,7 @@ type UpdatesData = {
 
 const SettingsScreen: React.FC = () => {
   const { t, language } = useLanguage();
-  const { hasInternet } = useDeviceInformation();
+  const { hasInternet } = useBackground();
   const { addTaskQueue } = useBackgroundTask();
   const { setSocketURL } = useWebSocket();
   const { styles, colors } = useStylesSettingsScreen();
@@ -243,7 +244,7 @@ const SettingsScreen: React.FC = () => {
 
     const hasUpdate = await isNewUpdateAvailable();
     if (!hasUpdate) {
-      setTimeout(() => {
+      setTimeoutPolyfill(() => {
         setUpdatesData((prevState) =>
           cloneDeep({
             ...prevState,

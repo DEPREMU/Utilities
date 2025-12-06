@@ -89,7 +89,7 @@ const openInstallerOrInstall = async (filePath: string) => {
     );
   } else {
     try {
-      const cmd = `sudo dpkg -i "${filePath}" & sudo apt-get install -f -y & ${path.join(
+      const cmd = `sudo dpkg -i "${filePath}" && sudo apt-get install -f -y && ${path.join(
         dataApp.getValue("userHome"),
         ".config",
         "utilities-for-pc-autostart.sh"

@@ -3,6 +3,9 @@ import {
   stringifyData,
   fetchToServer,
   getFormattedDate,
+  setTimeoutPolyfill,
+  setIntervalPolyfill,
+  clearIntervalPolyfill,
 } from "@utils";
 import { View, Text } from "react-native";
 import SkeletonLoading from "@components/common/SkeletonLoading";
@@ -68,11 +71,13 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
     };
 
     const handleShow = () =>
-      fetchPrice().finally(() => setTimeout(() => setLoading(false), 1500));
+      fetchPrice().finally(() =>
+        setTimeoutPolyfill(() => setLoading?.(false), 1500),
+      );
 
-    const id = setInterval(handleShow, 10000);
+    const id = setIntervalPolyfill(handleShow, 9999);
     handleShow();
-    return () => clearInterval(id);
+    return () => clearIntervalPolyfill(id);
   }, [cryptoData]);
 
   return (

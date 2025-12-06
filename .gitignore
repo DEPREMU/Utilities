@@ -38,7 +38,6 @@ yarn-error.*
 tempCodeRunnerFile.*
 comportamiento.*
 
-android/
 google-services.json
 
 clirelease
@@ -51,3 +50,5 @@ build
 implementation-md/
 test.*
 uploads/
+
+android/

@@ -292,6 +292,7 @@ const createTray = (): void => {
 
 app.whenReady().then(async () => {
   await verifyNewUpdate("electron");
+  await verifyNewUpdate("web");
   deleteDownloadedUpdate();
   dataApp.setValue("language", getLanguage());
   createWindow();

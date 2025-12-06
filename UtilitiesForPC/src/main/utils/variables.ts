@@ -108,6 +108,7 @@ let dataAppDefault: DataAppElectron = {
   lanIP: getLocalIP(),
   server: null,
   hasSudo: false,
+  logPath: path.join(process.resourcesPath, "..", "log-utilities-for-pc.txt"),
   deviceId: "",
   language: "en",
   __dirname: path.resolve(),
@@ -116,9 +117,6 @@ let dataAppDefault: DataAppElectron = {
   wasSleeping: false,
   webRestarted: false,
   downloadFilePath: getDownloadsPath(),
-  logPath: isWindows
-    ? "C:\\Windows\\Temp\\log-utilities-for-pc.txt"
-    : "/tmp/log-utilities-for-pc.txt",
   mainWindow: null,
   isQuitting: false,
   SERVICE_NAME: "UtilitiesForPC",

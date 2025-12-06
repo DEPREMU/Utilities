@@ -6,6 +6,8 @@ import {
   loadDataSecure,
   saveDataSecure,
   removeDataSecure,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
   getCryptosFromDatabase,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
@@ -205,7 +207,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
   }, [userData?.userId, sessionToken, language]);
 
   useEffect(() => {
-    const id = setTimeout(() => {
+    const id = setTimeoutPolyfill(() => {
       const loadCryptos = async () => {
         const response = await fetchToServer("/cryptos", {
           currency,
@@ -225,7 +227,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       loadCryptos();
     }, 1000);
 
-    return () => clearTimeout(id);
+    return () => clearTimeoutPolyfill(id);
   }, [currency]);
 
   useEffect(() => {

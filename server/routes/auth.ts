@@ -548,20 +548,31 @@ export const handleRefreshSession = async (
       return;
     }
 
-    const update = updatedData.data?.[0];
+    const update = updatedData.data[0];
 
     if (!update) {
       console.error(chalk.red("Error updating user session: No data returned"));
       res.status(500).json({ success: false, error: t("internalError", lang) });
       return;
     }
-    const userData = await fetchFromTable("Users", { userId: decoded.userId });
-    delete (userData.data as Partial<UserData>)?.["password"];
+
+    const userDataFetch = (
+      await fetchFromTable("Users", { userId: decoded.userId })
+    ).data;
+
+    if (!userDataFetch || userDataFetch.length === 0) {
+      console.error(chalk.red("Error fetching user data for refreshed token"));
+      res.status(500).json({ success: false, error: t("internalError", lang) });
+      return;
+    }
+
+    const userData: Partial<UserData> = userDataFetch[0];
+    delete userData["password"];
 
     res.json({
       success: true,
       token: update.token,
-      userData: userData.data?.[0] || null,
+      userData: userData as Omit<UserData, "password">,
     });
   } catch (error) {
     console.error(chalk.red("Error refreshing token:"), error);

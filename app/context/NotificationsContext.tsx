@@ -24,9 +24,7 @@ import {
   getNotifications,
   isLocationEnabled,
   setTimeoutPolyfill,
-  setIntervalPolyfill,
   clearTimeoutPolyfill,
-  clearIntervalPolyfill,
 } from "@utils";
 import { v4 } from "uuid";
 import { useModal } from "./ModalContext";
@@ -35,6 +33,7 @@ import * as Location from "expo-location";
 import { useLanguage } from "./LanguageContext";
 import { useWebSocket } from "./WebSocketContext";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
+import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
@@ -44,10 +43,12 @@ import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
 import { useDeviceInformation } from "./DeviceInformationContext";
 import { DeviceEventEmitter, AppState, Platform } from "react-native";
 
+type SendNotification = (
+  notification: Omit<Notification, "id" | "timestamp">,
+) => Promise<string | undefined>;
+
 interface NotificationsContextType {
-  sendNotification: (
-    notification: Omit<Notification, "id" | "timestamp">,
-  ) => Promise<string | undefined>;
+  sendNotificationRef: React.RefObject<SendNotification>;
   lastItemCopied: React.RefObject<string | null>;
   removeNotification: (
     id: number,
@@ -70,11 +71,13 @@ interface NotificationsProviderProps {
 export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   children,
 }) => {
+  const { deviceInfo } = useDeviceInformation();
   const { t, language } = useLanguage();
   const { sendMessage } = useWebSocket();
   const { openSnackBar } = useModal();
   const { sessionToken, userData } = useUserContext();
-  const { hasInternet, deviceInfo } = useDeviceInformation();
+  const { hasInternet, initIntervalTimeouts, deleteIntervalTimeout } =
+    useBackground();
 
   const notificationsFromStorage = useRef<NotificationsType | null>(null);
   const [notifications, setNotifications] = useState<NotificationsType | null>(
@@ -82,9 +85,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   );
   const lastItemCopied = useRef<string | null>(null);
   const prevHasInternet = useRef<boolean | null>(null);
-
-  const locationIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
-  const clipboardIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
 
   const sendNotification = useCallback(
     async (notification: Omit<Notification, "id" | "timestamp">) => {
@@ -169,6 +169,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     },
     [openSnackBar, t],
   );
+  const sendNotificationRef = useRef<SendNotification>(sendNotification);
 
   const removeNotification = useCallback(
     (id: number, reasonNotification: ReasonNotification) => {
@@ -338,7 +339,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       if (["charging", "full"].includes(deviceInfo?.powerState?.batteryState)) {
         if (deviceInfo.powerState.batteryLevel <= 0.8) return;
 
-        await sendNotification({
+        await sendNotificationRef.current({
           title: t("BatteryFullyCharged"),
           message: t("YouCanUnplugYourDevice"),
           type: "info",
@@ -354,7 +355,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       )
         return;
 
-      await sendNotification({
+      await sendNotificationRef.current({
         title: t("BatteryLow"),
         message: t("YourBatteryIsLow"),
         type: "warning",
@@ -375,9 +376,11 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         clearTimeoutPolyfill(id);
       });
     return () => clearTimeoutPolyfill(id);
-  }, [deviceInfo?.powerState, sendNotification, t]);
+  }, [deviceInfo?.powerState, t]);
 
   useEffect(() => {
+    sendNotificationRef.current = sendNotification;
+
     if (!hasInternet && prevHasInternet) {
       sendNotification({
         title: t("NoInternetConnection"),
@@ -408,15 +411,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
-    if (!hasInternet) return;
     if (!sessionToken) return;
-
-    const clearIntervalIfExists = () => {
-      if (!clipboardIntervalRef.current) return;
-
-      clearIntervalPolyfill(clipboardIntervalRef.current);
-      clipboardIntervalRef.current = null;
-    };
 
     const handleIntervalClipboardWeb = async () => {
       if (!userData?.userId) return;
@@ -425,12 +420,19 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         let content: string | null = null;
 
         try {
-          content = windowModule?.readClipboard?.();
-          if (isFalsy(content)) content = await ExpoClipboard.getStringAsync();
+          content = windowModule?.readClipboard();
+        } catch {
+          // Ignore
+        }
+        try {
+          if (!content)
+            content = await ExpoClipboard.getStringAsync({
+              preferredFormat: ExpoClipboard.StringFormat.PLAIN_TEXT,
+            });
         } catch {
           return;
         }
-        if (isFalsy(content) || lastItemCopied.current === content) return;
+        if (!content || lastItemCopied.current === content) return;
 
         lastItemCopied.current = content;
 
@@ -443,15 +445,23 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       }
     };
 
-    clearIntervalIfExists();
+    initIntervalTimeouts("clipboardWeb", {
+      fn: handleIntervalClipboardWeb,
+      interval: 500,
+      type: "interval",
+      workWithInternet: true,
+    });
 
-    clipboardIntervalRef.current = setIntervalPolyfill(
-      handleIntervalClipboardWeb,
-      500,
-    );
-
-    return () => clearIntervalIfExists();
-  }, [hasInternet, sessionToken, userData?.userId, sendMessage]);
+    return () => {
+      deleteIntervalTimeout("clipboardWeb");
+    };
+  }, [
+    userData?.userId,
+    sendMessage,
+    sessionToken,
+    initIntervalTimeouts,
+    deleteIntervalTimeout,
+  ]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -486,19 +496,19 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       });
     };
 
-    const clearIntervalIfExists = () => {
-      if (!locationIntervalRef.current) return;
-
-      clearIntervalPolyfill(locationIntervalRef.current);
-      locationIntervalRef.current = null;
-    };
-    clearIntervalIfExists();
+    initIntervalTimeouts("locationEnabled", {
+      fn: verifyLocation,
+      interval: 60000,
+      type: "interval",
+      workWithInternet: false,
+    });
 
     verifyLocation();
-    locationIntervalRef.current = setIntervalPolyfill(verifyLocation, 60000);
 
-    return () => clearIntervalIfExists();
-  }, [sendNotification, t]);
+    return () => {
+      deleteIntervalTimeout("locationEnabled");
+    };
+  }, [sendNotification, t, initIntervalTimeouts, deleteIntervalTimeout]);
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
@@ -522,8 +532,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     notifications,
     lastItemCopied,
     setNotifications,
-    sendNotification,
     removeNotification,
+    sendNotificationRef,
   };
 
   return (

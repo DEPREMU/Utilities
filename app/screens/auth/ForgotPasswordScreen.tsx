@@ -25,7 +25,7 @@ type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<
 
 const ForgotPasswordScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { forgotPassword } = useUserContext();
+  const { forgotPasswordRef } = useUserContext();
   const { styles } = useStylesAuthScreens();
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
   const { openSnackBar } = useModal();
@@ -51,7 +51,7 @@ const ForgotPasswordScreen: React.FC = () => {
     setEmailSent(true);
     setSendingEmail(true);
 
-    forgotPassword(email, (success, error) => {
+    forgotPasswordRef.current(email, (success, error) => {
       if (!success) {
         setError(error || "Sign up failed");
         setEmailSent(false);

@@ -1,3 +1,14 @@
 {
-  "cSpell.words": ["DEEPL", "DNSSD", "hermes", "Pressable"]
+  "cSpell.words": [
+    "androidx",
+    "buildscript",
+    "classpath",
+    "DEEPL",
+    "DNSSD",
+    "hermes",
+    "jetbrains",
+    "kotlin",
+    "Jetpack",
+    "Pressable"
+  ]
 }

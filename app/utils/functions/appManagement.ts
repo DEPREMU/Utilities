@@ -1,4 +1,5 @@
 import axios from "axios";
+import { v4 } from "uuid";
 import * as Updates from "expo-updates";
 import _BackgroundTimer from "react-native-background-timer";
 import { log, logError } from "./debug";
@@ -60,7 +61,9 @@ const getCorrectParsed = <T = object | null>(obj: object | null): T => {
     ) as T;
 };
 
-export const parseData = <T = object | null>(value: string | null): T => {
+export const parseData = <T = object | null>(
+  value: string | null,
+): T | null => {
   let parsed: T;
   try {
     if (!value) return value as T;
@@ -145,28 +148,6 @@ export const stringifyData = (value: unknown): string => {
     logError("Error stringifying data:", error, value);
     return "notValid";
   }
-};
-
-/**
- * Creates a debounced version of the provided function that delays its execution until after
- * a specified delay has elapsed since the last time it was invoked.
- *
- * @typeParam T - The type of the function to debounce.
- * @param func - The function to debounce.
- * @param delay - The number of milliseconds to delay.
- * @returns A debounced version of the input function.
- */
-export const debounce = <T extends (...args: unknown[]) => unknown, K = void>(
-  func: T,
-  delay: number,
-): (() => K) => {
-  let timeoutId: NodeJS.Timeout | number;
-  const debouncedFunc = (...args: unknown[]) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func(...args), delay);
-  };
-
-  return debouncedFunc as unknown as () => K;
 };
 
 /**
@@ -374,4 +355,15 @@ export const hasInternetConnection = async (): Promise<boolean> => {
   } catch {
     return false;
   }
+};
+
+export const getRandomId = (): string => {
+  let id: string | null = null;
+
+  if (Platform.OS === "web") id = v4();
+
+  if (!id)
+    id = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
+
+  return id;
 };

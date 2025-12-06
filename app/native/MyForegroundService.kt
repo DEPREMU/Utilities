@@ -3,6 +3,7 @@ package com.utilities.depremu
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.ClipboardManager
 import android.content.Context
@@ -98,6 +99,20 @@ class MyForegroundService : Service() {
     }
 
     private fun setNotification() {
+        val notificationIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+
+        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+
+        val pendingIntent = notificationIntent?.let {
+            PendingIntent.getActivity(this, 0, it, pendingIntentFlags)
+        }
+
         val notification: Notification =
             NotificationCompat
                 .Builder(this, CHANNEL_ID)
@@ -106,6 +121,7 @@ class MyForegroundService : Service() {
                 .setContentTitle(this.title)
                 .setContentText(this.message)
                 .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(pendingIntent)
                 .build()
 
         Log.d("MyForegroundService", "Setting notification with title: ${this.title} and message: ${this.message}")
@@ -167,7 +183,7 @@ class MyForegroundService : Service() {
         } else {
             startService(restartServiceIntent)
         }
-        bringAppToFront()
+        restartReactNativeApp()
     }
 
     override fun onDestroy() {
@@ -197,20 +213,18 @@ class MyForegroundService : Service() {
         } else {
             startService(restartServiceIntent)
         }
-        bringAppToFront()
+        restartReactNativeApp()
     }
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun bringAppToFront() {
+    private fun restartReactNativeApp() {
         try {
-            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-            if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(launchIntent)
-                Log.d("MyForegroundService", "Activity started from service")
-            }
+            val broadcastIntent = Intent(this, RestartServiceReceiver::class.java)
+            broadcastIntent.action = "ACTION_RESTART_APP"
+            sendBroadcast(broadcastIntent)
+            Log.d("MyForegroundService", "Sent broadcast to restart app")
         } catch (e: Exception) {
-            Log.e("MyForegroundService", "Error starting activity: ${e.message}")
+            Log.e("MyForegroundService", "Error sending restart broadcast: ${e.message}")
         }
     }
     

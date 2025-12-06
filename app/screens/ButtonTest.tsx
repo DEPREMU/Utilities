@@ -12,9 +12,10 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { Text } from "react-native-paper";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import { clearTimeoutPolyfill, setTimeoutPolyfill } from "@/utils";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 
 interface AnimatedCircleProps {
   x: number;
@@ -41,11 +42,11 @@ const AnimatedCircle: React.FC<AnimatedCircleProps> = memo(
         return;
       }
 
-      const id = setTimeout(
+      const id = setTimeoutPolyfill(
         () => (scale.value = withTiming(0, { duration: 1000 })),
         timeFromPressIn + 1000 < Date.now() ? 1 : 750,
       );
-      return () => clearTimeout(id);
+      return () => clearTimeoutPolyfill(id);
     }, [scale, pressOut, timeFromPressIn]);
 
     const animatedStyle = useAnimatedStyle(() => ({

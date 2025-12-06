@@ -25,7 +25,7 @@ const run = () => {
   });
 
   console.log("Running android build...");
-  execSync("npx expo run:android", {
+  execSync("npx expo run:android --no-build-cache", {
     cwd: APP_PATH,
     stdio: "inherit",
     env: localEnv,

@@ -1,11 +1,4 @@
-import {
-  logError,
-  setIntervalPolyfill,
-  clearIntervalPolyfill,
-  hasInternetConnection,
-} from "@utils";
 import React, {
-  useRef,
   useState,
   ReactNode,
   useEffect,
@@ -13,16 +6,16 @@ import React, {
   useCallback,
   createContext,
 } from "react";
+import { logError } from "@utils";
 import { cloneDeep } from "lodash";
+import { useBackground } from "./BackgroundContext";
 import { DeviceInformation } from "@types";
 import DeviceInfo, { PowerState } from "react-native-device-info";
 
 interface DeviceInformationContextType {
   deviceInfo: DeviceInformation | null;
   loading: boolean;
-  hasInternet: boolean;
-  refreshDeviceInfo: () => Promise<void>;
-  hasInternetRef: React.RefObject<boolean>;
+  refreshDeviceInfoRef: React.RefObject<() => Promise<void>>;
 }
 
 const DeviceInformationContext = createContext<
@@ -85,11 +78,10 @@ const getDeviceInformation = async (): Promise<DeviceInformation> => {
 export const DeviceInformationProvider: React.FC<
   DeviceInformationProviderProps
 > = ({ children }) => {
+  const { initIntervalTimeouts, deleteIntervalTimeout } = useBackground();
+
   const [loading, setLoading] = useState<boolean>(true);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInformation | null>(null);
-  const [hasInternet, setHasInternet] = useState<boolean>(true);
-
-  const hasInternetRef = useRef<boolean>(true);
 
   const refreshDeviceInfo = useCallback(async () => {
     setLoading(true);
@@ -103,17 +95,13 @@ export const DeviceInformationProvider: React.FC<
     }
   }, []);
 
+  const refreshDeviceInfoRef = React.useRef(refreshDeviceInfo);
   useEffect(() => {
-    const id = setIntervalPolyfill(async () => {
-      setHasInternet(await hasInternetConnection());
-    }, 10000);
-    return () => {
-      clearIntervalPolyfill(id);
-    };
-  }, []);
+    refreshDeviceInfoRef.current = refreshDeviceInfo;
+  }, [refreshDeviceInfo]);
 
   useEffect(() => {
-    refreshDeviceInfo();
+    refreshDeviceInfoRef.current();
 
     const handleIntervalDeviceInfo = async () => {
       const powerState = await DeviceInfo.getPowerState();
@@ -124,23 +112,22 @@ export const DeviceInformationProvider: React.FC<
       });
     };
 
-    const interval = setIntervalPolyfill(handleIntervalDeviceInfo, 60000);
+    initIntervalTimeouts("deviceInfo", {
+      fn: handleIntervalDeviceInfo,
+      interval: 60000,
+      type: "interval",
+      workWithInternet: false,
+    });
 
     return () => {
-      clearIntervalPolyfill(interval);
+      deleteIntervalTimeout("deviceInfo");
     };
-  }, [refreshDeviceInfo]);
-
-  useEffect(() => {
-    hasInternetRef.current = hasInternet;
-  }, [hasInternet]);
+  }, [refreshDeviceInfoRef, deleteIntervalTimeout, initIntervalTimeouts]);
 
   const value: DeviceInformationContextType = {
     loading,
     deviceInfo,
-    hasInternet,
-    hasInternetRef,
-    refreshDeviceInfo,
+    refreshDeviceInfoRef,
   };
 
   return (

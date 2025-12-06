@@ -26,7 +26,6 @@ const configureLanguage = async () => {
     await i18n.changeLanguage("en");
   }
 };
-
-setTimeout(configureLanguage, 1);
+configureLanguage();
 
 export { i18n };

@@ -4,12 +4,20 @@ import type {
   RequestIsUpdateAvailable,
   ResponseIsUpdateAvailable,
 } from "./../types/";
+import {
+  env,
+  ARGS,
+  APP_PATH,
+  versionExpo,
+  isNewVersion,
+  UTILITIES_PATH,
+  UTILITIES_FOR_PC_PATH,
+} from "./config.ts";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
 import FormData from "form-data";
 import { execSync } from "child_process";
-import { isNewVersion, versionExpo, ARGS, env, APP_PATH } from "./config.ts";
 
 let isNewVersionWeb = {
   linux: false,
@@ -82,16 +90,11 @@ const uploadWeb = async (): Promise<boolean> => {
   try {
     console.log("Building web version:", versionExpo);
 
-    const buildPath = path.join(
-      process.cwd(),
-      "UtilitiesForPC",
-      "dist",
-      "index.html"
-    );
+    const buildPath = path.join(UTILITIES_FOR_PC_PATH, "dist", "index.html");
 
-    execSync("npm run build-web", {
+    execSync("npm run build-app-electron -- --export-web", {
       stdio: "inherit",
-      cwd: path.join(process.cwd(), "UtilitiesForPC"),
+      cwd: UTILITIES_PATH,
     });
     if (!fs.existsSync(buildPath)) {
       throw new Error(`Build file not found at ${buildPath}`);

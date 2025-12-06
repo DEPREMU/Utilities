@@ -10,6 +10,8 @@ import {
   fetchToServer,
   loadDataSecure,
   getNotifications,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
   askLocationPermission,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
@@ -288,9 +290,9 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
       await saveData("@notifications", updatedNotifications);
     };
 
-    const id = setTimeout(saveIntervals, 1000);
+    const id = setTimeoutPolyfill(saveIntervals, 1000);
 
-    return () => clearTimeout(id);
+    return () => clearTimeoutPolyfill(id);
   }, [minutes, notifications, sendMessage, userData]);
 
   return (

@@ -213,6 +213,32 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun minimizeApp() {
+        val context = reactApplicationContext
+        val activity = context.currentActivity
+        if (activity != null) {
+            activity.moveTaskToBack(true)
+        }
+    }
+
+    @ReactMethod
+    fun wasLaunchedFromService(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val currentActivity = context.currentActivity
+            if (currentActivity != null) {
+                val intent = currentActivity.intent
+                val launchedFromService = intent.getBooleanExtra("launchedFromService", false)
+                promise.resolve(launchedFromService)
+            } else {
+                promise.resolve(false)
+            }
+        } catch (e: Exception) {
+            promise.resolve(false)
+        }
+    }
+
+    @ReactMethod
     fun requestAutoStartPermission(promise: Promise) {
         try {
             val context = reactApplicationContext

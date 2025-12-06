@@ -25,7 +25,7 @@ type SignUpScreenNavigationProp = NativeStackNavigationProp<
 
 const SignUpScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { signUp } = useUserContext();
+  const { signUpRef } = useUserContext();
   const { styles } = useStylesAuthScreens();
   const navigation = useNavigation<SignUpScreenNavigationProp>();
   const { openSnackBar } = useModal();
@@ -52,7 +52,7 @@ const SignUpScreen: React.FC = () => {
 
     signingUpRef.current = true;
 
-    signUp(email, password, (success, error) => {
+    signUpRef.current(email, password, (success, error) => {
       if (!success) {
         setError(error || "Sign up failed");
         signingUpRef.current = false;

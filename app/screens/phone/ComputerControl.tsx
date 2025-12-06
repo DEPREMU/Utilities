@@ -1,8 +1,14 @@
+import {
+  log,
+  logError,
+  checkUrlStatus,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
+} from "@utils";
 import axios from "axios";
 import { View } from "react-native";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
-import { checkUrlStatus, log, logError } from "@utils";
 import { AdvertisementTXT } from "@types";
 import Zeroconf, { Service } from "react-native-zeroconf";
 import useStylesComputerControl from "@styles/screens/ComputerControl/useStylesComputerControl";
@@ -98,7 +104,7 @@ const ComputerControl: React.FC = () => {
       setScanning(false);
       zeroconf.removeDeviceListeners();
       zeroconf.stop?.();
-      if (timeOutRef.current) clearTimeout(timeOutRef.current);
+      if (timeOutRef.current) clearTimeoutPolyfill(timeOutRef.current);
       timeOutRef.current = null;
     };
 
@@ -111,8 +117,8 @@ const ComputerControl: React.FC = () => {
 
     zeroconf.scan("http", "tcp", "local.");
 
-    if (timeOutRef.current) clearTimeout(timeOutRef.current);
-    timeOutRef.current = setTimeout(handleStop, 30000);
+    if (timeOutRef.current) clearTimeoutPolyfill(timeOutRef.current);
+    timeOutRef.current = setTimeoutPolyfill(handleStop, 30000);
 
     return () => handleStop();
   }, []);

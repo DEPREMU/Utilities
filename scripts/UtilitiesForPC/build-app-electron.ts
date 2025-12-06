@@ -210,14 +210,8 @@ const buildApp = async () => {
   let buildPlatform: BuildPlatform = "both";
 
   const platformArg = ARGS.platform;
-  if (platformArg) {
-    const platform = platformArg.split("=")[1] as BuildPlatform;
-    if (["linux", "windows", "both"].includes(platform)) {
-      buildPlatform = platform;
-    }
-  } else {
-    buildPlatform = isWindows ? "windows" : "linux";
-  }
+  if (platformArg) buildPlatform = platformArg;
+  else buildPlatform = isWindows ? "windows" : "linux";
 
   console.log(t("elevatingPermissions"));
 

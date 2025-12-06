@@ -6,15 +6,17 @@ import {
   fetchToServer,
   saveDataSecure,
   loadDataSecure,
+  setIntervalPolyfill,
+  clearIntervalPolyfill,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
+import { useBackground } from "@context/BackgroundContext";
 import { useUserContext } from "@context/UserContext";
 import { View, ScrollView } from "react-native";
 import { useNotifications } from "@context/NotificationsContext";
 import { useStylesStreamers } from "@styles/screens/SocialMedia/useStylesStreamers";
-import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { Streamer, Notifications } from "@types";
 import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -24,7 +26,7 @@ type StreamerWithIsLive = Streamer & { isLive: boolean };
 const Streamers: React.FC = () => {
   const { styles } = useStylesStreamers();
   const { t, language } = useLanguage();
-  const { hasInternet } = useDeviceInformation();
+  const { hasInternet } = useBackground();
   const { openModal, closeModal } = useModal();
   const { userData, sessionToken } = useUserContext();
   const { notifications, setNotifications } = useNotifications();
@@ -396,9 +398,9 @@ const Streamers: React.FC = () => {
     };
 
     if (!streamersLoaded.current) loadStreamers();
-    const id = setInterval(() => loadStreamers(), 15000);
+    const id = setIntervalPolyfill(loadStreamers, 15000);
 
-    return () => clearInterval(id);
+    return () => clearIntervalPolyfill(id);
   }, [
     t,
     userData?.userId,

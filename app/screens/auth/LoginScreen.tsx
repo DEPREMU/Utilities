@@ -27,7 +27,7 @@ type LoginScreenNavigationProp = NativeStackNavigationProp<
 const LoginScreen: React.FC = () => {
   const { t } = useLanguage();
   const navigation = useNavigation<LoginScreenNavigationProp>();
-  const { login, isLoggedIn } = useUserContext();
+  const { loginRef, isLoggedIn } = useUserContext();
   const { openSnackBar } = useModal();
   const { styles, secondary, text, primary } = stylesLoginScreen();
 
@@ -63,7 +63,7 @@ const LoginScreen: React.FC = () => {
     if (loggingIn) return;
     setLoggingIn(true);
 
-    login(email, password, rememberMe, (success, error) => {
+    loginRef.current(email, password, rememberMe, (success, error) => {
       if (!success) {
         setError(error || "Login failed");
         setLoggingIn(false);
@@ -74,7 +74,7 @@ const LoginScreen: React.FC = () => {
 
       openSnackBar(t("successLoginMessage"), 3000, { label: t("close") });
     });
-  }, [email, password, openSnackBar, t, login, loggingIn, rememberMe]);
+  }, [email, password, openSnackBar, t, loginRef, loggingIn, rememberMe]);
 
   const triggerShake = (which: "password" | "email") => {
     const valueToMove = 5;

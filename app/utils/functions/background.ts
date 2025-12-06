@@ -1,10 +1,14 @@
+import {
+  stringifyData,
+  getNotifications,
+  setTimeoutPolyfill,
+} from "./appManagement";
 import { typeT } from "@types";
 import { saveData } from "./storageManagement";
 import { t as i18n } from "i18next";
 import * as Location from "expo-location";
 import NativeFunctionsModule from "../modules/NativeFunctionsModule";
 import { Alert, AppState, Platform } from "react-native";
-import { getNotifications, stringifyData } from "./appManagement";
 
 /**
  * Checks if location services are enabled on the device.
@@ -139,7 +143,7 @@ export const askDisplayOverOtherAppsPermission = async (): Promise<boolean> => {
     if (opened === "SETTINGS_OPENED") {
       let timePassed = 0;
       while (timePassed < 15000 && AppState.currentState === "active") {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeoutPolyfill(resolve, 1000));
         timePassed += 1000;
       }
       hasPermission = await NativeFunctionsModule.checkOverlayPermission();
@@ -207,7 +211,7 @@ export const askBatteryOptimizationPermission = async (): Promise<boolean> => {
 
     let seconds = 0;
     while (AppState.currentState !== "active" && seconds < 5) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeoutPolyfill(resolve, 1000));
       seconds++;
     }
     hasPermission =

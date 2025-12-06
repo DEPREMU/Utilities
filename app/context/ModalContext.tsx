@@ -3,13 +3,14 @@ import React, {
   useState,
   ReactNode,
   useContext,
-  createContext,
   useCallback,
+  createContext,
 } from "react";
 import ModalComponent from "@components/common/ModalComponent";
 import SnackBarComponent from "@components/common/SnackBarComponent";
 import { SnackbarProps } from "react-native-paper";
 import { StyleSheet, View } from "react-native";
+import { clearTimeoutPolyfill, setTimeoutPolyfill } from "@/utils";
 
 export type StylesModal =
   | "body"
@@ -97,7 +98,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   const clearIdTimeout = useCallback(() => {
     if (!idTimeout.current) return;
 
-    clearTimeout(idTimeout.current);
+    clearTimeoutPolyfill(idTimeout.current);
     idTimeout.current = null;
   }, []);
 
@@ -144,7 +145,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     clearIdTimeout();
 
     setIsOpen(false);
-    idTimeout.current = setTimeout(() => {
+    idTimeout.current = setTimeoutPolyfill(() => {
       setTitle("");
       setBody(null);
       setButtons(null);
@@ -167,7 +168,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
       setSnackbar((prev) => {
         const id = Math.random().toString(36).substring(2, 15);
 
-        const timeout = setTimeout(() => {
+        const timeout = setTimeoutPolyfill(() => {
           setSnackbar((prev) => prev.filter((snackbar) => snackbar.id !== id));
         }, duration);
 
@@ -185,7 +186,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   const onDismissSnackbar = useCallback((id: string) => {
     setSnackbar((prev) => {
       const snackbar = prev.find((snackbar) => snackbar.id === id);
-      if (snackbar?.timeout) clearTimeout(snackbar.timeout);
+      if (snackbar?.timeout) clearTimeoutPolyfill(snackbar.timeout);
 
       return prev.filter((snackbar) => snackbar.id !== id);
     });

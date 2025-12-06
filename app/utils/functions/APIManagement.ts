@@ -4,7 +4,7 @@ import {
   fallbackAPI_URL,
   CLIPBOARD_WS_URL,
   fallbackURL_WEB_SOCKET,
-} from "../constants/API_URL";
+} from "../constants/server";
 import {
   RoutesAPI,
   RequestBody,
@@ -180,7 +180,7 @@ export const fetchToServer = async <
     return {
       ok: res.status >= 200 && res.status < 300,
       data: (res.data as ResponseFetch<T, U>["data"]) || null,
-      errorText: res.statusText || undefined,
+      errorText: res.data?.error || res.statusText || undefined,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

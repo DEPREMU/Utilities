@@ -72,7 +72,10 @@ export const ask = async (question: string): Promise<string> => {
 
 export const deleteAndroidFromGitIgnore = (restore = false) => {
   if (restore) {
-    fs.writeFileSync(path.resolve(UTILITIES_PATH, ".gitignore"), gitignore);
+    let prev = gitignore;
+    if (!prev.includes("android/")) prev += "\nandroid/";
+
+    fs.writeFileSync(path.resolve(UTILITIES_PATH, ".gitignore"), prev);
     return;
   }
 

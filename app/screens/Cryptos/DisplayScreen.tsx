@@ -1,7 +1,11 @@
+import {
+  stringifyData,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
+} from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import { CryptoPrice } from "@components/Cryptos/CryptoPrice";
 import SkeletonLoading from "@components/common/SkeletonLoading";
-import { stringifyData } from "@utils";
 import { SelectedCryptos } from "@types";
 import { useStylesCryptoPrice } from "@styles/components/cryptos/useStylesCryptoPrice";
 import { View, Text, ScrollView } from "react-native";
@@ -14,13 +18,11 @@ interface DisplayScreenProps {
 
 const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
   const { t } = useLanguage();
-  const useStyles = useStylesDisplayScreen();
+  const { styles } = useStylesDisplayScreen();
   const { styles: cryptoPriceStyles } = useStylesCryptoPrice();
 
-  const styles = useMemo(() => useStyles.styles, [useStyles.styles]);
-
-  const [loading, setLoading] = useState<boolean>(true);
   const [render, setRender] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const renderEmptyState = useMemo(
     () =>
@@ -71,15 +73,15 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
   );
 
   useEffect(() => {
-    const interval = setInterval(() => setRender((prev) => !prev), 10000);
+    const timeout = setTimeoutPolyfill(() => setRender((prev) => !prev), 10000);
 
-    return () => clearInterval(interval);
+    return () => clearTimeoutPolyfill(timeout);
   }, [render]);
 
   useEffect(() => {
-    const id = setTimeout(() => setLoading(false), 2000);
+    const id = setTimeoutPolyfill(() => setLoading(false), 2000);
 
-    return () => clearTimeout(id);
+    return () => clearTimeoutPolyfill(id);
   }, []);
 
   return (

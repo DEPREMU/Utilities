@@ -3,6 +3,7 @@ import {
   fetchToServer,
   saveDataSecure,
   loadDataSecure,
+  setTimeoutPolyfill,
 } from "@utils";
 import DownDetector from "./DownDetector";
 import AddNewWebPage from "./AddNewWebPage";
@@ -186,7 +187,7 @@ const DownDetectorNavigator: React.FC = () => {
         };
 
         if (!error && data) {
-          setTimeout(
+          setTimeoutPolyfill(
             () =>
               setDownDetectorData(
                 (Array.isArray(data) ? data : [data]).sort((a, b) =>
@@ -200,7 +201,7 @@ const DownDetectorNavigator: React.FC = () => {
         logError("Error fetching downDetector data:", error);
       }
       const fallbackData = await loadDataSecure("_downDetectorData");
-      setTimeout(() => setDownDetectorData(fallbackData || null), 2000);
+      setTimeoutPolyfill(() => setDownDetectorData(fallbackData || null), 2000);
     };
 
     fetchDownDetectorDataFromDatabase();
