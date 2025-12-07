@@ -16,6 +16,8 @@ import {
   loadData,
   saveData,
   getRandomId,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
   executeRegisteredTask,
   hasInternetConnection,
 } from "@utils";
@@ -355,6 +357,9 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       type: "interval",
       workWithInternet: true,
     });
+
+    const id = setTimeoutPolyfill(handleRefreshSessionWithInternet, 2000);
+    return () => clearTimeoutPolyfill(id);
   }, [
     setLoggingIn,
     addTaskQueue,

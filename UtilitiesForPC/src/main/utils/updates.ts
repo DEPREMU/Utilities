@@ -161,7 +161,7 @@ export const updateWebHTML = async (downloadUrl: string): Promise<void> => {
 
     const html = response.data;
 
-    if (!html || typeof html !== "string" || html.length < 1000) {
+    if (!html || typeof html !== "string" || html.length < 10000) {
       writeLog("HTML received is too small or invalid. Skipping.", "warn");
       return;
     }
@@ -169,16 +169,22 @@ export const updateWebHTML = async (downloadUrl: string): Promise<void> => {
     const htmlPath = getHtmlPath();
 
     if (dataApp.getValue("isWindows")) {
-      execSync(
-        `powershell -NoProfile -Command "Set-Content -LiteralPath '${htmlPath.replace(
-          /'/g,
-          "''"
-        )}' -Value $input"`,
-        {
-          input: html,
-          stdio: ["pipe", "ignore", "ignore"],
-        }
-      );
+      try {
+        fs.writeFileSync(htmlPath, html, { encoding: "utf-8" });
+      } catch (error) {
+        execSync(
+          `powershell -NoProfile -Command "Set-Content -LiteralPath '${htmlPath.replace(
+            /'/g,
+            "''"
+          )}' -"`,
+          {
+            input: html,
+            stdio: ["pipe", "ignore", "ignore"],
+          }
+        );
+
+        writeLog("Error writing HTML on Windows: " + String(error), "error");
+      }
     } else {
       execFileSync("sudo", ["tee", htmlPath], {
         input: html,

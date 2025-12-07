@@ -1,5 +1,4 @@
 import { Server } from "http";
-import type { Tray } from "electron";
 import { Advertisement } from "dnssd";
 import { LanguagesSupported } from "./typesTranslations";
 import { ReasonNotification } from "./typesNotifications";
@@ -19,7 +18,7 @@ export type ElectronStoreType = {
 export type DataAppElectron = {
   ad: Advertisement | null;
   PORT: 3005;
-  tray: typeof Tray | null;
+  tray: Electron.Tray | null;
   lanIP: string;
   server: Server | null;
   logPath: string;

@@ -2,7 +2,18 @@
 sudo apt update -y
 sudo apt upgrade -y
 cd $HOME/Utilities
-git pull
 nordvpn connect Mexico
+max_retries=30
+retry=0
+until curl -sSf --connect-timeout 5 http://www.google.com/generate_204 >/dev/null 2>&1; do
+    retry=$((retry+1))
+    echo "Waiting for internet... (attempt $retry/$max_retries)"
+    if [ "$retry" -ge "$max_retries" ]; then
+        echo "No network after $max_retries attempts, aborting." >&2
+        exit 1
+    fi
+    sleep 2
+done
+git pull
 cd server
 npm run start

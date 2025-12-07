@@ -3,7 +3,7 @@
     "noEmit": true,
     "strict": true,
     "lib": ["esnext"],
-    "types": ["react-native", "node", "electron", "dnssd"],
+    "types": ["node", "electron", "dnssd"],
     "typeRoots": ["./node_modules/@types"],
     "skipLibCheck": true
   },
