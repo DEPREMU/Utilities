@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
   phone TEXT DEFAULT '',
   password TEXT NOT NULL,
   description TEXT DEFAULT '',
-  "createdAt" TIMESTAMP DEFAULT NOW(),
-  "updatedAt" TIMESTAMP DEFAULT NOW()
+  "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+  "updatedAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ==============================================
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS push_tokens (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   token TEXT NOT NULL,
   "userId" TEXT NOT NULL,
-  "createdAt" TIMESTAMP DEFAULT NOW()
+  "createdAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ==============================================
@@ -68,8 +68,8 @@ CREATE TABLE IF NOT EXISTS user_notifications_config (
   "pauseTime" INTEGER NOT NULL DEFAULT -1,
   enabled BOOLEAN NOT NULL DEFAULT FALSE,
   interval INTEGER NOT NULL DEFAULT -1,
-  "updatedAt" TIMESTAMP DEFAULT NOW(),
-  "createdAt" TIMESTAMP DEFAULT NOW()
+  "updatedAt" TIMESTAMPTZ DEFAULT NOW(),
+  "createdAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ==============================================
@@ -82,8 +82,8 @@ CREATE TABLE IF NOT EXISTS user_config (
   "API_URL" TEXT,
   language TEXT NOT NULL DEFAULT 'en',
   "hasAdmin" BOOLEAN NOT NULL DEFAULT FALSE,
-  "updatedAt" TIMESTAMP DEFAULT NOW(),
-  "createdAt" TIMESTAMP DEFAULT NOW(),
+  "updatedAt" TIMESTAMPTZ DEFAULT NOW(),
+  "createdAt" TIMESTAMPTZ DEFAULT NOW(),
   "webSocketURL" TEXT
 );
 
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS clipboard_sync (
   content TEXT NOT NULL,
   deleted BOOLEAN DEFAULT FALSE,
   "deviceId" TEXT NOT NULL,
-  "createdAt" TIMESTAMP DEFAULT NOW()
+  "createdAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ==============================================
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS streamer (
   name TEXT NOT NULL,
   "userId" TEXT NOT NULL,
   "linkImage" TEXT,
-  "createdAt" TIMESTAMP DEFAULT NOW()
+  "createdAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ==============================================
@@ -118,8 +118,8 @@ CREATE TABLE IF NOT EXISTS user_sessions (
   token TEXT NOT NULL,
   "userId" TEXT NOT NULL,
   "deviceId" TEXT NOT NULL,
-  "updatedAt" TIMESTAMP NOT NULL,
-  "createdAt" TIMESTAMP DEFAULT NOW()
+  "updatedAt" TIMESTAMPTZ NOT NULL,
+  "createdAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ==============================================
@@ -129,6 +129,6 @@ CREATE TABLE IF NOT EXISTS down_detector (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   url TEXT NOT NULL,
   "userId" TEXT NOT NULL,
-  "createdAt" TIMESTAMP DEFAULT NOW(),
+  "createdAt" TIMESTAMPTZ DEFAULT NOW(),
   "sendNotification" BOOLEAN NOT NULL
 );

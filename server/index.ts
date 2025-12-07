@@ -13,7 +13,7 @@ import { handleInitDB } from "./database/postgres.ts";
 import { WebSocketPathname } from "@types";
 import { validateServerEnv } from "./env.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
-import { initWebSocket, initWebSocketClipboard } from "./routes/WebSocket.ts";
+import { initWebSocket, initWebSocketClipboard } from "./websocket/index.ts";
 
 const app = express();
 

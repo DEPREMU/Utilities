@@ -24,6 +24,7 @@ import env from "../env.ts";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
 import bcrypt from "bcryptjs";
+import { sendResponse } from "./../variables.ts";
 import { NextFunction, Request, Response } from "express";
 
 declare global {
@@ -119,11 +120,11 @@ export const getStorageData = async (
       streamersUserData,
       userNotificationsConfigData,
     ] = await Promise.all([
-      fetchFromTable("Users", { userId }),
-      fetchFromTable("Cryptos", { userId }),
-      fetchFromTable("UserConfig", { userId }),
-      fetchFromTable("Streamers", { userId }),
-      fetchFromTable("UserNotificationsConfig", { userId }),
+      fetchFromTable({ table: "Users", match: { userId } }),
+      fetchFromTable({ table: "Cryptos", match: { userId } }),
+      fetchFromTable({ table: "UserConfig", match: { userId } }),
+      fetchFromTable({ table: "Streamers", match: { userId } }),
+      fetchFromTable({ table: "UserNotificationsConfig", match: { userId } }),
     ]);
 
     const userData = usersData.data?.[0];
@@ -231,59 +232,48 @@ export const initializeTables = async (
 ) => {
   try {
     const updatedAt = new Date().toISOString();
+
+    const commonValues = {
+      userId,
+      updatedAt,
+    };
+
+    const commonValuesNotifications = {
+      ...commonValues,
+      paused: false,
+      enabled: false,
+      interval: -1,
+      pauseTime: -1,
+    };
+
     const [userConfig, userNotificationsConfig] = await Promise.all([
       insertIntoTable("UserConfig", {
         language,
-        userId,
         theme: "auto",
         hasAdmin: false,
-        updatedAt,
+        ...commonValues,
       }),
       insertIntoTable("UserNotificationsConfig", [
         {
+          ...commonValuesNotifications,
           reason: "allNotifications",
-          enabled: false,
-          interval: -1,
-          userId,
-          updatedAt,
-          paused: false,
-          pauseTime: -1,
         },
         {
+          ...commonValuesNotifications,
           reason: "cryptos",
-          enabled: false,
           interval: 600000,
-          userId,
-          updatedAt,
-          paused: false,
-          pauseTime: -1,
         },
         {
+          ...commonValuesNotifications,
           reason: "batteryAlerts",
-          enabled: true,
-          interval: -1,
-          userId,
-          updatedAt,
-          paused: false,
-          pauseTime: -1,
         },
         {
+          ...commonValuesNotifications,
           reason: "locationEnabled",
-          enabled: false,
-          interval: 600000,
-          userId,
-          updatedAt,
-          paused: false,
-          pauseTime: -1,
         },
         {
+          ...commonValuesNotifications,
           reason: "noInternetConnection",
-          enabled: true,
-          interval: 600000,
-          userId,
-          updatedAt,
-          paused: false,
-          pauseTime: -1,
         },
       ]),
     ]);
@@ -314,35 +304,41 @@ export const handleLogin = async (
   if (!lang) lang = "en";
 
   try {
-    if (!email || !password) {
-      res
-        .status(400)
-        .json({ success: false, error: t("auth.wrongCredentials", lang) });
-      return;
-    }
-    if (!deviceId) {
-      res
-        .status(400)
-        .json({ success: false, error: t("auth.deviceInfoIsRequired", lang) });
-      return;
-    }
+    if (!email || !password)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { success: false, error: t("auth.emailAndPasswordRequired", lang) },
+        "/auth/login",
+      );
 
-    const user = (await fetchFromTable("Users", { email })).data?.[0];
+    if (!deviceId)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { success: false, error: t("auth.deviceInfoIsRequired", lang) },
+        "/auth/login",
+      );
 
-    if (!user) {
-      res
-        .status(401)
-        .json({ success: false, error: t("auth.userNotFound", lang) });
-      return;
-    }
+    const user = (await fetchFromTable({ table: "Users", match: { email } }))
+      .data?.[0];
+
+    if (!user)
+      return sendResponse(
+        res,
+        "UNAUTHORIZED",
+        { success: false, error: t("auth.userNotFound", lang) },
+        "/auth/login",
+      );
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      res
-        .status(401)
-        .json({ success: false, error: t("auth.invalidPassword", lang) });
-      return;
-    }
+    if (!isMatch)
+      return sendResponse(
+        res,
+        "UNAUTHORIZED",
+        { success: false, error: t("auth.invalidPassword", lang) },
+        "/auth/login",
+      );
 
     const token = getJWTToken({
       email: user.email,
@@ -370,7 +366,12 @@ export const handleLogin = async (
         chalk.red("Error inserting user session:"),
         dataInsert.error,
       );
-      res.status(500).json({ success: false, error: t("internalError", lang) });
+      sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { success: false, error: t("internalError", lang) },
+        "/auth/login",
+      );
       return;
     }
 
@@ -388,7 +389,12 @@ export const handleLogin = async (
 
     if (!storageValues) {
       console.error(chalk.red("Error fetching storage values for user"));
-      res.status(500).json({ success: false, error: t("internalError", lang) });
+      sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { success: false, error: t("internalError", lang) },
+        "/auth/login",
+      );
       return;
     }
     const userData: Omit<UserData, "password"> = Object.entries(user).reduce(
@@ -401,19 +407,25 @@ export const handleLogin = async (
       {} as Omit<UserData, "password">,
     );
 
-    res.json({
-      user: userData,
-      token: userSession.token,
-      success: !!userSession.token,
-      storageValues,
-    });
+    sendResponse(
+      res,
+      "SUCCESS",
+      {
+        user: userData,
+        token: userSession.token,
+        success: true,
+        storageValues,
+      },
+      "/auth/login",
+    );
   } catch (error) {
     console.error(chalk.red("Error logging in user:"), error);
-    try {
-      res.status(500).json({ success: false, error: t("internalError", lang) });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { success: false, error: t("internalError", lang) },
+      "/auth/login",
+    );
   }
 };
 
@@ -426,73 +438,76 @@ export const handleSignIn = async (
   const { email, password } = req.body || {};
 
   try {
-    if (!email || !password) {
-      res.status(400).json({
-        success: false,
-        error: t("auth.emailAndPasswordRequired", lang),
-      });
-      return;
-    }
+    if (!email || !password)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { success: false, error: t("auth.emailAndPasswordRequired", lang) },
+        "/auth/signup",
+      );
+
     const passwordRegex = /(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}/;
-    if (!passwordRegex.test(password)) {
-      res
-        .status(400)
-        .json({ success: false, error: t("auth.passwordNotStrong", lang) });
+    if (!passwordRegex.test(password))
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { success: false, error: t("auth.passwordNotStrong", lang) },
+        "/auth/signup",
+      );
+
+    const { data: userExists } = await fetchFromTable({
+      table: "Users",
+      match: { email },
+    });
+
+    if (
+      userExists ||
+      (Array.isArray(userExists) && (userExists as []).length > 0)
+    )
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { success: false, error: t("auth.accountAlreadyExists", lang) },
+        "/auth/signup",
+      );
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const insertedData = await insertIntoTable("Users", {
+      email: email,
+      password: hashedPassword,
+    });
+
+    const user = insertedData.data?.[0];
+
+    if (!user) {
+      console.error(chalk.red("Error inserting user: No data returned"));
+      sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { success: false, error: t("internalError", lang) },
+        "/auth/signup",
+      );
       return;
     }
 
-    try {
-      const { data: userExists } = await fetchFromTable("Users", { email });
+    if (!(await initializeTables(user.userId, lang)))
+      return sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { success: false, error: t("internalError", lang) },
+        "/auth/signup",
+      );
 
-      if (
-        userExists ||
-        (Array.isArray(userExists) && (userExists as []).length > 0)
-      ) {
-        res.status(400).json({
-          success: false,
-          error: t("auth.accountAlreadyExists", lang),
-        });
-        return;
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const insertedData = await insertIntoTable("Users", {
-        email: email,
-        password: hashedPassword,
-      });
-
-      console.log("Inserted data:", insertedData);
-
-      const user = insertedData.data?.[0];
-
-      if (!user) {
-        console.error(chalk.red("Error inserting user: No data returned"));
-        res
-          .status(500)
-          .json({ success: false, error: t("internalError", lang) });
-        return;
-      }
-
-      if (!(await initializeTables(user.userId, lang))) {
-        res
-          .status(500)
-          .json({ success: false, error: t("internalError", lang) });
-        return;
-      }
-
-      res.status(201).json({ success: !!user });
-    } catch (error) {
-      console.error(chalk.red("Error registering user:"), error);
-      res.status(500).json({ success: false, error: t("internalError", lang) });
-    }
+    sendResponse(res, "SUCCESS", { success: !!user }, "/auth/signup");
   } catch (error) {
     console.error(chalk.red("Error in sign-in handler:"), error);
-    try {
-      res.status(500).json({ success: false, error: t("internalError", lang) });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { success: false, error: t("internalError", lang) },
+      "/auth/signup",
+    );
   }
 };
 
@@ -504,24 +519,7 @@ export const handleRefreshSession = async (
   if (!lang) lang = "en";
 
   try {
-    const { deviceId, notificationToken } = req.body || {};
     const { tokenDecoded: decoded, token } = req.user || {};
-
-    if (!decoded) {
-      res
-        .status(401)
-        .json({ success: false, error: t("auth.invalidCredentials", lang) });
-      await Promise.all([
-        deleteInTable("", "UserSessions", {
-          deviceId,
-          token,
-        }),
-        deleteInTable("", "PushTokens", {
-          token: notificationToken,
-        }),
-      ]);
-      return;
-    }
 
     const newToken = getJWTToken({
       email: decoded.email,
@@ -544,7 +542,12 @@ export const handleRefreshSession = async (
         chalk.red("Error updating user session:"),
         updatedData.error,
       );
-      res.status(500).json({ success: false, error: t("internalError", lang) });
+      sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { success: false, error: t("internalError", lang) },
+        "/auth/refreshSession",
+      );
       return;
     }
 
@@ -552,35 +555,54 @@ export const handleRefreshSession = async (
 
     if (!update) {
       console.error(chalk.red("Error updating user session: No data returned"));
-      res.status(500).json({ success: false, error: t("internalError", lang) });
+      sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { success: false, error: t("internalError", lang) },
+        "/auth/refreshSession",
+      );
       return;
     }
 
     const userDataFetch = (
-      await fetchFromTable("Users", { userId: decoded.userId })
+      await fetchFromTable({
+        table: "Users",
+        match: { userId: decoded.userId },
+      })
     ).data;
 
     if (!userDataFetch || userDataFetch.length === 0) {
       console.error(chalk.red("Error fetching user data for refreshed token"));
-      res.status(500).json({ success: false, error: t("internalError", lang) });
+      sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { success: false, error: t("internalError", lang) },
+        "/auth/refreshSession",
+      );
       return;
     }
 
     const userData: Partial<UserData> = userDataFetch[0];
     delete userData["password"];
 
-    res.json({
-      success: true,
-      token: update.token,
-      userData: userData as Omit<UserData, "password">,
-    });
+    sendResponse(
+      res,
+      "SUCCESS",
+      {
+        success: true,
+        token: update.token,
+        userData: userData as Omit<UserData, "password">,
+      },
+      "/auth/refreshSession",
+    );
   } catch (error) {
     console.error(chalk.red("Error refreshing token:"), error);
-    try {
-      res.status(401).json({ success: false, error: "Invalid token" });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { success: false, error: t("internalError", lang) },
+      "/auth/refreshSession",
+    );
   }
 };
 
@@ -589,46 +611,18 @@ export const handleSignOut = async (
   res: Response<ResponseSignOut>,
 ) => {
   const { tokenDecoded: decoded } = req.user || {};
-  const { deviceId, notificationToken } = req.body || {};
+  const { deviceId } = req.body || {};
   let { lang } = req.body || { lang: "en" };
   if (!lang) lang = "en";
 
   try {
-    if (!deviceId) {
-      res.status(400).json({
-        success: false,
-        error: t("auth.deviceIdRequired", lang),
-      });
-      return;
-    }
-
-    if (!decoded) {
-      res
-        .status(401)
-        .json({ success: false, error: t("auth.invalidCredentials", lang) });
-      await Promise.all([
-        deleteInTable("", "UserSessions", {
-          deviceId,
-        }),
-        deleteInTable("", "PushTokens", { token: notificationToken }),
-      ]);
-      return;
-    }
-
-    if (!decoded.userId || !decoded.deviceId) {
-      res
-        .status(401)
-        .json({ success: false, error: t("auth.invalidCredentials", lang) });
-      return;
-    }
-
-    if (decoded.deviceId !== deviceId) {
-      res.status(401).json({
-        success: false,
-        error: t("auth.invalidCredentials", lang),
-      });
-      return;
-    }
+    if (!deviceId)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { success: false, error: t("auth.deviceIdRequired", lang) },
+        "/auth/signOut",
+      );
 
     deleteInTable(decoded.userId, "PushTokens", {
       userId: decoded.userId,
@@ -643,18 +637,24 @@ export const handleSignOut = async (
     const deleted = deletedData.success;
     if (!deleted) {
       console.error(chalk.red("Error deleting user session"));
-      res.status(500).json({ success: false, error: t("internalError", lang) });
+      sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { success: false, error: t("internalError", lang) },
+        "/auth/signOut",
+      );
       return;
     }
 
-    res.json({ success: true });
+    sendResponse(res, "SUCCESS", { success: true }, "/auth/signOut");
   } catch (error) {
     console.error(chalk.red("Error signing out user:"), error);
-    try {
-      res.status(500).json({ success: false, error: t("internalError", lang) });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { success: false, error: t("internalError", lang) },
+      "/auth/signOut",
+    );
   }
 };
 
@@ -666,33 +666,69 @@ export const authMiddleware = (
   try {
     const authHeader = req.headers?.["authorization"];
     if (!authHeader)
-      return res.status(401).json({ error: "Authorization header missing" });
+      return sendResponse(
+        res,
+        "UNAUTHORIZED",
+        {
+          error: "Authorization header missing",
+          success: false,
+        },
+        "/auth/login",
+      );
 
     const [scheme, token] = authHeader.split(" ");
     if (scheme !== "Bearer" || !token)
-      return res.status(401).json({ error: "Invalid authorization format" });
+      return sendResponse(
+        res,
+        "UNAUTHORIZED",
+        {
+          error: "Invalid authorization format",
+          success: false,
+        },
+        "/auth/login",
+      );
 
     const { deviceId } = (req.body as { deviceId: string | null }) || {};
     if (!deviceId)
-      return res.status(400).json({ error: "Device ID is required" });
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        {
+          error: "Device ID is required",
+          success: false,
+        },
+        "/auth/login",
+      );
 
     const payload = decodeJWTToken(token);
-    if (!payload) {
-      res.status(401).json({ error: "Invalid or expired token" });
-      return;
-    }
+    if (!payload)
+      return sendResponse(
+        res,
+        "UNAUTHORIZED",
+        {
+          error: "Invalid or expired token",
+          success: false,
+        },
+        "/auth/login",
+      );
 
     if (payload.deviceId !== deviceId)
-      return res.status(401).json({ error: "Forbidden request" });
+      return sendResponse(
+        res,
+        "FORBIDDEN",
+        { error: "Forbidden request", success: false },
+        "/auth/login",
+      );
 
     req.user = { tokenDecoded: payload, token };
     next();
   } catch (err) {
     console.error(chalk.red("Error in auth middleware:"), err);
-    try {
-      res.status(401).json({ error: "Invalid or expired token" });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "UNAUTHORIZED",
+      { error: "Invalid or expired token", success: false },
+      "/auth/login",
+    );
   }
 };

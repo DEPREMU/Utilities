@@ -7,8 +7,9 @@ import { sendFCMNotification } from "firebase/admin.ts";
 
 const handleSendNotificationToAdmin = async () => {
   try {
-    const fetch = await fetchFromTable("Users", {
-      email: env.ADMIN_EMAIL,
+    const fetch = await fetchFromTable({
+      table: "Users",
+      match: { email: env.ADMIN_EMAIL },
     });
 
     const user = Array.isArray(fetch.data) ? fetch.data[0] : fetch.data;
@@ -17,8 +18,9 @@ const handleSendNotificationToAdmin = async () => {
       return;
     }
 
-    const fetchToken = await fetchFromTable("PushTokens", {
-      userId: user.userId,
+    const fetchToken = await fetchFromTable({
+      table: "PushTokens",
+      match: { userId: user.userId },
     });
     const tokens = Array.isArray(fetchToken.data)
       ? fetchToken.data
@@ -29,8 +31,9 @@ const handleSendNotificationToAdmin = async () => {
         .filter((t): t is string => typeof t === "string" && t.length > 10) ||
       [];
 
-    const fetchUserConfig = await fetchFromTable("UserConfig", {
-      userId: user.userId,
+    const fetchUserConfig = await fetchFromTable({
+      table: "UserConfig",
+      match: { userId: user.userId },
     });
     const userConfig = Array.isArray(fetchUserConfig.data)
       ? fetchUserConfig.data[0]

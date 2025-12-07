@@ -1,6 +1,6 @@
-import { RequestIsUpdateAvailable } from "./Request";
-import { ResponseIsUpdateAvailable } from "./Response";
 import { MethodsAvailableInAPI } from "./typesAPI";
+import { RequestIsUpdateAvailable } from "./Request";
+import { ResponseIsUpdateAvailable, ResponseUploadUpdate } from "./Response";
 
 export type UpdatesRoutes =
   | "/web-page"
@@ -43,7 +43,7 @@ export type UploadUpdateFetch = {
   url: "/upload-update";
   body: undefined;
   method: MethodsAvailableInAPI["post"];
-  response: ResponseIsUpdateAvailable;
+  response: ResponseUploadUpdate;
 };
 export type DownloadViaTempUrlFetch = {
   url: "/download/:buildType/:version/:platformOS/:id";

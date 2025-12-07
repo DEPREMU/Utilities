@@ -7,6 +7,7 @@ import {
 } from "../constants/server";
 import {
   RoutesAPI,
+  TablesKeys,
   RequestBody,
   ResponseFetch,
   UpdatesRoutes,
@@ -142,16 +143,20 @@ const routes: RoutesAPIWithItsMethod = {
 };
 
 export const fetchToServer = async <
-  T extends RoutesAPI | UpdatesRoutes,
-  U extends RequestBody<T>,
+  R extends RoutesAPI | UpdatesRoutes,
+  B extends RequestBody<R> extends { table: infer T }
+    ? T extends TablesKeys
+      ? RequestBody<R, T>
+      : never
+    : RequestBody<R>,
 >(
-  route: T,
-  ...bodyAndToken: T extends RoutesAPI<"get">
+  route: R,
+  ...bodyAndToken: R extends RoutesAPI<"get">
     ? []
-    : T extends RoutesAPI<"middleware">
-      ? [body: U, token: string]
-      : [body: U]
-): Promise<ResponseFetch<T, U>> => {
+    : R extends RoutesAPI<"middleware">
+      ? [body: B, token: string]
+      : [body: B]
+): Promise<ResponseFetch<R, B>> => {
   try {
     const apiRoute = await getRouteAPI(route);
 
@@ -179,7 +184,7 @@ export const fetchToServer = async <
 
     return {
       ok: res.status >= 200 && res.status < 300,
-      data: (res.data as ResponseFetch<T, U>["data"]) || null,
+      data: res.data || null,
       errorText: res.data?.error || res.statusText || undefined,
     };
   } catch (error) {

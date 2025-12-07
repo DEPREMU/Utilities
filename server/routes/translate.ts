@@ -1,6 +1,7 @@
 import env from "../env.ts";
 import chalk from "chalk";
 import express from "express";
+import { sendResponse } from "../variables.ts";
 import { URLSearchParams } from "url";
 import { RequestTranslate, ResponseTranslate } from "@types";
 
@@ -9,16 +10,23 @@ export const translate = async (
   res: express.Response<ResponseTranslate>,
 ) => {
   try {
-    if (!req.body) {
-      res.status(400).json({ error: "Body missing" });
-      return;
-    }
+    if (!req.body)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { error: "Body missing" },
+        "/translate",
+      );
 
     const { text, targetLang } = req.body;
-    if (!text || !targetLang) {
-      res.status(400).json({ error: "Params missing" });
-      return;
-    }
+    if (!text || !targetLang)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { error: "Params missing" },
+        "/translate",
+      );
+
     const url = "https://api-free.deepl.com/v2/translate";
     const response = await fetch(url, {
       method: "POST",
@@ -32,21 +40,34 @@ export const translate = async (
       }),
     });
     if (!response.ok) {
-      const errorData = await response.json();
-      res
-        .status(500)
-        .json({ error: errorData?.message || "Translation failed" });
-      return;
+      let errorData: { message?: string } | null = null;
+      try {
+        errorData = await response.json();
+      } catch {
+        // Ignore JSON parsing errors
+      }
+      return sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { error: errorData?.message || "Translation failed" },
+        "/translate",
+      );
     }
 
     const data = await response.json();
-    res.json({ translatedText: data.translations?.[0]?.text || "" });
+    sendResponse(
+      res,
+      "SUCCESS",
+      { translatedText: data.translations?.[0]?.text || "" },
+      "/translate",
+    );
   } catch (error) {
     console.error(chalk.red("Error during translation request:"), error);
-    try {
-      res.status(500).json({ error: "Internal server error" });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { error: "Internal server error" },
+      "/translate",
+    );
   }
 };

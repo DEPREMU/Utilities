@@ -6,6 +6,7 @@ import {
   ResponseIsUpdateAvailable,
 } from "@types";
 import data from "./dataUploads";
+import { sendResponse } from "../variables.ts";
 import { Request, Response } from "express";
 import { createTempDownloadUrl } from "./tempDownloadUrl";
 
@@ -37,10 +38,13 @@ export const handleIsUpdateAvailable = (
   try {
     const { currentVersion, buildType, platformOS } = req.body || {};
 
-    if (!currentVersion || !buildType) {
-      res.status(400).json(defaultRes);
-      return;
-    }
+    if (!currentVersion || !buildType)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        defaultRes,
+        "/is-update-available",
+      );
 
     const latestVersionData =
       buildType === "android"
@@ -48,16 +52,22 @@ export const handleIsUpdateAvailable = (
         : data.new?.[buildType]?.[
             platformOS as Exclude<PlatformsOS, undefined>
           ] || null;
-    if (!latestVersionData) {
-      res.status(400).json(defaultRes);
-      return;
-    }
+    if (!latestVersionData)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        defaultRes,
+        "/is-update-available",
+      );
 
     const latestVersion = latestVersionData.version;
-    if (!latestVersion || latestVersion === "unknown") {
-      res.status(400).json(defaultRes);
-      return;
-    }
+    if (!latestVersion || latestVersion === "unknown")
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        defaultRes,
+        "/is-update-available",
+      );
 
     let downloadUrl = "";
     if (buildType === "android") {
@@ -82,23 +92,22 @@ export const handleIsUpdateAvailable = (
     const updateAvailable =
       getSumVersion(latestVersion) > getSumVersion(currentVersion);
 
-    res.status(200).json({
-      downloadUrl,
-      latestVersion,
-      updateAvailable,
-    });
+    sendResponse(
+      res,
+      "SUCCESS",
+      { downloadUrl, latestVersion, updateAvailable },
+      "/is-update-available",
+    );
   } catch (error) {
     console.error(
       "Error in handleIsUpdateAvailable:",
       error instanceof Error ? error.message : String(error),
     );
-    try {
-      res.status(500).json(defaultRes);
-    } catch (error) {
-      console.error(
-        "Error sending error response in handleIsUpdateAvailable:",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      defaultRes,
+      "/is-update-available",
+    );
   }
 };

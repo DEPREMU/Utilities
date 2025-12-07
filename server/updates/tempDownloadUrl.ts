@@ -10,6 +10,7 @@ import path from "path";
 import chalk from "chalk";
 import { v4 } from "uuid";
 import { UPLOAD_DIR } from "config";
+import { sendResponse } from "../variables.ts";
 import { getFinalFileName } from "./uploadUpdate";
 import { Request, Response } from "express";
 
@@ -58,21 +59,25 @@ export const handleDownload = (
     );
     const infoUrl = tempUrls[fullUrl];
 
-    if (!infoUrl) {
-      res
-        .status(404)
-        .json({ error: "Temporary download URL not found or expired" });
-      return;
-    }
+    if (!infoUrl)
+      return sendResponse(
+        res,
+        "NOT_FOUND",
+        { error: "Temporary download URL not found or expired" },
+        "/download/:buildType/:version/:platformOS/:id",
+      );
 
     if (
       infoUrl.id !== id ||
       infoUrl.buildType !== buildType ||
       infoUrl.version !== version
-    ) {
-      res.status(400).json({ error: "Invalid download parameters" });
-      return;
-    }
+    )
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { error: "Invalid download parameters" },
+        "/download/:buildType/:version/:platformOS/:id",
+      );
 
     const filePath = path.join(
       UPLOAD_DIR,
@@ -82,29 +87,34 @@ export const handleDownload = (
         version,
       }),
     );
-    if (!fs.existsSync(filePath)) {
-      res.status(404).json({ error: "Requested file does not exist" });
-      return;
-    }
+    if (!fs.existsSync(filePath))
+      return sendResponse(
+        res,
+        "NOT_FOUND",
+        { error: "Requested file does not exist" },
+        "/download/:buildType/:version/:platformOS/:id",
+      );
 
     delete tempUrls[fullUrl];
     res.download(filePath, (err) => {
       if (!err) return;
 
       console.error("Error downloading file:", err);
-      try {
-        res.status(500).json({ error: "Error downloading file" });
-      } catch {
-        // Ignore
-      }
+      sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { error: "Error downloading file" },
+        "/download/:buildType/:version/:platformOS/:id",
+      );
     });
   } catch (error) {
     console.error(chalk.red("Error processing download via temp URL:"), error);
-    try {
-      res.status(500).json({ error: "Internal server error" });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { error: "Internal server error" },
+      "/download/:buildType/:version/:platformOS/:id",
+    );
   }
 };
 

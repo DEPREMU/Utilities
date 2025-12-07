@@ -282,11 +282,6 @@ type RoutesPutAPI = Extract<
   { method: MethodsAvailableInAPI["put"] }
 >["url"];
 
-type RoutesDeleteAPI = Extract<
-  FetchAPI,
-  { method: MethodsAvailableInAPI["post"] }
->["url"];
-
 type RoutesGetAPI = Extract<
   FetchAPI,
   { method: MethodsAvailableInAPI["get"] }
@@ -300,8 +295,6 @@ export type RoutesAPI<
   ? RoutesGetAPI
   : T extends "put"
   ? RoutesPutAPI
-  : T extends "delete"
-  ? RoutesDeleteAPI
   : T extends "middleware"
   ? Extract<FetchAPI, { middlewares: any[] }>["url"]
   : FetchAPI["url"];

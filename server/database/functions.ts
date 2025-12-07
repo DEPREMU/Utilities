@@ -4,6 +4,40 @@ import { pool } from "./postgres.ts";
 import { TABLE_MAP } from "../config.ts";
 import { RequestDatabaseInsert, Tables, TablesKeys, Falsy } from "@types";
 
+type ArgsFetchWithoutLimit<T extends TablesKeys> = {
+  table: T;
+  match?: Partial<Tables[T]>;
+  limit?: never;
+  offset?: never;
+  orderBy?: never;
+  orderDirection?: never;
+};
+
+type ArgsFetchWithLimit<T extends TablesKeys> = {
+  table: T;
+  match?: Partial<Tables[T]>;
+  limit?: number;
+  offset?: number;
+  orderBy: keyof Tables[T];
+  orderDirection: "ASC" | "DESC";
+};
+
+type FetchFromTableFn = {
+  <T extends TablesKeys>(
+    args: ArgsFetchWithLimit<T>,
+  ): Promise<{
+    data: Tables[T][] | null;
+    error?: string | null;
+  }>;
+
+  <T extends TablesKeys>(
+    args: ArgsFetchWithoutLimit<T>,
+  ): Promise<{
+    data: Tables[T][] | null;
+    error?: string | null;
+  }>;
+};
+
 const getMatchObject = <T extends TablesKeys>(
   update: Partial<Tables[T]>,
   match?: { [key: string]: unknown },
@@ -166,13 +200,9 @@ export const deleteInTable = async <T extends TablesKeys = "Users">(
 /**
  * Fetches data from a specified table
  */
-export const fetchFromTable = async <T extends TablesKeys = TablesKeys>(
-  table: T,
-  match: Partial<Tables[T]> = {},
-): Promise<{
-  data: Tables[T][] | null;
-  error?: string | null;
-}> => {
+export const fetchFromTable: FetchFromTableFn = async (args) => {
+  const { table, match = {} } = args;
+
   const client = await pool.connect();
   try {
     const tableName = TABLE_MAP[table];
@@ -186,18 +216,23 @@ export const fetchFromTable = async <T extends TablesKeys = TablesKeys>(
       values.push(...Object.values(whereClause.values));
     }
 
-    const result = await client.query(query, values);
-
-    if (result.rows.length === 0) {
-      return { data: null, error: null };
+    if ("orderBy" in args && args.orderBy) {
+      query += ` ORDER BY "${String(args.orderBy)}" ${args.orderDirection ?? "DESC"}`;
+    }
+    if ("limit" in args && args.limit && args.limit > 0) {
+      query += ` LIMIT $${values.length + 1}`;
+      values.push(args.limit);
+    }
+    if ("offset" in args && args.offset && args.offset > 0) {
+      query += ` OFFSET $${values.length + 1}`;
+      values.push(args.offset);
     }
 
-    const data = result.rows.map((row: Record<string, unknown>) => row);
+    const result = await client.query(query, values);
 
-    return {
-      data: data as Tables[T][],
-      error: null,
-    };
+    if (result.rows.length === 0) return { data: null, error: null };
+
+    return { data: result.rows, error: null };
   } catch (error) {
     const errorMsg = `Unexpected error fetching data from table: ${error}`;
     console.error(chalk.red(errorMsg));
@@ -270,7 +305,7 @@ export const deleteSessions = async () => {
 
   console.log(chalk.blue("Deleting old sessions and push tokens..."));
   try {
-    const users = await fetchFromTable("Users");
+    const users = await fetchFromTable({ table: "Users" });
     let data = users.data;
     if (!data) return;
     if (!Array.isArray(data)) data = [data];

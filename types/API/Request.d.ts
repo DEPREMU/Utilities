@@ -3,7 +3,6 @@ import {
   RoutesAPI,
   RoutesPutAPI,
   RoutesPostAPI,
-  RoutesDeleteAPI,
   MethodsAvailableInAPI,
 } from "./typesAPI";
 import { LanguagesSupported } from "../typesTranslations";
@@ -13,15 +12,12 @@ import { BuildTypeUpdates, PlatformsOS, UpdatesRoutes } from "./typesUpdates";
 export type RequestBody<
   T extends RoutesAPI | UpdatesRoutes = RoutesAPI | UpdatesRoutes,
   U extends TablesKeys = TablesKeys
-> = T extends RoutesPostAPI | RoutesPutAPI | RoutesDeleteAPI
+> = T extends RoutesPostAPI | RoutesPutAPI
   ? Extract<
       FetchAPI<U>,
       {
         url: T;
-        method:
-          | MethodsAvailableInAPI["put"]
-          | MethodsAvailableInAPI["post"]
-          | MethodsAvailableInAPI["delete"];
+        method: MethodsAvailableInAPI["put"] | MethodsAvailableInAPI["post"];
       }
     >["body"]
   : undefined;
@@ -78,14 +74,11 @@ export type RequestAuth<T extends "login" | "signup"> = {
 
 export type RequestRefreshSession = {
   lang: LanguagesSupported;
-  deviceId: string;
-  notificationToken: string;
 };
 
 export type RequestSignOut = {
   lang: LanguagesSupported;
   deviceId: string;
-  notificationToken: string;
 };
 
 export type RequestDatabaseInsert<T extends TablesKeys = TablesKeys> = {
@@ -95,12 +88,33 @@ export type RequestDatabaseInsert<T extends TablesKeys = TablesKeys> = {
   deviceId: string;
 };
 
-export type RequestDatabaseFetch<T extends TablesKeys = TablesKeys> = {
+type DatabaseFetchBase<T extends TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
   match: Partial<Tables[T]> | null;
   deviceId: string;
+  limit?: number;
+  offset?: number;
+  orderBy?: keyof Tables[T];
+  orderDirection?: "ASC" | "DESC";
 };
+
+type PaginationRules<T extends TablesKeys> =
+  | {
+      orderBy: keyof Tables[T];
+      orderDirection: "ASC" | "DESC";
+      limit?: number;
+      offset?: number;
+    }
+  | {
+      orderBy?: never;
+      orderDirection?: never;
+      limit?: never;
+      offset?: never;
+    };
+
+export type RequestDatabaseFetch<T extends TablesKeys = TablesKeys> =
+  DatabaseFetchBase<T> & PaginationRules<T>;
 
 export type RequestDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;

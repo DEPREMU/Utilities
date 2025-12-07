@@ -1,6 +1,6 @@
 import { Falsy } from "react-native";
-import { Streamer, Tables, TablesKeys, UserData } from "../database";
 import { ExpectedStorageTypes, PriceBinanceAPI } from "./typesAPI";
+import { Streamer, Tables, TablesKeys, UserData } from "../database";
 
 export type ResponseHealth = {
   status: "running";
@@ -104,4 +104,9 @@ export type ResponseIsUpdateAvailable = {
   updateAvailable: boolean;
   latestVersion: string;
   downloadUrl: string;
+};
+
+export type ResponseUploadUpdate = {
+  success: boolean;
+  error?: string;
 };

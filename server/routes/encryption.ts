@@ -8,6 +8,7 @@ import {
 import env from "env";
 import chalk from "chalk";
 import crypto from "crypto";
+import { sendResponse } from "../variables.ts";
 import { Request, Response } from "express";
 
 /**
@@ -111,29 +112,33 @@ export const encryptHandler = async (
   try {
     const { dataToEncrypt } = req.body || {};
 
-    if (!dataToEncrypt) {
-      res.status(400).json({
-        error: "No data provided to encrypt",
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
+    if (!dataToEncrypt)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        {
+          error: "No data provided to encrypt",
+          timestamp: new Date().toISOString(),
+        },
+        "/encrypt",
+      );
 
     const encryptedData = encrypt(dataToEncrypt);
-    res.status(200).json({
-      dataEncrypted: encryptedData,
-      timestamp: new Date().toISOString(),
-    });
+
+    sendResponse(
+      res,
+      "SUCCESS",
+      { dataEncrypted: encryptedData, timestamp: new Date().toISOString() },
+      "/encrypt",
+    );
   } catch (error) {
     console.error(chalk.red("Encryption error:"), error);
-    try {
-      res.status(500).json({
-        error: "Encryption failed",
-        timestamp: new Date().toISOString(),
-      });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { error: "Encryption failed", timestamp: new Date().toISOString() },
+      "/encrypt",
+    );
   }
 };
 
@@ -155,29 +160,32 @@ export const decryptHandler = async (
   try {
     const { dataToDecrypt } = req.body || {};
 
-    if (!dataToDecrypt) {
-      res.status(400).json({
-        error: "No data provided to decrypt",
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
+    if (!dataToDecrypt)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        {
+          error: "No data provided to decrypt",
+          timestamp: new Date().toISOString(),
+        },
+        "/decrypt",
+      );
 
     const decryptedData = decrypt(dataToDecrypt);
-    res.status(200).json({
-      decryptedValue: decryptedData,
-      timestamp: new Date().toISOString(),
-    });
+    sendResponse(
+      res,
+      "SUCCESS",
+      { decryptedValue: decryptedData, timestamp: new Date().toISOString() },
+      "/decrypt",
+    );
   } catch (error) {
     console.error(chalk.red("Decryption error:"), error);
-    try {
-      res.status(500).json({
-        error: "Decryption failed",
-        timestamp: new Date().toISOString(),
-      });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { error: "Decryption failed", timestamp: new Date().toISOString() },
+      "/decrypt",
+    );
   }
 };
 
@@ -187,15 +195,14 @@ export const handleGetRandomUUID = async (
 ) => {
   try {
     const UUIDs = Array.from({ length: 2 }, () => crypto.randomUUID());
-    res.status(200).json({ uuid: UUIDs.join("") });
+    sendResponse(res, "SUCCESS", { uuid: UUIDs.join("--") }, "/getRandomUUID");
   } catch (error) {
     console.error(chalk.red("UUID generation error:"), error);
-    try {
-      res.status(500).json({
-        error: "UUID generation failed",
-      });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { error: "UUID generation failed" },
+      "/getRandomUUID",
+    );
   }
 };

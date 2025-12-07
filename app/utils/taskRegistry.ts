@@ -1,5 +1,9 @@
-import { AvailableFunctions } from "@types";
-import { Tables, TablesKeys, RequestDatabaseInsert } from "@types";
+import {
+  AvailableFunctions,
+  RequestDatabaseDelete,
+  RequestDatabaseUpdate,
+} from "@types";
+import { TablesKeys, RequestDatabaseInsert } from "@types";
 import { logError, checkLanguage, loadDataSecure, fetchToServer } from "@utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,9 +16,9 @@ type TaskRegistry = Record<
 
 const taskRegistry: TaskRegistry = {
   updateFromDatabase: async <T extends TablesKeys>(
-    tableName: T,
-    data: Partial<Tables[T]> | Partial<Tables[T]>[],
-    condition: Partial<Tables[T]> | null,
+    table: T,
+    values: RequestDatabaseUpdate<T>["values"],
+    match: RequestDatabaseUpdate<T>["match"],
   ) => {
     try {
       const [lang, token, deviceId] = await Promise.all([
@@ -22,27 +26,25 @@ const taskRegistry: TaskRegistry = {
         loadDataSecure("_userSessionTokenStorage"),
         loadDataSecure("_deviceId"),
       ]);
-      if (!token) return;
+      if (!token || !deviceId) return;
 
-      fetchToServer(
-        "/database/update",
-        {
-          table: tableName,
-          values: data,
-          match: condition,
-          lang,
-          deviceId: deviceId || "local-device",
-        },
-        token,
-      );
+      const body: RequestDatabaseUpdate<T> = {
+        lang,
+        table,
+        match,
+        values,
+        deviceId,
+      };
+
+      await fetchToServer("/database/update", body as never, token);
     } catch (error) {
-      logError(`Error updating ${tableName}:`, error);
+      logError(`Error updating ${table}:`, error);
     }
   },
 
   insertIntoDatabase: async <T extends TablesKeys>(
     table: T,
-    values: RequestDatabaseInsert["values"],
+    values: RequestDatabaseInsert<T>["values"],
   ) => {
     try {
       const [lang, token, deviceId] = await Promise.all([
@@ -50,17 +52,16 @@ const taskRegistry: TaskRegistry = {
         loadDataSecure("_userSessionTokenStorage"),
         loadDataSecure("_deviceId"),
       ]);
-      if (!token) return;
-      await fetchToServer(
-        "/database/insert",
-        {
-          table,
-          values,
-          deviceId: deviceId || "local-device",
-          lang,
-        },
-        token,
-      );
+      if (!token || !deviceId) return;
+
+      const body: RequestDatabaseInsert<T> = {
+        lang,
+        table,
+        values,
+        deviceId,
+      };
+
+      await fetchToServer("/database/insert", body as never, token);
     } catch (error) {
       logError(`Error inserting into ${table}:`, error);
     }
@@ -68,7 +69,7 @@ const taskRegistry: TaskRegistry = {
 
   deleteFromDatabase: async <T extends TablesKeys>(
     table: T,
-    match: Partial<Tables[T]>,
+    match: RequestDatabaseDelete<T>["match"],
   ) => {
     try {
       const [lang, token, deviceId] = await Promise.all([
@@ -76,18 +77,16 @@ const taskRegistry: TaskRegistry = {
         loadDataSecure("_userSessionTokenStorage"),
         loadDataSecure("_deviceId"),
       ]);
-      if (!token) return;
+      if (!token || !deviceId) return;
 
-      await fetchToServer(
-        "/database/delete",
-        {
-          table,
-          match,
-          deviceId: deviceId || "local-device",
-          lang,
-        },
-        token,
-      );
+      const body: RequestDatabaseDelete<T> = {
+        lang,
+        table,
+        match,
+        deviceId,
+      };
+
+      await fetchToServer("/database/delete", body as never, token);
     } catch (error) {
       logError(`Error deleting from ${table}:`, error);
     }

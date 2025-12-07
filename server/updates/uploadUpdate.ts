@@ -10,6 +10,7 @@ import path from "path";
 import chalk from "chalk";
 import Busboy from "busboy";
 import { UPLOAD_DIR } from "config";
+import { sendResponse } from "../variables.ts";
 import { Request, Response } from "express";
 import dataUploads, { updateDataUploads } from "./dataUploads";
 
@@ -74,12 +75,17 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
         console.log("Version not new, discarding file...");
 
         file.on("end", () => {
-          if (!connectionClosed) {
-            connectionClosed = true;
-            res.json({
+          if (connectionClosed) return;
+          connectionClosed = true;
+          sendResponse(
+            res,
+            "FORBIDDEN",
+            {
               error: "Version already exists or invalid platform/OS",
-            });
-          }
+              success: false,
+            },
+            "/upload-update",
+          );
         });
         file.resume();
         return;
@@ -116,10 +122,13 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
     });
 
     busboy.on("finish", async () => {
-      if (!dataFile) {
-        res.json({ error: "Missing or invalid data field" });
-        return;
-      }
+      if (!dataFile)
+        return sendResponse(
+          res,
+          "BAD_REQUEST",
+          { error: "Missing or invalid data field", success: false },
+          "/upload-update",
+        );
 
       if (!isNewVersion) return;
 
@@ -131,22 +140,27 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
           dataFile.version,
         );
         console.log("All files written successfully");
-        res.status(200).json({ ok: true });
+        sendResponse(res, "SUCCESS", { success: true }, "/upload-update");
       } catch (err) {
         console.error("Error uploading:", err);
-        if (!connectionClosed) {
-          res.status(500).json({ error: "Error uploading files" });
-        }
+        if (connectionClosed) return;
+        sendResponse(
+          res,
+          "INTERNAL_SERVER_ERROR",
+          { error: "Error uploading files", success: false },
+          "/upload-update",
+        );
       }
     });
 
     req.pipe(busboy);
   } catch (error) {
     console.error(chalk.red("Error handling upload:"), error);
-    try {
-      res.status(500).json({ error: "Internal server error" });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { error: "Internal server error", success: false },
+      "/upload-update",
+    );
   }
 };

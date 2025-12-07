@@ -5,20 +5,21 @@ import {
   insertIntoTable,
 } from "../database/functions.ts";
 import {
-  RequestDatabaseDelete,
+  TablesKeys,
   RequestDatabaseFetch,
+  RequestDatabaseDelete,
   RequestDatabaseInsert,
   RequestDatabaseUpdate,
-  ResponseDatabaseDelete,
   ResponseDatabaseFetch,
+  ResponseDatabaseDelete,
   ResponseDatabaseInsert,
   ResponseDatabaseUpdate,
-  TablesKeys,
 } from "@types";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
-import { Request, Response } from "express";
 import { TABLE_MAP } from "config.ts";
+import { sendResponse } from "../variables.ts";
+import { Request, Response } from "express";
 
 export const handleFetchFromDatabase = async (
   req: Request<unknown, unknown, RequestDatabaseFetch>,
@@ -30,32 +31,49 @@ export const handleFetchFromDatabase = async (
     const { table } = req.body || {};
     const { tokenDecoded: decode } = req.user || {};
 
-    if (!table || !TABLE_MAP?.[table]) {
-      res.status(400).json({ error: t("database.invalidBody", lang) });
-      return;
-    }
-    if (!decode) {
-      res.status(401).json({ error: t("auth.invalidToken", lang) });
-      return;
-    }
-    if (!match) match = { userId: decode.userId };
+    if (!table || !TABLE_MAP?.[table])
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { error: t("database.invalidBody", lang) },
+        "/database/fetch",
+      );
 
-    const { data, error } = await fetchFromTable(table, match);
+    if (!match) match = { userId: decode.userId };
+    const options: Record<string, unknown> = {};
+    if ("orderBy" in req.body) {
+      if (req.body.limit) options.limit = req.body.limit;
+      if (req.body.offset) options.offset = req.body.offset;
+      if (req.body.orderBy) options.orderBy = req.body.orderBy;
+      if (req.body.orderDirection)
+        options.orderDirection = req.body.orderDirection;
+    }
+
+    const { data, error } = await fetchFromTable({
+      table,
+      match,
+      ...options,
+    });
 
     if (error) {
       console.error(chalk.red("Error fetching from Database:"), error);
-      res.status(500).json({ error: t("database.fetchError", lang) });
-      return;
+      return sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { error: t("database.fetchError", lang) },
+        "/database/fetch",
+      );
     }
 
-    res.json({ data });
+    sendResponse(res, "SUCCESS", { data: data || null }, "/database/fetch");
   } catch (error) {
     console.error(chalk.red("Error fetching from Database:"), error);
-    try {
-      res.status(500).json({ error: t("database.fetchError", lang) });
-    } catch {
-      // ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { error: t("database.fetchError", lang) },
+      "/database/fetch",
+    );
   }
 };
 
@@ -68,40 +86,49 @@ export const handleInsertToDatabase = async (
     const { table, values } = req.body || {};
     const { token, tokenDecoded: decode } = req.user || {};
 
-    if (!table || !TABLE_MAP?.[table] || !values) {
-      res
-        .status(400)
-        .json({ success: false, error: t("database.invalidBody", lang) });
-      return;
-    }
+    if (!table || !TABLE_MAP?.[table] || !values)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        {
+          error: t("database.invalidBody", lang),
+          success: false,
+        },
+        "/database/insert",
+      );
 
-    if (!decode) {
-      res
-        .status(401)
-        .json({ success: false, error: t("auth.invalidToken", lang) });
-      return;
-    }
-    const { data: usersSessions } = await fetchFromTable("UserSessions", {
-      userId: decode.userId,
-      token,
+    const { data: usersSessions } = await fetchFromTable({
+      table: "UserSessions",
+      match: {
+        userId: decode.userId,
+        token,
+      },
     });
     if (
       !usersSessions ||
       (Array.isArray(usersSessions) && usersSessions.length === 0)
-    ) {
-      res
-        .status(401)
-        .json({ success: false, error: t("auth.sessionNotFound", lang) });
-      return;
-    }
+    )
+      return sendResponse(
+        res,
+        "UNAUTHORIZED",
+        {
+          success: false,
+          error: t("auth.sessionNotFound", lang),
+        },
+        "/database/insert",
+      );
 
     const { data, error } = await insertIntoTable(table, values);
-    if (error) {
-      res
-        .status(500)
-        .json({ success: false, error: t("database.insertError", lang) });
-      return;
-    }
+    if (error)
+      return sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        {
+          error: t("database.insertError", lang),
+          success: false,
+        },
+        "/database/insert",
+      );
 
     return res.json({ success: true, data });
   } catch (error) {
@@ -127,38 +154,34 @@ export const handleUpdateToDatabase = async (
     const { tokenDecoded: decode } = req.user || {};
     const { table, values } = req.body || {};
 
-    if (!table || !TABLE_MAP?.[table] || !values) {
-      res
-        .status(400)
-        .json({ success: false, error: t("database.invalidBody", lang) });
-      return;
-    }
-    if (!decode) {
-      res
-        .status(401)
-        .json({ success: false, error: t("auth.invalidToken", lang) });
-      return;
-    }
+    if (!table || !TABLE_MAP?.[table] || !values)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { error: t("database.invalidBody", lang), success: false },
+        "/database/update",
+      );
+
     if (!match) match = { userId: decode.userId };
 
     const { data, error } = await updateInTable(table, values, match);
-    if (error) {
-      res
-        .status(500)
-        .json({ success: false, error: t("database.updateError", lang) });
-      return;
-    }
+    if (error)
+      return sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { success: false, error: t("database.updateError", lang) },
+        "/database/update",
+      );
 
-    res.json({ success: true, data });
+    sendResponse(res, "SUCCESS", { success: true, data }, "/database/update");
   } catch (error) {
     console.error(chalk.red("Error updating Database:"), error);
-    try {
-      res
-        .status(500)
-        .json({ success: false, error: t("database.updateError", lang) });
-    } catch {
-      // ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { success: false, error: t("database.updateError", lang) },
+      "/database/update",
+    );
   }
 };
 
@@ -172,35 +195,31 @@ export const handleDeleteFromDatabase = async (
     const { tokenDecoded: decode } = req.user || {};
     const { table, match } = req.body || {};
 
-    if (!table || !TABLE_MAP?.[table]) {
-      res
-        .status(400)
-        .json({ success: false, error: t("database.invalidBody", lang) });
-      return;
-    }
-    if (!decode) {
-      res
-        .status(401)
-        .json({ success: false, error: t("auth.invalidToken", lang) });
-      return;
-    }
-    const { success, error } = await deleteInTable(decode.userId, table, match);
-    if (error) {
-      res
-        .status(500)
-        .json({ success: false, error: t("database.deleteError", lang) });
-      return;
-    }
+    if (!table || !TABLE_MAP?.[table])
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { error: t("database.invalidBody", lang), success: false },
+        "/database/delete",
+      );
 
-    res.json({ success });
+    const { success, error } = await deleteInTable(decode.userId, table, match);
+    if (error)
+      return sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { success: false, error: t("database.deleteError", lang) },
+        "/database/delete",
+      );
+
+    sendResponse(res, "SUCCESS", { success }, "/database/delete");
   } catch (error) {
     console.error(chalk.red("Error deleting from Database:"), error);
-    try {
-      res
-        .status(500)
-        .json({ success: false, error: t("database.deleteError", lang) });
-    } catch {
-      // ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { success: false, error: t("database.deleteError", lang) },
+      "/database/delete",
+    );
   }
 };

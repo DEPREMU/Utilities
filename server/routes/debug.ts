@@ -1,6 +1,7 @@
-import { RequestLogs, ResponseLogs } from "@types";
+import { sendResponse } from "../variables.ts";
 import { insertIntoTable } from "database/functions";
 import { Request, Response } from "express";
+import { RequestLogs, ResponseLogs } from "@types";
 
 /**
  * Handles adding a log entry to the database.
@@ -22,9 +23,5 @@ export const handleAddLog = async (
   } catch (error) {
     console.error("Error adding log:", error);
   }
-  try {
-    res.status(200).json({ success });
-  } catch {
-    // Ignore
-  }
+  sendResponse(res, "SUCCESS", { success }, "/log");
 };

@@ -7,6 +7,7 @@ import {
 } from "@types";
 import chalk from "chalk";
 import express from "express";
+import { sendResponse } from "../variables.ts";
 
 export let dataBinance: PriceBinanceAPI = [];
 
@@ -47,24 +48,37 @@ export const handleGetCryptoPrice = async (
   req: express.Request<unknown, unknown, RequestCryptoPrice>,
   res: express.Response<ResponseCryptoPrice>,
 ) => {
-  const { cryptoId, currency } = req.body;
+  const { cryptoId, currency } = req.body || {};
+
+  if (!cryptoId || !currency) {
+    return sendResponse(
+      res,
+      "BAD_REQUEST",
+      { error: "Missing cryptoId or currency" },
+      "/cryptoPrice",
+    );
+  }
 
   try {
     const priceUSD = await getCryptoPrice(cryptoId, currency);
     const priceUSDTMXN = await getCryptoPrice("USDT", "MXN");
-    if (priceUSD === -1 || priceUSDTMXN === -1) {
-      res.json({ error: "Error fetching crypto price" });
-      return;
-    }
+    if (priceUSD === -1 || priceUSDTMXN === -1)
+      return sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { error: "Error fetching crypto price" },
+        "/cryptoPrice",
+      );
 
-    res.json({ priceUSD, priceUSDTMXN });
+    sendResponse(res, "SUCCESS", { priceUSD, priceUSDTMXN }, "/cryptoPrice");
   } catch (error) {
     console.error(chalk.red("Error fetching crypto price:"), error);
-    try {
-      res.status(500).json({ error: "Error fetching crypto price" });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { error: "Error fetching crypto price" },
+      "/cryptoPrice",
+    );
   }
 };
 
@@ -77,13 +91,19 @@ export const handleGetCryptos = async (
       item.symbol.endsWith(req?.body?.currency || ""),
     ) as PriceBinanceAPI;
 
-    res.json({ cryptos: cryptosFilteredByCurrency || [] });
+    sendResponse(
+      res,
+      "SUCCESS",
+      { cryptos: cryptosFilteredByCurrency || [] },
+      "/cryptos",
+    );
   } catch (error) {
     console.error(chalk.red("Error fetching cryptos:"), error);
-    try {
-      res.status(500).json({ error: "Error fetching cryptos" });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { error: "Error fetching cryptos" },
+      "/cryptos",
+    );
   }
 };

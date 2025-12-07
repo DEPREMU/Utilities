@@ -171,6 +171,13 @@ const beforeCommit = () => {
     env,
   });
 
+  console.log("Running before-commit in types...");
+  execSync("npm run before-commit", {
+    cwd: TYPES_PATH,
+    stdio: "inherit",
+    env,
+  });
+
   console.log("Running type-check in scripts...");
   execSync("npm run type-check", { cwd: SCRIPTS_PATH, stdio: "inherit", env });
 };

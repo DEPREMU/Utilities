@@ -18,9 +18,9 @@ export const dataDatabase = {
 
 const TablesNot: TablesKeys[] = [
   "Logs",
-  "ClipboardSync",
-  "UserSessions",
   "Users",
+  "UserSessions",
+  "ClipboardSync",
 ];
 
 const handleFetchNewData = () => {
@@ -29,11 +29,11 @@ const handleFetchNewData = () => {
 
   Object.keys(dataDatabase).forEach(async (table) => {
     try {
-      const tableType = table as keyof typeof dataDatabase;
+      const tableType = table as TablesKeys;
 
       if (TablesNot.includes(tableType)) return;
-      const fetchFromDatabase = await fetchFromTable(tableType);
-      dataDatabase[table as TablesKeys] = [];
+      const fetchFromDatabase = await fetchFromTable({ table: tableType });
+      dataDatabase[tableType] = [];
       if (!fetchFromDatabase.data) return;
 
       const tableData = Array.isArray(fetchFromDatabase.data)

@@ -5,9 +5,10 @@ import {
   ResponseGetIsLiveStreamer,
 } from "@types";
 import axios from "axios";
-import express from "express";
-import { insertIntoTable } from "../database/functions.ts";
 import chalk from "chalk";
+import express from "express";
+import { sendResponse } from "../variables.ts";
+import { insertIntoTable } from "../database/functions.ts";
 
 const getLinkImageStreamer = async (streamer: string) => {
   try {
@@ -61,20 +62,31 @@ export const getIsLiveStreamer = async (
 ) => {
   try {
     const { streamer } = req.body || { streamer: null };
-    if (!streamer) {
-      res.status(400).json({ error: "Streamer name is required" });
-      return;
-    }
+    if (!streamer)
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { error: "Streamer name is required" },
+        "/getIsLiveStreamer",
+      );
 
     const isLive = await isLiveStreamer(streamer.name);
-    res.status(200).json({ streamer: { ...streamer, isLive } });
+    sendResponse(
+      res,
+      "SUCCESS",
+      { streamer: { ...streamer, isLive } },
+      "/getIsLiveStreamer",
+    );
   } catch (error) {
     console.error(chalk.red("Error in getIsLiveStreamer:"), error);
-    try {
-      res.status(500).json({ error: `Unexpected error: ${error}` });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      {
+        error: "Failed to get live status of streamer",
+      },
+      "/getIsLiveStreamer",
+    );
   }
 };
 
@@ -84,10 +96,14 @@ export const addStreamer = async (
 ) => {
   const { name, userId } = req.body || { name: "", userId: "" };
 
-  if (!name || !userId) {
-    res.status(400).json({ error: "Streamer name and User ID are required" });
-    return;
-  }
+  if (!name || !userId)
+    return sendResponse(
+      res,
+      "BAD_REQUEST",
+      { error: "Streamer name and User ID are required" },
+      "/addStreamer",
+    );
+
   try {
     const [, result] = await Promise.all([
       insertIntoTable("UserNotificationsConfig", {
@@ -109,29 +125,33 @@ export const addStreamer = async (
 
     const data = result.data?.[0];
 
-    if (!data) {
-      res
-        .status(500)
-        .json({
-          error: "Failed to add streamer: " + result.error || "Unknown error",
-        });
-      return;
-    }
+    if (!data)
+      return sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { error: "Failed to add streamer: " + result.error || "Unknown error" },
+        "/addStreamer",
+      );
 
     const streamer = data
       ? { ...data, isLive: await isLiveStreamer(data.name) }
       : null;
 
-    if (result.error) {
-      res.status(500).json({ error: "Failed to add streamer" });
-      return;
-    }
-    res.status(201).json({ streamer, success: true });
+    if (result.error)
+      return sendResponse(
+        res,
+        "INTERNAL_SERVER_ERROR",
+        { error: `Failed to add streamer: ${result.error}` },
+        "/addStreamer",
+      );
+
+    sendResponse(res, "SUCCESS", { streamer, success: true }, "/addStreamer");
   } catch (error) {
-    try {
-      res.status(500).json({ error: `Unexpected error: ${error}` });
-    } catch {
-      // Ignore
-    }
+    sendResponse(
+      res,
+      "INTERNAL_SERVER_ERROR",
+      { error: `Failed to add streamer: ${error}` },
+      "/addStreamer",
+    );
   }
 };

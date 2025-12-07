@@ -274,9 +274,12 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         "/database/fetch",
         {
           lang: language,
-          deviceId: deviceId || "local-device",
+          limit: 1,
           table: "ClipboardSync",
           match: { userId: userData.userId, deleted: false },
+          orderBy: "createdAt",
+          deviceId: deviceId || "local-device",
+          orderDirection: "DESC",
         },
         sessionToken,
       );
@@ -285,10 +288,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       if (isFalsy(data)) return;
 
       if (data.length === 0) return;
-      lastItemCopied.current = data.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      )?.[0]?.content;
+      lastItemCopied.current = data[0]?.content;
     });
   }, [userData?.userId, sessionToken, language]);
 

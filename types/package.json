@@ -5,5 +5,8 @@
     "@types/express": "^5.0.3",
     "expo-notifications": "^0.32.12",
     "react-native-device-info": "^14.1.1"
+  },
+  "scripts": {
+    "before-commit": "tsc"
   }
 }
