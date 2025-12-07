@@ -279,6 +279,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           match: { userId: userData.userId, deleted: false },
           orderBy: "createdAt",
           deviceId: deviceId || "local-device",
+          pagination: true,
           orderDirection: "DESC",
         },
         sessionToken,

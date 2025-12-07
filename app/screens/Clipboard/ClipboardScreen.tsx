@@ -35,6 +35,8 @@ const ClipboardScreen: React.FC = () => {
     Tables["ClipboardSync"][] | null
   >(skeletonData);
 
+  const pageRef = useRef<number>(0);
+  const isLoadingRef = useRef<boolean>(false);
   const idTimeoutRef = useRef<NodeJS.Timeout | number | null>(null);
 
   const deleteClipboardItem = useCallback(
@@ -70,6 +72,61 @@ const ClipboardScreen: React.FC = () => {
     [sessionToken, language],
   );
 
+  const fetchClipboardFromDatabase = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    if (!sessionToken || !userData?.userId)
+      return logError("No session token or user ID available");
+
+    isLoadingRef.current = true;
+
+    const deviceId = await loadDataSecure("_deviceId");
+
+    const res = await fetchToServer(
+      "/database/fetch",
+      {
+        lang: language,
+        limit: 20,
+        table: "ClipboardSync",
+        match: { userId: userData?.userId, deleted: false },
+        offset: pageRef.current * 20,
+        orderBy: "createdAt",
+        deviceId: deviceId || "local-device",
+        pagination: true,
+        orderDirection: "DESC",
+      },
+      sessionToken,
+    );
+
+    const { data, error } = res.data || {
+      error: res.errorText || "Unknown error",
+    };
+
+    if (error) {
+      logError("Error fetching clipboard data:", error);
+      isLoadingRef.current = false;
+      return;
+    }
+
+    if (idTimeoutRef.current) {
+      clearTimeoutPolyfill(idTimeoutRef.current as NodeJS.Timeout);
+      idTimeoutRef.current = null;
+    }
+    idTimeoutRef.current = setTimeoutPolyfill(
+      () => {
+        if (!data) {
+          setClipboardData((prev) => prev ?? []);
+          isLoadingRef.current = false;
+          return;
+        }
+        pageRef.current += 1;
+
+        setClipboardData((prev) => (prev ? [...prev, ...data] : [...data]));
+        isLoadingRef.current = false;
+      },
+      pageRef.current > 0 ? 100 : data ? 3000 : 2000,
+    );
+  }, [sessionToken, userData?.userId, language]);
+
   const copyClipboardContent = useCallback(async (content: string) => {
     if (!content) return logError("No content provided for copying");
 
@@ -79,7 +136,7 @@ const ClipboardScreen: React.FC = () => {
   const renderItems = useCallback(
     ({ item }: { item: Tables["ClipboardSync"] }) => (
       <RenderClipboardItem
-        key={item.id || Math.random().toString()}
+        key={item.id || Math.random().toString(36)}
         item={item}
         title={t("clipboardTitle")}
         removeLabel={t("remove")}
@@ -109,51 +166,6 @@ const ClipboardScreen: React.FC = () => {
   }, [t, styles]);
 
   useEffect(() => {
-    if (!userData?.userId) return;
-
-    const fetchClipboardFromDatabase = async () => {
-      if (!sessionToken) return logError("No session token available");
-
-      const deviceId = await loadDataSecure("_deviceId");
-
-      const res = await fetchToServer(
-        "/database/fetch",
-        {
-          table: "ClipboardSync",
-          deviceId: deviceId || "local-device",
-          match: { userId: userData?.userId, deleted: false },
-          lang: language,
-        },
-        sessionToken,
-      );
-
-      const { data, error } = res.data || {
-        error: res.errorText || "Unknown error",
-      };
-
-      if (error) {
-        logError("Error fetching clipboard data:", error);
-        return;
-      }
-
-      if (idTimeoutRef.current) {
-        clearTimeoutPolyfill(idTimeoutRef.current as NodeJS.Timeout);
-        idTimeoutRef.current = null;
-      }
-      idTimeoutRef.current = setTimeoutPolyfill(
-        () => {
-          if (!data) return setClipboardData(null);
-
-          setClipboardData(
-            (Array.isArray(data) ? data : [data]).sort((a, b) =>
-              b.createdAt.localeCompare(a.createdAt),
-            ) ?? null,
-          );
-        },
-        data ? 3000 : 2000,
-      );
-    };
-
     fetchClipboardFromDatabase();
     return () => {
       if (!idTimeoutRef.current) return;
@@ -161,7 +173,7 @@ const ClipboardScreen: React.FC = () => {
       clearTimeoutPolyfill(idTimeoutRef.current as NodeJS.Timeout);
       idTimeoutRef.current = null;
     };
-  }, [userData?.userId, sessionToken, language]);
+  }, [fetchClipboardFromDatabase]);
 
   return (
     <View style={styles.container}>
@@ -172,6 +184,8 @@ const ClipboardScreen: React.FC = () => {
         keyExtractor={(item) => String(item.id || Math.random())}
         renderItem={renderItems}
         ListEmptyComponent={renderEmptyComponent}
+        onEndReached={fetchClipboardFromDatabase}
+        onEndReachedThreshold={0.5}
       />
     </View>
   );

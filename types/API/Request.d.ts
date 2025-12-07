@@ -88,33 +88,33 @@ export type RequestDatabaseInsert<T extends TablesKeys = TablesKeys> = {
   deviceId: string;
 };
 
-type DatabaseFetchBase<T extends TablesKeys> = {
+export type RequestDatabaseFetchWithoutPagination<
+  T extends TablesKeys = TablesKeys
+> = {
   lang: LanguagesSupported;
   table: T;
   match: Partial<Tables[T]> | null;
   deviceId: string;
-  limit?: number;
-  offset?: number;
-  orderBy?: keyof Tables[T];
-  orderDirection?: "ASC" | "DESC";
+  pagination?: false;
 };
 
-type PaginationRules<T extends TablesKeys> =
-  | {
-      orderBy: keyof Tables[T];
-      orderDirection: "ASC" | "DESC";
-      limit?: number;
-      offset?: number;
-    }
-  | {
-      orderBy?: never;
-      orderDirection?: never;
-      limit?: never;
-      offset?: never;
-    };
+export type RequestDatabaseFetchWithPagination<
+  T extends TablesKeys = TablesKeys
+> = {
+  lang: LanguagesSupported;
+  table: T;
+  match: Partial<Tables[T]> | null;
+  deviceId: string;
+  pagination: true;
+  limit?: number;
+  offset?: number;
+  orderBy: keyof Tables[T];
+  orderDirection: "ASC" | "DESC";
+};
 
 export type RequestDatabaseFetch<T extends TablesKeys = TablesKeys> =
-  DatabaseFetchBase<T> & PaginationRules<T>;
+  | RequestDatabaseFetchWithPagination<T>
+  | RequestDatabaseFetchWithoutPagination<T>;
 
 export type RequestDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;

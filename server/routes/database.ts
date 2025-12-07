@@ -41,9 +41,11 @@ export const handleFetchFromDatabase = async (
 
     if (!match) match = { userId: decode.userId };
     const options: Record<string, unknown> = {};
-    if ("orderBy" in req.body) {
-      if (req.body.limit) options.limit = req.body.limit;
-      if (req.body.offset) options.offset = req.body.offset;
+    if (req.body.pagination) {
+      if (typeof req.body.limit === "number" && req.body.limit > 0)
+        options.limit = req.body.limit;
+      if (typeof req.body.offset === "number" && req.body.offset >= 0)
+        options.offset = req.body.offset;
       if (req.body.orderBy) options.orderBy = req.body.orderBy;
       if (req.body.orderDirection)
         options.orderDirection = req.body.orderDirection;
