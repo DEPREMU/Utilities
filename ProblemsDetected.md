@@ -14,9 +14,9 @@
 
 | Status    | Count  | Percentage |
 | --------- | ------ | ---------- |
-| Done      | 9      | 81.81%     |
-| Detected  | 2      | 18.19%     |
-| **Total** | **11** | **100%**   |
+| Done      | 10     | 83.33%     |
+| Detected  | 2      | 16.67%     |
+| **Total** | **12** | **100%**   |
 
 ---
 
@@ -53,7 +53,13 @@
 | **Multi Sessions Not Available**       | High     | Multi sessions are not available, once the user logs in, old refresh_token will be invalidated   | ✅     | 2025/09/19 | 2025/09/20 |
 | **Data across devices are not synced** | High     | When data in DB is updated in any device, remaining devices do not fetch last data               | ❌     | 2025/09/24 | -          |
 
+### Functionality issues
+
+| Component | Priority | Issue Description | Status | Detected | Fixed |
+| -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ | ------ | ---------- | ---------- |
+| **WebSocketContext and NotificationsContext** | High | Clipboard sync was not working properly because WebSocketContext is under NotificationsContext, and NotificationsContext was using the default value of WebSocketContext | ✅ | 2025/12/07 | 2025/12/08 |
+
 ---
 
 _Last Updated: 2025/09/18_  
-_Total Issues: 11 | Resolved: 9 | Remaining: 2_
+_Total Issues: 12 | Resolved: 10 | Remaining: 2_

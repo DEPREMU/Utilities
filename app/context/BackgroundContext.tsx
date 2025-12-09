@@ -23,10 +23,7 @@ import BackgroundModule from "@/utils/modules/BackgroundModule";
 import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
 import { AppState, DeviceEventEmitter, Platform } from "react-native";
 
-type ServiceData = {
-  message: string;
-  counter: number;
-};
+type typeDataReceivedState = { state: "suspended" | "resumed" };
 
 type dataTimeControl = {
   fn: (...args: unknown[]) => void;
@@ -34,6 +31,8 @@ type dataTimeControl = {
   type: "interval" | "timeout";
   interval: number;
   workWithInternet: boolean;
+  shouldRestartAuto?: boolean;
+  shouldStopWhenSuspend: boolean;
 };
 
 type TimeControls = Record<
@@ -42,8 +41,8 @@ type TimeControls = Record<
 >;
 
 type BackgroundContextType = {
+  statePhone: typeDataReceivedState["state"] | null;
   hasInternet: boolean;
-  serviceData: ServiceData | null;
   isBackground: boolean;
   hasInternetRef: React.RefObject<boolean>;
   timeControlsRef: React.RefObject<TimeControls>;
@@ -62,9 +61,10 @@ interface BackgroundProviderProps {
 export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
   children,
 }) => {
-  const [serviceData, setServiceData] = useState<ServiceData | null>(null);
   const [hasInternet, setHasInternet] = useState<boolean>(true);
   const [isBackground, setIsBackground] = useState<boolean>(false);
+  const [statePhone, setStatePhone] =
+    useState<typeDataReceivedState["state"]>("resumed");
 
   const hasInternetRef = useRef<boolean>(true);
 
@@ -83,6 +83,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
         interval: data.interval,
         type: data.type,
         workWithInternet: data.workWithInternet,
+        shouldStopWhenSuspend: !!data.shouldStopWhenSuspend,
       };
 
       if (timeControlsRef.current[id]?.id) {
@@ -142,18 +143,29 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
     const id = setTimeoutPolyfill(() => {
       Object.entries(timeControlsRef.current).forEach(([key, data]) => {
-        if (!data) return;
-        if (!data.workWithInternet) return;
+        if (!data?.workWithInternet || !data.shouldRestartAuto) return;
 
         const typedKey = key as keyof TimeControls;
 
-        if (hasInternet) initIntervalTimeouts(typedKey, data);
-        else deleteIntervalTimeout(typedKey);
+        if (!hasInternet) deleteIntervalTimeout(typedKey);
+        else if (!data.id) initIntervalTimeouts(typedKey, data);
       });
     }, 1000);
 
     return () => clearTimeoutPolyfill(id);
   }, [hasInternet, deleteIntervalTimeout, initIntervalTimeouts]);
+
+  useEffect(() => {
+    Object.entries(timeControlsRef.current).forEach(([key, data]) => {
+      if (!data) return;
+      if (!data.shouldStopWhenSuspend || !data.shouldRestartAuto) return;
+      const typedKey = key as keyof TimeControls;
+
+      if (statePhone === "suspended") deleteIntervalTimeout(typedKey);
+      else if (statePhone === "resumed" && !data.id)
+        initIntervalTimeouts(typedKey, data);
+    });
+  }, [statePhone, deleteIntervalTimeout, initIntervalTimeouts]);
 
   useEffect(() => {
     const initializeBackgroundModule = async () => {
@@ -165,17 +177,15 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
         await new Promise((resolve) => setTimeoutPolyfill(resolve, 1000));
       }
 
-      if (!BackgroundModule.start) {
-        ExpoUpdates.reloadAsync();
-        return;
-      }
+      if (!BackgroundModule.start) return ExpoUpdates.reloadAsync();
 
-      const t: typeT = i18n as typeT;
+      const t = i18n as typeT;
 
-      loadDataSecure("_deviceId").then((deviceId) => {
-        if (deviceId) return;
-        NativeFunctionsModule?.requestIgnoreBatteryOptimizations?.();
-      });
+      loadDataSecure("_deviceId").then(
+        (deviceId) =>
+          !deviceId &&
+          NativeFunctionsModule?.requestIgnoreBatteryOptimizations?.(),
+      );
       BackgroundModule?.start?.(
         t("foregroundNotificationTitle"),
         t("foregroundNotificationMessage"),
@@ -187,16 +197,16 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       setIsBackground(nextAppState !== "active");
     });
-    const subscriptionBackground = DeviceEventEmitter.addListener(
-      "onUpdateCounterBackground",
-      (data: ServiceData) => {
-        setServiceData(data);
+    const subscriptionStatePhone = DeviceEventEmitter.addListener(
+      "onUpdateSuspendResume",
+      (data: typeDataReceivedState) => {
+        setStatePhone(data.state || "resumed");
       },
     );
 
     return () => {
       subscription.remove();
-      subscriptionBackground.remove();
+      subscriptionStatePhone.remove();
       BackgroundModule.stop();
     };
   }, []);
@@ -215,8 +225,8 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
   }, []);
 
   const value: BackgroundContextType = {
+    statePhone,
     hasInternet,
-    serviceData,
     isBackground,
     hasInternetRef,
     timeControlsRef,

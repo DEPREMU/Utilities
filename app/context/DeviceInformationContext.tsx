@@ -114,9 +114,11 @@ export const DeviceInformationProvider: React.FC<
 
     initIntervalTimeouts("deviceInfo", {
       fn: handleIntervalDeviceInfo,
-      interval: 60000,
       type: "interval",
+      interval: 60000,
       workWithInternet: false,
+      shouldRestartAuto: true,
+      shouldStopWhenSuspend: false,
     });
 
     return () => {

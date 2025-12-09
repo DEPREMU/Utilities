@@ -55,7 +55,7 @@ interface UserProviderProps {
   children: React.ReactNode;
 }
 
-const UserContext = createContext<UserContextType | null>(null);
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [userData, setUserData] = useState<Omit<UserData, "password"> | null>(

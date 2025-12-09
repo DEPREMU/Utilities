@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -39,6 +40,7 @@ class MyForegroundService : Service() {
     private var title = "Servicio Activo"
     private var message = "Utilities está ejecutándose en segundo plano."
     private var wakeLock: PowerManager.WakeLock? = null
+    private var screenReceiver: RestartServiceReceiver? = null
     
     // Clipboard functionality
     private lateinit var clipboardManager: ClipboardManager
@@ -52,26 +54,6 @@ class MyForegroundService : Service() {
     private val serverURL = "{{serverURL}}"
     private var clipboardEnabled = false
 
-    private val task =
-        object : Runnable {
-            override fun run() {
-                counter++
-                if (counter > 1000) {
-                    counter = 0
-                }
-
-                val params: WritableMap =
-                    Arguments.createMap().apply {
-                        putString("message", "Update from Foreground Service")
-                        putInt("counter", counter)
-                    }
-
-                BackgroundServiceModule.sendEvent("onUpdateCounterForeground", params)
-
-                handler.postDelayed(this, 5000)
-            }
-        }
-    
     private val clipListener =
         ClipboardManager.OnPrimaryClipChangedListener {
             if (!clipboardEnabled) return@OnPrimaryClipChangedListener
@@ -126,7 +108,6 @@ class MyForegroundService : Service() {
 
         Log.d("MyForegroundService", "Setting notification with title: ${this.title} and message: ${this.message}")
         startForeground(NOTIFICATION_ID, notification)
-        handler.post(task)
     }
 
     override fun onCreate() {
@@ -139,7 +120,20 @@ class MyForegroundService : Service() {
 
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener(clipListener)
-        Log.d("MyForegroundService", "Service created")
+        
+        screenReceiver = RestartServiceReceiver()
+        val screenFilter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(screenReceiver, screenFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(screenReceiver, screenFilter)
+        }
+        
+        Log.d("MyForegroundService", "Service created with screen receiver registered")
     }
 
     override fun onStartCommand(
@@ -161,6 +155,21 @@ class MyForegroundService : Service() {
                 clipboardEnabled = true
                 Log.d("MyForegroundService", "Clipboard monitoring enabled")
             }
+        }
+        
+        val prefs = getSharedPreferences("ForegroundServicePrefs", Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            putBoolean("wasConfigured", true)
+            putString("title", title)
+            putString("message", message)
+            putBoolean("clipboardEnabled", clipboardEnabled)
+            if (clipboardEnabled) {
+                putString("userId", userId)
+                putString("deviceId", deviceId)
+                putString("userToken", userToken)
+                putString("lang", lang)
+            }
+            apply()
         }
         
         Log.d("MyForegroundService", "Service started with title: $title and message: $message")
@@ -191,9 +200,19 @@ class MyForegroundService : Service() {
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
-        handler.removeCallbacks(task)
         client.dispatcher.cancelAll()
         clipboardManager.removePrimaryClipChangedListener(clipListener)
+        
+        screenReceiver?.let {
+            try {
+                unregisterReceiver(it)
+                Log.d("MyForegroundService", "Screen receiver unregistered")
+            } catch (e: Exception) {
+                Log.e("MyForegroundService", "Error unregistering screen receiver: ${e.message}")
+            }
+        }
+        screenReceiver = null
+        
         Log.d("MyForegroundService", "Service destroyed, attempting to restart.")
 
         val restartServiceIntent = Intent(applicationContext, MyForegroundService::class.java).apply {

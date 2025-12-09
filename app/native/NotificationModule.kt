@@ -25,16 +25,6 @@ class NotificationModule(
         const val NAME = "NotificationModule"
         private var reactContextInstance: ReactApplicationContext? = null
 
-        fun sendEvent(
-            eventName: String,
-            params: WritableMap?,
-        ) {
-            reactContextInstance
-                ?.takeIf { it.hasActiveReactInstance() }
-                ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                ?.emit(eventName, params)
-        }
-
         private val reasonNotificationJSON = JSONObject()
     }
 

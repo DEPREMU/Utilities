@@ -13,10 +13,12 @@ import React, {
 } from "react";
 import {
   log,
+  isFalsy,
   logError,
   loadData,
   parseData,
   checkLanguage,
+  fetchToServer,
   stringifyData,
   URL_WEB_SOCKET,
   loadDataSecure,
@@ -25,6 +27,7 @@ import {
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
 } from "@utils";
+import { v4 } from "uuid";
 import { isEqual } from "lodash";
 import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
@@ -33,18 +36,21 @@ import { useLanguage } from "./LanguageContext";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
 import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
+import * as ExpoClipboard from "expo-clipboard";
 import { useNotifications } from "./NotificationsContext";
 
 type WebSockets = "clipboard" | "main";
 interface WebSocketContextType {
   socket: WebSocket | null;
-  sendMessage: <T extends WebSockets>(
-    ws: T,
-    message: T extends "clipboard"
-      ? ClipboardWebSocketMessage
-      : WebSocketMessage,
-  ) => void;
   setSocketURL: React.Dispatch<React.SetStateAction<string | null>>;
+  sendMessageRef: React.RefObject<
+    <T extends WebSockets>(
+      ws: T,
+      message: T extends "clipboard"
+        ? ClipboardWebSocketMessage
+        : WebSocketMessage,
+    ) => Promise<void>
+  >;
 }
 
 interface WebSocketProviderProps {
@@ -56,20 +62,25 @@ interface IsConnecting {
   clipboard: boolean;
 }
 
-const WebSocketContext = createContext<WebSocketContextType>({
-  socket: null,
-  sendMessage: () => {},
-  setSocketURL: () => {},
-});
+interface ShouldConnect {
+  main: boolean;
+  clipboard: boolean;
+}
+
+const WebSocketContext = createContext<WebSocketContextType | undefined>(
+  undefined,
+);
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
 }) => {
-  const { userData } = useUserContext();
+  const { statePhone } = useBackground();
   const { t, language } = useLanguage();
-  const { isBackground } = useBackground();
-  const { lastItemCopied, sendNotificationRef } = useNotifications();
-  const { openSnackBar, openModal, closeModal } = useModal();
+  const { openSnackBar } = useModal();
+  const { sendNotificationRef } = useNotifications();
+  const { userData, isLoggedIn } = useUserContext();
+  const { isBackground, initIntervalTimeouts, deleteIntervalTimeout } =
+    useBackground();
 
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [socketURL, setSocketURL] = useState<string | null>(null);
@@ -78,14 +89,18 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     null,
   );
 
-  const socketRef = useRef<WebSocket | null>(null);
   const isConnectingWs = useRef<IsConnecting>({
     main: false,
     clipboard: false,
   });
-  const shouldConnect = useRef<boolean>(true);
+  const socketRef = useRef<WebSocket | null>(null);
+  const lastItemCopied = useRef<string | null>(null);
   const clipboardSocketRef = useRef<WebSocket | null>(null);
   const connectionTimeoutId = useRef<NodeJS.Timeout | number | null>(null);
+  const shouldConnect = useRef<ShouldConnect>({
+    main: true,
+    clipboard: true,
+  });
   const clipboardReconnectTimeoutRef = useRef<NodeJS.Timeout | number | null>(
     null,
   );
@@ -119,8 +134,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     },
     [],
   );
+  const sendMessageRef = useRef(sendMessage);
+  useEffect(() => {
+    sendMessageRef.current = sendMessage;
+  }, [sendMessage]);
 
-  const createWebSocketConnection = useCallback(
+  const createMainWebSocket = useCallback(
     (url: string) => {
       if (!userData?.userId) return null;
       if (isConnectingWs.current.main || !shouldConnect.current) {
@@ -244,16 +263,19 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     [openSnackBar, t, userData?.name, userData?.userId, sendNotificationRef],
   );
 
-  useEffect(() => {
+  const createClipboardWebSocket = useCallback(async () => {
     if (!userData?.userId) return;
-    if (clipboardSocketRef.current?.readyState === WebSocket.OPEN) return;
-    if (clipboardSocketRef.current?.readyState === WebSocket.CONNECTING) return;
+    if (isConnectingWs.current.clipboard) return;
+    if (!shouldConnect.current.clipboard) return;
+    isConnectingWs.current.clipboard = true;
 
-    const retryConnection = (socket: WebSocket) => {
+    const retryConnection = async (socket: WebSocket) => {
       if (isConnectingWs.current.clipboard) return;
+      if (!shouldConnect.current.clipboard) return;
+
+      isConnectingWs.current.clipboard = true;
 
       clipboardSocketRef.current = null;
-      isConnectingWs.current.clipboard = true;
       try {
         socket.close();
       } catch {
@@ -264,76 +286,187 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         clearTimeoutPolyfill(clipboardReconnectTimeoutRef.current);
 
       clipboardReconnectTimeoutRef.current = setTimeoutPolyfill(
-        initWebSocket,
+        createClipboardWebSocket,
         3000,
       );
     };
 
-    const initWebSocket = async () => {
-      log("Initializing Clipboard WebSocket connection...");
-      const socket = new WebSocket(clipboardSocketURL || CLIPBOARD_WS_URL);
+    log("Initializing Clipboard WebSocket connection...");
+    const socket = new WebSocket(clipboardSocketURL || CLIPBOARD_WS_URL);
 
-      socket.onopen = async () => {
-        isConnectingWs.current.clipboard = false;
-        const [token, deviceId] = await Promise.all([
-          loadDataSecure("_userSessionTokenStorage"),
-          loadDataSecure("_deviceId"),
-        ]);
+    socket.onopen = async () => {
+      isConnectingWs.current.clipboard = false;
+      const [token, deviceId] = await Promise.all([
+        loadDataSecure("_userSessionTokenStorage"),
+        loadDataSecure("_deviceId"),
+      ]);
 
-        if (!token || !deviceId) {
-          logError(
-            "No session token or device ID found for Clipboard WebSocket.",
-          );
-          socket.close();
-          return;
-        }
-        clipboardSocketRef.current = socket;
-
-        const message: ClipboardWebSocketMessage = {
-          type: "init",
-          userId: userData.userId,
-          deviceId,
-        };
-        socket.send(JSON.stringify(message));
-        log(
-          "Clipboard WebSocket connection opened and init message sent.",
-          message,
+      if (!token || !deviceId) {
+        logError(
+          "No session token or device ID found for Clipboard WebSocket.",
         );
+        socket.close();
+        return;
+      }
+      clipboardSocketRef.current = socket;
+
+      const message: ClipboardWebSocketMessage = {
+        type: "init",
+        userId: userData.userId,
+        deviceId,
       };
-
-      socket.onerror = (error) => {
-        isConnectingWs.current.clipboard = false;
-        logError("Clipboard WebSocket error:", error);
-        retryConnection(socket);
-      };
-
-      socket.onclose = () => {
-        log("Clipboard WebSocket connection closed.");
-        retryConnection(socket);
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const parsedMessage: ClipboardWebSocketMessage | null = parseData(
-            event.data,
-          );
-
-          if (!parsedMessage) return;
-          if (parsedMessage.type !== "new-clipboard-item") return;
-          if (parsedMessage.content === lastItemCopied.current) return;
-
-          if (Platform.OS === "android")
-            BackgroundModule?.setClipboardText?.(parsedMessage.content);
-          else if (Platform.OS === "web")
-            windowModule?.setClipboard(parsedMessage.content);
-          lastItemCopied.current = parsedMessage.content;
-        } catch (error) {
-          logError("Error parsing Clipboard WebSocket message:", error);
-        }
-      };
+      socket.send(JSON.stringify(message));
+      log(
+        "Clipboard WebSocket connection opened and init message sent.",
+        message,
+      );
     };
 
-    initWebSocket();
+    socket.onerror = (error) => {
+      isConnectingWs.current.clipboard = false;
+      logError("Clipboard WebSocket error:", error);
+      retryConnection(socket);
+    };
+
+    socket.onclose = () => {
+      log("Clipboard WebSocket connection closed.");
+      retryConnection(socket);
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const parsedMessage: ClipboardWebSocketMessage | null = parseData(
+          event.data,
+        );
+
+        if (!parsedMessage) return;
+        if (parsedMessage.type !== "new-clipboard-item") return;
+        if (parsedMessage.content === lastItemCopied.current) return;
+
+        if (Platform.OS === "android")
+          BackgroundModule?.setClipboardText?.(parsedMessage.content);
+        else if (Platform.OS === "web")
+          windowModule?.setClipboard(parsedMessage.content);
+        lastItemCopied.current = parsedMessage.content;
+      } catch (error) {
+        logError("Error parsing Clipboard WebSocket message:", error);
+      }
+    };
+  }, [clipboardSocketURL, userData?.userId]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+
+    if (!userData?.userId || lastItemCopied.current) return;
+    if (!isLoggedIn) return;
+
+    const initLastItemCopied = async () => {
+      const [deviceId, sessionToken] = await Promise.all([
+        loadDataSecure("_deviceId"),
+        loadDataSecure("_userSessionTokenStorage"),
+      ]);
+      if (!deviceId || !sessionToken) return;
+      lastItemCopied.current = v4();
+
+      const res = await fetchToServer(
+        "/database/fetch",
+        {
+          lang: language,
+          limit: 1,
+          table: "ClipboardSync",
+          match: { userId: userData.userId, deleted: false },
+          orderBy: "createdAt",
+          deviceId,
+          pagination: true,
+          orderDirection: "DESC",
+        },
+        sessionToken,
+      );
+
+      const { data } = res.data || {};
+      if (isFalsy(data)) return;
+
+      if (data.length === 0 || !data[0]?.content) return;
+      lastItemCopied.current = data[0].content;
+    };
+
+    const id = setTimeoutPolyfill(initLastItemCopied, 1500);
+
+    return () => clearTimeoutPolyfill(id);
+  }, [userData?.userId, isLoggedIn, language]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    if (!isLoggedIn) return;
+
+    const handleIntervalClipboardWeb = async () => {
+      if (!userData?.userId) return;
+
+      try {
+        let content: string | null = null;
+
+        try {
+          content = windowModule?.readClipboard();
+        } catch {
+          // Ignore
+        }
+        try {
+          if (!content)
+            content = await ExpoClipboard.getStringAsync({
+              preferredFormat: ExpoClipboard.StringFormat.PLAIN_TEXT,
+            });
+        } catch {
+          return;
+        }
+        if (!content || lastItemCopied.current === content) return;
+
+        lastItemCopied.current = content;
+
+        sendMessageRef.current("clipboard", {
+          type: "add-new-item",
+          content,
+        });
+      } catch (error) {
+        logError("Error reading clipboard content", error);
+      }
+    };
+
+    initIntervalTimeouts("clipboardWeb", {
+      fn: handleIntervalClipboardWeb,
+      type: "interval",
+      interval: 500,
+      workWithInternet: true,
+      shouldRestartAuto: true,
+      shouldStopWhenSuspend: false,
+    });
+
+    return () => deleteIntervalTimeout("clipboardWeb");
+  }, [
+    userData?.userId,
+    isLoggedIn,
+    initIntervalTimeouts,
+    deleteIntervalTimeout,
+  ]);
+
+  useEffect(() => {
+    if (statePhone !== "suspended") {
+      shouldConnect.current.clipboard = true;
+      createClipboardWebSocket();
+      return;
+    }
+
+    shouldConnect.current.clipboard = false;
+    isConnectingWs.current.clipboard = false;
+
+    if (clipboardReconnectTimeoutRef.current) {
+      clearTimeoutPolyfill(clipboardReconnectTimeoutRef.current);
+      clipboardReconnectTimeoutRef.current = null;
+    }
+
+    if (clipboardSocketRef.current) {
+      clipboardSocketRef.current.close?.();
+      clipboardSocketRef.current = null;
+    }
 
     return () => {
       if (!clipboardReconnectTimeoutRef.current) return;
@@ -341,14 +474,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       clearTimeoutPolyfill(clipboardReconnectTimeoutRef.current);
       clipboardReconnectTimeoutRef.current = null;
     };
-  }, [
-    t,
-    openModal,
-    closeModal,
-    lastItemCopied,
-    userData?.userId,
-    clipboardSocketURL,
-  ]);
+  }, [t, createClipboardWebSocket, statePhone]);
 
   useEffect(() => {
     loadData("@webSocketURL").then((data) => setSocketURL(data || null));
@@ -368,14 +494,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, [socket]);
 
   useEffect(() => {
-    if (!shouldConnect.current) return;
+    if (!shouldConnect.current.main) return;
 
     if (
       !socketRef.current ||
       socketRef.current.readyState === WebSocket.CLOSED
     ) {
       connectionTimeoutId.current = setTimeoutPolyfill(() => {
-        createWebSocketConnection(socketURL || URL_WEB_SOCKET);
+        createMainWebSocket(socketURL || URL_WEB_SOCKET);
       }, 1500);
     }
 
@@ -385,33 +511,33 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       clearTimeoutPolyfill(connectionTimeoutId.current);
       connectionTimeoutId.current = null;
     };
-  }, [socketURL, createWebSocketConnection]);
+  }, [socketURL, createMainWebSocket]);
 
   useEffect(() => {
     if (!isConnected || socketRef.current?.readyState !== WebSocket.OPEN)
       return;
 
-    sendMessage("main", {
+    sendMessageRef.current("main", {
       type: "language-change",
       language,
     });
-  }, [language, sendMessage, isConnected]);
+  }, [language, isConnected]);
 
   useEffect(() => {
     if (!isBackground) {
       log("App became active");
-      shouldConnect.current = true;
+      shouldConnect.current.main = true;
 
       if (
         !socketRef.current ||
         socketRef.current.readyState !== WebSocket.OPEN
       ) {
-        createWebSocketConnection(socketURL || URL_WEB_SOCKET);
+        createMainWebSocket(socketURL || URL_WEB_SOCKET);
       }
       return;
     }
 
-    shouldConnect.current = false;
+    shouldConnect.current.main = false;
 
     if (socketRef.current) {
       socketRef.current.close();
@@ -426,10 +552,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     setIsConnected(false);
     isConnectingWs.current.main = false;
-  }, [socketURL, createWebSocketConnection, isBackground]);
+  }, [socketURL, isBackground, createMainWebSocket]);
 
   return (
-    <WebSocketContext.Provider value={{ socket, sendMessage, setSocketURL }}>
+    <WebSocketContext.Provider value={{ socket, setSocketURL, sendMessageRef }}>
       {children}
     </WebSocketContext.Provider>
   );

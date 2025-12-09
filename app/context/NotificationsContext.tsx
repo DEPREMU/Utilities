@@ -15,10 +15,8 @@ import {
   NotificationAction,
 } from "@types";
 import {
-  isFalsy,
   logError,
   saveData,
-  fetchToServer,
   stringifyData,
   loadDataSecure,
   getNotifications,
@@ -26,16 +24,13 @@ import {
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
 } from "@utils";
-import { v4 } from "uuid";
 import { useModal } from "./ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
 import * as Location from "expo-location";
 import { useLanguage } from "./LanguageContext";
-import { useWebSocket } from "./WebSocketContext";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
 import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
-import * as ExpoClipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
 import NotificationModule from "@/utils/modules/NotificationModule";
 import { navigateReplace } from "@/navigation/navigationRef";
@@ -49,7 +44,6 @@ type SendNotification = (
 
 interface NotificationsContextType {
   sendNotificationRef: React.RefObject<SendNotification>;
-  lastItemCopied: React.RefObject<string | null>;
   removeNotification: (
     id: number,
     reasonNotification: ReasonNotification,
@@ -73,7 +67,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 }) => {
   const { deviceInfo } = useDeviceInformation();
   const { t, language } = useLanguage();
-  const { sendMessage } = useWebSocket();
   const { openSnackBar } = useModal();
   const { sessionToken, userData } = useUserContext();
   const { hasInternet, initIntervalTimeouts, deleteIntervalTimeout } =
@@ -83,7 +76,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   const [notifications, setNotifications] = useState<NotificationsType | null>(
     null,
   );
-  const lastItemCopied = useRef<string | null>(null);
   const prevHasInternet = useRef<boolean | null>(null);
 
   const sendNotification = useCallback(
@@ -189,6 +181,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   );
 
   useEffect(() => {
+    getNotifications().then((data) => setNotifications(data ?? null));
+
     if (Platform.OS !== "android") return;
 
     const subscription = DeviceEventEmitter.addListener(
@@ -260,38 +254,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     return () => subscription.remove();
   }, []);
-
-  useEffect(() => {
-    if (!userData?.userId || lastItemCopied.current) return;
-
-    getNotifications().then((data) => setNotifications(data ?? null));
-
-    if (!sessionToken) return;
-    if (Platform.OS !== "web") return;
-
-    loadDataSecure("_deviceId").then(async (deviceId) => {
-      const res = await fetchToServer(
-        "/database/fetch",
-        {
-          lang: language,
-          limit: 1,
-          table: "ClipboardSync",
-          match: { userId: userData.userId, deleted: false },
-          orderBy: "createdAt",
-          deviceId: deviceId || "local-device",
-          pagination: true,
-          orderDirection: "DESC",
-        },
-        sessionToken,
-      );
-      const { data } = res.data || {};
-      lastItemCopied.current = v4();
-      if (isFalsy(data)) return;
-
-      if (data.length === 0) return;
-      lastItemCopied.current = data[0]?.content;
-    });
-  }, [userData?.userId, sessionToken, language]);
 
   useEffect(() => {
     if (!notifications) return;
@@ -411,60 +373,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, [hasInternet, sendNotification, t]);
 
   useEffect(() => {
-    if (Platform.OS !== "web") return;
-    if (!sessionToken) return;
-
-    const handleIntervalClipboardWeb = async () => {
-      if (!userData?.userId) return;
-
-      try {
-        let content: string | null = null;
-
-        try {
-          content = windowModule?.readClipboard();
-        } catch {
-          // Ignore
-        }
-        try {
-          if (!content)
-            content = await ExpoClipboard.getStringAsync({
-              preferredFormat: ExpoClipboard.StringFormat.PLAIN_TEXT,
-            });
-        } catch {
-          return;
-        }
-        if (!content || lastItemCopied.current === content) return;
-
-        lastItemCopied.current = content;
-
-        sendMessage("clipboard", {
-          type: "add-new-item",
-          content,
-        });
-      } catch (error) {
-        logError("Error reading clipboard content", error);
-      }
-    };
-
-    initIntervalTimeouts("clipboardWeb", {
-      fn: handleIntervalClipboardWeb,
-      interval: 500,
-      type: "interval",
-      workWithInternet: true,
-    });
-
-    return () => {
-      deleteIntervalTimeout("clipboardWeb");
-    };
-  }, [
-    userData?.userId,
-    sendMessage,
-    sessionToken,
-    initIntervalTimeouts,
-    deleteIntervalTimeout,
-  ]);
-
-  useEffect(() => {
     if (Platform.OS === "web") return;
 
     const verifyLocation = async () => {
@@ -499,9 +407,11 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     initIntervalTimeouts("locationEnabled", {
       fn: verifyLocation,
-      interval: 60000,
       type: "interval",
+      interval: 60000,
       workWithInternet: false,
+      shouldRestartAuto: true,
+      shouldStopWhenSuspend: false,
     });
 
     verifyLocation();
@@ -531,7 +441,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   const value: NotificationsContextType = {
     notifications,
-    lastItemCopied,
     setNotifications,
     removeNotification,
     sendNotificationRef,

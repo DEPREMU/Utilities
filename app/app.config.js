@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.3.4";
+const version = "1.3.6";
 
 export default {
   expo: {

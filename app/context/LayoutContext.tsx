@@ -73,39 +73,7 @@ interface LayoutContextProps {
  * @context
  * @returns {LayoutContextProps} The context value containing layout information.
  */
-const LayoutContext = createContext<LayoutContextProps>({
-  isTablet: false,
-  isLargeTablet: false,
-  isPlatformWeb: false,
-  isPortrait: false,
-  isPhone: false,
-  isWeb: false,
-  width: 0,
-  height: 0,
-  insets: {
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  getResponsiveValue: <T,>(
-    phoneValue: T,
-    _tabletValue: T,
-    _largeTabletValue: T,
-    _webValue?: T,
-  ): T => {
-    return phoneValue;
-  },
-  getStylesSafeAreaContainer: () => {
-    return {
-      paddingTop: 0,
-      paddingBottom: 0,
-      paddingLeft: 0,
-      paddingRight: 0,
-    };
-  },
-  getCommonStyles: () => ({}),
-});
+const LayoutContext = createContext<LayoutContextProps | undefined>(undefined);
 
 const isPlatformWeb = Platform.OS === "web";
 

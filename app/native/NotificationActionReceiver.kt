@@ -99,6 +99,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 putMap("data", dataMap)
             }
 
-        NotificationModule.sendEvent("onNotificationAction", params)
+        BackgroundServiceModule.sendEvent("onNotificationAction", params)
     }
 }

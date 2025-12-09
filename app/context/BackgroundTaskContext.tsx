@@ -87,9 +87,9 @@ const MAX_PENDING_TASKS = 100;
  * @returns {BackgroundTaskContextType} The context value containing `runTask`, `addTaskQueue`,
  * `setBgColorStatusBar`, and `setTranslucentStatusBar` methods.
  */
-const BackgroundTaskContext = createContext<BackgroundTaskContextType | null>(
-  null,
-);
+const BackgroundTaskContext = createContext<
+  BackgroundTaskContextType | undefined
+>(undefined);
 
 /**
  * BackgroundTaskProvider component that manages background task execution and provides context for the application.
@@ -356,6 +356,8 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       interval: 8 * 60 * 60 * 1000,
       type: "interval",
       workWithInternet: true,
+      shouldRestartAuto: true,
+      shouldStopWhenSuspend: false,
     });
 
     const id = setTimeoutPolyfill(handleRefreshSessionWithInternet, 2000);
