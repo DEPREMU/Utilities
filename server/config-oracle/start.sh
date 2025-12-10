@@ -16,4 +16,5 @@ until curl -sSf --connect-timeout 5 http://www.google.com/generate_204 >/dev/nul
 done
 git pull
 cd server
+npm i
 npm run start
