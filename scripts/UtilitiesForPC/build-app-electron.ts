@@ -21,32 +21,28 @@
 import {
   ask,
   ARGS,
-  APP_PATH,
   UTILITIES_PATH,
   UTILITIES_FOR_PC_PATH,
+  PACKAGE_JSON_UtilitiesForPC,
 } from "../config.ts";
 import fs from "fs";
 import os from "os";
 import path from "path";
 import { t } from "./translations.ts";
 import { execSync } from "child_process";
-import type PACKAGE_JSON from "../../UtilitiesForPC/package.json";
 
 type BuildPlatform = "linux" | "windows" | "both";
 
-const packageJson: typeof PACKAGE_JSON = JSON.parse(
-  fs.readFileSync(path.resolve(UTILITIES_FOR_PC_PATH, "package.json"), "utf-8")
-) as typeof PACKAGE_JSON;
 const isLinux = os.platform() === "linux";
 const isWindows = os.platform() === "win32";
 
 const dataBuild = {
   distElectron: path.join(
     UTILITIES_FOR_PC_PATH,
-    packageJson.build.directories.output
+    PACKAGE_JSON_UtilitiesForPC.build.directories.output
   ),
-  appName: packageJson.name,
-  productName: packageJson.build.productName,
+  appName: PACKAGE_JSON_UtilitiesForPC.name,
+  productName: PACKAGE_JSON_UtilitiesForPC.build.productName,
 } as const;
 
 /**
@@ -385,114 +381,16 @@ const buildApp = async () => {
   );
 };
 
-const exportWebApp = () => {
-  if (!fs.existsSync(APP_PATH))
-    throw new Error(t("appPathDoesNotExist") + APP_PATH);
-
-  console.log(t("installingDependencies"));
-  execSync("npm install", { cwd: APP_PATH });
-  console.log(t("dependenciesInstalled"));
-
-  console.log(t("buildingWebApp"));
-  const data = execSync("npm run build-web", {
-    cwd: UTILITIES_PATH,
-  });
-  if (!data.toString().includes("Exported: dist"))
-    throw new Error(t("failedToBuildWebApp") + data.toString());
-  console.log(t("webAppBuiltSuccessfully"));
-
-  console.log(t("cleaningUpOldBuildDirectories"));
-  ["dist", dataBuild.distElectron, "release", "build"].forEach((dir) => {
-    try {
-      const fullPath = path.resolve(UTILITIES_FOR_PC_PATH, dir);
-      if (fs.existsSync(fullPath))
-        fs.rmSync(fullPath, { recursive: true, force: true });
-      else if (fs.existsSync(dir))
-        fs.rmSync(dir, { recursive: true, force: true });
-    } catch {}
-  });
-  console.log(t("oldBuildDirectoriesCleaned"));
-
-  console.log(t("preparingFilesForElectronApp"));
-  const distPath = path.resolve(APP_PATH, "dist");
-  const distPathToCopy = path.resolve(UTILITIES_FOR_PC_PATH, "dist");
-  fs.cpSync(distPath, distPathToCopy, { recursive: true });
-  fs.rmSync(distPath, { recursive: true });
-
-  console.log(t("copyingAssets"));
-  ["ico", "png"].forEach((ext) => {
-    fs.copyFileSync(
-      path.resolve(UTILITIES_FOR_PC_PATH, "assets", `tray-icon.${ext}`),
-      path.resolve(UTILITIES_FOR_PC_PATH, "dist", "assets", `tray-icon.${ext}`)
-    );
-  });
-  console.log(t("assetsCopied"));
-
-  console.log(t("inliningJSAndFontsIntoHTML"));
-  const jsPath = path.resolve(
-    UTILITIES_FOR_PC_PATH,
-    "dist",
-    "_expo",
-    "static",
-    "js",
-    "web"
-  );
-  if (!fs.existsSync(jsPath))
-    throw new Error(t("failedToFindJSBundle") + jsPath);
-
-  const files = fs.readdirSync(jsPath);
-  const mainFile = files.find((file) => file.endsWith(".js"));
-
-  if (!mainFile) throw new Error(t("failedToFindMainJSBundle") + jsPath);
-
-  const mainFilePath = path.resolve(jsPath, mainFile);
-  const mainFileContent = fs.readFileSync(mainFilePath, "utf-8");
-
-  let html = fs.readFileSync(
-    path.resolve(UTILITIES_FOR_PC_PATH, "dist", "index.html"),
-    "utf-8"
-  );
-  const fontsPath = path.resolve(
-    UTILITIES_FOR_PC_PATH,
-    "dist",
-    "assets",
-    "fonts"
-  );
-
-  if (!fs.existsSync(fontsPath))
-    fs.mkdirSync(fontsPath, {
-      recursive: true,
+const run = async () => {
+  try {
+    execSync("npm run build-web-app-electron", {
+      cwd: UTILITIES_PATH,
+      stdio: "inherit",
     });
+    console.log(t("webAppBuiltSuccessfully"));
 
-  const MaterialCommunityIcons = path.resolve(
-    APP_PATH,
-    "node_modules",
-    "react-native-vector-icons",
-    "Fonts",
-    "MaterialCommunityIcons.ttf"
-  );
-  if (fs.existsSync(MaterialCommunityIcons))
-    fs.copyFileSync(
-      MaterialCommunityIcons,
-      path.resolve(fontsPath, "MaterialCommunityIcons.ttf")
-    );
-
-  html = html.replace(/<script[^*]+<\/script>/g, () => {
-    return `<script defer>\n${mainFileContent}\n</script>`;
-  });
-  html = html.replace(/@font-face[^`]+/g, (match) => {
-    return match.replace(
-      /url\([^\)]+\)/g,
-      'url("./assets/fonts/MaterialCommunityIcons.ttf") format("truetype")'
-    );
-  });
-  fs.writeFileSync(
-    path.resolve(UTILITIES_FOR_PC_PATH, "dist", "index.html"),
-    html
-  );
-  console.log(t("jsAndFontsInlined"));
-
-  if (!ARGS["export-web"]) buildApp();
+    await buildApp();
+  } catch (error) {}
 };
 
-exportWebApp();
+run();

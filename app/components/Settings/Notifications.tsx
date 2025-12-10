@@ -50,7 +50,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 }) => {
   const { styles } = useStylesNotifications();
   const { t, language } = useLanguage();
-  const { sendMessage } = useWebSocket();
+  const { sendMessageRef } = useWebSocket();
   const { addTaskQueue } = useBackgroundTask();
   const { userData, sessionToken } = useUserContext();
   const [notifications, setNotifications] = useState<Notifications | null>(
@@ -282,7 +282,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         return;
 
       setNotifications(updatedNotifications);
-      sendMessage("main", {
+      sendMessageRef.current("main", {
         type: "notifications",
         data: updatedNotifications,
         userId: userData.userId,
@@ -293,7 +293,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
     const id = setTimeoutPolyfill(saveIntervals, 1000);
 
     return () => clearTimeoutPolyfill(id);
-  }, [minutes, notifications, sendMessage, userData]);
+  }, [minutes, notifications, sendMessageRef, userData]);
 
   return (
     <FlatList

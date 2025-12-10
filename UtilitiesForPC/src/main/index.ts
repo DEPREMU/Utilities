@@ -233,6 +233,7 @@ const createWindow = async (): Promise<void> => {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
+    if (!app.isPackaged) mainWindow.webContents.openDevTools();
   });
 
   dataApp.setValue("mainWindow", mainWindow);

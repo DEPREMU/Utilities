@@ -7,14 +7,15 @@ import {
   loadDataSecure,
   signInWithEmail,
   signUpWithEmail,
+  saveStorageData,
   signOut as authSignOut,
   refreshSession as authRefreshSession,
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
-import { UserData } from "@types";
 import { Platform } from "react-native";
 import windowModule from "@/utils/modules/WindowModule";
 import { navigateReplace } from "@navigation/navigationRef";
+import { ResponseAuth, UserData } from "@types";
 import React, { useState, useCallback, createContext, useEffect } from "react";
 
 interface UserContextType {
@@ -39,6 +40,7 @@ interface UserContextType {
   logoutRef: React.RefObject<
     (callback?: (success: boolean) => void) => Promise<void>
   >;
+  loginWithQRRef: React.RefObject<(response: ResponseAuth) => Promise<void>>;
   refreshTokenRef: React.RefObject<() => Promise<boolean>>;
   forgotPasswordRef: React.RefObject<
     (
@@ -106,6 +108,24 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         setLoggingIn(false);
       }
       return null as T;
+    },
+    [],
+  );
+
+  const loginWithQR = useCallback(
+    async (response: ResponseAuth): Promise<void> => {
+      if (!response.success || !response.user || !response.token) {
+        logError("Invalid QR login response");
+        return;
+      }
+      log("Logging in user with QR successfully:", response.user.email);
+
+      setUserData(response.user);
+      setIsLoggedIn(true);
+      setSessionToken(response.token);
+      await saveStorageData(response.storageValues);
+      log("User logged in with QR successfully:", response.user.email);
+      navigateReplace("Home");
     },
     [],
   );
@@ -257,15 +277,17 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const loginRef = React.useRef(login);
   const signUpRef = React.useRef(signUp);
   const logoutRef = React.useRef(logout);
+  const loginWithQRRef = React.useRef(loginWithQR);
   const refreshTokenRef = React.useRef(refreshToken);
   const forgotPasswordRef = React.useRef(forgotPassword);
   useEffect(() => {
     loginRef.current = login;
     signUpRef.current = signUp;
     logoutRef.current = logout;
+    loginWithQRRef.current = loginWithQR;
     refreshTokenRef.current = refreshToken;
     forgotPasswordRef.current = forgotPassword;
-  }, [login, signUp, logout, refreshToken, forgotPassword]);
+  }, [login, signUp, logout, refreshToken, forgotPassword, loginWithQR]);
 
   const contextValue: UserContextType = {
     loginRef,
@@ -277,6 +299,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     sessionToken,
     setLoggingIn,
     setIsLoggedIn,
+    loginWithQRRef,
     refreshTokenRef,
     forgotPasswordRef,
   };

@@ -133,6 +133,42 @@ const useStylesAuthScreens = () => {
     marginRight10: {
       marginRight: 10,
     },
+    typeLoginContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "100%",
+      marginTop: 10,
+      paddingHorizontal: 5,
+    },
+    typeLoginText: {
+      color: text,
+      fontSize: 16,
+      fontWeight: "500",
+    },
+    textQR: {
+      color: text,
+      fontSize: 16,
+      textAlign: "center",
+      marginTop: 20,
+    },
+    containerQR: {
+      ...getCommonStyles("mainContainer", { fallbackValues: [40, 20] }),
+      backgroundColor: background,
+      alignItems: "center",
+      justifyContent: "center",
+      flex: 1,
+    },
+    qrCodeContainer: {
+      marginTop: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    qrCodeImage: {
+      width: 250,
+      height: 250,
+      resizeMode: "contain",
+    },
   });
 
   return { styles, height, width, ...colors };

@@ -63,16 +63,20 @@ const run = () => {
       beforeCommit();
       break;
     case "build-web": {
+      console.log("Building web app...", env);
       const envWeb = {
         ...env,
         PLATFORM: "web",
         NODE_ENV: env.BUILD_PROFILE || "production",
       };
-      execSync("npx expo export -c -p web", {
-        cwd: APP_PATH,
-        stdio: "inherit",
-        env: envWeb,
-      });
+      execSync(
+        `npx expo export -c -p web ${envWeb.NODE_ENV === "production" ? "" : "--dev --no-minify"}`,
+        {
+          cwd: APP_PATH,
+          stdio: "inherit",
+          env: envWeb,
+        }
+      );
       break;
     }
     default:

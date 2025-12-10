@@ -306,6 +306,21 @@ const en: typeLanguages = {
     "Updates are automatically downloaded in the background. If you are in windows, you may see a prompt to install when opening the app.",
   openUpdatesWebPage: "Open Updates Web Page",
   ourUpdatesWebPage: "Our Updates Web Page",
+  generatingQRCode: "Generating QR Code...",
+  loggingInWithQRCode: "Logging in with QR Code...",
+  loginWithEmail: "Login with Email",
+  loginWithQR: "Login with QR Code",
+  needsCameraPermission: "This feature requires camera permission.",
+  noCameraPermission: "No Camera Permission",
+  qrLoginSuccessTitle: "QR Login Successful",
+  qrLoginSuccessMessage: "Logged in successfully with QR Code. Welcome!",
+  requestingCameraPermission: "Requesting camera permission...",
+  scanQRCode: "Scan QR Code",
+  scanQRCodeInstructions:
+    "Please use your mobile device to scan the QR code displayed on the screen to log in to your account securely and conveniently.",
+  processingQRCode: "Processing QR Code...",
+  qrLoginErrorMessage: "An error occurred during QR login, please try again.",
+  qrLoginErrorTitle: "QR Login Error",
 } as const;
 
 export default en;

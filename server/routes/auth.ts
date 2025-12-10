@@ -1,4 +1,10 @@
 import {
+  getJWTToken,
+  decodeJWTToken,
+  getDateWithDaysAhead,
+  getJWTTokenAndUpload,
+} from "functions/auth.ts";
+import {
   deleteInTable,
   updateInTable,
   fetchFromTable,
@@ -19,36 +25,11 @@ import {
   RequestRefreshSession,
   ResponseRefreshSession,
 } from "@types";
-import jwt from "jsonwebtoken";
-import env from "../env.ts";
 import chalk from "chalk";
 import { t } from "../translations/index.ts";
 import bcrypt from "bcryptjs";
 import { sendResponse } from "./../variables.ts";
 import { NextFunction, Request, Response } from "express";
-
-declare global {
-  namespace Express {
-    interface Request {
-      user: { tokenDecoded: TokenJWT; token: string };
-    }
-  }
-}
-
-type TokenJWT = {
-  userId: string;
-  email: string;
-  deviceId: string;
-  notificationToken: string;
-};
-
-const expiresIn = "17d";
-
-const getDateWithDaysAhead = (days: number): Date => {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
-};
 
 /**
  * Inserts a push token into the database for a specific user.
@@ -80,27 +61,6 @@ const insertTokenToDB = async (
   } catch (error) {
     console.error(chalk.red("Error getting push token:"), error);
     return error instanceof Error ? error.message : String(error);
-  }
-};
-
-const getJWTToken = (storedValues: TokenJWT): string => {
-  try {
-    return jwt.sign(storedValues, env.JWT_SECRET, {
-      expiresIn,
-    });
-  } catch (error) {
-    console.error(chalk.red("Error generating JWT token:"), error);
-    return "";
-  }
-};
-
-export const decodeJWTToken = (token: string): TokenJWT | null => {
-  try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as TokenJWT;
-    return decoded;
-  } catch (error) {
-    console.error(chalk.red("Error decoding JWT token:"), error);
-    return null;
   }
 };
 
@@ -340,25 +300,11 @@ export const handleLogin = async (
         "/auth/login",
       );
 
-    const token = getJWTToken({
+    const dataInsert = await getJWTTokenAndUpload({
+      deviceId,
       email: user.email,
-      deviceId,
       userId: user.userId,
-      notificationToken: notificationToken || "Web",
-    });
-    await Promise.all([
-      deleteInTable(user.userId, "UserSessions", {
-        deviceId,
-        userId: user.userId,
-      }),
-      deleteInTable(user.userId, "PushTokens", { token: notificationToken }),
-    ]);
-
-    const dataInsert = await insertIntoTable("UserSessions", {
-      userId: user.userId,
-      token,
-      deviceId,
-      updatedAt: new Date().toISOString(),
+      notificationToken,
     });
 
     if (dataInsert.error || !dataInsert.data) {
@@ -384,7 +330,7 @@ export const handleLogin = async (
     const storageValues = await getStorageData(
       user.userId,
       !!rememberMe,
-      token,
+      dataInsert.data[0].token,
     );
 
     if (!storageValues) {

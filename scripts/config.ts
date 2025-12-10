@@ -2,8 +2,11 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import readline from "readline";
+import { ARGS } from "./arguments.ts";
 import APP_CONFIG from "../app/app.config.js";
 import type * as Types from "@types";
+import type PACKAGE_JSON_APP from "../UtilitiesForPC/package.json";
+import type PACKAGE_JSON_UTILITIES_FOR_PC from "../UtilitiesForPC/package.json";
 
 export const UTILITIES_PATH = path.resolve();
 if (!UTILITIES_PATH.endsWith("Utilities"))
@@ -23,24 +26,27 @@ export const gitignore = fs.readFileSync(
   "utf-8"
 );
 
+export const PACKAGE_JSON_UtilitiesForPC = JSON.parse(
+  fs.readFileSync(path.resolve(UTILITIES_FOR_PC_PATH, "package.json"), "utf-8")
+) as typeof PACKAGE_JSON_UTILITIES_FOR_PC;
+
+export const PACKAGE_JSON_App = JSON.parse(
+  fs.readFileSync(path.resolve(APP_PATH, "package.json"), "utf-8")
+) as typeof PACKAGE_JSON_APP;
+
 export const versionExpo = APP_CONFIG.expo.version;
 if (!versionExpo) throw new Error("Version not found in app.config.js");
 
-export const versionElectron = JSON.parse(
-  fs.readFileSync(
-    path.join(process.cwd(), "UtilitiesForPC", "package.json"),
-    "utf-8"
-  )
-)?.version as string;
+export const versionElectron = PACKAGE_JSON_UtilitiesForPC.version as string;
 if (!versionElectron)
   throw new Error("Version not found in UtilitiesForPC/package.json");
 
 dotenv.config({ path: path.resolve(UTILITIES_PATH, ".env") });
 export const env = {
   ...process.env,
-  PLATFORM: "android",
+  PLATFORM: ARGS.platform ?? "android",
   EAS_BUILD: false,
-  BUILD_PROFILE: "production",
+  BUILD_PROFILE: ARGS.profile ?? "production",
 } as unknown as Types.Env & NodeJS.ProcessEnv;
 
 export const URL_UPDATES = env.API_URL?.replace("api", "updates") as string;

@@ -5,6 +5,8 @@ import type {
   ReasonNotification,
   Notifications as typeNotifications,
 } from "./typesNotifications";
+import { WebSocket } from "ws";
+import { ResponseAuth } from "./API";
 import type { LanguagesSupported } from "./typesTranslations";
 
 export type WebSocketMessage =
@@ -56,4 +58,45 @@ export type ClipboardWebSocketMessage =
       content: string;
     };
 
-export type WebSocketPathname = "/ws" | "/clipboard";
+export type WebSocketPathname = "/ws" | "/clipboard" | "/ws-login-qr";
+
+type UsersWebSocketQR = {
+  [deviceId: string]: {
+    ws: WebSocket;
+    qrCode: {
+      dataURL: string;
+      timeoutId: NodeJS.Timeout | number | null;
+    };
+  };
+};
+
+type LoginWithQRMobile = {
+  type: "scanned";
+  token: string;
+  deviceId: string;
+  rememberMe: boolean;
+};
+
+export type MessageWebSocketQRLogin<T extends "sentByApp" | "sentByServer"> =
+  T extends "sentByApp"
+    ?
+        | LoginWithQRMobile
+        | {
+            type: "init-web" | "init-mobile";
+            deviceId: string;
+            rememberMe?: boolean;
+          }
+    :
+        | {
+            type: "status";
+            status: "error" | "timeout" | "waiting" | "authenticated-web";
+          }
+        | {
+            type: "status";
+            status: "authenticated";
+            response: ResponseAuth;
+          }
+        | {
+            type: "qr-code";
+            dataURL: string;
+          };

@@ -33,6 +33,7 @@ import type {
   ResponseDatabaseDelete,
   ResponseRefreshSession,
   ResponseGetIsLiveStreamer,
+  ResponseGetQRForLogin,
 } from "./Response";
 
 import {
@@ -51,6 +52,7 @@ import {
   RequestDatabaseDelete,
   RequestRefreshSession,
   RequestGetIsLiveStreamer,
+  RequestGetQRForLogin,
 } from "./Request";
 import type { Handler } from "express";
 import { Notifications } from "../typesNotifications";
@@ -246,8 +248,8 @@ export type FetchAPI<T extends TablesKeys = TablesKeys> =
   | DecryptFetch
   | EncryptFetch
   | WebPageFetch
-  | TranslateFetch
   | DoQueryFetch
+  | TranslateFetch
   | AuthLoginFetch
   | AuthSignUpFetch
   | AuthSignOutFetch

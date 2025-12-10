@@ -43,3 +43,8 @@ export const CLIPBOARD_WS_URL = !isDev
   : Platform.OS === "web"
     ? "ws://localhost:3000/clipboard"
     : `ws://${getLocalIP()}/clipboard`;
+export const QR_LOGIN_WS_URL = !isDev
+  ? `${fallbackURL_WEB_SOCKET.replace("/ws", "/ws-login-qr")}`
+  : Platform.OS === "web"
+    ? "ws://localhost:3000/ws-login-qr"
+    : `ws://${getLocalIP()}/ws-login-qr`;

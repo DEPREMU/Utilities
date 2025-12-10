@@ -13,6 +13,7 @@ import { handleInitDB } from "./database/postgres.ts";
 import { WebSocketPathname } from "@types";
 import { validateServerEnv } from "./env.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
+import { initWebSocketLoginQRCode } from "websocket/WebSocketQRLogin.ts";
 import { initWebSocket, initWebSocketClipboard } from "./websocket/index.ts";
 
 const app = express();
@@ -33,6 +34,7 @@ app.use("/updates", routerUpdates);
 const server = http.createServer(app);
 const generalWss = initWebSocket();
 const clipboardWss = initWebSocketClipboard();
+const webSocketLoginQRCode = initWebSocketLoginQRCode();
 
 server.on("upgrade", (request, socket, head) => {
   if (!request.url) {
@@ -44,15 +46,36 @@ server.on("upgrade", (request, socket, head) => {
   const pathname = new URL(request.url, `http://${request.headers.host}`)
     .pathname as WebSocketPathname;
 
-  if (pathname === "/clipboard") {
-    clipboardWss.handleUpgrade(request, socket, head, (ws) => {
-      clipboardWss.emit("connection", ws, request);
-    });
-  } else if (pathname === "/ws") {
-    generalWss.handleUpgrade(request, socket, head, (ws) => {
-      generalWss.emit("connection", ws, request);
-    });
-  } else socket.destroy();
+  let wsCalled: typeof clipboardWss | null = null;
+
+  switch (pathname) {
+    case "/clipboard":
+      wsCalled = clipboardWss;
+      break;
+    case "/ws":
+      wsCalled = generalWss;
+      break;
+    case "/ws-login-qr":
+      wsCalled = webSocketLoginQRCode;
+      break;
+    default:
+      console.error("Invalid WebSocket pathname:", pathname);
+      socket.destroy();
+      return;
+  }
+
+  if (!wsCalled) {
+    console.error("WebSocket server not found for pathname:", pathname);
+    socket.destroy();
+    return;
+  }
+
+  wsCalled.handleUpgrade(request, socket, head, (ws) => {
+    console.log(
+      chalk.blue("WebSocket connection upgraded for pathname:", pathname),
+    );
+    wsCalled.emit("connection", ws, request);
+  });
 });
 
 handleInitDB().then(() => {

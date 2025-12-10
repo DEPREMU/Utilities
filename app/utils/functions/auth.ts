@@ -44,7 +44,7 @@ const getDevicePushToken = async (): Promise<string> => {
   return token;
 };
 
-const saveStorageData = async (
+export const saveStorageData = async (
   storageValues?: ExpectedStorageTypes<"BOTH">,
 ): Promise<boolean> => {
   if (!storageValues) return false;

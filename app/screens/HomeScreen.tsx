@@ -84,6 +84,16 @@ const HomeScreen: React.FC = () => {
 
   const [version, setVersion] = useState<string>("");
 
+  const handleLogout = useCallback(() => {
+    logoutRef.current();
+  }, [logoutRef]);
+
+  const handleLoginInWeb = useCallback(() => {
+    if (Platform.OS === "web") return;
+
+    navigateReplace("ScanQRCode");
+  }, []);
+
   useEffect(() => {
     const fetchVersion = async () => {
       if (Platform.OS !== "web") return;
@@ -137,7 +147,12 @@ const HomeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       {isLoggedIn && (
-        <Button label={t("logout")} handlePress={logoutRef.current} />
+        <View style={styles.headerButtonsContainer}>
+          <Button label={t("logout")} handlePress={handleLogout} />
+          {Platform.OS !== "web" && (
+            <Button label={t("loginWithQR")} handlePress={handleLoginInWeb} />
+          )}
+        </View>
       )}
       {(!isLoggedIn || loggingIn) && (
         <Button

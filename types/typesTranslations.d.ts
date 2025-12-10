@@ -269,6 +269,20 @@ export type typeLanguages = Record<ReasonNotification, string> &
     appUpdatesExplanation: string;
     openUpdatesWebPage: string;
     ourUpdatesWebPage: string;
+    requestingCameraPermission: string;
+    noCameraPermission: string;
+    needsCameraPermission: string;
+    qrLoginSuccessTitle: string;
+    qrLoginSuccessMessage: string;
+    scanQRCode: string;
+    loginWithEmail: string;
+    loginWithQR: string;
+    generatingQRCode: string;
+    loggingInWithQRCode: string;
+    scanQRCodeInstructions: string;
+    processingQRCode: string;
+    qrLoginErrorTitle: string;
+    qrLoginErrorMessage: string;
   };
 
 export type typeLanguagesServer = {

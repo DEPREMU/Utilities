@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.3.6";
+const version = "1.4.0";
 
 export default {
   expo: {
@@ -67,6 +67,7 @@ export default {
     plugins: [
       "./plugins/handleCreateFiles.js",
       "expo-font",
+      "expo-camera",
       "expo-secure-store",
       "expo-localization",
       "expo-notifications",

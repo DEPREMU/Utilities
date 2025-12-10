@@ -312,6 +312,23 @@ const es: typeLanguages = {
     "Las actualizaciones se descargan automáticamente en segundo plano. Si estás en Windows, es posible que veas un aviso de instalación al abrir la aplicación.",
   openUpdatesWebPage: "Abrir página web de actualizaciones",
   ourUpdatesWebPage: "Nuestra página web de actualizaciones",
+  generatingQRCode: "Generando código QR...",
+  loggingInWithQRCode: "Iniciando sesión con código QR...",
+  loginWithEmail: "Iniciar sesión con correo electrónico",
+  loginWithQR: "Iniciar sesión con código QR",
+  needsCameraPermission: "Esta función requiere permiso de cámara.",
+  noCameraPermission: "Sin permiso de cámara",
+  qrLoginSuccessTitle: "Inicio de sesión con QR exitoso",
+  qrLoginSuccessMessage:
+    "Has iniciado sesión exitosamente con el código QR. ¡Bienvenido!",
+  requestingCameraPermission: "Solicitando permiso de cámara...",
+  scanQRCode: "Escanear código QR",
+  scanQRCodeInstructions:
+    "Por favor, utiliza tu dispositivo móvil para escanear el código QR que se muestra en la pantalla para iniciar sesión en tu cuenta de manera segura y conveniente.",
+  processingQRCode: "Procesando código QR...",
+  qrLoginErrorTitle: "Error de inicio de sesión con QR",
+  qrLoginErrorMessage:
+    "Ocurrió un error durante el inicio de sesión con QR, por favor intenta de nuevo.",
 } as const;
 
 export default es;

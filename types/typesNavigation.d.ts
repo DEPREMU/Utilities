@@ -9,6 +9,7 @@ export type ScreensAvailable =
   | "Settings"
   | "Clipboard"
   | "Calculator"
+  | "ScanQRCode"
   | "Translator"
   | "SocialMedia"
   | "Minesweeper"

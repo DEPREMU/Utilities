@@ -18,7 +18,6 @@ export type TYPE_ARGS = {
   action?: string;
   install?: boolean;
   isWindows?: boolean;
-  "export-web"?: boolean;
 };
 
 const showHelp = () => {
@@ -26,13 +25,13 @@ const showHelp = () => {
   console.log(`Parsing arguments for script: ${fileCalled}`);
   const options: string[] = [];
 
-  const isBuildAndroid = fileCalled?.includes("build-android");
-  const isUploadElectron = fileCalled?.includes("build-upload-electron");
-  const isBuildUploadAndroid = fileCalled?.includes("build-upload-android");
+  const isUpdate = fileCalled?.includes("update");
   const isAppLint = fileCalled?.includes("app-lint");
   const isAppStart = fileCalled?.includes("app-start");
   const isAppClean = fileCalled?.includes("app-clean");
-  const isUpdate = fileCalled?.includes("update");
+  const isBuildAndroid = fileCalled?.includes("build-android");
+  const isUploadElectron = fileCalled?.includes("build-upload-electron");
+  const isBuildUploadAndroid = fileCalled?.includes("build-upload-android");
   const isBuildAppElectron = fileCalled?.includes("build-app-electron");
   const isBuildResourcesElectron = fileCalled?.includes(
     "build-resources-electron"
@@ -80,7 +79,7 @@ const showHelp = () => {
   }
   if (isBuildAppElectron) {
     options.push(
-      `  --export-web                 Export web version of the Electron app and skip building the Electron app`
+      `  -f, --profile=<profile>      Specify the profile for the update (development, preview, production)`
     );
   }
   if (isBuildResourcesElectron) {
@@ -142,9 +141,6 @@ export const ARGS = args.reduce((acc, arg, index) => {
         return acc;
       case "--install":
         acc["install"] = true;
-        return acc;
-      case "--export-web":
-        acc["export-web"] = true;
         return acc;
       case "--web":
         acc["web"] = true;

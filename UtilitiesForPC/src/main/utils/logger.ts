@@ -1,3 +1,4 @@
+import { app } from "electron";
 import dataApp from "./variables";
 import { execSync } from "child_process";
 
@@ -22,7 +23,8 @@ export const initNewLogSession = () => {
 };
 
 export const writeLog = (message: string, level: "info" | "warn" | "error") => {
-  if (!dataApp) return console[level === "info" ? "log" : level](message);
+  if (!dataApp || !app.isPackaged)
+    return console[level === "info" ? "log" : level](message);
 
   try {
     const logEntry = `[${new Date().toLocaleString()}] [${level.toUpperCase()}]: ${message}`;

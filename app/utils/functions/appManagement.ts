@@ -67,8 +67,10 @@ export const parseData = <T = object | null>(
   let parsed: T;
   try {
     if (!value) return value as T;
+
     if (value.includes("<<Symbol>>") || value.includes("<<Function>>")) {
       const parsedValue = JSON.parse(value);
+
       return getCorrectParsed<T>(parsedValue);
     } else parsed = JSON.parse(value || "null") as T;
   } catch {
