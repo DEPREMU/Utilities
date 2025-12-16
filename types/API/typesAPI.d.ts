@@ -26,6 +26,7 @@ import type {
   ResponseTranslate,
   ResponseCryptoPrice,
   ResponseAddStreamer,
+  ResponseGetQRForLogin,
   ResponseGetRandomUUID,
   ResponseDatabaseFetch,
   ResponseDatabaseUpdate,
@@ -33,7 +34,7 @@ import type {
   ResponseDatabaseDelete,
   ResponseRefreshSession,
   ResponseGetIsLiveStreamer,
-  ResponseGetQRForLogin,
+  ResponseChangeImageFormat,
 } from "./Response";
 
 import {
@@ -47,12 +48,13 @@ import {
   RequestCryptoPrice,
   RequestAddStreamer,
   RequestDatabaseFetch,
+  RequestGetQRForLogin,
   RequestDatabaseInsert,
   RequestDatabaseUpdate,
   RequestDatabaseDelete,
   RequestRefreshSession,
   RequestGetIsLiveStreamer,
-  RequestGetQRForLogin,
+  RequestChangeImageFormat,
 } from "./Request";
 import type { Handler } from "express";
 import { Notifications } from "../typesNotifications";
@@ -142,13 +144,13 @@ export type CryptosFetch = {
 export type DecryptFetch = {
   url: "/decrypt";
   method: MethodsAvailableInAPI["post"];
-  body: RequestEncrypt;
+  body: RequestDecrypt;
   response: ResponseDecrypt;
 };
 export type EncryptFetch = {
   url: "/encrypt";
   method: MethodsAvailableInAPI["post"];
-  body: RequestDecrypt;
+  body: RequestEncrypt;
   response: ResponseEncrypt;
 };
 export type TranslateFetch = {
@@ -167,7 +169,7 @@ export type AuthLoginFetch = {
   url: "/auth/login";
   body: RequestAuth<"login">;
   method: MethodsAvailableInAPI["post"];
-  response: ResponseAuth;
+  response: ResponseAuth<"login">;
 };
 export type CryptoPriceFetch = {
   url: "/cryptoPrice";
@@ -185,7 +187,7 @@ export type AuthSignUpFetch = {
   url: "/auth/signup";
   body: RequestAuth<"signup">;
   method: MethodsAvailableInAPI["post"];
-  response: ResponseAuth;
+  response: ResponseAuth<"signup">;
 };
 export type AuthSignOutFetch = {
   url: "/auth/signOut";
@@ -237,8 +239,14 @@ export type AuthRefreshSessionFetch = {
   url: "/auth/refreshSession";
   body: RequestRefreshSession;
   method: MethodsAvailableInAPI["post"];
-  response: ResponseRefreshSession;
+  response: ResponseAuth<"login">;
   middlewares: any[];
+};
+export type ChangeImageFormat = {
+  url: "/images/changeImageFormat";
+  body: RequestChangeImageFormat;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseChangeImageFormat;
 };
 
 export type FetchAPI<T extends TablesKeys = TablesKeys> =
@@ -255,6 +263,7 @@ export type FetchAPI<T extends TablesKeys = TablesKeys> =
   | AuthSignOutFetch
   | CryptoPriceFetch
   | AddStreamerFetch
+  | ChangeImageFormat
   | UploadUpdateFetch
   | GetRandomUUIDFetch
   | DownloadUploadFetch
@@ -270,7 +279,7 @@ export type FetchAPI<T extends TablesKeys = TablesKeys> =
 export type RoutesAPIWithItsMethod = {
   [K in RoutesAPI | UpdatesRoutes]: {
     method: Extract<FetchAPI, { url: K }>["method"];
-    type: "updates" | "api";
+    type: K extends UpdatesRoutes ? "updates" : "api";
   };
 };
 

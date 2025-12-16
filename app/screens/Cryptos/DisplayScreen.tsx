@@ -1,8 +1,3 @@
-import {
-  stringifyData,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-} from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import { CryptoPrice } from "@components/Cryptos/CryptoPrice";
 import SkeletonLoading from "@components/common/SkeletonLoading";
@@ -11,6 +6,7 @@ import { useStylesCryptoPrice } from "@styles/components/cryptos/useStylesCrypto
 import { View, Text, ScrollView } from "react-native";
 import { useStylesDisplayScreen } from "@styles/components/cryptos/useStylesDisplayScreen";
 import React, { useEffect, useMemo, useState } from "react";
+import { memoDeep, setTimeoutPolyfill, clearTimeoutPolyfill } from "@utils";
 
 interface DisplayScreenProps {
   selectedCryptos: SelectedCryptos;
@@ -59,11 +55,20 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
             <CryptoPrice
               key={cryptoId}
               cryptoData={cryptoData}
-              priceOfCrypto={t("priceOfCrypto")}
-              ownedAmount={t("ownedAmount")}
-              firstInvest={t("firstInvest")}
-              gainAmount={t("gainAmount")}
-              datePurchased={t("datePurchased")}
+              ownedAmount={t("ownedAmount", {
+                amount: "{{amount}}",
+                cryptoName: "{{cryptoName}}",
+              })}
+              firstInvest={t("firstInvest", {
+                amount: "{{amount}}",
+                cryptoName: "{{cryptoName}}",
+                price: "{{price}}",
+              })}
+              gainAmount={t("gainAmount", {
+                currency: "{{currency}}",
+                gainAmount: "{{gainAmount}}",
+              })}
+              datePurchased={t("datePurchased", { date: "{{date}}" })}
               currentPrice={t("currentPrice")}
             />
           ))}
@@ -109,11 +114,6 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
   );
 };
 
-const DisplayScreenMemo = React.memo(DisplayScreen, (prevProps, nextProps) => {
-  return (
-    stringifyData(prevProps.selectedCryptos) ===
-    stringifyData(nextProps.selectedCryptos)
-  );
-});
+const DisplayScreenMemo = memoDeep(DisplayScreen);
 
 export default DisplayScreenMemo;

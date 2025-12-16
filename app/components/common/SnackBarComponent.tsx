@@ -1,7 +1,8 @@
+import { memoDeep } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesSnackBarComponent from "@styles/components/useStylesSnackbarComponent";
+import React, { useCallback, useMemo } from "react";
 import { Snackbar, SnackbarProps, Text } from "react-native-paper";
-import React, { memo, useCallback, useMemo } from "react";
 
 interface SnackBarComponentProps {
   label: string;
@@ -48,16 +49,6 @@ const SnackBarComponent: React.FC<SnackBarComponentProps> = ({
   );
 };
 
-const SnackBarComponentMemo = memo(
-  SnackBarComponent,
-  (prevProps, nextProps) => {
-    return (
-      prevProps.label === nextProps.label &&
-      prevProps.onDismiss === nextProps.onDismiss &&
-      prevProps.id === nextProps.id &&
-      prevProps.actionSnackbar === nextProps.actionSnackbar
-    );
-  },
-);
+const SnackBarComponentMemo = memoDeep(SnackBarComponent);
 
 export default SnackBarComponentMemo;

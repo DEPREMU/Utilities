@@ -1,5 +1,5 @@
-import { sendResponse } from "../variables.ts";
-import { insertIntoTable } from "database/functions";
+import { sendResponse } from "@common";
+import { insertIntoTable } from "../database/functions.ts";
 import { Request, Response } from "express";
 import { RequestLogs, ResponseLogs } from "@types";
 
@@ -13,15 +13,17 @@ export const handleAddLog = async (
   res: Response<ResponseLogs>,
 ) => {
   let success = false;
+  let error: string | undefined;
 
   try {
-    const { log } = req.body || {};
+    const log = req.body || null;
     if (log) {
-      const { error } = await insertIntoTable("Logs", log);
+      const { error: insertError } = await insertIntoTable("Logs", log);
+      error = insertError || undefined;
       success = !error;
     }
   } catch (error) {
     console.error("Error adding log:", error);
   }
-  sendResponse(res, "SUCCESS", { success }, "/log");
+  sendResponse(res, "SUCCESS", { success, error }, "/log");
 };

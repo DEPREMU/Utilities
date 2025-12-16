@@ -1,7 +1,10 @@
-import en from "./English.ts";
-import es from "./Spanish.ts";
-import chalk from "chalk";
-import { LanguagesSupported, typeLanguagesServer } from "@types";
+import type {
+  LanguagesSupported,
+  typeLanguagesServer,
+  typeLanguagesServerKeys,
+} from "@types";
+import { esServer } from "./Spanish.ts";
+import { enServer } from "./English.ts";
 
 /**
  * Translates a given key into the specified language, with optional replacements.
@@ -11,10 +14,10 @@ import { LanguagesSupported, typeLanguagesServer } from "@types";
  * @param replace - An optional object containing placeholders and their replacement values.
  * @returns The translated string, with placeholders replaced by their corresponding values.
  */
-export const t = (
-  key: keyof typeLanguagesServer | string,
+export const t = <T extends typeLanguagesServerKeys>(
+  key: T,
   lang: LanguagesSupported,
-  replace?: object,
+  replace?: object
 ): string => {
   if (!key || !lang) return "";
   let value: string;
@@ -22,57 +25,52 @@ export const t = (
     case "en":
     default:
       if (!key.includes("."))
-        value = en[key as keyof typeLanguagesServer] as string;
+        value = enServer[key as keyof typeLanguagesServer] as string;
       else {
         const keys = key.split(".");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let temp: any = en[keys[0] as keyof typeof en];
-        for (const k of keys.slice(1)) {
+        let temp: any = enServer[keys.shift() as keyof typeof enServer];
+        for (const k of keys) {
           temp = temp?.[k];
           if (!temp) break;
         }
-        if (temp && typeof temp === "string") value = temp;
+        if (typeof temp === "string") value = temp;
         else {
-          console.log(
-            chalk.yellow(
-              `Missing translation for key "${key}" in language "${lang}"`,
-            ),
+          throw new Error(
+            `Missing translation for key "${key}" in language "${lang}"`
           );
-          value = key;
         }
       }
       break;
     case "es":
       if (!key.includes("."))
-        value = es[key as keyof typeLanguagesServer] as string;
+        value = enServer[key as keyof typeLanguagesServer] as string;
       else {
         const keys = key.split(".");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let temp: any = es[keys[0] as keyof typeof es];
+        let temp: any = esServer[keys[0] as keyof typeof esServer];
         for (const k of keys.slice(1)) {
           temp = temp?.[k];
           if (!temp) break;
         }
         if (temp && typeof temp === "string") value = temp;
         else {
-          console.log(
-            chalk.yellow(
-              `Missing translation for key "${key}" in language "${lang}"`,
-            ),
+          throw new Error(
+            `Missing translation for key "${key}" in language "${lang}"`
           );
-          value = key;
         }
       }
       break;
   }
   if (!value) return "";
-  if (!replace || Object.keys(replace || {}).length === 0) return value;
-  for (const [k, v] of Object.entries(replace || {})) {
-    if (typeof v === "string") {
-      value = value.replace(`{{${k}}}`, v);
-    } else {
-      value = value.replace(`{{${k}}}`, String(v));
-    }
+  if (typeof replace !== "object" || Object.keys(replace).length === 0)
+    return value;
+  for (const [k, v] of Object.entries(replace)) {
+    value = value.replace(`{{${k}}}`, String(v || ""));
   }
   return value;
 };
+
+export * from "./English.ts";
+export * from "./Spanish.ts";
+export * from "./translates.ts";

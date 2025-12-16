@@ -2,14 +2,12 @@ import {
   log,
   openURL,
   API_URL,
-  loadData,
-  saveData,
   APP_VERSION,
   getRouteAPI,
   fetchToServer,
-  loadDataSecure,
-  saveDataSecure,
   ADMIN_PASSWORD,
+  loadDataStorage,
+  saveDataStorage,
   getFormattedDate,
   setTimeoutPolyfill,
   fetchAndApplyUpdate,
@@ -22,9 +20,9 @@ import Notifications from "@components/Settings/Notifications";
 import LanguagePicker from "@components/Settings/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
-import { typeLanguages } from "@types";
 import { useBackground } from "@context/BackgroundContext";
 import { useUserContext } from "@context/UserContext";
+import { typeLanguagesKeys } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
 import { ScrollView, View, Alert, Platform } from "react-native";
@@ -32,13 +30,13 @@ import { ActivityIndicator, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useState } from "react";
 
 type Section = {
-  subtitle: keyof typeLanguages;
-  labelTextInput: keyof typeLanguages;
+  subtitle: typeLanguagesKeys;
+  labelTextInput: typeLanguagesKeys;
   value: string | null;
   onChangeText: (text: string) => void;
   placeholder?: string;
   handlePress: () => void;
-  labelButton: keyof typeLanguages;
+  labelButton: typeLanguagesKeys;
 };
 
 type UpdatesData = {
@@ -74,13 +72,13 @@ const SettingsScreen: React.FC = () => {
     if (password !== ADMIN_PASSWORD) return;
 
     const [deviceId, url] = await Promise.all([
-      loadDataSecure("_deviceId"),
+      loadDataStorage("_deviceId"),
       getRouteAPI("/database/update"),
     ]);
-    if (!deviceId || !url) return;
+    if (!url) return;
 
     setHasAdmin(true);
-    saveData("@hasAdminAccess", true);
+    saveDataStorage("@hasAdminAccess", true);
 
     await fetchToServer(
       "/database/update",
@@ -107,12 +105,12 @@ const SettingsScreen: React.FC = () => {
           if (!userData?.userId) return;
           if (!sessionToken) return;
 
-          const deviceId = await loadDataSecure("_deviceId");
+          const deviceId = await loadDataStorage("_deviceId");
 
           await fetchToServer(
             "/database/update",
             {
-              deviceId: deviceId || "local-device",
+              deviceId,
               lang: language,
               match: { userId: userData.userId },
               table: "UserConfig",
@@ -120,7 +118,7 @@ const SettingsScreen: React.FC = () => {
             },
             sessionToken,
           );
-          await saveData("@API_URL", apiURL);
+          await saveDataStorage("@API_URL", apiURL);
         },
       },
       {
@@ -145,7 +143,7 @@ const SettingsScreen: React.FC = () => {
           if (!userData?.userId) return;
           if (!sessionToken) return;
 
-          const deviceId = await loadDataSecure("_deviceId");
+          const deviceId = await loadDataStorage("_deviceId");
 
           await fetchToServer(
             "/database/update",
@@ -153,12 +151,12 @@ const SettingsScreen: React.FC = () => {
               lang: language,
               match: { userId: userData.userId },
               table: "UserConfig",
-              deviceId: deviceId || "local-device",
+              deviceId,
               values: { webSocketURL: socketURL },
             },
             sessionToken,
           );
-          await saveData("@webSocketURL", socketURL);
+          await saveDataStorage("@webSocketURL", socketURL);
         },
       },
       {
@@ -235,7 +233,7 @@ const SettingsScreen: React.FC = () => {
   const handleCheckForUpdates = useCallback(async () => {
     if (Platform.OS === "web") return;
 
-    saveDataSecure("_lastUpdateCheck", Date.now());
+    saveDataStorage("_lastUpdateCheck", Date.now());
     setUpdatesData({
       updateState: "NOT_VERIFIED",
       lastUpdateCheck: new Date(),
@@ -281,16 +279,16 @@ const SettingsScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadData("@hasAdminAccess").then((data) => {
+    loadDataStorage("@hasAdminAccess").then((data) => {
       setHasAdmin(data || false);
     });
-    loadData("@webSocketURL").then((data) => {
+    loadDataStorage("@webSocketURL").then((data) => {
       setSocketURLState(data || "");
     });
-    loadData("@API_URL").then((data) => {
+    loadDataStorage("@API_URL").then((data) => {
       setApiURL(data || "");
     });
-    loadDataSecure("_lastUpdateCheck").then((data) => {
+    loadDataStorage("_lastUpdateCheck").then((data) => {
       if (!data) return;
       setUpdatesData({
         updateState: "NOT_VERIFIED",

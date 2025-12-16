@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import axios from "axios";
-import { t } from "../translations/index.ts";
+import { languagesSupported, t } from "@common";
 import { dataDatabase } from "./fetchData.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
 import { LanguagesSupported, ReasonNotification } from "@types";
@@ -75,15 +75,12 @@ const handleCheckDownServers = async () => {
       userId: userConfig.userId,
     });
   });
-  console.log("Down URLs detected:", downWebURLs);
-
-  const languages: LanguagesSupported[] = ["en", "es"];
 
   downWebURLs.forEach((webURL) => {
     const users = usersData.filter((ud) => ud.url.includes(webURL));
     if (users.length === 0) return;
 
-    languages.forEach((lang) => {
+    languagesSupported.forEach((lang) => {
       const langType = lang as LanguagesSupported;
 
       const usersLang = users.filter((u) => u.lang === langType);

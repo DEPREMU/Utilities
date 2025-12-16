@@ -1,9 +1,9 @@
 import express from "express";
-import handleSendWebPage from "./web-page/handleSendWebPage";
-import { handleDownload } from "./tempDownloadUrl";
-import { handleUploadUpdate } from "./uploadUpdate";
+import handleSendWebPage from "./web-page/handleSendWebPage.ts";
+import { handleDownload } from "./tempDownloadUrl.ts";
+import { handleUploadUpdate } from "./uploadUpdate.ts";
 import { Route, UpdatesRoutes } from "@types";
-import { handleIsUpdateAvailable } from "./isUpdateAvailable";
+import { handleIsUpdateAvailable } from "./isUpdateAvailable.ts";
 
 const router = express.Router();
 

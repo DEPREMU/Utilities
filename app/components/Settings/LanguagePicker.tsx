@@ -1,3 +1,9 @@
+import {
+  memoDeep,
+  fetchToServer,
+  languagesNames,
+  loadDataStorage,
+} from "@utils";
 import { List } from "react-native-paper";
 import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
@@ -5,8 +11,7 @@ import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import { LanguagesSupported } from "@types";
-import React, { memo, useCallback, useMemo } from "react";
-import { languagesNames, loadDataSecure, fetchToServer } from "@utils";
+import React, { useCallback, useMemo } from "react";
 
 const LanguagePicker: React.FC = () => {
   const { colors } = useTheme();
@@ -25,7 +30,7 @@ const LanguagePicker: React.FC = () => {
             requiresInternet: true,
             func: async () => {
               if (!sessionToken) return navigateReplace("Login");
-              const deviceId = await loadDataSecure("_deviceId");
+              const deviceId = await loadDataStorage("_deviceId");
 
               fetchToServer(
                 "/database/update",
@@ -34,7 +39,7 @@ const LanguagePicker: React.FC = () => {
                   match: { userId: userData?.userId },
                   table: "UserConfig",
                   values: { language: lang },
-                  deviceId: deviceId || "local-device",
+                  deviceId,
                 },
                 sessionToken,
               );
@@ -87,6 +92,6 @@ const LanguagePicker: React.FC = () => {
   );
 };
 
-const LanguagePickerMemo = memo(LanguagePicker);
+const LanguagePickerMemo = memoDeep(LanguagePicker);
 
 export default LanguagePickerMemo;

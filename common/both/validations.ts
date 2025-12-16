@@ -1,6 +1,3 @@
-import React from "react";
-import { isEqual } from "lodash";
-
 /**
  * Validates whether a given string is a properly formatted email address.
  *
@@ -24,7 +21,7 @@ export const isValidEmail = (email: string): boolean => {
  * @returns `true` if the password is valid, otherwise `false`.
  */
 export const isValidPassword = (password: string): boolean => {
-  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$/;
   return passwordRegex.test(password);
 };
 
@@ -51,18 +48,4 @@ export const cleanFloat = (text: string): string => {
   }
 
   return cleaned || "0";
-};
-
-/**
- * Compares two sets of children and determines if they are equal.
- *
- * @param prevChildren - The previous set of children.
- * @param nextChildren - The next set of children.
- * @returns `true` if the children are equal, otherwise `false`.
- */
-export const areEqualChildren = (
-  prevChildren: React.ReactNode,
-  nextChildren: React.ReactNode,
-): boolean => {
-  return isEqual(prevChildren, nextChildren);
 };

@@ -97,4 +97,6 @@ export const monitorServerUsage = () => {
   }
 };
 
-export default env.__DEV__ ? setInterval(monitorServerUsage, 10000) : undefined;
+export default ["1", "true"].includes(env.__DEV__)
+  ? setInterval(monitorServerUsage, 10000)
+  : undefined;

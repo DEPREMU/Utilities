@@ -22,16 +22,21 @@ type ArgsFetchWithLimit<T extends TablesKeys> = {
   orderDirection: "ASC" | "DESC";
 };
 
+type ArgsFetchSearch<T extends TablesKeys = TablesKeys> = {
+  search?: string;
+  columnsToSearch?: (keyof Tables[T])[];
+};
+
 type FetchFromTableFn = {
   <T extends TablesKeys>(
-    args: ArgsFetchWithLimit<T>,
+    args: ArgsFetchWithLimit<T> & ArgsFetchSearch<T>,
   ): Promise<{
     data: Tables[T][] | null;
     error?: string | null;
   }>;
 
   <T extends TablesKeys>(
-    args: ArgsFetchWithoutLimit<T>,
+    args: ArgsFetchWithoutLimit<T> & ArgsFetchSearch<T>,
   ): Promise<{
     data: Tables[T][] | null;
     error?: string | null;
@@ -80,7 +85,7 @@ const getKeysQuery = <T extends TablesKeys>(
       return {
         query: Object.keys(data)
           .map((key, i) => `"${key}"=$${i + indexStart}`)
-          .join(" AND "),
+          .join("\nAND "),
         values: Object.values(data),
       };
     case "placeholders":
@@ -95,6 +100,78 @@ const getKeysQuery = <T extends TablesKeys>(
     query: "",
     values: [],
   };
+};
+
+const getQuerySearch = (
+  query: string,
+  values: unknown[],
+  args: ArgsFetchSearch,
+): [string, unknown[]] => {
+  if (args.columnsToSearch && args.columnsToSearch?.length > 0) {
+    if (query.includes("WHERE")) {
+      const indexOfWhere = query.indexOf("WHERE");
+
+      const where = query.slice(query.indexOf("WHERE") + 5);
+
+      const match = where.replace(/AND/g, "").split("\n");
+      const matchObj = match.reduce(
+        (prev, current) => {
+          current = current.trim();
+          if (!current) return prev;
+
+          const [key, value] = current.split("=").map((v) => v.trim());
+          console.log({ key, value });
+
+          const newValue = prev;
+          newValue[key.replace(/"/g, "")] = value;
+
+          return newValue;
+        },
+        {} as Record<string, string>,
+      );
+
+      for (const c of args.columnsToSearch) {
+        const column = String(c);
+        if (!matchObj[column]) {
+          matchObj[column] = `ILIKE '%' || $${
+            Object.keys(matchObj).length + 1
+          } || '%'`;
+          values.push(args.search);
+          continue;
+        }
+
+        const index = Number(matchObj[column].replace("$", "")) - 1;
+
+        const copyValuesPart1 = values.slice(0, index);
+        const copyValuesPart2 = values.slice(index + 1);
+
+        matchObj[column] = `ILIKE '%' || $${index + 1} || '%'`;
+
+        values = [...copyValuesPart1, args.search, ...copyValuesPart2];
+      }
+
+      const result = Object.entries(matchObj)
+        .map(
+          ([key, value]) =>
+            `"${key}" ${value.includes("ILIKE") ? value : `= ${value}`}`,
+        )
+        .join("\n AND ");
+
+      const startQuery = query.slice(0, indexOfWhere);
+
+      query = [startQuery, "WHERE", result].join(" \n ").trim();
+    } else {
+      const columns = args.columnsToSearch;
+
+      query += `WHERE ${columns
+        ?.map((column) => {
+          values.push(args.search);
+          return `"${String(column)}" ILIKE '%' || $${values.length} || '%'`;
+        })
+        .join("\n AND ")}`;
+    }
+  }
+  return [query, values];
 };
 
 /**
@@ -207,24 +284,33 @@ export const fetchFromTable: FetchFromTableFn = async (args) => {
   try {
     const tableName = TABLE_MAP[table];
 
-    let query = `SELECT * FROM ${tableName}`;
-    const values: unknown[] = [];
+    let query = `SELECT * FROM ${tableName}\n`;
+    let values: unknown[] = [];
 
     if (Object.keys(match).length > 0) {
       const whereClause = getKeysQuery(match, "where");
-      query += ` WHERE ${whereClause.query}`;
+      query += ` WHERE ${whereClause.query}\n`;
       values.push(...Object.values(whereClause.values));
     }
 
+    if ("search" in args && args.search) {
+      console.log("Query with search:", { query, values });
+      [query, values] = getQuerySearch(query, values, {
+        search: args.search,
+        columnsToSearch: (args.columnsToSearch as []) || [],
+      });
+      console.log("Query with search:", { query, values });
+    }
+
     if ("orderBy" in args && args.orderBy) {
-      query += ` ORDER BY "${String(args.orderBy)}" ${args.orderDirection ?? "DESC"}`;
+      query += `\n ORDER BY "${String(args.orderBy)}" ${args.orderDirection ?? "DESC"}`;
     }
     if ("limit" in args && args.limit && args.limit > 0) {
-      query += ` LIMIT $${values.length + 1}`;
+      query += `\n LIMIT $${values.length + 1}`;
       values.push(args.limit);
     }
     if ("offset" in args && args.offset && args.offset > 0) {
-      query += ` OFFSET $${values.length + 1}`;
+      query += `\n OFFSET $${values.length + 1}`;
       values.push(args.offset);
     }
 
@@ -301,7 +387,7 @@ export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
 };
 
 export const deleteSessions = async () => {
-  if (!env.DELETE_OLD_SESSIONS) return;
+  if (!["1", "true"].includes(env.DELETE_OLD_SESSIONS)) return;
 
   console.log(chalk.blue("Deleting old sessions and push tokens..."));
   try {

@@ -1,3 +1,11 @@
+import {
+  Text,
+  Card,
+  Switch,
+  TextInput,
+  IconButton,
+  ActivityIndicator,
+} from "react-native-paper";
 import Button from "@components/common/ButtonComponent";
 import { Command } from "@types";
 import { useModal } from "@context/ModalContext";
@@ -6,16 +14,8 @@ import { useLanguage } from "@context/LanguageContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import useStylesTerminalCommands from "@styles/screens/Web/useStylesTerminalCommands";
 import { FlatList, Platform, View, ScrollView } from "react-native";
-import { loadDataSecure, logError, saveDataSecure } from "@utils";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  Text,
-  TextInput,
-  Switch,
-  Card,
-  IconButton,
-  ActivityIndicator,
-} from "react-native-paper";
+import { loadDataStorage, logError, saveDataStorage } from "@utils";
 
 const TerminalCommands: React.FC = () => {
   const { t } = useLanguage();
@@ -41,7 +41,7 @@ const TerminalCommands: React.FC = () => {
     setNewCommand({ when: "Start-up", command: "" });
     setCommands((prev) => {
       const updatedCommands = [...prev, newCommand];
-      saveDataSecure("_terminalCommands", updatedCommands);
+      saveDataStorage("_terminalCommands", updatedCommands);
       return updatedCommands;
     });
   }, [newCommand, closeModal]);
@@ -107,7 +107,7 @@ const TerminalCommands: React.FC = () => {
             button: styles.executeButton,
             textButton: styles.executeButtonLabel,
           }}
-          argsFuncHandlePress={newCommand.command}
+          argsFuncHandlePress={[newCommand.command]}
         />
       </>,
     );
@@ -117,7 +117,7 @@ const TerminalCommands: React.FC = () => {
     async (index: number) => {
       const updatedCommands = commands.filter((_, i) => i !== index);
       setCommands(updatedCommands);
-      await saveDataSecure("_terminalCommands", updatedCommands);
+      await saveDataStorage("_terminalCommands", updatedCommands);
     },
     [commands],
   );
@@ -187,7 +187,7 @@ const TerminalCommands: React.FC = () => {
     }
 
     const fetchCommands = async () => {
-      const storedCommands = await loadDataSecure("_terminalCommands");
+      const storedCommands = await loadDataStorage("_terminalCommands");
 
       setCommands(storedCommands || []);
     };

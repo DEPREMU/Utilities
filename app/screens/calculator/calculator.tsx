@@ -1,10 +1,10 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Button from "@components/common/ButtonComponent";
-import { ScrollView, View } from "react-native";
 import { Icon, Text } from "react-native-paper";
-import { logError, stringifyData } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesCalculator from "@styles/screens/calculator/useStylesCalculator";
+import { ScrollView, View } from "react-native";
+import { logError, memoDeep, stringifyData } from "@utils";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 const layout: string[][] = [
   ["c", "d", "(", ")"],
@@ -95,6 +95,6 @@ const Calculator: React.FC = () => {
   );
 };
 
-const CalculatorMemo = memo(Calculator);
+const CalculatorMemo = memoDeep(Calculator);
 
 export default CalculatorMemo;

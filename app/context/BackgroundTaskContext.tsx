@@ -13,9 +13,9 @@ import React, {
 } from "react";
 import {
   logError,
-  loadData,
-  saveData,
   getRandomId,
+  loadDataStorage,
+  saveDataStorage,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
   executeRegisteredTask,
@@ -154,7 +154,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
               } as SerializableTask<T>;
             });
 
-        await saveData("@pendingTasks", serializableTasks);
+        await saveDataStorage("@pendingTasks", serializableTasks);
       } catch (error) {
         logError("Error persisting tasks:", error);
       }
@@ -256,7 +256,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   useEffect(() => {
     const loadPersistedTasks = async () => {
       try {
-        const persistedTasks = await loadData("@pendingTasks");
+        const persistedTasks = await loadDataStorage("@pendingTasks");
         if (!persistedTasks || persistedTasks.length === 0) return;
 
         const rebuiltTasks = persistedTasks.map((taskData) => ({
@@ -327,7 +327,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     );
     executeWhenInternetRef.current = [];
 
-    saveData("@pendingTasks", []);
+    saveDataStorage("@pendingTasks", []);
     processQueueRef.current();
   }, [hasInternet]);
 

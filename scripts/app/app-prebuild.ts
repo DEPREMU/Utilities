@@ -5,7 +5,8 @@ import chalk from "chalk";
 import { execSync } from "child_process";
 import { APP_CONFIG, APP_PATH, env } from "../config.ts";
 
-const packageName = APP_CONFIG.expo.android.package;
+const packageName = APP_CONFIG.android?.package;
+if (!packageName) throw new Error("Package name not found in app config");
 
 const getPath = (relativePath: string) => {
   const pathLocal = path.resolve(APP_PATH, relativePath);
@@ -90,42 +91,27 @@ const createModules = async () => {
   console.log(chalk.blue("Creating native modules..."));
   const modules = JSON.parse(fs.readFileSync(modulesPath, "utf8")) as {
     name: string;
-    service?: string;
     content: string;
+    service?: string;
     initPath: string;
-    permissions?: string[];
     finalPath: string;
+    permissions?: string[];
   }[];
 
   modules.forEach((module) => {
     const modulePath = getPath(module.initPath);
-    if (module.name === "MyForegroundService.kt") {
-      const content = fs.readFileSync(
-        path.resolve(modulePath, module.name),
-        "utf8"
-      );
-      if (!process.env.API_URL) {
-        console.error(
-          chalk.red("API_URL is not defined in environment variables")
-        );
-        return;
-      }
-      const newContent = content.replace(
-        "{{serverURL}}",
-        process.env.API_URL || ""
-      );
-      fs.writeFileSync(
-        path.resolve(getPath(module.finalPath), module.name),
-        newContent
-      );
 
-      return;
-    }
+    const content = fs
+      .readFileSync(path.resolve(modulePath, module.name), "utf8")
+      .replace("{{packageName}}", packageName);
 
-    fs.copyFileSync(
-      path.resolve(modulePath, module.name),
-      path.resolve(getPath(module.finalPath), module.name)
-    );
+    const finalPath =
+      module.finalPath +
+      (module.name.endsWith(".kt") ? packageName.replace(/\./g, "/") : "");
+
+    fs.writeFileSync(path.resolve(getPath(finalPath), module.name), content, {
+      encoding: "utf8",
+    });
   });
   console.log(chalk.green("Native modules created successfully."));
 
@@ -145,9 +131,6 @@ const addPermissionsToManifest = async (newPermissions: string[]) => {
       "main",
       "AndroidManifest.xml"
     );
-    const backupPath = androidManifestPath + ".bak";
-
-    fs.copyFileSync(androidManifestPath, backupPath);
 
     try {
       console.log(chalk.blue("Adding permissions to AndroidManifest.xml..."));
@@ -181,7 +164,6 @@ const addPermissionsToManifest = async (newPermissions: string[]) => {
       );
     } catch (error) {
       console.error(chalk.red("Error modifying AndroidManifest.xml:"), error);
-      fs.copyFileSync(backupPath, androidManifestPath);
     }
 
     console.log(chalk.green("Permissions added to AndroidManifest.xml."));

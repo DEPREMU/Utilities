@@ -1,15 +1,27 @@
+import {
+  typeT,
+  AlbumsImages,
+  ExpectedStorageTypes,
+  RequestChangeImageFormat,
+} from "@types";
 import axios from "axios";
+import React from "react";
 import { v4 } from "uuid";
+import isEqual from "react-fast-compare";
 import * as Updates from "expo-updates";
+import * as Sharing from "expo-sharing";
+import { t as i18n } from "i18next";
 import _BackgroundTimer from "react-native-background-timer";
 import { log, logError } from "./debug";
+import * as MediaLibrary from "expo-media-library";
 import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
-import { loadDataSecure } from "./storageManagement";
-import { Falsy, Platform } from "react-native";
-import { ExpectedStorageTypes } from "@types";
+import { loadDataStorage } from "./storageManagement";
+import * as DocumentPicker from "expo-document-picker";
+import { Alert, Falsy, Platform } from "react-native";
+import { Directory, File, Paths } from "expo-file-system";
 import { initializeNotificationsStorage } from "./notifications";
-import { Notifications, LanguagesSupported } from "@types";
+import { Notifications, LanguagesSupported, ReturnSelectImage } from "@types";
 
 const URL_GOOGLE_204 = "https://www.google.com/generate_204";
 
@@ -236,15 +248,15 @@ export const getCryptosFromDatabase = async (
   lang: LanguagesSupported,
   token: string,
 ): Promise<ExpectedStorageTypes["_selectedCryptos"]> => {
-  const deviceId = await loadDataSecure("_deviceId");
+  const deviceId = await loadDataStorage("_deviceId");
 
   const response = await fetchToServer(
     "/database/fetch",
     {
       lang,
-      deviceId: deviceId || "local-device",
-      table: "Cryptos",
       match: null,
+      table: "Cryptos",
+      deviceId,
     },
     token,
   );
@@ -295,29 +307,65 @@ export const fetchAndApplyUpdate = async (): Promise<void> => {
 export const setTimeoutPolyfill = (
   fn: (...args: unknown[]) => void,
   timeout: number,
-): NodeJS.Timeout | number => {
+): number => {
   if (Platform.OS === "android")
     return _BackgroundTimer.setTimeout(fn, timeout);
   else return setTimeout(fn, timeout);
 };
 
-export const clearTimeoutPolyfill = (id: NodeJS.Timeout | number): void => {
-  if (Platform.OS === "android") _BackgroundTimer.clearTimeout(id as number);
-  else clearTimeout(id as NodeJS.Timeout);
+export const clearTimeoutPolyfill = (
+  ...ids: (number | Falsy | React.RefObject<number | Falsy>)[]
+): void => {
+  ids.forEach((id) => {
+    if (id && typeof id === "object" && "current" in id) {
+      const ref = id;
+      id = ref.current;
+      ref.current = null;
+    }
+
+    if (!id) return;
+
+    if (Platform.OS === "android") _BackgroundTimer.clearTimeout(id as number);
+    else clearTimeout(id);
+  });
+};
+
+/**
+ * Clears the current value of one or more React refs by setting them to null.
+ *
+ * @param refs - One or more React ref objects to be cleared
+ * @returns void
+ */
+export const clearRefs = (...refs: React.RefObject<unknown>[]): void => {
+  refs.forEach((ref) => {
+    if (ref && "current" in ref) ref.current = null;
+  });
 };
 
 export const setIntervalPolyfill = (
   fn: (...args: unknown[]) => void,
   interval: number,
-): NodeJS.Timeout | number => {
+): number => {
   if (Platform.OS === "android")
     return _BackgroundTimer.setInterval(fn, interval);
   else return setInterval(fn, interval);
 };
 
-export const clearIntervalPolyfill = (id: NodeJS.Timeout | number): void => {
-  if (Platform.OS === "android") _BackgroundTimer.clearInterval(id as number);
-  else clearInterval(id as NodeJS.Timeout);
+export const clearIntervalPolyfill = (
+  ...ids: (number | Falsy | React.RefObject<number | Falsy>)[]
+): void => {
+  ids.forEach((id) => {
+    if (id && typeof id === "object" && "current" in id) {
+      const ref = id;
+      id = ref.current;
+      ref.current = null;
+    }
+
+    if (!id) return;
+
+    if (Platform.OS === "android") _BackgroundTimer.clearInterval(id);
+    else clearInterval(id);
+  });
 };
 
 export const checkUrlStatus = async (
@@ -359,6 +407,15 @@ export const hasInternetConnection = async (): Promise<boolean> => {
   }
 };
 
+/**
+ * Generates a random unique identifier string.
+ *
+ * On web platforms, uses UUID v4 generation via the `v4()` function.
+ * On other platforms, generates an ID by combining the current timestamp
+ * (converted to base36) with a random number (converted to base36).
+ *
+ * @returns A unique identifier string.
+ */
 export const getRandomId = (): string => {
   let id: string | null = null;
 
@@ -369,3 +426,223 @@ export const getRandomId = (): string => {
 
   return id;
 };
+
+/**
+ * Creates a deeply memoized version of a React functional component.
+ *
+ * This function wraps a React functional component with `React.memo` using deep equality comparison
+ * via the `isEqual` function, preventing unnecessary re-renders when props have the same values
+ * but different references.
+ *
+ * @template P - The props type of the component, must extend object
+ * @param Component - The React functional component to memoize
+ * @returns A memoized version of the component that uses deep equality comparison for props
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const memoDeep = <P extends React.FC<any>>(Component: P): P =>
+  React.memo(Component, isEqual) as unknown as P;
+
+/**
+ * Opens a document picker to select one or more image files.
+ *
+ * @param settings - Optional configuration for the document picker. Can include custom options
+ *                   and a `base64` flag to request base64 encoding of selected images.
+ * @returns A promise that resolves to either:
+ *          - An array of selected image objects containing uri, name, size, type, and optionally base64 data
+ *          - An object with `canceled: true` if the selection was canceled or an error occurred
+ *
+ * @remarks
+ * - Automatically filters for image files only
+ * - Copies selected files to cache directory by default
+ * - If base64 encoding is requested but not provided by the picker, manually reads and encodes the file
+ * - Returns `canceled: true` if user cancels selection or an error occurs
+ * - Logs informational messages on cancellation and errors on failure
+ */
+export const selectImage = async (
+  settings?: DocumentPicker.DocumentPickerOptions,
+): Promise<ReturnSelectImage> => {
+  try {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: "image/*",
+      copyToCacheDirectory: true,
+      ...(settings || {}),
+    });
+
+    if (!result.canceled)
+      return await Promise.all(
+        result.assets.map(async (asset) => {
+          let base64: string | undefined;
+          if (asset.base64) base64 = asset.base64;
+          else if (settings?.base64) {
+            const fileData = new File(asset.uri);
+            base64 = await fileData.base64();
+          }
+
+          return {
+            uri: asset.uri,
+            name: asset.name,
+            size: asset.size || 0,
+            type:
+              (asset.mimeType?.split(
+                "/",
+              )[1] as RequestChangeImageFormat["format"]) || "png",
+            ...(base64 ? { base64 } : {}),
+          };
+        }),
+      );
+
+    log("Image selection was canceled.");
+  } catch (error) {
+    logError("Error selecting image:", error);
+  }
+  return { canceled: true };
+};
+
+/**
+ * Requests media library permissions from the user.
+ *
+ * Displays an alert with localized messages if permission is denied.
+ *
+ * @returns A promise that resolves to `true` if permission is granted, `false` otherwise.
+ */
+const askMediaLibraryPermissions = async (): Promise<boolean> => {
+  const t = i18n as typeT;
+
+  const { status } = await MediaLibrary.requestPermissionsAsync();
+  if (status !== "granted") {
+    Alert.alert(
+      t("images.permissionRequiredTitle"),
+      t("images.permissionRequiredMessage"),
+    );
+    return false;
+  }
+  return true;
+};
+
+/**
+ * Downloads a base64-encoded image as a file in a web browser.
+ *
+ * @param base64 - The base64-encoded string representing the image data. Can include the data URI prefix (e.g., "data:image/png;base64,") or be raw base64 data.
+ * @param fileName - The desired name for the downloaded file.
+ *
+ * @remarks
+ * This function creates a temporary anchor element, converts the base64 data to a Blob,
+ * and triggers a download. The anchor element is automatically removed after the download starts.
+ * The Blob is created with MIME type "image/png".
+ */
+const downloadBase64Web = (base64: string, fileName: string) => {
+  const base64Data = base64.includes("base64,")
+    ? base64.split("base64,")[1]
+    : base64;
+
+  const binary = atob(base64Data);
+  const array = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    array[i] = binary.charCodeAt(i);
+  }
+
+  const blob = new Blob([array], { type: "image/png" });
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+/**
+ * Downloads and saves a base64-encoded image to the device's media library or shares it.
+ *
+ * @param imageUri - The base64-encoded image URI. Can include the "base64," prefix or be raw base64 data.
+ * @param fileName - The name to use when saving the file.
+ * @param albumName - Optional. The album name where the image should be saved. If not provided,
+ *                    the function will attempt to share the image instead. Defaults to "UtilitiesApp"
+ *                    if sharing is not available.
+ *
+ * @returns A promise that resolves when the download/share operation completes.
+ *
+ * @remarks
+ * This function performs the following steps:
+ * 1. Extracts base64 data from the URI
+ * 2. Creates a temporary directory and file in the cache
+ * 3. Writes the base64 data to the file
+ * 4. If no album is specified and sharing is available, shares the image
+ * 5. Otherwise, requests media library permissions and saves to the specified album
+ * 6. Displays success or error alerts to the user
+ *
+ * @throws Will log errors but won't throw them. Instead, displays error alerts to the user.
+ */
+const downloadBase64Native = async (
+  imageUri: string,
+  fileName: string,
+  albumName?: AlbumsImages,
+) => {
+  const t: typeT = i18n as typeT;
+
+  try {
+    const base64 = imageUri.includes("base64,")
+      ? imageUri.split("base64,")[1]
+      : imageUri;
+
+    const destination = new Directory(Paths.cache, "images");
+    try {
+      destination.create({
+        idempotent: true,
+        intermediates: true,
+      });
+    } catch (error) {
+      logError("Error creating images directory:", error);
+    }
+
+    const file = new File(destination, fileName);
+
+    try {
+      file.create({
+        overwrite: true,
+        intermediates: true,
+      });
+    } catch (e) {
+      logError("Error creating image file:", e);
+    }
+    file.write(base64, { encoding: "base64" });
+
+    if (!albumName && (await Sharing.isAvailableAsync()))
+      return await Sharing.shareAsync(file.uri);
+
+    const hasPermission = await askMediaLibraryPermissions();
+    if (!hasPermission) return;
+
+    albumName = albumName || "UtilitiesApp";
+
+    const asset = await MediaLibrary.createAssetAsync(file.uri);
+    const album = await MediaLibrary.getAlbumAsync(albumName);
+
+    if (!album) await MediaLibrary.createAlbumAsync(albumName, asset, false);
+    else await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+
+    Alert.alert(
+      t("images.imageDownloadedInAlbumAlertTitle"),
+      t("images.imageDownloadedInAlbumAlertMessage", {
+        albumName,
+      }),
+    );
+  } catch (error) {
+    logError("Error downloading image:", error);
+    Alert.alert(
+      t("images.errorWhileSavingImageAlertTitle"),
+      t("images.errorWhileSavingImageAlertMessage", { imageName: fileName }),
+    );
+  }
+};
+
+/**
+ * Downloads a base64 encoded file using the appropriate platform-specific implementation.
+ *
+ * @remarks
+ * This function uses platform detection to determine whether to use the web or native
+ * implementation for downloading base64 content. On web platforms, it uses `downloadBase64Web`,
+ * while on native platforms (iOS/Android), it uses `downloadBase64Native`.
+ */
+export const downloadBase64 =
+  Platform.OS === "web" ? downloadBase64Web : downloadBase64Native;

@@ -28,6 +28,7 @@ export type DataAppElectron = {
   userHome: string;
   language: LanguagesSupported;
   __dirname: string;
+  machineId: string;
   isWindows: boolean;
   isUpdating: boolean;
   isQuitting: boolean;
@@ -35,7 +36,6 @@ export type DataAppElectron = {
   wasSleeping: boolean;
   SERVICE_NAME: string;
   webRestarted: boolean;
-  encryptionKey: string;
   userIsLoggedIn: boolean;
   downloadFilePath: string;
   reconnectAttempts: number;

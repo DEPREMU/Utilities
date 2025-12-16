@@ -1,6 +1,51 @@
-import { typeLanguages } from "@types";
+import type { typeLanguages, typeLanguagesServer } from "@types";
 
-const es: typeLanguages = {
+export const esServer: typeLanguagesServer = {
+  notificationCryptoTitle: "Actualización de criptomonedas: {{cryptos}}",
+  notificationCryptoBody:
+    "El precio actual de {{crypto}} es {{price}} {{gainPercent}}.",
+  notificationNotCryptosSelectedBody:
+    "No hay criptomonedas seleccionadas para notificaciones.\nVe a la selección de criptomonedas para recibir actualizaciones.",
+  notificationNotCryptosSelectedTitle: "Sin criptomonedas seleccionadas",
+  streamerLiveNotification: "¡Tu streamer favorito {{streamer}} está en vivo!",
+  notificationServerRestartBody: "El servidor ha sido reiniciado.",
+  notificationServerRestartTitle: "Servidor reiniciado",
+  streamerLiveNotificationTitle: "Streamer en vivo: {{streamer}}",
+  internalError: "Error interno del servidor",
+  downDetectorNotificationTitle: "Servicio caído: {{service}}",
+  downDetectorNotificationBody:
+    "El servicio {{service}} está experimentando problemas actualmente.",
+  auth: {
+    passwordNotStrong:
+      "La contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número",
+    emailAndPasswordRequired: "Se requiere correo electrónico y contraseña",
+    invalidCredentials: "Credenciales inválidas",
+    accountAlreadyExists: "Ya existe una cuenta con este correo electrónico",
+    tokenRequired: "Se requiere un token",
+    userNotFound: "Usuario no encontrado",
+    invalidPassword: "Contraseña inválida",
+    wrongCredentials: "Correo electrónico o contraseña incorrectos",
+    deviceIdRequired: "Se requiere ID de dispositivo",
+    tokenAndDeviceIdRequired: "Se requieren token y ID de dispositivo",
+    deviceInfoIsRequired: "Se requiere información del dispositivo",
+    sessionNotFound: "Sesión no encontrada",
+    invalidEmailFormat: "Formato de correo electrónico inválido",
+  },
+  database: {
+    fetchError: "Error al obtener datos de la base de datos",
+    insertError: "Error al insertar datos en la base de datos",
+    updateError: "Error al actualizar datos en la base de datos",
+    deleteError: "Error al eliminar datos de la base de datos",
+    invalidBody: "Cuerpo de solicitud inválido",
+  },
+  images: {
+    formatChangeError: "Error al cambiar el formato de la imagen",
+    invalidImageFormat: "Formato de imagen inválido",
+    invalidImageBuffer: "Buffer de imagen inválido proporcionado",
+  },
+};
+
+export const esApp: typeLanguages = {
   success: "Éxito",
   welcomeUser: "Bienvenido de nuevo, {{user}}",
   close: "Cerrar",
@@ -329,6 +374,35 @@ const es: typeLanguages = {
   qrLoginErrorTitle: "Error de inicio de sesión con QR",
   qrLoginErrorMessage:
     "Ocurrió un error durante el inicio de sesión con QR, por favor intenta de nuevo.",
-} as const;
-
-export default es;
+  noMoreData: "No hay más datos para cargar",
+  showDeleted: "Mostrar eliminados",
+  restoreAll: "Restaurar todo",
+  deleteAll: "Eliminar todo",
+  restore: "Restaurar",
+  images: {
+    imageSize: "Tamaño de la imagen: {{size}} bytes",
+    imageType: "Tipo de imagen: {{type}}",
+    labelImages: "Imágenes",
+    selectImageButtonLabel: "Seleccionar imagen",
+    changeImageFormatTitle: "Cambiar formato de imagen",
+    changeImageFormatDescription:
+      "Selecciona una imagen de tu dispositivo para cambiar su formato.",
+    changeImageFormatTabTitle: "Cambiar formato de imagen",
+    canConvertToFormat: "Convertir a formato {{format}}",
+    downloadImageButtonLabel: "Descargar imagen",
+    deleteImageButtonLabel: "Eliminar imagen",
+    downloadImageSuccessMessage: "Imagen descargada exitosamente",
+    errorWhileConvertingImageMessage:
+      "Ocurrió un error al convertir la imagen. Por favor, intenta de nuevo.",
+    imageDownloadedInAlbumAlertTitle: "Imagen descargada",
+    imageDownloadedInAlbumAlertMessage:
+      "La imagen ha sido descargada exitosamente en el álbum {{albumName}}.",
+    downloadImageAlbumButtonLabel: "Descargar al álbum {{albumName}}",
+    errorWhileSavingImageAlertMessage:
+      "Ocurrió un error al guardar la imagen {{imageName}}.",
+    errorWhileSavingImageAlertTitle: "Error al guardar la imagen",
+    permissionRequiredTitle: "Permiso requerido",
+    permissionRequiredMessage:
+      "Se requiere permiso de almacenamiento para guardar imágenes en tu dispositivo.",
+  },
+};

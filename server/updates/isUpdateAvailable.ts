@@ -5,10 +5,10 @@ import {
   RequestIsUpdateAvailable,
   ResponseIsUpdateAvailable,
 } from "@types";
-import data from "./dataUploads";
-import { sendResponse } from "../variables.ts";
+import data from "./dataUploads.ts";
+import { sendResponse } from "@common";
 import { Request, Response } from "express";
-import { createTempDownloadUrl } from "./tempDownloadUrl";
+import { createTempDownloadUrl } from "./tempDownloadUrl.ts";
 
 const getSumVersion = (version: string): number => {
   try {
@@ -29,6 +29,8 @@ export const handleIsUpdateAvailable = (
   req: Request<unknown, unknown, RequestIsUpdateAvailable>,
   res: Response<ResponseIsUpdateAvailable>,
 ) => {
+  if (!sendResponse) return;
+
   const defaultRes: ResponseIsUpdateAvailable = {
     updateAvailable: false,
     latestVersion: "",

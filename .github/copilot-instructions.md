@@ -73,18 +73,18 @@ NotificationsProvider → WebSocketProvider
 
 ```typescript
 // 1. Store refs for cleanup
-const intervalRef = useRef<NodeJS.Timeout | null>(null);
+const intervalRef = useRef<number | null>(null);
 
 useEffect(() => {
   // 2. Clear previous before creating new
-  if (intervalRef.current) clearInterval(intervalRef.current);
+  clearIntervalPolyfill(intervalRef.current);
 
   // 3. Create new resource
-  intervalRef.current = setInterval(fn, delay);
+  intervalRef.current = setIntervalPolyfill(fn, delay);
 
   // 4. MANDATORY cleanup
   return () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    clearIntervalPolyfill(intervalRef);
   };
 }, [deps]);
 ```

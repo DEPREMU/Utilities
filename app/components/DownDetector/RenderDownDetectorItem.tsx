@@ -1,5 +1,6 @@
 import Button from "@components/common/ButtonComponent";
 import { Tables } from "@types";
+import { memoDeep } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@components/common/SkeletonLoading";
 import React, { useCallback } from "react";
@@ -46,7 +47,7 @@ const RenderDownDetectorItem: React.FC<RenderDownDetectorItemProps> = ({
           button: styles.buttonContainerSwitch,
           textButton: {},
         }}
-        argsFuncHandlePress={item.id}
+        argsFuncHandlePress={[item.id || ""]}
         handlePress={handleSendNotification}
         touchableOpacity
       >
@@ -67,7 +68,7 @@ const RenderDownDetectorItem: React.FC<RenderDownDetectorItemProps> = ({
         }}
         label={removeLabel}
         handlePress={deleteItem}
-        argsFuncHandlePress={item.id}
+        argsFuncHandlePress={[item.id || ""]}
         touchableOpacity
       />
       <Button
@@ -78,24 +79,12 @@ const RenderDownDetectorItem: React.FC<RenderDownDetectorItemProps> = ({
         label={visitWebsiteLabel}
         touchableOpacity
         handlePress={visitWebsite}
-        argsFuncHandlePress={item.url}
+        argsFuncHandlePress={[item.url]}
       />
     </Card>
   );
 };
 
-const RenderDownDetectorItemMemo = React.memo(
-  RenderDownDetectorItem,
-  (prevProps, nextProps) => {
-    return (
-      prevProps.title === nextProps.title &&
-      prevProps.item.id === nextProps.item.id &&
-      prevProps.removeLabel === nextProps.removeLabel &&
-      prevProps.visitWebsiteLabel === nextProps.visitWebsiteLabel &&
-      prevProps.deleteItem === nextProps.deleteItem &&
-      prevProps.visitWebsite === nextProps.visitWebsite
-    );
-  },
-);
+const RenderDownDetectorItemMemo = memoDeep(RenderDownDetectorItem);
 
 export default RenderDownDetectorItemMemo;

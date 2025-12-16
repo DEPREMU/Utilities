@@ -5,10 +5,10 @@ import {
   ResponseEncrypt,
   ResponseGetRandomUUID,
 } from "@types";
-import env from "env";
+import env from "../env.ts";
 import chalk from "chalk";
 import crypto from "crypto";
-import { sendResponse } from "../variables.ts";
+import { sendResponse } from "@common";
 import { Request, Response } from "express";
 
 /**
@@ -21,7 +21,7 @@ import { Request, Response } from "express";
  * - Ensure that the secret key is kept secure and not exposed in version control.
  * - The default value is intended for development purposes only and should be overridden in production.
  */
-const SECRET_KEY = env.SECRET_KEY_TO_ENCRYPTION;
+const SECRET_KEY = crypto.scryptSync(env.SECRET_KEY_TO_ENCRYPTION, "salt", 32);
 
 /**
  * Initialization Vector (IV) used for encryption algorithms.
@@ -34,7 +34,7 @@ const SECRET_KEY = env.SECRET_KEY_TO_ENCRYPTION;
  * to ensure security. Using a static or predictable IV can compromise the security
  * of the encrypted data.
  */
-const IV = process.env.IV || "abcdef9876543210";
+const IV = Buffer.from(env.IV, "utf-8");
 
 /**
  * The encryption algorithm used for cryptographic operations.
@@ -56,7 +56,7 @@ const algorithm = "aes-256-cbc";
  * This function uses the specified `algorithm`, `SECRET_KEY`, and `IV` to create a cipher.
  * The input text is encrypted and the result is returned as a base64-encoded string.
  */
-const encrypt = (text: string): string => {
+export const encrypt = (text: string): string => {
   try {
     const cipher = crypto.createCipheriv(
       algorithm,
@@ -79,7 +79,7 @@ const encrypt = (text: string): string => {
  *
  * @throws {Error} If decryption fails due to invalid input or configuration.
  */
-const decrypt = (encryptedText: string): string => {
+export const decrypt = (encryptedText: string): string => {
   try {
     const decipher = crypto.createDecipheriv(
       algorithm,
@@ -132,7 +132,10 @@ export const encryptHandler = async (
       "/encrypt",
     );
   } catch (error) {
-    console.error(chalk.red("Encryption error:"), error);
+    console.error(
+      chalk.red("Encryption error:"),
+      error instanceof Error ? error.message : error,
+    );
     sendResponse(
       res,
       "INTERNAL_SERVER_ERROR",

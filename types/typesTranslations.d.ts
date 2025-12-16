@@ -4,7 +4,29 @@ import { ReasonNotification } from "./typesNotifications";
 
 export type LanguagesSupported = "en" | "es";
 
-export type typeT = (key: keyof typeLanguages, options?: object) => string;
+export type GetPlaceholders<T extends string> =
+  T extends `${string}{{${infer K}}}${infer Rest}`
+    ? K | GetPlaceholders<Rest>
+    : never;
+
+export type HasPlaceholder<T extends string> = GetPlaceholders<T> extends never
+  ? false
+  : true;
+
+type ResolvePath<T, P extends string> = P extends `${infer Key}.${infer Rest}`
+  ? Key extends keyof T
+    ? ResolvePath<T[Key], Rest>
+    : never
+  : P extends keyof T
+  ? T[P]
+  : never;
+
+export type typeT = <K extends typeLanguagesKeys>(
+  key: K,
+  ...args: HasPlaceholder<ResolvePath<typeLanguages, K>> extends true
+    ? [options: Record<GetPlaceholders<ResolvePath<typeLanguages, K>>, string>]
+    : []
+) => string;
 
 /**
  * Represents the structure of language translations.
@@ -20,8 +42,8 @@ export type typeLanguages = Record<ReasonNotification, string> &
     success: string;
     dearUser: string;
     cryptoInfo: string;
-    welcomeUser: string;
-    yourIP: string;
+    welcomeUser: `${string}{{user}}${string}`;
+    yourIP: `${string}{{ip}}${string}`;
     location: string;
     organization: string;
     asn: string;
@@ -59,13 +81,13 @@ export type typeLanguages = Record<ReasonNotification, string> &
     isHosting: string;
     status: string;
     selectCurrency: string;
-    priceOfCrypto: string;
+    priceOfCrypto: `${string}{{cryptoName}}${string}`;
     clearCache: string;
     showSelected: string;
     searchCrypto: string;
-    ownedAmount: string;
-    firstInvest: string;
-    gainAmount: string;
+    ownedAmount: `${string}{{amount}}${string}{{cryptoName}}${string}`;
+    firstInvest: `${string}{{amount}}${string}{{cryptoName}}${string}${string}{{price}}${string}`;
+    gainAmount: `${string}{{gainAmount}}${string}{{currency}}${string}`;
     noCryptosFound: string;
     showAll: string;
     goToSelectionTab: string;
@@ -108,7 +130,7 @@ export type typeLanguages = Record<ReasonNotification, string> &
     exitAppMessage: string;
     back: string;
     backMessage: string;
-    datePurchased: string;
+    datePurchased: `${string}{{date}}${string}`;
     language: string;
     setLanguage: string;
     logout: string;
@@ -132,7 +154,7 @@ export type typeLanguages = Record<ReasonNotification, string> &
     easy: string;
     medium: string;
     hard: string;
-    flagsRemaining: string;
+    flagsRemaining: `${string}{{count}}${string}`;
     youWin: string;
     youLose: string;
     youArePlaying: string;
@@ -159,16 +181,16 @@ export type typeLanguages = Record<ReasonNotification, string> &
     error: string;
     streamers: string;
     errorLoadingStreamers: string;
-    streamerAlreadyAdded: string;
+    streamerAlreadyAdded: `${string}{{name}}${string}`;
     askAddStreamerTitle: string;
-    askAddStreamerBody: string;
+    askAddStreamerBody: `${string}{{name}}${string}`;
     askDeleteStreamer: string;
-    askDeleteStreamerBody: string;
+    askDeleteStreamerBody: `${string}{{name}}${string}`;
     delete: string;
-    errorDeletingStreamer: string;
+    errorDeletingStreamer: `${string}{{error}}${string}`;
     addStreamer: string;
     yourStreamers: string;
-    askOpenURL: string;
+    askOpenURL: `${string}{{url}}${string}`;
     openURL: string;
     Live: string;
     Offline: string;
@@ -188,7 +210,7 @@ export type typeLanguages = Record<ReasonNotification, string> &
     adding: string;
     addTextToClipboard: string;
     enterYourTextHere: string;
-    errorOccurred: string;
+    errorOccurred: `${string}{{error}}${string}`;
     failedToAddTextToDatabase: string;
     textAddedToDatabase: string;
     test: string;
@@ -264,7 +286,7 @@ export type typeLanguages = Record<ReasonNotification, string> &
     executingCommand: string;
     noOutput: string;
     loggingIn: string;
-    currentVersion: string;
+    currentVersion: `${string}{{version}}${string}`;
     appUpdates: string;
     appUpdatesExplanation: string;
     openUpdatesWebPage: string;
@@ -283,6 +305,32 @@ export type typeLanguages = Record<ReasonNotification, string> &
     processingQRCode: string;
     qrLoginErrorTitle: string;
     qrLoginErrorMessage: string;
+    noMoreData: string;
+    showDeleted: string;
+    restoreAll: string;
+    deleteAll: string;
+    restore: string;
+    images: {
+      imageSize: `${string}{{size}}${string}`;
+      imageType: `${string}{{type}}${string}`;
+      labelImages: string;
+      canConvertToFormat: `${string}{{format}}${string}`;
+      changeImageFormatTitle: string;
+      deleteImageButtonLabel: string;
+      selectImageButtonLabel: string;
+      permissionRequiredTitle: string;
+      downloadImageButtonLabel: string;
+      changeImageFormatTabTitle: string;
+      permissionRequiredMessage: string;
+      downloadImageSuccessMessage: string;
+      changeImageFormatDescription: string;
+      downloadImageAlbumButtonLabel: `${string}{{albumName}}${string}`;
+      errorWhileSavingImageAlertTitle: string;
+      errorWhileConvertingImageMessage: string;
+      imageDownloadedInAlbumAlertTitle: string;
+      errorWhileSavingImageAlertMessage: `${string}{{imageName}}${string}`;
+      imageDownloadedInAlbumAlertMessage: `${string}{{albumName}}${string}`;
+    };
   };
 
 export type typeLanguagesServer = {
@@ -298,22 +346,39 @@ export type typeLanguagesServer = {
   notificationNotCryptosSelectedBody: string;
   notificationNotCryptosSelectedTitle: string;
   auth: {
-    passwordNotStrong: string;
-    emailAndPasswordRequired: string;
-    accountAlreadyExists: string;
-    invalidCredentials: string;
-    tokenRequired: string;
     userNotFound: string;
+    tokenRequired: string;
     invalidPassword: string;
-    wrongCredentials: string;
+    sessionNotFound: string;
     deviceIdRequired: string;
-    tokenAndDeviceIdRequired: string;
+    wrongCredentials: string;
+    passwordNotStrong: string;
+    invalidCredentials: string;
+    invalidEmailFormat: string;
+    accountAlreadyExists: string;
     deviceInfoIsRequired: string;
+    emailAndPasswordRequired: string;
+    tokenAndDeviceIdRequired: string;
   };
   database: {
     fetchError: string;
     insertError: string;
     updateError: string;
     deleteError: string;
+    invalidBody: string;
+  };
+  images: {
+    formatChangeError: string;
+    invalidImageFormat: string;
+    invalidImageBuffer: string;
   };
 };
+
+type Paths<T, Prev extends string = ""> = {
+  [K in keyof T]: T[K] extends object
+    ? Paths<T[K], `${Prev}${K & string}.`>
+    : `${Prev}${K & string}`;
+}[keyof T];
+
+export type typeLanguagesKeys = Paths<typeLanguages>;
+export type typeLanguagesServerKeys = Paths<typeLanguagesServer>;

@@ -1,13 +1,13 @@
-import fs from "fs";
 import {
   DataUpdates,
   PlatformsOS,
   BuildTypeUpdates,
   RequestUploadUpdate,
 } from "@types";
+import fs from "fs";
 import path from "path";
-import { getFinalFileName } from "./uploadUpdate";
-import { PATH_DATA_UPDATES, UPLOAD_DIR } from "config";
+import { getFinalFileName } from "./uploadUpdate.ts";
+import { PATH_DATA_UPDATES, UPLOAD_DIR } from "../config.ts";
 
 const defaultData: DataUpdates = {
   old: {

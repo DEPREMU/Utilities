@@ -74,6 +74,7 @@ export type RequestAuth<T extends "login" | "signup"> = {
 
 export type RequestRefreshSession = {
   lang: LanguagesSupported;
+  deviceId: string;
 };
 
 export type RequestSignOut = {
@@ -99,22 +100,37 @@ export type RequestDatabaseFetchWithoutPagination<
 };
 
 export type RequestDatabaseFetchWithPagination<
-  T extends TablesKeys = TablesKeys
+  T extends TablesKeys = TablesKeys,
+  U extends Tables[T] = Tables[T]
 > = {
   lang: LanguagesSupported;
   table: T;
-  match: Partial<Tables[T]> | null;
+  match: Partial<U>;
   deviceId: string;
   pagination: true;
   limit?: number;
   offset?: number;
-  orderBy: keyof Tables[T];
+  orderBy: keyof U;
   orderDirection: "ASC" | "DESC";
 };
 
-export type RequestDatabaseFetch<T extends TablesKeys = TablesKeys> =
+export type RequestDatabaseFetchWithoutSearch = {
+  search?: undefined;
+};
+
+export type RequestDatabaseFetchSearch<
+  T extends TablesKeys = TablesKeys,
+  K extends keyof Tables[T] = keyof Tables[T]
+> = {
+  search: string;
+  columnsToSearch: K[] | K;
+};
+
+export type RequestDatabaseFetch<T extends TablesKeys = TablesKeys> = (
   | RequestDatabaseFetchWithPagination<T>
-  | RequestDatabaseFetchWithoutPagination<T>;
+  | RequestDatabaseFetchWithoutPagination<T>
+) &
+  (RequestDatabaseFetchSearch<T> | RequestDatabaseFetchWithoutSearch);
 
 export type RequestDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
@@ -131,9 +147,7 @@ export type RequestDatabaseDelete<T extends TablesKeys = TablesKeys> = {
   deviceId: string;
 };
 
-export type RequestLogs = {
-  log: Logs;
-};
+export type RequestLogs = Logs;
 
 export type RequestDoQuery = {
   query: string;
@@ -175,4 +189,10 @@ export type RequestDownloadViaTempUrl = {
   platformOS: PlatformsOS;
   version: string;
   id: string;
+};
+
+export type RequestChangeImageFormat = {
+  lang: LanguagesSupported;
+  format: "jpeg" | "png" | "webp" | "avif" | "gif";
+  imageBufferInString: string;
 };

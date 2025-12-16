@@ -1,13 +1,16 @@
 {
   "extends": "expo/tsconfig.base",
   "typeRoutes": ["../types/index.d.ts"],
+  "include": ["**/*.ts", "**/*.tsx", "../common/index.ts"],
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": ["*"],
       "@utils": ["utils/"],
       "@types": ["../types/index.d.ts"],
+      "@common": ["../common/both/"],
       "@hooks/*": ["hooks/*"],
       "@assets/*": ["assets/*"],
       "@styles/*": ["styles/*"],

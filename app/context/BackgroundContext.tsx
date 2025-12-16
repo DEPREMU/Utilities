@@ -6,7 +6,8 @@ import React, {
   createContext,
 } from "react";
 import {
-  loadDataSecure,
+  log,
+  loadDataStorage,
   setTimeoutPolyfill,
   setIntervalPolyfill,
   clearTimeoutPolyfill,
@@ -17,9 +18,9 @@ import {
   askDisplayOverOtherAppsPermission,
 } from "@utils";
 import { typeT } from "@types";
-import ExpoUpdates from "expo-updates";
 import { t as i18n } from "i18next";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
+import { reloadAppAsync } from "expo";
 import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
 import { AppState, DeviceEventEmitter, Platform } from "react-native";
 
@@ -27,7 +28,7 @@ type typeDataReceivedState = { state: "suspended" | "resumed" };
 
 type dataTimeControl = {
   fn: (...args: unknown[]) => void;
-  id?: NodeJS.Timeout | number;
+  id?: number;
   type: "interval" | "timeout";
   interval: number;
   workWithInternet: boolean;
@@ -175,13 +176,14 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       while (!BackgroundModule.start && attempt < 5) {
         attempt++;
         await new Promise((resolve) => setTimeoutPolyfill(resolve, 1000));
+        log(`Waiting for BackgroundModule to be ready... Attempt ${attempt}`);
       }
 
-      if (!BackgroundModule.start) return ExpoUpdates.reloadAsync();
+      if (!BackgroundModule.start) return reloadAppAsync();
 
       const t = i18n as typeT;
 
-      loadDataSecure("_deviceId").then(
+      loadDataStorage("_deviceId").then(
         (deviceId) =>
           !deviceId &&
           NativeFunctionsModule?.requestIgnoreBatteryOptimizations?.(),
@@ -203,9 +205,14 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
         setStatePhone(data.state || "resumed");
       },
     );
+    const subscriptionIsAliveRN = DeviceEventEmitter.addListener(
+      "queryAppState",
+      () => BackgroundModule.setReactAlive(true),
+    );
 
     return () => {
       subscription.remove();
+      subscriptionIsAliveRN.remove();
       subscriptionStatePhone.remove();
       BackgroundModule.stop();
     };

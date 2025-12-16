@@ -20,4 +20,5 @@ export type Env = {
   __DEV__: string;
   WS_URL: string;
   PORT: string;
+  IV: string;
 };

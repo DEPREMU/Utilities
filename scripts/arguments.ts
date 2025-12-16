@@ -1,4 +1,14 @@
-import type * as Types from "@types";
+import {
+  isUpdate,
+  isAppLint,
+  isAppStart,
+  isAppClean,
+  isBuildAndroid,
+  isUploadElectron,
+  isBuildAppElectron,
+  isBuildUploadAndroid,
+  isBuildResourcesElectron,
+} from "./filesCalled.ts";
 
 const args = process.argv.slice(2);
 
@@ -21,21 +31,7 @@ export type TYPE_ARGS = {
 };
 
 const showHelp = () => {
-  const fileCalled = process.argv[1].split("/").pop();
-  console.log(`Parsing arguments for script: ${fileCalled}`);
   const options: string[] = [];
-
-  const isUpdate = fileCalled?.includes("update");
-  const isAppLint = fileCalled?.includes("app-lint");
-  const isAppStart = fileCalled?.includes("app-start");
-  const isAppClean = fileCalled?.includes("app-clean");
-  const isBuildAndroid = fileCalled?.includes("build-android");
-  const isUploadElectron = fileCalled?.includes("build-upload-electron");
-  const isBuildUploadAndroid = fileCalled?.includes("build-upload-android");
-  const isBuildAppElectron = fileCalled?.includes("build-app-electron");
-  const isBuildResourcesElectron = fileCalled?.includes(
-    "build-resources-electron"
-  );
 
   if (isBuildUploadAndroid) {
     options.push(

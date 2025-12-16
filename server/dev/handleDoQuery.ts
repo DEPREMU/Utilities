@@ -8,7 +8,7 @@ export const handleDoQueryDatabase = async (
   req: Request<unknown, unknown, RequestDoQuery>,
   res: Response<ResponseDoQuery>,
 ) => {
-  if (!env.__DEV__) {
+  if (!["1", "true"].includes(env.__DEV__)) {
     res.status(403).json({ error: "Not available" });
     return;
   }
@@ -23,15 +23,18 @@ export const handleDoQueryDatabase = async (
     const client = await pool.connect();
     try {
       const result = await client.query(query);
-      const data = {
-        rowCount: result.rowCount,
-        rows: result.rows,
+      const data: ResponseDoQuery["result"] = {
+        rowCount: result.rowCount || 0,
+        rows: result.rows || [],
         command: result.command,
         fields: showFields ? result.fields : undefined,
       };
       res.json({ result: data });
     } catch (error) {
-      console.error(chalk.red("Error executing query:"), error);
+      console.error(
+        chalk.red("Error executing query:"),
+        error instanceof Error ? error.message : error,
+      );
       res.status(500).json({ error: `Error executing query: ${error}` });
     } finally {
       client.release();

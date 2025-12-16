@@ -14,11 +14,11 @@ import {
   ResponseHealth,
   RoutesAPIWithItsMethod,
 } from "@types";
-import axios from "axios";
 import { isFalsy } from "@utils";
 import { stringifyData } from "./appManagement";
 import { logError, logWarn } from "./debug";
-import { loadData, saveData } from "./storageManagement";
+import axios, { AxiosRequestConfig } from "axios";
+import { loadDataStorage, saveDataStorage } from "./storageManagement";
 
 /**
  * Generates an options object for a fetch request.
@@ -61,7 +61,7 @@ export const getRouteAPI = async (
   route: RoutesAPI | UpdatesRoutes,
 ): Promise<string> => {
   let isOk: boolean = false;
-  let apiUrl = await loadData("@API_URL");
+  let apiUrl = await loadDataStorage("@API_URL");
 
   if (isFalsy(apiUrl)) {
     apiUrl = API_URL;
@@ -76,16 +76,16 @@ export const getRouteAPI = async (
 
     if (isOk)
       await Promise.all([
-        saveData("@API_URL", API_URL),
-        saveData("@webSocketURL", URL_WEB_SOCKET),
-        saveData("@clipboardWebSocketURL", CLIPBOARD_WS_URL),
+        saveDataStorage("@API_URL", API_URL),
+        saveDataStorage("@webSocketURL", URL_WEB_SOCKET),
+        saveDataStorage("@clipboardWebSocketURL", CLIPBOARD_WS_URL),
       ]);
     else {
       logWarn("Falling back to server API URL and WebSocket URL");
       apiUrl = fallbackAPI_URL;
       await Promise.all([
-        saveData("@API_URL", fallbackAPI_URL),
-        saveData("@webSocketURL", fallbackURL_WEB_SOCKET),
+        saveDataStorage("@API_URL", fallbackAPI_URL),
+        saveDataStorage("@webSocketURL", fallbackURL_WEB_SOCKET),
       ]);
     }
   }
@@ -104,13 +104,13 @@ export const getRouteAPI = async (
  *
  * @remarks
  * This function is useful for constructing image URLs dynamically.
- * For example, if the base API URL is "https://example.com/api/v1"
+ * For example, if the base API URL is "https://example.com/api"
  * and the filename is "/images/photo.jpg", the resulting URL will be:
  * "https://example.com/images/photo.jpg".
  */
 export const getRouteImage = async (filename: string): Promise<string> => {
-  const apiUrl = await loadData("@API_URL").then((data) => data || API_URL);
-  return `${apiUrl.replace("/api/v1", "")}${filename}`;
+  const apiUrl = await loadDataStorage("@API_URL", API_URL);
+  return `${apiUrl.replace("/api", "")}${filename}`;
 };
 
 const routes: RoutesAPIWithItsMethod = {
@@ -133,6 +133,7 @@ const routes: RoutesAPIWithItsMethod = {
   "/encrypt": { method: "post", type: "api" },
   "/decrypt": { method: "post", type: "api" },
   "/getRandomUUID": { method: "get", type: "api" },
+  "/images/changeImageFormat": { method: "post", type: "api" },
   "/upload-update": { method: "post", type: "updates" },
   "/is-update-available": { method: "post", type: "updates" },
   "/web-page": { method: "get", type: "updates" },
@@ -169,7 +170,7 @@ export const fetchToServer = async <
 
     const data = isBodyMethod && body ? stringifyData(body) : undefined;
 
-    const config = {
+    const config: AxiosRequestConfig = {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",

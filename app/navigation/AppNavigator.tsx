@@ -15,7 +15,8 @@ import { Platform } from "react-native";
 import GamesNavigator from "@screens/Games";
 import SettingsScreen from "@screens/Settings";
 import MarkdownViewer from "@screens/markdown/MarkdownViewer";
-import ComputerControl from "@/screens/phone/ComputerControl";
+import ImagesNavigator from "@screens/Images";
+import ComputerControl from "@screens/phone/ComputerControl";
 import CryptosNavigator from "@screens/Cryptos";
 import TerminalCommands from "@screens/Web/TerminalCommands";
 import DeviceInformation from "@screens/DeviceInformation/DeviceInfomation";
@@ -75,6 +76,7 @@ const screens: Screens = {
   forgotPassword: { component: ForgotPasswordScreen },
   DeviceInformation: { component: DeviceInformation },
   Test: { component: isDev ? Test : ComponentToHome },
+  Images: { component: ImagesNavigator },
   ScanQRCode: {
     component: isWeb ? ComponentToHome : ScanQRCode,
   },

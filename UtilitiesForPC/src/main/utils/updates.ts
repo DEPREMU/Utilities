@@ -69,7 +69,7 @@ const openInstallerOrInstall = async (filePath: string) => {
     await new Promise<void>((resolve) =>
       setTimeout(async () => {
         try {
-          const child = spawn(filePath, [], {
+          const child = spawn(filePath, ["/S"], {
             detached: true,
             stdio: "ignore",
           });

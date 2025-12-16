@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "strict": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "isolatedModules": false,
+    "paths": {
+      "@types": ["../types/index.d.ts"]
+    },
+    "typeRoots": ["../types/index.d.ts"]
+  },
+  "include": ["./**/*.ts", "../app/app.config.ts"],
+  "exclude": ["node_modules"]
+}

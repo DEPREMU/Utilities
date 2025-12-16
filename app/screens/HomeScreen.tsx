@@ -8,11 +8,11 @@ import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
 import { Platform, ScrollView, View } from "react-native";
-import { ScreensAvailable, typeLanguages } from "@types";
+import { ScreensAvailable, typeLanguagesKeys } from "@types";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 type ButtonType = {
-  label: keyof typeLanguages;
+  label: typeLanguagesKeys;
   screen: ScreensAvailable;
   noNeedsSession?: boolean;
   noNeedsInternet?: boolean;
@@ -52,6 +52,12 @@ const buttons: ButtonType[] = [
   {
     label: "downDetector",
     screen: "DownDetector",
+  },
+  {
+    label: "images.labelImages",
+    screen: "Images",
+    noNeedsSession: true,
+    noNeedsInternet: Platform.OS === "web",
   },
 ];
 if (Platform.OS !== "web") {
@@ -127,7 +133,7 @@ const HomeScreen: React.FC = () => {
             (!button.noNeedsSession && !isLoggedIn)
           }
           label={t(button.label)}
-          argsFuncHandlePress={button.screen}
+          argsFuncHandlePress={[button.screen]}
           touchableOpacity
           handlePress={navigateReplace}
         />

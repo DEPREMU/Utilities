@@ -6,8 +6,8 @@ import {
 } from "@types";
 import chalk from "chalk";
 import QRCode from "qrcode";
-import { getStorageData } from "routes/auth.ts";
-import { fetchFromTable } from "database/functions.ts";
+import { getStorageData } from "../routes/auth.ts";
+import { fetchFromTable } from "../database/functions.ts";
 import WebSocket, { WebSocketServer } from "ws";
 import { decodeJWTToken, getJWTTokenAndUpload } from "../functions/auth.ts";
 
@@ -49,7 +49,7 @@ const handleLoginWithQR = async (
     };
     wsWeb.send(JSON.stringify(message));
 
-    const decoded = decodeJWTToken(tokenMobile);
+    const decoded = await decodeJWTToken(tokenMobile);
     if (!decoded || !deviceIdWeb) {
       messageToMobile.status = "error";
       wsMobile.send(JSON.stringify(messageToMobile));
@@ -93,9 +93,9 @@ const handleLoginWithQR = async (
       return;
     }
 
-    const responseAuth: ResponseAuth = {
+    const responseAuth: ResponseAuth<"login"> = {
       success: true,
-      user: user as ResponseAuth["user"],
+      user: user as ResponseAuth<"login">["user"],
       token: dataInsert.data[0].token,
       storageValues: storageValues || undefined,
     };
@@ -191,6 +191,8 @@ export const initWebSocketLoginQRCode = () => {
     });
 
     socket.on("close", () => {
+      socket.removeAllListeners();
+
       if (!deviceId) return;
 
       console.log(`WebSocket connection closed for deviceId: ${deviceId}`);

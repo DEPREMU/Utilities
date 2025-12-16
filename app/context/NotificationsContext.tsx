@@ -16,9 +16,9 @@ import {
 } from "@types";
 import {
   logError,
-  saveData,
   stringifyData,
-  loadDataSecure,
+  loadDataStorage,
+  saveDataStorage,
   getNotifications,
   isLocationEnabled,
   setTimeoutPolyfill,
@@ -97,7 +97,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
             timePaused: -1,
           };
 
-          await saveData("@notifications", newNotifications);
+          await saveDataStorage("@notifications", newNotifications);
           setNotifications(newNotifications);
           notificationsFromStorage.current = newNotifications;
         }
@@ -222,7 +222,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
               };
 
               setNotifications(newNotifications);
-              await saveData("@notifications", newNotifications);
+              await saveDataStorage("@notifications", newNotifications);
               notificationsFromStorage.current = newNotifications;
             } catch (error) {
               logError("Error pausing notifications", error);
@@ -238,7 +238,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
               newNotifications.enabled[event.reasonNotification] = false;
 
               setNotifications(newNotifications);
-              await saveData("@notifications", newNotifications);
+              await saveDataStorage("@notifications", newNotifications);
               notificationsFromStorage.current = newNotifications;
             }
             break;
@@ -269,7 +269,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     const saveNewNotifications = async () => {
       try {
-        await saveData("@notifications", notifications);
+        await saveDataStorage("@notifications", notifications);
       } catch (error) {
         logError("Error saving notifications to storage", error);
       }
@@ -343,8 +343,18 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   useEffect(() => {
     sendNotificationRef.current = sendNotification;
+    if (Platform.OS === "android")
+      NotificationModule.cancelPreviousReasonNotification(
+        "noInternetConnection",
+      );
 
-    if (!hasInternet && prevHasInternet) {
+    if (prevHasInternet.current === null) {
+      prevHasInternet.current = hasInternet;
+      return;
+    }
+    if (hasInternet === prevHasInternet.current) return;
+
+    if (!hasInternet && prevHasInternet.current) {
       sendNotification({
         title: t("NoInternetConnection"),
         message: t("PleaseCheckInternetConnection"),
@@ -353,12 +363,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         channelId: "noInternetConnection",
         reasonNotification: "noInternetConnection",
       });
-      return;
-    } else if (
-      prevHasInternet.current !== null &&
-      !prevHasInternet.current &&
-      hasInternet
-    ) {
+    } else {
       sendNotification({
         title: t("InternetConnectionRestored"),
         message: t("YouAreBackOnline"),
@@ -368,6 +373,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         overrideNotification: false,
       });
     }
+
     if (prevHasInternet.current !== hasInternet)
       prevHasInternet.current = hasInternet;
   }, [hasInternet, sendNotification, t]);
@@ -423,20 +429,22 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
-    if (!sessionToken) return;
+    if (!sessionToken || !userData?.userId) return;
 
-    BackgroundModule?.isRunning().then((running) => {
-      if (running || !userData?.userId) return;
+    const id = setTimeoutPolyfill(
+      () =>
+        loadDataStorage("_deviceId").then((deviceId) => {
+          BackgroundModule?.setUserData(
+            sessionToken,
+            userData.userId,
+            language,
+            deviceId,
+          );
+        }),
+      5000,
+    );
 
-      loadDataSecure("_deviceId").then((deviceId) => {
-        BackgroundModule?.setUserData(
-          sessionToken,
-          userData.userId,
-          language,
-          deviceId || "",
-        );
-      });
-    });
+    return () => clearTimeoutPolyfill(id);
   }, [sessionToken, userData?.userId, language]);
 
   const value: NotificationsContextType = {

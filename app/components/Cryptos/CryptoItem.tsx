@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import { stringifyData } from "@utils";
+import { memoDeep } from "@utils";
 import useStylesCryptoItem from "@styles/components/cryptos/useStylesCryptoItem";
 import React, { useCallback } from "react";
 import { Cryptos, PriceBinanceAPI } from "@types";
@@ -58,14 +58,6 @@ const CryptoItem: React.FC<CryptoItemProps> = ({
   );
 };
 
-const CryptoItemMemo = React.memo(CryptoItem, (prevProps, nextProps) => {
-  return (
-    prevProps.isSelected === nextProps.isSelected &&
-    stringifyData(prevProps.crypto) === stringifyData(nextProps.crypto) &&
-    stringifyData(prevProps.item) === stringifyData(nextProps.item) &&
-    prevProps.onAmountChange === nextProps.onAmountChange &&
-    prevProps.onCheckBoxChange === nextProps.onCheckBoxChange
-  );
-});
+const CryptoItemMemo = memoDeep(CryptoItem);
 
 export default CryptoItemMemo;

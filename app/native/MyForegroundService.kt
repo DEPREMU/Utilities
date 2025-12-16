@@ -1,4 +1,4 @@
-package com.utilities.depremu
+package {{packageName}}
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -28,17 +28,14 @@ import java.io.IOException
 
 class MyForegroundService : Service() {
     companion object {
-        @Volatile
-        var lastText: String = ""
-
         private const val CHANNEL_ID = "ForegroundServiceChannel"
         private const val NOTIFICATION_ID = 198
     }
 
     private val handler = Handler(Looper.getMainLooper())
     private var counter = 0
-    private var title = "Servicio Activo"
-    private var message = "Utilities está ejecutándose en segundo plano."
+    private var title = "Service not running"
+    private var message = "Utilities may not be running in the background, open the app to ensure it continues running."
     private var wakeLock: PowerManager.WakeLock? = null
     private var screenReceiver: RestartServiceReceiver? = null
     
@@ -51,7 +48,6 @@ class MyForegroundService : Service() {
     private val table: String = "ClipboardSync"
     private var userToken: String? = null
     private val client = OkHttpClient()
-    private val serverURL = "{{serverURL}}"
     private var clipboardEnabled = false
 
     private val clipListener =
@@ -62,9 +58,14 @@ class MyForegroundService : Service() {
             val item = clip?.getItemAt(0)
             val text = item?.text?.toString() ?: return@OnPrimaryClipChangedListener
 
-            if (text != lastText && text.isNotBlank()) {
-                lastText = text
-                sendToDatabase(text)
+            if (text.isNotBlank()) {
+                Log.d("MyForegroundService", "New clipboard text: $text")
+                BackgroundServiceModule.sendEvent(
+                    "ClipboardUpdated",
+                    Arguments.createMap().apply {
+                        putString("text", text)
+                    }
+                )
             }
         }
 
@@ -141,9 +142,9 @@ class MyForegroundService : Service() {
         flags: Int,
         startId: Int,
     ): Int {
-        title = intent?.getStringExtra("title") ?: "Servicio Activo"
-        message = intent?.getStringExtra("message") ?: "Utilities está ejecutándose en segundo plano."
-        
+        title = intent?.getStringExtra("title") ?: title
+        message = intent?.getStringExtra("message") ?: message
+
         val enableClipboard = intent?.getBooleanExtra("enableClipboard", false) ?: false
         if (enableClipboard) {
             lang = intent.getStringExtra("lang") ?: lang
@@ -159,15 +160,15 @@ class MyForegroundService : Service() {
         
         val prefs = getSharedPreferences("ForegroundServicePrefs", Context.MODE_PRIVATE)
         prefs.edit().apply {
-            putBoolean("wasConfigured", true)
             putString("title", title)
             putString("message", message)
+            putBoolean("wasConfigured", true)
             putBoolean("clipboardEnabled", clipboardEnabled)
             if (clipboardEnabled) {
+                putString("lang", lang)
                 putString("userId", userId)
                 putString("deviceId", deviceId)
                 putString("userToken", userToken)
-                putString("lang", lang)
             }
             apply()
         }
@@ -245,66 +246,5 @@ class MyForegroundService : Service() {
         } catch (e: Exception) {
             Log.e("MyForegroundService", "Error sending restart broadcast: ${e.message}")
         }
-    }
-    
-    private fun sendToDatabase(content: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            createdAt = java.time.Instant.now().toString()
-        }
-        if (userId.isNullOrBlank() || deviceId.isBlank() || userToken.isNullOrBlank()) return
-
-        val jsonToTable =
-            JSONObject().apply {
-                put("userId", userId)
-                put("content", content)
-                put("deviceId", deviceId)
-                put("createdAt", createdAt)
-            }
-
-        val jsonToServer =
-            JSONObject().apply {
-                put("lang", lang ?: "en")
-                put("table", table)
-                put("values", jsonToTable)
-            }
-
-        val mediaType = "application/json".toMediaType()
-        val body = jsonToServer.toString().toRequestBody(mediaType)
-        var fullServerURL = serverURL
-        if (fullServerURL.endsWith("/")) {
-            fullServerURL = fullServerURL.dropLast(1)
-        }
-
-        val request =
-            Request
-                .Builder()
-                .url("$fullServerURL/database/insert")
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", "Bearer $userToken")
-                .post(body)
-                .build()
-
-        client.newCall(request).enqueue(
-            object : Callback {
-                override fun onFailure(
-                    call: Call,
-                    e: IOException,
-                ) {
-                    Log.e("MyForegroundService", "Error uploading clipboard: ${e.message}")
-                }
-
-                override fun onResponse(
-                    call: Call,
-                    response: Response,
-                ) {
-                    if (!response.isSuccessful) {
-                        Log.e("MyForegroundService", "Failed to sync clipboard: ${response.code}")
-                    } else {
-                        Log.d("MyForegroundService", "Clipboard synced successfully")
-                    }
-                    response.close()
-                }
-            },
-        )
     }
 }

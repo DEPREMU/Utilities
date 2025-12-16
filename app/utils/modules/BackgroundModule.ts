@@ -17,6 +17,7 @@ export interface Spec extends TurboModule {
   setClipboardText(text: string): void;
   stopClipboardService(): void;
   startClipboardService(): void;
+  setReactAlive(alive: boolean): void;
 }
 
 const defaultBackgroundModule: Spec = {
@@ -25,6 +26,7 @@ const defaultBackgroundModule: Spec = {
   setUserData: () => {},
   isRunning: async () => false,
   getMethods: async () => [],
+  setReactAlive: () => {},
   setClipboardText: () => {},
   stopClipboardService: () => {},
   startClipboardService: () => {},

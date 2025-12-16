@@ -1,4 +1,3 @@
-import { execSync } from "child_process";
 import {
   env,
   ARGS,
@@ -11,6 +10,7 @@ import {
 } from "./config.ts";
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
 import { formatFolder } from "./format-folder.ts";
 
 const run = () => {
@@ -41,13 +41,17 @@ const run = () => {
       execSync("npx expo start -c", { cwd: APP_PATH, stdio: "inherit", env });
       break;
     case "server":
-      execSync("npm run start", { cwd: SERVER_PATH, stdio: "inherit", env });
+      execSync("npm run start", {
+        cwd: SERVER_PATH,
+        stdio: "inherit",
+        env: { ...env, SERVER_OR_ELECTRON: "server" },
+      });
       break;
     case "server-dev":
       execSync("npm run start-dev", {
         cwd: SERVER_PATH,
         stdio: "inherit",
-        env,
+        env: { ...env, SERVER_OR_ELECTRON: "server" },
       });
       break;
     case "type-check":
@@ -63,7 +67,6 @@ const run = () => {
       beforeCommit();
       break;
     case "build-web": {
-      console.log("Building web app...", env);
       const envWeb = {
         ...env,
         PLATFORM: "web",
@@ -72,9 +75,9 @@ const run = () => {
       execSync(
         `npx expo export -c -p web ${envWeb.NODE_ENV === "production" ? "" : "--dev --no-minify"}`,
         {
+          env: envWeb,
           cwd: APP_PATH,
           stdio: "inherit",
-          env: envWeb,
         }
       );
       break;

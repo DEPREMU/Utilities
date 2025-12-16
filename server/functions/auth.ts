@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
 import env from "../env.ts";
 import chalk from "chalk";
-import { deleteInTable, insertIntoTable } from "database/functions.ts";
+import { wrapFunctionWithError } from "@common";
+import { deleteInTable, insertIntoTable } from "../database/functions.ts";
 
 declare global {
   namespace Express {
@@ -26,45 +27,58 @@ export const getDateWithDaysAhead = (days: number): Date => {
   return date;
 };
 
-export const getJWTToken = (storedValues: TokenJWT): string => {
-  try {
+export const getJWTToken = wrapFunctionWithError(
+  async (storedValues: TokenJWT) => {
     return jwt.sign(storedValues, env.JWT_SECRET, {
       expiresIn,
     });
-  } catch (error) {
-    console.error(chalk.red("Error generating JWT token:"), error);
+  },
+  true,
+  async (_, errorMessage) => {
+    console.error(chalk.red("Error generating JWT token:"), errorMessage);
     return "";
-  }
-};
+  },
+);
 
-export const decodeJWTToken = (token: string): TokenJWT | null => {
-  try {
+export const decodeJWTToken = wrapFunctionWithError(
+  async (token: string) => {
     const decoded = jwt.verify(token, env.JWT_SECRET) as TokenJWT;
     return decoded;
-  } catch (error) {
-    console.error(chalk.red("Error decoding JWT token:"), error);
+  },
+  true,
+  async (_, errorMessage) => {
+    console.error(chalk.red("Error decoding JWT token:"), errorMessage);
     return null;
-  }
-};
+  },
+);
 
-export const getJWTTokenAndUpload = async (tokenJWT: TokenJWT) => {
-  const token = getJWTToken(tokenJWT);
-  await Promise.all([
-    deleteInTable(tokenJWT.userId, "UserSessions", {
-      deviceId: tokenJWT.deviceId,
+export const getJWTTokenAndUpload = wrapFunctionWithError(
+  async (tokenJWT: TokenJWT) => {
+    const token = await getJWTToken(tokenJWT);
+    await Promise.all([
+      deleteInTable(tokenJWT.userId, "UserSessions", {
+        deviceId: tokenJWT.deviceId,
+        userId: tokenJWT.userId,
+      }),
+      deleteInTable(tokenJWT.userId, "PushTokens", {
+        token: tokenJWT.notificationToken,
+      }),
+    ]);
+
+    const dataInsert = await insertIntoTable("UserSessions", {
       userId: tokenJWT.userId,
-    }),
-    deleteInTable(tokenJWT.userId, "PushTokens", {
-      token: tokenJWT.notificationToken,
-    }),
-  ]);
+      token,
+      deviceId: tokenJWT.deviceId,
+      updatedAt: new Date().toISOString(),
+    });
 
-  const dataInsert = await insertIntoTable("UserSessions", {
-    userId: tokenJWT.userId,
-    token,
-    deviceId: tokenJWT.deviceId,
-    updatedAt: new Date().toISOString(),
-  });
-
-  return dataInsert;
-};
+    return dataInsert;
+  },
+  true,
+  (_, errorMessage) => {
+    console.error(chalk.red("Error uploading JWT token:"), errorMessage);
+    return { error: errorMessage } as unknown as ReturnType<
+      typeof insertIntoTable<"UserSessions">
+    >;
+  },
+);

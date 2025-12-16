@@ -1,6 +1,51 @@
-import { typeLanguages } from "@types";
+import type { typeLanguages, typeLanguagesServer } from "@types";
 
-const en: typeLanguages = {
+export const enServer: typeLanguagesServer = {
+  notificationCryptoTitle: "Crypto Update: {{cryptos}}",
+  notificationCryptoBody:
+    "The current price of {{crypto}} is {{price}} {{gainPercent}}.",
+  notificationNotCryptosSelectedBody:
+    "No cryptos selected for notifications.\nGo to crypto selection to receive updates.",
+  notificationNotCryptosSelectedTitle: "No Cryptos Selected",
+  streamerLiveNotification: "Your favorite streamer {{streamer}} is now live!",
+  notificationServerRestartBody: "The server has been restarted.",
+  notificationServerRestartTitle: "Server Restarted",
+  streamerLiveNotificationTitle: "Streamer Live: {{streamer}}",
+  internalError: "Internal server error",
+  downDetectorNotificationTitle: "Service Down: {{service}}",
+  downDetectorNotificationBody:
+    "The service {{service}} is currently experiencing issues.",
+  auth: {
+    passwordNotStrong:
+      "Password must be at least 8 characters long and contain at least one letter and one number",
+    emailAndPasswordRequired: "email and password are required",
+    invalidCredentials: "Invalid email or password",
+    accountAlreadyExists: "An account with this email already exists",
+    tokenRequired: "Token is required",
+    userNotFound: "User not found",
+    invalidPassword: "Invalid password",
+    sessionNotFound: "Session not found",
+    invalidEmailFormat: "Invalid email format",
+    wrongCredentials: "Wrong email or password",
+    deviceIdRequired: "Device ID is required",
+    tokenAndDeviceIdRequired: "Token and Device ID are required",
+    deviceInfoIsRequired: "Device information is required",
+  },
+  database: {
+    fetchError: "Error fetching data from the database",
+    insertError: "Error inserting data into the database",
+    updateError: "Error updating data in the database",
+    deleteError: "Error deleting data from the database",
+    invalidBody: "Invalid request body",
+  },
+  images: {
+    formatChangeError: "Error changing image format",
+    invalidImageFormat: "Invalid image format",
+    invalidImageBuffer: "Invalid image buffer provided",
+  },
+};
+
+export const enApp: typeLanguages = {
   success: "Success",
   welcomeUser: "Welcome back, {{user}}",
   close: "Close",
@@ -321,6 +366,35 @@ const en: typeLanguages = {
   processingQRCode: "Processing QR Code...",
   qrLoginErrorMessage: "An error occurred during QR login, please try again.",
   qrLoginErrorTitle: "QR Login Error",
-} as const;
-
-export default en;
+  noMoreData: "No more data available",
+  showDeleted: "Show Deleted",
+  restoreAll: "Restore All",
+  deleteAll: "Delete All",
+  restore: "Restore",
+  images: {
+    changeImageFormatTabTitle: "Change Image Format",
+    changeImageFormatTitle: "Change Image Format",
+    changeImageFormatDescription:
+      "Select an image from your device to convert it to a different format.",
+    selectImageButtonLabel: "Select Image",
+    labelImages: "Images",
+    imageSize: "Image Size: {{size}} bytes",
+    imageType: "Image Type: {{type}}",
+    canConvertToFormat: "Convert to {{format}}",
+    downloadImageButtonLabel: "Download Image",
+    deleteImageButtonLabel: "Delete Image",
+    downloadImageSuccessMessage: "Image downloaded successfully",
+    errorWhileConvertingImageMessage:
+      "An error occurred while converting the image. Please try again.",
+    downloadImageAlbumButtonLabel: "Download to album {{albumName}}",
+    imageDownloadedInAlbumAlertTitle: "Image Downloaded",
+    imageDownloadedInAlbumAlertMessage:
+      "The image has been successfully downloaded to the album {{albumName}}.",
+    errorWhileSavingImageAlertMessage:
+      "An error occurred while saving the image {{imageName}}.",
+    errorWhileSavingImageAlertTitle: "Error Saving Image",
+    permissionRequiredTitle: "Permission Required",
+    permissionRequiredMessage:
+      "Storage permission is required to save images to your device.",
+  },
+};

@@ -8,7 +8,7 @@ import {
   UserNotificationsConfig,
 } from "@types";
 import chalk from "chalk";
-import { t } from "../translations/index.ts";
+import { t } from "@common";
 import { dataDatabase } from "./fetchData.ts";
 import { isLiveStreamer } from "../routes/socialMedia.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";

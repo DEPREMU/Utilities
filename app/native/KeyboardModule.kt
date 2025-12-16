@@ -1,4 +1,4 @@
-package com.utilities.depremu
+package {{packageName}}
 
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext

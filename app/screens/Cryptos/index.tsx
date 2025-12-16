@@ -4,7 +4,7 @@ import SelectionScreen from "./SelectionScreen";
 import { SelectedCryptos } from "@types";
 import { BottomNavigation } from "react-native-paper";
 import useStylesCryptosNavigator from "@styles/components/cryptos/useStylesCryptosNavigator";
-import { loadDataSecure, logError } from "@utils";
+import { loadDataStorage, logError } from "@utils";
 import React, { useCallback, useEffect, useState } from "react";
 
 const CryptosNavigator: React.FC = () => {
@@ -59,7 +59,7 @@ const CryptosNavigator: React.FC = () => {
   useEffect(() => {
     const loadSelectedCryptos = async () => {
       try {
-        const storedCryptos = await loadDataSecure("_selectedCryptos");
+        const storedCryptos = await loadDataStorage("_selectedCryptos");
         if (storedCryptos) setSelectedCryptos(storedCryptos);
       } catch (error) {
         logError("Error loading selected cryptocurrencies from storage", error);

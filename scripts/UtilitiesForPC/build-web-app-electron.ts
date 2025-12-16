@@ -53,11 +53,14 @@ const exportWebApp = () => {
   fs.cpSync(distPath, distPathToCopy, { recursive: true });
   fs.rmSync(distPath, { recursive: true });
 
+  const assetsPath = path.resolve(UTILITIES_FOR_PC_PATH, "dist", "assets");
+  fs.mkdirSync(assetsPath, { recursive: true });
+
   console.log(t("copyingAssets"));
   ["ico", "png"].forEach((ext) => {
     fs.copyFileSync(
       path.resolve(UTILITIES_FOR_PC_PATH, "assets", `tray-icon.${ext}`),
-      path.resolve(UTILITIES_FOR_PC_PATH, "dist", "assets", `tray-icon.${ext}`)
+      path.resolve(assetsPath, `tray-icon.${ext}`)
     );
   });
   console.log(t("assetsCopied"));

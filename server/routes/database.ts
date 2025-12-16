@@ -16,9 +16,9 @@ import {
   ResponseDatabaseUpdate,
 } from "@types";
 import chalk from "chalk";
-import { t } from "../translations/index.ts";
-import { TABLE_MAP } from "config.ts";
-import { sendResponse } from "../variables.ts";
+import { t } from "@common";
+import { TABLE_MAP } from "../config.ts";
+import { sendResponse } from "@common";
 import { Request, Response } from "express";
 
 export const handleFetchFromDatabase = async (
@@ -31,7 +31,7 @@ export const handleFetchFromDatabase = async (
     const { table } = req.body || {};
     const { tokenDecoded: decode } = req.user || {};
 
-    if (!table || !TABLE_MAP?.[table])
+    if (!table || !TABLE_MAP[table])
       return sendResponse(
         res,
         "BAD_REQUEST",
@@ -51,6 +51,17 @@ export const handleFetchFromDatabase = async (
         options.orderDirection = req.body.orderDirection;
     }
 
+    if (req.body.search && req.body.columnsToSearch) {
+      const columnsToSearch = req.body.columnsToSearch;
+
+      const searchColumns = Array.isArray(columnsToSearch)
+        ? columnsToSearch
+        : [columnsToSearch];
+
+      options.search = req.body.search;
+      options.columnsToSearch = searchColumns;
+    }
+
     const { data, error } = await fetchFromTable({
       table,
       match,
@@ -67,7 +78,7 @@ export const handleFetchFromDatabase = async (
       );
     }
 
-    sendResponse(res, "SUCCESS", { data: data || null }, "/database/fetch");
+    sendResponse(res, "SUCCESS", { data: data || [] }, "/database/fetch");
   } catch (error) {
     console.error(chalk.red("Error fetching from Database:"), error);
     sendResponse(
@@ -88,7 +99,7 @@ export const handleInsertToDatabase = async (
     const { table, values } = req.body || {};
     const { token, tokenDecoded: decode } = req.user || {};
 
-    if (!table || !TABLE_MAP?.[table] || !values)
+    if (!table || !TABLE_MAP[table] || !values)
       return sendResponse(
         res,
         "BAD_REQUEST",
@@ -156,7 +167,7 @@ export const handleUpdateToDatabase = async (
     const { tokenDecoded: decode } = req.user || {};
     const { table, values } = req.body || {};
 
-    if (!table || !TABLE_MAP?.[table] || !values)
+    if (!table || !TABLE_MAP[table] || !values)
       return sendResponse(
         res,
         "BAD_REQUEST",
@@ -197,7 +208,7 @@ export const handleDeleteFromDatabase = async (
     const { tokenDecoded: decode } = req.user || {};
     const { table, match } = req.body || {};
 
-    if (!table || !TABLE_MAP?.[table])
+    if (!table || !TABLE_MAP[table])
       return sendResponse(
         res,
         "BAD_REQUEST",

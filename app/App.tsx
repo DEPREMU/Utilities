@@ -6,37 +6,39 @@ import {
   getRandomId,
   fetchToServer,
   checkLanguage,
-  loadDataSecure,
-  saveDataSecure,
+  loadDataStorage,
+  saveDataStorage,
   fetchAndApplyUpdate,
   setIntervalPolyfill,
   isNewUpdateAvailable,
   clearIntervalPolyfill,
   askAutoStartPermission,
   configureNotificationChannel,
+  setTimeoutPolyfill,
 } from "@utils";
 import { typeT } from "@types";
-import * as Updates from "expo-updates";
 import AppProviders from "./context/AppProviders";
 import AppNavigator from "./navigation/AppNavigator";
 import windowModule from "./utils/modules/WindowModule";
 import { t as i18n } from "i18next";
+import { reloadAppAsync } from "expo";
 import { Alert, Platform } from "react-native";
 import NativeFunctionsModule from "./utils/modules/NativeFunctionsModule";
 import React, { useCallback, useEffect } from "react";
 
 const hasDeviceId = async (): Promise<boolean> => {
   try {
-    const deviceId = await loadDataSecure("_deviceId");
+    const deviceId = await loadDataStorage("_deviceId");
     if (Platform.OS === "web" && deviceId)
       windowModule.setData(deviceId, await checkLanguage());
 
     if (deviceId) return true;
     askAutoStartPermission();
+
     if (Platform.OS === "web") {
       const deviceId = getRandomId() + "-" + getRandomId();
       windowModule.setData(deviceId, await checkLanguage());
-      await saveDataSecure("_deviceId", deviceId);
+      await saveDataStorage("_deviceId", deviceId);
     } else {
       let uuid: string | undefined = "";
       try {
@@ -50,7 +52,7 @@ const hasDeviceId = async (): Promise<boolean> => {
       if (!uuid)
         uuid = Array.from({ length: 3 }, () => getRandomId()).join("-");
 
-      await saveDataSecure(
+      await saveDataStorage(
         "_deviceId",
         uuid.length > 255 ? uuid.substring(0, 255) : uuid,
       );
@@ -111,7 +113,7 @@ const App = () => {
   const handleCheckForUpdates = useCallback(async () => {
     try {
       await handleCheckForUpdatesNativelyRef.current();
-      saveDataSecure("_lastUpdateCheck", Date.now());
+      saveDataStorage("_lastUpdateCheck", Date.now());
 
       const isAvailable = await isNewUpdateAvailable();
       if (!isAvailable) return;
@@ -130,24 +132,22 @@ const App = () => {
 
   useEffect(() => {
     hasDeviceId().then((exists) => {
-      try {
-        if (!exists) {
-          if (process.env.NODE_ENV === "development" || __DEV__)
-            logError("Error setting up device ID:");
-          else Updates.reloadAsync();
-        }
-      } catch (error) {
-        if (process.env.NODE_ENV === "development" || __DEV__)
-          logError("Error setting up device ID:", error);
-        else Updates.reloadAsync();
-      }
+      if (exists) return;
+
+      if (isDev) logError("Error setting up device ID:");
+      reloadAppAsync();
     });
     if (Platform.OS === "web") return setIsLoading(false);
 
-    NativeFunctionsModule.wasLaunchedFromService().then(
-      (launchedFromService) =>
-        !isDev && launchedFromService && NativeFunctionsModule.minimizeApp(),
-    );
+    !isDev &&
+      setTimeoutPolyfill(
+        () =>
+          NativeFunctionsModule.wasLaunchedFromService().then(
+            (launchedFromService) =>
+              launchedFromService && NativeFunctionsModule.minimizeApp(),
+          ),
+        500,
+      );
 
     handleCheckForUpdatesRef.current();
     const id = setIntervalPolyfill(

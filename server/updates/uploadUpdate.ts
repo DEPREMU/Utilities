@@ -9,10 +9,10 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import Busboy from "busboy";
-import { UPLOAD_DIR } from "config";
-import { sendResponse } from "../variables.ts";
+import { UPLOAD_DIR } from "../config.ts";
+import { sendResponse } from "@common";
 import { Request, Response } from "express";
-import dataUploads, { updateDataUploads } from "./dataUploads";
+import dataUploads, { updateDataUploads } from "./dataUploads.ts";
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -75,7 +75,8 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
         console.log("Version not new, discarding file...");
 
         file.on("end", () => {
-          if (connectionClosed) return;
+          if (connectionClosed || !sendResponse) return;
+
           connectionClosed = true;
           sendResponse(
             res,
@@ -123,7 +124,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
 
     busboy.on("finish", async () => {
       if (!dataFile)
-        return sendResponse(
+        return sendResponse?.(
           res,
           "BAD_REQUEST",
           { error: "Missing or invalid data field", success: false },
@@ -140,11 +141,11 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
           dataFile.version,
         );
         console.log("All files written successfully");
-        sendResponse(res, "SUCCESS", { success: true }, "/upload-update");
+        sendResponse?.(res, "SUCCESS", { success: true }, "/upload-update");
       } catch (err) {
         console.error("Error uploading:", err);
         if (connectionClosed) return;
-        sendResponse(
+        sendResponse?.(
           res,
           "INTERNAL_SERVER_ERROR",
           { error: "Error uploading files", success: false },
@@ -156,7 +157,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
     req.pipe(busboy);
   } catch (error) {
     console.error(chalk.red("Error handling upload:"), error);
-    sendResponse(
+    sendResponse?.(
       res,
       "INTERNAL_SERVER_ERROR",
       { error: "Internal server error", success: false },

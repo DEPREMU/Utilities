@@ -4,9 +4,10 @@ import fs from "fs";
 import env from "../env.ts";
 import path from "path";
 import chalk from "chalk";
+import { Pool } from "pg";
 import { exec } from "child_process";
-import { serverPath } from "../config.ts";
-import { Pool, PoolConfig } from "pg";
+import { initDB } from "./initDB.ts";
+import { PoolConfig } from "pg";
 
 export let dbInitialized = false;
 
@@ -81,45 +82,6 @@ const handleCreatePgPassFile = () => {
 };
 
 /**
- * Initializes the database by creating required tables.
- *
- * This asynchronous function:
- * - Obtains a client from the configured connection pool.
- * - Reads the SQL schema file "create_tables.sql" from the server's database directory.
- * - Executes the SQL against the connected PostgreSQL client.
- * - Logs success or error messages to the console using chalk for coloring.
- * - Ensures the client is always released back to the pool in a finally block.
- *
- * Notes:
- * - The SQL file is read synchronously (fs.readFileSync), which may block the event loop for large files.
- * - Errors during the read or query execution are caught and logged; they are not rethrown by this function.
- *
- * @async
- * @returns Promise<void> A promise that resolves when the operation completes (either successfully or after logging an error).
- *
- * @example
- * // Create database tables at application startup
- * await handleCreateDB();
- */
-const handleCreateDB = async () => {
-  const client = await pool.connect();
-
-  try {
-    const createTablesQuery = fs.readFileSync(
-      path.join(serverPath, "database", "create_tables.sql"),
-      "utf-8",
-    );
-    await client.query(createTablesQuery);
-
-    console.log(chalk.green("Database tables created successfully."));
-  } catch (error) {
-    console.error(chalk.red("Error creating database tables:"), error);
-  } finally {
-    client.release();
-  }
-};
-
-/**
  * Initializes the database by performing the following operations:
  * 1. Creates a PostgreSQL password file
  * 2. Creates the database
@@ -132,7 +94,7 @@ const handleCreateDB = async () => {
  */
 export const handleInitDB = async () => {
   handleCreatePgPassFile();
-  await handleCreateDB();
+  await initDB();
   try {
     const client = await pool.connect();
     const usersCount = await client.query("SELECT COUNT(*) FROM users;");

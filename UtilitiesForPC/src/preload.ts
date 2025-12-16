@@ -55,6 +55,8 @@ const contextBridgeType: ContextBridgeType = {
       }
     },
     notifyLoginStatus: (isLoggedIn: boolean) => {
+      if (process.env.PROFILE === "development") return;
+
       if (idleTimeout) {
         clearTimeout(idleTimeout);
         idleTimeout = null;

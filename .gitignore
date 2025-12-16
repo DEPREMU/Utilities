@@ -50,5 +50,6 @@ build
 implementation-md/
 test.*
 uploads/
+*.dbjson
 
 android/

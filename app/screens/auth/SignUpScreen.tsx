@@ -5,11 +5,11 @@ import ButtonComponent from "@components/common/ButtonComponent";
 import { useLanguage } from "@context/LanguageContext";
 import EmailAndPassword from "@components/auth/EmailAndPassword";
 import { useUserContext } from "@context/UserContext";
+import { navigateReplace } from "@/navigation/navigationRef";
 import useStylesAuthScreens from "@styles/screens/auth/useStylesAuthScreens";
 import { ActivityIndicator } from "react-native-paper";
-import { log, isValidEmail, isValidPassword } from "@utils";
+import { log, isValidEmail, isValidPassword, clearRefs } from "@utils";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { navigateReplace } from "@/navigation/navigationRef";
 
 const SignUpScreen: React.FC = () => {
   const { t } = useLanguage();
@@ -57,13 +57,8 @@ const SignUpScreen: React.FC = () => {
     if (isLoggedIn) navigateReplace("Home");
   }, [isLoggedIn]);
 
-  // Cleanup signingUpRef on unmount
-  useEffect(
-    () => () => {
-      signingUpRef.current = null;
-    },
-    [],
-  );
+  // Cleanup refs on unmount
+  useEffect(() => () => clearRefs(signingUpRef), []);
 
   return (
     <View style={styles.container}>

@@ -1,9 +1,14 @@
+import {
+  isFalsy,
+  memoDeep,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
+} from "@utils";
 import { View, Text } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesIP_API from "@styles/components/connectivity/useStylesIP_API";
-import { dataIP_API_JSON, typeLanguages } from "@types";
-import React, { memo, useEffect, useMemo, useState } from "react";
-import { clearTimeoutPolyfill, isFalsy, setTimeoutPolyfill } from "@utils";
+import { dataIP_API_JSON, typeLanguagesKeys } from "@types";
+import React, { useEffect, useMemo, useState } from "react";
 
 const dataIPLocal: dataIP_API_JSON = {
   status: "false",
@@ -36,7 +41,7 @@ interface IP_ApiProps {
   data: dataIP_API_JSON | null;
 }
 
-const keysTranslated: Record<keyof dataIP_API_JSON, keyof typeLanguages> = {
+const keysTranslated: Record<keyof dataIP_API_JSON, typeLanguagesKeys> = {
   status: "status",
   continent: "continent",
   continentCode: "continentCode",
@@ -128,8 +133,6 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
   );
 };
 
-const IP_API_Memo = memo(IP_API, (prevProps, nextProps) => {
-  return prevProps.data === nextProps.data;
-});
+const IP_API_Memo = memoDeep(IP_API);
 
 export default IP_API_Memo;

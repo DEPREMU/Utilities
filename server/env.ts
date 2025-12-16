@@ -4,6 +4,7 @@ import { Env } from "@types";
 dotenv.config({ path: "../.env" });
 
 const REQUIRED_VARS: (keyof Env)[] = [
+  "IV",
   "HOST",
   "PORT",
   "WS_URL",
@@ -36,6 +37,10 @@ export const validateServerEnv = () => {
       )}. Default values are used where applicable.`,
     );
   }
+  const iv = process.env.IV;
+
+  if (!iv || iv.length !== 16)
+    throw new Error("IV must be a valid 16-byte hex string.");
 };
 
 const env: Env = {
@@ -61,6 +66,7 @@ const env: Env = {
   SECRET_KEY_TO_ENCRYPTION:
     process.env.SECRET_KEY_TO_ENCRYPTION || "0123456789abcdef0123456789abcdef",
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || "",
+  IV: process.env.IV || "abcdef9876543210",
 };
 
 export default env;

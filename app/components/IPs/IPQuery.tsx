@@ -1,5 +1,6 @@
 import {
   isFalsy,
+  memoDeep,
   getFormattedDate,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
@@ -7,16 +8,16 @@ import {
 import {
   IPQueryISP,
   IPQueryRisk,
-  typeLanguages,
   dataIPQueryJSON,
   IPQueryLocation,
+  typeLanguagesKeys,
 } from "@types";
 import { View, Text } from "react-native";
 // import MapView, { Marker } from "react-native-maps";
 import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@components/common/SkeletonLoading";
 import useStylesIPQuery from "@styles/components/connectivity/useStylesIPQuery";
-import React, { memo, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 interface IPQueryProps {
   data: dataIPQueryJSON | null;
@@ -24,10 +25,10 @@ interface IPQueryProps {
 
 const keysTranslated: Record<
   keyof dataIPQueryJSON,
-  | keyof typeLanguages
-  | Record<keyof IPQueryISP, keyof typeLanguages>
-  | Record<keyof IPQueryLocation, keyof typeLanguages>
-  | Record<keyof IPQueryRisk, keyof typeLanguages>
+  | typeLanguagesKeys
+  | Record<keyof IPQueryISP, typeLanguagesKeys>
+  | Record<keyof IPQueryLocation, typeLanguagesKeys>
+  | Record<keyof IPQueryRisk, typeLanguagesKeys>
 > = {
   ip: "yourIP",
   isp: {
@@ -79,7 +80,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
         const translationKey = (
           keysTranslated[key as keyof Omit<dataIPQueryJSON, "ip">] as Record<
             string,
-            keyof typeLanguages
+            typeLanguagesKeys
           >
         )[subKey];
 
@@ -180,8 +181,6 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
   );
 };
 
-const IPQueryMemo = memo(IPQuery, (prevProps, nextProps) => {
-  return prevProps.data === nextProps.data;
-});
+const IPQueryMemo = memoDeep(IPQuery);
 
 export default IPQueryMemo;

@@ -1,9 +1,3 @@
-import {
-  stringifyData,
-  areEqualChildren,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-} from "@utils";
 import Animated, {
   withTiming,
   SharedValue,
@@ -14,8 +8,9 @@ import Animated, {
 import { Text } from "react-native-paper";
 import { StylesModal } from "@context/ModalContext";
 import { useStylesModalComponent } from "@styles/components/useStylesModalComponent";
+import React, { useEffect, useRef } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import React, { memo, useEffect, useRef } from "react";
+import { setTimeoutPolyfill, clearTimeoutPolyfill, memoDeep } from "@utils";
 
 interface ModalProps {
   title: string;
@@ -53,7 +48,7 @@ const ModalComponent: React.FC<ModalProps> = ({
   const { styles, height } = useStylesModalComponent();
 
   const position: SharedValue<number> = useSharedValue(0);
-  const idTimeout = useRef<NodeJS.Timeout | number | null>(null);
+  const idTimeout = useRef<number | null>(null);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: position.value }],
@@ -70,24 +65,11 @@ const ModalComponent: React.FC<ModalProps> = ({
       position.value = withTiming(height + 200, options);
     }
 
-    return () => {
-      if (!idTimeout.current) return;
-
-      clearTimeoutPolyfill(idTimeout.current);
-      idTimeout.current = null;
-    };
+    return () => clearTimeoutPolyfill(idTimeout);
   }, [isOpen, height, position, setHideModal]);
 
   // Cleanup timeout on unmount
-  useEffect(
-    () => () => {
-      if (!idTimeout.current) return;
-
-      clearTimeoutPolyfill(idTimeout.current);
-      idTimeout.current = null;
-    },
-    [],
-  );
+  useEffect(() => () => clearTimeoutPolyfill(idTimeout), []);
 
   return (
     <Animated.View
@@ -130,17 +112,6 @@ const ModalComponent: React.FC<ModalProps> = ({
   );
 };
 
-const ModalComponentMemo = memo(ModalComponent, (prev, next) => {
-  return (
-    prev.title === next.title &&
-    (typeof prev.body === "string"
-      ? typeof next.body === "string" && prev.body === next.body
-      : areEqualChildren(prev.body, next.body)) &&
-    areEqualChildren(prev.buttons, next.buttons) &&
-    prev.isOpen === next.isOpen &&
-    prev.onClose === next.onClose &&
-    prev.hideModal === next.hideModal &&
-    stringifyData(prev.customStyles) === stringifyData(next.customStyles)
-  );
-});
+const ModalComponentMemo = memoDeep(ModalComponent);
+
 export default ModalComponentMemo;

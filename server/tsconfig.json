@@ -10,11 +10,12 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "paths": {
-      "@types": ["../types/index.d.ts"]
+      "@types": ["../types/index.d.ts"],
+      "@common": ["../common/serverOrElectron/index.ts"]
     },
     "typeRoots": ["../types/index.d.ts"]
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../common/index.ts"],
   "exclude": [
     "node_modules",
     "config-oracle",

@@ -1,9 +1,9 @@
+import React from "react";
 import { View } from "react-native";
 import RenderCell from "./RenderCell";
-import { typeCell, typeFinishGame } from "@screens/Games/Minesweeper";
-import React, { memo } from "react";
+import { memoDeep } from "@utils";
 import { useStylesMinesweeper } from "@/styles/screens/Games/useStylesMinesweeper";
-import { stringifyData } from "@/utils";
+import { typeCell, typeFinishGame } from "@screens/Games/Minesweeper";
 
 interface RenderRowProps {
   row: typeCell[];
@@ -39,18 +39,6 @@ const RenderRow: React.FC<RenderRowProps> = ({
   );
 };
 
-const RenderRowMemo = memo(RenderRow, (prevProps, nextProps) => {
-  if (prevProps.rowIndex !== nextProps.rowIndex) return false;
-  if (prevProps.handlePress !== nextProps.handlePress) return false;
-  if (prevProps.handleOnLongPress !== nextProps.handleOnLongPress) return false;
-  if (prevProps.finishGame !== nextProps.finishGame) return false;
-
-  if (prevProps.row.length !== nextProps.row.length) return false;
-
-  if (stringifyData(prevProps.row) !== stringifyData(nextProps.row))
-    return false;
-
-  return true;
-});
+const RenderRowMemo = memoDeep(RenderRow);
 
 export default RenderRowMemo;

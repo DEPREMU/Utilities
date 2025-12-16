@@ -7,7 +7,7 @@ import {
 import axios from "axios";
 import chalk from "chalk";
 import express from "express";
-import { sendResponse } from "../variables.ts";
+import { sendResponse } from "@common";
 import { insertIntoTable } from "../database/functions.ts";
 
 const getLinkImageStreamer = async (streamer: string) => {
@@ -62,7 +62,7 @@ export const getIsLiveStreamer = async (
 ) => {
   try {
     const { streamer } = req.body || { streamer: null };
-    if (!streamer)
+    if (!streamer || !streamer.name || streamer.name.trim() === "")
       return sendResponse(
         res,
         "BAD_REQUEST",
@@ -94,7 +94,7 @@ export const addStreamer = async (
   req: express.Request<unknown, unknown, RequestAddStreamer>,
   res: express.Response<ResponseAddStreamer>,
 ) => {
-  const { name, userId } = req.body || { name: "", userId: "" };
+  const { name, userId } = req.body || {};
 
   if (!name || !userId)
     return sendResponse(

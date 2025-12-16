@@ -3,8 +3,13 @@ import {
   RequestDatabaseDelete,
   RequestDatabaseUpdate,
 } from "@types";
+import {
+  logError,
+  checkLanguage,
+  fetchToServer,
+  loadDataStorage,
+} from "@utils";
 import { TablesKeys, RequestDatabaseInsert } from "@types";
-import { logError, checkLanguage, loadDataSecure, fetchToServer } from "@utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TaskFunction = (...args: any[]) => Promise<void> | void;
@@ -23,10 +28,10 @@ const taskRegistry: TaskRegistry = {
     try {
       const [lang, token, deviceId] = await Promise.all([
         checkLanguage(),
-        loadDataSecure("_userSessionTokenStorage"),
-        loadDataSecure("_deviceId"),
+        loadDataStorage("_userSessionTokenStorage"),
+        loadDataStorage("_deviceId"),
       ]);
-      if (!token || !deviceId) return;
+      if (!token) return;
 
       const body: RequestDatabaseUpdate<T> = {
         lang,
@@ -49,10 +54,10 @@ const taskRegistry: TaskRegistry = {
     try {
       const [lang, token, deviceId] = await Promise.all([
         checkLanguage(),
-        loadDataSecure("_userSessionTokenStorage"),
-        loadDataSecure("_deviceId"),
+        loadDataStorage("_userSessionTokenStorage"),
+        loadDataStorage("_deviceId"),
       ]);
-      if (!token || !deviceId) return;
+      if (!token) return;
 
       const body: RequestDatabaseInsert<T> = {
         lang,
@@ -74,10 +79,10 @@ const taskRegistry: TaskRegistry = {
     try {
       const [lang, token, deviceId] = await Promise.all([
         checkLanguage(),
-        loadDataSecure("_userSessionTokenStorage"),
-        loadDataSecure("_deviceId"),
+        loadDataStorage("_userSessionTokenStorage"),
+        loadDataStorage("_deviceId"),
       ]);
-      if (!token || !deviceId) return;
+      if (!token) return;
 
       const body: RequestDatabaseDelete<T> = {
         lang,

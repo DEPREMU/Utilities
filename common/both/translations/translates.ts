@@ -1,4 +1,4 @@
-import { LanguagesSupported } from "@types";
+import type { LanguagesSupported } from "@types";
 
 export const languagesNames: Record<LanguagesSupported, string> = {
   en: "English",

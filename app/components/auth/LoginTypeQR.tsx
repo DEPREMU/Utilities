@@ -2,7 +2,8 @@ import {
   log,
   logError,
   parseData,
-  loadDataSecure,
+  clearRefs,
+  loadDataStorage,
   QR_LOGIN_WS_URL,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
@@ -54,11 +55,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
     };
 
     const initWS = async () => {
-      log("Loading device ID for QR login");
-
-      const deviceId = await loadDataSecure("_deviceId");
-      log("Loaded device ID for QR login:", deviceId);
-      if (!deviceId) return handleError("Device ID not found");
+      const deviceId = await loadDataStorage("_deviceId");
 
       ws = new WebSocket(QR_LOGIN_WS_URL);
 
@@ -121,9 +118,8 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
 
   useEffect(() => handleLoginWithQR(), [handleLoginWithQR]);
 
-  useEffect(() => {
-    isValidQRRef.current = null;
-  }, []);
+  // Cleanup refs on unmount
+  useEffect(() => () => clearRefs(isValidQRRef), []);
 
   return (
     <View style={styles.containerQR}>

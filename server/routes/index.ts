@@ -26,6 +26,13 @@ import { handleDoQueryDatabase } from "../dev/handleDoQuery.ts";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
 import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
 import { ResponseHealth, Route, RoutesAPI, UpdatesRoutes } from "@types";
+import { handleChangeImageFormat, readImage, sendResponse } from "@common";
+
+if (typeof handleChangeImageFormat !== "function")
+  throw new Error("handleChangeImageFormat is undefined");
+if (typeof sendResponse !== "function")
+  throw new Error("sendResponse is undefined");
+if (typeof readImage !== "function") throw new Error("readImage is undefined");
 
 const startTime = Date.now();
 const handleHealthCheck = (_: Request, res: Response<ResponseHealth>) => {
@@ -122,6 +129,10 @@ const routes: {
   "/log": {
     method: "post",
     handler: handleAddLog,
+  },
+  "/images/changeImageFormat": {
+    method: "post",
+    handler: handleChangeImageFormat,
   },
 };
 

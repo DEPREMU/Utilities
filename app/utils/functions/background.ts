@@ -4,9 +4,9 @@ import {
   setTimeoutPolyfill,
 } from "./appManagement";
 import { typeT } from "@types";
-import { saveData } from "./storageManagement";
 import { t as i18n } from "i18next";
 import * as Location from "expo-location";
+import { saveDataStorage } from "./storageManagement";
 import NativeFunctionsModule from "../modules/NativeFunctionsModule";
 import { Alert, AppState, Platform } from "react-native";
 
@@ -89,7 +89,7 @@ export const askLocationPermission = async (): Promise<boolean> => {
   const newNotifications = { ...notifications };
   newNotifications.enabled.locationEnabled = granted;
   if (stringifyData(notifications) !== stringifyData(newNotifications))
-    await saveData("@notifications", newNotifications);
+    await saveDataStorage("@notifications", newNotifications);
 
   return granted;
 };

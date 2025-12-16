@@ -1,21 +1,15 @@
 import dotenv from "dotenv";
+import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.4.0";
+const version = "1.5.0";
 
-export default {
-  expo: {
+export default ({ config }: ConfigContext): ExpoConfig => {
+  return {
+    ...config,
     name: "Utilities",
     slug: "Utilities",
-    notification: {
-      vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
-    },
-    build: {
-      env: {
-        GOOGLE_SERVICES_JSON: "$GOOGLE_SERVICES_JSON",
-      },
-    },
     updates: {
       url: "https://u.expo.dev/7dd2c093-0c91-4638-a5b9-828d458e8be0",
     },
@@ -89,5 +83,5 @@ export default {
     web: {
       favicon: "./assets/favicon.png",
     },
-  },
+  };
 };

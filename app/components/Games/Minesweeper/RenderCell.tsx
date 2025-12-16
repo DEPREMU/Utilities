@@ -1,7 +1,8 @@
-import { typeCell, typeFinishGame } from "@screens/Games/Minesweeper";
+import { memoDeep } from "@utils";
 import { Text, Pressable } from "react-native";
 import React, { useCallback } from "react";
 import { useStylesMinesweeper } from "@/styles/screens/Games/useStylesMinesweeper";
+import { typeCell, typeFinishGame } from "@screens/Games/Minesweeper";
 
 interface RenderCellProps {
   cell: typeCell;
@@ -56,14 +57,6 @@ const RenderCell: React.FC<RenderCellProps> = ({
   );
 };
 
-const RenderCellMemo = React.memo(RenderCell, (prevProps, nextProps) => {
-  return (
-    prevProps.cell === nextProps.cell &&
-    prevProps.rowIndex === nextProps.rowIndex &&
-    prevProps.colIndex === nextProps.colIndex &&
-    prevProps.finishGame === nextProps.finishGame &&
-    prevProps.handlePress === nextProps.handlePress
-  );
-});
+const RenderCellMemo = memoDeep(RenderCell);
 
 export default RenderCellMemo;

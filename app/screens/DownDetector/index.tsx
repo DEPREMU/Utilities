@@ -1,8 +1,8 @@
 import {
   logError,
   fetchToServer,
-  saveDataSecure,
-  loadDataSecure,
+  saveDataStorage,
+  loadDataStorage,
   setTimeoutPolyfill,
 } from "@utils";
 import DownDetector from "./DownDetector";
@@ -39,7 +39,7 @@ const DownDetectorNavigator: React.FC = () => {
   const addNewItem = useCallback((item: DownDetectorType) => {
     setDownDetectorData((prevData) => {
       const newData = prevData ? [item, ...prevData] : [item];
-      saveDataSecure("_downDetectorData", newData);
+      saveDataStorage("_downDetectorData", newData);
       return newData;
     });
   }, []);
@@ -49,15 +49,15 @@ const DownDetectorNavigator: React.FC = () => {
       if (!id) return logError("No ID provided for deletion");
       if (!sessionToken) return logError("No session token available");
 
-      const deviceId = await loadDataSecure("_deviceId");
+      const deviceId = await loadDataStorage("_deviceId");
 
       const res = await fetchToServer(
         "/database/delete",
         {
           lang: language,
-          deviceId: deviceId || "local-device",
           match: { id },
           table: tableName,
+          deviceId,
         },
         sessionToken,
       );
@@ -70,7 +70,7 @@ const DownDetectorNavigator: React.FC = () => {
 
       setDownDetectorData((prevData) => {
         const newData = prevData?.filter((item) => item.id !== id) || null;
-        saveDataSecure("_downDetectorData", newData);
+        saveDataStorage("_downDetectorData", newData);
 
         return newData;
       });
@@ -91,17 +91,17 @@ const DownDetectorNavigator: React.FC = () => {
           ...(prevData?.filter((item) => item.id !== id) || []),
         ];
 
-        loadDataSecure("_deviceId").then(async (deviceId) => {
+        loadDataStorage("_deviceId").then(async (deviceId) => {
           if (!sessionToken) return logError("No session token available");
 
           fetchToServer(
             "/database/update",
             {
               lang: language,
-              deviceId: deviceId || "local-device",
               table: tableName,
               match: { id },
               values: { sendNotification: newItem.sendNotification },
+              deviceId,
             },
             sessionToken,
           ).then((res) => {
@@ -116,7 +116,7 @@ const DownDetectorNavigator: React.FC = () => {
               setDownDetectorData(prevData);
               return;
             }
-            saveDataSecure("_downDetectorData", newData);
+            saveDataStorage("_downDetectorData", newData);
           });
         });
         return newData;
@@ -168,16 +168,16 @@ const DownDetectorNavigator: React.FC = () => {
     const fetchDownDetectorDataFromDatabase = async () => {
       if (!sessionToken) return logError("No session token available");
 
-      const deviceId = await loadDataSecure("_deviceId");
+      const deviceId = await loadDataStorage("_deviceId");
 
       try {
         const res = await fetchToServer(
           "/database/fetch",
           {
-            table: tableName,
-            deviceId: deviceId || "local-device",
-            match: { userId: userData?.userId },
             lang: language,
+            table: tableName,
+            match: { userId: userData?.userId },
+            deviceId,
           },
           sessionToken,
         );
@@ -200,7 +200,7 @@ const DownDetectorNavigator: React.FC = () => {
       } catch (error) {
         logError("Error fetching downDetector data:", error);
       }
-      const fallbackData = await loadDataSecure("_downDetectorData");
+      const fallbackData = await loadDataStorage("_downDetectorData");
       setTimeoutPolyfill(() => setDownDetectorData(fallbackData || null), 2000);
     };
 

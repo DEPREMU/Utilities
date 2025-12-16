@@ -1,11 +1,12 @@
 import {
   logError,
+  memoDeep,
   cleanFloat,
   fetchToServer,
   stringifyData,
-  loadDataSecure,
-  saveDataSecure,
-  removeDataSecure,
+  loadDataStorage,
+  saveDataStorage,
+  removeDataStorage,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
   getCryptosFromDatabase,
@@ -48,7 +49,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     useState<SelectedCryptos>(selectedCryptos);
 
   const handleClearCache = useCallback(async () => {
-    await removeDataSecure("_selectedCryptos");
+    await removeDataStorage("_selectedCryptos");
     setShowSelected(false);
     setOwnedCryptos({});
   }, []);
@@ -193,7 +194,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 
   useEffect(() => {
     const fetchOwnedCryptos = async () => {
-      const owned = (await loadDataSecure("_selectedCryptos")) || {};
+      const owned = await loadDataStorage("_selectedCryptos", {});
       const lengthOwned = Object.keys(owned).length;
       if (owned && lengthOwned < 25 && lengthOwned > 0)
         return setOwnedCryptos(owned);
@@ -258,7 +259,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           {
             requiresInternet: true,
             func: async () => {
-              const deviceId = await loadDataSecure("_deviceId");
+              const deviceId = await loadDataStorage("_deviceId");
 
               fetchToServer(
                 "/database/update",
@@ -267,7 +268,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
                   match: null,
                   table: "Cryptos",
                   values: cryptosToUpdate,
-                  deviceId: deviceId || "local-device",
+                  deviceId,
                 },
                 sessionToken,
               );
@@ -291,15 +292,15 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           {
             requiresInternet: true,
             func: async () => {
-              const deviceId = await loadDataSecure("_deviceId");
+              const deviceId = await loadDataStorage("_deviceId");
 
               fetchToServer(
                 "/database/insert",
                 {
                   lang: language,
-                  deviceId: deviceId || "local-device",
                   table,
                   values: cryptosToAdd,
+                  deviceId,
                 },
                 sessionToken,
               );
@@ -319,7 +320,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         .map((c) => c.uid as string);
 
       if (cryptosToDelete && cryptosToDelete.length > 0) {
-        const deviceId = await loadDataSecure("_deviceId");
+        const deviceId = await loadDataStorage("_deviceId");
 
         cryptosToDelete.map((uid) =>
           addTaskQueue(
@@ -330,9 +331,9 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
                   "/database/delete",
                   {
                     lang: language,
-                    deviceId: deviceId || "local-device",
-                    table: "Cryptos",
                     match: { uid },
+                    table: "Cryptos",
+                    deviceId,
                   },
                   sessionToken,
                 );
@@ -348,7 +349,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       }
 
       setSelectedCryptos(ownedCryptos);
-      await saveDataSecure("_selectedCryptos", ownedCryptos);
+      await saveDataStorage("_selectedCryptos", ownedCryptos);
     };
 
     save();
@@ -420,15 +421,6 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
   );
 };
 
-const SelectionScreenMemo = React.memo(
-  SelectionScreen,
-  (prevProps, nextProps) => {
-    return (
-      prevProps.setSelectedCryptos === nextProps.setSelectedCryptos &&
-      stringifyData(prevProps.selectedCryptos) ===
-        stringifyData(nextProps.selectedCryptos)
-    );
-  },
-);
+const SelectionScreenMemo = memoDeep(SelectionScreen);
 
 export default SelectionScreenMemo;

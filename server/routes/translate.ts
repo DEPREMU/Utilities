@@ -1,7 +1,7 @@
 import env from "../env.ts";
 import chalk from "chalk";
 import express from "express";
-import { sendResponse } from "../variables.ts";
+import { sendResponse } from "@common";
 import { URLSearchParams } from "url";
 import { RequestTranslate, ResponseTranslate } from "@types";
 

@@ -2,10 +2,11 @@ import {
   isFalsy,
   openURL,
   logError,
+  clearRefs,
   capitalize,
   fetchToServer,
-  saveDataSecure,
-  loadDataSecure,
+  saveDataStorage,
+  loadDataStorage,
   setIntervalPolyfill,
   clearIntervalPolyfill,
 } from "@utils";
@@ -131,15 +132,15 @@ const Streamers: React.FC = () => {
       closeModal();
       if (!userData?.userId || isFalsy(id) || !sessionToken) return;
 
-      const deviceId = await loadDataSecure("_deviceId");
+      const deviceId = await loadDataStorage("_deviceId");
 
       const res = await fetchToServer(
         "/database/delete",
         {
-          deviceId: deviceId || "local-device",
           lang: language,
           table: "Streamers",
           match: { id, userId: userData?.userId },
+          deviceId,
         },
         sessionToken,
       );
@@ -162,8 +163,8 @@ const Streamers: React.FC = () => {
             "/database/delete",
             {
               lang: language,
-              deviceId: deviceId || "local-device",
               table: "UserNotificationsConfig",
+              deviceId,
               match: {
                 userId: userData?.userId,
                 reason: "streamers",
@@ -214,7 +215,7 @@ const Streamers: React.FC = () => {
           <Button
             label={t("yes")}
             handlePress={deleteStreamer}
-            argsFuncHandlePress={streamer.id}
+            argsFuncHandlePress={[streamer.id || ""]}
           />
           <Button label={t("no")} handlePress={closeModal} />
         </>,
@@ -243,7 +244,7 @@ const Streamers: React.FC = () => {
           <Button
             label={t("yes")}
             handlePress={handleOpenURLStreamer}
-            argsFuncHandlePress={url}
+            argsFuncHandlePress={[url]}
           />
           <Button label={t("no")} handlePress={closeModal} />
         </>,
@@ -279,14 +280,14 @@ const Streamers: React.FC = () => {
       });
       if (!userData?.userId || !sessionToken) return;
 
-      const deviceId = await loadDataSecure("_deviceId");
+      const deviceId = await loadDataStorage("_deviceId");
 
       await fetchToServer(
         "/database/update",
         {
           lang: language,
-          deviceId: deviceId || "local-device",
           table: "UserNotificationsConfig",
+          deviceId,
           match: {
             userId: userData?.userId,
             reason: "streamers",
@@ -310,9 +311,7 @@ const Streamers: React.FC = () => {
   useEffect(() => {
     streamersLoaded.current = streamers.length > 0;
 
-    return () => {
-      streamersLoaded.current = null;
-    };
+    return () => clearRefs(streamersLoaded);
   }, [streamers]);
 
   useEffect(() => {
@@ -329,15 +328,15 @@ const Streamers: React.FC = () => {
       try {
         if (!userData?.userId || !sessionToken) return;
 
-        const deviceId = await loadDataSecure("_deviceId");
+        const deviceId = await loadDataStorage("_deviceId");
 
         const res = await fetchToServer(
           "/database/fetch",
           {
-            table: "Streamers",
-            deviceId: deviceId || "local-device",
-            match: { userId: userData?.userId },
             lang: language,
+            table: "Streamers",
+            match: { userId: userData?.userId },
+            deviceId,
           },
           sessionToken,
         );
@@ -349,7 +348,7 @@ const Streamers: React.FC = () => {
           logError(error);
           openModal(
             t("error"),
-            t("errorLoadingStreamers", { error }),
+            t("errorLoadingStreamers"),
             <Button label={t("close")} handlePress={closeModal} />,
           );
           return;
@@ -391,7 +390,7 @@ const Streamers: React.FC = () => {
           );
 
         setStreamers(newData ? newData : allStreamers);
-        saveDataSecure("_Streamers", allStreamers);
+        saveDataStorage("_Streamers", allStreamers);
       } catch (error) {
         logError(error);
       }
@@ -473,7 +472,7 @@ const Streamers: React.FC = () => {
                   <View style={styles.containerButtons}>
                     <Button
                       label={t("openURL")}
-                      argsFuncHandlePress={streamer.name}
+                      argsFuncHandlePress={[streamer.name]}
                       handlePress={openURLStreamer}
                       touchableOpacity
                       replaceStyles={{
@@ -484,7 +483,7 @@ const Streamers: React.FC = () => {
 
                     <Button
                       label={t("delete")}
-                      argsFuncHandlePress={streamer}
+                      argsFuncHandlePress={[streamer]}
                       handlePress={askDeleteStreamer}
                       touchableOpacity
                       replaceStyles={{

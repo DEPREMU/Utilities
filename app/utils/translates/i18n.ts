@@ -1,6 +1,5 @@
-import en from "./English";
-import es from "./Spanish";
 import i18n from "i18next";
+import { enApp, esApp } from "@common";
 import { initReactI18next } from "react-i18next";
 import { logError, checkLanguage } from "../functions";
 
@@ -8,8 +7,8 @@ i18n.use(initReactI18next).init({
   lng: "en",
   fallbackLng: "en",
   resources: {
-    en: { translation: en },
-    es: { translation: es },
+    en: { translation: enApp },
+    es: { translation: esApp },
   },
   interpolation: {
     escapeValue: false,

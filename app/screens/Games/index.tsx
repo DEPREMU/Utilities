@@ -5,10 +5,11 @@ import { Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import { useStylesGamesNavigator } from "@styles/screens/Games/useStylesGamesNavigator";
-import { ScreensAvailable, typeLanguages } from "@types";
+import { ScreensAvailable, typeLanguagesKeys } from "@types";
 
-const buttons: Array<{ label: keyof typeLanguages; screen: ScreensAvailable }> =
-  [{ label: "minesweeper", screen: "Minesweeper" }];
+const buttons: Array<{ label: typeLanguagesKeys; screen: ScreensAvailable }> = [
+  { label: "minesweeper", screen: "Minesweeper" },
+];
 
 const GamesNavigator: React.FC = () => {
   const { t } = useLanguage();
@@ -21,7 +22,7 @@ const GamesNavigator: React.FC = () => {
           key={button.label}
           label={t(button.label)}
           touchableOpacity
-          argsFuncHandlePress={button.screen}
+          argsFuncHandlePress={[button.screen]}
           handlePress={navigateReplace}
         />
       )),

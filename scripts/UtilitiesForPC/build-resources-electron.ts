@@ -32,6 +32,15 @@ build({
   platform: "browser",
   external: ["electron"],
   entryPoints: [path.join(UTILITIES_FOR_PC_PATH, "src", "preload.ts")],
+  plugins: [
+    pluginReplace([
+      {
+        filter: /\.ts|\.js$/,
+        replace: /process\.env\.PROFILE/g,
+        replacer: () => JSON.stringify(ARGS["profile"] || "production"),
+      },
+    ]),
+  ],
 }).catch((err: unknown) => {
   console.error("Preload build failed", err);
   process.exit(1);
@@ -41,7 +50,7 @@ build({
   ...baseConfig,
   outfile: path.join(UTILITIES_FOR_PC_PATH, "build", "index.cjs"),
   platform: "node",
-  external: ["dnssd", "electron"],
+  external: ["dnssd", "electron", "sharp"],
   entryPoints: [path.join(UTILITIES_FOR_PC_PATH, "src", "main", "index.ts")],
   plugins: [
     pluginReplace([
@@ -64,6 +73,11 @@ build({
         filter: /\.ts|\.js$/,
         replace: /{{WEB_VERSION}}/g,
         replacer: () => versionExpo,
+      },
+      {
+        filter: /\.ts|\.js$/,
+        replace: /process\.env\.SERVER_OR_ELECTRON/g,
+        replacer: () => JSON.stringify("electron"),
       },
     ]),
   ],

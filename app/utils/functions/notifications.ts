@@ -9,8 +9,8 @@ import * as notifications from "expo-notifications";
 import NotificationModule from "../modules/NotificationModule";
 import { Platform, Falsy } from "react-native";
 import { reasonNotification } from "../constants";
-import { loadData, saveData } from "./storageManagement";
 import { getNotifications, stringifyData } from "./appManagement";
+import { loadDataStorage, saveDataStorage } from "./storageManagement";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -47,7 +47,8 @@ export const isNotificationsAlreadyInitialized = (
  */
 export const initializeNotificationsStorage =
   async (): Promise<Notifications> => {
-    let notificationsData = (await loadData("@notifications")) as Notifications;
+    let notificationsData = await loadDataStorage("@notifications");
+
     if (isNotificationsAlreadyInitialized(notificationsData))
       return notificationsData;
 
@@ -73,7 +74,7 @@ export const initializeNotificationsStorage =
           paused: pausedNotifications,
           intervals: intervalsNotifications,
         };
-        saveData("@notifications", notificationsData);
+        saveDataStorage("@notifications", notificationsData);
         return notificationsData;
       }
 
@@ -82,7 +83,7 @@ export const initializeNotificationsStorage =
         paused: pausedNotifications,
         intervals: intervalsNotifications,
       };
-      saveData("@notifications", notificationsData);
+      saveDataStorage("@notifications", notificationsData);
       return notificationsData;
     }
 
@@ -92,7 +93,7 @@ export const initializeNotificationsStorage =
       intervals: { ...intervalsNotifications },
     };
 
-    saveData("@notifications", newNotifications);
+    saveDataStorage("@notifications", newNotifications);
     return newNotifications;
   };
 

@@ -4,8 +4,8 @@ import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
-import { fetchToServer, loadDataSecure } from "@utils";
-import React, { memo, useCallback, useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
+import { fetchToServer, loadDataStorage, memoDeep } from "@utils";
 
 const ThemePicker: React.FC = () => {
   const { t, language } = useLanguage();
@@ -21,8 +21,7 @@ const ThemePicker: React.FC = () => {
         requiresInternet: true,
         func: async () => {
           if (!userData?.userId || !sessionToken) return;
-          const deviceId = await loadDataSecure("_deviceId");
-          if (!deviceId) return;
+          const deviceId = await loadDataStorage("_deviceId");
 
           await fetchToServer(
             "/database/update",
@@ -68,6 +67,6 @@ const ThemePicker: React.FC = () => {
   );
 };
 
-const ThemePickerMemo = memo(ThemePicker);
+const ThemePickerMemo = memoDeep(ThemePicker);
 
 export default ThemePickerMemo;

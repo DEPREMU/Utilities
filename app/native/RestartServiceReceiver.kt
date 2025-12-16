@@ -1,4 +1,4 @@
-package com.utilities.depremu
+package {{packageName}}
 
 import android.app.ActivityManager
 import android.content.BroadcastReceiver
@@ -7,6 +7,8 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import android.os.Handler
+import android.os.Looper
 
 class RestartServiceReceiver : BroadcastReceiver() {
     override fun onReceive(
@@ -30,11 +32,66 @@ class RestartServiceReceiver : BroadcastReceiver() {
             return
         }
 
-        if (isAppInForeground(context)) {
-            Log.d("RestartServiceReceiver", "App is already in foreground, skipping activity restart")
+        checkReactAliveAsync(context, 5000L) { isAlive ->
+            if (isAlive) {
+                Log.d("RestartServiceReceiver", "React Native is alive, no need to restart activity")
+            } else {
+                Log.d("RestartServiceReceiver", "React Native not alive, restarting main activity")
+                restartMainActivity(context)
+            }
+        }
+    }
+
+    private fun checkReactAliveAsync(
+        context: Context,
+        timeoutMs: Long = 5000L,
+        callback: (Boolean) -> Unit
+    ) {
+        BackgroundServiceModule.isReactAlive.set(false)
+
+        BackgroundServiceModule.sendEvent("queryAppState", "asking")
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            callback(BackgroundServiceModule.isReactAlive.get())
+        }, timeoutMs)
+    }
+
+    private fun startForegroundServiceWithSavedConfig(context: Context) {
+        val prefs = context.getSharedPreferences("ForegroundServicePrefs", Context.MODE_PRIVATE)
+        
+        val wasConfigured = prefs.getBoolean("wasConfigured", false)
+        if (!wasConfigured) {
+            Log.d("RestartServiceReceiver", "Service not yet configured, skipping auto-start")
             return
         }
+        
+        val serviceIntent = Intent(context, MyForegroundService::class.java).apply {
+            putExtra("title", prefs.getString("title", "Servicio Activo"))
+            putExtra("message", prefs.getString("message", "Utilities está ejecutándose en segundo plano."))
+            
+            val clipboardEnabled = prefs.getBoolean("clipboardEnabled", false)
+            if (clipboardEnabled) {
+                putExtra("enableClipboard", true)
+                putExtra("userId", prefs.getString("userId", null))
+                putExtra("deviceId", prefs.getString("deviceId", "${Build.MANUFACTURER} ${Build.MODEL}"))
+                putExtra("userToken", prefs.getString("userToken", null))
+                putExtra("lang", prefs.getString("lang", "en"))
+            }
+        }
+        
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+            Log.d("RestartServiceReceiver", "Foreground service auto-started from receiver")
+        } catch (e: Exception) {
+            Log.e("RestartServiceReceiver", "Error auto-starting foreground service: ${e.message}")
+        }
+    }
 
+    private fun restartMainActivity(context: Context) {
         try {
             if (Build.VERSION.SDK_INT >= 29 && !Settings.canDrawOverlays(context)) {
                 Log.w("RestartServiceReceiver", "Could not start activity automatically: Missing overlay permission.")
@@ -93,65 +150,6 @@ class RestartServiceReceiver : BroadcastReceiver() {
             }
         } catch (e: Exception) {
             Log.e("RestartServiceReceiver", "Error starting activity: ${e.message}")
-        }
-    }
-    
-    /**
-     * Checks if the app is currently in the foreground.
-     * Returns true if any activity from this package is visible to the user.
-     */
-    private fun isAppInForeground(context: Context): Boolean {
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            activityManager.appTasks.any { task ->
-                task.taskInfo.topActivity?.packageName == context.packageName
-            }
-        } else {
-            val runningProcesses = activityManager.runningAppProcesses ?: return false
-            runningProcesses.any { process ->
-                process.processName == context.packageName && 
-                process.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
-            }
-        }
-    }
-    
-    /**
-     * Starts MyForegroundService with configuration from SharedPreferences.
-     * This allows the service to persist across reboots and app updates.
-     */
-    private fun startForegroundServiceWithSavedConfig(context: Context) {
-        val prefs = context.getSharedPreferences("ForegroundServicePrefs", Context.MODE_PRIVATE)
-        
-        val wasConfigured = prefs.getBoolean("wasConfigured", false)
-        if (!wasConfigured) {
-            Log.d("RestartServiceReceiver", "Service not yet configured, skipping auto-start")
-            return
-        }
-        
-        val serviceIntent = Intent(context, MyForegroundService::class.java).apply {
-            putExtra("title", prefs.getString("title", "Servicio Activo"))
-            putExtra("message", prefs.getString("message", "Utilities está ejecutándose en segundo plano."))
-            
-            val clipboardEnabled = prefs.getBoolean("clipboardEnabled", false)
-            if (clipboardEnabled) {
-                putExtra("enableClipboard", true)
-                putExtra("userId", prefs.getString("userId", null))
-                putExtra("deviceId", prefs.getString("deviceId", "${Build.MANUFACTURER} ${Build.MODEL}"))
-                putExtra("userToken", prefs.getString("userToken", null))
-                putExtra("lang", prefs.getString("lang", "en"))
-            }
-        }
-        
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
-            }
-            Log.d("RestartServiceReceiver", "Foreground service auto-started from receiver")
-        } catch (e: Exception) {
-            Log.e("RestartServiceReceiver", "Error auto-starting foreground service: ${e.message}")
         }
     }
 }

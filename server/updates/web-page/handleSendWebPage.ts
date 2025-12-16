@@ -1,8 +1,8 @@
 import fs from "fs";
-import env from "env";
+import env from "../../env.ts";
 import path from "path";
 import chalk from "chalk";
-import { serverPath } from "config";
+import { serverPath } from "../../config.ts";
 import { Request, Response } from "express";
 
 const webPageDir = path.join(serverPath, "updates", "web-page");

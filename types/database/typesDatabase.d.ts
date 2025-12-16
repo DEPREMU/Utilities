@@ -5,7 +5,7 @@ import type { ReasonNotification } from "../typesNotifications";
 export type Logs = {
   id?: string;
   type: "log" | "warn" | "error";
-  userId: string | null;
+  userId?: string;
   message: string;
   deviceId: string;
   timestamp: string;

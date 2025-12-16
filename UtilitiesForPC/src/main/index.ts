@@ -3,6 +3,14 @@ import {
   verifyNewUpdate,
   deleteDownloadedUpdate,
 } from "./utils/updates";
+import {
+  app,
+  Tray,
+  Menu,
+  nativeImage,
+  BrowserWindow,
+  powerSaveBlocker,
+} from "electron";
 import dataApp, {
   t,
   writeLog,
@@ -16,7 +24,6 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { exec, execSync } from "child_process";
-import { app, Tray, Menu, nativeImage, BrowserWindow } from "electron";
 
 if (!dataApp.getValue("isWindows") && app.isPackaged) {
   try {
@@ -294,6 +301,7 @@ const createTray = (): void => {
 app.whenReady().then(async () => {
   await verifyNewUpdate("electron");
   await verifyNewUpdate("web");
+  powerSaveBlocker.start("prevent-app-suspension");
   deleteDownloadedUpdate();
   dataApp.setValue("language", getLanguage());
   createWindow();

@@ -3,8 +3,8 @@ import path from "path";
 import dotenv from "dotenv";
 import readline from "readline";
 import { ARGS } from "./arguments.ts";
-import APP_CONFIG from "../app/app.config.js";
 import type * as Types from "@types";
+import APP_CONFIG_FUNC from "../app/app.config.ts";
 import type PACKAGE_JSON_APP from "../UtilitiesForPC/package.json";
 import type PACKAGE_JSON_UTILITIES_FOR_PC from "../UtilitiesForPC/package.json";
 
@@ -21,6 +21,14 @@ export const UTILITIES_FOR_PC_PATH = path.resolve(
   UTILITIES_PATH,
   "UtilitiesForPC"
 );
+
+export const APP_CONFIG = APP_CONFIG_FUNC({
+  config: {},
+  packageJsonPath: path.resolve(APP_PATH, "package.json"),
+  projectRoot: APP_PATH,
+  staticConfigPath: path.resolve(APP_PATH, "app.config.ts"),
+});
+
 export const gitignore = fs.readFileSync(
   path.resolve(UTILITIES_PATH, ".gitignore"),
   "utf-8"
@@ -34,7 +42,7 @@ export const PACKAGE_JSON_App = JSON.parse(
   fs.readFileSync(path.resolve(APP_PATH, "package.json"), "utf-8")
 ) as typeof PACKAGE_JSON_APP;
 
-export const versionExpo = APP_CONFIG.expo.version;
+export const versionExpo = APP_CONFIG.version as string;
 if (!versionExpo) throw new Error("Version not found in app.config.js");
 
 export const versionElectron = PACKAGE_JSON_UtilitiesForPC.version as string;
@@ -120,4 +128,3 @@ export const handleExitFromScript = (fun: () => void) => {
 };
 
 export * from "./arguments.ts";
-export { APP_CONFIG };

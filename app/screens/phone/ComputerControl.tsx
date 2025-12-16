@@ -54,7 +54,7 @@ const ComputerControl: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [scanning, setScanning] = useState<boolean>(true);
 
-  const timeOutRef = useRef<NodeJS.Timeout | number | null>(null);
+  const timeOutRef = useRef<number | null>(null);
 
   const scanNetwork = useCallback(() => {
     const zeroconf = new Zeroconf();
@@ -104,8 +104,7 @@ const ComputerControl: React.FC = () => {
       setScanning(false);
       zeroconf.removeDeviceListeners();
       zeroconf.stop?.();
-      if (timeOutRef.current) clearTimeoutPolyfill(timeOutRef.current);
-      timeOutRef.current = null;
+      clearTimeoutPolyfill(timeOutRef);
     };
 
     zeroconf.on("resolved", handleResolved);
@@ -117,7 +116,7 @@ const ComputerControl: React.FC = () => {
 
     zeroconf.scan("http", "tcp", "local.");
 
-    if (timeOutRef.current) clearTimeoutPolyfill(timeOutRef.current);
+    clearTimeoutPolyfill(timeOutRef);
     timeOutRef.current = setTimeoutPolyfill(handleStop, 30000);
 
     return () => handleStop();
@@ -151,6 +150,8 @@ const ComputerControl: React.FC = () => {
     },
     [openSnackBar, t],
   );
+
+  useEffect(() => () => clearTimeoutPolyfill(timeOutRef), []);
 
   useEffect(() => {
     if (!scanning) return;

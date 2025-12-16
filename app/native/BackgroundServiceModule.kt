@@ -1,4 +1,4 @@
-package com.utilities.depremu
+package {{packageName}}
 
 import android.app.ActivityManager
 import android.content.Intent
@@ -11,6 +11,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import java.util.concurrent.atomic.AtomicBoolean
 
 class BackgroundServiceModule(
     reactContext: ReactApplicationContext,
@@ -18,6 +19,8 @@ class BackgroundServiceModule(
     companion object {
         const val NAME = "BackgroundServiceModule"
         private var reactContext: ReactApplicationContext? = null
+
+        val isReactAlive = AtomicBoolean(false)
 
         fun sendEvent(
             eventName: String,
@@ -43,8 +46,8 @@ class BackgroundServiceModule(
     private var userId: String? = null
     private var deviceId: String? = null
     private var userToken: String? = null
-    private var title: String = "Servicio Activo"
-    private var message: String = "Utilities está ejecutándose en segundo plano."
+    private var title: String = "Service not running"
+    private var message: String = "Utilities may not be running in the background, open the app to ensure it continues running."
 
     init {
         Companion.reactContext = reactContext
@@ -104,13 +107,13 @@ class BackgroundServiceModule(
         }
 
         val serviceIntent = Intent(reactApplicationContext, MyForegroundService::class.java).apply {
-            putExtra("title", title)
-            putExtra("message", message)
-            putExtra("enableClipboard", true)
             putExtra("lang", lang)
+            putExtra("title", title)
             putExtra("userId", userId)
+            putExtra("message", message)
             putExtra("deviceId", deviceId)
             putExtra("userToken", userToken)
+            putExtra("enableClipboard", true)
         }
 
         try {
@@ -185,10 +188,14 @@ class BackgroundServiceModule(
             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             val clip = android.content.ClipData.newPlainText("label", text)
             clipboard.setPrimaryClip(clip)
-            MyForegroundService.lastText = text
             Log.d("BackgroundServiceModule", "Text set to clipboard.")
         } catch (e: Exception) {
             Log.e("BackgroundServiceModule", "Error setting clipboard text: ${e.message}")
         }
+    }
+
+    @ReactMethod
+    fun setReactAlive(alive: Boolean) {
+        isReactAlive.set(alive)
     }
 }

@@ -1,4 +1,5 @@
 import { Falsy } from "react-native";
+import { RequestChangeImageFormat } from "./Request";
 import { ExpectedStorageTypes, PriceBinanceAPI } from "./typesAPI";
 import { Streamer, Tables, TablesKeys, UserData } from "../database";
 
@@ -9,7 +10,7 @@ export type ResponseHealth = {
 };
 
 export type ResponseDatabaseFetch<T extends TablesKeys> = {
-  data?: Tables[T][] | Falsy;
+  data?: Tables[T][];
   error?: string;
 };
 export type ResponseDatabaseInsert<T extends TablesKeys = TablesKeys> = {
@@ -21,12 +22,6 @@ export type ResponseDatabaseInsert<T extends TablesKeys = TablesKeys> = {
 export type ResponseSignOut = {
   success: boolean;
   error?: string;
-};
-export type ResponseRefreshSession = {
-  token?: string;
-  error?: string;
-  success: boolean;
-  userData?: Omit<UserData, "password"> | null;
 };
 
 export type ResponseCryptoPrice = {
@@ -56,13 +51,18 @@ export type ResponseGetIsLiveStreamer = {
   error?: string;
 };
 
-export type ResponseAuth = {
-  user?: Omit<UserData, "password">;
-  token?: string;
-  error?: string;
-  success: boolean;
-  storageValues?: ExpectedStorageTypes<"BOTH">;
-};
+export type ResponseAuth<T extends "login" | "signup"> = T extends "login"
+  ? {
+      user?: Omit<UserData, "password">;
+      token?: string;
+      error?: string;
+      success: boolean;
+      storageValues?: ExpectedStorageTypes<"BOTH">;
+    }
+  : {
+      error?: string;
+      success: boolean;
+    };
 
 export type ResponseDatabaseDelete = {
   success: boolean;
@@ -80,11 +80,17 @@ export type ResponseDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
 };
 
 export type ResponseLogs = {
+  error?: string;
   success: boolean;
 };
 
 export type ResponseDoQuery = {
-  result?: unknown | null;
+  result?: {
+    rowCount: number;
+    rows: unknown[];
+    command: string;
+    fields?: unknown[];
+  };
   error?: string;
 };
 
@@ -109,4 +115,11 @@ export type ResponseIsUpdateAvailable = {
 export type ResponseUploadUpdate = {
   success: boolean;
   error?: string;
+};
+
+export type ResponseChangeImageFormat = {
+  error?: string;
+  success: boolean;
+  imageUri?: string;
+  newFormat?: RequestChangeImageFormat["format"];
 };

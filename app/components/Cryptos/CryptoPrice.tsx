@@ -1,6 +1,6 @@
 import {
   logError,
-  stringifyData,
+  memoDeep,
   fetchToServer,
   getFormattedDate,
   setTimeoutPolyfill,
@@ -15,7 +15,6 @@ import React, { useState, useEffect } from "react";
 
 type CryptoPriceProps = {
   cryptoData: SelectedCryptos[string];
-  priceOfCrypto: string;
   ownedAmount: string;
   firstInvest: string;
   gainAmount: string;
@@ -25,7 +24,6 @@ type CryptoPriceProps = {
 
 const CryptoPrice: React.FC<CryptoPriceProps> = ({
   cryptoData,
-  priceOfCrypto: _priceOfCrypto = "The price of {{cryptoName}} is:",
   ownedAmount = "You own: {{amount}} {{cryptoName}}",
   firstInvest = "You invested: {{amount}} {{cryptoName}} with the price of {{price}}",
   gainAmount = "You gained: {{gainAmount}} {{currency}}",
@@ -214,17 +212,6 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
   );
 };
 
-const CryptoPriceMemo = React.memo(CryptoPrice, (prevProps, nextProps) => {
-  return (
-    stringifyData(prevProps.cryptoData) ===
-      stringifyData(nextProps.cryptoData) &&
-    prevProps.currentPrice === nextProps.currentPrice &&
-    prevProps.gainAmount === nextProps.gainAmount &&
-    prevProps.datePurchased === nextProps.datePurchased &&
-    prevProps.firstInvest === nextProps.firstInvest &&
-    prevProps.priceOfCrypto === nextProps.priceOfCrypto &&
-    prevProps.ownedAmount === nextProps.ownedAmount
-  );
-});
+const CryptoPriceMemo = memoDeep(CryptoPrice);
 
 export { CryptoPriceMemo as CryptoPrice };

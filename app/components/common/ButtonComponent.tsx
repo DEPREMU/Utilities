@@ -7,16 +7,19 @@ import {
   NativeMouseEvent,
   NativeSyntheticEvent,
 } from "react-native";
-import React, { memo, useCallback } from "react";
+import { memoDeep } from "@utils";
+import React, { useCallback } from "react";
 import { useStylesButtonComponent } from "@styles/components/useStylesButtonComponent";
-import { stringifyData, areEqualChildren, isFalsy } from "@utils";
 
 type Styles = {
   button?: ViewStyle;
   textButton?: TextStyle;
 };
 
-interface ButtonComponentProps {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PressHandler = (...args: any[]) => void | Promise<void>;
+
+interface ButtonComponentProps<T extends PressHandler> {
   label?: string;
   customStyles?: Styles;
   replaceStyles?: Styles;
@@ -27,38 +30,12 @@ interface ButtonComponentProps {
   handlerHoverIn?: (event: NativeSyntheticEvent<NativeMouseEvent>) => void;
   handlerFocus?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
   handlerHoverOut?: (event: NativeSyntheticEvent<NativeMouseEvent>) => void;
-  handlePress: Function;
-  argsFuncHandlePress?: unknown;
+
+  handlePress: T;
+  argsFuncHandlePress?: Parameters<T>;
+
   disabled?: boolean;
 }
-
-/**
- * Compares two ButtonComponentProps objects for equality.
- * Used to prevent unnecessary re-renders of the ButtonComponent.
- *
- * @param {ButtonComponentProps} prev - The previous props.
- * @param {ButtonComponentProps} next - The next props.
- * @returns {boolean} True if the props are equal, false otherwise.
- */
-const areEqual = (
-  prev: ButtonComponentProps,
-  next: ButtonComponentProps,
-): boolean => {
-  return (
-    prev.disabled === next.disabled &&
-    prev.label === next.label &&
-    prev.forceReplaceStyles === next.forceReplaceStyles &&
-    prev.touchableOpacity === next.touchableOpacity &&
-    prev.touchableOpacityIntensity === next.touchableOpacityIntensity &&
-    prev.handlerFocus === next.handlerFocus &&
-    prev.handlerHoverIn === next.handlerHoverIn &&
-    prev.handlerHoverOut === next.handlerHoverOut &&
-    prev.handlePress === next.handlePress &&
-    stringifyData(prev.replaceStyles) === stringifyData(next.replaceStyles) &&
-    stringifyData(prev.customStyles) === stringifyData(next.customStyles) &&
-    areEqualChildren(prev.children, next.children)
-  );
-};
 
 /**
  * ButtonComponent is a customizable button component that supports various styles and behaviors.
@@ -80,7 +57,7 @@ const areEqual = (
  *
  * @returns {JSX.Element} The rendered button component.
  */
-const ButtonComponent: React.FC<ButtonComponentProps> = ({
+const ButtonComponent = <T extends PressHandler>({
   children,
   handlerFocus,
   replaceStyles,
@@ -94,15 +71,12 @@ const ButtonComponent: React.FC<ButtonComponentProps> = ({
   customStyles,
   handlePress,
   label,
-}) => {
+}: ButtonComponentProps<T>) => {
   const styles = useStylesButtonComponent();
-
   const handlePressCallback = useCallback(() => {
-    if (!isFalsy(argsFuncHandlePress) && Array.isArray(argsFuncHandlePress))
-      handlePress(...argsFuncHandlePress);
-    else handlePress(argsFuncHandlePress);
+    handlePress(...(argsFuncHandlePress || []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handlePress, stringifyData(argsFuncHandlePress)]);
+  }, [handlePress, ...(argsFuncHandlePress || [])]);
 
   return (
     <Pressable
@@ -140,6 +114,6 @@ const ButtonComponent: React.FC<ButtonComponentProps> = ({
   );
 };
 
-const Button = memo(ButtonComponent, areEqual);
+const Button = memoDeep(ButtonComponent);
 
 export default Button;

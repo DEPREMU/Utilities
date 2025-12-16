@@ -1,6 +1,7 @@
-import React, { memo } from "react";
+import React from "react";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
+import { memoDeep } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesFinances from "@styles/screens/calculator/useStylesFinances";
 
@@ -15,6 +16,6 @@ const Finances: React.FC = () => {
   );
 };
 
-const FinancesMemo = memo(Finances);
+const FinancesMemo = memoDeep(Finances);
 
 export default FinancesMemo;

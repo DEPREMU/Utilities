@@ -5,13 +5,13 @@ import {
   RequestDownloadViaTempUrl,
 } from "@types";
 import fs from "fs";
-import env from "env";
+import env from "../env.ts";
 import path from "path";
 import chalk from "chalk";
 import { v4 } from "uuid";
-import { UPLOAD_DIR } from "config";
-import { sendResponse } from "../variables.ts";
-import { getFinalFileName } from "./uploadUpdate";
+import { UPLOAD_DIR } from "../config.ts";
+import { sendResponse } from "@common";
+import { getFinalFileName } from "./uploadUpdate.ts";
 import { Request, Response } from "express";
 
 type InfoUrl = {
@@ -49,6 +49,8 @@ export const handleDownload = (
   req: Request,
   res: Response<ResponseDownloadUpload>,
 ) => {
+  if (!sendResponse) return;
+
   try {
     const { buildType, platformOS, version, id } =
       (req.params as RequestDownloadViaTempUrl) || {};
@@ -97,7 +99,7 @@ export const handleDownload = (
 
     delete tempUrls[fullUrl];
     res.download(filePath, (err) => {
-      if (!err) return;
+      if (!err || !sendResponse) return;
 
       console.error("Error downloading file:", err);
       sendResponse(

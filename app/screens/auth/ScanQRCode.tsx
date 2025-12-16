@@ -1,7 +1,7 @@
 import {
   logError,
   parseData,
-  loadDataSecure,
+  loadDataStorage,
   QR_LOGIN_WS_URL,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
@@ -14,9 +14,9 @@ import { Platform, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import useStylesScanQRCode from "@/styles/screens/auth/useStylesScanQRCode";
-import React, { useCallback, useEffect, useRef, useState } from "react";
 import { BarcodeScanningResult, Camera, CameraView } from "expo-camera";
 import { LoginWithQRMobile, MessageWebSocketQRLogin } from "@types";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type PermissionCamera = "granted" | "denied" | null;
 
@@ -29,7 +29,7 @@ const ScanQRCode: React.FC = () => {
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<PermissionCamera>(null);
 
-  const idTimeoutRef = useRef<NodeJS.Timeout | number | null>(null);
+  const idTimeoutRef = useRef<number | null>(null);
 
   const handleScannedBarcode = useCallback(
     (scanned: BarcodeScanningResult) => {
@@ -48,12 +48,7 @@ const ScanQRCode: React.FC = () => {
 
     getPermissionsCamera();
 
-    return () => {
-      if (!idTimeoutRef.current) return;
-
-      clearTimeoutPolyfill(idTimeoutRef.current);
-      idTimeoutRef.current = null;
-    };
+    return () => clearTimeoutPolyfill(idTimeoutRef);
   }, []);
 
   useEffect(() => {
@@ -84,10 +79,7 @@ const ScanQRCode: React.FC = () => {
     let ws: WebSocket | null = null;
 
     const clearIdTimeout = () => {
-      if (!idTimeoutRef.current) return;
-
-      clearTimeoutPolyfill(idTimeoutRef.current);
-      idTimeoutRef.current = null;
+      clearTimeoutPolyfill(idTimeoutRef);
     };
 
     const handleLoginWithQR = async () => {
@@ -95,7 +87,7 @@ const ScanQRCode: React.FC = () => {
         const parsedMessage: LoginWithQRMobile | null = parseData(scannedData);
         if (!parsedMessage || parsedMessage?.type !== "scanned") return;
 
-        const token = await loadDataSecure("_userSessionTokenStorage");
+        const token = await loadDataStorage("_userSessionTokenStorage");
         if (!token) {
           logError("No session token available for QR login");
           navigateReplace("Home");

@@ -1,5 +1,5 @@
-import { ARGS, env, getArgs } from "../config.ts";
 import { execSync } from "child_process";
+import { ARGS, env, getArgs } from "../config.ts";
 
 /**
  * Executes a shell command with enhanced environment for Electron compatibility
@@ -17,7 +17,6 @@ const runCommand = (command: string): void => {
     process.exit(1);
   }
 };
-
 
 ARGS.profile = "development";
 const args = "-- " + getArgs();

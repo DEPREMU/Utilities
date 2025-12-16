@@ -1,33 +1,27 @@
 import {
+  UserData,
+  ResponseAuth,
+  ResponseFetch,
+  ExpectedStorageTypes,
+} from "@types";
+import {
   log,
   logError,
-  saveData,
-  removeData,
-  isSecureKey,
   checkLanguage,
   fetchToServer,
-  saveDataSecure,
-  loadDataSecure,
-  removeDataSecure,
+  saveDataStorage,
+  loadDataStorage,
+  removeDataStorage,
   cleanAllStorageData,
 } from "../functions";
 import { Platform } from "react-native";
-import * as Updates from "expo-updates";
 import windowModule from "../modules/WindowModule";
+import { reloadAppAsync } from "expo";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
+import { wrapFunctionWithError } from "@common";
 import { isFalsy, setTimeoutPolyfill } from "./../functions/appManagement";
 import { KeyStorageValues, ALL_KEYS_STORAGE_TYPE } from "../constants";
-import { UserData, ExpectedStorageTypes, ResponseFetch } from "@types";
-
-/**
- * Auth response type for consistent error handling
- */
-export type AuthResponse = {
-  token?: string | null;
-  error?: string | null;
-  userData?: Omit<UserData, "password"> | null;
-};
 
 /**
  * Retrieves the Expo push token for the device.
@@ -36,13 +30,21 @@ export type AuthResponse = {
  * @returns A promise that resolves to the Expo push token string.
  * @throws Will throw an error if the project ID is not found or if there is an issue fetching the token.
  */
-const getDevicePushToken = async (): Promise<string> => {
-  if (Platform.OS === "web") return "Web";
+const getDevicePushToken = wrapFunctionWithError(
+  async () => {
+    if (Platform.OS === "web") return "Web";
 
-  const token = (await Notifications.getDevicePushTokenAsync()).data || "";
+    const token: string =
+      (await Notifications.getDevicePushTokenAsync()).data || "";
 
-  return token;
-};
+    return token;
+  },
+  true,
+  (_, errMsg) => {
+    logError("Error getting device push token:", errMsg);
+    return "";
+  },
+);
 
 export const saveStorageData = async (
   storageValues?: ExpectedStorageTypes<"BOTH">,
@@ -50,18 +52,24 @@ export const saveStorageData = async (
   if (!storageValues) return false;
 
   const results = await Promise.all(
-    Object.entries(storageValues).map(([key, value]) => {
-      const keyTyped = key as KeyStorageValues;
-      if (keyTyped === "_deviceId" || keyTyped === "_terminalCommands") return;
+    Object.entries(storageValues).map(
+      wrapFunctionWithError(
+        async ([key, value]) => {
+          const keyTyped = key as ALL_KEYS_STORAGE_TYPE;
+          if (keyTyped === "_deviceId" || keyTyped === "_terminalCommands")
+            return;
 
-      const valueTyped = value as ExpectedStorageTypes<"BOTH">[Exclude<
-        KeyStorageValues,
-        "_deviceId" | "_terminalCommands"
-      >];
+          const valueTyped = value as ExpectedStorageTypes<"BOTH">[Exclude<
+            KeyStorageValues,
+            "_deviceId" | "_terminalCommands"
+          >];
 
-      if (!isSecureKey(keyTyped)) saveData(keyTyped, valueTyped);
-      else saveDataSecure(keyTyped, valueTyped);
-    }),
+          saveDataStorage(keyTyped, valueTyped);
+        },
+        true,
+        (e) => e,
+      ),
+    ),
   );
 
   if (results.some((res) => res)) {
@@ -85,19 +93,13 @@ export const signInWithEmail = async (
   email: string,
   password: string,
   rememberMe: boolean = false,
-): Promise<AuthResponse> => {
+): Promise<ResponseAuth<"login">> => {
   try {
-    const [lang, deviceId] = await Promise.all([
+    const [lang, deviceId, notificationToken] = await Promise.all([
       checkLanguage(),
-      loadDataSecure("_deviceId"),
+      loadDataStorage("_deviceId"),
+      getDevicePushToken(),
     ]);
-    let notificationToken = "Web";
-    if (Platform.OS !== "web") notificationToken = await getDevicePushToken();
-    if (!deviceId) {
-      const errorMsg = "No device ID found";
-      logError(errorMsg);
-      return { error: errorMsg };
-    }
 
     const res = await fetchToServer("/auth/login", {
       lang,
@@ -113,25 +115,25 @@ export const signInWithEmail = async (
     if (!dataInsert || isFalsy(dataInsert?.user)) {
       const errorMsg = "No session or user data received from Database";
       logError(errorMsg);
-      return { error: errorMsg };
+      return { success: false, error: errorMsg };
     }
     if (dataInsert.error) {
       logError("Error signing in:", dataInsert.error);
-      return { error: dataInsert.error };
+      return { success: false, error: dataInsert.error };
     }
 
     log("User signed in successfully:", dataInsert.user.email);
 
     await saveStorageData(dataInsert.storageValues);
     return {
-      token: dataInsert.token || null,
-      userData: dataInsert.user,
-      error: null,
+      user: dataInsert.user,
+      token: dataInsert.token || undefined,
+      success: true,
     };
   } catch (error) {
     const errorMsg = `Unexpected error during sign in: ${error}`;
     logError(errorMsg);
-    return { error: errorMsg };
+    return { success: false, error: errorMsg };
   }
 };
 
@@ -141,7 +143,7 @@ export const signInWithEmail = async (
 export const signUpWithEmail = async (
   email: string,
   password: string,
-): Promise<AuthResponse> => {
+): Promise<ResponseAuth<"login">> => {
   try {
     const res = await fetchToServer("/auth/signup", {
       lang: await checkLanguage(),
@@ -154,14 +156,14 @@ export const signUpWithEmail = async (
     if (data?.error || !res.ok) {
       const message = data?.error || res.errorText || "Unknown error";
       logError("Error signing up:", message);
-      return { error: message };
+      return { success: false, error: message };
     }
 
-    return { error: null };
+    return { success: true };
   } catch (error) {
     const errorMsg = `Unexpected error during sign up: ${error}`;
     logError(errorMsg);
-    return { error: errorMsg };
+    return { success: false, error: errorMsg };
   }
 };
 
@@ -196,22 +198,21 @@ export const forgotPasswordWithEmail = async (
  */
 export const signOut = async (): Promise<{ error?: string | null }> => {
   try {
-    const [deviceId, lang, token] = await Promise.all([
-      loadDataSecure("_deviceId"),
+    const [deviceId, lang, token, notificationToken] = await Promise.all([
+      loadDataStorage("_deviceId"),
       checkLanguage(),
-      loadDataSecure("_userSessionTokenStorage"),
+      loadDataStorage("_userSessionTokenStorage"),
+      getDevicePushToken(),
     ]);
-    if (!token) return { error: "No session token found" };
 
-    let notificationToken = "Web";
-    if (Platform.OS !== "web") notificationToken = await getDevicePushToken();
+    if (!token) return { error: "No session token found" };
 
     const res = await fetchToServer(
       "/auth/signOut",
       {
-        deviceId: deviceId as string,
-        notificationToken,
         lang,
+        deviceId,
+        notificationToken,
       },
       token,
     );
@@ -240,12 +241,8 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
       "_userSessionTokenStorage",
     ];
 
-    await Promise.all(
-      storedValues.map((key) =>
-        !isSecureKey(key) ? removeData(key) : removeDataSecure(key),
-      ),
-    );
-    if (Platform.OS !== "web") removeDataSecure("_terminalCommands");
+    await Promise.all(storedValues.map(removeDataStorage));
+    if (Platform.OS !== "web") removeDataStorage("_terminalCommands");
 
     log("User signed out successfully");
     navigateReplace("Login");
@@ -260,39 +257,40 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
 /**
  * Gets the current authenticated user
  */
-export const getCurrentUser = async (): Promise<AuthResponse> => {
+export const getCurrentUser = async (): Promise<ResponseAuth<"login">> => {
   try {
-    const userData = await loadDataSecure("_userData");
+    const userData = await loadDataStorage("_userData");
 
     return {
-      userData: userData || null,
+      success: !!userData,
+      user: userData || undefined,
     };
   } catch (error) {
     const errorMsg = `Unexpected error getting current user: ${error}`;
     logError(errorMsg);
-    return { error: errorMsg };
+    return { success: false, error: errorMsg };
   }
 };
 
 /**
  * Refreshes the current session using a refresh token
  */
-export const refreshSession = async (token: string): Promise<AuthResponse> => {
+export const refreshSession = async (
+  token: string,
+): Promise<ResponseAuth<"login">> => {
   try {
-    const [lang, deviceId] = await Promise.all([
+    const [lang, deviceId, notificationToken] = await Promise.all([
       checkLanguage(),
-      loadDataSecure("_deviceId"),
+      loadDataStorage("_deviceId"),
+      getDevicePushToken(),
     ]);
-
-    let notificationToken = "Web";
-    if (Platform.OS !== "web") notificationToken = await getDevicePushToken();
 
     if (!deviceId) {
       cleanAllStorageData();
       logError("No device ID found");
-      if (Platform.OS === "android") await Updates.reloadAsync();
+      if (Platform.OS === "android") await reloadAppAsync();
       else window?.location?.reload();
-      return { error: "No device ID found" };
+      return { success: false, error: "No device ID found" };
     }
 
     let res: ResponseFetch<"/auth/refreshSession"> | null = null;
@@ -324,7 +322,7 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
     if (!res) {
       const errorMsg = "Failed to refresh session after multiple attempts";
       logError(errorMsg);
-      return { error: errorMsg };
+      return { success: false, error: errorMsg };
     }
 
     const data = res.data;
@@ -336,24 +334,24 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
           ? `: ${res.errorText} `
           : "";
       logError(errorMsg);
-      return { error: errorMsg };
+      return { success: false, error: errorMsg };
     }
 
     if (data.error) {
       logError("Error refreshing session:", data.error);
       if (Platform.OS === "web") windowModule.notifyLoginStatus?.(false);
-      return { error: data.error };
+      return { success: false, error: data.error };
     }
 
-    if (!data.token || !data.userData) {
+    if (!data.token || !data.user) {
       const errorMsg = "No token or user data received from refresh session";
       logError(errorMsg);
       signOut();
-      return { error: errorMsg };
+      return { success: false, error: errorMsg };
     }
 
-    saveDataSecure("_userData", data.userData);
-    saveDataSecure("_userSessionTokenStorage", data.token);
+    saveDataStorage("_userData", data.user);
+    saveDataStorage("_userSessionTokenStorage", data.token);
     log("Session refreshed successfully");
     return {
       ...data,
@@ -361,7 +359,7 @@ export const refreshSession = async (token: string): Promise<AuthResponse> => {
   } catch (error) {
     const errorMsg = `Unexpected error refreshing session: ${error}`;
     logError(errorMsg);
-    return { error: errorMsg };
+    return { success: false, error: errorMsg };
   }
 };
 
@@ -380,7 +378,7 @@ export const getUserData = async (
   error?: string | null;
 }> => {
   try {
-    const userData = await loadDataSecure("_userData");
+    const userData = await loadDataStorage("_userData");
     if (userData && userData?.userId === userId)
       return { userData, error: null };
 
@@ -401,6 +399,6 @@ export const getUserData = async (
  * @returns The user's id if the user is authenticated, otherwise null.
  */
 export const getCurrentUserId = async (): Promise<string | null> => {
-  const { userData } = await getCurrentUser();
-  return userData?.userId || null;
+  const { user } = await getCurrentUser();
+  return user?.userId || null;
 };

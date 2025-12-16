@@ -5,6 +5,7 @@ export type ScreensAvailable =
   | "Games"
   | "InfoIP"
   | "SignUp"
+  | "Images"
   | "Cryptos"
   | "Settings"
   | "Clipboard"

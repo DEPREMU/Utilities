@@ -12,6 +12,7 @@
       },
       "env": {
         "PLATFORM": "android",
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
         "NODE_ENV": "development"
       },
       "channel": "development"
@@ -23,6 +24,7 @@
       "distribution": "internal",
       "env": {
         "PLATFORM": "android",
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
         "NODE_ENV": "preview"
       },
       "channel": "preview"
@@ -33,12 +35,10 @@
       },
       "env": {
         "PLATFORM": "android",
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
         "NODE_ENV": "production"
       },
       "channel": "production"
     }
-  },
-  "submit": {
-    "production": {}
   }
 }

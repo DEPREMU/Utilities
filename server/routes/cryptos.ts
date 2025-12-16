@@ -7,7 +7,7 @@ import {
 } from "@types";
 import chalk from "chalk";
 import express from "express";
-import { sendResponse } from "../variables.ts";
+import { sendResponse } from "@common";
 
 export let dataBinance: PriceBinanceAPI = [];
 
@@ -66,17 +66,22 @@ export const handleGetCryptoPrice = async (
       return sendResponse(
         res,
         "INTERNAL_SERVER_ERROR",
-        { error: "Error fetching crypto price" },
+        {
+          error:
+            "Error fetching crypto price, priceUSD or priceUSDT_MXN is invalid",
+        },
         "/cryptoPrice",
       );
 
     sendResponse(res, "SUCCESS", { priceUSD, priceUSDTMXN }, "/cryptoPrice");
   } catch (error) {
-    console.error(chalk.red("Error fetching crypto price:"), error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    console.error(chalk.red("Error fetching crypto price:"), errorMessage);
     sendResponse(
       res,
       "INTERNAL_SERVER_ERROR",
-      { error: "Error fetching crypto price" },
+      { error: "Error fetching crypto price: " + errorMessage },
       "/cryptoPrice",
     );
   }

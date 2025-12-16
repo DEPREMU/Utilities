@@ -13,6 +13,7 @@ module.exports = function (api) {
       [
         "module-resolver",
         {
+          extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
           alias: {
             "@": "./",
             "@assets": "./assets",
@@ -24,6 +25,7 @@ module.exports = function (api) {
             "@context": "./context",
             "@styles": "./styles",
             "@types": "../types/index.d.ts",
+            "@common": "../common/both",
           },
         },
       ],

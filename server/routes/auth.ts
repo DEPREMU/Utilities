@@ -3,7 +3,7 @@ import {
   decodeJWTToken,
   getDateWithDaysAhead,
   getJWTTokenAndUpload,
-} from "functions/auth.ts";
+} from "../functions/auth.ts";
 import {
   deleteInTable,
   updateInTable,
@@ -23,13 +23,11 @@ import {
   LanguagesSupported,
   ExpectedStorageTypes,
   RequestRefreshSession,
-  ResponseRefreshSession,
 } from "@types";
 import chalk from "chalk";
-import { t } from "../translations/index.ts";
 import bcrypt from "bcryptjs";
-import { sendResponse } from "./../variables.ts";
 import { NextFunction, Request, Response } from "express";
+import { isValidPassword, t, sendResponse, isValidEmail } from "@common";
 
 /**
  * Inserts a push token into the database for a specific user.
@@ -256,7 +254,7 @@ export const initializeTables = async (
 
 export const handleLogin = async (
   req: Request<unknown, unknown, RequestAuth<"login">>,
-  res: Response<ResponseAuth>,
+  res: Response<ResponseAuth<"login">>,
 ) => {
   const { email, password, deviceId, notificationToken, rememberMe } =
     req.body || {};
@@ -377,7 +375,7 @@ export const handleLogin = async (
 
 export const handleSignIn = async (
   req: Request<unknown, unknown, RequestAuth<"signup">>,
-  res: Response<ResponseAuth>,
+  res: Response<ResponseAuth<"signup">>,
 ) => {
   let { lang } = req.body || { lang: "en" };
   if (!lang) lang = "en";
@@ -392,12 +390,18 @@ export const handleSignIn = async (
         "/auth/signup",
       );
 
-    const passwordRegex = /(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}/;
-    if (!passwordRegex.test(password))
+    if (!isValidPassword(password))
       return sendResponse(
         res,
         "BAD_REQUEST",
         { success: false, error: t("auth.passwordNotStrong", lang) },
+        "/auth/signup",
+      );
+    if (!isValidEmail(email))
+      return sendResponse(
+        res,
+        "BAD_REQUEST",
+        { success: false, error: t("auth.invalidEmailFormat", lang) },
         "/auth/signup",
       );
 
@@ -459,7 +463,7 @@ export const handleSignIn = async (
 
 export const handleRefreshSession = async (
   req: Request<unknown, unknown, RequestRefreshSession>,
-  res: Response<ResponseRefreshSession>,
+  res: Response<ResponseAuth<"login">>,
 ) => {
   let { lang } = req.body || { lang: "en" };
   if (!lang) lang = "en";
@@ -467,7 +471,7 @@ export const handleRefreshSession = async (
   try {
     const { tokenDecoded: decoded, token } = req.user || {};
 
-    const newToken = getJWTToken({
+    const newToken = await getJWTToken({
       email: decoded.email,
       deviceId: decoded.deviceId,
       userId: decoded.userId,
@@ -535,9 +539,9 @@ export const handleRefreshSession = async (
       res,
       "SUCCESS",
       {
-        success: true,
+        user: userData as Omit<UserData, "password">,
         token: update.token,
-        userData: userData as Omit<UserData, "password">,
+        success: true,
       },
       "/auth/refreshSession",
     );
@@ -604,7 +608,7 @@ export const handleSignOut = async (
   }
 };
 
-export const authMiddleware = (
+export const authMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -646,7 +650,7 @@ export const authMiddleware = (
         "/auth/login",
       );
 
-    const payload = decodeJWTToken(token);
+    const payload = await decodeJWTToken(token);
     if (!payload)
       return sendResponse(
         res,

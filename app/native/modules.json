@@ -2,7 +2,7 @@
   {
     "name": "CustomKeyboard.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/",
+    "finalPath": "android/app/src/main/java/",
     "service": "<service \n  android:name=\".CustomKeyboard\" \n  android:enabled=\"true\" \n  android:exported=\"true\" \n  android:permission=\"android.permission.BIND_INPUT_METHOD\" \n  android:label=\"@string/app_name\" >\n  <intent-filter>\n    <action android:name=\"android.view.InputMethod\" />\n  </intent-filter>\n  <meta-data android:name=\"android.view.im\" \n    android:resource=\"@xml/method\" />\n</service>"
   },
   {
@@ -18,59 +18,59 @@
   {
     "name": "KeyboardModule.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+    "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "KeyboardPackage.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+    "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "BackgroundServiceModule.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/",
+    "finalPath": "android/app/src/main/java/",
     "service": "<service \n  android:name=\".MyForegroundService\" \n  android:enabled=\"true\" \n  android:exported=\"false\" \n  android:stopWithTask=\"false\" \n  android:foregroundServiceType=\"dataSync\" />"
   },
   {
     "name": "BackgroundServicePackage.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+    "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "MyForegroundService.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+    "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "NotificationModule.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+    "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "NotificationPackage.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+    "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "NotificationActionReceiver.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/",
+    "finalPath": "android/app/src/main/java/",
     "service": "<receiver \n  android:name=\".NotificationActionReceiver\" \n  android:enabled=\"true\" \n  android:exported=\"false\" />"
   },
   {
     "name": "RestartServiceReceiver.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/",
+    "finalPath": "android/app/src/main/java/",
     "service": "<receiver \n  android:name=\".RestartServiceReceiver\" \n  android:enabled=\"true\" \n  android:exported=\"true\" >\n  <intent-filter>\n    <action android:name=\"android.intent.action.BOOT_COMPLETED\" />\n    <action android:name=\"android.intent.action.QUICKBOOT_POWERON\" />\n    <action android:name=\"com.htc.intent.action.QUICKBOOT_POWERON\" />\n    <action android:name=\"android.intent.action.ACTION_POWER_CONNECTED\" />\n    <action android:name=\"android.intent.action.ACTION_POWER_DISCONNECTED\" />\n    <action android:name=\"android.intent.action.MY_PACKAGE_REPLACED\" />\n  </intent-filter>\n</receiver>"
   },
   {
     "name": "NativeFunctionsPackage.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+    "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "NativeFunctionsModule.kt",
     "initPath": "native/",
-    "finalPath": "android/app/src/main/java/com/utilities/depremu/"
+    "finalPath": "android/app/src/main/java/"
   }
 ]

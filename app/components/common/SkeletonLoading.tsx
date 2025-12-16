@@ -16,9 +16,9 @@ import Animated, {
   useAnimatedStyle,
   WithTimingConfig,
 } from "react-native-reanimated";
+import { memoDeep } from "@utils";
 import { LinearGradient } from "expo-linear-gradient";
-import { areEqualChildren, stringifyData } from "@utils";
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 interface SkeletonLoadingProps {
   showChildren: boolean;
@@ -100,17 +100,6 @@ const styles = StyleSheet.create({
   fill: { width: "100%", height: "100%" },
 });
 
-const SkeletonLoadingMemo = memo(SkeletonLoading, (prevProps, nextProps) => {
-  const areEqual = (a: unknown, b: unknown) =>
-    stringifyData(a) === stringifyData(b);
-
-  const areEquals =
-    areEqual(prevProps.style, nextProps.style) &&
-    areEqual(prevProps.duration, nextProps.duration) &&
-    areEqual(prevProps.showChildren, nextProps.showChildren) &&
-    areEqualChildren(prevProps.children, nextProps.children);
-
-  return areEquals;
-});
+const SkeletonLoadingMemo = memoDeep(SkeletonLoading);
 
 export default SkeletonLoadingMemo;

@@ -6,7 +6,7 @@ import { useUserContext } from "@context/UserContext";
 import { View, TextInput } from "react-native";
 import useStylesSyncClipboard from "@styles/screens/clipboard/useStylesSyncClipboard";
 import React, { useCallback, useState } from "react";
-import { fetchToServer, loadDataSecure } from "@utils";
+import { fetchToServer, loadDataStorage } from "@utils";
 
 const SyncClipboardScreen: React.FC = () => {
   const { styles } = useStylesSyncClipboard();
@@ -25,19 +25,19 @@ const SyncClipboardScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const deviceId = await loadDataSecure("_deviceId");
+      const deviceId = await loadDataStorage("_deviceId");
 
       const res = await fetchToServer(
         "/database/insert",
         {
           lang: language,
           table: "ClipboardSync",
-          deviceId: deviceId || "local-device",
+          deviceId,
           values: {
-            content: inputText,
-            createdAt: new Date().toISOString(),
-            deviceId: deviceId || "local-device",
             userId: userData?.userId,
+            content: inputText,
+            deviceId,
+            createdAt: new Date().toISOString(),
           },
         },
         sessionToken,

@@ -1,9 +1,9 @@
-import env from "env";
+import env from "../env.ts";
 import chalk from "chalk";
-import { t } from "translations/index.ts";
-import { fetchFromTable } from "database/functions.ts";
+import { t } from "@common";
+import { fetchFromTable } from "../database/functions.ts";
 import { ReasonNotification } from "@types";
-import { sendFCMNotification } from "firebase/admin.ts";
+import { sendFCMNotification } from "../firebase/admin.ts";
 
 const handleSendNotificationToAdmin = async () => {
   try {

@@ -1,14 +1,15 @@
 import {
   Notifications,
-  typeLanguages,
+  typeLanguagesKeys,
   ReasonNotification,
   RequestDatabaseUpdate,
 } from "@types";
 import {
-  saveData,
+  memoDeep,
   stringifyData,
   fetchToServer,
-  loadDataSecure,
+  loadDataStorage,
+  saveDataStorage,
   getNotifications,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
@@ -50,8 +51,8 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 }) => {
   const { styles } = useStylesNotifications();
   const { t, language } = useLanguage();
-  const { sendMessageRef } = useWebSocket();
   const { addTaskQueue } = useBackgroundTask();
+  const { sendMessageRef } = useWebSocket();
   const { userData, sessionToken } = useUserContext();
   const [notifications, setNotifications] = useState<Notifications | null>(
     null,
@@ -87,7 +88,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
           },
         };
         if (sessionToken && userData?.userId)
-          loadDataSecure("_deviceId").then(async (deviceId) => {
+          loadDataStorage("_deviceId").then(async (deviceId) => {
             const values: RequestDatabaseUpdate["values"] = {
               enabled: !!updated.enabled[reason],
             };
@@ -105,7 +106,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
                       match,
                       table: "UserNotificationsConfig",
                       values,
-                      deviceId: deviceId || "local-device",
+                      deviceId,
                       lang: language,
                     },
                     sessionToken,
@@ -121,7 +122,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             );
           });
 
-        saveData("@notifications", updated);
+        saveDataStorage("@notifications", updated);
         return updated;
       });
     },
@@ -144,7 +145,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
         if (interval <= 0) return updated;
 
-        loadDataSecure("_deviceId").then(async (deviceId) => {
+        loadDataStorage("_deviceId").then(async (deviceId) => {
           const taskId =
             Date.now().toString() + Math.random().toString(36).substring(2, 8);
           const values: RequestDatabaseUpdate["values"] = {
@@ -162,7 +163,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
                   "/database/update",
                   {
                     match,
-                    deviceId: deviceId || "local-device",
+                    deviceId,
                     table: "UserNotificationsConfig",
                     values,
                     lang: language,
@@ -194,7 +195,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         <>
           <Button
             replaceStyles={{ button: styles.notificationItem, textButton: {} }}
-            argsFuncHandlePress={item.id}
+            argsFuncHandlePress={[item.id]}
             handlePress={handleChangeNotification}
           >
             <>
@@ -203,7 +204,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
                 onChange={() => handleChangeNotification(item.id)}
               />
               <Text style={styles.notificationKey}>
-                {t(item.id as keyof typeLanguages)}
+                {t(item.id as typeLanguagesKeys)}
               </Text>
             </>
           </Button>
@@ -287,7 +288,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         data: updatedNotifications,
         userId: userData.userId,
       });
-      await saveData("@notifications", updatedNotifications);
+      await saveDataStorage("@notifications", updatedNotifications);
     };
 
     const id = setTimeoutPolyfill(saveIntervals, 1000);
@@ -297,24 +298,19 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
   return (
     <FlatList
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onTouchEndCapture={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
       data={notificationData}
+      style={styles.container}
+      onTouchEnd={handleTouchEnd}
       renderItem={renderNotificationItem}
+      onTouchStart={handleTouchStart}
       keyExtractor={(item) => item.id}
+      onTouchCancel={handleTouchEnd}
+      onTouchEndCapture={handleTouchEnd}
+      contentContainerStyle={styles.contentContainer}
     />
   );
 };
 
-const NotificationsMemo = React.memo(
-  NotificationsComponent,
-  (prevProps, nextProps) => {
-    return prevProps.onScrollableAreaTouch === nextProps.onScrollableAreaTouch;
-  },
-);
+const NotificationsMemo = memoDeep(NotificationsComponent);
 
 export default NotificationsMemo;

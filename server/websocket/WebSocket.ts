@@ -11,15 +11,14 @@ import {
   Notifications,
   ScreensAvailable,
   WebSocketMessage,
-  WebSocketResponse,
   ReasonNotification,
   LanguagesSupported,
   UserNotificationsConfig,
 } from "@types";
 import chalk from "chalk";
-import { t } from "../translations/index.ts";
+import { t } from "@common";
 import { dataBinance } from "../routes/cryptos.ts";
-import { sendFCMNotification } from "firebase/admin.ts";
+import { sendFCMNotification } from "../firebase/admin.ts";
 import WebSocket, { WebSocketServer } from "ws";
 
 deleteSessions();
@@ -62,7 +61,10 @@ const insertUserConfig = async (config: UserConfig) => {
   }
 };
 
-const handleInitWebSocket = (data: WebSocketMessage, ws: WebSocket): string => {
+const handleInitWebSocket = (
+  data: WebSocketMessage<"sentByApp">,
+  ws: WebSocket,
+): string => {
   if (data.type !== "init") return "";
 
   try {
@@ -77,16 +79,8 @@ const handleInitWebSocket = (data: WebSocketMessage, ws: WebSocket): string => {
         );
         ws.close?.();
       }, 10000);
-      ws.ping();
+      ws.send(JSON.stringify({ type: "ping" }));
     }, 29000);
-
-    ws.on("pong", () => {
-      if (!users[data.userId]) return;
-
-      const timeoutId = users[data.userId].pingTimeoutId;
-      if (timeoutId) clearTimeout(timeoutId);
-      users[data.userId].pingTimeoutId = null;
-    });
 
     if (!users[data.userId]) {
       users[data.userId] = {
@@ -113,7 +107,7 @@ const handleInitWebSocket = (data: WebSocketMessage, ws: WebSocket): string => {
       users[data.userId].ws = ws;
     }
 
-    const message: WebSocketResponse = {
+    const message: WebSocketMessage<"sentByServer"> = {
       type: "init-success",
       message: "WebSocket initialized successfully",
     };
@@ -245,13 +239,11 @@ const connectionWss = (ws: WebSocket) => {
     };
 
     const handleNotificationCrypto = async (
-      data: WebSocketMessage,
+      data: WebSocketMessage<"sentByApp"> & { type: "notifications" },
       ws: WebSocket,
       interval: number,
     ) => {
       try {
-        if (data.type !== "notifications") return;
-
         if (!users[data.userId]) {
           users[data.userId] = {
             ws,
@@ -276,7 +268,7 @@ const connectionWss = (ws: WebSocket) => {
             const notification = await getNotificationCrypto(cryptos);
             if (!notification) return;
 
-            const message: WebSocketResponse = {
+            const message: WebSocketMessage<"sentByServer"> = {
               type: "notification",
               notification,
             };
@@ -329,10 +321,11 @@ const connectionWss = (ws: WebSocket) => {
       }
     };
 
-    const handleNotifications = (data: WebSocketMessage, ws: WebSocket) => {
+    const handleNotifications = (
+      data: WebSocketMessage<"sentByApp"> & { type: "notifications" },
+      ws: WebSocket,
+    ) => {
       try {
-        if (data.type !== "notifications") return;
-
         insertNotifications(data.userId, data.data);
 
         if (!users[data.userId]) {
@@ -384,11 +377,15 @@ const connectionWss = (ws: WebSocket) => {
       Object.values(intervalsId).forEach((intervalId) => {
         if (intervalId) clearInterval(intervalId);
       });
+      ws.removeAllListeners();
     };
 
     ws.on("message", (message) => {
       try {
-        const data = JSON.parse(message.toString()) as WebSocketMessage;
+        const data = JSON.parse(
+          message.toString(),
+        ) as WebSocketMessage<"sentByApp">;
+
         switch (data.type) {
           case "init":
             userId = handleInitWebSocket(data, ws);
@@ -404,6 +401,15 @@ const connectionWss = (ws: WebSocket) => {
               { userId },
             );
             break;
+          case "pong": {
+            if (!users[userId]) return ws.close();
+
+            const timeoutId = users[userId].pingTimeoutId;
+            if (timeoutId) clearTimeout(timeoutId);
+
+            users[userId].pingTimeoutId = null;
+            break;
+          }
           default:
             console.log(chalk.yellow("Unknown message type:"), data);
             break;
@@ -431,7 +437,6 @@ const connectionWss = (ws: WebSocket) => {
         chalk.red("-"),
         error,
       );
-      handleClose();
       ws.close?.();
     });
   } catch (error) {

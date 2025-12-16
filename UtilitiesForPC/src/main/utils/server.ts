@@ -8,7 +8,11 @@ import { writeLog } from "./logger";
 import { exec, execSync } from "child_process";
 import { AdvertisementTXT } from "@types";
 import { stopMemoryMonitor } from "./memoryMonitor";
+import { handleChangeImageFormat } from "@common";
 import { executeTerminalCommands } from "./storage";
+
+if (!handleChangeImageFormat)
+  throw new Error("handleChangeImageFormat is not defined");
 
 let idTimeoutServer: number | null = null;
 let isReconnecting = false;
@@ -205,7 +209,7 @@ export const initServer = (): void => {
     cleanAdAndServer();
 
     const app = express();
-    app.use(express.json());
+    app.use(express.json({ limit: "1gb" }));
     app.use(cors());
 
     app.get("/status", (_, res) => {
@@ -227,6 +231,8 @@ export const initServer = (): void => {
       writeLog("Received /restart-computer request", "info");
       res.json({ success: await restartComputer() });
     });
+
+    app.post("/change-image-format", handleChangeImageFormat!);
 
     const server = app.listen(dataApp.getValue("PORT"), "0.0.0.0", () => {
       if (idTimeoutServer) {

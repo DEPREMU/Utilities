@@ -21,7 +21,7 @@ initFileStorage();
 const store = new Store({
   name: "secure-storage",
   cwd: app.getPath("userData"),
-  encryptionKey: dataApp.getValue("encryptionKey"),
+  encryptionKey: dataApp.getValue("machineId"),
   clearInvalidConfig: true,
 }) as unknown as ElectronStoreType;
 
@@ -159,6 +159,25 @@ export const removeStorageFileValue = async (
     return false;
   }
 };
+
+const initDeviceId = async (): Promise<void> => {
+  try {
+    const deviceId = await getStorageFileValue("_deviceId");
+    const machineId = dataApp.getValue("machineId");
+    const hashedId = crypto
+      .createHash("sha256")
+      .update(machineId)
+      .digest("hex");
+
+    if (deviceId === hashedId) return;
+
+    dataApp.setValue("deviceId", hashedId);
+    await saveStorageFileValue("_deviceId", hashedId);
+  } catch (error) {
+    console.error("Error initializing device ID:", error);
+  }
+};
+initDeviceId();
 
 export const executeTerminalCommands = async (when: Command["when"]) => {
   if (!dataApp.getValue("hasSudo")) return;

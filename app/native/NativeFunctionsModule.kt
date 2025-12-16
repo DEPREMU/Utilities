@@ -1,4 +1,4 @@
-package com.utilities.depremu
+package {{packageName}}
 
 import android.content.Intent
 import android.net.Uri

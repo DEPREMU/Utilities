@@ -46,7 +46,7 @@ interface SnackBarConfig {
   label: string;
   duration: number;
   action?: SnackbarProps["action"];
-  timeout?: number | NodeJS.Timeout;
+  timeout?: number;
 }
 
 /**
@@ -77,7 +77,6 @@ const ModalContext = createContext<ModalContextProps | undefined>(undefined);
  * @property {function} closeModal - Function to close the modal and reset its state.
  */
 export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
-  const idTimeout = useRef<NodeJS.Timeout | number | null>(null);
   const [body, setBody] = useState<ReactNode | string>(null);
   const [title, setTitle] = useState<string>("");
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -86,21 +85,18 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   const [customStyles, setCustomStyles] = useState<
     Record<StylesModal, object> | undefined
   >(undefined);
-
   const [snackbar, setSnackbar] = useState<SnackBarConfig[]>([]);
 
+  const idTimeout = useRef<number | null>(null);
   /**
    * Clears the timeout stored in `idTimeout.current` if it exists.
    *
    * This function is used to prevent memory leaks and ensure that the timeout
    * does not execute after the modal has been closed or reset.
    */
-  const clearIdTimeout = useCallback(() => {
-    if (!idTimeout.current) return;
-
-    clearTimeoutPolyfill(idTimeout.current);
-    idTimeout.current = null;
-  }, []);
+  const clearIdTimeout = useRef(() => {
+    clearTimeoutPolyfill(idTimeout);
+  });
 
   /**
    * Opens a modal with the specified title, body, and buttons.
@@ -122,7 +118,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
       setIsOpen((prev) => {
         if (prev) return prev;
 
-        clearIdTimeout();
+        clearIdTimeout.current();
 
         setTitle(modalTitle);
         setBody(modalBody);
@@ -130,7 +126,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
         return true;
       });
     },
-    [clearIdTimeout],
+    [],
   );
 
   /**
@@ -142,7 +138,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
    * Note: Ensure that `clearIdTimeout` properly clears the timeout stored in `idTimeout.current`.
    */
   const closeModal = useCallback(() => {
-    clearIdTimeout();
+    clearIdTimeout.current();
 
     setIsOpen(false);
     idTimeout.current = setTimeoutPolyfill(() => {
@@ -150,7 +146,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
       setBody(null);
       setButtons(null);
     }, 1000);
-  }, [clearIdTimeout]);
+  }, []);
 
   /**
    * Opens a snackbar with the specified label, duration, and action.

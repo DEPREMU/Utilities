@@ -96,9 +96,9 @@ const Minesweeper: React.FC = () => {
     if (finishGame.isFinished)
       return finishGame.isWin ? t("youWin") : t("youLose");
     if (finishGame.isPlaying)
-      return `${t("youArePlaying")}: \n${t("flagsRemaining", { count: numFlags })}`;
+      return `${t("youArePlaying")}: \n${t("flagsRemaining", { count: String(numFlags) })}`;
 
-    return t("flagsRemaining", { count: numFlags });
+    return t("flagsRemaining", { count: String(numFlags) });
   }, [finishGame, numFlags, t]);
 
   const handleStartGame = useCallback(() => {
@@ -123,7 +123,7 @@ const Minesweeper: React.FC = () => {
           button: level === difficulty ? styles.difficultySelected : {},
           textButton: {},
         }}
-        argsFuncHandlePress={level}
+        argsFuncHandlePress={[level as Difficulty]}
         touchableOpacity
         label={t(level as Difficulty)}
         handlePress={handleChangeDifficulty}

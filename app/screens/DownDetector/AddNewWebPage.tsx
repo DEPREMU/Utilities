@@ -7,7 +7,7 @@ import { useUserContext } from "@context/UserContext";
 import useStylesAddNewWebPage from "@styles/screens/downDetector/useStylesAddNewWebPage";
 import { Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useState } from "react";
-import { fetchToServer, loadDataSecure } from "@utils";
+import { fetchToServer, loadDataStorage } from "@utils";
 
 interface AddNewWebPageScreenProps {
   addNewItem: (item: Tables["DownDetector"]) => void;
@@ -39,14 +39,14 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
 
     setIsLoading(true);
     try {
-      const deviceId = await loadDataSecure("_deviceId");
+      const deviceId = await loadDataStorage("_deviceId");
 
       const res = await fetchToServer(
         "/database/insert",
         {
           lang: language,
           table: tableName,
-          deviceId: deviceId || "local-device",
+          deviceId,
           values: {
             createdAt: new Date().toISOString(),
             userId: userData?.userId,

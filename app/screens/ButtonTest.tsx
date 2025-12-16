@@ -1,5 +1,11 @@
 /* eslint-disable react-native/no-inline-styles */
 import {
+  memoDeep,
+  clearRefs,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
+} from "@utils";
+import {
   View,
   Pressable,
   StyleSheet,
@@ -14,8 +20,7 @@ import Animated, {
 import { Text } from "react-native-paper";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { clearTimeoutPolyfill, setTimeoutPolyfill } from "@/utils";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 interface AnimatedCircleProps {
   x: number;
@@ -32,7 +37,7 @@ type Touch = {
   timeFromPressIn: number;
 };
 
-const AnimatedCircle: React.FC<AnimatedCircleProps> = memo(
+const AnimatedCircle: React.FC<AnimatedCircleProps> = memoDeep(
   ({ x, y, pressOut, timeFromPressIn }) => {
     const scale = useSharedValue(pressOut ? 50 : 0);
 
@@ -74,14 +79,6 @@ const AnimatedCircle: React.FC<AnimatedCircleProps> = memo(
           animatedStyle,
         ]}
       />
-    );
-  },
-  (prevProps, nextProps) => {
-    return (
-      prevProps.x === nextProps.x &&
-      prevProps.y === nextProps.y &&
-      prevProps.pressOut === nextProps.pressOut &&
-      prevProps.timeFromPressIn === nextProps.timeFromPressIn
     );
   },
 );
@@ -131,10 +128,10 @@ const ButtonWithLiquidEffectAndAnimatedCircles = () => {
     });
   }, []);
 
-  // Cleanup lastPress on unmount
+  // Cleanup refs on unmount
   useEffect(
     () => () => {
-      lastPress.current = null;
+      clearRefs(lastPress, pressRef);
     },
     [],
   );

@@ -3,21 +3,18 @@ import React, {
   useEffect,
   ReactNode,
   useContext,
-  createContext,
   useCallback,
+  createContext,
 } from "react";
-import en from "@/utils/translates/English";
-import es from "@/utils/translates/Spanish";
-import { i18n } from "@utils";
+import { i18n, isDev } from "@utils";
 import { useTranslation } from "react-i18next";
-import { checkLanguage, saveData } from "@utils";
-import { LanguagesSupported, typeLanguages, typeT } from "@types";
+import { LanguagesSupported, typeT } from "@types";
+import { checkLanguage, saveDataStorage } from "@utils";
 
 interface LanguageContextProps {
   language: LanguagesSupported;
   changeLanguage: (lang: LanguagesSupported) => Promise<void>;
   t: typeT;
-  translations: typeLanguages;
 }
 
 interface LanguageProviderProps {
@@ -34,15 +31,21 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
   const [language, setLanguage] = useState<LanguagesSupported>("en");
   const { t: i18nextT } = useTranslation();
 
-  const t = useCallback(i18nextT, [i18nextT]) as typeT;
+  const t: typeT = useCallback(
+    (key, ...args) => {
+      const translation = i18nextT(key, ...(args as []));
 
-  const getTranslations = useCallback((): typeLanguages => {
-    return language === "es" ? es : en;
-  }, [language]);
+      if (isDev && translation === key)
+        throw new Error(`Missing translation for key: "${key}"`);
+
+      return translation;
+    },
+    [i18nextT],
+  );
 
   const changeLanguage = useCallback(async (lang: LanguagesSupported) => {
     await Promise.all([
-      saveData("@languageKeyStorage", lang),
+      saveDataStorage("@languageKeyStorage", lang),
       i18n.changeLanguage(lang),
     ]);
     setLanguage(lang);
@@ -64,7 +67,6 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
         t,
         language,
         changeLanguage,
-        translations: getTranslations(),
       }}
     >
       {children}

@@ -1,10 +1,11 @@
+import { wrapFunctionWithError } from "@common";
 /* eslint-disable @stylistic/indent */
 /* eslint-disable no-console */
 import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
 import { fetchToServer } from "./APIManagement";
-import { loadDataSecure } from "./storageManagement";
+import { loadDataStorage } from "./storageManagement";
 import { getCurrentUserId } from "./auth";
 import { isDev, isPreview, isProduction } from "../constants/constants";
 
@@ -13,26 +14,30 @@ type ReturnDeviceInfo = {
   deviceName: string;
 };
 
-const getCurrentDeviceInfo = async (): Promise<ReturnDeviceInfo> => {
-  const fallback = "Platform: " + Platform.OS;
-  try {
-    let [deviceId, deviceName] = await Promise.all([
-      loadDataSecure("_deviceId"),
+const getCurrentDeviceInfo = wrapFunctionWithError(
+  async () => {
+    const [deviceId, deviceName] = await Promise.all([
+      loadDataStorage("_deviceId"),
       DeviceInfo.getDeviceName(),
     ]);
-    if (!deviceId || deviceId === "unknown")
-      deviceId = DeviceInfo.getDeviceId();
-    if (!deviceId || deviceId === "unknown") deviceId = fallback;
-    if (!deviceName || deviceName === "unknown") deviceName = fallback;
 
-    return { deviceId, deviceName };
-  } catch {
     return {
-      deviceId: fallback,
+      deviceId,
+      deviceName:
+        !deviceName || deviceName === "unknown"
+          ? "Platform: " + Platform.OS
+          : deviceName,
+    } as ReturnDeviceInfo;
+  },
+  true,
+  (_, errMsg) => {
+    logError?.("Error getting device info:", errMsg);
+    return {
+      deviceId: "Platform: " + Platform.OS,
       deviceName: "Unknown Device",
-    };
-  }
-};
+    } as ReturnDeviceInfo;
+  },
+);
 
 /**
  * Logs a message to the console or sends it to a server.

@@ -4,7 +4,7 @@ import {
   signOut,
   logError,
   isValidEmail,
-  loadDataSecure,
+  loadDataStorage,
   signInWithEmail,
   signUpWithEmail,
   saveStorageData,
@@ -40,7 +40,9 @@ interface UserContextType {
   logoutRef: React.RefObject<
     (callback?: (success: boolean) => void) => Promise<void>
   >;
-  loginWithQRRef: React.RefObject<(response: ResponseAuth) => Promise<void>>;
+  loginWithQRRef: React.RefObject<
+    (response: ResponseAuth<"login">) => Promise<void>
+  >;
   refreshTokenRef: React.RefObject<() => Promise<boolean>>;
   forgotPasswordRef: React.RefObject<
     (
@@ -79,7 +81,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     ): Promise<T> => {
       try {
         setLoggingIn(true);
-        const { userData, token, error } = await signInWithEmail(
+        const { user, token, error } = await signInWithEmail(
           email,
           password,
           rememberMe,
@@ -90,11 +92,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           return null as T;
         }
 
-        if (userData && token) {
-          setUserData(userData ? userData : null);
+        if (user && token) {
+          setUserData(user || null);
           setSessionToken(token);
           setIsLoggedIn(true);
-          log("User logged in successfully:", userData.email);
+          log("User logged in successfully:", user.email);
           callback?.(true);
         } else {
           const errorMsg = "No user or session data received";
@@ -113,7 +115,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   );
 
   const loginWithQR = useCallback(
-    async (response: ResponseAuth): Promise<void> => {
+    async (response: ResponseAuth<"login">): Promise<void> => {
       if (!response.success || !response.user || !response.token) {
         logError("Invalid QR login response");
         return;
@@ -228,7 +230,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         ? () => {}
         : (isLoggedIn: boolean) =>
             windowModule?.notifyLoginStatus?.(isLoggedIn);
-    const handleNotLoggedIn = () => {
+    const handleNotLoggedIn = (reason?: string) => {
+      if (reason) log("Not logged in:", reason);
+
       sendNotificationLoginStatus(false);
       setLoggingIn(false);
       setIsLoggedIn(false);
@@ -243,29 +247,30 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     try {
       const [rememberMe, sessionToken] = await Promise.all([
-        loadDataSecure("_sessionExpiry"),
-        loadDataSecure("_userSessionTokenStorage"),
+        loadDataStorage("_sessionExpiry"),
+        loadDataStorage("_userSessionTokenStorage"),
       ]);
 
-      if (!rememberMe || !sessionToken) return handleNotLoggedIn();
+      if (!rememberMe || !sessionToken)
+        return handleNotLoggedIn("No rememberMe or token");
 
       if (rememberMe < Date.now()) {
         await signOut();
-        return handleNotLoggedIn();
+        return handleNotLoggedIn(`Session expired due to expiry ${rememberMe}`);
       }
 
       setLoggingIn(true);
 
-      const { userData, token, error } = await authRefreshSession(sessionToken);
+      const { user, token, error } = await authRefreshSession(sessionToken);
 
       if (error) return handleNotLoggedIn();
 
-      if (!userData || !token) {
+      if (!user || !token) {
         await authSignOut();
-        return handleNotLoggedIn();
+        return handleNotLoggedIn("No user or token returned");
       }
 
-      setUserData(userData);
+      setUserData(user);
       setSessionToken(token);
       return handleLoggedIn();
     } catch {

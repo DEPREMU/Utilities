@@ -1,4 +1,4 @@
-package com.utilities.depremu
+package {{packageName}}
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

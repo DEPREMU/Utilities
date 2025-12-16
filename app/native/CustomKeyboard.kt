@@ -1,4 +1,4 @@
-package com.utilities.depremu
+package {{packageName}}
 
 import android.inputmethodservice.InputMethodService
 import android.view.View
