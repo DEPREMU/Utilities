@@ -94,7 +94,7 @@ export type RequestDatabaseFetchWithoutPagination<
 > = {
   lang: LanguagesSupported;
   table: T;
-  match: Partial<Tables[T]> | null;
+  match?: Partial<Tables[T]>;
   deviceId: string;
   pagination?: false;
 };
@@ -105,7 +105,7 @@ export type RequestDatabaseFetchWithPagination<
 > = {
   lang: LanguagesSupported;
   table: T;
-  match: Partial<U>;
+  match?: Partial<U>;
   deviceId: string;
   pagination: true;
   limit?: number;
@@ -135,7 +135,7 @@ export type RequestDatabaseFetch<T extends TablesKeys = TablesKeys> = (
 export type RequestDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
-  match: Partial<Tables[T]> | null;
+  match?: Partial<Tables[T]>;
   values: Partial<Tables[T]> | Partial<Tables[T]>[];
   deviceId: string;
 };
@@ -143,7 +143,7 @@ export type RequestDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
 export type RequestDatabaseDelete<T extends TablesKeys = TablesKeys> = {
   lang: LanguagesSupported;
   table: T;
-  match: Partial<Tables[T]>;
+  match?: Partial<Tables[T]>;
   deviceId: string;
 };
 

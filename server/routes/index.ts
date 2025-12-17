@@ -38,8 +38,9 @@ const startTime = Date.now();
 const handleHealthCheck = (_: Request, res: Response<ResponseHealth>) => {
   res.status(200).json({
     status: "running",
-    timestamp: new Date().toISOString(),
     uptime: Date.now() - startTime,
+    timestamp: new Date().toISOString(),
+    startTimestamp: new Date(startTime).toISOString(),
   });
 };
 

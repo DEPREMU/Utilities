@@ -265,7 +265,6 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
                 "/database/update",
                 {
                   lang: language,
-                  match: null,
                   table: "Cryptos",
                   values: cryptosToUpdate,
                   deviceId,

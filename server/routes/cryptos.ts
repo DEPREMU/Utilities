@@ -1,13 +1,6 @@
-import {
-  RequestCryptos,
-  PriceBinanceAPI,
-  ResponseCryptos,
-  RequestCryptoPrice,
-  ResponseCryptoPrice,
-} from "@types";
 import chalk from "chalk";
-import express from "express";
-import { sendResponse } from "@common";
+import { getHandlerPost } from "functions/getHandlerPost";
+import { PriceBinanceAPI } from "@types";
 
 export let dataBinance: PriceBinanceAPI = [];
 
@@ -44,71 +37,58 @@ export const getCryptoPrice = async (
   }
 };
 
-export const handleGetCryptoPrice = async (
-  req: express.Request<unknown, unknown, RequestCryptoPrice>,
-  res: express.Response<ResponseCryptoPrice>,
-) => {
-  const { cryptoId, currency } = req.body || {};
+export const handleGetCryptoPrice = getHandlerPost(
+  "/cryptoPrice",
+  {
+    cryptoId: "string",
+    currency: "string",
+  },
+  async (body, sendResponse) => {
+    try {
+      const { cryptoId, currency } = body;
 
-  if (!cryptoId || !currency) {
-    return sendResponse(
-      res,
-      "BAD_REQUEST",
-      { error: "Missing cryptoId or currency" },
-      "/cryptoPrice",
-    );
-  }
-
-  try {
-    const priceUSD = await getCryptoPrice(cryptoId, currency);
-    const priceUSDTMXN = await getCryptoPrice("USDT", "MXN");
-    if (priceUSD === -1 || priceUSDTMXN === -1)
-      return sendResponse(
-        res,
-        "INTERNAL_SERVER_ERROR",
-        {
+      const priceUSD = await getCryptoPrice(cryptoId, currency);
+      const priceUSDTMXN = await getCryptoPrice("USDT", "MXN");
+      if (priceUSD === -1 || priceUSDTMXN === -1)
+        return sendResponse("INTERNAL_SERVER_ERROR", {
+          success: false,
           error:
             "Error fetching crypto price, priceUSD or priceUSDT_MXN is invalid",
-        },
-        "/cryptoPrice",
-      );
+        });
 
-    sendResponse(res, "SUCCESS", { priceUSD, priceUSDTMXN }, "/cryptoPrice");
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+      sendResponse("SUCCESS", { success: true, priceUSD, priceUSDTMXN });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
-    console.error(chalk.red("Error fetching crypto price:"), errorMessage);
-    sendResponse(
-      res,
-      "INTERNAL_SERVER_ERROR",
-      { error: "Error fetching crypto price: " + errorMessage },
-      "/cryptoPrice",
-    );
-  }
-};
+      console.error(chalk.red("Error fetching crypto price:"), errorMessage);
+      sendResponse("INTERNAL_SERVER_ERROR", {
+        success: false,
+        error: "Error fetching crypto price: " + errorMessage,
+      });
+    }
+  },
+);
 
-export const handleGetCryptos = async (
-  req: express.Request<unknown, unknown, RequestCryptos>,
-  res: express.Response<ResponseCryptos>,
-) => {
-  try {
-    const cryptosFilteredByCurrency = dataBinance?.filter((item) =>
-      item.symbol.endsWith(req?.body?.currency || ""),
-    ) as PriceBinanceAPI;
+export const handleGetCryptos = getHandlerPost(
+  "/cryptos",
+  {},
+  async (body, sendResponse) => {
+    try {
+      const cryptosFilteredByCurrency = dataBinance?.filter((item) =>
+        item.symbol.endsWith(body.currency || ""),
+      ) as PriceBinanceAPI;
 
-    sendResponse(
-      res,
-      "SUCCESS",
-      { cryptos: cryptosFilteredByCurrency || [] },
-      "/cryptos",
-    );
-  } catch (error) {
-    console.error(chalk.red("Error fetching cryptos:"), error);
-    sendResponse(
-      res,
-      "INTERNAL_SERVER_ERROR",
-      { error: "Error fetching cryptos" },
-      "/cryptos",
-    );
-  }
-};
+      sendResponse("SUCCESS", {
+        success: true,
+        cryptos: cryptosFilteredByCurrency || [],
+      });
+    } catch (error) {
+      console.error(chalk.red("Error fetching cryptos:"), error);
+      sendResponse("INTERNAL_SERVER_ERROR", {
+        success: false,
+        error: "Error fetching cryptos",
+      });
+    }
+  },
+);

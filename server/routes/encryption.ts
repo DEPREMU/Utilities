@@ -1,15 +1,10 @@
-import {
-  RequestDecrypt,
-  RequestEncrypt,
-  ResponseDecrypt,
-  ResponseEncrypt,
-  ResponseGetRandomUUID,
-} from "@types";
-import env from "../env.ts";
+import env from "env.ts";
 import chalk from "chalk";
 import crypto from "crypto";
 import { sendResponse } from "@common";
-import { Request, Response } from "express";
+import type { Response } from "express";
+import { getHandlerPost } from "../functions/getHandlerPost.ts";
+import { RequestDecrypt, RequestEncrypt, ResponseGetRandomUUID } from "@types";
 
 /**
  * The secret key used for encryption and decryption operations.
@@ -105,45 +100,39 @@ export const decrypt = (encryptedText: string): string => {
  * @param res - Express response object used to send the encrypted data or an error message.
  * @returns A promise that resolves when the response is sent.
  */
-export const encryptHandler = async (
-  req: Request<{}, {}, RequestEncrypt>,
-  res: Response<ResponseEncrypt>,
-) => {
-  try {
-    const { dataToEncrypt } = req.body || {};
+export const encryptHandler = getHandlerPost(
+  "/encrypt",
+  {
+    dataToEncrypt: "string",
+  },
+  async (body, sendResponse) => {
+    try {
+      const { dataToEncrypt } = body as RequestEncrypt;
 
-    if (!dataToEncrypt)
-      return sendResponse(
-        res,
-        "BAD_REQUEST",
-        {
+      if (!dataToEncrypt)
+        return sendResponse("BAD_REQUEST", {
           error: "No data provided to encrypt",
-          timestamp: new Date().toISOString(),
-        },
-        "/encrypt",
+          success: false,
+        });
+
+      const encryptedData = encrypt(dataToEncrypt);
+
+      sendResponse("SUCCESS", {
+        success: true,
+        dataEncrypted: encryptedData,
+      });
+    } catch (error) {
+      console.error(
+        chalk.red("Encryption error:"),
+        error instanceof Error ? error.message : error,
       );
-
-    const encryptedData = encrypt(dataToEncrypt);
-
-    sendResponse(
-      res,
-      "SUCCESS",
-      { dataEncrypted: encryptedData, timestamp: new Date().toISOString() },
-      "/encrypt",
-    );
-  } catch (error) {
-    console.error(
-      chalk.red("Encryption error:"),
-      error instanceof Error ? error.message : error,
-    );
-    sendResponse(
-      res,
-      "INTERNAL_SERVER_ERROR",
-      { error: "Encryption failed", timestamp: new Date().toISOString() },
-      "/encrypt",
-    );
-  }
-};
+      sendResponse("INTERNAL_SERVER_ERROR", {
+        error: "Encryption failed",
+        success: false,
+      });
+    }
+  },
+);
 
 /**
  * Handles the decryption of data sent in the request body.
@@ -156,55 +145,54 @@ export const encryptHandler = async (
  * Expects `dataToDecrypt` in the request body. On success, responds with `{ dataDecrypted }`.
  * On failure, responds with an error object containing a message and timestamp.
  */
-export const decryptHandler = async (
-  req: Request<{}, {}, RequestDecrypt>,
-  res: Response<ResponseDecrypt>,
-) => {
-  try {
-    const { dataToDecrypt } = req.body || {};
+export const decryptHandler = getHandlerPost(
+  "/decrypt",
+  {
+    dataToDecrypt: "string",
+  },
+  async (body, sendResponse) => {
+    try {
+      const { dataToDecrypt } = body as RequestDecrypt;
 
-    if (!dataToDecrypt)
-      return sendResponse(
-        res,
-        "BAD_REQUEST",
-        {
+      if (!dataToDecrypt)
+        return sendResponse("BAD_REQUEST", {
           error: "No data provided to decrypt",
-          timestamp: new Date().toISOString(),
-        },
-        "/decrypt",
-      );
+          success: false,
+        });
 
-    const decryptedData = decrypt(dataToDecrypt);
-    sendResponse(
-      res,
-      "SUCCESS",
-      { decryptedValue: decryptedData, timestamp: new Date().toISOString() },
-      "/decrypt",
-    );
-  } catch (error) {
-    console.error(chalk.red("Decryption error:"), error);
-    sendResponse(
-      res,
-      "INTERNAL_SERVER_ERROR",
-      { error: "Decryption failed", timestamp: new Date().toISOString() },
-      "/decrypt",
-    );
-  }
-};
+      const decryptedData = decrypt(dataToDecrypt);
+      sendResponse("SUCCESS", {
+        success: true,
+        decryptedValue: decryptedData,
+      });
+    } catch (error) {
+      console.error(chalk.red("Decryption error:"), error);
+      sendResponse("INTERNAL_SERVER_ERROR", {
+        error: "Decryption failed",
+        success: false,
+      });
+    }
+  },
+);
 
 export const handleGetRandomUUID = async (
-  _: Request,
+  _: unknown,
   res: Response<ResponseGetRandomUUID>,
 ) => {
   try {
     const UUIDs = Array.from({ length: 2 }, () => crypto.randomUUID());
-    sendResponse(res, "SUCCESS", { uuid: UUIDs.join("--") }, "/getRandomUUID");
+    sendResponse(
+      res,
+      "SUCCESS",
+      { success: true, uuid: UUIDs.join("--") },
+      "/getRandomUUID",
+    );
   } catch (error) {
     console.error(chalk.red("UUID generation error:"), error);
     sendResponse(
       res,
       "INTERNAL_SERVER_ERROR",
-      { error: "UUID generation failed" },
+      { success: false, error: "UUID generation failed" },
       "/getRandomUUID",
     );
   }

@@ -119,7 +119,7 @@ export const routeTests: {
         timestamp: new Date().toISOString(),
         deviceName: "Test Device",
       },
-      expectedResponse: { success: true, error: undefined },
+      expectedResponse: { success: true },
       shouldSucceed: true,
     },
     {
@@ -132,7 +132,7 @@ export const routeTests: {
         timestamp: new Date().toISOString(),
         deviceName: "Test Device 2",
       },
-      expectedResponse: { success: true, error: undefined },
+      expectedResponse: { success: true },
       shouldSucceed: true,
     },
   ],
@@ -215,9 +215,9 @@ export const routeTests: {
     },
     {
       route: "/encrypt",
-      description: "Encrypt - should include timestamp",
+      description: "Encrypt - should include success true",
       body: { dataToEncrypt: "another test" },
-      expectedResponse: { timestamp: expect.any(String) },
+      expectedResponse: { success: true },
       shouldSucceed: true,
     },
     {
@@ -225,7 +225,6 @@ export const routeTests: {
       description: "Encrypt - empty string",
       body: { dataToEncrypt: "" },
       expectedResponse: {
-        timestamp: expect.any(String),
         error: expect.any(String),
       },
       shouldSucceed: false,
@@ -243,9 +242,9 @@ export const routeTests: {
     },
     {
       route: "/decrypt",
-      description: "Decrypt - should include timestamp",
+      description: "Decrypt - should include success true",
       body: { dataToDecrypt: encrypt("another test") },
-      expectedResponse: { timestamp: expect.any(String) },
+      expectedResponse: { success: true },
       shouldSucceed: true,
     },
     {
@@ -428,7 +427,7 @@ export const routeTests: {
       body: {
         lang: "en",
         table: "Users",
-        match: null,
+        match: undefined,
         deviceId: deviceIdNew,
       },
       expectedResponse: { data: expect.any(Array) },
@@ -455,7 +454,6 @@ export const routeTests: {
       body: {
         lang: "es",
         table: "Logs",
-        match: {},
         deviceId: deviceIdNew,
         pagination: true,
         limit: 10,
@@ -473,7 +471,6 @@ export const routeTests: {
       body: {
         lang: "es",
         table: "Logs",
-        match: {},
         deviceId: deviceIdNew,
         search: "test",
         columnsToSearch: "message",
@@ -488,7 +485,6 @@ export const routeTests: {
       body: {
         lang: "es",
         table: "Logs",
-        match: {},
         deviceId: deviceIdNew,
         pagination: true,
         limit: 10,

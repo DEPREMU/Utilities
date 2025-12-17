@@ -2,12 +2,10 @@
 import {
   PlatformsOS,
   RequestUploadUpdate,
-  RequestIsUpdateAvailable,
   ResponseIsUpdateAvailable,
 } from "@types";
 import data from "./dataUploads.ts";
-import { sendResponse } from "@common";
-import { Request, Response } from "express";
+import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { createTempDownloadUrl } from "./tempDownloadUrl.ts";
 
 const getSumVersion = (version: string): number => {
@@ -25,91 +23,75 @@ const getSumVersion = (version: string): number => {
   }
 };
 
-export const handleIsUpdateAvailable = (
-  req: Request<unknown, unknown, RequestIsUpdateAvailable>,
-  res: Response<ResponseIsUpdateAvailable>,
-) => {
-  if (!sendResponse) return;
+export const handleIsUpdateAvailable = getHandlerPost(
+  "/is-update-available",
+  {
+    buildType: "string",
+    platformOS: ["string", "undefined"],
+    currentVersion: "string",
+  },
+  async (body, sendResponse) => {
+    const defaultRes: ResponseIsUpdateAvailable = {
+      success: false,
+      downloadUrl: "",
+      latestVersion: "",
+      updateAvailable: false,
+    };
 
-  const defaultRes: ResponseIsUpdateAvailable = {
-    updateAvailable: false,
-    latestVersion: "",
-    downloadUrl: "",
-  };
+    try {
+      const { currentVersion, buildType: platform, platformOS } = body;
+      const buildType = platform as RequestUploadUpdate["buildType"];
 
-  try {
-    const { currentVersion, buildType, platformOS } = req.body || {};
+      if (!currentVersion || !buildType)
+        return sendResponse("BAD_REQUEST", defaultRes);
 
-    if (!currentVersion || !buildType)
-      return sendResponse(
-        res,
-        "BAD_REQUEST",
-        defaultRes,
-        "/is-update-available",
-      );
+      const latestVersionData =
+        buildType === "android"
+          ? data.new?.[buildType]
+          : data.new?.[buildType]?.[
+              platformOS as Exclude<PlatformsOS, undefined>
+            ] || null;
+      if (!latestVersionData) return sendResponse("BAD_REQUEST", defaultRes);
 
-    const latestVersionData =
-      buildType === "android"
-        ? data.new?.[buildType]
-        : data.new?.[buildType]?.[
-            platformOS as Exclude<PlatformsOS, undefined>
-          ] || null;
-    if (!latestVersionData)
-      return sendResponse(
-        res,
-        "BAD_REQUEST",
-        defaultRes,
-        "/is-update-available",
-      );
+      const latestVersion = latestVersionData.version;
+      if (!latestVersion || latestVersion === "unknown")
+        return sendResponse("BAD_REQUEST", defaultRes);
 
-    const latestVersion = latestVersionData.version;
-    if (!latestVersion || latestVersion === "unknown")
-      return sendResponse(
-        res,
-        "BAD_REQUEST",
-        defaultRes,
-        "/is-update-available",
-      );
+      let downloadUrl = "";
+      if (buildType === "android") {
+        downloadUrl = createTempDownloadUrl({
+          buildType: "android",
+          platformOS: undefined,
+          timestamp: 0,
+          version: latestVersion,
+        });
+      } else {
+        downloadUrl = createTempDownloadUrl({
+          buildType: buildType as Exclude<
+            RequestUploadUpdate["buildType"],
+            "android"
+          >,
+          platformOS: platformOS as PlatformsOS,
+          timestamp: 0,
+          version: latestVersion,
+        });
+      }
 
-    let downloadUrl = "";
-    if (buildType === "android") {
-      downloadUrl = createTempDownloadUrl({
-        buildType: "android",
-        platformOS: undefined,
-        timestamp: 0,
-        version: latestVersion,
+      const updateAvailable =
+        getSumVersion(latestVersion) > getSumVersion(currentVersion);
+
+      sendResponse("SUCCESS", {
+        success: true,
+        downloadUrl,
+        latestVersion,
+        updateAvailable,
       });
-    } else {
-      downloadUrl = createTempDownloadUrl({
-        buildType: buildType as Exclude<
-          RequestUploadUpdate["buildType"],
-          "android"
-        >,
-        platformOS: platformOS as PlatformsOS,
-        timestamp: 0,
-        version: latestVersion,
-      });
+    } catch (error) {
+      console.error(
+        "Error in handleIsUpdateAvailable:",
+        error instanceof Error ? error.message : String(error),
+      );
+      sendResponse("INTERNAL_SERVER_ERROR", defaultRes);
     }
-
-    const updateAvailable =
-      getSumVersion(latestVersion) > getSumVersion(currentVersion);
-
-    sendResponse(
-      res,
-      "SUCCESS",
-      { downloadUrl, latestVersion, updateAvailable },
-      "/is-update-available",
-    );
-  } catch (error) {
-    console.error(
-      "Error in handleIsUpdateAvailable:",
-      error instanceof Error ? error.message : String(error),
-    );
-    sendResponse(
-      res,
-      "INTERNAL_SERVER_ERROR",
-      defaultRes,
-      "/is-update-available",
-    );
-  }
-};
+  },
+);

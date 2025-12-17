@@ -122,3 +122,13 @@ export type ContextBridgeType = {
     ) => ChannelsIpcRenderer["execute-command"]["functionReturn"];
   };
 };
+
+export type KeyboardLayout = string[][];
+
+export type KeyboardModuleType = {
+  sendKey: (key: string) => Promise<string>;
+  backspace: () => Promise<boolean>;
+  enter: () => Promise<boolean>;
+  setLayout: (layout: KeyboardLayout) => Promise<boolean>;
+  resetLayout: () => Promise<boolean>;
+};

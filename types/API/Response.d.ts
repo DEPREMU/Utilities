@@ -4,14 +4,16 @@ import { ExpectedStorageTypes, PriceBinanceAPI } from "./typesAPI";
 import { Streamer, Tables, TablesKeys, UserData } from "../database";
 
 export type ResponseHealth = {
+  uptime: number;
   status: "running";
   timestamp: string;
-  uptime: number;
+  startTimestamp: string;
 };
 
 export type ResponseDatabaseFetch<T extends TablesKeys> = {
   data?: Tables[T][];
   error?: string;
+  success: boolean;
 };
 export type ResponseDatabaseInsert<T extends TablesKeys = TablesKeys> = {
   data?: Tables[T][] | null;
@@ -20,35 +22,39 @@ export type ResponseDatabaseInsert<T extends TablesKeys = TablesKeys> = {
 };
 
 export type ResponseSignOut = {
-  success: boolean;
   error?: string;
+  success: boolean;
 };
 
 export type ResponseCryptoPrice = {
+  error?: string;
+  success: boolean;
   priceUSD?: number;
   priceUSDTMXN?: number;
-  error?: string;
 };
 
 export type ResponseCryptos = {
-  cryptos?: PriceBinanceAPI;
   error?: string;
+  success: boolean;
+  cryptos?: PriceBinanceAPI;
 };
 
 export type ResponseTranslate = {
-  translatedText?: string;
   error?: string;
+  success: boolean;
+  translatedText?: string;
 };
 
 export type ResponseAddStreamer = {
+  error?: string;
   success?: boolean;
   streamer?: (Streamer & { isLive: boolean }) | null;
-  error?: string;
 };
 
 export type ResponseGetIsLiveStreamer = {
-  streamer?: Streamer & { isLive: boolean };
   error?: string;
+  success: boolean;
+  streamer?: Streamer & { isLive: boolean };
 };
 
 export type ResponseAuth<T extends "login" | "signup"> = T extends "login"
@@ -65,13 +71,14 @@ export type ResponseAuth<T extends "login" | "signup"> = T extends "login"
     };
 
 export type ResponseDatabaseDelete = {
-  success: boolean;
   error?: string;
+  success: boolean;
 };
 
 export type ResponseGetRandomUUID = {
   uuid?: string;
   error?: string;
+  success: boolean;
 };
 export type ResponseDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
   data?: Tables[T][] | Falsy;
@@ -92,29 +99,31 @@ export type ResponseDoQuery = {
     fields?: unknown[];
   };
   error?: string;
+  success: boolean;
 };
 
 export type ResponseDecrypt = {
-  decryptedValue?: string;
-  timestamp: string;
   error?: string;
+  success: boolean;
+  decryptedValue?: string;
 };
 
 export type ResponseEncrypt = {
-  dataEncrypted?: string;
-  timestamp: string;
   error?: string;
+  success: boolean;
+  dataEncrypted?: string;
 };
 
 export type ResponseIsUpdateAvailable = {
-  updateAvailable: boolean;
-  latestVersion: string;
+  success: boolean;
   downloadUrl: string;
+  latestVersion: string;
+  updateAvailable: boolean;
 };
 
 export type ResponseUploadUpdate = {
-  success: boolean;
   error?: string;
+  success: boolean;
 };
 
 export type ResponseChangeImageFormat = {

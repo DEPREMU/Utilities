@@ -254,7 +254,6 @@ export const getCryptosFromDatabase = async (
     "/database/fetch",
     {
       lang,
-      match: null,
       table: "Cryptos",
       deviceId,
     },

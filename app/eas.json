@@ -10,9 +10,7 @@
       "android": {
         "buildType": "apk"
       },
-      "env": {
-        "PLATFORM": "android",
-        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
+      "env": { 
         "NODE_ENV": "development"
       },
       "channel": "development"
@@ -22,9 +20,7 @@
         "buildType": "apk"
       },
       "distribution": "internal",
-      "env": {
-        "PLATFORM": "android",
-        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
+      "env": { 
         "NODE_ENV": "preview"
       },
       "channel": "preview"
@@ -34,8 +30,6 @@
         "buildType": "apk"
       },
       "env": {
-        "PLATFORM": "android",
-        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
         "NODE_ENV": "production"
       },
       "channel": "production"
