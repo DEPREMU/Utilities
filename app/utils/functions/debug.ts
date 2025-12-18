@@ -17,7 +17,7 @@ type ReturnDeviceInfo = {
 const getCurrentDeviceInfo = wrapFunctionWithError(
   async () => {
     const [deviceId, deviceName] = await Promise.all([
-      loadDataStorage("_deviceId"),
+      loadDataStorage("DEVICE_ID"),
       DeviceInfo.getDeviceName(),
     ]);
 

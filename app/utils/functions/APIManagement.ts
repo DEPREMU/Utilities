@@ -61,7 +61,7 @@ export const getRouteAPI = async (
   route: RoutesAPI | UpdatesRoutes,
 ): Promise<string> => {
   let isOk: boolean = false;
-  let apiUrl = await loadDataStorage("@API_URL");
+  let apiUrl = await loadDataStorage("API_URL");
 
   if (isFalsy(apiUrl)) {
     apiUrl = API_URL;
@@ -76,16 +76,16 @@ export const getRouteAPI = async (
 
     if (isOk)
       await Promise.all([
-        saveDataStorage("@API_URL", API_URL),
-        saveDataStorage("@webSocketURL", URL_WEB_SOCKET),
-        saveDataStorage("@clipboardWebSocketURL", CLIPBOARD_WS_URL),
+        saveDataStorage("API_URL", API_URL),
+        saveDataStorage("WEBSOCKET_URL", URL_WEB_SOCKET),
+        saveDataStorage("CLIPBOARD_WEBSOCKET_URL", CLIPBOARD_WS_URL),
       ]);
     else {
       logWarn("Falling back to server API URL and WebSocket URL");
       apiUrl = fallbackAPI_URL;
       await Promise.all([
-        saveDataStorage("@API_URL", fallbackAPI_URL),
-        saveDataStorage("@webSocketURL", fallbackURL_WEB_SOCKET),
+        saveDataStorage("API_URL", fallbackAPI_URL),
+        saveDataStorage("WEBSOCKET_URL", fallbackURL_WEB_SOCKET),
       ]);
     }
   }
@@ -109,7 +109,7 @@ export const getRouteAPI = async (
  * "https://example.com/images/photo.jpg".
  */
 export const getRouteImage = async (filename: string): Promise<string> => {
-  const apiUrl = await loadDataStorage("@API_URL", API_URL);
+  const apiUrl = await loadDataStorage("API_URL", API_URL);
   return `${apiUrl.replace("/api", "")}${filename}`;
 };
 

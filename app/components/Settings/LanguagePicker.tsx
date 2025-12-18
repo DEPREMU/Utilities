@@ -30,7 +30,7 @@ const LanguagePicker: React.FC = () => {
             requiresInternet: true,
             func: async () => {
               if (!sessionToken) return navigateReplace("Login");
-              const deviceId = await loadDataStorage("_deviceId");
+              const deviceId = await loadDataStorage("DEVICE_ID");
 
               fetchToServer(
                 "/database/update",

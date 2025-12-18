@@ -1,3 +1,9 @@
+import {
+  Command,
+  isSecureKey,
+  ALL_KEYS_STORAGE,
+  ALL_KEYS_STORAGE_TYPE,
+} from "@common";
 import fs from "fs";
 import path from "path";
 import Store from "electron-store";
@@ -6,7 +12,7 @@ import dataApp from "./variables";
 import { exec } from "child_process";
 import { writeLog } from "./logger";
 import { app, safeStorage } from "electron";
-import { Command, ElectronStoreType, ExpectedStorageTypes } from "@types";
+import { ElectronStoreType } from "@types";
 
 const initFileStorage = (): void => {
   try {
@@ -67,19 +73,15 @@ const decryptFallback = (text: string): string | null => {
   }
 };
 
-const isSecureKey = (
-  key: keyof ExpectedStorageTypes<"BOTH">
-): key is keyof ExpectedStorageTypes => {
-  return key.startsWith("_");
-};
-
-export const getStorageFileValue = async (
-  key: keyof ExpectedStorageTypes<"BOTH">
+export const getStorageValue = async (
+  key: ALL_KEYS_STORAGE_TYPE
 ): Promise<string | null> => {
   try {
-    if (!isSecureKey(key)) return (store.get(key) as string) ?? null;
+    const keyValue = ALL_KEYS_STORAGE[key];
 
-    const storedValue = store.get(key as any) as string;
+    if (!isSecureKey(key)) return (store.get(keyValue) as string) ?? null;
+
+    const storedValue = store.get(keyValue as any) as string;
     if (!storedValue) return null;
 
     if (safeStorage.isEncryptionAvailable()) {
@@ -91,7 +93,10 @@ export const getStorageFileValue = async (
         const fallbackDecrypted = decryptFallback(storedValue);
         if (fallbackDecrypted) return fallbackDecrypted;
 
-        writeLog(`Error decrypting key ${String(key)}: ${e}`, "error");
+        writeLog(
+          `Error decrypting key ${String(key)}(${keyValue}): ${e}`,
+          "error"
+        );
         return null;
       }
     } else {
@@ -99,7 +104,7 @@ export const getStorageFileValue = async (
       if (fallbackDecrypted) return fallbackDecrypted;
 
       writeLog(
-        `Encryption not available and fallback failed for key ${String(key)}`,
+        `Encryption not available and fallback failed for key ${String(key)}(${keyValue})`,
         "error"
       );
       return null;
@@ -112,29 +117,29 @@ export const getStorageFileValue = async (
   }
 };
 
-export const saveStorageFileValue = async <
-  T extends keyof ExpectedStorageTypes<"BOTH">
->(
+export const saveStorageValue = async <T extends ALL_KEYS_STORAGE_TYPE>(
   key: T,
   value: string
 ): Promise<boolean> => {
   try {
+    const keyValue = ALL_KEYS_STORAGE[key];
+
     const jsonValue = typeof value === "string" ? value : JSON.stringify(value);
     if (isSecureKey(key)) {
       if (safeStorage.isEncryptionAvailable()) {
         try {
           const encrypted = safeStorage.encryptString(jsonValue);
-          store.set(key, encrypted.toString("base64"));
+          store.set(keyValue, encrypted.toString("base64"));
         } catch (e) {
           const fallbackEncrypted = encryptFallback(jsonValue);
-          store.set(key, fallbackEncrypted);
+          store.set(keyValue, fallbackEncrypted);
         }
       } else {
         const fallbackEncrypted = encryptFallback(jsonValue);
-        store.set(key, fallbackEncrypted);
+        store.set(keyValue, fallbackEncrypted);
       }
     } else {
-      store.set(key, value);
+      store.set(keyValue, value);
     }
     return true;
   } catch (error) {
@@ -145,11 +150,12 @@ export const saveStorageFileValue = async <
   }
 };
 
-export const removeStorageFileValue = async (
-  key: keyof ExpectedStorageTypes<"BOTH">
+export const removeStorageValue = async (
+  key: ALL_KEYS_STORAGE_TYPE
 ): Promise<boolean> => {
   try {
-    store.delete(key);
+    const keyValue = ALL_KEYS_STORAGE[key];
+    if (!isSecureKey(key)) store.delete(keyValue);
 
     return true;
   } catch (error) {
@@ -162,7 +168,7 @@ export const removeStorageFileValue = async (
 
 const initDeviceId = async (): Promise<void> => {
   try {
-    const deviceId = await getStorageFileValue("_deviceId");
+    const deviceId = await getStorageValue("DEVICE_ID");
     const machineId = dataApp.getValue("machineId");
     const hashedId = crypto
       .createHash("sha256")
@@ -172,7 +178,7 @@ const initDeviceId = async (): Promise<void> => {
     if (deviceId === hashedId) return;
 
     dataApp.setValue("deviceId", hashedId);
-    await saveStorageFileValue("_deviceId", hashedId);
+    await saveStorageValue("DEVICE_ID", hashedId);
   } catch (error) {
     console.error("Error initializing device ID:", error);
   }
@@ -182,7 +188,7 @@ initDeviceId();
 export const executeTerminalCommands = async (when: Command["when"]) => {
   if (!dataApp.getValue("hasSudo")) return;
 
-  const commands = await getStorageFileValue("_terminalCommands");
+  const commands = await getStorageValue("TERMINAL_COMMANDS");
   if (!commands) return;
 
   try {

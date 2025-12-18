@@ -1,8 +1,3 @@
-import {
-  AlbumsImages,
-  ExpectedStorageTypes,
-  RequestChangeImageFormat,
-} from "@types";
 import axios from "axios";
 import React from "react";
 import { v4 } from "uuid";
@@ -17,9 +12,11 @@ import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
 import { loadDataStorage } from "./storageManagement";
 import * as DocumentPicker from "expo-document-picker";
+import { ExpectedStorageTypes } from "@common";
 import { Alert, Falsy, Platform } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import { initializeNotificationsStorage } from "./notifications";
+import { AlbumsImages, RequestChangeImageFormat } from "@types";
 import { Notifications, LanguagesSupported, ReturnSelectImage } from "@types";
 
 const URL_GOOGLE_204 = "https://www.google.com/generate_204";
@@ -246,8 +243,8 @@ export const getNotifications = async (): Promise<Notifications> => {
 export const getCryptosFromDatabase = async (
   lang: LanguagesSupported,
   token: string,
-): Promise<ExpectedStorageTypes["_selectedCryptos"]> => {
-  const deviceId = await loadDataStorage("_deviceId");
+): Promise<ExpectedStorageTypes["SELECTED_CRYPTOS"]> => {
+  const deviceId = await loadDataStorage("DEVICE_ID");
 
   const response = await fetchToServer(
     "/database/fetch",
@@ -279,7 +276,7 @@ export const getCryptosFromDatabase = async (
         acc[crypto.id + crypto.currency] = crypto;
       return acc;
     },
-    {} as ExpectedStorageTypes["_selectedCryptos"],
+    {} as ExpectedStorageTypes["SELECTED_CRYPTOS"],
   );
 };
 

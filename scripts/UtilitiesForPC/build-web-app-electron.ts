@@ -28,7 +28,7 @@ const exportWebApp = () => {
   console.log(t("dependenciesInstalled"));
 
   console.log(t("buildingWebApp"));
-  const data = execSync(`yarn run build-web -- ${args}`, {
+  const data = execSync(`yarn run build-web ${args}`, {
     cwd: UTILITIES_PATH,
   });
   if (!data.toString().includes("Exported: dist"))

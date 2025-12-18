@@ -1,6 +1,10 @@
+import type {
+  ExpectedStorageTypes,
+  ALL_KEYS_STORAGE_TYPE,
+} from "../common/both/keysStorage";
 import { LanguagesSupported } from "./typesTranslations";
-import { ExpectedStorageTypes } from "./API/typesAPI";
 import { ExpectedNativeWebData } from "./typesUtilitiesForPC";
+
 import { ActionNotification, ReasonNotification } from "./typesNotifications";
 
 export type EventNativeModule = {
@@ -12,15 +16,11 @@ export type EventNativeModule = {
   data: Record<string, unknown>;
 };
 
-type ALL_KEYS_STORAGE =
-  | keyof ExpectedStorageTypes<"SECURE">
-  | keyof ExpectedStorageTypes<"UNSECURE">;
-
 type ExpectedStorageTypesBoth = ExpectedStorageTypes &
   ExpectedStorageTypes<"UNSECURE">;
 
 type ChannelsIpcRenderer<
-  T extends ALL_KEYS_STORAGE = keyof ExpectedStorageTypes<"BOTH">
+  T extends ALL_KEYS_STORAGE_TYPE = keyof ExpectedStorageTypes<"BOTH">,
 > = {
   "user-login-status": {
     functionArgs: [isLoggedIn: boolean];
@@ -100,14 +100,14 @@ export type ContextBridgeType = {
     setData: (
       ...args: ChannelsIpcRenderer["set-data-electron"]["functionArgs"]
     ) => void;
-    saveData: <T extends ALL_KEYS_STORAGE>(
+    saveData: <T extends ALL_KEYS_STORAGE_TYPE>(
       key: T,
       value: string
     ) => Promise<{ success: boolean }>;
     loadData: (
       ...args: ChannelsIpcRenderer["load-data"]["functionArgs"]
     ) => ChannelsIpcRenderer["load-data"]["functionReturn"];
-    removeData: <T extends ALL_KEYS_STORAGE>(
+    removeData: <T extends ALL_KEYS_STORAGE_TYPE>(
       key: T
     ) => Promise<ChannelsIpcRenderer<T>["remove-data"]["functionReturn"]>;
     isElectronBuild: () => Promise<boolean>;

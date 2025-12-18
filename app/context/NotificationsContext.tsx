@@ -97,7 +97,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
             timePaused: -1,
           };
 
-          await saveDataStorage("@notifications", newNotifications);
+          await saveDataStorage("NOTIFICATIONS", newNotifications);
           setNotifications(newNotifications);
           notificationsFromStorage.current = newNotifications;
         }
@@ -222,7 +222,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
               };
 
               setNotifications(newNotifications);
-              await saveDataStorage("@notifications", newNotifications);
+              await saveDataStorage("NOTIFICATIONS", newNotifications);
               notificationsFromStorage.current = newNotifications;
             } catch (error) {
               logError("Error pausing notifications", error);
@@ -238,7 +238,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
               newNotifications.enabled[event.reasonNotification] = false;
 
               setNotifications(newNotifications);
-              await saveDataStorage("@notifications", newNotifications);
+              await saveDataStorage("NOTIFICATIONS", newNotifications);
               notificationsFromStorage.current = newNotifications;
             }
             break;
@@ -269,7 +269,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     const saveNewNotifications = async () => {
       try {
-        await saveDataStorage("@notifications", notifications);
+        await saveDataStorage("NOTIFICATIONS", notifications);
       } catch (error) {
         logError("Error saving notifications to storage", error);
       }
@@ -433,7 +433,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     const id = setTimeoutPolyfill(
       () =>
-        loadDataStorage("_deviceId").then((deviceId) => {
+        loadDataStorage("DEVICE_ID").then((deviceId) => {
           BackgroundModule?.setUserData(
             sessionToken,
             userData.userId,

@@ -102,7 +102,7 @@ const ClipboardScreen: React.FC = () => {
       if (!id) return logError("No ID provided for deletion");
       if (!sessionToken) return logError("No session token available");
 
-      const deviceId = await loadDataStorage("_deviceId");
+      const deviceId = await loadDataStorage("DEVICE_ID");
 
       const res = await fetchToServer(
         "/database/update",
@@ -143,7 +143,7 @@ const ClipboardScreen: React.FC = () => {
       isLoadingRef.current = true;
       setNoMoreData(false);
 
-      const deviceId = await loadDataStorage("_deviceId");
+      const deviceId = await loadDataStorage("DEVICE_ID");
       if (!deviceId) return;
 
       const page = (searchText ? pageRefSearch.current : pageRef.current) || 0;
@@ -225,7 +225,7 @@ const ClipboardScreen: React.FC = () => {
   const handleDeleteRestoreAll = useCallback(async () => {
     if (!sessionToken) return logError("No session token available");
 
-    const deviceId = await loadDataStorage("_deviceId");
+    const deviceId = await loadDataStorage("DEVICE_ID");
 
     const newDeleted = !deletedRef.current;
     const oldDeleted = !!deletedRef.current;

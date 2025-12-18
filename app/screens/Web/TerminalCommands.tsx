@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from "react-native-paper";
 import Button from "@components/common/ButtonComponent";
-import { Command } from "@types";
+import { Command } from "@common";
 import { useModal } from "@context/ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
 import { useLanguage } from "@context/LanguageContext";
@@ -41,7 +41,7 @@ const TerminalCommands: React.FC = () => {
     setNewCommand({ when: "Start-up", command: "" });
     setCommands((prev) => {
       const updatedCommands = [...prev, newCommand];
-      saveDataStorage("_terminalCommands", updatedCommands);
+      saveDataStorage("TERMINAL_COMMANDS", updatedCommands);
       return updatedCommands;
     });
   }, [newCommand, closeModal]);
@@ -117,7 +117,7 @@ const TerminalCommands: React.FC = () => {
     async (index: number) => {
       const updatedCommands = commands.filter((_, i) => i !== index);
       setCommands(updatedCommands);
-      await saveDataStorage("_terminalCommands", updatedCommands);
+      await saveDataStorage("TERMINAL_COMMANDS", updatedCommands);
     },
     [commands],
   );
@@ -187,7 +187,7 @@ const TerminalCommands: React.FC = () => {
     }
 
     const fetchCommands = async () => {
-      const storedCommands = await loadDataStorage("_terminalCommands");
+      const storedCommands = await loadDataStorage("TERMINAL_COMMANDS");
 
       setCommands(storedCommands || []);
     };

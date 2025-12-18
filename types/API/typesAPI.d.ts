@@ -61,49 +61,6 @@ import { Notifications } from "../typesNotifications";
 import type { LanguagesSupported } from "../typesTranslations";
 import { AvailableFunctions, SerializableTask } from "../typesTaskRegistry";
 
-export type Command = {
-  when: "Start-up" | "Shut-down";
-  command: string;
-};
-
-export type PriceBinanceAPI = {
-  symbol: string;
-  price: number;
-}[];
-
-export type SelectedCryptos = Record<string, Cryptos>;
-
-export type ExpectedSecureStorageTypes = {
-  _deviceId: string;
-  _userData: Omit<UserData, "password"> | null;
-  _Streamers: (Streamer & { isLive: boolean })[] | null;
-  _sessionExpiry: number | -1;
-  _selectedCryptos: SelectedCryptos | null;
-  _lastUpdateCheck: number | null;
-  _terminalCommands: Command[] | null;
-  _downDetectorData: DownDetector[] | null;
-  _userSessionTokenStorage: string | null;
-};
-
-export type ExpectedUnsecureStorageTypes = {
-  "@theme": "light" | "dark" | "auto";
-  "@API_URL": string | null;
-  "@pendingTasks": SerializableTask<AvailableFunctions>[] | null;
-  "@webSocketURL": string | null;
-  "@notifications": Notifications;
-  "@hasAdminAccess": boolean | null;
-  "@languageKeyStorage": LanguagesSupported;
-  "@clipboardWebSocketURL": string | null;
-};
-
-export type ExpectedStorageTypes<
-  T extends "SECURE" | "UNSECURE" | "BOTH" = "SECURE"
-> = T extends "BOTH"
-  ? ExpectedSecureStorageTypes & ExpectedUnsecureStorageTypes
-  : T extends "SECURE"
-  ? ExpectedSecureStorageTypes
-  : ExpectedUnsecureStorageTypes;
-
 export type MethodsAvailableInAPI = {
   get: "get";
   put: "put";
@@ -299,13 +256,13 @@ type RoutesGetAPI = Extract<
 >["url"];
 
 export type RoutesAPI<
-  T extends keyof MethodsAvailableInAPI | "middleware" | undefined = undefined
+  T extends keyof MethodsAvailableInAPI | "middleware" | undefined = undefined,
 > = T extends "post"
   ? RoutesPostAPI
   : T extends "get"
-  ? RoutesGetAPI
-  : T extends "put"
-  ? RoutesPutAPI
-  : T extends "middleware"
-  ? Extract<FetchAPI, { middlewares: any[] }>["url"]
-  : FetchAPI["url"];
+    ? RoutesGetAPI
+    : T extends "put"
+      ? RoutesPutAPI
+      : T extends "middleware"
+        ? Extract<FetchAPI, { middlewares: any[] }>["url"]
+        : FetchAPI["url"];

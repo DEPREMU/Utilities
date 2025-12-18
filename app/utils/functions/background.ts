@@ -90,7 +90,7 @@ export const askLocationPermission = async (): Promise<boolean> => {
   const newNotifications = { ...notifications };
   newNotifications.enabled.locationEnabled = granted;
   if (stringifyData(notifications) !== stringifyData(newNotifications))
-    await saveDataStorage("@notifications", newNotifications);
+    await saveDataStorage("NOTIFICATIONS", newNotifications);
 
   return granted;
 };

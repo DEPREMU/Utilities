@@ -1,9 +1,9 @@
 import {
-  ALL_KEYS_STORAGE,
   ContextBridgeType,
   LanguagesSupported,
   ChannelsIpcRenderer,
 } from "@types";
+import { ALL_KEYS_STORAGE_TYPE } from "@common";
 import { IpcRenderer, Clipboard, ContextBridge } from "electron";
 
 const { clipboard, contextBridge, ipcRenderer } = require("electron") as {
@@ -25,9 +25,10 @@ const sendLog = (message: string, level: "info" | "warn" | "error") => {
 };
 
 const sendMessage = async <
-  T extends ALL_KEYS_STORAGE,
+  T extends ALL_KEYS_STORAGE_TYPE,
   K extends keyof ChannelsIpcRenderer<T> = keyof ChannelsIpcRenderer<T>,
-  V extends ChannelsIpcRenderer<T>[K]["functionArgs"] = ChannelsIpcRenderer<T>[K]["functionArgs"]
+  V extends ChannelsIpcRenderer<T>[K]["functionArgs"] =
+    ChannelsIpcRenderer<T>[K]["functionArgs"],
 >(
   type: ChannelsIpcRenderer<T>[K]["typeIpc"],
   channel: K,

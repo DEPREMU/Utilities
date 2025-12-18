@@ -9,7 +9,7 @@ import {
 } from "@utils";
 import { View, Text } from "react-native";
 import SkeletonLoading from "@components/common/SkeletonLoading";
-import { SelectedCryptos } from "@types";
+import { SelectedCryptos } from "@common";
 import { useStylesCryptoPrice } from "@styles/components/cryptos/useStylesCryptoPrice";
 import React, { useState, useEffect } from "react";
 

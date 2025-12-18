@@ -13,9 +13,9 @@
  * - Windows → Linux: Requires WSL with dpkg-dev installed
  *
  * @example
- * yarn run build-app -- --platform=both  # Build for both platforms (requires Wine on Linux)
- * yarn run build-app -- --platform=linux  # Build only for Linux
- * yarn run build-app -- --platform=windows  # Build only for Windows
+ * yarn run build-app --platform=both  # Build for both platforms (requires Wine on Linux)
+ * yarn run build-app --platform=linux  # Build only for Linux
+ * yarn run build-app --platform=windows  # Build only for Windows
  */
 
 import {
@@ -213,7 +213,7 @@ const buildApp = async () => {
 
   const compileSource = (forWindows: boolean) => {
     console.log(t("buildingApp") + ` (isWindows=${forWindows})`);
-    execSync(`yarn run build-resources-electron -- --isWindows=${forWindows}`, {
+    execSync(`yarn run build-resources-electron --isWindows=${forWindows}`, {
       cwd: UTILITIES_PATH,
       stdio: "inherit",
     });

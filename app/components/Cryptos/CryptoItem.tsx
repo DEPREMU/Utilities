@@ -1,8 +1,9 @@
 import { View } from "react-native";
+import { Cryptos } from "@types";
 import { memoDeep } from "@utils";
+import { PriceBinanceAPI } from "@common";
 import useStylesCryptoItem from "@styles/components/cryptos/useStylesCryptoItem";
 import React, { useCallback } from "react";
-import { Cryptos, PriceBinanceAPI } from "@types";
 import { Checkbox, TextInput, Text } from "react-native-paper";
 
 interface CryptoItemProps {

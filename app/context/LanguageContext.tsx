@@ -45,7 +45,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
 
   const changeLanguage = useCallback(async (lang: LanguagesSupported) => {
     await Promise.all([
-      saveDataStorage("@languageKeyStorage", lang),
+      saveDataStorage("LANGUAGE", lang),
       i18n.changeLanguage(lang),
     ]);
     setLanguage(lang);

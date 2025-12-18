@@ -173,8 +173,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           const [lang, notifications, hasAdmin, theme] = await Promise.all([
             checkLanguage(),
             getNotifications(),
-            loadDataStorage("@hasAdminAccess"),
-            loadDataStorage("@theme"),
+            loadDataStorage("HAS_ADMIN_ACCESS"),
+            loadDataStorage("THEME"),
           ]);
 
           const initMessage: WebSocketMessage<"sentByApp"> = {
@@ -285,8 +285,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     socket.onopen = async () => {
       isConnectingWs.current.clipboard = false;
       const [token, deviceId] = await Promise.all([
-        loadDataStorage("_userSessionTokenStorage"),
-        loadDataStorage("_deviceId"),
+        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
+        loadDataStorage("DEVICE_ID"),
       ]);
 
       if (!token || !deviceId) {
@@ -355,8 +355,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     const initLastItemCopied = async () => {
       const [deviceId, sessionToken] = await Promise.all([
-        loadDataStorage("_deviceId"),
-        loadDataStorage("_userSessionTokenStorage"),
+        loadDataStorage("DEVICE_ID"),
+        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
       ]);
       if (!sessionToken) return;
       lastItemCopied.current = v4();
@@ -485,8 +485,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, [statePhone]);
 
   useEffect(() => {
-    loadDataStorage("@webSocketURL").then((data) => setSocketURL(data || null));
-    loadDataStorage("@clipboardWebSocketURL").then((data) =>
+    loadDataStorage("WEBSOCKET_URL").then((data) => setSocketURL(data || null));
+    loadDataStorage("CLIPBOARD_WEBSOCKET_URL").then((data) =>
       setClipboardSocketURL(data || null),
     );
   }, []);

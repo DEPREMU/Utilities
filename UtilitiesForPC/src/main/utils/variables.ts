@@ -62,11 +62,10 @@ class DataAppClass {
 
 const isWindows = os.platform() === "win32";
 
-const userHome =
-  process.env.ORIGINAL_HOME ||
+const userHome = (process.env.ORIGINAL_HOME ||
   (process.env.SUDO_USER && process.env.SUDO_USER !== "root"
     ? `/home/${process.env.SUDO_USER}`
-    : process.env.HOME);
+    : process.env.HOME)) as string;
 
 const getDownloadsPath = (): string => {
   if (isWindows)
@@ -99,11 +98,10 @@ let dataAppDefault: DataAppElectron = {
   ad: null,
   PORT: 3005,
   tray: null,
-  username:
-    process.env.ORIGINAL_USER ||
+  username: (process.env.ORIGINAL_USER ||
     process.env.SUDO_USER ||
     process.env.USER ||
-    process.env.USERNAME,
+    process.env.USERNAME) as string,
   userHome,
   lanIP: getLocalIP(),
   server: null,

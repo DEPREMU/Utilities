@@ -88,7 +88,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
           },
         };
         if (sessionToken && userData?.userId)
-          loadDataStorage("_deviceId").then(async (deviceId) => {
+          loadDataStorage("DEVICE_ID").then(async (deviceId) => {
             const values: RequestDatabaseUpdate["values"] = {
               enabled: !!updated.enabled[reason],
             };
@@ -122,7 +122,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             );
           });
 
-        saveDataStorage("@notifications", updated);
+        saveDataStorage("NOTIFICATIONS", updated);
         return updated;
       });
     },
@@ -145,7 +145,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 
         if (interval <= 0) return updated;
 
-        loadDataStorage("_deviceId").then(async (deviceId) => {
+        loadDataStorage("DEVICE_ID").then(async (deviceId) => {
           const taskId =
             Date.now().toString() + Math.random().toString(36).substring(2, 8);
           const values: RequestDatabaseUpdate["values"] = {
@@ -288,7 +288,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         data: updatedNotifications,
         userId: userData.userId,
       });
-      await saveDataStorage("@notifications", updatedNotifications);
+      await saveDataStorage("NOTIFICATIONS", updatedNotifications);
     };
 
     const id = setTimeoutPolyfill(saveIntervals, 1000);

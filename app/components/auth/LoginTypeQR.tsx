@@ -55,7 +55,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
     };
 
     const initWS = async () => {
-      const deviceId = await loadDataStorage("_deviceId");
+      const deviceId = await loadDataStorage("DEVICE_ID");
 
       ws = new WebSocket(QR_LOGIN_WS_URL);
 

@@ -14,16 +14,21 @@ import {
   Tables,
   UserData,
   Notifications,
-  SelectedCryptos,
   ReasonNotification,
   LanguagesSupported,
-  ExpectedStorageTypes,
 } from "@types";
+import {
+  t,
+  sendResponse,
+  isValidEmail,
+  isValidPassword,
+  SelectedCryptos,
+  ExpectedStorageTypes,
+} from "@common";
 import chalk from "chalk";
 import bcrypt from "bcryptjs";
 import { getHandlerPost } from "functions/getHandlerPost.ts";
 import { NextFunction, Request, Response } from "express";
-import { isValidPassword, t, sendResponse, isValidEmail } from "@common";
 
 /**
  * Inserts a push token into the database for a specific user.
@@ -151,26 +156,26 @@ export const getStorageData = async (
     if (rememberMe) date = getDateWithDaysAhead(15).getTime();
 
     const storageData: ExpectedStorageTypes<"BOTH"> = {
-      _sessionExpiry: date,
-      _selectedCryptos: cryptosToSave,
-      _lastUpdateCheck: Date.now(),
-      _downDetectorData: [],
-      _userSessionTokenStorage: token,
-      _terminalCommands: null,
-      "@API_URL": userConfigToSave.API_URL || "",
-      "@hasAdminAccess": userConfigToSave.hasAdmin,
-      "@notifications": userNotificationsConfigToSave,
-      "@languageKeyStorage": userConfigToSave.language,
-      "@webSocketURL": userConfigToSave.webSocketURL || "",
-      "@clipboardWebSocketURL":
+      SESSION_EXPIRY: date,
+      SELECTED_CRYPTOS: cryptosToSave,
+      LAST_UPDATE_CHECK: Date.now(),
+      DOWN_DETECTOR_DATA: [],
+      USER_SESSION_TOKEN_STORAGE: token,
+      TERMINAL_COMMANDS: null,
+      API_URL: userConfigToSave.API_URL || "",
+      HAS_ADMIN_ACCESS: userConfigToSave.hasAdmin,
+      NOTIFICATIONS: userNotificationsConfigToSave,
+      LANGUAGE: userConfigToSave.language,
+      WEBSOCKET_URL: userConfigToSave.webSocketURL || "",
+      CLIPBOARD_WEBSOCKET_URL:
         userConfigToSave.webSocketURL?.replace("/ws", "/clipboard") || "",
-      "@theme": userConfigToSave.theme || "auto",
-      "@pendingTasks": null,
-      _Streamers: streamersUser
+      THEME: userConfigToSave.theme || "auto",
+      PENDING_TASKS: null,
+      STREAMERS: streamersUser
         ?.map((streamer) => ({ ...streamer, isLive: false }))
         .filter(Boolean),
-      _deviceId: "",
-      _userData: (user as Omit<UserData, "password">) || null,
+      DEVICE_ID: "",
+      USER_DATA: (user as Omit<UserData, "password">) || null,
     };
 
     return storageData;

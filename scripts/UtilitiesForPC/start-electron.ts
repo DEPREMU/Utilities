@@ -19,7 +19,7 @@ const runCommand = (command: string): void => {
 };
 
 ARGS.profile = "development";
-const args = "-- " + getArgs();
+const args = getArgs();
 
 runCommand(`yarn run build-web-app-electron ${args}`);
 

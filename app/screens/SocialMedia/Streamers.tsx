@@ -132,7 +132,7 @@ const Streamers: React.FC = () => {
       closeModal();
       if (!userData?.userId || isFalsy(id) || !sessionToken) return;
 
-      const deviceId = await loadDataStorage("_deviceId");
+      const deviceId = await loadDataStorage("DEVICE_ID");
 
       const res = await fetchToServer(
         "/database/delete",
@@ -280,7 +280,7 @@ const Streamers: React.FC = () => {
       });
       if (!userData?.userId || !sessionToken) return;
 
-      const deviceId = await loadDataStorage("_deviceId");
+      const deviceId = await loadDataStorage("DEVICE_ID");
 
       await fetchToServer(
         "/database/update",
@@ -328,7 +328,7 @@ const Streamers: React.FC = () => {
       try {
         if (!userData?.userId || !sessionToken) return;
 
-        const deviceId = await loadDataStorage("_deviceId");
+        const deviceId = await loadDataStorage("DEVICE_ID");
 
         const res = await fetchToServer(
           "/database/fetch",
@@ -390,7 +390,7 @@ const Streamers: React.FC = () => {
           );
 
         setStreamers(newData ? newData : allStreamers);
-        saveDataStorage("_Streamers", allStreamers);
+        saveDataStorage("STREAMERS", allStreamers);
       } catch (error) {
         logError(error);
       }

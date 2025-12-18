@@ -20,13 +20,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [themeState, setThemeState] = useState<Theme>("auto");
 
   useEffect(() => {
-    loadDataStorage("@theme").then((data) => {
+    loadDataStorage("THEME").then((data) => {
       setThemeState(data || "auto");
     });
   }, []);
 
   useEffect(() => {
-    saveDataStorage("@theme", themeState);
+    saveDataStorage("THEME", themeState);
   }, [themeState]);
 
   const colors = useColors(themeState);

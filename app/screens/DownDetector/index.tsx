@@ -39,7 +39,7 @@ const DownDetectorNavigator: React.FC = () => {
   const addNewItem = useCallback((item: DownDetectorType) => {
     setDownDetectorData((prevData) => {
       const newData = prevData ? [item, ...prevData] : [item];
-      saveDataStorage("_downDetectorData", newData);
+      saveDataStorage("DOWN_DETECTOR_DATA", newData);
       return newData;
     });
   }, []);
@@ -49,7 +49,7 @@ const DownDetectorNavigator: React.FC = () => {
       if (!id) return logError("No ID provided for deletion");
       if (!sessionToken) return logError("No session token available");
 
-      const deviceId = await loadDataStorage("_deviceId");
+      const deviceId = await loadDataStorage("DEVICE_ID");
 
       const res = await fetchToServer(
         "/database/delete",
@@ -70,7 +70,7 @@ const DownDetectorNavigator: React.FC = () => {
 
       setDownDetectorData((prevData) => {
         const newData = prevData?.filter((item) => item.id !== id) || null;
-        saveDataStorage("_downDetectorData", newData);
+        saveDataStorage("DOWN_DETECTOR_DATA", newData);
 
         return newData;
       });
@@ -91,7 +91,7 @@ const DownDetectorNavigator: React.FC = () => {
           ...(prevData?.filter((item) => item.id !== id) || []),
         ];
 
-        loadDataStorage("_deviceId").then(async (deviceId) => {
+        loadDataStorage("DEVICE_ID").then(async (deviceId) => {
           if (!sessionToken) return logError("No session token available");
 
           fetchToServer(
@@ -116,7 +116,7 @@ const DownDetectorNavigator: React.FC = () => {
               setDownDetectorData(prevData);
               return;
             }
-            saveDataStorage("_downDetectorData", newData);
+            saveDataStorage("DOWN_DETECTOR_DATA", newData);
           });
         });
         return newData;
@@ -168,7 +168,7 @@ const DownDetectorNavigator: React.FC = () => {
     const fetchDownDetectorDataFromDatabase = async () => {
       if (!sessionToken) return logError("No session token available");
 
-      const deviceId = await loadDataStorage("_deviceId");
+      const deviceId = await loadDataStorage("DEVICE_ID");
 
       try {
         const res = await fetchToServer(
@@ -200,7 +200,7 @@ const DownDetectorNavigator: React.FC = () => {
       } catch (error) {
         logError("Error fetching downDetector data:", error);
       }
-      const fallbackData = await loadDataStorage("_downDetectorData");
+      const fallbackData = await loadDataStorage("DOWN_DETECTOR_DATA");
       setTimeoutPolyfill(() => setDownDetectorData(fallbackData || null), 2000);
     };
 

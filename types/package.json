@@ -1,4 +1,5 @@
 {
+  "license": "ISC",
   "scripts": {
     "before-commit": "tsc --noEmit"
   }

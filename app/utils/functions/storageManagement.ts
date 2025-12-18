@@ -1,7 +1,12 @@
 import {
+  isSecureKey,
   ALL_KEYS_STORAGE,
+  languagesSupported,
   SECURE_KEYS_STORAGE,
+  ExpectedStorageTypes,
+  wrapFunctionWithError,
   ALL_KEYS_STORAGE_TYPE,
+  ALL_KEYS_STORAGE_KEYS,
   SECURE_KEYS_STORAGE_TYPE,
 } from "@common";
 import { isDev } from "../constants";
@@ -12,9 +17,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import * as Localization from "expo-localization";
 import { reloadAppAsync } from "expo";
+import { LanguagesSupported } from "@types";
 import { parseData, stringifyData } from "./appManagement";
-import { LanguagesSupported, ExpectedStorageTypes } from "@types";
-import { wrapFunctionWithError, languagesSupported } from "@common";
 
 type SaveDataStorage = {
   <T extends ALL_KEYS_STORAGE_TYPE>(
@@ -33,7 +37,7 @@ type LoadDataStorage = {
   <T extends ALL_KEYS_STORAGE_TYPE>(
     key: T,
   ): Promise<
-    T extends "_deviceId" ? string : ExpectedStorageTypes<"BOTH">[T] | null
+    T extends "DEVICE_ID" ? string : ExpectedStorageTypes<"BOTH">[T] | null
   >;
 
   <
@@ -87,10 +91,12 @@ type RemoveDataStorage = {
  */
 export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
   async (
-    key: Parameters<SaveDataStorage>[0],
+    keyStorage: Parameters<SaveDataStorage>[0],
     value: Parameters<SaveDataStorage>[1],
     ...args: Parameters<SaveDataStorage>[2][]
   ) => {
+    const key = ALL_KEYS_STORAGE[keyStorage];
+
     const returnType = (err?: Error, errMsg?: string) => {
       const errCallback = args?.[0];
 
@@ -103,13 +109,13 @@ export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
     const stringifiedValue = stringifyData(value);
 
     if (Platform.OS !== "web") {
-      if (isSecureKey(key))
+      if (isSecureKey(keyStorage))
         await SecureStore.setItemAsync(key, stringifiedValue);
       else await AsyncStorage.setItem(key, stringifiedValue);
 
       return returnType();
     }
-    if (key === "_deviceId") {
+    if (keyStorage === "DEVICE_ID") {
       const errMsg =
         "Cannot save device ID on web, this is managed automatically in electron";
       return returnType(new Error(errMsg), errMsg);
@@ -121,7 +127,7 @@ export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
     else if (!isElectron) localStorage.setItem(key, stringifiedValue);
     else {
       const { success } = (await windowModule.saveData(
-        key,
+        keyStorage,
         stringifiedValue,
       )) || { success: false };
 
@@ -133,13 +139,13 @@ export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
     return returnType();
   },
   true,
-  (err, errMsg, key, ...args: unknown[]) => {
-    if (key === "_deviceId") throw new Error(errMsg);
+  (err, errMsg, keyStorage, ...args: unknown[]) => {
+    if (keyStorage === "DEVICE_ID") throw new Error(errMsg);
 
     const errCallback = args?.[1]; // [value, errCallback]
     if (typeof errCallback === "function") return errCallback(err, errMsg);
 
-    logError(`saveDataStorage("${key}") => ${errMsg}`);
+    logError(`saveDataStorage("${keyStorage}") => ${errMsg}`);
   },
 );
 
@@ -159,16 +165,18 @@ export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
  *
  * @remarks
  * - On native platforms (iOS/Android), uses AsyncStorage or SecureStore depending on the key type
- * - If the key is "_deviceId" and no value is found, triggers an app reload
+ * - If the key is "DEVICE_ID" and no value is found, triggers an app reload
  * - On web platform, uses Electron's storage API in production or localStorage in development
  * - All retrieved values are parsed using the `parseData` function before being returned
  * - Errors are wrapped and handled by `wrapFunctionWithError`, with custom error handling logic
  */
 export const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
   async (
-    key: Parameters<LoadDataStorage>[0],
+    keyStorage: Parameters<LoadDataStorage>[0],
     ...args: Parameters<LoadDataStorage>[1][]
   ) => {
+    const key = ALL_KEYS_STORAGE[keyStorage];
+
     const returnValue = (value: unknown, err?: Error, errMsg?: string) => {
       const arg = args?.[0];
       if (typeof arg === "function") return arg(value as string, err, errMsg);
@@ -180,7 +188,7 @@ export const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
 
     if (Platform.OS !== "web") {
       let value: string | null;
-      if (isSecureKey(key)) value = await SecureStore.getItemAsync(key);
+      if (isSecureKey(keyStorage)) value = await SecureStore.getItemAsync(key);
       else value = await AsyncStorage.getItem(key);
 
       const parsed = parseData(value);
@@ -192,18 +200,18 @@ export const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
     const isElectron = await windowModule.isElectronBuild();
     if (!isElectron && !isDev) throw new Error("Not an Electron build");
     else if (!isElectron) value = localStorage.getItem(key);
-    else value = await windowModule.loadData(key);
+    else value = await windowModule.loadData(keyStorage);
 
     const parsedResponse = parseData(value);
     return returnValue(parsedResponse);
   },
   true,
-  (err, errMsg, key, ...args: unknown[]) => {
+  (err, errMsg, keyStorage, ...args: unknown[]) => {
     const arg = args?.[0]; // [fallbackValue | func]
     if (typeof arg === "function") return arg(null, err, errMsg);
-    if (key === "_deviceId") reloadAppAsync();
+    if (keyStorage === "DEVICE_ID") reloadAppAsync();
 
-    logError(`loadDataStorage("${key}") => ${errMsg}`);
+    logError(`loadDataStorage("${keyStorage}") => ${errMsg}`);
     if (typeof arg !== "undefined") return arg;
     return null;
   },
@@ -216,24 +224,26 @@ export const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
  * (SecureStore, AsyncStorage, localStorage, Electron storage). It includes validation to prevent
  * removal of protected keys and provides error handling through callbacks.
  *
- * @param key - The storage key to remove. Cannot be "_deviceId" as it's protected from removal.
+ * @param key - The storage key to remove. Cannot be "DEVICE_ID" as it's protected from removal.
  * @param args - Optional error callback function that receives (error: Error, errorMessage: string) parameters.
  *
  * @remarks
  * - On native platforms, uses SecureStore for secure keys or AsyncStorage for regular keys
  * - On web platforms, uses localStorage (dev mode) or Electron's storage mechanism (production)
- * - The "_deviceId" key is protected and cannot be removed
- * - The "_terminalCommands" key cannot be removed on web platforms
+ * - The "DEVICE_ID" key is protected and cannot be removed
+ * - The "TERMINAL_COMMANDS" key cannot be removed on web platforms
  * - Wrapped with error handling that logs errors or calls the provided error callback
  *
- * @throws {Error} When attempting to remove "_deviceId" key
+ * @throws {Error} When attempting to remove "DEVICE_ID" key
  * @throws {Error} When running on web in production mode without Electron build
  */
 export const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
   async (
-    key: Parameters<RemoveDataStorage>[0],
+    keyStorage: Parameters<RemoveDataStorage>[0],
     ...args: Parameters<RemoveDataStorage>[1][]
   ) => {
+    const key = ALL_KEYS_STORAGE[keyStorage];
+
     const returnType = (err?: Error, errMsg?: string) => {
       const callback = args?.[0];
       if (typeof callback !== "function") return;
@@ -242,17 +252,17 @@ export const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
       return callback(err, errMsg) as void;
     };
 
-    if (key === "_deviceId") {
+    if (keyStorage === "DEVICE_ID") {
       const errMsg = "Cannot remove device ID from storage";
       return returnType(new Error(errMsg), errMsg);
     }
-    if (Platform.OS === "web" && key === "_terminalCommands") {
+    if (Platform.OS === "web" && key === "TERMINAL_COMMANDS") {
       const errMsg = "Cannot remove terminal commands on web";
       return returnType(new Error(errMsg), errMsg);
     }
 
     if (Platform.OS !== "web") {
-      if (isSecureKey(key)) await SecureStore.deleteItemAsync(key);
+      if (isSecureKey(keyStorage)) await SecureStore.deleteItemAsync(key);
       else await AsyncStorage.removeItem(key);
 
       return returnType();
@@ -261,18 +271,18 @@ export const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
 
     if (!isElectron && !isDev) throw new Error("Not an Electron build");
     else if (!isElectron) localStorage.removeItem(key);
-    else await windowModule.removeData(key);
+    else await windowModule.removeData(keyStorage);
 
     return returnType();
   },
   true,
-  (err, errMsg, key, ...args: unknown[]) => {
-    if (key === "_deviceId") throw new Error(errMsg);
+  (err, errMsg, keyStorage, ...args: unknown[]) => {
+    if (keyStorage === "DEVICE_ID") throw new Error(errMsg);
 
     const errCallback = args?.[0];
     if (typeof errCallback === "function") return errCallback(err, errMsg);
 
-    logError(`removeDataStorage("${key}") => ${errMsg}`);
+    logError(`removeDataStorage("${keyStorage}") => ${errMsg}`);
   },
 );
 
@@ -299,20 +309,22 @@ export const cleanAllStorageData = wrapFunctionWithError(
 
       localStorage.clear();
       await Promise.all(
-        ALL_KEYS_STORAGE.map(
-          wrapFunctionWithError(async (key) => {
-            if (key === "_deviceId") return;
+        ALL_KEYS_STORAGE_KEYS.map(
+          wrapFunctionWithError(async (keyStorage) => {
+            if (keyStorage === "DEVICE_ID") return;
 
-            await windowModule.removeData(key);
+            await windowModule.removeData(keyStorage);
           }, true),
         ),
       );
     } else {
       await Promise.all([
-        ...SECURE_KEYS_STORAGE.map(
-          wrapFunctionWithError(async (key) => {
-            if (key === "_deviceId") return;
-            await SecureStore.deleteItemAsync(key);
+        ...Object.entries(SECURE_KEYS_STORAGE).map(
+          wrapFunctionWithError(async ([keyStorage, value]) => {
+            const key = keyStorage as SECURE_KEYS_STORAGE_TYPE;
+            if (key === "DEVICE_ID") return;
+
+            await SecureStore.deleteItemAsync(value);
           }, true),
         ),
         AsyncStorage.clear(),
@@ -337,7 +349,7 @@ export const cleanAllStorageData = wrapFunctionWithError(
  */
 export const getLanguageFromStorage =
   async (): Promise<LanguagesSupported | null> => {
-    const data = await loadDataStorage("@languageKeyStorage");
+    const data = await loadDataStorage("LANGUAGE");
     if (!data) return null;
 
     const languageAvailable = languagesSupported.includes(data);
@@ -363,7 +375,7 @@ export const getLanguageFromDevice = wrapFunctionWithError(
     const language = locales.languageCode as LanguagesSupported;
     const languageAvailable = languagesSupported.includes(language || "");
     if (language && languageAvailable) {
-      saveDataStorage("@languageKeyStorage", language);
+      saveDataStorage("LANGUAGE", language);
       return language;
     }
     return "en";
@@ -392,18 +404,6 @@ export const checkLanguage = async (): Promise<LanguagesSupported> => {
   lang = await getLanguageFromDevice();
   if (lang) return lang;
 
-  await saveDataStorage("@languageKeyStorage", "en");
+  await saveDataStorage("LANGUAGE", "en");
   return "en";
-};
-
-/**
- * Checks if a given storage key is a secure key that requires encrypted storage.
- *
- * @param key - The storage key to check against secure keys list
- * @returns A type predicate indicating whether the key is a secure storage key
- */
-export const isSecureKey = (
-  key: ALL_KEYS_STORAGE_TYPE,
-): key is SECURE_KEYS_STORAGE_TYPE => {
-  return SECURE_KEYS_STORAGE.includes(key as SECURE_KEYS_STORAGE_TYPE);
 };

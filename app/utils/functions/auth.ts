@@ -1,9 +1,8 @@
 import {
-  UserData,
-  ResponseAuth,
-  ResponseFetch,
+  KeyStorageValues,
+  ALL_KEYS_STORAGE_TYPE,
   ExpectedStorageTypes,
-} from "@types";
+} from "@common";
 import {
   log,
   logError,
@@ -20,8 +19,8 @@ import { reloadAppAsync } from "expo";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
 import { wrapFunctionWithError } from "@common";
-import { isFalsy, setTimeoutPolyfill } from "./../functions/appManagement";
-import { KeyStorageValues, ALL_KEYS_STORAGE_TYPE } from "@common";
+import { isFalsy, setTimeoutPolyfill } from "../functions/appManagement";
+import { UserData, ResponseAuth, ResponseFetch } from "@types";
 
 /**
  * Retrieves the Expo push token for the device.
@@ -54,14 +53,14 @@ export const saveStorageData = async (
   const results = await Promise.all(
     Object.entries(storageValues).map(
       wrapFunctionWithError(
-        async ([key, value]) => {
-          const keyTyped = key as ALL_KEYS_STORAGE_TYPE;
-          if (keyTyped === "_deviceId" || keyTyped === "_terminalCommands")
+        async ([keyStorage, value]) => {
+          const keyTyped = keyStorage as ALL_KEYS_STORAGE_TYPE;
+          if (keyTyped === "DEVICE_ID" || keyTyped === "TERMINAL_COMMANDS")
             return;
 
           const valueTyped = value as ExpectedStorageTypes<"BOTH">[Exclude<
             KeyStorageValues,
-            "_deviceId" | "_terminalCommands"
+            "DEVICE_ID" | "TERMINAL_COMMANDS"
           >];
 
           saveDataStorage(keyTyped, valueTyped);
@@ -97,7 +96,7 @@ export const signInWithEmail = async (
   try {
     const [lang, deviceId, notificationToken] = await Promise.all([
       checkLanguage(),
-      loadDataStorage("_deviceId"),
+      loadDataStorage("DEVICE_ID"),
       getDevicePushToken(),
     ]);
 
@@ -199,9 +198,9 @@ export const forgotPasswordWithEmail = async (
 export const signOut = async (): Promise<{ error?: string | null }> => {
   try {
     const [deviceId, lang, token, notificationToken] = await Promise.all([
-      loadDataStorage("_deviceId"),
+      loadDataStorage("DEVICE_ID"),
       checkLanguage(),
-      loadDataStorage("_userSessionTokenStorage"),
+      loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
       getDevicePushToken(),
     ]);
 
@@ -230,19 +229,19 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
     }
 
     const storedValues: ALL_KEYS_STORAGE_TYPE[] = [
-      "@API_URL",
-      "@webSocketURL",
-      "@notifications",
-      "@hasAdminAccess",
-      "_userData",
-      "_Streamers",
-      "_sessionExpiry",
-      "_selectedCryptos",
-      "_userSessionTokenStorage",
+      "API_URL",
+      "WEBSOCKET_URL",
+      "NOTIFICATIONS",
+      "HAS_ADMIN_ACCESS",
+      "USER_DATA",
+      "STREAMERS",
+      "SESSION_EXPIRY",
+      "SELECTED_CRYPTOS",
+      "USER_SESSION_TOKEN_STORAGE",
     ];
 
     await Promise.all(storedValues.map(removeDataStorage));
-    if (Platform.OS !== "web") removeDataStorage("_terminalCommands");
+    if (Platform.OS !== "web") removeDataStorage("TERMINAL_COMMANDS");
 
     log("User signed out successfully");
     navigateReplace("Login");
@@ -259,7 +258,7 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
  */
 export const getCurrentUser = async (): Promise<ResponseAuth<"login">> => {
   try {
-    const userData = await loadDataStorage("_userData");
+    const userData = await loadDataStorage("USER_DATA");
 
     return {
       success: !!userData,
@@ -281,7 +280,7 @@ export const refreshSession = async (
   try {
     const [lang, deviceId, notificationToken] = await Promise.all([
       checkLanguage(),
-      loadDataStorage("_deviceId"),
+      loadDataStorage("DEVICE_ID"),
       getDevicePushToken(),
     ]);
 
@@ -350,8 +349,8 @@ export const refreshSession = async (
       return { success: false, error: errorMsg };
     }
 
-    saveDataStorage("_userData", data.user);
-    saveDataStorage("_userSessionTokenStorage", data.token);
+    saveDataStorage("USER_DATA", data.user);
+    saveDataStorage("USER_SESSION_TOKEN_STORAGE", data.token);
     log("Session refreshed successfully");
     return {
       ...data,
@@ -378,7 +377,7 @@ export const getUserData = async (
   error?: string | null;
 }> => {
   try {
-    const userData = await loadDataStorage("_userData");
+    const userData = await loadDataStorage("USER_DATA");
     if (userData && userData?.userId === userId)
       return { userData, error: null };
 

@@ -92,7 +92,7 @@ const uploadWeb = async (): Promise<boolean> => {
 
     const buildPath = path.join(UTILITIES_FOR_PC_PATH, "dist", "index.html");
 
-    execSync("yarn run build-app-electron -- --export-web", {
+    execSync("yarn run build-app-electron --export-web", {
       stdio: "inherit",
       cwd: UTILITIES_PATH,
     });

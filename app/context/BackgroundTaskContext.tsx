@@ -154,7 +154,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
               } as SerializableTask<T>;
             });
 
-        await saveDataStorage("@pendingTasks", serializableTasks);
+        await saveDataStorage("PENDING_TASKS", serializableTasks);
       } catch (error) {
         logError("Error persisting tasks:", error);
       }
@@ -256,7 +256,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   useEffect(() => {
     const loadPersistedTasks = async () => {
       try {
-        const persistedTasks = await loadDataStorage("@pendingTasks");
+        const persistedTasks = await loadDataStorage("PENDING_TASKS");
         if (!persistedTasks || persistedTasks.length === 0) return;
 
         const rebuiltTasks = persistedTasks.map((taskData) => ({
@@ -327,7 +327,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     );
     executeWhenInternetRef.current = [];
 
-    saveDataStorage("@pendingTasks", []);
+    saveDataStorage("PENDING_TASKS", []);
     processQueueRef.current();
   }, [hasInternet]);
 

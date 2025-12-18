@@ -1,6 +1,6 @@
 import chalk from "chalk";
-import { getHandlerPost } from "functions/getHandlerPost";
-import { PriceBinanceAPI } from "@types";
+import { getHandlerPost } from "../functions/getHandlerPost.ts";
+import { PriceBinanceAPI } from "@common";
 
 export let dataBinance: PriceBinanceAPI = [];
 

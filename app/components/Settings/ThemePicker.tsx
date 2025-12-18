@@ -21,7 +21,7 @@ const ThemePicker: React.FC = () => {
         requiresInternet: true,
         func: async () => {
           if (!userData?.userId || !sessionToken) return;
-          const deviceId = await loadDataStorage("_deviceId");
+          const deviceId = await loadDataStorage("DEVICE_ID");
 
           await fetchToServer(
             "/database/update",

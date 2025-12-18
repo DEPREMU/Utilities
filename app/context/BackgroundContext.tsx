@@ -180,7 +180,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
       if (!BackgroundModule.start) return reloadAppAsync();
 
-      loadDataStorage("_deviceId").then(
+      loadDataStorage("DEVICE_ID").then(
         (deviceId) =>
           !deviceId &&
           NativeFunctionsModule?.requestIgnoreBatteryOptimizations?.(),

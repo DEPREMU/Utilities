@@ -27,7 +27,7 @@ import React, { useCallback, useEffect } from "react";
 
 const hasDeviceId = async (): Promise<boolean> => {
   try {
-    const deviceId = await loadDataStorage("_deviceId");
+    const deviceId = await loadDataStorage("DEVICE_ID");
     if (Platform.OS === "web" && deviceId)
       windowModule.setData(deviceId, await checkLanguage());
 
@@ -37,7 +37,7 @@ const hasDeviceId = async (): Promise<boolean> => {
     if (Platform.OS === "web") {
       const deviceId = getRandomId() + "-" + getRandomId();
       windowModule.setData(deviceId, await checkLanguage());
-      await saveDataStorage("_deviceId", deviceId);
+      await saveDataStorage("DEVICE_ID", deviceId);
     } else {
       let uuid: string | undefined = "";
       try {
@@ -52,7 +52,7 @@ const hasDeviceId = async (): Promise<boolean> => {
         uuid = Array.from({ length: 3 }, () => getRandomId()).join("-");
 
       await saveDataStorage(
-        "_deviceId",
+        "DEVICE_ID",
         uuid.length > 255 ? uuid.substring(0, 255) : uuid,
       );
     }
@@ -114,7 +114,7 @@ const App = () => {
   const handleCheckForUpdates = useCallback(async () => {
     try {
       await handleCheckForUpdatesNativelyRef.current();
-      saveDataStorage("_lastUpdateCheck", Date.now());
+      saveDataStorage("LAST_UPDATE_CHECK", Date.now());
 
       const isAvailable = await isNewUpdateAvailable();
       if (!isAvailable) return;

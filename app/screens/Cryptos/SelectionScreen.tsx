@@ -13,16 +13,16 @@ import {
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import CryptoItem from "@components/Cryptos/CryptoItem";
+import { TablesKeys } from "@types";
 import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@/components/common/SkeletonLoading";
 import { View, FlatList } from "react-native";
 import { useUserContext } from "@context/UserContext";
-import { SelectedCryptos } from "@types";
 import { Text, TextInput } from "react-native-paper";
 import useStylesCryptoItem from "@styles/components/cryptos/useStylesCryptoItem";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSelectionScreen from "@styles/components/cryptos/useStylesSelectionScreen";
-import { PriceBinanceAPI, TablesKeys } from "@types";
+import { SelectedCryptos, PriceBinanceAPI } from "@common";
 import React, { useState, useEffect, useCallback } from "react";
 
 interface SelectionScreenProps {
@@ -49,7 +49,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     useState<SelectedCryptos>(selectedCryptos);
 
   const handleClearCache = useCallback(async () => {
-    await removeDataStorage("_selectedCryptos");
+    await removeDataStorage("SELECTED_CRYPTOS");
     setShowSelected(false);
     setOwnedCryptos({});
   }, []);
@@ -194,7 +194,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 
   useEffect(() => {
     const fetchOwnedCryptos = async () => {
-      const owned = await loadDataStorage("_selectedCryptos", {});
+      const owned = await loadDataStorage("SELECTED_CRYPTOS", {});
       const lengthOwned = Object.keys(owned).length;
       if (owned && lengthOwned < 25 && lengthOwned > 0)
         return setOwnedCryptos(owned);
@@ -259,7 +259,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           {
             requiresInternet: true,
             func: async () => {
-              const deviceId = await loadDataStorage("_deviceId");
+              const deviceId = await loadDataStorage("DEVICE_ID");
 
               fetchToServer(
                 "/database/update",
@@ -291,7 +291,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           {
             requiresInternet: true,
             func: async () => {
-              const deviceId = await loadDataStorage("_deviceId");
+              const deviceId = await loadDataStorage("DEVICE_ID");
 
               fetchToServer(
                 "/database/insert",
@@ -319,7 +319,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         .map((c) => c.uid as string);
 
       if (cryptosToDelete && cryptosToDelete.length > 0) {
-        const deviceId = await loadDataStorage("_deviceId");
+        const deviceId = await loadDataStorage("DEVICE_ID");
 
         cryptosToDelete.map((uid) =>
           addTaskQueue(
@@ -348,7 +348,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       }
 
       setSelectedCryptos(ownedCryptos);
-      await saveDataStorage("_selectedCryptos", ownedCryptos);
+      await saveDataStorage("SELECTED_CRYPTOS", ownedCryptos);
     };
 
     save();

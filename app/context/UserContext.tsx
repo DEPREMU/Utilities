@@ -247,8 +247,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     try {
       const [rememberMe, sessionToken] = await Promise.all([
-        loadDataStorage("_sessionExpiry"),
-        loadDataStorage("_userSessionTokenStorage"),
+        loadDataStorage("SESSION_EXPIRY"),
+        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
       ]);
 
       if (!rememberMe || !sessionToken)

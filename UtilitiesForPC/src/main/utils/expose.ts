@@ -1,7 +1,7 @@
 import {
-  getStorageFileValue,
-  saveStorageFileValue,
-  removeStorageFileValue,
+  getStorageValue,
+  saveStorageValue,
+  removeStorageValue,
 } from "./storage";
 import dataApp from "./variables";
 import { exec } from "child_process";
@@ -13,8 +13,7 @@ import { ipcMain, IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { restartComputer, scheduleReconnect, turnOffComputer } from "./server";
 
 type IpcDictHybrid = {
-  [K in keyof ChannelsIpcRenderer]:
-    | ChannelsIpcRenderer[K]["typeIpc"] extends "send"
+  [K in keyof ChannelsIpcRenderer]: ChannelsIpcRenderer[K]["typeIpc"] extends "send"
     ? {
         type: "on";
         func: (
@@ -133,7 +132,7 @@ const ipcDict: IpcDictHybrid = {
     func: async (_event, key, value) => {
       try {
         writeLog(`Received save-data request for key: ${key}`, "info");
-        const success = await saveStorageFileValue(key, value);
+        const success = await saveStorageValue(key, value);
         if (success)
           writeLog(`Data saved successfully for key: ${key}`, "info");
         else writeLog(`Failed to save data for key: ${key}`, "error");
@@ -149,7 +148,7 @@ const ipcDict: IpcDictHybrid = {
     type: "handle",
     func: async (_event, key) => {
       try {
-        return await getStorageFileValue(key);
+        return await getStorageValue(key);
       } catch (error) {
         writeLog(
           `Error loading data for key ${key}: ` + String(error),
@@ -164,7 +163,7 @@ const ipcDict: IpcDictHybrid = {
     func: async (_event, key) => {
       writeLog(`Received remove-data request for key: ${key}`, "info");
       try {
-        return await removeStorageFileValue(key);
+        return await removeStorageValue(key);
       } catch (error) {
         writeLog(
           `Failed to remove data for key: ${key}, error: ${error}`,

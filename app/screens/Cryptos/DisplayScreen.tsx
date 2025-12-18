@@ -1,7 +1,7 @@
 import { useLanguage } from "@context/LanguageContext";
 import { CryptoPrice } from "@components/Cryptos/CryptoPrice";
 import SkeletonLoading from "@components/common/SkeletonLoading";
-import { SelectedCryptos } from "@types";
+import { SelectedCryptos } from "@common";
 import { useStylesCryptoPrice } from "@styles/components/cryptos/useStylesCryptoPrice";
 import { View, Text, ScrollView } from "react-native";
 import { useStylesDisplayScreen } from "@styles/components/cryptos/useStylesDisplayScreen";

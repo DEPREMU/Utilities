@@ -47,7 +47,7 @@ export const isNotificationsAlreadyInitialized = (
  */
 export const initializeNotificationsStorage =
   async (): Promise<Notifications> => {
-    let notificationsData = await loadDataStorage("@notifications");
+    let notificationsData = await loadDataStorage("NOTIFICATIONS");
 
     if (isNotificationsAlreadyInitialized(notificationsData))
       return notificationsData;
@@ -74,7 +74,7 @@ export const initializeNotificationsStorage =
           paused: pausedNotifications,
           intervals: intervalsNotifications,
         };
-        saveDataStorage("@notifications", notificationsData);
+        saveDataStorage("NOTIFICATIONS", notificationsData);
         return notificationsData;
       }
 
@@ -83,7 +83,7 @@ export const initializeNotificationsStorage =
         paused: pausedNotifications,
         intervals: intervalsNotifications,
       };
-      saveDataStorage("@notifications", notificationsData);
+      saveDataStorage("NOTIFICATIONS", notificationsData);
       return notificationsData;
     }
 
@@ -93,7 +93,7 @@ export const initializeNotificationsStorage =
       intervals: { ...intervalsNotifications },
     };
 
-    saveDataStorage("@notifications", newNotifications);
+    saveDataStorage("NOTIFICATIONS", newNotifications);
     return newNotifications;
   };
 

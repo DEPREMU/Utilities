@@ -72,13 +72,13 @@ const SettingsScreen: React.FC = () => {
     if (password !== ADMIN_PASSWORD) return;
 
     const [deviceId, url] = await Promise.all([
-      loadDataStorage("_deviceId"),
+      loadDataStorage("DEVICE_ID"),
       getRouteAPI("/database/update"),
     ]);
     if (!url) return;
 
     setHasAdmin(true);
-    saveDataStorage("@hasAdminAccess", true);
+    saveDataStorage("HAS_ADMIN_ACCESS", true);
 
     await fetchToServer(
       "/database/update",
@@ -105,7 +105,7 @@ const SettingsScreen: React.FC = () => {
           if (!userData?.userId) return;
           if (!sessionToken) return;
 
-          const deviceId = await loadDataStorage("_deviceId");
+          const deviceId = await loadDataStorage("DEVICE_ID");
 
           await fetchToServer(
             "/database/update",
@@ -118,7 +118,7 @@ const SettingsScreen: React.FC = () => {
             },
             sessionToken,
           );
-          await saveDataStorage("@API_URL", apiURL);
+          await saveDataStorage("API_URL", apiURL);
         },
       },
       {
@@ -143,7 +143,7 @@ const SettingsScreen: React.FC = () => {
           if (!userData?.userId) return;
           if (!sessionToken) return;
 
-          const deviceId = await loadDataStorage("_deviceId");
+          const deviceId = await loadDataStorage("DEVICE_ID");
 
           await fetchToServer(
             "/database/update",
@@ -156,7 +156,7 @@ const SettingsScreen: React.FC = () => {
             },
             sessionToken,
           );
-          await saveDataStorage("@webSocketURL", socketURL);
+          await saveDataStorage("WEBSOCKET_URL", socketURL);
         },
       },
       {
@@ -233,7 +233,7 @@ const SettingsScreen: React.FC = () => {
   const handleCheckForUpdates = useCallback(async () => {
     if (Platform.OS === "web") return;
 
-    saveDataStorage("_lastUpdateCheck", Date.now());
+    saveDataStorage("LAST_UPDATE_CHECK", Date.now());
     setUpdatesData({
       updateState: "NOT_VERIFIED",
       lastUpdateCheck: new Date(),
@@ -279,16 +279,16 @@ const SettingsScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadDataStorage("@hasAdminAccess").then((data) => {
+    loadDataStorage("HAS_ADMIN_ACCESS").then((data) => {
       setHasAdmin(data || false);
     });
-    loadDataStorage("@webSocketURL").then((data) => {
+    loadDataStorage("WEBSOCKET_URL").then((data) => {
       setSocketURLState(data || "");
     });
-    loadDataStorage("@API_URL").then((data) => {
+    loadDataStorage("API_URL").then((data) => {
       setApiURL(data || "");
     });
-    loadDataStorage("_lastUpdateCheck").then((data) => {
+    loadDataStorage("LAST_UPDATE_CHECK").then((data) => {
       if (!data) return;
       setUpdatesData({
         updateState: "NOT_VERIFIED",

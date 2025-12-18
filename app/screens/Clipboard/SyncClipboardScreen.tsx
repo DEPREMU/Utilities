@@ -25,7 +25,7 @@ const SyncClipboardScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const deviceId = await loadDataStorage("_deviceId");
+      const deviceId = await loadDataStorage("DEVICE_ID");
 
       const res = await fetchToServer(
         "/database/insert",

@@ -87,7 +87,7 @@ const ScanQRCode: React.FC = () => {
         const parsedMessage: LoginWithQRMobile | null = parseData(scannedData);
         if (!parsedMessage || parsedMessage?.type !== "scanned") return;
 
-        const token = await loadDataStorage("_userSessionTokenStorage");
+        const token = await loadDataStorage("USER_SESSION_TOKEN_STORAGE");
         if (!token) {
           logError("No session token available for QR login");
           navigateReplace("Home");

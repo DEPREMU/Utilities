@@ -5,7 +5,10 @@
     "lib": ["esnext"],
     "types": ["node", "dnssd"],
     "typeRoots": ["../node_modules/@types"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@types": ["./index.d.ts"]
+    }
   },
   "include": ["./**/*.d.ts"],
   "exclude": []

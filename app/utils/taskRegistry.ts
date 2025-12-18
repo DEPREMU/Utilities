@@ -28,8 +28,8 @@ const taskRegistry: TaskRegistry = {
     try {
       const [lang, token, deviceId] = await Promise.all([
         checkLanguage(),
-        loadDataStorage("_userSessionTokenStorage"),
-        loadDataStorage("_deviceId"),
+        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
+        loadDataStorage("DEVICE_ID"),
       ]);
       if (!token) return;
 
@@ -54,8 +54,8 @@ const taskRegistry: TaskRegistry = {
     try {
       const [lang, token, deviceId] = await Promise.all([
         checkLanguage(),
-        loadDataStorage("_userSessionTokenStorage"),
-        loadDataStorage("_deviceId"),
+        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
+        loadDataStorage("DEVICE_ID"),
       ]);
       if (!token) return;
 
@@ -79,8 +79,8 @@ const taskRegistry: TaskRegistry = {
     try {
       const [lang, token, deviceId] = await Promise.all([
         checkLanguage(),
-        loadDataStorage("_userSessionTokenStorage"),
-        loadDataStorage("_deviceId"),
+        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
+        loadDataStorage("DEVICE_ID"),
       ]);
       if (!token) return;
 
