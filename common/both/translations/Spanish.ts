@@ -46,6 +46,12 @@ export const esServer: typeLanguagesServer = {
 };
 
 export const esApp: typeLanguages = {
+  youAreNotLoggedInMessage:
+    "Actualmente no tienes una sesión iniciada. Si estabas previamente conectado, es posible que la sesión haya expirado o que hubo un error, por favor inicia sesión nuevamente.",
+  loggedInStatusChannel: "Estado de inicio de sesión",
+  loadMore: "Cargar más",
+  showAsPlainText: "Mostrar como texto plano",
+  showAsMarkdown: "Mostrar como Markdown",
   success: "Éxito",
   welcomeUser: "Bienvenido de nuevo, {{user}}",
   close: "Cerrar",

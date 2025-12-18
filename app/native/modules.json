@@ -72,5 +72,15 @@
     "name": "NativeFunctionsModule.kt",
     "initPath": "native/",
     "finalPath": "android/app/src/main/java/"
+  },
+  {
+    "name": "autocomplete_en.txt",
+    "initPath": "native/autocomplete/",
+    "finalPath": "android/app/src/main/assets/"
+  },
+  {
+    "name": "autocomplete_es.txt",
+    "initPath": "native/autocomplete/",
+    "finalPath": "android/app/src/main/assets/"
   }
 ]

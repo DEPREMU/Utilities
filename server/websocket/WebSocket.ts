@@ -313,6 +313,7 @@ const connectionWss = (ws: WebSocket) => {
             locationEnabled: null,
             allNotifications: null,
             noInternetConnection: null,
+            loggedInStatusChannel: null,
           }),
           cryptos: intervalId,
         };

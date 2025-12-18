@@ -66,6 +66,7 @@
     "@types/electron": "^1.6.12",
     "@types/node": "^25.0.3",
     "@types/dnssd": "^0.4.5",
+    "jiti": "^2.6.0",
     "@types/lodash": "^4.17.21",
     "typescript": "^5.9.3",
     "@types/prettier": "^3.0.0",

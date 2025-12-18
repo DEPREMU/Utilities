@@ -1,5 +1,8 @@
 {
   "license": "ISC",
+  "name": "types",
+  "version": "1.0.0",
+  "main": "index.d.ts",
   "scripts": {
     "before-commit": "tsc --noEmit"
   }

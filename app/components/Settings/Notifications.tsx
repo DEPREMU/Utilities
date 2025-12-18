@@ -40,6 +40,7 @@ const intervalValues: Record<ReasonNotification, number> = {
   batteryAlerts: -1,
   downDetector: -1,
   noInternetConnection: -1,
+  loggedInStatusChannel: -1,
 };
 
 const getDefaultMinutes = (reason: ReasonNotification): number => {

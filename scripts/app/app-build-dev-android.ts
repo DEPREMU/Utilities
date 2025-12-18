@@ -4,42 +4,14 @@ import {
   UTILITIES_PATH,
   handleExitFromScript,
 } from "../config.ts";
+import {
+  pathAppConfig,
+  replaceAppConfig,
+  contentAppConfig,
+} from "./editAppConfig.ts";
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
-
-const pathAppConfig = path.join(APP_PATH, "app.config.ts");
-
-const contentAppConfig = fs.readFileSync(pathAppConfig, "utf8") as string;
-
-let editedContentAppConfig = contentAppConfig;
-
-const replaceVersion = () => {
-  const versionMatch = contentAppConfig.match(/const version[^;]+/g);
-  if (!versionMatch) throw new Error("Version not found in app config");
-
-  const version = versionMatch[0].split('"')[1];
-  if (!version) throw new Error("Version is empty in app config");
-
-  editedContentAppConfig = contentAppConfig.replace(version, "0.0.0-dev");
-
-  fs.writeFileSync(pathAppConfig, editedContentAppConfig);
-};
-
-const replacePackageName = () => {
-  const packageMatch = contentAppConfig.match(/package:[^,]+/g);
-  if (!packageMatch) throw new Error("Package name not found in app config");
-
-  const packageName = packageMatch[0].split(":")[1].trim().replace(/['"]/g, "");
-  if (!packageName) throw new Error("Package name is empty in app config");
-
-  editedContentAppConfig = editedContentAppConfig.replace(
-    packageName,
-    packageName + ".dev"
-  );
-
-  fs.writeFileSync(pathAppConfig, editedContentAppConfig);
-};
 
 const run = () => {
   const androidPath = path.join(APP_PATH, "android");
@@ -55,8 +27,11 @@ const run = () => {
     BUILD_PROFILE: "development",
   };
 
-  replaceVersion();
-  replacePackageName();
+  replaceAppConfig(
+    (prev) => (prev.endsWith("-dev") ? prev : `${prev}-dev`),
+    (prev) => (prev.includes("Dev") ? prev : `${prev} Dev`),
+    (prev) => (prev.includes(".dev") ? prev : `${prev}.dev`)
+  );
 
   console.log("Running prebuild...");
   execSync("yarn run app-prebuild-android", {

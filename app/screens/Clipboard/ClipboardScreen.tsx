@@ -163,7 +163,7 @@ const ClipboardScreen: React.FC = () => {
           lang: language,
           limit: limitLoadMore,
           table: "ClipboardSync",
-          search: searchText,
+          search: searchText || undefined,
           offset: page * limitLoadMore,
           orderBy: "createdAt",
           deviceId,
@@ -429,6 +429,7 @@ const ClipboardScreen: React.FC = () => {
           },
           textButton: styles.buttonText,
         }}
+        touchableOpacity
       />
 
       <FlatList

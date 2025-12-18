@@ -24,6 +24,7 @@ import { v4 } from "uuid";
 import { isEqual } from "lodash";
 import { useModal } from "./ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
+import keyboardModule from "@/utils/modules/KeyboardModule";
 import { useLanguage } from "./LanguageContext";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
 import { useBackground } from "./BackgroundContext";
@@ -66,6 +67,17 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(
   undefined,
 );
 
+const MAX_CLIPBOARD_ITEMS = Platform.OS === "web" ? 30 : 15;
+
+const addToItemsClipboard = (
+  item: string,
+  listRef: React.RefObject<string[]>,
+) => {
+  listRef.current.unshift(item);
+
+  if (listRef.current.length > MAX_CLIPBOARD_ITEMS) listRef.current.pop();
+};
+
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
 }) => {
@@ -90,6 +102,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   });
   const socketRef = useRef<WebSocket | null>(null);
   const lastItemCopied = useRef<string | null>(null);
+  const listItemsClipboard = useRef<string[]>([]);
   const clipboardSocketRef = useRef<WebSocket | null>(null);
   const connectionTimeoutId = useRef<number | null>(null);
   const shouldConnect = useRef<ShouldConnect>({
@@ -331,6 +344,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           return sendMessageRef.current("clipboard", { type: "pong" });
 
         if (parsedMessage.content === lastItemCopied.current) return;
+
+        addToItemsClipboard(parsedMessage.content, listItemsClipboard);
+
         lastItemCopied.current = parsedMessage.content;
 
         if (Platform.OS === "android")
@@ -397,6 +413,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         const content = event?.text;
         if (!content || lastItemCopied.current === content) return;
 
+        addToItemsClipboard(content, listItemsClipboard);
         lastItemCopied.current = content;
 
         sendMessageRef.current("clipboard", {
@@ -406,7 +423,23 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       },
     );
 
-    return () => listenerClipboard.remove();
+    const listenerShowClipboardKeyboard = DeviceEventEmitter.addListener(
+      "showClipboard",
+      (_data: { show: boolean }) => {
+        setTimeoutPolyfill(() => {
+          if (listItemsClipboard.current.length === 0) return;
+
+          keyboardModule?.setClipboardSuggestions?.([
+            ...(listItemsClipboard.current || []),
+          ]);
+        }, 100);
+      },
+    );
+
+    return () => {
+      listenerClipboard.remove();
+      listenerShowClipboardKeyboard.remove();
+    };
   }, []);
 
   useEffect(() => {

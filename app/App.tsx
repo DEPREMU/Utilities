@@ -69,7 +69,7 @@ const App = () => {
 
   const handleCheckForUpdatesNatively = useCallback(async () => {
     try {
-      if (APP_VERSION.startsWith("0.0")) return; // Skip updates for testing builds
+      if (APP_VERSION.includes("dev")) return; // Skip updates for testing builds
 
       const res = await fetchToServer("/is-update-available", {
         buildType: "android",

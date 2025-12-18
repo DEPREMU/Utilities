@@ -1,11 +1,13 @@
 import Button from "@components/common/ButtonComponent";
+import Markdown from "react-native-marked";
 import { Tables } from "@types";
+import { useLanguage } from "@/context/LanguageContext";
 import SkeletonLoading from "@components/common/SkeletonLoading";
-import React, { useMemo } from "react";
 import { Platform, ScrollView } from "react-native";
 import useStylesClipboardScreen from "@styles/screens/clipboard/useStylesClipboardScreen";
 import { Card, Text, TextInput } from "react-native-paper";
-import { getFormattedDate, memoDeep } from "@utils";
+import { clearRefs, getFormattedDate, memoDeep } from "@utils";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 interface RenderClipboardItemProps {
   item: Tables["ClipboardSync"];
@@ -16,6 +18,8 @@ interface RenderClipboardItemProps {
   copyContent: (content: string) => Promise<void>;
 }
 
+const MAX_CONTENT_LENGTH = Platform.OS === "web" ? 10000 : 5000;
+
 const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
   item,
   title,
@@ -24,7 +28,16 @@ const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
   deleteItem,
   copyContent,
 }) => {
+  const { t } = useLanguage();
   const { styles } = useStylesClipboardScreen();
+
+  const [isMarkdown, setIsMarkdown] = useState(false);
+  const [maxTextLength, setMaxTextLength] = useState(MAX_CONTENT_LENGTH);
+
+  const getMoreContent = useRef(() => {
+    setMaxTextLength((prev) => prev + MAX_CONTENT_LENGTH);
+  });
+
 
   const cardTitle = useMemo(
     () => <Card.Title style={styles.titleCard} title={title} />,
@@ -32,34 +45,87 @@ const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
   );
 
   const contentCard = useMemo(() => {
+    const isLargeContent = item.content.length > maxTextLength;
+
+    const text = isLargeContent
+      ? item.content.slice(0, maxTextLength) + "..."
+      : item.content;
+
     if (Platform.OS === "web")
       return (
-        <TextInput
-          style={styles.contentCard}
-          editable={false}
-          multiline
-          value={item.content}
-        />
+        <>
+          {isMarkdown ? (
+            <Markdown value={text} />
+          ) : (
+            <TextInput
+              style={styles.contentCard}
+              editable={false}
+              multiline
+              value={text}
+            />
+          )}
+          {isLargeContent && (
+            <Button
+              handlePress={() => getMoreContent.current()}
+              label={t("loadMore")}
+              touchableOpacity
+            />
+          )}
+          <Button
+            handlePress={() => setIsMarkdown((p) => !p)}
+            label={t(isMarkdown ? "showAsPlainText" : "showAsMarkdown")}
+            touchableOpacity
+          />
+        </>
       );
     else
       return (
-        <ScrollView
-          nestedScrollEnabled
-          style={styles.contentCard}
-          showsVerticalScrollIndicator
-        >
-          <Text style={styles.contentCardAndroid} selectable>
-            {item.content}
-          </Text>
-        </ScrollView>
+        <>
+          <ScrollView
+            nestedScrollEnabled
+            style={styles.contentCard}
+            showsVerticalScrollIndicator
+          >
+            {isMarkdown ? (
+              <Markdown value={text} />
+            ) : (
+              <Text style={styles.contentCardAndroid} selectable>
+                {text}
+              </Text>
+            )}
+          </ScrollView>
+          {isLargeContent && (
+            <Button
+              handlePress={() => getMoreContent.current()}
+              label={t("loadMore")}
+              touchableOpacity
+            />
+          )}
+          <Button
+            handlePress={() => setIsMarkdown((p) => !p)}
+            label={t(isMarkdown ? "showAsPlainText" : "showAsMarkdown")}
+            touchableOpacity
+          />
+        </>
       );
-  }, [item.content, styles.contentCard, styles.contentCardAndroid]);
+  }, [
+    t,
+    item.content,
+    styles.contentCard,
+    styles.contentCardAndroid,
+    isMarkdown,
+    maxTextLength,
+  ]);
 
   const dateItem = useMemo(() => {
     const formattedDate = getFormattedDate(new Date(item.createdAt || ""));
 
     return <Text style={styles.contentCardAndroid}>{formattedDate}</Text>;
   }, [item.createdAt, styles.contentCardAndroid]);
+
+  useEffect(() => {
+    return () => clearRefs(getMoreContent);
+  }, []);
 
   return (
     <Card style={styles.card}>

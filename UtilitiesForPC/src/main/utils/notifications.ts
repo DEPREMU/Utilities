@@ -10,6 +10,7 @@ const notifications: NotificationsSaved = {
   locationEnabled: null,
   allNotifications: null,
   noInternetConnection: null,
+  loggedInStatusChannel: null,
 };
 
 export const sendNotification = (notif: NotificationElectron) => {

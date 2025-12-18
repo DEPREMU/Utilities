@@ -17,7 +17,7 @@ const getSumVersion = (version: string): number => {
         return !isNaN(number) ? number : 0;
       })
       .reduce((sum, part, index) => sum + part * Math.pow(1000, 2 - index), 0);
-    return versionSum;
+    return isNaN(versionSum) ? 0 : versionSum;
   } catch {
     return 0;
   }
@@ -42,9 +42,6 @@ export const handleIsUpdateAvailable = getHandlerPost(
       const { currentVersion, buildType: platform, platformOS } = body;
       const buildType = platform as RequestUploadUpdate["buildType"];
 
-      if (!currentVersion || !buildType)
-        return sendResponse("BAD_REQUEST", defaultRes);
-
       const latestVersionData =
         buildType === "android"
           ? data.new?.[buildType]
@@ -54,8 +51,7 @@ export const handleIsUpdateAvailable = getHandlerPost(
       if (!latestVersionData) return sendResponse("BAD_REQUEST", defaultRes);
 
       const latestVersion = latestVersionData.version;
-      if (!latestVersion || latestVersion === "unknown")
-        return sendResponse("BAD_REQUEST", defaultRes);
+      if (!latestVersion) return sendResponse("BAD_REQUEST", defaultRes);
 
       let downloadUrl = "";
       if (buildType === "android") {

@@ -8,6 +8,7 @@ const objReasonNotification: Record<ReasonNotification, null> = {
   locationEnabled: null,
   allNotifications: null,
   noInternetConnection: null,
+  loggedInStatusChannel: null,
 };
 
 export const reasonNotification: ReasonNotification[] = Object.keys(

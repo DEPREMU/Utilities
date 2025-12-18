@@ -46,6 +46,12 @@ export const enServer: typeLanguagesServer = {
 };
 
 export const enApp: typeLanguages = {
+  youAreNotLoggedInMessage:
+    "You are currently not logged in. If you were previously logged in, your session may have expired or there was an error, please log in again.",
+  showAsMarkdown: "Show as Markdown",
+  loggedInStatusChannel: "Logged In Status Channel",
+  loadMore: "Load More",
+  showAsPlainText: "Show as Plain Text",
   success: "Success",
   welcomeUser: "Welcome back, {{user}}",
   close: "Close",

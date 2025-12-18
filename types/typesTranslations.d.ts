@@ -9,17 +9,16 @@ export type GetPlaceholders<T extends string> =
     ? K | GetPlaceholders<Rest>
     : never;
 
-export type HasPlaceholder<T extends string> = GetPlaceholders<T> extends never
-  ? false
-  : true;
+export type HasPlaceholder<T extends string> =
+  GetPlaceholders<T> extends never ? false : true;
 
 type ResolvePath<T, P extends string> = P extends `${infer Key}.${infer Rest}`
   ? Key extends keyof T
     ? ResolvePath<T[Key], Rest>
     : never
   : P extends keyof T
-  ? T[P]
-  : never;
+    ? T[P]
+    : never;
 
 export type typeT = <K extends typeLanguagesKeys>(
   key: K,
@@ -36,6 +35,8 @@ export type typeT = <K extends typeLanguagesKeys>(
 export type typeLanguages = Record<ReasonNotification, string> &
   Record<keyof DeviceInformation, string> &
   Record<BatteryState, string> & {
+    youAreNotLoggedInMessage: string;
+    loadMore: string;
     user: string;
     close: string;
     infoIP: string;
@@ -310,6 +311,8 @@ export type typeLanguages = Record<ReasonNotification, string> &
     restoreAll: string;
     deleteAll: string;
     restore: string;
+    showAsPlainText: string;
+    showAsMarkdown: string;
     images: {
       imageSize: `${string}{{size}}${string}`;
       imageType: `${string}{{type}}${string}`;

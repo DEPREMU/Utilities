@@ -15,6 +15,7 @@ import {
   NotificationAction,
 } from "@types";
 import {
+  tTyped,
   logError,
   stringifyData,
   loadDataStorage,
@@ -68,7 +69,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   const { deviceInfo } = useDeviceInformation();
   const { t, language } = useLanguage();
   const { openSnackBar } = useModal();
-  const { sessionToken, userData } = useUserContext();
+  const { sessionToken, userData, isLoggedIn } = useUserContext();
   const { hasInternet, initIntervalTimeouts, deleteIntervalTimeout } =
     useBackground();
 
@@ -206,6 +207,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
                   locationEnabled: 30,
                   allNotifications: 60,
                   noInternetConnection: 15,
+                  loggedInStatusChannel: 15,
                 };
 
                 return (defaultTimes[reason] || 60) * 60 * 1000;
@@ -279,19 +281,49 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, [notifications]);
 
   useEffect(() => {
+    if (isLoggedIn || !hasInternet) return;
+
+    const id = setTimeoutPolyfill(async () => {
+      const actions: NotificationAction[] = [
+        { actionId: "dismiss", title: tTyped("dismiss"), icon: "delete" },
+        { actionId: "stop", title: tTyped("stop"), icon: "stop" },
+      ];
+      if (await NativeFunctionsModule.checkOverlayPermission()) {
+        actions.push({
+          actionId: "pause",
+          title: tTyped("pause"),
+          icon: "pause",
+        });
+      }
+
+      sendNotificationRef.current({
+        type: "info",
+        title: tTyped("youAreNotLoggedIn"),
+        actions,
+        message: tTyped("youAreNotLoggedInMessage"),
+        channelId: "loggedInStatusChannel",
+        reasonNotification: "loggedInStatusChannel",
+        overrideNotification: false,
+      });
+    }, 30000);
+
+    return () => clearTimeoutPolyfill(id);
+  }, [isLoggedIn, hasInternet]);
+
+  useEffect(() => {
     if (!deviceInfo?.powerState) return;
 
     const reasonNotification: ReasonNotification = "batteryAlerts";
 
     const handleBatteryNotifications = async () => {
       const actions: NotificationAction[] = [
-        { actionId: "dismiss", title: t("dismiss"), icon: "delete" },
+        { actionId: "dismiss", title: tTyped("dismiss"), icon: "delete" },
       ];
 
       if (await NativeFunctionsModule.checkOverlayPermission()) {
         actions.push({
           actionId: "pause",
-          title: t("pause"),
+          title: tTyped("pause"),
           icon: "pause",
         });
       }
@@ -303,8 +335,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         if (deviceInfo.powerState.batteryLevel <= 0.8) return;
 
         await sendNotificationRef.current({
-          title: t("BatteryFullyCharged"),
-          message: t("YouCanUnplugYourDevice"),
+          title: tTyped("BatteryFullyCharged"),
+          message: tTyped("YouCanUnplugYourDevice"),
           type: "info",
           channelId: "batteryAlerts",
           reasonNotification,
@@ -319,15 +351,15 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         return;
 
       await sendNotificationRef.current({
-        title: t("BatteryLow"),
-        message: t("YourBatteryIsLow"),
+        title: tTyped("BatteryLow"),
+        message: tTyped("YourBatteryIsLow"),
         type: "warning",
         channelId: "batteryAlerts",
         overrideNotification: false,
         reasonNotification,
         actions: [
           ...actions,
-          { actionId: "stop", title: t("stop"), icon: "stop" },
+          { actionId: "stop", title: tTyped("stop"), icon: "stop" },
         ],
       });
     };
@@ -339,7 +371,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         clearTimeoutPolyfill(id);
       });
     return () => clearTimeoutPolyfill(id);
-  }, [deviceInfo?.powerState, t]);
+  }, [deviceInfo?.powerState]);
 
   useEffect(() => {
     sendNotificationRef.current = sendNotification;
@@ -356,8 +388,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     if (!hasInternet && prevHasInternet.current) {
       sendNotification({
-        title: t("NoInternetConnection"),
-        message: t("PleaseCheckInternetConnection"),
+        title: tTyped("NoInternetConnection"),
+        message: tTyped("PleaseCheckInternetConnection"),
         type: "error",
         overrideNotification: false,
         channelId: "noInternetConnection",
@@ -365,8 +397,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       });
     } else {
       sendNotification({
-        title: t("InternetConnectionRestored"),
-        message: t("YouAreBackOnline"),
+        title: tTyped("InternetConnectionRestored"),
+        message: tTyped("YouAreBackOnline"),
         type: "success",
         channelId: "noInternetConnection",
         reasonNotification: "noInternetConnection",
@@ -376,7 +408,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     if (prevHasInternet.current !== hasInternet)
       prevHasInternet.current = hasInternet;
-  }, [hasInternet, sendNotification, t]);
+  }, [hasInternet, sendNotification]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -390,8 +422,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       if (!locationEnabled) return;
 
       sendNotification({
-        title: t("LocationServicesEnabled"),
-        message: t("LocationServicesEnabledMessage"),
+        title: tTyped("LocationServicesEnabled"),
+        message: tTyped("LocationServicesEnabledMessage"),
         type: "info",
         channelId: "locationEnabled",
         reasonNotification: "locationEnabled",
@@ -399,12 +431,12 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         actions: [
           {
             actionId: "dismiss",
-            title: t("dismiss"),
+            title: tTyped("dismiss"),
             icon: "delete",
           },
           {
             actionId: "pause",
-            title: t("pause"),
+            title: tTyped("pause"),
             icon: "pause",
           },
         ],
@@ -425,7 +457,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     return () => {
       deleteIntervalTimeout("locationEnabled");
     };
-  }, [sendNotification, t, initIntervalTimeouts, deleteIntervalTimeout]);
+  }, [sendNotification, initIntervalTimeouts, deleteIntervalTimeout]);
 
   useEffect(() => {
     if (Platform.OS !== "android") return;

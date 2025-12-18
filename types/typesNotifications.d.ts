@@ -8,12 +8,13 @@ export type NotificationAction = {
 
 export type ReasonNotification =
   | "cryptos"
-  | "allNotifications"
   | "streamers"
-  | "locationEnabled"
-  | "noInternetConnection"
+  | "downDetector"
   | "batteryAlerts"
-  | "downDetector";
+  | "locationEnabled"
+  | "allNotifications"
+  | "noInternetConnection"
+  | "loggedInStatusChannel";
 
 export type typeStreamerNotification = { name: string; enabled: boolean };
 

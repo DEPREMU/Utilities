@@ -87,6 +87,8 @@ export const decryptFile = (filePath: string, password: string) => {
  * ```
  */
 export const handleBackupDatabase = async () => {
+  if (["1", "true"].includes(env.__DEV__)) return;
+
   await deletePreviousBackups();
   const client = await pool.connect();
   try {

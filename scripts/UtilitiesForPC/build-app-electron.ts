@@ -383,6 +383,10 @@ const buildApp = async () => {
 
 const run = async () => {
   try {
+    execSync("rm -rf ~/.cache/electron ~/.cache/electron-builder");
+  } catch {}
+
+  try {
     execSync("yarn run build-web-app-electron", {
       cwd: UTILITIES_PATH,
       stdio: "inherit",

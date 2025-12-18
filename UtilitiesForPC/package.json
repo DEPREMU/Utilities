@@ -1,6 +1,6 @@
 {
   "name": "utilities-for-pc",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A collection of useful utilities for PC users.",
   "main": "build/index.cjs",
   "scripts": {
@@ -15,12 +15,13 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "dmg-builder": "^26.0.12",
     "dnssd": "^0.4.1",
     "electron-store": "^11.0.2",
     "node-machine-id": "^1.1.12"
   },
   "devDependencies": {
-    "electron": "^39.2.7",
+    "electron": "39.2.7",
     "electron-builder": "^26.0.12"
   },
   "build": {

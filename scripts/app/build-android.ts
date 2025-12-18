@@ -11,6 +11,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
+import { replaceAppConfig } from "./editAppConfig.ts";
 
 const updateEasCLI = () => {
   try {
@@ -21,6 +22,12 @@ const updateEasCLI = () => {
     console.error("Failed to update eas-cli:", error);
   }
 };
+
+replaceAppConfig(
+  (prev) => prev.replace(/-dev/g, ""),
+  (prev) => prev.replace(/ Dev/g, ""),
+  (prev) => prev.replace(/\.dev/g, "")
+);
 
 const build = async () => {
   let profile = ARGS.profile ?? (ARGS.yes ? "production" : undefined);
@@ -101,7 +108,6 @@ handleExitFromScript(handleExit);
 
 const run = async () => {
   deleteAndroidFromGitIgnore();
-  updateEasCLI();
   await build();
   handleExit();
 };
