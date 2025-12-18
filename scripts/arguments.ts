@@ -2,7 +2,6 @@ import {
   isUpdate,
   isAppLint,
   isAppStart,
-  isAppClean,
   isBuildAndroid,
   isUploadElectron,
   isBuildAppElectron,
@@ -54,11 +53,6 @@ const showHelp = () => {
     options.push(
       `  --lan                        Run with --lan flag`,
       `  --dev                        Run with -d flag (development mode)`
-    );
-  }
-  if (isAppClean) {
-    options.push(
-      `  --install                    Run npm install after cleaning`
     );
   }
   if (isAppLint) {

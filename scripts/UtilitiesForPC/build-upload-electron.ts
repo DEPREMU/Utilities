@@ -240,7 +240,7 @@ const buildElectronApp = () => {
   const args = getArgs();
 
   execSync(
-    `npm run build-app-electron -- ${
+    `yarn run build-app-electron -- ${
       args.includes("platform") ? args : `${args} --platform=${platform}`
     }`,
     {

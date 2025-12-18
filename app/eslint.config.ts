@@ -12,6 +12,7 @@ export default [
   {
     ignores: [
       "node_modules/**",
+      "../node_modules/**",
       "server/node_modules/**",
       "server/dist/**",
       "dist/**",

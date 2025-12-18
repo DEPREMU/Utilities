@@ -2,7 +2,6 @@ export const fileCalled = process.argv[1].split("/").pop();
 
 export const isUpdate = fileCalled?.includes("update");
 export const isAppLint = fileCalled?.includes("app-lint");
-export const isAppClean = fileCalled?.includes("app-clean");
 export const isAppStart = fileCalled?.includes("app-start");
 export const isBuildWeb = fileCalled?.includes("build-web");
 export const isBuildAndroid = fileCalled?.includes("build-android");

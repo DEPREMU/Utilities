@@ -3,8 +3,7 @@ import {
   getNotifications,
   setTimeoutPolyfill,
 } from "./appManagement";
-import { typeT } from "@types";
-import { t as i18n } from "i18next";
+import { tTyped } from "../translates";
 import * as Location from "expo-location";
 import { saveDataStorage } from "./storageManagement";
 import NativeFunctionsModule from "../modules/NativeFunctionsModule";
@@ -58,27 +57,29 @@ export const askLocationPermission = async (): Promise<boolean> => {
   if (await NativeFunctionsModule?.checkOverlayPermission?.())
     NativeFunctionsModule?.openApp?.();
 
-  const t: typeT = i18n as typeT;
-
   granted = await new Promise((resolve) => {
-    Alert.alert(t("locationPermission"), t("locationPermissionMessage"), [
-      {
-        text: t("cancel"),
-        style: "cancel",
-        onPress: () => resolve(false),
-      },
-      {
-        text: t("accept"),
-        onPress: () => {
-          (async () => {
-            const { status } =
-              await Location.requestForegroundPermissionsAsync();
-            const granted = status === "granted";
-            resolve(granted);
-          })();
+    Alert.alert(
+      tTyped("locationPermission"),
+      tTyped("locationPermissionMessage"),
+      [
+        {
+          text: tTyped("cancel"),
+          style: "cancel",
+          onPress: () => resolve(false),
         },
-      },
-    ]);
+        {
+          text: tTyped("accept"),
+          onPress: () => {
+            (async () => {
+              const { status } =
+                await Location.requestForegroundPermissionsAsync();
+              const granted = status === "granted";
+              resolve(granted);
+            })();
+          },
+        },
+      ],
+    );
   });
   if (granted) {
     ({ status } = await Location.requestBackgroundPermissionsAsync());
@@ -112,27 +113,29 @@ export const askDisplayOverOtherAppsPermission = async (): Promise<boolean> => {
   let hasPermission = await NativeFunctionsModule.checkOverlayPermission();
   if (hasPermission) return true;
 
-  const t: typeT = i18n as typeT;
-
   const alert = await new Promise((resolve) => {
-    Alert.alert(t("overlayPermission"), t("overlayPermissionMessage"), [
-      {
-        text: t("cancel"),
-        style: "cancel",
-        onPress: () => resolve(false),
-      },
-      {
-        text: t("accept"),
-        onPress: () => {
-          (async () => {
-            const { status } =
-              await Location.requestForegroundPermissionsAsync();
-            const granted = status === "granted";
-            resolve(granted);
-          })();
+    Alert.alert(
+      tTyped("overlayPermission"),
+      tTyped("overlayPermissionMessage"),
+      [
+        {
+          text: tTyped("cancel"),
+          style: "cancel",
+          onPress: () => resolve(false),
         },
-      },
-    ]);
+        {
+          text: tTyped("accept"),
+          onPress: () => {
+            (async () => {
+              const { status } =
+                await Location.requestForegroundPermissionsAsync();
+              const granted = status === "granted";
+              resolve(granted);
+            })();
+          },
+        },
+      ],
+    );
   });
   if (!alert) return await NativeFunctionsModule.checkOverlayPermission();
 
@@ -180,20 +183,18 @@ export const askBatteryOptimizationPermission = async (): Promise<boolean> => {
   if (await NativeFunctionsModule?.checkOverlayPermission?.())
     NativeFunctionsModule?.openApp?.();
 
-  const t: typeT = i18n as typeT;
-
   const alert = await new Promise((resolve) => {
     Alert.alert(
-      t("batteryOptimizationPermission"),
-      t("batteryOptimizationPermissionMessage"),
+      tTyped("batteryOptimizationPermission"),
+      tTyped("batteryOptimizationPermissionMessage"),
       [
         {
-          text: t("cancel"),
+          text: tTyped("cancel"),
           style: "cancel",
           onPress: () => resolve(false),
         },
         {
-          text: t("accept"),
+          text: tTyped("accept"),
           onPress: () => {
             NativeFunctionsModule.requestIgnoreBatteryOptimizations();
             resolve(true);
@@ -249,20 +250,22 @@ export const askAutoStartPermission = async (): Promise<boolean> => {
   if (await NativeFunctionsModule?.checkOverlayPermission?.())
     NativeFunctionsModule?.openApp?.();
 
-  const t: typeT = i18n as typeT;
-
   const alert = await new Promise((resolve) => {
-    Alert.alert(t("autoStartPermission"), t("autoStartPermissionMessage"), [
-      {
-        text: t("cancel"),
-        style: "cancel",
-        onPress: () => resolve(false),
-      },
-      {
-        text: t("accept"),
-        onPress: () => resolve(true),
-      },
-    ]);
+    Alert.alert(
+      tTyped("autoStartPermission"),
+      tTyped("autoStartPermissionMessage"),
+      [
+        {
+          text: tTyped("cancel"),
+          style: "cancel",
+          onPress: () => resolve(false),
+        },
+        {
+          text: tTyped("accept"),
+          onPress: () => resolve(true),
+        },
+      ],
+    );
   });
 
   if (!alert) return false;

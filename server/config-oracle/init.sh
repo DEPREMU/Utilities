@@ -10,6 +10,8 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 nvm install 24
 sudo npm install -g pm2
 npm install -g pm2
+corepack enable yarn
+yarn -v # Check yarn version to ensure it's installed, if not, a question will appear indicating if you want to install it
 
 cd $HOME
 mkdir Utilities
@@ -18,8 +20,7 @@ git clone https://github.com/DEPREMU/Utilities .
 git checkout mainVersion
 git pull origin mainVersion
 
-cd server
-npm i
+yarn install
 sudo ufw allow 3000
 
 # The API of Binance requires a connection from Mexico

@@ -136,7 +136,7 @@ handleExitFromScript(handleClose);
 const run = async () => {
   await checkIsNewVersion();
   if (!ARGS["skip-build-android"])
-    execSync(`npm run build-android -- ${getArgs()}`, {
+    execSync(`yarn run build-android -- ${getArgs()}`, {
       env,
       stdio: "inherit",
       cwd: UTILITIES_PATH,

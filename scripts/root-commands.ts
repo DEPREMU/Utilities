@@ -41,27 +41,27 @@ const run = () => {
       execSync("npx expo start -c", { cwd: APP_PATH, stdio: "inherit", env });
       break;
     case "server":
-      execSync("npm run start", {
+      execSync("yarn run start", {
         cwd: SERVER_PATH,
         stdio: "inherit",
         env: { ...env, SERVER_OR_ELECTRON: "server" },
       });
       break;
     case "server-dev":
-      execSync("npm run start-dev", {
+      execSync("yarn run start-dev", {
         cwd: SERVER_PATH,
         stdio: "inherit",
         env: { ...env, SERVER_OR_ELECTRON: "server" },
       });
       break;
     case "type-check":
-      execSync("npm run type-check", { cwd: APP_PATH, stdio: "inherit", env });
+      execSync("yarn run type-check", { cwd: APP_PATH, stdio: "inherit", env });
       break;
     case "i-a":
-      execSync("npm install", { cwd: APP_PATH, stdio: "inherit", env });
+      execSync("yarn install", { cwd: APP_PATH, stdio: "inherit", env });
       break;
     case "i-s":
-      execSync("npm install", { cwd: SERVER_PATH, stdio: "inherit", env });
+      execSync("yarn install", { cwd: SERVER_PATH, stdio: "inherit", env });
       break;
     case "before-commit":
       beforeCommit();
@@ -91,19 +91,15 @@ const clean = () => {
   const pathsToClean = [
     path.join(APP_PATH, ".expo"),
     path.join(APP_PATH, "node_modules"),
-    path.join(APP_PATH, "package-lock.json"),
     path.join(TYPES_PATH, "node_modules"),
-    path.join(TYPES_PATH, "package-lock.json"),
     path.join(SERVER_PATH, "node_modules"),
-    path.join(SERVER_PATH, "package-lock.json"),
     path.join(SCRIPTS_PATH, "node_modules"),
-    path.join(SCRIPTS_PATH, "package-lock.json"),
+    path.join(UTILITIES_PATH, "yarn.lock"),
     path.join(UTILITIES_PATH, "node_modules"),
     path.join(UTILITIES_FOR_PC_PATH, "dist"),
     path.join(UTILITIES_FOR_PC_PATH, "build"),
     path.join(UTILITIES_FOR_PC_PATH, "node_modules"),
     path.join(UTILITIES_FOR_PC_PATH, "dist-electron"),
-    path.join(UTILITIES_FOR_PC_PATH, "package-lock.json"),
   ];
 
   console.log("Cleaning paths...");
@@ -118,12 +114,12 @@ const clean = () => {
     }
   });
 
-  console.log("Cleaning npm cache in app...");
+  console.log("Cleaning yarn cache in app...");
   try {
-    execSync("npm cache clean --force", { cwd: APP_PATH, stdio: "inherit" });
+    execSync("yarn cache clean", { cwd: APP_PATH, stdio: "inherit" });
   } catch (e) {
     console.warn(
-      "Failed to clean npm cache in app, continuing...",
+      "Failed to clean yarn cache in app, continuing...",
       e instanceof Error ? e.message : e
     );
   }
@@ -137,13 +133,12 @@ const installAll = () => {
     SCRIPTS_PATH,
     UTILITIES_FOR_PC_PATH,
   ];
-  dirs.forEach((dir) => {
-    console.log(`Installing dependencies in ${dir}...`);
-    try {
-      execSync("npm i", { cwd: dir, stdio: "inherit", env });
-    } catch (error) {
-      console.warn(`Failed to install dependencies in ${dir}, continuing...`);
-    }
+  console.log(`Installing dependencies in ${UTILITIES_PATH} for ${dirs.join(", ")} using yarn...`);
+
+  execSync("yarn install", {
+    cwd: UTILITIES_PATH,
+    stdio: "inherit",
+    env,
   });
 };
 
@@ -162,31 +157,31 @@ const formatAll = () => {
 
 const beforeCommit = () => {
   console.log("Running before-commit in app...");
-  execSync("npm run before-commit", { cwd: APP_PATH, stdio: "inherit", env });
+  execSync("yarn run before-commit", { cwd: APP_PATH, stdio: "inherit", env });
 
   console.log("Running before-commit in server...");
-  execSync("npm run before-commit", {
+  execSync("yarn run before-commit", {
     cwd: SERVER_PATH,
     stdio: "inherit",
     env,
   });
 
   console.log("Running before-commit in UtilitiesForPC...");
-  execSync("npm run before-commit", {
+  execSync("yarn run before-commit", {
     cwd: UTILITIES_FOR_PC_PATH,
     stdio: "inherit",
     env,
   });
 
   console.log("Running before-commit in types...");
-  execSync("npm run before-commit", {
+  execSync("yarn run before-commit", {
     cwd: TYPES_PATH,
     stdio: "inherit",
     env,
   });
 
   console.log("Running type-check in scripts...");
-  execSync("npm run type-check", { cwd: SCRIPTS_PATH, stdio: "inherit", env });
+  execSync("yarn run type-check", { cwd: SCRIPTS_PATH, stdio: "inherit", env });
 };
 
 run();

@@ -14,7 +14,7 @@ import { executeTerminalCommands } from "./storage";
 if (!handleChangeImageFormat)
   throw new Error("handleChangeImageFormat is not defined");
 
-let idTimeoutServer: number | null = null;
+let idTimeoutServer: NodeJS.Timeout | number | null = null;
 let isReconnecting = false;
 let isShuttingDown = false;
 
@@ -232,7 +232,7 @@ export const initServer = (): void => {
       res.json({ success: await restartComputer() });
     });
 
-    app.post("/change-image-format", handleChangeImageFormat!);
+    app.post("/change-image-format", handleChangeImageFormat);
 
     const server = app.listen(dataApp.getValue("PORT"), "0.0.0.0", () => {
       if (idTimeoutServer) {

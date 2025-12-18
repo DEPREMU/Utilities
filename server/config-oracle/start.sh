@@ -15,6 +15,6 @@ until curl -sSf --connect-timeout 5 http://www.google.com/generate_204 >/dev/nul
     sleep 2
 done
 git pull
+yarn install
 cd server
-npm i
-npm run start
+yarn run start

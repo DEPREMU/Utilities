@@ -14,7 +14,7 @@ import { execSync } from "child_process";
 
 const updateEasCLI = () => {
   try {
-    execSync("npm install -g eas-cli@latest", {
+    execSync("yarn global add eas-cli@latest", {
       stdio: "inherit",
     });
   } catch (error) {
@@ -47,7 +47,7 @@ const build = async () => {
   if (!ARGS["skip-prebuild-android"]) {
     fs.rmSync(ANDROID_PATH, { recursive: true, force: true });
 
-    execSync("npm run app-prebuild-android", {
+    execSync("yarn run app-prebuild-android", {
       env,
       stdio: "inherit",
       cwd: UTILITIES_PATH,

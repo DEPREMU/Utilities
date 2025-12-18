@@ -3,6 +3,8 @@ import { RequestChangeImageFormat } from "./Request";
 import { ExpectedStorageTypes, PriceBinanceAPI } from "./typesAPI";
 import { Streamer, Tables, TablesKeys, UserData } from "../database";
 
+export { Falsy };
+
 export type ResponseHealth = {
   uptime: number;
   status: "running";

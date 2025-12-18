@@ -21,9 +21,9 @@ const runCommand = (command: string): void => {
 ARGS.profile = "development";
 const args = "-- " + getArgs();
 
-runCommand(`npm run build-web-app-electron ${args}`);
+runCommand(`yarn run build-web-app-electron ${args}`);
 
-runCommand(`npm run build-resources-electron ${args}`);
+runCommand(`yarn run build-resources-electron ${args}`);
 
 runCommand(
   "cd UtilitiesForPC && npx electron . --expose-gc --no-sandbox --ozone-platform=x11 "

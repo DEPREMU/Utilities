@@ -221,7 +221,10 @@ const runPrebuild = () => {
   if (fs.existsSync(androidPath))
     fs.rmSync(androidPath, { recursive: true, force: true });
 
-  const commands = ["npm i", "npx expo prebuild --platform android --clean"];
+  const commands = [
+    "yarn install",
+    "npx expo prebuild --platform android --clean",
+  ];
   if (!fs.existsSync(path.join(APP_PATH, "google-services.json")))
     throw new Error("Missing google-services.json file");
 

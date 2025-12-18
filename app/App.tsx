@@ -1,5 +1,6 @@
 import {
   isDev,
+  tTyped,
   openURL,
   logError,
   APP_VERSION,
@@ -16,11 +17,9 @@ import {
   configureNotificationChannel,
   setTimeoutPolyfill,
 } from "@utils";
-import { typeT } from "@types";
 import AppProviders from "./context/AppProviders";
 import AppNavigator from "./navigation/AppNavigator";
 import windowModule from "./utils/modules/WindowModule";
-import { t as i18n } from "i18next";
 import { reloadAppAsync } from "expo";
 import { Alert, Platform } from "react-native";
 import NativeFunctionsModule from "./utils/modules/NativeFunctionsModule";
@@ -81,23 +80,25 @@ const App = () => {
 
       if (!result?.updateAvailable) return;
 
-      const t = i18n as typeT;
-
       return new Promise<void>((resolve) => {
-        Alert.alert(t("updateAvailable"), t("updateAvailableMessage"), [
-          {
-            text: t("cancel"),
-            style: "cancel",
-            onPress: () => resolve(),
-          },
-          {
-            text: t("updateNow"),
-            onPress: () => {
-              openURL(result.downloadUrl);
-              resolve();
+        Alert.alert(
+          tTyped("updateAvailable"),
+          tTyped("updateAvailableMessage"),
+          [
+            {
+              text: tTyped("cancel"),
+              style: "cancel",
+              onPress: () => resolve(),
             },
-          },
-        ]);
+            {
+              text: tTyped("updateNow"),
+              onPress: () => {
+                openURL(result.downloadUrl);
+                resolve();
+              },
+            },
+          ],
+        );
       });
     } catch (error) {
       logError("Error while updating the app", error);

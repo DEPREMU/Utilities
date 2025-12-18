@@ -59,7 +59,7 @@ const run = () => {
   replacePackageName();
 
   console.log("Running prebuild...");
-  execSync("npm run app-prebuild-android", {
+  execSync("yarn run app-prebuild-android", {
     cwd: UTILITIES_PATH,
     stdio: "inherit",
     env: localEnv,

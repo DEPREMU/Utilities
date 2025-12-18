@@ -1,9 +1,9 @@
 import {
+  getArgs,
   APP_PATH,
   UTILITIES_PATH,
   UTILITIES_FOR_PC_PATH,
   PACKAGE_JSON_UtilitiesForPC,
-  getArgs,
 } from "../config.ts";
 import fs from "fs";
 import path from "path";
@@ -24,11 +24,11 @@ const exportWebApp = () => {
   const args = getArgs();
 
   console.log(t("installingDependencies"));
-  execSync("npm install", { cwd: APP_PATH });
+  execSync("yarn install", { cwd: UTILITIES_PATH });
   console.log(t("dependenciesInstalled"));
 
   console.log(t("buildingWebApp"));
-  const data = execSync(`npm run build-web -- ${args}`, {
+  const data = execSync(`yarn run build-web -- ${args}`, {
     cwd: UTILITIES_PATH,
   });
   if (!data.toString().includes("Exported: dist"))

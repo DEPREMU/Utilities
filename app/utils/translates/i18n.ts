@@ -1,4 +1,5 @@
 import i18n from "i18next";
+import { typeT } from "@types";
 import { enApp, esApp } from "@common";
 import { initReactI18next } from "react-i18next";
 import { logError, checkLanguage } from "../functions";
@@ -26,5 +27,7 @@ const configureLanguage = async () => {
   }
 };
 configureLanguage();
+
+export const tTyped = i18n.t as typeT;
 
 export { i18n };

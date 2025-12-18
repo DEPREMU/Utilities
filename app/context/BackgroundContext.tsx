@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import {
   log,
+  tTyped,
   loadDataStorage,
   setTimeoutPolyfill,
   setIntervalPolyfill,
@@ -17,8 +18,6 @@ import {
   askBatteryOptimizationPermission,
   askDisplayOverOtherAppsPermission,
 } from "@utils";
-import { typeT } from "@types";
-import { t as i18n } from "i18next";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
 import { reloadAppAsync } from "expo";
 import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
@@ -181,16 +180,14 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
       if (!BackgroundModule.start) return reloadAppAsync();
 
-      const t = i18n as typeT;
-
       loadDataStorage("_deviceId").then(
         (deviceId) =>
           !deviceId &&
           NativeFunctionsModule?.requestIgnoreBatteryOptimizations?.(),
       );
       BackgroundModule?.start?.(
-        t("foregroundNotificationTitle"),
-        t("foregroundNotificationMessage"),
+        tTyped("foregroundNotificationTitle"),
+        tTyped("foregroundNotificationMessage"),
       );
     };
 

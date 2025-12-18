@@ -2,7 +2,7 @@
  * This script builds the Electron app for Windows and Linux.
  * It first builds the web version of the app, then packages it using Electron Builder.
  * Make sure to run this script in an environment where you have the necessary permissions.
- * Requires Node.js and npm to be installed.
+ * Requires Node.js and yarn to be installed.
  * Run this script from the root directory Utilities/ where the UtilitiesForPC folder is located, or from the UtilitiesForPC directory.
  * Usage: `node createApp.js` or `node UtilitiesForPC/createApp.js`
  *
@@ -13,9 +13,9 @@
  * - Windows → Linux: Requires WSL with dpkg-dev installed
  *
  * @example
- * npm run build-app -- --platform=both  # Build for both platforms (requires Wine on Linux)
- * npm run build-app -- --platform=linux  # Build only for Linux
- * npm run build-app -- --platform=windows  # Build only for Windows
+ * yarn run build-app -- --platform=both  # Build for both platforms (requires Wine on Linux)
+ * yarn run build-app -- --platform=linux  # Build only for Linux
+ * yarn run build-app -- --platform=windows  # Build only for Windows
  */
 
 import {
@@ -213,7 +213,7 @@ const buildApp = async () => {
 
   const compileSource = (forWindows: boolean) => {
     console.log(t("buildingApp") + ` (isWindows=${forWindows})`);
-    execSync(`npm run build-resources-electron -- --isWindows=${forWindows}`, {
+    execSync(`yarn run build-resources-electron -- --isWindows=${forWindows}`, {
       cwd: UTILITIES_PATH,
       stdio: "inherit",
     });
@@ -383,7 +383,7 @@ const buildApp = async () => {
 
 const run = async () => {
   try {
-    execSync("npm run build-web-app-electron", {
+    execSync("yarn run build-web-app-electron", {
       cwd: UTILITIES_PATH,
       stdio: "inherit",
     });

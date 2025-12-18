@@ -10,7 +10,7 @@ import ModalComponent from "@components/common/ModalComponent";
 import SnackBarComponent from "@components/common/SnackBarComponent";
 import { SnackbarProps } from "react-native-paper";
 import { StyleSheet, View } from "react-native";
-import { clearTimeoutPolyfill, setTimeoutPolyfill } from "@/utils";
+import { clearTimeoutPolyfill, setTimeoutPolyfill } from "@utils";
 
 export type StylesModal =
   | "body"
@@ -20,21 +20,25 @@ export type StylesModal =
   | "modal"
   | "messageText";
 
+export type OpenModal = (
+  title: string,
+  body: ReactNode | string,
+  buttons: ReactNode,
+) => void;
+
+export type OpenSnackBar = (
+  label: string,
+  duration?: number,
+  action?: SnackbarProps["action"],
+) => void;
+
 interface ModalContextProps {
-  openModal: (
-    title: string,
-    body: ReactNode | string,
-    buttons: ReactNode,
-  ) => void;
+  openModal: OpenModal;
   closeModal: () => void;
+  openSnackBar: OpenSnackBar;
   setCustomStyles: React.Dispatch<
     React.SetStateAction<Record<StylesModal, object> | undefined>
   >;
-  openSnackBar: (
-    label: string,
-    duration?: number,
-    action?: SnackbarProps["action"],
-  ) => void;
 }
 
 interface ModalProviderProps {
@@ -109,12 +113,8 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
    * This function clears any existing timeout before setting the modal's title, body, and buttons,
    * and then opens the modal by setting its state to open.
    */
-  const openModal = useCallback(
-    (
-      modalTitle: string,
-      modalBody: ReactNode | string,
-      modalButtons: ReactNode,
-    ) => {
+  const openModal: OpenModal = useCallback(
+    (modalTitle, modalBody, modalButtons) => {
       setIsOpen((prev) => {
         if (prev) return prev;
 

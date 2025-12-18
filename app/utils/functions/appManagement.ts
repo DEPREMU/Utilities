@@ -1,5 +1,4 @@
 import {
-  typeT,
   AlbumsImages,
   ExpectedStorageTypes,
   RequestChangeImageFormat,
@@ -8,9 +7,9 @@ import axios from "axios";
 import React from "react";
 import { v4 } from "uuid";
 import isEqual from "react-fast-compare";
+import { tTyped } from "../translates";
 import * as Updates from "expo-updates";
 import * as Sharing from "expo-sharing";
-import { t as i18n } from "i18next";
 import _BackgroundTimer from "react-native-background-timer";
 import { log, logError } from "./debug";
 import * as MediaLibrary from "expo-media-library";
@@ -505,13 +504,11 @@ export const selectImage = async (
  * @returns A promise that resolves to `true` if permission is granted, `false` otherwise.
  */
 const askMediaLibraryPermissions = async (): Promise<boolean> => {
-  const t = i18n as typeT;
-
   const { status } = await MediaLibrary.requestPermissionsAsync();
   if (status !== "granted") {
     Alert.alert(
-      t("images.permissionRequiredTitle"),
-      t("images.permissionRequiredMessage"),
+      tTyped("images.permissionRequiredTitle"),
+      tTyped("images.permissionRequiredMessage"),
     );
     return false;
   }
@@ -577,8 +574,6 @@ const downloadBase64Native = async (
   fileName: string,
   albumName?: AlbumsImages,
 ) => {
-  const t: typeT = i18n as typeT;
-
   try {
     const base64 = imageUri.includes("base64,")
       ? imageUri.split("base64,")[1]
@@ -621,16 +616,18 @@ const downloadBase64Native = async (
     else await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
 
     Alert.alert(
-      t("images.imageDownloadedInAlbumAlertTitle"),
-      t("images.imageDownloadedInAlbumAlertMessage", {
+      tTyped("images.imageDownloadedInAlbumAlertTitle"),
+      tTyped("images.imageDownloadedInAlbumAlertMessage", {
         albumName,
       }),
     );
   } catch (error) {
     logError("Error downloading image:", error);
     Alert.alert(
-      t("images.errorWhileSavingImageAlertTitle"),
-      t("images.errorWhileSavingImageAlertMessage", { imageName: fileName }),
+      tTyped("images.errorWhileSavingImageAlertTitle"),
+      tTyped("images.errorWhileSavingImageAlertMessage", {
+        imageName: fileName,
+      }),
     );
   }
 };

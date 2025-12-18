@@ -3,7 +3,7 @@ import {
   SECURE_KEYS_STORAGE,
   ALL_KEYS_STORAGE_TYPE,
   SECURE_KEYS_STORAGE_TYPE,
-} from "../constants/keysStorage";
+} from "@common";
 import { isDev } from "../constants";
 import { logError } from "./debug";
 import { Platform } from "react-native";

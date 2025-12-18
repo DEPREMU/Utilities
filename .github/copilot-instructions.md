@@ -14,11 +14,12 @@ This is a **cross-platform utility app** with three interconnected workspaces:
 All imports use Babel/TypeScript path aliases defined in `app/babel.config.js` and `app/tsconfig.json`:
 
 ```typescript
-import { Something } from "@types"; // ../types/index.d.ts
-import { utility } from "@utils"; // app/utils/index.ts
-import Component from "@components/MyComp"; // app/components/MyComp
-import { useContext } from "@context/MyCtx"; // app/context/MyCtx
 import Screen from "@screens/MyScreen"; // app/screens/MyScreen
+import Component from "@components/MyComp"; // app/components/MyComp
+import { utility } from "@utils"; // app/utils/index.ts
+import { Something } from "@types"; // ../types/index.d.ts
+import { commonUtil } from "@common"; // common/both/index.ts
+import { useContext } from "@context/MyCtx"; // app/context/MyCtx
 ```
 
 **Never use relative imports** - always use these aliases.
@@ -29,6 +30,8 @@ The app supports **web (Electron), Android, and native**. Platform detection:
 
 ```typescript
 import { Platform } from "react-native";
+import { windowModule } from "@/utils/modules/WindowModule"; // Electron bridge
+import { BackgroundModule } from "@/utils/modules/BackgroundModule"; // Native module
 
 if (Platform.OS === "web") {
   // Use windowModule for Electron bridge
@@ -62,9 +65,9 @@ executeCommand: async (command) => {
 **9 providers** wrap the app in `app/context/AppProviders.tsx` (order matters for dependencies):
 
 ```typescript
-BackgroundProvider → ThemeProvider → DeviceInformationProvider →
-LayoutProvider → UserProvider → LanguageProvider → ModalProvider →
-NotificationsProvider → WebSocketProvider
+BackgroundProvider → SafeAreaProvider → ThemeProvider →
+DeviceInformationProvider → LayoutProvider → UserProvider → LanguageProvider →
+ModalProvider → NotificationsProvider → WebSocketProvider → AppNavigator → Screens
 ```
 
 ### Critical Memory Management Rules
@@ -77,7 +80,7 @@ const intervalRef = useRef<number | null>(null);
 
 useEffect(() => {
   // 2. Clear previous before creating new
-  clearIntervalPolyfill(intervalRef.current);
+  clearIntervalPolyfill(intervalRef);
 
   // 3. Create new resource
   intervalRef.current = setIntervalPolyfill(fn, delay);
@@ -106,7 +109,8 @@ useEffect(() => {
 
 - Ping/pong every 29 seconds to keep alive
 - Auto-reconnect with exponential backoff
-- Closes connections when app enters background (mobile)
+- Closes connection of General WS when app enters background (mobile and electron)
+- Closes connection of Clipboard WS on suspend, reconnects on resume (mobile)
 
 ## Database Patterns
 
@@ -115,9 +119,9 @@ PostgreSQL accessed via `server/database/functions.ts`:
 ```typescript
 // Type-safe database operations
 import {
+  updateInTable,
   fetchFromTable,
   insertIntoTable,
-  updateInTable,
 } from "@/database/functions";
 
 // TABLE_MAP auto-validates table names
@@ -133,32 +137,27 @@ Table types in `types/database/typesDatabase.d.ts` enforce schema compliance.
 
 ```bash
 # Root - install all workspaces
-npm run install-all
+yarn install
 
 # Terminal 1 - Server (required for app)
-npm run server
+yarn run server-dev
 
 # Terminal 2 - App
-npm run app          # Choose platform: Android/iOS/Web
+yarn run app          # Choose platform: Android/iOS/Web
 
 # Terminal 3 - Electron (if testing desktop)
-cd UtilitiesForPC && npm run start
+yarn run start-electron
 ```
 
 ### Platform-Specific Builds
 
 ```bash
 # Android APK (local build)
-cd app
-npm run build:android
+yarn run build-android
 
 # Web for Electron
-cd ../UtilitiesForPC
-npm run build-app    # Creates Electron wrapper
-
-# Electron installer
-cd UtilitiesForPC
-npm run dist
+yarn run start-electron    # Creates Electron dev build
+yarn run build-app-electron    # Creates production Electron build
 ```
 
 **CRITICAL**: Set `PLATFORM` env var before building - it's replaced at compile time via Babel:
@@ -176,9 +175,9 @@ Custom native modules in `app/native/modules/`:
 - **NotificationModule** - Advanced notification handling
 - **NativeFunctionsModule** - Battery optimization, overlays, permissions
 
-**Prebuild process** (`app/native/createPrebuild.ts`) auto-registers these in `MainApplication.kt`.
+**Prebuild process** (`scripts/app/app-prebuild.ts`) auto-registers these in `MainApplication.kt`.
 
-Run `npm run prebuild` before `expo run:android`.
+Run `yarn run app-prebuild-android` before `npx expo run:android`.
 
 ## Common Patterns
 
@@ -200,15 +199,18 @@ const { addTaskQueue } = useBackgroundTask();
 
 // Execute when internet available
 addTaskQueue(
-  async () => {
-    /* task */
+  {
+    requiresInternet: true, // Retry until online, if false, runs immediately
+    func: async () => {
+      /* task */
+    },
   },
-  true, // executeWhenInternet
   {
     id: uniqueId,
     functionName: "registeredTaskName",
     args: [arg1, arg2],
-  }
+  },
+  uniqueId // If any task with same ID exists, it will be replaced by the new one
 );
 ```
 
@@ -230,7 +232,7 @@ openModal("Title", "Body", <CustomButtons />);
 ```typescript
 import { RequestDatabaseFetch, ResponseDatabaseFetch } from "@types";
 
-const req: RequestDatabaseFetch<"Users"> = { table: "Users", match: { id } };
+const req: RequestDatabaseFetch = { table: "Users", match: { id } };
 const res: ResponseDatabaseFetch<"Users"> = await fetch(...);
 ```
 
@@ -243,12 +245,8 @@ const res: ResponseDatabaseFetch<"Users"> = await fetch(...);
 ## Testing After Changes
 
 ```bash
-# Type check all workspaces
-npm run type-check
-
-# Lint fix
-cd app && npm run lint:fix
-cd ../server && npm run lint:fix
+# Type check and lint check all workspaces
+yarn run before-commit
 
 # Manual testing checklist
 1. Test on Android (if mobile changes)
@@ -261,14 +259,14 @@ cd ../server && npm run lint:fix
 
 - **Limit background tasks**: Max 100 in queue (BackgroundTaskContext)
 - **WebSocket lifecycle**: Close on background, reconnect on foreground
-- **Clipboard sync**: 2.5s interval on web only (refs prevent leaks)
+- **Clipboard sync**: 500ms interval on web only (refs prevent leaks)
 - **Memory monitor**: Auto GC when >500MB (`UtilitiesForPC/src/main/utils/memoryMonitor.ts`)
 
 ## When Adding New Features
 
 1. Add types to `types/` first (used by all workspaces)
 2. Use path aliases (`@types`, `@utils`, etc.)
-3. Add translations to `app/utils/translates/` + `server/translations/`
+3. Add translations to `common/both/translations`
 4. Clean up intervals/timeouts/sockets in useEffect returns
 5. Test cross-platform (especially web vs native differences)
 6. Update `ProblemsDetected.md` if introducing known issues
