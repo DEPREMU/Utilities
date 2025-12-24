@@ -1,11 +1,12 @@
 import fs from "fs";
+import env from "env.ts";
 import path from "path";
 import chalk from "chalk";
 import { pool } from "./postgres";
 import DataJSON from "./data.json";
+import { showError, showInfo } from "../functions/logger.ts";
 import { wrapFunctionWithError } from "@common";
 import { serverPath, TABLE_MAP } from "../config.ts";
-import env from "env.ts";
 
 const getTableFilePath = (tableName: string) =>
   path.join(serverPath, "database", tableName + "_data.dbjson");
@@ -14,7 +15,7 @@ const fileSQLPath = path.resolve(serverPath, "database", "create_tables.sql");
 const fileDataPath = path.resolve(serverPath, "database", "data.json");
 
 if (!fs.existsSync(fileSQLPath)) {
-  console.error(
+  showError(
     chalk.red("SQL file not found:"),
     fileSQLPath,
     "Please check the path.",
@@ -23,7 +24,7 @@ if (!fs.existsSync(fileSQLPath)) {
 }
 
 if (!fs.existsSync(fileDataPath)) {
-  console.error(
+  showError(
     chalk.red("Data JSON file not found:"),
     fileDataPath,
     "Please check the path.",
@@ -38,7 +39,7 @@ export const initDB = async () => {
   const dataFile = fs.readFileSync(fileDataPath, "utf-8");
   const dataJSON: typeof DataJSON = JSON.parse(dataFile || "{}");
 
-  console.log(
+  showInfo(
     chalk.blue("Database initialization started"),
     `File version: ${fileVersion}`,
   );
@@ -72,10 +73,10 @@ export const initDB = async () => {
 
         const queryDelete = `DROP TABLE IF EXISTS "${tableName}";`;
         await client.query(queryDelete);
-        console.log(chalk.yellow(`Table "${tableName}" dropped successfully.`));
+        showInfo(chalk.yellow(`Table "${tableName}" dropped successfully.`));
       }
       await client.query(`DROP TABLE IF EXISTS "${TABLE_MAP.Users}";`);
-      console.log(
+      showInfo(
         chalk.yellow(`Table "${TABLE_MAP.Users}" dropped successfully.`),
       );
 
@@ -121,7 +122,7 @@ export const initDB = async () => {
       for (const tableName of tableNames) {
         const tableFilePath = getTableFilePath(tableName);
         if (!fs.existsSync(tableFilePath)) continue;
-        console.log(`Removing file: ${tableFilePath}`);
+        showInfo(`Removing file: ${tableFilePath}`);
 
         fs.rmSync(tableFilePath, {
           force: true,
@@ -133,7 +134,7 @@ export const initDB = async () => {
       await client.query("COMMIT");
     },
     async (_, errorMessage) => {
-      console.error(chalk.red("Error while updating the DB", errorMessage));
+      showError(chalk.red("Error while updating the DB", errorMessage));
       await client.query("ROLLBACK");
     },
   );

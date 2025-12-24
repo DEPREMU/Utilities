@@ -5,6 +5,7 @@ const objReasonNotification: Record<ReasonNotification, null> = {
   streamers: null,
   downDetector: null,
   batteryAlerts: null,
+  timeToDownload: null,
   locationEnabled: null,
   allNotifications: null,
   noInternetConnection: null,

@@ -90,15 +90,29 @@ const uploadWeb = async (): Promise<boolean> => {
   try {
     console.log("Building web version:", versionExpo);
 
-    const buildPath = path.join(UTILITIES_FOR_PC_PATH, "dist", "index.html");
+    const buildPath = path.join(
+      UTILITIES_FOR_PC_PATH,
+      "dist",
+      "_expo",
+      "static",
+      "js",
+      "web"
+    );
 
-    execSync("yarn run build-app-electron --export-web", {
+    execSync("yarn run build-web-app-electron", {
       stdio: "inherit",
       cwd: UTILITIES_PATH,
     });
-    if (!fs.existsSync(buildPath)) {
-      throw new Error(`Build file not found at ${buildPath}`);
-    }
+    if (!fs.existsSync(buildPath))
+      throw new Error(`Build path not found at ${buildPath}`);
+
+    const dirFiles = fs.readdirSync(buildPath);
+    const fileJS = dirFiles.find((file) => file.endsWith(".js"));
+
+    if (!fileJS)
+      throw new Error(`Build file not found in directory ${buildPath}`);
+
+    const buildFilePath = path.join(buildPath, fileJS);
 
     const platformsOS: PlatformsOS[] = [];
     if (isNewVersionWeb.windows) platformsOS.push("windows");
@@ -123,7 +137,7 @@ const uploadWeb = async (): Promise<boolean> => {
 
         const formData = new FormData();
         formData.append("data", JSON.stringify(data));
-        formData.append("file", fs.createReadStream(buildPath));
+        formData.append("file", fs.createReadStream(buildFilePath));
 
         const contentLength = await new Promise<number>((resolve, reject) => {
           formData.getLength((err, length) => {

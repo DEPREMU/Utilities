@@ -3,7 +3,7 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.5.1";
+const version = "1.5.2";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
@@ -13,6 +13,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     updates: {
       url: "https://u.expo.dev/7dd2c093-0c91-4638-a5b9-828d458e8be0",
     },
+    experiments: { baseUrl: "." },
     runtimeVersion: version.split(".").slice(0, 2).join("."),
     version,
     orientation: "portrait",

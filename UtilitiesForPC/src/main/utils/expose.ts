@@ -9,6 +9,7 @@ import nativeData from "./nativeData";
 import { writeLog } from "./logger";
 import { sendNotification } from "./notifications";
 import { ChannelsIpcRenderer } from "@types";
+import { createWindowClipboard } from "./clipboard";
 import { ipcMain, IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { restartComputer, scheduleReconnect, turnOffComputer } from "./server";
 
@@ -178,6 +179,59 @@ const ipcDict: IpcDictHybrid = {
     func: async () => {
       writeLog("Received is-electron-build request", "info");
       return true;
+    },
+  },
+  "get-clipboard-history": {
+    type: "handle",
+    func: async () => {
+      writeLog("Received get-clipboard-history request", "info");
+      const clipboardItems = dataApp.getValue("clipboardHistory") || [];
+      return clipboardItems;
+    },
+  },
+  "set-clipboard-history": {
+    type: "on",
+    func: (_event, items) => {
+      writeLog(
+        `Received set-clipboard-history request with ${items.length} items`,
+        "info"
+      );
+      const itemsCleaned = Array.isArray(items) ? items : [];
+
+      dataApp.setValue("clipboardHistory", itemsCleaned);
+      const clipboardWindow = dataApp.getValue("clipboardWindow");
+      if (!clipboardWindow || clipboardWindow.isDestroyed())
+        return createWindowClipboard();
+
+      clipboardWindow.webContents.send(
+        "clipboard-items-updated",
+        itemsCleaned.map((content, index) => ({
+          id: index.toString(),
+          content,
+        }))
+      );
+    },
+  },
+  "hide-clipboard-window": {
+    type: "on",
+    func: (_event) => {
+      writeLog(`Received hide-clipboard-window request`, "info");
+      const clipboardWindow = dataApp.getValue("clipboardWindow");
+      if (!clipboardWindow || clipboardWindow.isDestroyed()) return;
+
+      clipboardWindow.hide();
+    },
+  },
+  "show-clipboard-window": {
+    type: "on",
+    func: (_event) => {
+      writeLog(`Received show-clipboard-window request`, "info");
+      const clipboardWindow = dataApp.getValue("clipboardWindow");
+
+      if (clipboardWindow && !clipboardWindow.isDestroyed()) {
+        clipboardWindow.show();
+        clipboardWindow.focus();
+      } else createWindowClipboard(true);
     },
   },
 };

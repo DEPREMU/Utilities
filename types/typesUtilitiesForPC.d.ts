@@ -33,11 +33,14 @@ export type DataAppElectron = {
   isUpdating: boolean;
   isQuitting: boolean;
   mainWindow: Electron.BrowserWindow | null;
+  preloadPath: string;
   wasSleeping: boolean;
   SERVICE_NAME: string;
   webRestarted: boolean;
   userIsLoggedIn: boolean;
+  clipboardWindow: Electron.BrowserWindow | null;
   downloadFilePath: string;
+  clipboardHistory: string[];
   reconnectAttempts: number;
   currentWebVersion: string;
   currentElectronVersion: string;

@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { Env } from "@types";
+import { showWarn } from "./functions/logger";
 
 dotenv.config({ path: "../.env" });
 
@@ -31,7 +32,7 @@ const REQUIRED_VARS: (keyof Env)[] = [
 export const validateServerEnv = () => {
   const missing = REQUIRED_VARS.filter((k) => !process.env[k]);
   if (missing.length) {
-    console.warn(
+    showWarn(
       `Missing environment variables: ${missing.join(
         ", ",
       )}. Default values are used where applicable.`,

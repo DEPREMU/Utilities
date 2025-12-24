@@ -33,6 +33,27 @@ export const getHtmlPath = (): string => {
   else return path.join(path.dirname(__dirname), "dist", "index.html");
 };
 
+export const getJSPath = (): string => {
+  const pathWeb = path.join(
+    app.isPackaged ? process.resourcesPath : path.dirname(__dirname),
+    "dist",
+    "_expo",
+    "static",
+    "js",
+    "web"
+  );
+
+  if (!fs.existsSync(pathWeb))
+    throw new Error(`JS path does not exist: ${pathWeb}`);
+
+  const dirFiles = fs.readdirSync(pathWeb);
+  const jsFile = dirFiles.find((file) => file.endsWith(".js"));
+
+  if (!jsFile) throw new Error(`JS file not found in directory ${pathWeb}`);
+
+  return path.join(pathWeb, jsFile);
+};
+
 export const deleteDownloadedUpdate = () => {
   if (!dataApp) return;
   if (dataApp.getValue("isUpdating")) return;
@@ -69,7 +90,7 @@ const openInstallerOrInstall = async (filePath: string) => {
     await new Promise<void>((resolve) =>
       setTimeout(async () => {
         try {
-          const child = spawn(filePath, ["/S"], {
+          const child = spawn(filePath, [], {
             detached: true,
             stdio: "ignore",
           });
@@ -159,26 +180,26 @@ export const updateWebHTML = async (downloadUrl: string): Promise<void> => {
       responseType: "text",
     });
 
-    const html = response.data;
+    const newFileJS = response.data;
 
-    if (!html || typeof html !== "string" || html.length < 10000) {
+    if (typeof newFileJS !== "string" || newFileJS.length < 10000) {
       writeLog("HTML received is too small or invalid. Skipping.", "warn");
       return;
     }
 
-    const htmlPath = getHtmlPath();
+    const jsPath = getJSPath();
 
     if (dataApp.getValue("isWindows")) {
       try {
-        fs.writeFileSync(htmlPath, html, { encoding: "utf-8" });
+        fs.writeFileSync(jsPath, newFileJS, { encoding: "utf-8" });
       } catch (error) {
         execSync(
-          `powershell -NoProfile -Command "Set-Content -LiteralPath '${htmlPath.replace(
+          `powershell -NoProfile -Command "Set-Content -LiteralPath '${jsPath.replace(
             /'/g,
             "''"
           )}' -"`,
           {
-            input: html,
+            input: newFileJS,
             stdio: ["pipe", "ignore", "ignore"],
           }
         );
@@ -186,8 +207,8 @@ export const updateWebHTML = async (downloadUrl: string): Promise<void> => {
         writeLog("Error writing HTML on Windows: " + String(error), "error");
       }
     } else {
-      execFileSync("sudo", ["tee", htmlPath], {
-        input: html,
+      execFileSync("sudo", ["tee", jsPath], {
+        input: newFileJS,
         stdio: ["pipe", "ignore", "ignore"],
       });
     }

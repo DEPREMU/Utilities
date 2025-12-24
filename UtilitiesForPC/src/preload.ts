@@ -153,6 +153,31 @@ const contextBridgeType: ContextBridgeType = {
         return error instanceof Error ? error.message : String(error);
       }
     },
+    getClipboardHistory: async () => {
+      try {
+        const result = await sendMessage("invoke", "get-clipboard-history");
+        return result;
+      } catch (error) {
+        sendLog(`Error getting clipboard history: ` + String(error), "error");
+        return [];
+      }
+    },
+    setClipboardHistory: (items: string[]) => {
+      sendMessage("send", "set-clipboard-history", items);
+    },
+    hideClipboardWindow: () => {
+      sendMessage("send", "hide-clipboard-window");
+    },
+    showClipboardWindow: () => {
+      sendMessage("send", "show-clipboard-window");
+    },
+    onClipboardItemsUpdated: (
+      callback: (items: Array<{ id: string; content: string }>) => void
+    ) => {
+      ipcRenderer.on("clipboard-items-updated", (_event, items) => {
+        callback(items);
+      });
+    },
   },
 };
 

@@ -46,6 +46,19 @@ export const enServer: typeLanguagesServer = {
 };
 
 export const enApp: typeLanguages = {
+  timeToDownload: "Time to Download",
+  internetSpeedMbps: "Internet Speed (Mbps)",
+  timeToDownloadResult: "Estimated download time",
+  fileSize: "File Size",
+  scale: "Scale: {{scale}}",
+  small: "Small",
+  default: "Default",
+  foregroundService: "Foreground Service",
+  setAlarmWhenDone: "Set alarm when done: {{time}}",
+  timeToDownloadFinished: "Time to Download Finished",
+  timeToDownloadFinishedMessage:
+    "Your download of {{time}} must have finished.",
+  scaleFactor: "Scale Factor",
   youAreNotLoggedInMessage:
     "You are currently not logged in. If you were previously logged in, your session may have expired or there was an error, please log in again.",
   showAsMarkdown: "Show as Markdown",

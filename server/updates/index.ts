@@ -1,4 +1,5 @@
 import express from "express";
+import { showError } from "../functions/logger.ts";
 import handleSendWebPage from "./web-page/handleSendWebPage.ts";
 import { handleDownload } from "./tempDownloadUrl.ts";
 import { handleUploadUpdate } from "./uploadUpdate.ts";
@@ -33,7 +34,7 @@ Object.entries(routes).forEach(([path, route]) => {
   try {
     router[route.method](path, ...middlewares, route.handler);
   } catch (error) {
-    console.log(`Error setting up route ${path}:`, error);
+    showError(`Error setting up route ${path}:`, error);
     throw new Error(
       `Error setting up route ${path}` +
         (error instanceof Error ? error.message : error),

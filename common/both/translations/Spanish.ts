@@ -46,6 +46,19 @@ export const esServer: typeLanguagesServer = {
 };
 
 export const esApp: typeLanguages = {
+  timeToDownload: "Tiempo de descarga",
+  internetSpeedMbps: "Velocidad de Internet (Mbps)",
+  timeToDownloadResult: "Tiempo estimado de descarga",
+  fileSize: "Tamaño del archivo",
+  scale: "Escala: {{scale}}",
+  setAlarmWhenDone: "Configurar alarma para cuando termine: {{time}}",
+  timeToDownloadFinished: "Tiempo de descarga finalizado",
+  default: "Predeterminado",
+  foregroundService: "Servicio en primer plano",
+  timeToDownloadFinishedMessage:
+    "Tu descarga de {{time}} debe haber finalizado.",
+  small: "Pequeño",
+  scaleFactor: "Factor de escala",
   youAreNotLoggedInMessage:
     "Actualmente no tienes una sesión iniciada. Si estabas previamente conectado, es posible que la sesión haya expirado o que hubo un error, por favor inicia sesión nuevamente.",
   loggedInStatusChannel: "Estado de inicio de sesión",

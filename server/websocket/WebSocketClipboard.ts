@@ -1,7 +1,8 @@
 import chalk from "chalk";
+import { showError, showInfo } from "../functions/logger.ts";
+import { WebSocket, WebSocketServer } from "ws";
 import { fetchFromTable, insertIntoTable } from "../database/functions.ts";
 import { ClipboardSync, ClipboardWebSocketMessage } from "@types";
-import { WebSocket, WebSocketServer } from "ws";
 
 type DataUser = {
   userId: string;
@@ -86,7 +87,7 @@ export const initWebSocketClipboard = () => {
             }
           });
         } catch (error) {
-          console.error(
+          showError(
             chalk.red("Error sending clipboard data via WebSocket:"),
             error,
           );
@@ -114,7 +115,7 @@ export const initWebSocketClipboard = () => {
               }
               data = { userId: message.userId, deviceId: message.deviceId };
 
-              console.log(
+              showInfo(
                 chalk.green("New clipboard client connected:"),
                 chalk.yellow(data.userId),
                 chalk.green("Device ID:"),
@@ -127,7 +128,7 @@ export const initWebSocketClipboard = () => {
 
                 usersClipboard[data.userId][data.deviceId].pingTimeoutId =
                   setTimeout(() => {
-                    console.log(
+                    showInfo(
                       chalk.red("Terminating unresponsive clipboard client:"),
                       chalk.yellow(data.userId),
                       chalk.green("-"),
@@ -194,14 +195,14 @@ export const initWebSocketClipboard = () => {
               break;
             }
             default:
-              console.log(
+              showInfo(
                 chalk.yellow("Unknown clipboard message type:"),
                 message,
               );
               break;
           }
         } catch (error) {
-          console.error(
+          showError(
             chalk.red("Error handling Clipboard WebSocket message:"),
             error,
           );
@@ -209,7 +210,7 @@ export const initWebSocketClipboard = () => {
       });
 
       connectionClipboard.on("close", () => {
-        console.log(
+        showInfo(
           chalk.red("Clipboard client disconnected:"),
           chalk.yellow(data.userId),
           chalk.green("Device ID:"),
@@ -220,14 +221,14 @@ export const initWebSocketClipboard = () => {
       });
 
       connectionClipboard.on("error", (error) => {
-        console.log("Clipboard WebSocket error:", error);
+        showInfo("Clipboard WebSocket error:", error);
         connectionClipboard.close();
       });
     });
 
     return wss;
   } catch (error) {
-    console.error(
+    showError(
       chalk.red("Error initializing Clipboard WebSocket server:"),
       error,
     );

@@ -1,6 +1,7 @@
 import env from "env.ts";
 import chalk from "chalk";
 import crypto from "crypto";
+import { showError } from "../functions/logger.ts";
 import { sendResponse } from "@common";
 import type { Response } from "express";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
@@ -122,7 +123,7 @@ export const encryptHandler = getHandlerPost(
         dataEncrypted: encryptedData,
       });
     } catch (error) {
-      console.error(
+      showError(
         chalk.red("Encryption error:"),
         error instanceof Error ? error.message : error,
       );
@@ -166,7 +167,7 @@ export const decryptHandler = getHandlerPost(
         decryptedValue: decryptedData,
       });
     } catch (error) {
-      console.error(chalk.red("Decryption error:"), error);
+      showError(chalk.red("Decryption error:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         error: "Decryption failed",
         success: false,
@@ -188,7 +189,7 @@ export const handleGetRandomUUID = async (
       "/getRandomUUID",
     );
   } catch (error) {
-    console.error(chalk.red("UUID generation error:"), error);
+    showError(chalk.red("UUID generation error:"), error);
     sendResponse(
       res,
       "INTERNAL_SERVER_ERROR",

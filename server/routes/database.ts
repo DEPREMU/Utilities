@@ -13,6 +13,7 @@ import {
 } from "@types";
 import chalk from "chalk";
 import { TABLE_MAP } from "../config.ts";
+import { showError } from "../functions/logger.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { sendResponse, t } from "@common";
 import type { Request, Response } from "express";
@@ -76,7 +77,7 @@ export const handleFetchFromDatabase = getHandlerPost(
       });
 
       if (error) {
-        console.error(chalk.red("Error fetching from Database:"), error);
+        showError(chalk.red("Error fetching from Database:"), error);
         return sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: t("database.fetchError", lang),
@@ -85,7 +86,7 @@ export const handleFetchFromDatabase = getHandlerPost(
 
       sendResponse("SUCCESS", { success: true, data: data || [] });
     } catch (error) {
-      console.error(chalk.red("Error fetching from Database:"), error);
+      showError(chalk.red("Error fetching from Database:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: t("database.fetchError", lang),
@@ -140,7 +141,7 @@ export const handleInsertToDatabase = getHandlerPost(
 
       sendResponse("SUCCESS", { success: true, data });
     } catch (error) {
-      console.error(chalk.red("Error inserting to Database:"), error);
+      showError(chalk.red("Error inserting to Database:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: t("database.insertError", lang),
@@ -181,7 +182,7 @@ export const handleUpdateToDatabase = async (
 
     sendResponse(res, "SUCCESS", { success: true, data }, "/database/update");
   } catch (error) {
-    console.error(chalk.red("Error updating Database:"), error);
+    showError(chalk.red("Error updating Database:"), error);
     sendResponse(
       res,
       "INTERNAL_SERVER_ERROR",
@@ -225,7 +226,7 @@ export const handleDeleteFromDatabase = getHandlerPost(
 
       sendResponse("SUCCESS", { success });
     } catch (error) {
-      console.error(chalk.red("Error deleting from Database:"), error);
+      showError(chalk.red("Error deleting from Database:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: t("database.deleteError", lang),

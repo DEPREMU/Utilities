@@ -7,6 +7,7 @@ const notifications: NotificationsSaved = {
   streamers: null,
   downDetector: null,
   batteryAlerts: null,
+  timeToDownload: null,
   locationEnabled: null,
   allNotifications: null,
   noInternetConnection: null,

@@ -8,6 +8,7 @@ import { Pool } from "pg";
 import { exec } from "child_process";
 import { initDB } from "./initDB.ts";
 import { PoolConfig } from "pg";
+import { showError, showInfo } from "../functions/logger.ts";
 
 export let dbInitialized = false;
 
@@ -38,7 +39,7 @@ if (!env.DB_USER || !env.DB_PASS || !env.DB_NAME) {
 export const pool = new Pool(dbConfig);
 
 pool.on("error", (err) => {
-  console.error(chalk.red("Unexpected error on idle client"), err);
+  showError(chalk.red("Unexpected error on idle client"), err);
   process.exit(-1);
 });
 
@@ -98,11 +99,11 @@ export const handleInitDB = async () => {
   try {
     const client = await pool.connect();
     const usersCount = await client.query("SELECT COUNT(*) FROM users;");
-    console.log(
+    showInfo(
       chalk.bgBlack(`Number of users after drop: ${usersCount.rows[0].count}`),
     );
   } catch (error) {
-    console.error(chalk.red("Error querying users count:"), error);
+    showError(chalk.red("Error querying users count:"), error);
     throw new Error("Failed to query users count" + (error as Error).message);
   }
 

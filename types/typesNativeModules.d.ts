@@ -77,6 +77,26 @@ type ChannelsIpcRenderer<
     functionArgs: [command: string];
     typeIpc: "invoke";
   };
+  "get-clipboard-history": {
+    functionReturn: Promise<string[]>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "set-clipboard-history": {
+    functionReturn: void;
+    functionArgs: [items: string[]];
+    typeIpc: "send";
+  };
+  "hide-clipboard-window": {
+    functionReturn: void;
+    functionArgs: [];
+    typeIpc: "send";
+  };
+  "show-clipboard-window": {
+    functionReturn: void;
+    functionArgs: [];
+    typeIpc: "send";
+  };
 };
 
 type NotificationElectron = {
@@ -120,6 +140,17 @@ export type ContextBridgeType = {
     executeCommand: (
       ...args: ChannelsIpcRenderer["execute-command"]["functionArgs"]
     ) => ChannelsIpcRenderer["execute-command"]["functionReturn"];
+    getClipboardHistory: (
+      ...args: ChannelsIpcRenderer["get-clipboard-history"]["functionArgs"]
+    ) => ChannelsIpcRenderer["get-clipboard-history"]["functionReturn"];
+    setClipboardHistory: (
+      ...args: ChannelsIpcRenderer["set-clipboard-history"]["functionArgs"]
+    ) => ChannelsIpcRenderer["set-clipboard-history"]["functionReturn"];
+    hideClipboardWindow: () => void;
+    showClipboardWindow: () => void;
+    onClipboardItemsUpdated: (
+      callback: (items: Array<{ id: string; content: string }>) => void
+    ) => void;
   };
 };
 

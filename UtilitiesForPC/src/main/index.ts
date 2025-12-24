@@ -1,4 +1,8 @@
 import {
+  createWindowClipboard,
+  registerClipboardShortcuts,
+} from "./utils/clipboard";
+import {
   getHtmlPath,
   verifyNewUpdate,
   deleteDownloadedUpdate,
@@ -207,17 +211,13 @@ const getAssetsPath = (...segments: string[]): string => {
 };
 
 const createWindow = async (): Promise<void> => {
-  const preloadPath = app.isPackaged
-    ? path.join(process.resourcesPath, "preload.cjs")
-    : path.join(path.dirname(__dirname), "build", "preload.cjs");
-
   const mainWindow = new BrowserWindow({
     width: 1000,
     height: 800,
     show: false,
     webPreferences: {
       sandbox: false,
-      preload: preloadPath,
+      preload: dataApp.getValue("preloadPath"),
       webSecurity: false,
       nodeIntegration: false,
       contextIsolation: true,
@@ -238,10 +238,10 @@ const createWindow = async (): Promise<void> => {
     mainWindow?.hide();
   });
 
-  mainWindow.once("ready-to-show", () => {
-    mainWindow?.show();
-    if (!app.isPackaged) mainWindow.webContents.openDevTools();
-  });
+  mainWindow.once(
+    "ready-to-show",
+    () => !app.isPackaged && mainWindow.webContents.openDevTools()
+  );
 
   dataApp.setValue("mainWindow", mainWindow);
 };
@@ -305,9 +305,11 @@ app.whenReady().then(async () => {
   deleteDownloadedUpdate();
   dataApp.setValue("language", getLanguage());
   createWindow();
+  createWindowClipboard();
   createTray();
   initServer();
   startMemoryMonitor();
+  registerClipboardShortcuts();
 });
 
 app.on("window-all-closed", handleShutdown);

@@ -2,6 +2,7 @@ import env from "../env.ts";
 import chalk from "chalk";
 import { pool } from "./postgres.ts";
 import { TABLE_MAP } from "../config.ts";
+import { showInfo, showError } from "../functions/logger.ts";
 import { RequestDatabaseInsert, Tables, TablesKeys, Falsy } from "@types";
 
 type ArgsFetchWithoutLimit<T extends TablesKeys> = {
@@ -120,7 +121,7 @@ const getQuerySearch = (
           if (!current) return prev;
 
           const [key, value] = current.split("=").map((v) => v.trim());
-          console.log({ key, value });
+          showInfo({ key, value });
 
           const newValue = prev;
           newValue[key.replace(/"/g, "")] = value;
@@ -235,7 +236,7 @@ export const updateInTable = async <T extends TablesKeys>(
     };
   } catch (error) {
     const errorMsg = `Unexpected error updating user record: ${error}`;
-    console.error(chalk.red(errorMsg));
+    showError(chalk.red(errorMsg));
     return { error: errorMsg, data: null };
   } finally {
     client.release();
@@ -267,7 +268,7 @@ export const deleteInTable = async <T extends TablesKeys = "Users">(
     return { success: true };
   } catch (error) {
     const errorMsg = `Unexpected error deleting user record: ${error}`;
-    console.error(chalk.red(errorMsg));
+    showError(chalk.red(errorMsg));
     return { success: false, error: errorMsg };
   } finally {
     client.release();
@@ -294,12 +295,12 @@ export const fetchFromTable: FetchFromTableFn = async (args) => {
     }
 
     if ("search" in args && args.search) {
-      console.log("Query with search:", { query, values });
+      showInfo("Query with search:", { query, values });
       [query, values] = getQuerySearch(query, values, {
         search: args.search,
         columnsToSearch: (args.columnsToSearch as []) || [],
       });
-      console.log("Query with search:", { query, values });
+      showInfo("Query with search:", { query, values });
     }
 
     if ("orderBy" in args && args.orderBy) {
@@ -321,7 +322,7 @@ export const fetchFromTable: FetchFromTableFn = async (args) => {
     return { data: result.rows, error: null };
   } catch (error) {
     const errorMsg = `Unexpected error fetching data from table: ${error}`;
-    console.error(chalk.red(errorMsg));
+    showError(chalk.red(errorMsg));
     return { error: errorMsg, data: null };
   } finally {
     client.release();
@@ -379,7 +380,7 @@ export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
     };
   } catch (error) {
     const errorMsg = `Unexpected error inserting user record: ${error}`;
-    console.error(chalk.red(errorMsg));
+    showError(chalk.red(errorMsg));
     return { error: errorMsg, data: null };
   } finally {
     client.release();
@@ -389,7 +390,7 @@ export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
 export const deleteSessions = async () => {
   if (!["1", "true"].includes(env.DELETE_OLD_SESSIONS)) return;
 
-  console.log(chalk.blue("Deleting old sessions and push tokens..."));
+  showInfo(chalk.blue("Deleting old sessions and push tokens..."));
   try {
     const users = await fetchFromTable({ table: "Users" });
     let data = users.data;
@@ -406,11 +407,11 @@ export const deleteSessions = async () => {
         ]);
       }),
     );
-    console.log(
+    showInfo(
       chalk.green("Old sessions and push tokens deleted successfully. Count:"),
       deleted.length,
     );
   } catch (error) {
-    console.error(chalk.red("Error deleting old sessions:"), error);
+    showError(chalk.red("Error deleting old sessions:"), error);
   }
 };

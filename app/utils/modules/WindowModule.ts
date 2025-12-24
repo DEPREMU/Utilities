@@ -15,15 +15,24 @@ const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
   sendNotification: () => {},
   getNativeData: async () => "unknown",
   executeCommand: async () => "",
+  getClipboardHistory: async () => [],
+  setClipboardHistory: async () => {
+    return;
+  },
+  hideClipboardWindow: () => {
+    return;
+  },
+  onClipboardItemsUpdated: () => {
+    return;
+  },
+  showClipboardWindow: () => {
+    return;
+  },
 };
 
 let windowModule: ContextBridgeType["UtilitiesForPC"] = defaultWindow;
 
-export const supportedPlatformsWeb: Platform["OS"][] = [
-  "web",
-  "macos",
-  "windows",
-];
+export const supportedPlatformsWeb: Platform["OS"][] = ["web", "windows"];
 
 const assignWindowModule = () => {
   if (!supportedPlatformsWeb.includes(Platform.OS)) return;

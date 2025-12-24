@@ -45,6 +45,41 @@ const dataBuild = {
   productName: PACKAGE_JSON_UtilitiesForPC.build.productName,
 } as const;
 
+const electronRuntimeVersion =
+  PACKAGE_JSON_UtilitiesForPC.devDependencies?.electron;
+
+if (!electronRuntimeVersion)
+  throw new Error("Electron runtime version is not defined");
+
+const sharpVersion = PACKAGE_JSON_UtilitiesForPC.dependencies?.sharp;
+
+if (!sharpVersion) throw new Error("Sharp version is not defined");
+
+const getCleanVersion = (version: string) => version.replace(/^[~^]/, "");
+
+const ensureSharpForWindows = () => {
+  if (isWindows) return;
+
+  console.log(`Preparing sharp vendor for Windows platform...`);
+
+  try {
+    execSync(`npm install --no-save sharp@${getCleanVersion(sharpVersion)}`, {
+      cwd: UTILITIES_FOR_PC_PATH,
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        npm_config_platform: "win32",
+        npm_config_arch: "x64",
+        npm_config_target: electronRuntimeVersion,
+        npm_config_runtime: "electron",
+      },
+    });
+  } catch (error) {
+    console.error(`Failed to install sharp for Windows platform:`, error);
+    throw error;
+  }
+};
+
 /**
  * Checks if Wine is installed on Linux (required for Windows builds from Linux)
  */
@@ -227,9 +262,14 @@ const buildApp = async () => {
 
     console.log(t("buildingWindowsExecutable"));
     compileSource(true);
+    ensureSharpForWindows();
     try {
       execSync("npx electron-builder --win", {
         cwd: UTILITIES_FOR_PC_PATH,
+        stdio: "inherit",
+      });
+      execSync("yarn install", {
+        cwd: UTILITIES_PATH,
         stdio: "inherit",
       });
       console.log(t("windowsBuildCompleted"));
@@ -278,10 +318,15 @@ const buildApp = async () => {
     }
 
     compileSource(true);
+    ensureSharpForWindows();
 
     try {
       execSync("npx electron-builder --win", {
         cwd: UTILITIES_FOR_PC_PATH,
+        stdio: "inherit",
+      });
+      execSync("yarn install", {
+        cwd: UTILITIES_PATH,
         stdio: "inherit",
       });
       console.log(t("windowsBuildCompleted"));
@@ -297,6 +342,10 @@ const buildApp = async () => {
       console.log(t("buildingLinuxPackageFromWindows"));
     }
 
+    execSync("yarn install", {
+      cwd: UTILITIES_PATH,
+      stdio: "inherit",
+    });
     console.log(t("buildingLinuxPackage"));
 
     compileSource(false);

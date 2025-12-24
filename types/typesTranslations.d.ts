@@ -180,6 +180,8 @@ export type typeLanguages = Record<ReasonNotification, string> &
     translator: string;
     youAreNotLoggedIn: string;
     error: string;
+    default: string;
+    foregroundService: string;
     streamers: string;
     errorLoadingStreamers: string;
     streamerAlreadyAdded: `${string}{{name}}${string}`;
@@ -311,6 +313,16 @@ export type typeLanguages = Record<ReasonNotification, string> &
     restoreAll: string;
     deleteAll: string;
     restore: string;
+    timeToDownload: string;
+    internetSpeedMbps: string;
+    timeToDownloadResult: string;
+    fileSize: string;
+    setAlarmWhenDone: `${string}{{time}}${string}`;
+    timeToDownloadFinished: string;
+    timeToDownloadFinishedMessage: `${string}{{time}}${string}`;
+    scale: `${string}{{scale}}${string}`;
+    small: string;
+    scaleFactor: string;
     showAsPlainText: string;
     showAsMarkdown: string;
     images: {

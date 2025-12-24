@@ -108,6 +108,9 @@ let dataAppDefault: DataAppElectron = {
   hasSudo: false,
   logPath: path.join(process.resourcesPath, "..", "log-utilities-for-pc.txt"),
   deviceId: "",
+  preloadPath: app.isPackaged
+    ? path.join(process.resourcesPath, "preload.cjs")
+    : path.join(path.dirname(__dirname), "build", "preload.cjs"),
   language: "en",
   isWindows,
   __dirname: path.resolve(),
@@ -120,6 +123,8 @@ let dataAppDefault: DataAppElectron = {
   isQuitting: false,
   SERVICE_NAME: "UtilitiesForPC",
   userIsLoggedIn: false,
+  clipboardWindow: null,
+  clipboardHistory: [],
   reconnectAttempts: 0,
   currentWebVersion: "{{WEB_VERSION}}",
   currentElectronVersion: "{{ELECTRON_VERSION}}",

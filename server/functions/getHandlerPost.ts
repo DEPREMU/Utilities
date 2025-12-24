@@ -1,6 +1,7 @@
 /* eslint-disable @stylistic/indent */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import chalk from "chalk";
+import { showError, showInfo } from "./logger";
 import type { Request, Response } from "express";
 import type { RequestBody, RoutesAPI } from "@types";
 import { sendResponse as sendResponseType } from "@common";
@@ -48,7 +49,7 @@ const isValidValue = (
   value: unknown,
   expectedTypes: (keyof TypeOf)[],
 ): boolean => {
-  console.log("Validating value:", value, "against types:", expectedTypes);
+  showInfo("Validating value:", value, "against types:", expectedTypes);
   for (const type of expectedTypes) {
     switch (type) {
       case "bigint":
@@ -120,7 +121,7 @@ export const getHandlerPost: GetHandlerPost = (path, keys, callback): any => {
         req as any,
       );
     } catch (error) {
-      console.error(chalk.red("Error processing request:"), error);
+      showError(chalk.red("Error processing request:"), error);
       sendResponseType(
         res,
         "INTERNAL_SERVER_ERROR",

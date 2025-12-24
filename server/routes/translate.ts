@@ -1,8 +1,10 @@
 import env from "../env.ts";
 import chalk from "chalk";
+import { showError } from "../functions/logger.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { URLSearchParams } from "url";
 import { RequestTranslate } from "@types";
+
 
 export const translate = getHandlerPost(
   "/translate",
@@ -45,7 +47,7 @@ export const translate = getHandlerPost(
         translatedText: data.translations?.[0]?.text || "",
       });
     } catch (error) {
-      console.error(chalk.red("Error during translation request:"), error);
+      showError(chalk.red("Error during translation request:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: "Internal server error",

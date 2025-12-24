@@ -18,6 +18,7 @@ import {
   authMiddleware,
   handleRefreshSession,
 } from "./auth.ts";
+import humanize from "humanize-duration";
 import { Router } from "express";
 import { translate } from "./translate.ts";
 import { handleAddLog } from "./debug.ts";
@@ -36,11 +37,17 @@ if (typeof readImage !== "function") throw new Error("readImage is undefined");
 
 const startTime = Date.now();
 const handleHealthCheck = (_: Request, res: Response<ResponseHealth>) => {
+  const uptime = Date.now() - startTime;
+  const uptimeString = humanize(uptime, {
+    largest: 2,
+    round: true,
+  });
+
   res.status(200).json({
     status: "running",
     uptime: Date.now() - startTime,
     timestamp: new Date().toISOString(),
-    startTimestamp: new Date(startTime).toISOString(),
+    uptimeString,
   });
 };
 

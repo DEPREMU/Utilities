@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { showError } from "../functions/logger.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { PriceBinanceAPI } from "@common";
 
@@ -15,7 +16,7 @@ const fetchData = async () => {
       price: parseFloat(item.price),
     }));
   } catch (error) {
-    console.error(chalk.red("Error fetching Binance data:"), error);
+    showError(chalk.red("Error fetching Binance data:"), error);
   }
 };
 
@@ -32,7 +33,7 @@ export const getCryptoPrice = async (
         ?.price ?? -1
     );
   } catch (error) {
-    console.error(chalk.red("Error fetching crypto price:"), error);
+    showError(chalk.red("Error fetching crypto price:"), error);
     return -1;
   }
 };
@@ -61,7 +62,7 @@ export const handleGetCryptoPrice = getHandlerPost(
       const errorMessage =
         error instanceof Error ? error.message : String(error);
 
-      console.error(chalk.red("Error fetching crypto price:"), errorMessage);
+      showError(chalk.red("Error fetching crypto price:"), errorMessage);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: "Error fetching crypto price: " + errorMessage,
@@ -84,7 +85,7 @@ export const handleGetCryptos = getHandlerPost(
         cryptos: cryptosFilteredByCurrency || [],
       });
     } catch (error) {
-      console.error(chalk.red("Error fetching cryptos:"), error);
+      showError(chalk.red("Error fetching cryptos:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: "Error fetching cryptos",

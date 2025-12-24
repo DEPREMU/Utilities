@@ -5,12 +5,14 @@ import {
   ReasonNotification,
 } from "@types";
 import { log } from "./debug";
+import isEqual from "react-fast-compare";
 import * as notifications from "expo-notifications";
 import NotificationModule from "../modules/NotificationModule";
 import { Platform, Falsy } from "react-native";
+import { getNotifications } from "./appManagement";
 import { reasonNotification } from "../constants";
-import { getNotifications, stringifyData } from "./appManagement";
 import { loadDataStorage, saveDataStorage } from "./storageManagement";
+import { tTyped } from "../translates";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -35,8 +37,8 @@ export const isNotificationsAlreadyInitialized = (
   const keysIntervals = Object.keys(intervals || {});
 
   return (
-    stringifyData(keysEnabled) === stringifyData(reasonNotification) &&
-    stringifyData(keysIntervals) === stringifyData(reasonNotification)
+    isEqual(keysEnabled, reasonNotification) &&
+    isEqual(keysIntervals, reasonNotification)
   );
 };
 
@@ -169,63 +171,87 @@ export const setupNotificationHandlers = (
 };
 
 export const configureNotificationChannel = async () => {
-  if (Platform.OS !== "android") return;
+  if (Platform.OS === "web") return;
 
-  const channelIdCryptos: ChannelsId = "cryptos";
-  const channelIdDefault: ChannelsId = "default";
-  const channelIdBattery: ChannelsId = "batteryAlerts";
-  const channelIdLocation: ChannelsId = "locationEnabled";
-  const channelIdStreamers: ChannelsId = "streamers";
-  const channelIdNoInternet: ChannelsId = "noInternetConnection";
-  const channelIdForegroundService: ChannelsId = "ForegroundServiceChannel";
-  await Promise.all([
-    notifications.setNotificationChannelAsync(channelIdStreamers, {
-      name: "Streamers",
-      importance: notifications.AndroidImportance.HIGH,
-      sound: "default",
-      vibrationPattern: [0, 250, 250, 250, 100],
-      lightColor: "#8400ff7c",
-    }),
-    notifications.setNotificationChannelAsync(channelIdCryptos, {
-      name: "Cryptos",
+  const channels: Record<ChannelsId, notifications.NotificationChannelInput> = {
+    cryptos: {
+      name: tTyped("cryptos"),
       importance: notifications.AndroidImportance.MAX,
       sound: "default",
       vibrationPattern: [0, 250, 250, 250, 250, 250, 100],
       lightColor: "#00f7ff7c",
-    }),
-    notifications.setNotificationChannelAsync(channelIdDefault, {
-      name: "Default",
+    },
+    streamers: {
+      name: tTyped("streamers"),
+      importance: notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250, 100],
+      lightColor: "#8400ff7c",
+    },
+    default: {
+      name: tTyped("default"),
       importance: notifications.AndroidImportance.DEFAULT,
       sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffffff",
-    }),
-    notifications.setNotificationChannelAsync(channelIdLocation, {
-      name: "Location Alerts",
+    },
+    locationEnabled: {
+      name: tTyped("locationEnabled"),
       importance: notifications.AndroidImportance.HIGH,
       sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ff0000",
-    }),
-    notifications.setNotificationChannelAsync(channelIdBattery, {
-      name: "Battery Alerts",
+    },
+    batteryAlerts: {
+      name: tTyped("batteryAlerts"),
       importance: notifications.AndroidImportance.HIGH,
       sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#00ff00",
-    }),
-    notifications.setNotificationChannelAsync(channelIdNoInternet, {
-      name: "No Internet Connection",
+    },
+    noInternetConnection: {
+      name: tTyped("noInternetConnection"),
       importance: notifications.AndroidImportance.HIGH,
       sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffff00",
-    }),
-    notifications.setNotificationChannelAsync(channelIdForegroundService, {
-      name: "Foreground Service",
-      importance: notifications.AndroidImportance.DEFAULT,
+    },
+    ForegroundServiceChannel: {
+      name: tTyped("foregroundService"),
+      importance: notifications.AndroidImportance.LOW,
       sound: null,
       vibrationPattern: null,
-    }),
-  ]);
+    },
+    downDetector: {
+      name: tTyped("downDetector"),
+      importance: notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250, 100],
+      lightColor: "#ff00ff",
+    },
+    loggedInStatusChannel: {
+      name: tTyped("loggedInStatusChannel"),
+      importance: notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250, 100],
+      lightColor: "#00ffff",
+    },
+    timeToDownload: {
+      name: tTyped("timeToDownload"),
+      importance: notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250, 100],
+      lightColor: "#ffa500",
+    },
+  };
+
+  await Promise.all(
+    Object.entries(channels).map(
+      async ([channelId, channelOptions]) =>
+        await notifications.setNotificationChannelAsync(
+          channelId,
+          channelOptions,
+        ),
+    ),
+  );
 };

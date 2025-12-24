@@ -18,6 +18,7 @@ import {
 import chalk from "chalk";
 import { t } from "@common";
 import { dataBinance } from "../routes/cryptos.ts";
+import { showError, showInfo } from "../functions/logger.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
 import WebSocket, { WebSocketServer } from "ws";
 
@@ -57,7 +58,7 @@ const insertUserConfig = async (config: UserConfig) => {
     if (!data) return await insertIntoTable("UserConfig", config);
     updateInTable("UserConfig", { id: data.id }, { id: data.id });
   } catch (error) {
-    console.error(chalk.red("Error in insertUserConfig:"), error);
+    showError(chalk.red("Error in insertUserConfig:"), error);
   }
 };
 
@@ -73,7 +74,7 @@ const handleInitWebSocket = (
 
     const pingIntervalId = setInterval(() => {
       users[data.userId].pingTimeoutId = setTimeout(() => {
-        console.log(
+        showInfo(
           chalk.red("Terminating unresponsive client:"),
           chalk.yellow(data.userId),
         );
@@ -115,7 +116,7 @@ const handleInitWebSocket = (
 
     return data.userId;
   } catch (error) {
-    console.error(chalk.red("Error in handleInitWebSocket:"), error);
+    showError(chalk.red("Error in handleInitWebSocket:"), error);
     return "";
   }
 };
@@ -158,13 +159,13 @@ const insertNotifications = async (
       }),
     );
   } catch (error) {
-    console.error(chalk.red("Error in insertNotifications:"), error);
+    showError(chalk.red("Error in insertNotifications:"), error);
   }
 };
 
 const connectionWss = (ws: WebSocket) => {
   let userId: string;
-  console.log(chalk.green("New client connected"));
+  showInfo(chalk.green("New client connected"));
 
   try {
     const getNotificationCrypto = async (
@@ -233,7 +234,7 @@ const connectionWss = (ws: WebSocket) => {
         };
         return notification;
       } catch (error) {
-        console.error(chalk.red("Error in getNotificationCrypto:"), error);
+        showError(chalk.red("Error in getNotificationCrypto:"), error);
         return null;
       }
     };
@@ -297,7 +298,7 @@ const connectionWss = (ws: WebSocket) => {
               },
             );
           } catch (error) {
-            console.error(
+            showError(
               chalk.red("Error in handleInterval of handleNotificationCrypto:"),
               error,
             );
@@ -310,6 +311,7 @@ const connectionWss = (ws: WebSocket) => {
             streamers: null,
             downDetector: null,
             batteryAlerts: null,
+            timeToDownload: null,
             locationEnabled: null,
             allNotifications: null,
             noInternetConnection: null,
@@ -318,7 +320,7 @@ const connectionWss = (ws: WebSocket) => {
           cryptos: intervalId,
         };
       } catch (error) {
-        console.error(chalk.red("Error in handleNotificationCrypto:"), error);
+        showError(chalk.red("Error in handleNotificationCrypto:"), error);
       }
     };
 
@@ -359,7 +361,7 @@ const connectionWss = (ws: WebSocket) => {
           }
         });
       } catch (error) {
-        console.error(chalk.red("Error in handleNotifications:"), error);
+        showError(chalk.red("Error in handleNotifications:"), error);
       }
     };
 
@@ -412,16 +414,16 @@ const connectionWss = (ws: WebSocket) => {
             break;
           }
           default:
-            console.log(chalk.yellow("Unknown message type:"), data);
+            showInfo(chalk.yellow("Unknown message type:"), data);
             break;
         }
       } catch (error) {
-        console.error(chalk.red("Error handling WebSocket message:"), error);
+        showError(chalk.red("Error handling WebSocket message:"), error);
       }
     });
 
     ws.on("close", (code, reason) => {
-      console.log(
+      showInfo(
         chalk.red("Client"),
         chalk.yellow(userId),
         chalk.red("disconnected:"),
@@ -432,7 +434,7 @@ const connectionWss = (ws: WebSocket) => {
     });
 
     ws.on("error", (error) => {
-      console.log(
+      showInfo(
         chalk.red("WebSocket error for client:"),
         chalk.yellow(userId),
         chalk.red("-"),
@@ -441,7 +443,7 @@ const connectionWss = (ws: WebSocket) => {
       ws.close?.();
     });
   } catch (error) {
-    console.error(chalk.red("Error in connectionWss:"), error);
+    showError(chalk.red("Error in connectionWss:"), error);
   }
 };
 
@@ -453,7 +455,7 @@ export const initWebSocket = () => {
 
     return wss;
   } catch (error) {
-    console.error(chalk.red("Error initializing WebSocket server:"), error);
+    showError(chalk.red("Error initializing WebSocket server:"), error);
     throw error;
   }
 };

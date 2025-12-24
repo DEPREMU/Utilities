@@ -3,19 +3,20 @@ import env from "../env.ts";
 import chalk from "chalk";
 import pidUsage from "pidusage";
 import { execSync } from "child_process";
+import { showError, showInfo } from "../functions/logger.ts";
 
 let pidDB: number | null = null;
 
 const monitorServer = async () => {
   try {
     const stats = await pidUsage(process.pid);
-    console.log(
+    showInfo(
       chalk.bgGrey.cyanBright(
         `Server CPU Usage: ${stats.cpu.toFixed(2)}% | Memory Usage: ${(stats.memory / 1024 / 1024).toFixed(2)} MB | Uptime: ${Math.floor(stats.elapsed / 1000)}s`,
       ),
     );
   } catch (err) {
-    console.error("Error monitoring server:", err);
+    showError("Error monitoring server:", err);
   }
 };
 
@@ -78,13 +79,13 @@ const monitorDB = async () => {
     if (!pidDB) return;
 
     const stats = await pidUsage(pidDB);
-    console.log(
+    showInfo(
       chalk.bgGrey.cyanBright(
         `Database CPU Usage: ${stats.cpu.toFixed(2)}% | Memory Usage: ${(stats.memory / 1024 / 1024).toFixed(2)} MB | Uptime: ${Math.floor(stats.elapsed / 1000)}s`,
       ),
     );
   } catch (err) {
-    console.error("Error monitoring database:", err);
+    showError("Error monitoring database:", err);
   }
 };
 
@@ -93,7 +94,7 @@ export const monitorServerUsage = () => {
     monitorServer();
     monitorDB();
   } catch (error) {
-    console.error("Error in monitorServerUsage:", error);
+    showError("Error in monitorServerUsage:", error);
   }
 };
 

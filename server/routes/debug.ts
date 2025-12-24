@@ -1,3 +1,4 @@
+import { showError } from "../functions/logger.ts";
 import { RequestLogs } from "@types";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { insertIntoTable } from "../database/functions.ts";
@@ -22,7 +23,7 @@ export const handleAddLog = getHandlerPost(
         success = !error;
       }
     } catch (err) {
-      console.error("Error adding log:", err);
+      showError("Error adding log:", err);
       error = err instanceof Error ? err.message : String(err);
     }
     sendResponse("SUCCESS", { success });

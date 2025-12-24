@@ -204,6 +204,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
                   streamers: 30,
                   downDetector: 15,
                   batteryAlerts: 30,
+                  timeToDownload: 1,
                   locationEnabled: 30,
                   allNotifications: 60,
                   noInternetConnection: 15,

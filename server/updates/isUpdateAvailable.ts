@@ -5,6 +5,7 @@ import {
   ResponseIsUpdateAvailable,
 } from "@types";
 import data from "./dataUploads.ts";
+import { showError } from "../functions/logger.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { createTempDownloadUrl } from "./tempDownloadUrl.ts";
 
@@ -83,7 +84,7 @@ export const handleIsUpdateAvailable = getHandlerPost(
         updateAvailable,
       });
     } catch (error) {
-      console.error(
+      showError(
         "Error in handleIsUpdateAvailable:",
         error instanceof Error ? error.message : String(error),
       );

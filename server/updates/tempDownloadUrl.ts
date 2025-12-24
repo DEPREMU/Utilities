@@ -9,6 +9,7 @@ import env from "../env.ts";
 import path from "path";
 import chalk from "chalk";
 import { v4 } from "uuid";
+import { showError } from "../functions/logger.ts";
 import { UPLOAD_DIR } from "../config.ts";
 import { sendResponse } from "@common";
 import { getFinalFileName } from "./uploadUpdate.ts";
@@ -101,7 +102,7 @@ export const handleDownload = (
     res.download(filePath, (err) => {
       if (!err || !sendResponse) return;
 
-      console.error("Error downloading file:", err);
+      showError("Error downloading file:", err);
       sendResponse(
         res,
         "INTERNAL_SERVER_ERROR",
@@ -110,7 +111,7 @@ export const handleDownload = (
       );
     });
   } catch (error) {
-    console.error(chalk.red("Error processing download via temp URL:"), error);
+    showError(chalk.red("Error processing download via temp URL:"), error);
     sendResponse(
       res,
       "INTERNAL_SERVER_ERROR",

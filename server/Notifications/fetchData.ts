@@ -2,6 +2,7 @@ import chalk from "chalk";
 import { dbInitialized } from "../database/postgres.ts";
 import { fetchFromTable } from "../database/functions.ts";
 import { Tables, TablesKeys } from "@types";
+import { showError, showInfo } from "../functions/logger.ts";
 
 export const dataDatabase = {
   Logs: [] as Tables["Logs"][],
@@ -25,7 +26,7 @@ const TablesNot: TablesKeys[] = [
 
 const handleFetchNewData = () => {
   if (!dbInitialized) return;
-  console.log(chalk.blue("Fetching new data from Database..."));
+  showInfo(chalk.blue("Fetching new data from Database..."));
 
   Object.keys(dataDatabase).forEach(async (table) => {
     try {
@@ -42,17 +43,15 @@ const handleFetchNewData = () => {
 
       (dataDatabase as Record<TablesKeys, Tables[TablesKeys][]>)[tableType] =
         tableData;
-      console.log(
-        chalk.green(`\tFetched and updated data for table: ${table}`),
-      );
+      showInfo(chalk.green(`\tFetched and updated data for table: ${table}`));
     } catch (error) {
-      console.error(`Error fetching data for table ${table}:`, error);
+      showError(`Error fetching data for table ${table}:`, error);
     }
   });
 };
 
 const getInterval = () => {
-  console.log(chalk.blue("Starting fetchData interval..."));
+  showInfo(chalk.blue("Starting fetchData interval..."));
 
   return setInterval(handleFetchNewData, 60 * 1000);
 };

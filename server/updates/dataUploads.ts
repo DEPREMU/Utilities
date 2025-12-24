@@ -7,6 +7,7 @@ import {
 import fs from "fs";
 import env from "../env.ts";
 import path from "path";
+import { showError } from "../functions/logger.ts";
 import { getFinalFileName } from "./uploadUpdate.ts";
 import { PATH_DATA_UPDATES, UPLOAD_DIR } from "../config.ts";
 
@@ -116,7 +117,7 @@ export const updateDataUploads = (
         "utf-8",
       );
   } catch (error) {
-    console.error("Error updating data uploads:", error);
+    showError("Error updating data uploads:", error);
   }
 };
 

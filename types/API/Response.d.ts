@@ -9,7 +9,7 @@ export type ResponseHealth = {
   uptime: number;
   status: "running";
   timestamp: string;
-  startTimestamp: string;
+  uptimeString: string;
 };
 
 export type ResponseDatabaseFetch<T extends TablesKeys> = {

@@ -12,6 +12,7 @@ import { t } from "@common";
 import { dataDatabase } from "./fetchData.ts";
 import { isLiveStreamer } from "../routes/socialMedia.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
+import { showError, showInfo } from "../functions/logger.ts";
 
 const notificationsSent: Record<
   string,
@@ -109,7 +110,7 @@ const handleSendNotificationsStreamers = async () => {
         const title = t("streamerLiveNotificationTitle", lang, config);
         const body = t("streamerLiveNotification", lang, config);
 
-        console.log(
+        showInfo(
           chalk.green(
             `Sending notification to user ${userConfig.userId} that ${status.streamer} is live`,
           ),
@@ -135,7 +136,7 @@ const handleSendNotificationsStreamers = async () => {
             },
           );
         } catch (error) {
-          console.error(chalk.red("Error sending push notification:"), error);
+          showError(chalk.red("Error sending push notification:"), error);
         }
       } catch {
         // Ignore
@@ -145,7 +146,7 @@ const handleSendNotificationsStreamers = async () => {
 };
 
 export const getInterval = () => {
-  console.log(chalk.blue("Starting streamers interval..."));
+  showInfo(chalk.blue("Starting streamers interval..."));
 
   return setInterval(handleSendNotificationsStreamers, 5000);
 };

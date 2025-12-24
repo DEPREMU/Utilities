@@ -12,18 +12,22 @@ import Busboy from "busboy";
 import { UPLOAD_DIR } from "../config.ts";
 import { sendResponse } from "@common";
 import { Request, Response } from "express";
+import { showError, showInfo } from "../functions/logger.ts";
 import dataUploads, { updateDataUploads } from "./dataUploads.ts";
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
+const extensions = {
+  web: ".js",
+  android: ".apk",
+  windows: ".exe",
+} as const;
+
 export const getFinalFileName = (
   dataFile: Omit<RequestUploadUpdate, "timestamp">,
 ) => {
-  let extension = "";
-  if (dataFile.buildType === "android") extension = ".apk";
-  else if (dataFile.buildType === "web") extension = ".html";
-  else if (dataFile.platformOS === "windows") extension = ".exe";
-  else extension = ".deb";
+  const extension =
+    extensions[dataFile.buildType as keyof typeof extensions] || ".deb";
 
   return `${dataFile.version}-${dataFile.buildType}-${extension === ".apk" ? "android" : dataFile.platformOS}${extension}`;
 };
@@ -53,26 +57,26 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
         ) as UpdateInfo;
 
         if (!existingData) {
-          console.log("Invalid platform or OS");
+          showInfo("Invalid platform or OS");
           isNewVersion = false;
           return;
         }
 
         if (dataFile.version === existingData.version) {
-          console.log("Version already exists:", dataFile.version);
+          showInfo("Version already exists:", dataFile.version);
           isNewVersion = false;
           return;
         }
 
         isNewVersion = true;
       } catch {
-        console.error("JSON not valid");
+        showError("JSON not valid");
       }
     });
 
     busboy.on("file", (_, file) => {
       if (!dataFile || !isNewVersion) {
-        console.log("Version not new, discarding file...");
+        showInfo("Version not new, discarding file...");
 
         file.on("end", () => {
           if (connectionClosed || !sendResponse) return;
@@ -95,7 +99,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
       const finalName = getFinalFileName(dataFile);
       const saveTo = path.join(UPLOAD_DIR, finalName);
 
-      console.log(`Saving file to: ${saveTo}`);
+      showInfo(`Saving file to: ${saveTo}`);
 
       const writeStream = fs.createWriteStream(saveTo);
 
@@ -104,7 +108,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
 
         file.on("end", resolve);
         file.on("error", (err) => {
-          console.error("Error in file stream:", err);
+          showError("Error in file stream:", err);
           writeStream.destroy();
           fs.unlink(saveTo, () => {});
           reject(err);
@@ -112,7 +116,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
 
         writeStream.on("finish", resolve);
         writeStream.on("error", (err) => {
-          console.error("Error writing file:", err);
+          showError("Error writing file:", err);
           file.unpipe(writeStream);
           fs.unlink(saveTo, () => {});
           reject(err);
@@ -140,10 +144,10 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
           dataFile.platformOS as PlatformsOS,
           dataFile.version,
         );
-        console.log("All files written successfully");
+        showInfo("All files written successfully");
         sendResponse?.(res, "SUCCESS", { success: true }, "/upload-update");
       } catch (err) {
-        console.error("Error uploading:", err);
+        showError("Error uploading:", err);
         if (connectionClosed) return;
         sendResponse?.(
           res,
@@ -156,7 +160,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
 
     req.pipe(busboy);
   } catch (error) {
-    console.error(chalk.red("Error handling upload:"), error);
+    showError(chalk.red("Error handling upload:"), error);
     sendResponse?.(
       res,
       "INTERNAL_SERVER_ERROR",

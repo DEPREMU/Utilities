@@ -1,5 +1,6 @@
 import axios from "axios";
 import chalk from "chalk";
+import { showError } from "../functions/logger.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { insertIntoTable } from "../database/functions.ts";
 import { RequestAddStreamer, RequestGetIsLiveStreamer } from "@types";
@@ -22,7 +23,7 @@ const getLinkImageStreamer = async (streamer: string) => {
 
     return image;
   } catch (error) {
-    console.error("Error fetching streamer image:", error);
+    showError("Error fetching streamer image:", error);
     return;
   }
 };
@@ -45,7 +46,7 @@ export const isLiveStreamer = async (streamer: string): Promise<boolean> => {
       json?.["@graph"]?.[0]?.publication?.isLiveBroadcast || false;
     return isLive;
   } catch (error) {
-    console.error("Error checking if streamer is live:", error);
+    showError("Error checking if streamer is live:", error);
     return false;
   }
 };
@@ -71,7 +72,7 @@ export const getIsLiveStreamer = getHandlerPost(
         streamer: { ...streamer, isLive },
       });
     } catch (error) {
-      console.error(chalk.red("Error in getIsLiveStreamer:"), error);
+      showError(chalk.red("Error in getIsLiveStreamer:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: "Failed to get live status of streamer",

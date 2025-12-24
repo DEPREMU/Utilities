@@ -5,14 +5,18 @@ import cors from "cors";
 import http from "http";
 // import https from "https";
 import chalk from "chalk";
+import helmet from "helmet";
 import { URL } from "url";
 import express from "express";
 import routerAPI from "./routes/index.ts";
+import rateLimit from "express-rate-limit";
+import compression from "compression";
 import routerUpdates from "./updates/index.ts";
 import { host, port } from "./config.ts";
 import { runAllTests } from "./testingRoutes/index.ts";
 import { handleInitDB } from "./database/postgres.ts";
 import { WebSocketPathname } from "@types";
+import { showError, showInfo } from "./functions/logger.ts";
 import env, { validateServerEnv } from "./env.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
 import { initWebSocketLoginQRCode } from "./websocket/WebSocketQRLogin.ts";
@@ -25,11 +29,38 @@ validateServerEnv();
 try {
   initializeFirebaseAdmin();
 } catch (error) {
-  console.error(chalk.red("Failed to initialize Firebase Admin SDK:"), error);
+  showError(chalk.red("Failed to initialize Firebase Admin SDK:"), error);
 }
 
-app.use(express.json({ limit: "50mb" }));
+const sourceProtocol = env.USE_HTTPS ? "https" : "http";
+
+if (!env.__DEV__)
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", `${sourceProtocol}:`],
+          imgSrc: ["'self'", "data:", `${sourceProtocol}:`],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'", `${sourceProtocol}:`],
+          objectSrc: ["'none'"],
+          upgradeInsecureRequests: [],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
+app.use(
+  rateLimit({
+    windowMs: 5 * 60 * 1000,
+    limit: !env.__DEV__ ? 200 : Infinity,
+  }),
+);
 app.use(cors());
+app.use(compression({ threshold: 0 }));
+app.use(express.json({ limit: "50mb" }));
 app.use("/api", routerAPI);
 app.use("/updates", routerUpdates);
 
@@ -40,7 +71,7 @@ const webSocketLoginQRCode = initWebSocketLoginQRCode();
 
 server.on("upgrade", (request, socket, head) => {
   if (!request.url) {
-    console.error("Missing request URL");
+    showError("Missing request URL");
     socket.destroy();
     return;
   }
@@ -61,19 +92,19 @@ server.on("upgrade", (request, socket, head) => {
       wsCalled = webSocketLoginQRCode;
       break;
     default:
-      console.error("Invalid WebSocket pathname:", pathname);
+      showError("Invalid WebSocket pathname:", pathname);
       socket.destroy();
       return;
   }
 
   if (!wsCalled) {
-    console.error("WebSocket server not found for pathname:", pathname);
+    showError("WebSocket server not found for pathname:", pathname);
     socket.destroy();
     return;
   }
 
   wsCalled.handleUpgrade(request, socket, head, (ws) => {
-    console.log(
+    showInfo(
       chalk.blue("WebSocket connection upgraded for pathname:", pathname),
     );
     wsCalled.emit("connection", ws, request);
@@ -82,7 +113,7 @@ server.on("upgrade", (request, socket, head) => {
 
 handleInitDB().then(() => {
   server.listen(port, host, () => {
-    console.log(
+    showInfo(
       "",
       chalk.green(`Server is running on http://${host}:${port}`),
       "\n",

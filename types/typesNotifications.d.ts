@@ -11,6 +11,7 @@ export type ReasonNotification =
   | "streamers"
   | "downDetector"
   | "batteryAlerts"
+  | "timeToDownload"
   | "locationEnabled"
   | "allNotifications"
   | "noInternetConnection"

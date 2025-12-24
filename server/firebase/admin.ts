@@ -1,6 +1,7 @@
-import chalk from "chalk";
 import env from "../env.ts";
+import chalk from "chalk";
 import admin from "firebase-admin";
+import { showError, showInfo } from "../functions/logger.ts";
 import { ScreensAvailable, ChannelsId } from "@types";
 
 let firebaseApp: admin.app.App | null = null;
@@ -15,10 +16,10 @@ export const initializeFirebaseAdmin = () => {
       credential: admin.credential.cert(serviceAccount),
     });
 
-    console.log(chalk.green("Firebase Admin SDK initialized successfully."));
+    showInfo(chalk.green("Firebase Admin SDK initialized successfully."));
     return firebaseApp;
   } catch (error) {
-    console.error(chalk.red("Error initializing Firebase Admin SDK:"), error);
+    showError(chalk.red("Error initializing Firebase Admin SDK:"), error);
     throw error;
   }
 };
@@ -68,17 +69,17 @@ export const sendFCMNotification = async (
 
     const response = await messaging.sendEachForMulticast(message);
 
-    console.log(
+    showInfo(
       chalk.green(
         `Notifications sent: ${response.successCount}/${tokens.length}`,
       ),
     );
 
     if (response.failureCount > 0) {
-      console.error(chalk.red(`Failures: ${response.failureCount}`));
+      showError(chalk.red(`Failures: ${response.failureCount}`));
       response.responses.forEach((resp, idx) => {
         if (!resp.success) {
-          console.error(
+          showError(
             chalk.red(`Error in token ${tokens[idx]}: ${resp.error}`),
           );
         }
@@ -87,6 +88,6 @@ export const sendFCMNotification = async (
 
     return response;
   } catch (error) {
-    console.error(chalk.red("Error sending FCM notification:"), error);
+    showError(chalk.red("Error sending FCM notification:"), error);
   }
 };

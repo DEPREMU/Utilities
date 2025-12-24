@@ -1,6 +1,6 @@
 #!/bin/bash
-sudo apt update -y
-sudo apt upgrade -y
+sudo apt-get update -y
+sudo apt-get upgrade -y
 cd $HOME/Utilities
 nordvpn connect Mexico
 max_retries=30
@@ -16,5 +16,4 @@ until curl -sSf --connect-timeout 5 http://www.google.com/generate_204 >/dev/nul
 done
 git pull
 yarn install
-cd server
-yarn run start
+yarn run server

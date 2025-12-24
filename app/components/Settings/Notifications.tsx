@@ -34,11 +34,12 @@ type typeMinutes = Record<ReasonNotification, number | null> | null;
 
 const intervalValues: Record<ReasonNotification, number> = {
   cryptos: 0,
-  locationEnabled: -1,
   streamers: -1,
-  allNotifications: -1,
-  batteryAlerts: -1,
   downDetector: -1,
+  batteryAlerts: -1,
+  timeToDownload: -1,
+  locationEnabled: -1,
+  allNotifications: -1,
   noInternetConnection: -1,
   loggedInStatusChannel: -1,
 };

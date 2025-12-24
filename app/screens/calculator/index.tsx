@@ -1,8 +1,9 @@
 import Finances from "./finances";
 import Calculator from "./calculator";
+import TimeToDownload from "./timeToDownload";
 import { useLanguage } from "@context/LanguageContext";
-import React, { useMemo, useState } from "react";
 import { BottomNavigation } from "react-native-paper";
+import React, { useMemo, useState } from "react";
 import useStylesCalculatorNavigator from "@styles/screens/calculator/useStylesCalculatorNavigator";
 
 const CalculatorNavigator = () => {
@@ -14,6 +15,11 @@ const CalculatorNavigator = () => {
   const routes = useMemo(
     () => [
       { key: "calculator", title: t("calculator"), focusedIcon: "calculator" },
+      {
+        key: "timeToDownload",
+        title: t("timeToDownload"),
+        focusedIcon: "download",
+      },
       { key: "finances", title: t("finances"), focusedIcon: "finance" },
     ],
     [t],
@@ -23,6 +29,7 @@ const CalculatorNavigator = () => {
     () =>
       BottomNavigation.SceneMap({
         calculator: Calculator,
+        timeToDownload: TimeToDownload,
         finances: Finances,
       }),
     [],

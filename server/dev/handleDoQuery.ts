@@ -1,6 +1,7 @@
 import env from "../env.ts";
 import chalk from "chalk";
 import { pool } from "../database/postgres.ts";
+import { showError } from "../functions/logger.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { ResponseDoQuery } from "@types";
 
@@ -34,7 +35,7 @@ export const handleDoQueryDatabase = getHandlerPost(
           result: data,
         });
       } catch (error) {
-        console.error(
+        showError(
           chalk.red("Error executing query:"),
           error instanceof Error ? error.message : error,
         );
@@ -48,7 +49,7 @@ export const handleDoQueryDatabase = getHandlerPost(
         client.release();
       }
     } catch (error) {
-      console.error(chalk.red("Error connecting to database:"), error);
+      showError(chalk.red("Error connecting to database:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: `Error connecting to database: ${

@@ -5,12 +5,13 @@ import chalk from "chalk";
 import crypto from "crypto";
 import { pool } from "../postgres.ts";
 import { execSync } from "child_process";
+import { showError, showInfo } from "../../functions/logger.ts";
 
 const backupPath = path.join(path.resolve("."), "database", "backups");
 const timeIntervalBackup = 1 * 60 * 60 * 1000;
 
 export const getInterval = () => {
-  console.log("Starting database backup interval...");
+  showInfo("Starting database backup interval...");
 
   return setInterval(handleBackupDatabase, timeIntervalBackup);
 };
@@ -31,7 +32,7 @@ export const encryptFile = (filePath: string, password: string) => {
   const output = Buffer.concat([salt, iv, tag, encrypted]);
   fs.writeFileSync(filePath, output);
 
-  console.log(chalk.green(`File encrypted successfully: ${filePath}`));
+  showInfo(chalk.green(`File encrypted successfully: ${filePath}`));
 };
 
 export const decryptFile = (filePath: string, password: string) => {
@@ -55,7 +56,7 @@ export const decryptFile = (filePath: string, password: string) => {
 
     return decrypted.toString();
   } catch (err) {
-    console.error(chalk.red("Error decrypting file:"), (err as Error).message);
+    showError(chalk.red("Error decrypting file:"), (err as Error).message);
     throw new Error("Failed to decrypt (incorrect password or file).");
   }
 };
@@ -102,7 +103,7 @@ export const handleBackupDatabase = async () => {
     execSync(writeFile);
     encryptFile(backupFileName, env.DB_ENCRYPTION_PASS);
   } catch (error) {
-    console.error("Error during database backup:", error);
+    showError("Error during database backup:", error);
   } finally {
     client.release();
   }
@@ -159,7 +160,7 @@ export const deletePreviousBackups = async () => {
 
       const filePath = path.join(backupPath, file);
       fs.unlinkSync(filePath);
-      console.log(`Deleted old backup file: ${filePath}`);
+      showInfo(`Deleted old backup file: ${filePath}`);
       return Promise.resolve();
     }),
   );

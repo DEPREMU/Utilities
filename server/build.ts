@@ -13,6 +13,7 @@ build({
     "ws",
     "fs",
     "path",
+    "pino",
     "http",
     "sharp",
     "https",
@@ -20,6 +21,7 @@ build({
     "firebase-admin",
   ],
 }).catch((err) => {
+  // eslint-disable-next-line no-console
   console.error("Build failed:", err);
   process.exit(1);
 });

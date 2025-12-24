@@ -8,6 +8,7 @@ import chalk from "chalk";
 import QRCode from "qrcode";
 import { getStorageData } from "../routes/auth.ts";
 import { fetchFromTable } from "../database/functions.ts";
+import { showError, showInfo } from "../functions/logger.ts";
 import WebSocket, { WebSocketServer } from "ws";
 import { decodeJWTToken, getJWTTokenAndUpload } from "../functions/auth.ts";
 
@@ -19,7 +20,7 @@ const getQRCode = async (json: LoginWithQRMobile): Promise<string> => {
 
     return qrCodeDataURL;
   } catch (error) {
-    console.error(chalk.red("Error generating QR code:"), error);
+    showError(chalk.red("Error generating QR code:"), error);
     return "";
   }
 };
@@ -115,7 +116,7 @@ const handleLoginWithQR = async (
     wsMobile.send(JSON.stringify(messageToMobile));
     return;
   } catch (error) {
-    console.error(chalk.red("Error handling QR login:"), error);
+    showError(chalk.red("Error handling QR login:"), error);
     messageToMobile.status = "error";
   }
   wsMobile.send(JSON.stringify(messageToMobile));
@@ -141,7 +142,7 @@ export const initWebSocketLoginQRCode = () => {
           case "init-web":
           case "init-mobile":
             {
-              console.log(
+              showInfo(
                 chalk.blue("New WebSocket connection for QR login"),
                 parsedMsg.deviceId,
               );
@@ -185,7 +186,7 @@ export const initWebSocketLoginQRCode = () => {
             break;
         }
       } catch (error) {
-        console.error(chalk.red("Error processing WebSocket message:"), error);
+        showError(chalk.red("Error processing WebSocket message:"), error);
         ws.close();
       }
     });
@@ -195,7 +196,7 @@ export const initWebSocketLoginQRCode = () => {
 
       if (!deviceId) return;
 
-      console.log(`WebSocket connection closed for deviceId: ${deviceId}`);
+      showInfo(`WebSocket connection closed for deviceId: ${deviceId}`);
       const timeoutId = usersActive[deviceId]?.qrCode.timeoutId;
       if (timeoutId) clearTimeout(timeoutId);
 

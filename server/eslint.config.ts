@@ -55,7 +55,7 @@ export default [
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-non-null-assertion": "warn",
-      "no-console": "off", //! EDIT WHEN DONE
+      "no-console": "error", 
       "no-unused-vars": "off",
       "no-undef": "warn",
       "no-empty": "warn",
