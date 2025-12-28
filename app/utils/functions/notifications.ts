@@ -5,14 +5,13 @@ import {
   ReasonNotification,
 } from "@types";
 import { log } from "./debug";
-import isEqual from "react-fast-compare";
+import { tTyped } from "../translates";
 import * as notifications from "expo-notifications";
 import NotificationModule from "../modules/NotificationModule";
 import { Platform, Falsy } from "react-native";
-import { getNotifications } from "./appManagement";
 import { reasonNotification } from "../constants";
+import { areEqualValues, getNotifications } from "./appManagement";
 import { loadDataStorage, saveDataStorage } from "./storageManagement";
-import { tTyped } from "../translates";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -36,10 +35,7 @@ export const isNotificationsAlreadyInitialized = (
   const keysEnabled = Object.keys(enabled || {});
   const keysIntervals = Object.keys(intervals || {});
 
-  return (
-    isEqual(keysEnabled, reasonNotification) &&
-    isEqual(keysIntervals, reasonNotification)
-  );
+  return areEqualValues(true, keysEnabled, keysIntervals, reasonNotification);
 };
 
 /**

@@ -1,12 +1,10 @@
 import {
   Notifications,
-  typeLanguagesKeys,
   ReasonNotification,
   RequestDatabaseUpdate,
 } from "@types";
 import {
   memoDeep,
-  stringifyData,
   fetchToServer,
   loadDataStorage,
   saveDataStorage,
@@ -16,6 +14,7 @@ import {
   askLocationPermission,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
+import { isEqual } from "lodash";
 import { FlatList } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
@@ -205,19 +204,14 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
                 value={item.enabled}
                 onChange={() => handleChangeNotification(item.id)}
               />
-              <Text style={styles.notificationKey}>
-                {t(item.id as typeLanguagesKeys)}
-              </Text>
+              <Text style={styles.notificationKey}>{t(item.id)}</Text>
             </>
           </Button>
           {item.enabled && minutesItem > -1 && (
             <TextInput
               value={minutesItem?.toString()}
               onChangeText={(text) =>
-                handleChangeNotificationInterval(
-                  item.id as ReasonNotification,
-                  text,
-                )
+                handleChangeNotificationInterval(item.id, text)
               }
               keyboardType="numeric"
               label={t("notificationInterval")}
@@ -279,10 +273,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         },
       };
 
-      if (
-        stringifyData(oldNotifications) === stringifyData(updatedNotifications)
-      )
-        return;
+      if (isEqual(oldNotifications, updatedNotifications)) return;
 
       setNotifications(updatedNotifications);
       sendMessageRef.current("main", {
@@ -296,7 +287,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
     const id = setTimeoutPolyfill(saveIntervals, 1000);
 
     return () => clearTimeoutPolyfill(id);
-  }, [minutes, notifications, sendMessageRef, userData]);
+  }, [minutes, notifications, sendMessageRef, userData?.userId]);
 
   return (
     <FlatList

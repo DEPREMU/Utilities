@@ -11,11 +11,6 @@
     "finalPath": "android/app/src/main/res/xml/"
   },
   {
-    "name": "keyboard_layout.xml",
-    "initPath": "native/",
-    "finalPath": "android/app/src/main/res/layout/"
-  },
-  {
     "name": "KeyboardModule.kt",
     "initPath": "native/",
     "finalPath": "android/app/src/main/java/"
@@ -82,5 +77,10 @@
     "name": "autocomplete_es.txt",
     "initPath": "native/autocomplete/",
     "finalPath": "android/app/src/main/assets/"
+  },
+  {
+    "name": "key_press.mp3",
+    "initPath": "native/raw/",
+    "finalPath": "android/app/src/main/res/raw/"
   }
 ]

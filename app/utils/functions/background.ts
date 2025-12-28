@@ -1,5 +1,5 @@
 import {
-  stringifyData,
+  areEqualValues,
   getNotifications,
   setTimeoutPolyfill,
 } from "./appManagement";
@@ -89,7 +89,7 @@ export const askLocationPermission = async (): Promise<boolean> => {
   const notifications = await getNotifications();
   const newNotifications = { ...notifications };
   newNotifications.enabled.locationEnabled = granted;
-  if (stringifyData(notifications) !== stringifyData(newNotifications))
+  if (!areEqualValues(false, notifications, newNotifications))
     await saveDataStorage("NOTIFICATIONS", newNotifications);
 
   return granted;

@@ -16,4 +16,4 @@ until curl -sSf --connect-timeout 5 http://www.google.com/generate_204 >/dev/nul
 done
 git pull
 yarn install
-yarn run server
+NODE_ENV=production yarn run server

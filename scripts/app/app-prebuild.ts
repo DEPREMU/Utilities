@@ -22,6 +22,66 @@ const getPath = (relativePath: string) => {
   return pathLocal;
 };
 
+const addStringToXML = async () => {
+  const stringsXMLPathEn = getPath(
+    "android/app/src/main/res/values/strings.xml"
+  );
+  const stringsXMLPathEs = getPath("android/app/src/main/res/values-es");
+  const stringsPathNative = getPath("native/strings.xml");
+
+  const stringsNative = fs.readFileSync(stringsPathNative, "utf8");
+
+  const es = stringsNative.match(/<es>[\s\S]*<\/es>/g)?.[0];
+  const en = stringsNative.match(/<en>[\s\S]*<\/en>/g)?.[0];
+
+  if (!es || !en) {
+    console.error(
+      chalk.red("Could not find <en> or <es> sections in native strings.xml")
+    );
+    return;
+  }
+
+  const stringsDefault = fs.readFileSync(stringsXMLPathEn, "utf8");
+
+  const newEn = stringsDefault.replace(
+    /<\/(resource|resources)>/g,
+    `${en.replace(/<\/?en>/g, "").trim()}\n</$1>`
+  );
+
+  const newEs = stringsDefault.replace(
+    /<\/(resource|resources)>/g,
+    `${es.replace(/<\/?es>/g, "").trim()}\n</$1>`
+  );
+
+  fs.writeFileSync(stringsXMLPathEn, newEn);
+  fs.writeFileSync(path.join(stringsXMLPathEs, "strings.xml"), newEs);
+};
+
+const addDependencies = async () => {
+  console.log(chalk.blue("Adding dependencies to build.gradle..."));
+
+  const buildGradlePath = getPath("android/app/build.gradle");
+  const buildGradleContent = fs.readFileSync(buildGradlePath, "utf8");
+
+  const dependenciesToAdd = [
+    'implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")',
+  ];
+
+  let newContent = buildGradleContent;
+
+  dependenciesToAdd.forEach((dependency) => {
+    if (!newContent.includes(dependency)) {
+      newContent = newContent.replace(
+        /dependencies\s*{/,
+        `dependencies {\n    ${dependency}`
+      );
+    }
+  });
+
+  fs.writeFileSync(buildGradlePath, newContent);
+  console.log(chalk.green("Dependencies added to build.gradle."));
+};
+
 const editMainApplication = async () => {
   console.log(chalk.blue("Editing MainApplication.kt..."));
 
@@ -103,7 +163,7 @@ const createModules = async () => {
 
     const content = fs
       .readFileSync(path.resolve(modulePath, module.name), "utf8")
-      .replace("{{packageName}}", packageName);
+      .replace(/\{\{packageName\}\}/g, packageName);
 
     const finalPath =
       module.finalPath +
@@ -118,6 +178,8 @@ const createModules = async () => {
   await modifyAndroidManifest(modules.map((m) => m.service || ""));
   await addPermissionsToManifest(modules.flatMap((m) => m.permissions || []));
   await editMainApplication();
+  await addDependencies();
+  await addStringToXML();
   console.log(chalk.green("Prebuild process completed."));
 };
 

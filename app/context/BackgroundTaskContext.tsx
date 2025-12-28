@@ -125,9 +125,9 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 }) => {
   const { t } = useLanguage();
   const { hasInternetRef, hasInternet } = useBackground();
+  const { initIntervalTimeouts, deleteIntervalTimeout } = useBackground();
   const { isLoggedIn, refreshTokenRef, setLoggingIn, setIsLoggedIn } =
     useUserContext();
-  const { initIntervalTimeouts, deleteIntervalTimeout } = useBackground();
 
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);

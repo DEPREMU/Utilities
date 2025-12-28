@@ -174,7 +174,7 @@ export const downloadNewUpdate = async (downloadUrl: string) => {
   });
 };
 
-export const updateWebHTML = async (downloadUrl: string): Promise<void> => {
+export const updateWebJS = async (downloadUrl: string): Promise<void> => {
   try {
     const response = await axios.get<string>(downloadUrl, {
       responseType: "text",
@@ -215,8 +215,9 @@ export const updateWebHTML = async (downloadUrl: string): Promise<void> => {
 
     writeLog("Web HTML updated correctly.", "info");
   } catch (error) {
-    console.error("Error updating Web HTML:", error);
-    writeLog("Error updating Web HTML", "error");
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error updating Web HTML:", errorMessage);
+    writeLog("Error updating Web HTML: " + errorMessage, "error");
   }
 };
 
@@ -268,9 +269,10 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
     dataApp.setValue("isUpdating", true);
 
     if (buildType === "electron") await downloadNewUpdate(data.downloadUrl);
-    else await updateWebHTML(data.downloadUrl);
+    else await updateWebJS(data.downloadUrl);
   } catch (error) {
-    console.error("Error verifying new update:", error);
-    writeLog("Error verifying new update", "error");
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error verifying new update:", errorMessage);
+    writeLog("Error verifying new update: " + errorMessage, "error");
   }
 };

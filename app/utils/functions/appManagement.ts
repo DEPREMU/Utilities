@@ -438,6 +438,53 @@ export const memoDeep = <P extends React.FC<any>>(Component: P): P =>
   React.memo(Component, isEqual) as unknown as P;
 
 /**
+ * Compares multiple values for equality using either JSON stringification or deep equality check.
+ *
+ * @param useStringify - When true, compares values using JSON stringification; when false, uses deep equality comparison via isEqual
+ * @param values - Variable number of values to compare for equality
+ * @returns True if all values are equal, false otherwise. Returns true if fewer than 2 values are provided
+ *
+ * @remarks
+ * - If fewer than 2 values are provided, returns true by default
+ * - For 2 values, performs a direct comparison
+ * - For 3 or more values, compares each subsequent value against the first value
+ * - When using stringify mode, values are compared as JSON strings
+ * - When not using stringify mode, values are compared using the isEqual function for deep equality
+ *
+ * @example
+ * ```typescript
+ * areEqualValues(true, {a: 1}, {a: 1}, {a: 1}); // true
+ * areEqualValues(false, [1, 2], [1, 2]); // true
+ * areEqualValues(false, [2, 1], [1, 2]); // false
+ * areEqualValues(true, [1, 2], [1, 2]); // true
+ * areEqualValues(true, [2, 1], [1, 2]); // true
+ * areEqualValues(true, "hello", "world"); // false
+ * ```
+ */
+export const areEqualValues = (
+  useStringify: boolean,
+  ...values: unknown[]
+): boolean => {
+  if (values.length < 2) return true;
+
+  if (values.length < 3) {
+    if (useStringify)
+      return stringifyData(values[0]) === stringifyData(values[1]);
+    return isEqual(values[0], values[1]);
+  } else {
+    const stringifiedValue = useStringify ? stringifyData(values[0]) : null;
+    for (let i = 1; i < values.length; i++) {
+      if (useStringify) {
+        if (stringifiedValue !== stringifyData(values[i])) return false;
+      } else {
+        if (!isEqual(values[0], values[i])) return false;
+      }
+    }
+  }
+  return true;
+};
+
+/**
  * Opens a document picker to select one or more image files.
  *
  * @param settings - Optional configuration for the document picker. Can include custom options
