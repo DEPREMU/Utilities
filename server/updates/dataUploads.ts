@@ -110,7 +110,7 @@ export const updateDataUploads = (
         timestamp: Date.now(),
       };
 
-    if (!["1", "true"].includes(env.__DEV__))
+    if (!["1", 1, "true"].includes(env.__DEV__))
       fs.writeFileSync(
         PATH_DATA_UPDATES,
         JSON.stringify(dataUploads, null, 2),

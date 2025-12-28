@@ -58,25 +58,20 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.lang.ref.WeakReference
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 import {{packageName}}.R
 
 class CustomKeyboard :
     InputMethodService(),
     DefaultHardwareBackBtnHandler {
-    private lateinit var rootLayout: LinearLayout
-    private var suggestionsContainer: LinearLayout? = null
-    private var selectionActionsContainer: LinearLayout? = null
-    private var clipboardContainer: LinearLayout? = null
-    private var clipboardScroll: HorizontalScrollView? = null
-    private var keyboardModesContainer: LinearLayout? = null
-    private var lettersKeyboardContainer: LinearLayout? = null
-    private var symbolsKeyboardContainer: LinearLayout? = null
-    private var specialKeyboardContainer: LinearLayout? = null
-    private var clipboardSuggestions: List<String> = emptyList()
+    private lateinit var layoutManager: KeyboardLayout
+    private lateinit var listenerProvider: KeyboardListenerProvider
+    private lateinit var inputProcessor: InputProcessor
+
     private var capsMode: CapsMode = CapsMode.OFF
+    private var currentKeyboardLayout: List<List<String>> = defaultLayout
+    private var lettersLayoutBackup: List<List<String>> = defaultLayout
+    private var currentMode: InputMode = InputMode.LETTERS
     private var autoCapSuppressed: Boolean = false
     private var lastAutoCapitalizeNext: Boolean = true
     private var isBackspaceRepeating: Boolean = false
@@ -84,11 +79,6 @@ class CustomKeyboard :
     private var lastShiftTapTimeMs: Long = 0L
     private var backspaceTapCount: Int = 0
     private var lastBackspaceTapTimeMs: Long = 0L
-    private var lastSpaceTapTimeMs: Long = 0L
-
-    private var accentPopup: PopupWindow? = null
-    private var accentPopupView: LinearLayout? = null
-    private var activeAccentView: TextView? = null
 
     private var soundPool: SoundPool? = null
     private var keyClickSoundId: Int = 0
@@ -120,205 +110,32 @@ class CustomKeyboard :
 
     private var keyboardHeightFactor: Float = 1.0f
     private var keyGapPx: Int = 0
-    private var cornerRadiusPx: Int = 0
     private var vibrationDurationMs: Int = 0
     private var longPressDelayMs: Long = 400L
-    private var customThemeEnabled: Boolean = false
-    private var customBgColor: Int = 0
-    private var customKeyColor: Int = 0
-    private var customAccentColor: Int = 0
     private var keyTextSizePx: Float = 0f
+
+    private lateinit var themeManager: KeyboardThemeManager
+    private lateinit var themeDialogs: KeyboardThemeDialogs
 
     private val userDictionary = mutableSetOf<String>()
     private var speechRecognizer: SpeechRecognizer? = null
-    private var keyPreviewPopup: PopupWindow? = null
-    private var popupTextView: TextView? = null
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
-        dismissKeyPreview()
+        layoutManager.dismissKeyPreview()
         suggestionsJob?.cancel()
     }
 
     override fun onWindowHidden() {
         super.onWindowHidden()
-        dismissKeyPreview()
+        layoutManager.dismissKeyPreview()
         suggestionsJob?.cancel()
         dictionaryLoadJob?.cancel()
         speechRecognizer?.destroy()
     }
 
-    private fun showKeyPreview(key: View, label: String) {
-        if (label.isEmpty()) return
-        
-        if (keyPreviewPopup == null) {
-            val context = this
-            popupTextView = TextView(context).apply {
-                setTextColor(paletteTextColor)
-                textSize = 30f 
-                gravity = Gravity.CENTER
-                setBackgroundColor(paletteKeyBackgroundColor)
-                setPadding(px10, px10, px10, px10)
-                
-                background = GradientDrawable().apply {
-                    setColor(paletteKeyBackgroundColor)
-                    cornerRadius = cornerRadiusPx.toFloat()
-                    setStroke(dpToPx(1), paletteAccentColor)
-                }
-            }
-            
-            keyPreviewPopup = PopupWindow(popupTextView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                isTouchable = false
-                isFocusable = false
-                inputMethodMode = PopupWindow.INPUT_METHOD_NOT_NEEDED
-                elevation = 10f
-            }
-        }
-
-        popupTextView?.apply {
-            text = label
-            setTextColor(paletteTextColor)
-            (background as? GradientDrawable)?.setColor(paletteKeyBackgroundColor)
-            measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
-        }
-
-        val location = IntArray(2)
-        key.getLocationInWindow(location)
-        
-        val popupWidth = popupTextView?.measuredWidth ?: 0
-        val popupHeight = popupTextView?.measuredHeight ?: 0
-        
-        val finalX = location[0] + (key.width - popupWidth) / 2
-        val finalY = location[1] - popupHeight - px10
-
-        if (keyPreviewPopup?.isShowing == true) {
-            keyPreviewPopup?.update(finalX, finalY, -1, -1)
-        } else {
-            keyPreviewPopup?.showAtLocation(key, Gravity.NO_GRAVITY, finalX, finalY)
-        }
-    }
-
-    private fun dismissKeyPreview() {
-        keyPreviewPopup?.dismiss()
-    }
-
-    private fun showAccentPopup(key: View, accents: List<String>) {
-        if (accentPopup == null) {
-            accentPopupView = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                background = createKeyBackgroundStateList(paletteKeyBackgroundColor)
-                setPadding(px10, px10, px10, px10)
-            }
-            
-            
-            val scrollView = HorizontalScrollView(this).apply {
-                isHorizontalScrollBarEnabled = false
-                overScrollMode = View.OVER_SCROLL_NEVER
-                addView(accentPopupView)
-            }
-            
-            accentPopup = PopupWindow(scrollView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                isTouchable = false
-                isOutsideTouchable = false
-                elevation = px10.toFloat()
-            }
-        }
-
-        accentPopupView?.removeAllViews()
-        accents.forEach { accent ->
-            val tv = TextView(this).apply {
-                text = if (capsMode != CapsMode.OFF) accent.uppercase() else accent
-                textSize = 22f
-                setTextColor(paletteTextColor)
-                gravity = Gravity.CENTER
-                setPadding(px10, px10, px10, px10)
-                minWidth = px44
-                tag = accent
-            }
-            accentPopupView?.addView(tv)
-        }
-
-        val location = IntArray(2)
-        key.getLocationInWindow(location)
-        
-        val screenWidth = resources.displayMetrics.widthPixels
-        
-        
-        accentPopupView?.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
-        val contentWidth = accentPopupView?.measuredWidth ?: 0
-        val contentHeight = accentPopupView?.measuredHeight ?: 0
-        
-        
-        val margin = px4
-        val maxPopupWidth = screenWidth - (margin * 2)
-        val popupWidth = contentWidth.coerceAtMost(maxPopupWidth)
-        
-        accentPopup?.width = popupWidth
-        
-        var finalX = location[0] + (key.width - popupWidth) / 2
-        
-        
-        if (finalX + popupWidth > screenWidth - margin) {
-            finalX = screenWidth - popupWidth - margin
-        }
-        if (finalX < margin) {
-            finalX = margin
-        }
-        
-        val finalY = location[1] - contentHeight - px10
-
-        accentPopup?.showAtLocation(key, Gravity.NO_GRAVITY, finalX, finalY)
-        activeAccentView = null
-    }
-
-    private fun dismissAccentPopup() {
-        accentPopup?.dismiss()
-        activeAccentView = null
-    }
-
-    private fun handleAccentSelection(event: MotionEvent) {
-        val popupView = accentPopupView ?: return
-        val popup = accentPopup ?: return
-        if (!popup.isShowing) return
-
-        val location = IntArray(2)
-        popupView.getLocationOnScreen(location)
-        val x = event.rawX - location[0]
-        
-        var found: TextView? = null
-        for (i in 0 until popupView.childCount) {
-            val child = popupView.getChildAt(i) as TextView
-            if (x >= child.left && x <= child.right) {
-                found = child
-                break
-            }
-        }
-
-        if (found != activeAccentView) {
-            activeAccentView?.setBackgroundColor(Color.TRANSPARENT)
-            activeAccentView = found
-            activeAccentView?.setBackgroundColor(paletteAccentColor)
-        }
-    }
-
-    private fun commitAccentSelection() {
-        val view = activeAccentView ?: return
-        val accent = view.tag as? String ?: return
-        commitKeyWithCaps(accent)
-        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-    }
-
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(serviceJob + Dispatchers.Main.immediate)
-
-    private data class KeyButtonRef(
-        val raw: String,
-        val lower: String,
-        val button: Button,
-    )
-
-    private val keyButtonRefs: MutableList<KeyButtonRef> = mutableListOf()
-    private var capsButtonRef: Button? = null
 
     private val suggestionEngine = SuggestionEngine(MAX_SUGGESTIONS)
 
@@ -334,23 +151,6 @@ class CustomKeyboard :
         AZERTY("azerty"),
     }
 
-    private enum class ThemeMode(
-        val prefValue: String,
-    ) {
-        DARK("dark"),
-        LIGHT("light"),
-        SYSTEM("system"),
-    }
-
-    private enum class BackgroundMode(
-        val prefValue: String,
-    ) {
-        TRANSPARENT("transparent"),
-        DARK("dark"),
-        LIGHT("light"),
-        SYSTEM("system"),
-    }
-
     private var dictionaryLoadJob: Job? = null
     private var currentAutocompleteMode: AutocompleteMode? = null
     private var currentLayoutStyle: LayoutStyle = LayoutStyle.QWERTY
@@ -358,20 +158,15 @@ class CustomKeyboard :
     private var cachedEsSnapshot: SuggestionEngine.Snapshot? = null
     private var cachedBothSnapshot: SuggestionEngine.Snapshot? = null
 
-    private var currentThemeMode: ThemeMode = ThemeMode.SYSTEM
-    private var currentBackgroundMode: BackgroundMode = BackgroundMode.SYSTEM
-
-    private val suggestionButtons: Array<Button?> = arrayOfNulls(MAX_SUGGESTIONS)
-    private val suggestionSlotValues: Array<String?> = arrayOfNulls(MAX_SUGGESTIONS)
     private var suggestionSlotsCapitalizeFirst: Boolean = false
 
-    private enum class InputMode {
+    enum class InputMode {
         LETTERS,
         SYMBOLS,
         SPECIAL,
     }
 
-    private enum class CapsMode {
+    enum class CapsMode {
         OFF,
         SINGLE,
         LOCK,
@@ -381,10 +176,6 @@ class CustomKeyboard :
 
     private var suggestionsJob: Job? = null
     private var suggestionsRequestId: Long = 0L
-
-    private var lastAutoCorrectOriginal: String? = null
-    private var lastAutoCorrectReplacement: String? = null
-    private var ignoreAutoCorrectWord: String? = null
 
     private var isPrivateMode: Boolean = false
     private var areSuggestionsEnabled: Boolean = true
@@ -410,21 +201,127 @@ class CustomKeyboard :
         return systemVolume > 0 || musicVolume > 0
     }
 
-    private var paletteTextColor: Int = Color.BLACK
-    private var paletteBackgroundColor: Int = Color.WHITE
-    private var paletteKeyBackgroundColor: Int = 0
-    private var paletteAccentColor: Int = 0
-    private var paletteCapsNeutralColor: Int = 0
-    private var paletteCapsMediumColor: Int = 0
-    private var paletteCapsStrongColor: Int = 0
-    private var paletteCapsStrongTextColor: Int = Color.WHITE
+
+
+    private fun observeClipboard() {
+        serviceScope.launch {
+            ClipboardRepository.clipboardItems.collect { items ->
+                withContext(Dispatchers.Main) {
+                    renderClipboardSuggestions()
+                }
+            }
+        }
+    }
+
+    private fun observeCommands() {
+        serviceScope.launch {
+            KeyboardCommandRepository.commands.collect { command ->
+                withContext(Dispatchers.Main) {
+                    handleCommand(command)
+                }
+            }
+        }
+    }
+
+    private fun handleCommand(command: KeyboardCommandRepository.Command) {
+        when (command) {
+            is KeyboardCommandRepository.Command.CommitText -> commitText(command.text)
+            is KeyboardCommandRepository.Command.Delete -> deleteFromInputConnection()
+            is KeyboardCommandRepository.Command.Enter -> sendEnter()
+            is KeyboardCommandRepository.Command.SetLayout -> setKeyboardLayoutInstance(command.layout)
+            is KeyboardCommandRepository.Command.ResetLayout -> resetKeyboardLayoutInstance()
+            is KeyboardCommandRepository.Command.SetInputMode -> { /* TODO */ }
+        }
+    }
+
+    private fun setKeyboardLayoutInstance(layout: List<List<String>>) {
+        currentKeyboardLayout = layout
+        rebuildOnUiThread()
+    }
+
+    private fun resetKeyboardLayoutInstance() {
+        currentKeyboardLayout = lettersLayoutBackup
+        rebuildOnUiThread()
+    }
 
     override fun onCreate() {
         super.onCreate()
-        instanceRef.set(WeakReference(this))
+        inputProcessor = InputProcessor(this)
+        themeManager = KeyboardThemeManager(this)
+        themeManager.loadPreferences()
+
+        observeClipboard()
+        observeCommands()
+
+        listenerProvider = object : KeyboardListenerProvider {
+            override fun getKeyClickListener() = keyClickListener
+            override fun getSuggestionClickListener() = suggestionClickListener
+            override fun getKeyTouchListener(key: String): View.OnTouchListener {
+                val lower = key.lowercase()
+                return when (lower) {
+                    "space" -> SpaceTouchListener()
+                    "backspace" -> BackspaceTouchListener()
+                    "caps" -> ShiftTouchListener()
+                    else -> StandardKeyTouchListener(key, lower)
+                }
+            }
+            override fun getKeyLongClickListener(key: String): View.OnLongClickListener? {
+                val lower = key.lowercase()
+                return when (lower) {
+                    "backspace" -> View.OnLongClickListener {
+                        startBackspaceRepeat()
+                        true
+                    }
+                    "space" -> View.OnLongClickListener {
+                        openKeyboardConfigDialog()
+                        true
+                    }
+                    "," -> View.OnLongClickListener {
+                        startVoiceInput()
+                        true
+                    }
+                    "caps" -> View.OnLongClickListener {
+                        setCapsMode(CapsMode.LOCK)
+                        true
+                    }
+                    else -> null
+                }
+            }
+            override fun getCopyClickListener() = View.OnClickListener {
+                val text = currentInputConnection?.getSelectedText(0)
+                if (text != null) copySelection(text.toString())
+            }
+            override fun getCutClickListener() = View.OnClickListener {
+                val text = currentInputConnection?.getSelectedText(0)
+                if (text != null) cutSelection(text.toString())
+            }
+            override fun getClipboardItemClickListener(text: String) = View.OnClickListener { pasteClipboardItem(text) }
+            override fun getClipboardItemLongClickListener(text: String) = View.OnLongClickListener { showClipboardDialog(text); true }
+            override fun commitKey(key: String) {
+                commitKeyWithCaps(key)
+            }
+        }
+        layoutManager = KeyboardLayout(this, themeManager, listenerProvider)
+
+        themeDialogs = KeyboardThemeDialogs(
+            context = this,
+            themeManager = themeManager,
+            onThemeChanged = {
+                themeManager.initPalette(isPrivateMode)
+                applyPaletteToCurrentViews()
+            },
+            onRebuild = {
+                initPxCache()
+                rebuildOnUiThread()
+            },
+            onNavigate = { screen ->
+                if (screen == "main") openKeyboardConfigDialog()
+            },
+            getWindowToken = {
+                window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token
+            }
+        )
         initPxCache()
-        currentThemeMode = getOrInitSavedThemeMode()
-        currentBackgroundMode = getOrInitSavedBackgroundMode()
         currentLayoutStyle = getOrInitSavedLayoutStyle()
         
         lettersLayoutBackup = when (currentLayoutStyle) {
@@ -438,7 +335,7 @@ class CustomKeyboard :
             userDictionary.addAll(savedUserWords)
         }
 
-        initPalette()
+        themeManager.initPalette(isPrivateMode)
 
         
         val audioAttributes = AudioAttributes.Builder()
@@ -453,18 +350,17 @@ class CustomKeyboard :
         
         keyClickSoundId = try {
             soundPool?.load(this, R.raw.key_press, 1) ?: 0
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             0
         }
 
-        
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         initPxCache()
-        initPalette()
+        themeManager.initPalette(isPrivateMode)
         rebuildOnUiThread()
     }
 
@@ -477,7 +373,7 @@ class CustomKeyboard :
 
         if (isPrivateMode != newPrivateMode) {
             isPrivateMode = newPrivateMode
-            initPalette()
+            themeManager.initPalette(isPrivateMode)
             applyPaletteToCurrentViews()
         } else {
             isPrivateMode = newPrivateMode
@@ -493,7 +389,7 @@ class CustomKeyboard :
 
         if (!areSuggestionsEnabled) {
             suggestionsJob?.cancel()
-            suggestionsContainer?.visibility = View.GONE
+            layoutManager.suggestionsContainer?.visibility = View.GONE
             renderSuggestions(emptyList(), capitalizeFirst = false)
         }
 
@@ -573,9 +469,9 @@ class CustomKeyboard :
             cachedBothSnapshot = null
             
             
-            dismissKeyPreview()
-            keyPreviewPopup = null
-            popupTextView = null
+            layoutManager.dismissKeyPreview()
+            layoutManager.keyPreviewPopup = null
+            layoutManager.popupTextView = null
             
             
             dictionaryLoadJob?.cancel()
@@ -590,177 +486,43 @@ class CustomKeyboard :
         dictionaryLoadJob?.cancel()
         serviceScope.cancel()
         speechRecognizer?.destroy()
-        instanceRef.set(null)
         soundPool?.release()
         soundPool = null
     }
 
     override fun onCreateInputView(): View {
-        rootLayout =
-            LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams =
-                    LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                    )
-                setBackgroundColor(paletteBackgroundColor)
-                setPadding(px8, px8, px8, px8)
-            }
+        val root = layoutManager.createRootLayout()
         rebuildLayout()
         val mode = getOrInitSavedAutocompleteMode()
         applyAutocompleteMode(mode, persist = false)
-        return rootLayout
+        return root
     }
 
-    private fun initPalette() {
-        val systemIsDark =
-            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        val isDark =
-            when (currentThemeMode) {
-                ThemeMode.DARK -> true
-                ThemeMode.LIGHT -> false
-                ThemeMode.SYSTEM -> systemIsDark
-            }
 
-        val fallbackTextColor = if (isDark) Color.WHITE else Color.BLACK
-        val fallbackBackgroundColor = if (isDark) 0xFF121212.toInt() else Color.WHITE
-        val fallbackKeyBackgroundColor = if (isDark) 0xFF2A2A2A.toInt() else 0xFFE6E6E6.toInt()
-        val fallbackAccentColor = if (isDark) 0xFF7AA2FF.toInt() else 0xFF2B7CFF.toInt()
-
-        val useThemeAttrs = currentThemeMode == ThemeMode.SYSTEM
-        paletteTextColor = if (useThemeAttrs) resolveThemeColor(
-            android.R.attr.textColorPrimary,
-            fallbackTextColor
-        ) else fallbackTextColor
-        val baseBackground = if (useThemeAttrs) resolveThemeColor(
-            android.R.attr.colorBackground,
-            fallbackBackgroundColor
-        ) else fallbackBackgroundColor
-        paletteKeyBackgroundColor = if (useThemeAttrs) resolveThemeColor(
-            android.R.attr.colorButtonNormal,
-            fallbackKeyBackgroundColor
-        ) else fallbackKeyBackgroundColor
-        paletteAccentColor = if (useThemeAttrs) resolveThemeColor(
-            android.R.attr.colorAccent,
-            fallbackAccentColor
-        ) else fallbackAccentColor
-
-        if (customThemeEnabled) {
-            paletteBackgroundColor = customBgColor
-            paletteKeyBackgroundColor = customKeyColor
-            paletteAccentColor = customAccentColor
-        } else {
-            paletteBackgroundColor =
-                when (currentBackgroundMode) {
-                    BackgroundMode.TRANSPARENT -> Color.TRANSPARENT
-                    BackgroundMode.DARK -> 0xFF121212.toInt()
-                    BackgroundMode.LIGHT -> Color.WHITE
-                    BackgroundMode.SYSTEM -> baseBackground
-                }
-        }
-
-        if (isPrivateMode) {
-            paletteBackgroundColor = blendColors(paletteBackgroundColor, 0xFF200020.toInt(), 0.2f)
-            paletteKeyBackgroundColor = blendColors(paletteKeyBackgroundColor, 0xFF303030.toInt(), 0.1f)
-        }
-
-        paletteCapsNeutralColor = paletteKeyBackgroundColor
-        paletteCapsStrongColor = paletteAccentColor
-        paletteCapsMediumColor = blendColors(paletteKeyBackgroundColor, paletteAccentColor, 0.45f)
-        paletteCapsStrongTextColor =
-            if (isColorDark(paletteCapsStrongColor)) Color.WHITE else Color.BLACK
-    }
 
     private fun refreshAppearanceFromPrefsIfNeeded() {
-        val savedTheme = getOrInitSavedThemeMode()
-        val savedBackground = getOrInitSavedBackgroundMode()
+        val savedTheme = themeManager.getOrInitSavedThemeMode()
+        val savedBackground = themeManager.getOrInitSavedBackgroundMode()
 
-        if (savedTheme == currentThemeMode && savedBackground == currentBackgroundMode) {
-            if (currentThemeMode == ThemeMode.SYSTEM || currentBackgroundMode == BackgroundMode.SYSTEM) {
-                initPalette()
+        if (savedTheme == themeManager.currentThemeMode && savedBackground == themeManager.currentBackgroundMode) {
+            if (themeManager.currentThemeMode == KeyboardThemeManager.ThemeMode.SYSTEM || themeManager.currentBackgroundMode == KeyboardThemeManager.BackgroundMode.SYSTEM) {
+                themeManager.initPalette(isPrivateMode)
                 applyPaletteToCurrentViews()
             }
             return
         }
 
-        currentThemeMode = savedTheme
-        currentBackgroundMode = savedBackground
-        initPalette()
+        themeManager.currentThemeMode = savedTheme
+        themeManager.currentBackgroundMode = savedBackground
+        themeManager.initPalette(isPrivateMode)
         applyPaletteToCurrentViews()
     }
 
     private fun applyPaletteToCurrentViews() {
-        rootLayout.setBackgroundColor(paletteBackgroundColor)
-
-        keyButtonRefs.forEach { ref ->
-            if (ref.lower == "caps") {
-                applyCapsButtonStyle(ref.button, effectiveCapsMode())
-            } else {
-                applyButtonBackground(ref.button, paletteKeyBackgroundColor)
-                ref.button.setTextColor(paletteTextColor)
-            }
-        }
-
-        suggestionButtons.forEach { btn ->
-            if (btn != null) {
-                applyButtonBackground(btn, paletteKeyBackgroundColor)
-                btn.setTextColor(paletteTextColor)
-            }
-        }
-
-        val selectionContainer = selectionActionsContainer
-        if (selectionContainer != null) {
-            for (i in 0 until selectionContainer.childCount) {
-                val child = selectionContainer.getChildAt(i)
-                if (child is Button) {
-                    applyButtonBackground(child, paletteKeyBackgroundColor)
-                    child.setTextColor(paletteTextColor)
-                }
-            }
-        }
-
-        val clipContainer = clipboardContainer
-        if (clipContainer != null) {
-            for (i in 0 until clipContainer.childCount) {
-                val child = clipContainer.getChildAt(i)
-                if (child is Button) {
-                    applyButtonBackground(child, paletteKeyBackgroundColor)
-                    child.setTextColor(paletteTextColor)
-                }
-            }
-        }
+        layoutManager.applyPaletteToCurrentViews(effectiveCapsMode())
     }
 
-    private fun applyButtonBackground(button: Button, baseColor: Int) {
-        button.backgroundTintList = null
-        button.background = createKeyBackgroundStateList(baseColor)
-    }
 
-    private fun createKeyBackgroundStateList(baseColor: Int): StateListDrawable {
-        return StateListDrawable().apply {
-            addState(
-                intArrayOf(android.R.attr.state_pressed),
-                createKeyBackground(baseColor, pressed = true)
-            )
-            addState(intArrayOf(), createKeyBackground(baseColor, pressed = false))
-        }
-    }
-
-    private fun createKeyBackground(baseColor: Int, pressed: Boolean): GradientDrawable {
-        val topBlend = if (pressed) 0.22f else 0.10f
-        val bottomBlend = if (pressed) 0.14f else 0.04f
-
-        val top = blendColors(baseColor, paletteAccentColor, topBlend)
-        val bottom = blendColors(baseColor, paletteAccentColor, bottomBlend)
-
-        return GradientDrawable(
-            GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(top, bottom),
-        ).apply {
-            cornerRadius = cornerRadiusPx.toFloat()
-        }
-    }
 
 
     private fun sendDpadKey(keyCode: Int, isSelection: Boolean = false) {
@@ -801,88 +563,17 @@ class CustomKeyboard :
         }
     }
 
-    private fun resolveThemeColor(attr: Int, fallback: Int): Int {
-        val tv = TypedValue()
-        val resolved = theme.resolveAttribute(attr, tv, true)
-        if (!resolved) return fallback
-        return if (tv.resourceId != 0) {
-            runCatching { resources.getColor(tv.resourceId, theme) }.getOrElse { fallback }
-        } else {
-            tv.data
-        }
-    }
 
-    private fun blendColors(a: Int, b: Int, t: Float): Int {
-        val clamped = t.coerceIn(0f, 1f)
-        val ar = Color.red(a)
-        val ag = Color.green(a)
-        val ab = Color.blue(a)
-        val aa = Color.alpha(a)
-
-        val br = Color.red(b)
-        val bg = Color.green(b)
-        val bb = Color.blue(b)
-        val ba = Color.alpha(b)
-
-        val r = (ar + ((br - ar) * clamped)).toInt()
-        val g = (ag + ((bg - ag) * clamped)).toInt()
-        val bl = (ab + ((bb - ab) * clamped)).toInt()
-        val al = (aa + ((ba - aa) * clamped)).toInt()
-        return Color.argb(al, r, g, bl)
-    }
-
-    private fun isColorDark(color: Int): Boolean {
-        val r = Color.red(color) / 255.0
-        val g = Color.green(color) / 255.0
-        val b = Color.blue(color) / 255.0
-        val luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
-        return luminance < 0.5
-    }
 
     private fun rebuildLayout() {
-        rootLayout.removeAllViews()
-        
-        val (scroll, container) = createClipboardContainer()
-        clipboardScroll = scroll
-        clipboardContainer = container
-        rootLayout.addView(scroll)
+        val letters = if (currentMode == InputMode.LETTERS) currentKeyboardLayout else lettersLayoutBackup
+        layoutManager.rebuildLayout(
+            lettersLayout = letters.ifEmpty { defaultLayout },
+            symbolsLayout = symbolsLayout,
+            specialLayout = specialLayout,
+            capsVisualMode = effectiveCapsMode()
+        )
 
-        val barContainer = FrameLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        }
-        rootLayout.addView(barContainer)
-
-        selectionActionsContainer = createSelectionActionsContainer()
-        suggestionsContainer = createSuggestionsContainer()
-        
-        barContainer.addView(suggestionsContainer)
-        barContainer.addView(selectionActionsContainer)
-
-        keyboardModesContainer =
-            LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams =
-                    LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                    )
-            }
-        rootLayout.addView(keyboardModesContainer)
-
-        lettersKeyboardContainer = createKeyboardContainer()
-        symbolsKeyboardContainer = createKeyboardContainer()
-        specialKeyboardContainer = createKeyboardContainer()
-
-        keyboardModesContainer?.addView(lettersKeyboardContainer)
-        keyboardModesContainer?.addView(symbolsKeyboardContainer)
-        keyboardModesContainer?.addView(specialKeyboardContainer)
-
-        rebuildKeyboardModeContainers()
-
-        ensureSuggestionButtons()
         refreshClipboardSource()
         updateSuggestions()
         updateSelectionActions()
@@ -893,92 +584,14 @@ class CustomKeyboard :
         setInputMode(currentMode)
     }
 
-    private fun createKeyboardContainer(): LinearLayout {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams =
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                )
-            visibility = View.GONE
-        }
-    }
 
-    private fun rebuildKeyboardModeContainers() {
-        val letters = lettersKeyboardContainer ?: return
-        val symbols = symbolsKeyboardContainer ?: return
-        val special = specialKeyboardContainer ?: return
-
-        letters.removeAllViews()
-        symbols.removeAllViews()
-        special.removeAllViews()
-
-        keyButtonRefs.clear()
-        capsButtonRef = null
-
-        val capsVisualMode = effectiveCapsMode()
-
-        buildKeyboardRows(
-            host = letters,
-            layout = lettersLayoutBackup.ifEmpty { defaultLayout },
-            capsVisualMode = capsVisualMode,
-            trackCapsKeys = true,
-        )
-        buildKeyboardRows(
-            host = symbols,
-            layout = symbolsLayout,
-            capsVisualMode = capsVisualMode,
-            trackCapsKeys = false,
-        )
-        buildKeyboardRows(
-            host = special,
-            layout = specialLayout,
-            capsVisualMode = capsVisualMode,
-            trackCapsKeys = false,
-        )
-    }
-
-    private fun buildKeyboardRows(
-        host: LinearLayout,
-        layout: List<List<String>>,
-        capsVisualMode: CapsMode,
-        trackCapsKeys: Boolean,
-    ) {
-        val rowPadding = px4
-        layout.forEach { row ->
-            val weights = row.map { keyWeight(it) }
-            val rowLayout =
-                LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    layoutParams =
-                        LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                        )
-                    setPadding(rowPadding, 0, rowPadding, 0)
-                }
-
-            row.forEachIndexed { index, keyLabel ->
-                rowLayout.addView(
-                    createKeyButton(
-                        keyLabel,
-                        weights[index],
-                        capsVisualMode,
-                        trackCapsKeys
-                    )
-                )
-            }
-            host.addView(rowLayout)
-        }
-    }
 
     private fun setInputMode(mode: InputMode) {
-        lettersKeyboardContainer?.visibility =
+        layoutManager.lettersKeyboardContainer?.visibility =
             if (mode == InputMode.LETTERS) View.VISIBLE else View.GONE
-        symbolsKeyboardContainer?.visibility =
+        layoutManager.symbolsKeyboardContainer?.visibility =
             if (mode == InputMode.SYMBOLS) View.VISIBLE else View.GONE
-        specialKeyboardContainer?.visibility =
+        layoutManager.specialKeyboardContainer?.visibility =
             if (mode == InputMode.SPECIAL) View.VISIBLE else View.GONE
 
         if (mode == InputMode.LETTERS) {
@@ -987,221 +600,9 @@ class CustomKeyboard :
         }
     }
 
-    private fun createSuggestionsContainer(): LinearLayout {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams =
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    px56,
-                )
-            visibility = View.GONE
-            setPadding(px4, px4, px4, px8)
-        }
-    }
 
-    private fun createSelectionActionsContainer(): LinearLayout {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams =
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    px56,
-                )
-            visibility = View.GONE
-            setPadding(px4, px6, px4, px4)
-        }
-    }
 
-    private fun createClipboardContainer(): Pair<HorizontalScrollView, LinearLayout> {
-        val inner =
-            LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutParams =
-                    LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                    )
-                visibility = View.VISIBLE
-                setPadding(px4, px4, px4, px6)
-            }
 
-        val scroll =
-            HorizontalScrollView(this).apply {
-                layoutParams =
-                    LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        px56,
-                    )
-                isHorizontalScrollBarEnabled = false
-                addView(inner)
-                visibility = View.GONE
-            }
-
-        return Pair(scroll, inner)
-    }
-
-    private fun createKeyButton(
-        label: String,
-        weight: Float,
-        capsVisualMode: CapsMode,
-        trackCapsKeys: Boolean,
-    ): View {
-        val normalized = label.trim()
-        val lower = normalized.lowercase()
-
-        val displayText =
-            when (lower) {
-                "backspace" -> "⌫"
-                "enter" -> "⏎"
-                "caps" -> "⇧"
-                "123" -> "123"
-                "{&=" -> "{&="
-                "abc" -> "ABC"
-                "tab" -> "Tab"
-                "space" -> getString(R.string.key_space)
-                else -> displayLabel(normalized, capsVisualMode)
-            }
-
-        val button = Button(this).apply {
-            isAllCaps = false
-            text = displayText
-            contentDescription =
-                when (lower) {
-                    "backspace" -> getString(R.string.key_backspace)
-                    "enter" -> getString(R.string.key_enter)
-                    "caps" -> getString(R.string.key_caps)
-                    "tab" -> getString(R.string.key_tab)
-                    else -> {
-                        if (displayText.length == 1 && displayText[0].isLetter()) displayText else displayText
-                    }
-                }
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, keyTextSizePx)
-            minHeight = px52
-            minWidth = px36
-            setPadding(px10, px10, px10, px10)
-            isSingleLine = true
-            ellipsize = TextUtils.TruncateAt.END
-            maxLines = 1
-            textAlignment = View.TEXT_ALIGNMENT_CENTER
-            applyButtonBackground(this, paletteKeyBackgroundColor)
-            setTextColor(paletteTextColor)
-            if (lower == "abc" || lower == "{&=") {
-                minWidth = px64
-                ellipsize = null
-            }
-            tag = normalized
-            setOnClickListener(keyClickListener)
-
-            val listener = when (lower) {
-                "space" -> SpaceTouchListener()
-                "backspace" -> BackspaceTouchListener()
-                "caps" -> ShiftTouchListener()
-                else -> StandardKeyTouchListener(normalized, lower)
-            }
-            setOnTouchListener(listener)
-
-            when (lower) {
-                "backspace" -> {
-                    setOnLongClickListener {
-                        startBackspaceRepeat()
-                        true
-                    }
-                }
-                "space" -> {
-                    setOnLongClickListener {
-                        openKeyboardConfigDialog()
-                        true
-                    }
-                }
-                "," -> {
-                    setOnLongClickListener {
-                        startVoiceInput()
-                        true
-                    }
-                }
-            }
-            if (trackCapsKeys) {
-                if (lower == "caps") {
-                    capsButtonRef = this
-                    applyCapsButtonStyle(this, capsVisualMode)
-                    setOnLongClickListener {
-                        setCapsMode(CapsMode.LOCK)
-                        true
-                    }
-                }
-                keyButtonRefs.add(KeyButtonRef(raw = normalized, lower = lower, button = this))
-            }
-        }
-
-        val hints = topRowMap[lower]
-
-        if (hints != null && hints.isNotEmpty()) {
-            val container = FrameLayout(this)
-            container.layoutParams = createLayoutParams(weight)
-
-            button.layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-
-            val hintView = TextView(this).apply {
-                text = hints.take(4).joinToString(" ")
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, keyTextSizePx * 0.6f)
-                setTextColor(paletteTextColor)
-                alpha = 0.6f
-                elevation = 10f
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    gravity = Gravity.TOP or Gravity.END
-                    setMargins(0, px4 / 2, px4, 0)
-                }
-            }
-
-            container.addView(button)
-            container.addView(hintView)
-            return container
-        } else {
-            button.layoutParams = createLayoutParams(weight)
-            return button
-        }
-    }
-
-    private fun createLayoutParams(weight: Float): LinearLayout.LayoutParams {
-        return LinearLayout.LayoutParams(
-            0,
-            px56,
-            weight.coerceAtLeast(1f),
-        ).apply {
-            val m = keyGapPx
-            setMargins(m, m, m, m)
-        }
-    }
-
-    private fun keyWeight(label: String): Float {
-        return when (label.trim().lowercase()) {
-            "backspace" -> 1.3f
-            "enter" -> 1.2f
-            "caps" -> 1.1f
-            "space" -> 3f
-            "123" -> 1.2f
-            "abc", "{&=" -> 1.35f
-            "tab" -> 1.4f
-            else -> 1f
-        }
-    }
-
-    private fun displayLabel(value: String, mode: CapsMode): String {
-        if (value.length == 1 && value[0].isLetter()) {
-            return when (mode) {
-                CapsMode.OFF -> value.lowercase()
-                CapsMode.SINGLE, CapsMode.LOCK -> value.uppercase()
-            }
-        }
-        return value
-    }
 
     private fun effectiveCapsMode(): CapsMode {
         return cachedEffectiveCaps
@@ -1265,7 +666,7 @@ class CustomKeyboard :
 
     private fun rebuildOnUiThread() {
         uiHandler.post {
-            if (this::rootLayout.isInitialized) {
+            if (layoutManager.rootLayout != null) {
                 rebuildLayout()
             }
         }
@@ -1273,46 +674,36 @@ class CustomKeyboard :
 
     private fun updateCapsVisualsOnUiThread() {
         uiHandler.post {
-            if (this::rootLayout.isInitialized) {
+            if (layoutManager.rootLayout != null) {
                 updateCapsVisuals()
             }
         }
     }
 
     private fun updateCapsVisuals() {
-        if (lettersKeyboardContainer?.visibility != View.VISIBLE) {
-            return
-        }
-        val mode = effectiveCapsMode()
-        capsButtonRef?.let { applyCapsButtonStyle(it, mode) }
-
-        keyButtonRefs.forEach { ref ->
-            val raw = ref.raw
-            if (raw.length == 1 && raw[0].isLetter()) {
-                val nextText = displayLabel(raw, mode)
-                if (ref.button.text?.toString() != nextText) {
-                    ref.button.text = nextText
-                }
-            }
-        }
+        layoutManager.updateCapsVisuals(effectiveCapsMode())
     }
 
-    fun commitTextToInputConnection(text: String) {
-        currentInputConnection?.commitText(text, 1)
+    fun onTextCommitted() {
         updateSuggestions()
+        updateSelectionActions()
         invalidateCapsCache()
         updateCapsVisualsOnUiThread()
     }
 
+    fun commitText(text: String) {
+        inputProcessor.commitText(text)
+    }
+
     private fun commitKeyWithCaps(raw: String) {
         if (raw == " ") {
-            if (handleDoubleSpace()) {
+            if (inputProcessor.handleDoubleSpace()) {
                 return
             }
 
             if (!areSuggestionsEnabled) {
-                commitTextToInputConnection(" ")
-                maybeInsertAutoSpace(raw)
+                inputProcessor.commitText(" ")
+                inputProcessor.maybeInsertAutoSpace(raw)
                 updateSelectionActions()
                 return
             }
@@ -1322,10 +713,10 @@ class CustomKeyboard :
             if (inputConnection != null && !currentWord.isNullOrEmpty()) {
                 val currentLower = currentWord.lowercase()
 
-                if (ignoreAutoCorrectWord != null && ignoreAutoCorrectWord == currentLower) {
-                    ignoreAutoCorrectWord = null
-                    lastAutoCorrectOriginal = null
-                    lastAutoCorrectReplacement = null
+                if (inputProcessor.ignoreAutoCorrectWord != null && inputProcessor.ignoreAutoCorrectWord == currentLower) {
+                    inputProcessor.ignoreAutoCorrectWord = null
+                    inputProcessor.lastAutoCorrectOriginal = null
+                    inputProcessor.lastAutoCorrectReplacement = null
                 } else {
                     val existsExact = suggestionEngine.contains(currentLower)
                     if (!existsExact) {
@@ -1352,30 +743,27 @@ class CustomKeyboard :
                                     match
                                 }
 
-                            lastAutoCorrectOriginal = currentWord
-                            lastAutoCorrectReplacement = replacement
-                            ignoreAutoCorrectWord = null
+                            inputProcessor.lastAutoCorrectOriginal = currentWord
+                            inputProcessor.lastAutoCorrectReplacement = replacement
+                            inputProcessor.ignoreAutoCorrectWord = null
 
-                            runBatchEdit(inputConnection) { ic ->
+                            inputProcessor.runBatchEdit(inputConnection) { ic ->
                                 ic.deleteSurroundingText(currentWord.length, 0)
                                 ic.commitText("$replacement ", 1)
                             }
 
-                            updateSuggestions()
-                            updateSelectionActions()
-                            invalidateCapsCache()
-                            updateCapsVisualsOnUiThread()
+                            onTextCommitted()
                             return
                         }
                     }
                 }
             }
         } else {
-            lastSpaceTapTimeMs = 0L
+            inputProcessor.resetLastSpaceTap()
         }
 
         if (raw.length == 1 && isPunctuation(raw[0])) {
-            removeTrailingSpaceBeforePunctuation()
+            inputProcessor.removeTrailingSpaceBeforePunctuation()
         }
 
         var tempAutoCap = false
@@ -1386,8 +774,8 @@ class CustomKeyboard :
 
         val prevVisualMode = effectiveCapsMode()
         val textToCommit = prepareCasedText(raw)
-        commitTextToInputConnection(textToCommit)
-        maybeInsertAutoSpace(raw)
+        inputProcessor.commitText(textToCommit)
+        inputProcessor.maybeInsertAutoSpace(raw)
 
         if (!shouldAutoCapitalizeNextChar()) {
             autoCapSuppressed = false
@@ -1411,77 +799,25 @@ class CustomKeyboard :
     }
 
     private fun refreshClipboardSource() {
-        if (clipboardItems.isNotEmpty()) {
-            clipboardSuggestions = clipboardItems
+        val items = ClipboardRepository.clipboardItems.value
+        if (items.isNotEmpty()) {
             renderClipboardSuggestions()
             return
         }
 
         serviceScope.launch {
-            val items = withContext(Dispatchers.IO) { loadSystemClipboardSuggestionsBlocking() }
-            updateClipboardItems(items)
+            val loaded = ClipboardRepository.loadSystemClipboard(this@CustomKeyboard)
+            ClipboardRepository.updateFromSystem(loaded)
+            renderClipboardSuggestions()
         }
     }
 
     private fun renderClipboardSuggestions() {
-        val container = clipboardContainer ?: return
-
-        val items = clipboardSuggestions.take(MAX_ITEMS_IN_CLIPBOARD)
-        container.removeAllViews()
-
-        if (items.isEmpty()) {
-            clipboardScroll?.visibility = View.GONE
-            return
-        }
-
-        clipboardScroll?.visibility = View.VISIBLE
-
-        items.forEach { item ->
-            val label = if (item.length > 10) item.take(10) + "..." else item
-            val button =
-                Button(this).apply {
-                    layoutParams =
-                        LinearLayout.LayoutParams(
-                            0,
-                            px44,
-                            1f,
-                        ).apply {
-                            val margin = px1
-                            setMargins(margin, margin, margin, margin)
-                        }
-                    isAllCaps = false
-                    text = label
-                    textSize = 14f
-                    minHeight = px44
-                    isSingleLine = true
-                    ellipsize = TextUtils.TruncateAt.END
-                    maxLines = 1
-                    textAlignment = View.TEXT_ALIGNMENT_CENTER
-                    applyButtonBackground(this, paletteKeyBackgroundColor)
-                    setTextColor(paletteTextColor)
-                    setOnClickListener {
-                        pasteClipboardItem(item)
-                    }
-                    setOnLongClickListener {
-                        showClipboardDialog(item)
-                        true
-                    }
-                }
-            container.addView(button)
-        }
+        layoutManager.renderClipboardSuggestions(ClipboardRepository.clipboardItems.value, MAX_ITEMS_IN_CLIPBOARD)
     }
 
     private fun pasteClipboardItem(item: String) {
-        val inputConnection = currentInputConnection ?: return
-
-        runBatchEdit(inputConnection) { ic ->
-            ic.commitText(item + " ", 1)
-        }
-
-        updateSuggestions()
-        updateSelectionActions()
-        invalidateCapsCache()
-        updateCapsVisualsOnUiThread()
+        inputProcessor.pasteText(item)
     }
 
     private fun showClipboardDialog(text: String) {
@@ -1563,7 +899,7 @@ class CustomKeyboard :
                                     results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                                 if (!matches.isNullOrEmpty()) {
                                     val text = matches[0]
-                                    commitTextToInputConnection("$text ")
+                                    commitText("$text ")
                                 }
                             }
 
@@ -1582,130 +918,28 @@ class CustomKeyboard :
         }
     }
 
-    private fun handleDoubleSpace(): Boolean {
-        val now = SystemClock.elapsedRealtime()
-        val delta = now - lastSpaceTapTimeMs
-        lastSpaceTapTimeMs = now
-
-        if (delta > 800) return false
-
-        val inputConnection = currentInputConnection ?: return false
-        val before = inputConnection.getTextBeforeCursor(6, 0) ?: ""
-
-        if (before.length >= 2 && before.last() == ' ' && !before[before.length - 2].isWhitespace()) {
-            inputConnection.deleteSurroundingText(1, 0)
-            inputConnection.commitText(". ", 1)
-            updateSuggestions()
-            updateCapsVisualsOnUiThread()
-            return true
-        }
-
-        return false
-    }
-
-    private fun maybeInsertAutoSpace(raw: String) {
-        if (raw.length != 1) return
-        val ch = raw[0]
-        if (!isPunctuation(ch)) return
-
-        val inputConnection = currentInputConnection ?: return
-        val after = inputConnection.getTextAfterCursor(1, 0) ?: ""
-
-        val nextIsWhitespace = after.isNotEmpty() && after[0].isWhitespace()
-
-        if (!nextIsWhitespace) {
-            inputConnection.commitText(" ", 1)
-        }
-    }
-
-    private fun removeTrailingSpaceBeforePunctuation() {
-        val inputConnection = currentInputConnection ?: return
-        val before = inputConnection.getTextBeforeCursor(1, 0)
-        if (before != null && before.toString() == " ") {
-            inputConnection.deleteSurroundingText(1, 0)
-        }
-    }
-
-    private fun isPunctuation(ch: Char): Boolean {
-        return ch == '.' || ch == ',' || ch == ':' || ch == ';' || ch == '?' || ch == '!' || ch == ')'
-    }
-
-    private fun applyCapsButtonStyle(button: Button, mode: CapsMode) {
-        val (background, textColor) =
-            when (mode) {
-                CapsMode.OFF -> Pair(paletteCapsNeutralColor, paletteTextColor)
-                CapsMode.SINGLE -> Pair(paletteCapsMediumColor, paletteTextColor)
-                CapsMode.LOCK -> Pair(paletteCapsStrongColor, paletteCapsStrongTextColor)
-            }
-
-        applyButtonBackground(button, background)
-        button.setTextColor(textColor)
+    private fun isPunctuation(ch: Char): Boolean =
+    when (ch) {
+        '.', ',', ':', ';', '?', '!', ')' -> true
+        else -> false
     }
 
     private fun updateSelectionActions() {
-        val container = selectionActionsContainer ?: return
-        val suggestions = suggestionsContainer
         val selectedText = currentInputConnection?.getSelectedText(0)
-
-        TransitionManager.beginDelayedTransition(rootLayout)
-
-        if (selectedText.isNullOrEmpty()) {
-            container.visibility = View.GONE
-            container.removeAllViews()
-            if (areSuggestionsEnabled && suggestionButtons.any { it?.visibility == View.VISIBLE }) {
-                 suggestions?.visibility = View.VISIBLE
-            }
-            return
-        }
-
-        container.visibility = View.VISIBLE
-        suggestions?.visibility = View.INVISIBLE
-        container.removeAllViews()
-
         val (copyLabel, cutLabel) = getCopyCutLabels()
 
-        val copyButton =
-            Button(this).apply {
-                layoutParams =
-                    LinearLayout.LayoutParams(
-                        0,
-                        px44,
-                        1f,
-                    ).apply {
-                        val margin = px1
-                        setMargins(margin, margin, margin, margin)
-                    }
-                text = copyLabel
-                isAllCaps = false
-                textSize = 14f
-                minHeight = px44
-                applyButtonBackground(this, paletteKeyBackgroundColor)
-                setTextColor(paletteTextColor)
-                setOnClickListener { copySelection(selectedText.toString()) }
-            }
+        val container = layoutManager.selectionActionsContainer
+        val parent = container?.parent as? ViewGroup
+        if (parent != null) {
+            TransitionManager.beginDelayedTransition(parent)
+        }
 
-        val cutButton =
-            Button(this).apply {
-                layoutParams =
-                    LinearLayout.LayoutParams(
-                        0,
-                        px44,
-                        1f,
-                    ).apply {
-                        val margin = px1
-                        setMargins(margin, margin, margin, margin)
-                    }
-                text = cutLabel
-                isAllCaps = false
-                textSize = 14f
-                minHeight = px44
-                applyButtonBackground(this, paletteKeyBackgroundColor)
-                setTextColor(paletteTextColor)
-                setOnClickListener { cutSelection(selectedText.toString()) }
-            }
-
-        container.addView(copyButton)
-        container.addView(cutButton)
+        layoutManager.updateSelectionActions(
+            selectedText,
+            areSuggestionsEnabled,
+            copyLabel,
+            cutLabel
+        )
     }
 
     private fun getCopyCutLabels(): Pair<String, String> {
@@ -1726,7 +960,7 @@ class CustomKeyboard :
 
     private fun cutSelection(text: String) {
         copySelection(text, isCut = true)
-        currentInputConnection?.commitText("", 1)
+        inputProcessor.cutSelection()
         showToastCut()
         clearSelection()
         updateSelectionActions()
@@ -1736,8 +970,8 @@ class CustomKeyboard :
     }
 
     private fun clearSelection() {
-        currentInputConnection?.setSelection(Int.MAX_VALUE, Int.MAX_VALUE)
-        selectionActionsContainer?.visibility = View.GONE
+        inputProcessor.clearSelection()
+        layoutManager.selectionActionsContainer?.visibility = View.GONE
     }
 
     private fun showToastCopied() {
@@ -1751,89 +985,11 @@ class CustomKeyboard :
     }
 
     fun deleteFromInputConnection() {
-        val inputConnection = currentInputConnection ?: return
-        val selectedText = inputConnection.getSelectedText(0)
-
-        if (!selectedText.isNullOrEmpty()) {
-            inputConnection.commitText("", 1)
-            updateSuggestions()
-            updateSelectionActions()
-            invalidateCapsCache()
-            updateCapsVisualsOnUiThread()
-            return
-        }
-
-        val replacement = lastAutoCorrectReplacement
-        val original = lastAutoCorrectOriginal
-        if (!replacement.isNullOrEmpty() && !original.isNullOrEmpty()) {
-            val replacementWithSpace = "$replacement "
-            val before =
-                inputConnection.getTextBeforeCursor(replacementWithSpace.length, 0)?.toString()
-                    .orEmpty()
-            if (before == replacementWithSpace) {
-                runBatchEdit(inputConnection) { ic ->
-                    ic.deleteSurroundingText(replacementWithSpace.length, 0)
-                    ic.commitText(original, 1)
-                }
-
-                ignoreAutoCorrectWord = original.lowercase()
-                lastAutoCorrectOriginal = null
-                lastAutoCorrectReplacement = null
-
-                updateSuggestions()
-                updateSelectionActions()
-                invalidateCapsCache()
-                updateCapsVisualsOnUiThread()
-                return
-            }
-        }
-
-        inputConnection.deleteSurroundingText(1, 0)
-        updateSuggestions()
-        updateSelectionActions()
-        invalidateCapsCache()
-        updateCapsVisualsOnUiThread()
+        inputProcessor.handleBackspace()
     }
 
     private fun deleteWordFromInputConnection() {
-        val inputConnection = currentInputConnection ?: return
-        val selectedText = inputConnection.getSelectedText(0)
-
-        if (!selectedText.isNullOrEmpty()) {
-            inputConnection.commitText("", 1)
-            updateSuggestions()
-            invalidateCapsCache()
-            updateCapsVisualsOnUiThread()
-            return
-        }
-
-        val beforeCursor = inputConnection.getTextBeforeCursor(120, 0) ?: ""
-        if (beforeCursor.isEmpty()) return
-
-        var toDelete = 0
-        var index = beforeCursor.length - 1
-
-        while (index >= 0 && beforeCursor[index].isWhitespace()) {
-            toDelete++
-            index--
-        }
-
-        while (index >= 0 && !beforeCursor[index].isWhitespace() && beforeCursor[index] != '.' && beforeCursor[index] != ',') {
-            toDelete++
-            index--
-        }
-
-        if (index >= 0 && (beforeCursor[index] == '.' || beforeCursor[index] == ',')) {
-            toDelete++
-        }
-
-        if (toDelete > 0) {
-            inputConnection.deleteSurroundingText(toDelete, 0)
-            updateSuggestions()
-            updateSelectionActions()
-            invalidateCapsCache()
-            updateCapsVisualsOnUiThread()
-        }
+        inputProcessor.handleDeleteWord()
     }
 
     private fun invalidateCapsCache() {
@@ -1841,9 +997,7 @@ class CustomKeyboard :
     }
 
     fun sendEnter() {
-        val inputConnection = currentInputConnection ?: return
-        inputConnection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-        inputConnection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+        inputProcessor.sendEnter()
     }
 
     override fun invokeDefaultOnBackPressed() {}
@@ -1855,7 +1009,7 @@ class CustomKeyboard :
             resources.displayMetrics,
         ).toInt()
 
-    private fun getPrefs() = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+    private fun getPrefs() = getSharedPreferences(KeyboardThemeManager.PREFS_NAME, MODE_PRIVATE)
 
     private fun getOrInitSavedLayoutStyle(): LayoutStyle {
         val prefs = getPrefs()
@@ -1871,36 +1025,7 @@ class CustomKeyboard :
         getPrefs().edit { putString(PREF_KEY_LAYOUT_STYLE, style.prefValue) }
     }
 
-    private fun getOrInitSavedThemeMode(): ThemeMode {
-        val prefs = getPrefs()
-        val raw = prefs.getString(PREF_KEY_THEME_MODE, null)
-        if (!raw.isNullOrBlank()) {
-            return ThemeMode.entries.firstOrNull { it.prefValue == raw } ?: ThemeMode.SYSTEM
-        }
 
-        prefs.edit { putString(PREF_KEY_THEME_MODE, ThemeMode.SYSTEM.prefValue) }
-        return ThemeMode.SYSTEM
-    }
-
-    private fun setSavedThemeMode(mode: ThemeMode) {
-        getPrefs().edit { putString(PREF_KEY_THEME_MODE, mode.prefValue) }
-    }
-
-    private fun getOrInitSavedBackgroundMode(): BackgroundMode {
-        val prefs = getPrefs()
-        val raw = prefs.getString(PREF_KEY_BACKGROUND_MODE, null)
-        if (!raw.isNullOrBlank()) {
-            return BackgroundMode.entries.firstOrNull { it.prefValue == raw }
-                ?: BackgroundMode.SYSTEM
-        }
-
-        prefs.edit { putString(PREF_KEY_BACKGROUND_MODE, BackgroundMode.SYSTEM.prefValue) }
-        return BackgroundMode.SYSTEM
-    }
-
-    private fun setSavedBackgroundMode(mode: BackgroundMode) {
-        getPrefs().edit { putString(PREF_KEY_BACKGROUND_MODE, mode.prefValue) }
-    }
 
     private fun getOrInitSavedAutocompleteMode(): AutocompleteMode {
         val prefs = getPrefs()
@@ -2088,7 +1213,7 @@ class CustomKeyboard :
                         dialogInterface.dismiss()
                         when (which) {
                             0 -> openDimensionsDialog()
-                            1 -> openVisualStylesDialog()
+                            1 -> themeDialogs.openVisualStylesDialog()
                             2 -> openBehaviorDialog()
                             3 -> openLayoutDialog()
                         }
@@ -2271,238 +1396,11 @@ class CustomKeyboard :
         }
     }
 
-    private fun openVisualStylesDialog() {
-        val items = arrayOf(
-            getString(R.string.item_corner_radius),
-            getString(R.string.item_theme_mode),
-            getString(R.string.item_background),
-            getString(R.string.item_custom_theme)
-        )
 
-        val windowToken =
-            window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
-        uiHandler.post {
-            val dialog = AlertDialog.Builder(this)
-                .setTitle(getString(R.string.dialog_visual_style_title))
-                .setItems(items) { dialogInterface, which ->
-                    dialogInterface.dismiss()
-                    when (which) {
-                        0 -> openCornerRadiusDialog()
-                        1 -> openThemeModeConfigDialog()
-                        2 -> openBackgroundModeConfigDialog()
-                        3 -> openCustomThemeDialog()
-                    }
-                }
-                .setNegativeButton(getString(R.string.btn_close)) { _, _ ->
-                    openKeyboardConfigDialog()
-                }
-                .setOnCancelListener {
-                    openKeyboardConfigDialog()
-                }
-                .create()
 
-            dialog.window?.apply {
-                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-                attributes?.token = windowToken
-                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-            }
-            dialog.show()
-        }
-    }
 
-    private fun openCornerRadiusDialog() {
-        val context = this
-        val layout = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(px10 * 2, px10, px10 * 2, px10)
-        }
 
-        val prefs = getPrefs()
-        val initialRadius = prefs.getInt(PREF_KEY_CORNER_RADIUS, 6)
 
-        val radiusLabel =
-            TextView(context).apply { text = getString(R.string.label_radius_fmt, initialRadius) }
-        val radiusSeek = SeekBar(context).apply {
-            max = 24
-            progress = initialRadius
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(
-                    seekBar: SeekBar?,
-                    progress: Int,
-                    fromUser: Boolean
-                ) {
-                    radiusLabel.text = getString(R.string.label_radius_fmt, progress)
-                    getPrefs().edit{ putInt(PREF_KEY_CORNER_RADIUS, progress) }
-                    initPxCache()
-                    rebuildOnUiThread()
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            })
-        }
-
-        layout.addView(radiusLabel)
-        layout.addView(radiusSeek)
-
-        val windowToken =
-            window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
-        uiHandler.post {
-            val dialog = AlertDialog.Builder(context)
-                .setTitle(getString(R.string.dialog_corner_radius_title))
-                .setView(layout)
-                .setPositiveButton(getString(R.string.btn_ok)) { _, _ ->
-                    openVisualStylesDialog()
-                }
-                .setNegativeButton(getString(R.string.btn_cancel)) { _, _ ->
-                    getPrefs().edit { putInt(PREF_KEY_CORNER_RADIUS, initialRadius) }
-                    initPxCache()
-                    rebuildOnUiThread()
-                    openVisualStylesDialog()
-                }
-                .setOnCancelListener {
-                    getPrefs().edit { putInt(PREF_KEY_CORNER_RADIUS, initialRadius) }
-                    initPxCache()
-                    rebuildOnUiThread()
-                    openVisualStylesDialog()
-                }
-                .create()
-
-            dialog.window?.apply {
-                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-                attributes?.token = windowToken
-                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-            }
-            dialog.show()
-        }
-    }
-
-    private fun openCustomThemeDialog() {
-
-        val context = this
-        val layout = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(px10 * 2, px10, px10 * 2, px10)
-        }
-
-        val prefs = getPrefs()
-        val initialEnabled = prefs.getBoolean(PREF_KEY_CUSTOM_THEME_ENABLED, false)
-        val initialBg = prefs.getInt(PREF_KEY_CUSTOM_BG_COLOR, Color.BLACK)
-        val initialKey = prefs.getInt(PREF_KEY_CUSTOM_KEY_COLOR, Color.DKGRAY)
-        val initialAccent = prefs.getInt(PREF_KEY_CUSTOM_ACCENT_COLOR, Color.BLUE)
-
-        val updateTheme = { enabled: Boolean, bgStr: String, keyStr: String, accentStr: String ->
-            try {
-                val bg = bgStr.toColorInt()
-                val key = keyStr.toColorInt()
-                val accent = accentStr.toColorInt()
-
-                getPrefs().edit {
-                    putBoolean(PREF_KEY_CUSTOM_THEME_ENABLED, enabled)
-                        .putInt(PREF_KEY_CUSTOM_BG_COLOR, bg)
-                        .putInt(PREF_KEY_CUSTOM_KEY_COLOR, key)
-                        .putInt(PREF_KEY_CUSTOM_ACCENT_COLOR, accent)
-                }
-
-                initPxCache()
-                initPalette()
-                applyPaletteToCurrentViews()
-            } catch (_: Exception) {
-                
-            }
-        }
-
-        val enabledCheck = android.widget.CheckBox(context).apply {
-            text = getString(R.string.check_enable_custom_theme)
-            isChecked = initialEnabled
-        }
-
-        val bgInput = EditText(context).apply {
-            hint = getString(R.string.hint_hex_bg)
-            setText(String.format("#%06X", (0xFFFFFF and initialBg)))
-        }
-        val keyInput = EditText(context).apply {
-            hint = getString(R.string.hint_hex_key)
-            setText(String.format("#%06X", (0xFFFFFF and initialKey)))
-        }
-        val accentInput = EditText(context).apply {
-            hint = getString(R.string.hint_hex_accent)
-            setText(String.format("#%06X", (0xFFFFFF and initialAccent)))
-        }
-
-        val textWatcher = object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                updateTheme(
-                    enabledCheck.isChecked,
-                    bgInput.text.toString(),
-                    keyInput.text.toString(),
-                    accentInput.text.toString()
-                )
-            }
-        }
-
-        bgInput.addTextChangedListener(textWatcher)
-        keyInput.addTextChangedListener(textWatcher)
-        accentInput.addTextChangedListener(textWatcher)
-        enabledCheck.setOnCheckedChangeListener { _, isChecked ->
-            updateTheme(
-                isChecked,
-                bgInput.text.toString(),
-                keyInput.text.toString(),
-                accentInput.text.toString()
-            )
-        }
-
-        layout.addView(enabledCheck)
-        layout.addView(bgInput)
-        layout.addView(keyInput)
-        layout.addView(accentInput)
-
-        val windowToken =
-            window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
-        uiHandler.post {
-            val dialog = AlertDialog.Builder(context)
-                .setTitle(getString(R.string.dialog_custom_theme_title))
-                .setView(layout)
-                .setPositiveButton(getString(R.string.btn_ok)) { _, _ ->
-                    openVisualStylesDialog()
-                }
-                .setNegativeButton(getString(R.string.btn_cancel)) { _, _ ->
-                    getPrefs().edit {
-                        putBoolean(PREF_KEY_CUSTOM_THEME_ENABLED, initialEnabled)
-                            .putInt(PREF_KEY_CUSTOM_BG_COLOR, initialBg)
-                            .putInt(PREF_KEY_CUSTOM_KEY_COLOR, initialKey)
-                            .putInt(PREF_KEY_CUSTOM_ACCENT_COLOR, initialAccent)
-                    }
-                    initPxCache()
-                    initPalette()
-                    applyPaletteToCurrentViews()
-                    openVisualStylesDialog()
-                }
-                .setOnCancelListener {
-                    getPrefs().edit {
-                        putBoolean(PREF_KEY_CUSTOM_THEME_ENABLED, initialEnabled)
-                            .putInt(PREF_KEY_CUSTOM_BG_COLOR, initialBg)
-                            .putInt(PREF_KEY_CUSTOM_KEY_COLOR, initialKey)
-                            .putInt(PREF_KEY_CUSTOM_ACCENT_COLOR, initialAccent)
-                    }
-                    initPxCache()
-                    initPalette()
-                    applyPaletteToCurrentViews()
-                    openVisualStylesDialog()
-                }
-                .create()
-
-            dialog.window?.apply {
-                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-                attributes?.token = windowToken
-                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-            }
-            dialog.show()
-        }
-    }
 
     private fun openBehaviorDialog() {
         val items = arrayOf(
@@ -2788,140 +1686,8 @@ class CustomKeyboard :
         }
     }
 
-    private fun openThemeModeConfigDialog() {
-        val title = getString(R.string.dialog_theme_title)
-        val closeLabel = getString(R.string.btn_close)
-        val items = arrayOf(
-            getString(R.string.option_dark),
-            getString(R.string.option_light),
-            getString(R.string.option_system)
-        )
-        val checked =
-            when (currentThemeMode) {
-                ThemeMode.DARK -> 0
-                ThemeMode.LIGHT -> 1
-                ThemeMode.SYSTEM -> 2
-            }
-
-        val windowToken =
-            window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
-        uiHandler.post {
-            val dialog =
-                AlertDialog.Builder(this)
-                    .setTitle(title)
-                    .setSingleChoiceItems(items, checked) { dialogInterface, which ->
-                        val selected =
-                            when (which) {
-                                0 -> ThemeMode.DARK
-                                1 -> ThemeMode.LIGHT
-                                else -> ThemeMode.SYSTEM
-                            }
-                        currentThemeMode = selected
-                        setSavedThemeMode(selected)
-                        initPalette()
-                        applyPaletteToCurrentViews()
-                        dialogInterface.dismiss()
-                        openVisualStylesDialog()
-                    }
-                    .setNegativeButton(closeLabel) { dialogInterface, _ ->
-                        dialogInterface.dismiss()
-                        openVisualStylesDialog()
-                    }
-                    .setOnCancelListener {
-                        openVisualStylesDialog()
-                    }
-                    .create()
-
-            dialog.window?.apply {
-                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-                attributes?.token = windowToken
-                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-            }
-
-            dialog.show()
-        }
-    }
-
-    private fun openBackgroundModeConfigDialog() {
-        val title = getString(R.string.dialog_background_title)
-        val closeLabel = getString(R.string.btn_close)
-        val items = arrayOf(
-            getString(R.string.option_transparent),
-            getString(R.string.option_dark),
-            getString(R.string.option_light),
-            getString(R.string.option_system)
-        )
-        val checked =
-            when (currentBackgroundMode) {
-                BackgroundMode.TRANSPARENT -> 0
-                BackgroundMode.DARK -> 1
-                BackgroundMode.LIGHT -> 2
-                BackgroundMode.SYSTEM -> 3
-            }
-
-        val windowToken =
-            window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
-        uiHandler.post {
-            val dialog =
-                AlertDialog.Builder(this)
-                    .setTitle(title)
-                    .setSingleChoiceItems(items, checked) { dialogInterface, which ->
-                        val selected =
-                            when (which) {
-                                0 -> BackgroundMode.TRANSPARENT
-                                1 -> BackgroundMode.DARK
-                                2 -> BackgroundMode.LIGHT
-                                else -> BackgroundMode.SYSTEM
-                            }
-                        currentBackgroundMode = selected
-                        setSavedBackgroundMode(selected)
-                        initPalette()
-                        applyPaletteToCurrentViews()
-                        dialogInterface.dismiss()
-                        openVisualStylesDialog()
-                    }
-                    .setNegativeButton(closeLabel) { dialogInterface, _ ->
-                        dialogInterface.dismiss()
-                        openVisualStylesDialog()
-                    }
-                    .setOnCancelListener {
-                        openVisualStylesDialog()
-                    }
-                    .create()
-
-            dialog.window?.apply {
-                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-                attributes?.token = windowToken
-                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-            }
-
-            dialog.show()
-        }
-    }
 
 
-    private fun updateClipboardItems(items: List<String>) {
-        uiHandler.post {
-            clipboardSuggestions = items
-            renderClipboardSuggestions()
-        }
-    }
-
-    private fun loadSystemClipboardSuggestionsBlocking(): List<String> {
-        val clipboard =
-            getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager ?: return emptyList()
-        val clip = clipboard.primaryClip ?: return emptyList()
-
-        val collected = mutableListOf<String>()
-        for (i in 0 until clip.itemCount) {
-            val text = clip.getItemAt(i).coerceToText(this)?.toString()?.trim()
-            if (!text.isNullOrEmpty()) {
-                collected.add(text)
-            }
-            if (collected.size > MAX_ITEMS_IN_CLIPBOARD) break
-        }
-        return collected
-    }
 
     private fun extractCurrentWord(): String? {
         val inputConnection = currentInputConnection ?: return null
@@ -2976,16 +1742,19 @@ class CustomKeyboard :
     }
 
     private fun renderSuggestions(suggestions: List<String>, capitalizeFirst: Boolean) {
-        val container = suggestionsContainer ?: return
+        val container = layoutManager.suggestionsContainer ?: return
+        val parent = container.parent as? ViewGroup
 
-        TransitionManager.beginDelayedTransition(rootLayout)
+        if (parent != null) {
+            TransitionManager.beginDelayedTransition(parent)
+        }
 
         suggestionSlotsCapitalizeFirst = capitalizeFirst
 
         for (i in 0 until MAX_SUGGESTIONS) {
-            val button = suggestionButtons.getOrNull(i) ?: continue
+            val button = layoutManager.suggestionButtons.getOrNull(i) ?: continue
             val suggestion = suggestions.getOrNull(i)
-            suggestionSlotValues[i] = suggestion
+            layoutManager.suggestionSlotValues[i] = suggestion
 
             if (suggestion.isNullOrEmpty()) {
                 button.visibility = View.INVISIBLE
@@ -3008,7 +1777,7 @@ class CustomKeyboard :
             button.visibility = View.VISIBLE
         }
 
-        if (selectionActionsContainer?.visibility == View.VISIBLE) {
+        if (layoutManager.selectionActionsContainer?.visibility == View.VISIBLE) {
             container.visibility = View.INVISIBLE
         } else {
             container.visibility = if (suggestions.isEmpty()) View.INVISIBLE else View.VISIBLE
@@ -3017,43 +1786,12 @@ class CustomKeyboard :
         renderClipboardSuggestions()
     }
 
-    private fun ensureSuggestionButtons() {
-        val container = suggestionsContainer ?: return
-        container.removeAllViews()
 
-        for (i in 0 until MAX_SUGGESTIONS) {
-            val btn =
-                Button(this).apply {
-                    layoutParams =
-                        LinearLayout.LayoutParams(
-                            0,
-                            px44,
-                            1f,
-                        ).apply {
-                            val margin = px1
-                            setMargins(margin, margin, margin, margin)
-                        }
-                    isAllCaps = false
-                    text = ""
-                    textSize = 14f
-                    minHeight = px44
-                    applyButtonBackground(this, paletteKeyBackgroundColor)
-                    setTextColor(paletteTextColor)
-                    tag = i
-                    setOnClickListener(suggestionClickListener)
-                    visibility = View.INVISIBLE
-                }
-
-            suggestionButtons[i] = btn
-            suggestionSlotValues[i] = null
-            container.addView(btn)
-        }
-    }
 
     private val suggestionClickListener: View.OnClickListener =
         View.OnClickListener { v ->
             val index = v.tag as? Int ?: return@OnClickListener
-            val suggestion = suggestionSlotValues.getOrNull(index) ?: return@OnClickListener
+            val suggestion = layoutManager.suggestionSlotValues.getOrNull(index) ?: return@OnClickListener
             applySuggestion(suggestion, suggestionSlotsCapitalizeFirst)
         }
 
@@ -3102,14 +1840,14 @@ class CustomKeyboard :
                 "123" -> switchToSymbols()
                 "{&=" -> switchToSpecial()
                 "abc" -> switchToLetters()
-                "tab" -> commitTextToInputConnection("\t")
+                "tab" -> commitText("\t")
                 "space" -> commitKeyWithCaps(" ")
                 else -> commitKeyWithCaps(key)
             }
         }
 
     private fun handleBackspacePress() {
-        lastSpaceTapTimeMs = 0L
+        inputProcessor.resetLastSpaceTap()
         val inputConnection = currentInputConnection ?: return
         val now = SystemClock.elapsedRealtime()
 
@@ -3121,8 +1859,8 @@ class CustomKeyboard :
             return
         }
 
-        val replacement = lastAutoCorrectReplacement
-        val original = lastAutoCorrectOriginal
+        val replacement = inputProcessor.lastAutoCorrectReplacement
+        val original = inputProcessor.lastAutoCorrectOriginal
         if (!replacement.isNullOrEmpty() && !original.isNullOrEmpty()) {
             val replacementWithSpace = "$replacement "
             val before =
@@ -3153,18 +1891,18 @@ class CustomKeyboard :
         val gapDp = prefs.getInt(PREF_KEY_KEY_GAP, 1)
         keyGapPx = dpToPx(gapDp)
 
-        val radiusDp = prefs.getInt(PREF_KEY_CORNER_RADIUS, 6)
-        cornerRadiusPx = dpToPx(radiusDp)
+        val radiusDp = prefs.getInt(KeyboardThemeManager.PREF_KEY_CORNER_RADIUS, 6)
+        themeManager.cornerRadiusPx = dpToPx(radiusDp)
 
         vibrationDurationMs = prefs.getInt(PREF_KEY_VIBRATION_DURATION, 0)
 
 
         longPressDelayMs = prefs.getLong(PREF_KEY_LONG_PRESS_DELAY, 400L)
 
-        customThemeEnabled = prefs.getBoolean(PREF_KEY_CUSTOM_THEME_ENABLED, false)
-        customBgColor = prefs.getInt(PREF_KEY_CUSTOM_BG_COLOR, Color.BLACK)
-        customKeyColor = prefs.getInt(PREF_KEY_CUSTOM_KEY_COLOR, Color.DKGRAY)
-        customAccentColor = prefs.getInt(PREF_KEY_CUSTOM_ACCENT_COLOR, Color.BLUE)
+        themeManager.customThemeEnabled = prefs.getBoolean(KeyboardThemeManager.PREF_KEY_CUSTOM_THEME_ENABLED, false)
+        themeManager.customBgColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_BG_COLOR, Color.BLACK)
+        themeManager.customKeyColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_KEY_COLOR, Color.DKGRAY)
+        themeManager.customAccentColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_ACCENT_COLOR, Color.BLUE)
 
         px1 = keyGapPx
         px4 = dpToPx(4)
@@ -3197,6 +1935,12 @@ class CustomKeyboard :
         backspaceAccelerationMs = prefs.getLong(PREF_KEY_BACKSPACE_ACCELERATION, BACKSPACE_ACCELERATION_STEP_MS)
         backspaceMinIntervalMs = prefs.getLong(PREF_KEY_BACKSPACE_MIN_INTERVAL, BACKSPACE_MIN_INTERVAL_MS)
         backspaceIntervalMs = backspaceInitialIntervalMs
+
+        layoutManager.updatePxValues(
+            px1, px4, px6, px8, px10, px36,
+            px44, px52, px56, px64,
+            keyTextSizePx, keyGapPx
+        )
     }
 
     private fun applySuggestion(suggestion: String, capitalizeFirst: Boolean) {
@@ -3210,7 +1954,7 @@ class CustomKeyboard :
                 suggestion
             }
 
-        runBatchEdit(inputConnection) { ic ->
+        inputProcessor.runBatchEdit(inputConnection) { ic ->
             if (currentWord.isNotEmpty()) {
                 ic.deleteSurroundingText(currentWord.length, 0)
             }
@@ -3223,34 +1967,7 @@ class CustomKeyboard :
         updateCapsVisualsOnUiThread()
     }
 
-    private inline fun runBatchEdit(
-        inputConnection: android.view.inputmethod.InputConnection?,
-        block: (android.view.inputmethod.InputConnection) -> Unit,
-    ) {
-        val ic = inputConnection ?: return
-        var began = false
-        try {
-            try {
-                ic.beginBatchEdit()
-                began = true
-            } catch (_: Throwable) {
-                began = false
-            }
 
-            try {
-                block(ic)
-            } catch (_: Throwable) {
-
-            }
-        } finally {
-            if (began) {
-                try {
-                    ic.endBatchEdit()
-                } catch (_: Throwable) {
-                }
-            }
-        }
-    }
 
     private fun shouldAutoCapitalizeNextChar(): Boolean {
         val inputConnection = currentInputConnection ?: return lastAutoCapitalizeNext
@@ -3655,7 +2372,7 @@ class CustomKeyboard :
                 
                 
                     if (spaceCursorMode) {
-                        val isShiftPressed = capsButtonRef?.isPressed == true
+                        val isShiftPressed = layoutManager.capsButtonRef?.isPressed == true
                         val isCapsLocked = capsMode == CapsMode.LOCK
                         val performSelection = isSelectionMode || isShiftPressed || isCapsLocked
                     
@@ -3895,13 +2612,13 @@ class CustomKeyboard :
         
         private val longPressRunnable = Runnable {
             isLongPressTriggered = true
-            dismissKeyPreview()
+            layoutManager.dismissKeyPreview()
             currentView?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             
             val hints = topRowMap[lower]
             if (hints != null && hints.isNotEmpty()) {
                 isAccentSelectionMode = true
-                showAccentPopup(currentView!!, hints)
+                layoutManager.showAccentPopup(currentView!!, hints, capsMode)
             } else {
                 if (currentView?.performLongClick() != true) {
                     
@@ -3921,7 +2638,7 @@ class CustomKeyboard :
                     v.isPressed = true
                     
                     if (label.length == 1 && !isSwipeTriggered) {
-                        showKeyPreview(v, label)
+                        layoutManager.showKeyPreview(v, label)
                     }
                     
                     uiHandler.postDelayed(longPressRunnable, longPressDelayMs)
@@ -3929,7 +2646,7 @@ class CustomKeyboard :
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (isAccentSelectionMode) {
-                        handleAccentSelection(event)
+                        layoutManager.handleAccentSelection(event)
                         return true
                     }
                     if (isLongPressTriggered) return true
@@ -3951,7 +2668,7 @@ class CustomKeyboard :
                             
                             if (selectedIndex in hints.indices) {
                                 val charToCommit = hints[selectedIndex]
-                                showKeyPreview(v, charToCommit)
+                                layoutManager.showKeyPreview(v, charToCommit)
                                 isSwipeTriggered = true
                                 uiHandler.removeCallbacks(longPressRunnable)
                                 commitKeyWithCaps(charToCommit)
@@ -3964,18 +2681,18 @@ class CustomKeyboard :
                     
                     if (!isSwipeTriggered && (abs(totalDx) > px10 || abs(totalDy) > px10)) {
                         uiHandler.removeCallbacks(longPressRunnable)
-                        dismissKeyPreview()
+                        layoutManager.dismissKeyPreview()
                     }
                     return true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     uiHandler.removeCallbacks(longPressRunnable)
                     v.isPressed = false
-                    dismissKeyPreview()
+                    layoutManager.dismissKeyPreview()
                     
                     if (isAccentSelectionMode) {
-                        commitAccentSelection()
-                        dismissAccentPopup()
+                        layoutManager.commitAccentSelection()
+                        layoutManager.dismissAccentPopup()
                         isAccentSelectionMode = false
                         return true
                     }
@@ -3997,8 +2714,32 @@ class CustomKeyboard :
         }
     }
 
+    private fun updateInputModeOnly() {
+        refreshClipboardSource()
+        updateSuggestions()
+        updateSelectionActions()
+        renderClipboardSuggestions()
+        updateCapsVisuals()
+        setInputMode(currentMode)
+    }
+
+    private fun switchToSymbols() {
+        currentMode = InputMode.SYMBOLS
+        updateInputModeOnly()
+    }
+
+    private fun switchToSpecial() {
+        currentMode = InputMode.SPECIAL
+        updateInputModeOnly()
+    }
+
+    private fun switchToLetters() {
+        currentMode = InputMode.LETTERS
+        updateInputModeOnly()
+    }
+
     companion object {
-        private val topRowMap = mapOf(
+        val topRowMap = mapOf(
             "q" to listOf("1"), "w" to listOf("2"), "e" to listOf("3", "é", "è", "ë", "ê"), "r" to listOf("4"), "t" to listOf("5"),
             "y" to listOf("6", "ý", "ÿ"), "u" to listOf("7", "ú", "ù", "ü", "û"), "i" to listOf("8", "í", "ì", "ï", "î"), "o" to listOf("9", "ó", "ò", "ö", "ô", "õ", "ø"), "p" to listOf("0"), 
             "a" to listOf("@", "!", "á", "à", "ä", "â", "ã", "å"), "s" to listOf("#", "ß"), "d" to listOf("$"),
@@ -4007,8 +2748,7 @@ class CustomKeyboard :
             "c" to listOf("^", "ç"), "v" to listOf("%"), "b" to listOf("€"), "n" to listOf("£", "ñ"), "m" to listOf("¥"),
         )
         private val uiHandler = Handler(Looper.getMainLooper())
-        private val instanceRef: AtomicReference<WeakReference<CustomKeyboard>?> =
-            AtomicReference(null)
+        
         private const val BACKSPACE_INITIAL_INTERVAL_MS = 260L
         private const val BACKSPACE_MIN_INTERVAL_MS = 70L
         private const val BACKSPACE_ACCELERATION_STEP_MS = 30L
@@ -4018,18 +2758,10 @@ class CustomKeyboard :
         private const val SUGGESTIONS_BAR_HEIGHT_DP = 56
         private const val CLIPBOARD_BAR_HEIGHT_DP = 56
         private const val SELECTION_ACTIONS_BAR_HEIGHT_DP = 56
-        private const val PREFS_NAME = "custom_keyboard_prefs"
         private const val PREF_KEY_AUTOCOMPLETE_MODE = "autocomplete_mode"
         private const val PREF_KEY_LAYOUT_STYLE = "layout_style"
-        private const val PREF_KEY_THEME_MODE = "theme_mode"
-        private const val PREF_KEY_BACKGROUND_MODE = "background_mode"
         private const val PREF_KEY_KEYBOARD_HEIGHT_FACTOR = "keyboard_height_factor"
         private const val PREF_KEY_KEY_GAP = "key_gap"
-        private const val PREF_KEY_CORNER_RADIUS = "corner_radius"
-        private const val PREF_KEY_CUSTOM_THEME_ENABLED = "custom_theme_enabled"
-        private const val PREF_KEY_CUSTOM_BG_COLOR = "custom_bg_color"
-        private const val PREF_KEY_CUSTOM_KEY_COLOR = "custom_key_color"
-        private const val PREF_KEY_CUSTOM_ACCENT_COLOR = "custom_accent_color"
         private const val PREF_KEY_VIBRATION_DURATION = "vibration_duration"
         private const val PREF_KEY_LONG_PRESS_DELAY = "long_press_delay"
         private const val PREF_KEY_SWIPE_THRESHOLD = "swipe_threshold"
@@ -4042,11 +2774,10 @@ class CustomKeyboard :
         private const val PREF_KEY_USER_DICTIONARY = "user_dictionary"
         private const val AUTOCOMPLETE_FILE_EN = "autocomplete_en.txt"
         private const val AUTOCOMPLETE_FILE_ES = "autocomplete_es.txt"
-        private var currentMode = InputMode.LETTERS
-        private var lettersLayoutBackup: List<List<String>> = emptyList()
-        private var clipboardItems: List<String> = emptyList()
+        
         private var lastClipboardModuleSignature: String = ""
-        private val defaultLayout =
+        
+        val defaultLayout =
             listOf(
                 listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
                 listOf("a", "s", "d", "f", "g", "h", "j", "k", "l", "ñ"),
@@ -4080,75 +2811,8 @@ class CustomKeyboard :
                 listOf("123", "`", ";", "÷", "\\", "|", "¦", "¬", "backspace"),
                 listOf("abc", "space", "×", "§", "¶", "°", "enter"),
             )
-        private var keyboardLayout: List<List<String>> = defaultLayout
-
-        private fun setKeyboardLayoutInternal(value: List<List<String>>) {
-            keyboardLayout = value
-            if (currentMode == InputMode.LETTERS) {
-                lettersLayoutBackup = value
-            }
-        }
-
-        private var MAX_ITEMS_IN_CLIPBOARD = 10
-
-        init {
-            lettersLayoutBackup = defaultLayout
-        }
-
-        fun getLayoutSnapshot(): List<List<String>> = keyboardLayout
-
-        fun setKeyboardLayout(layout: List<List<String>>) {
-            setKeyboardLayoutInternal(
-                layout.takeIf { list ->
-                    list.isNotEmpty() && list.all { it.isNotEmpty() }
-                } ?: defaultLayout,
-            )
-            currentMode = InputMode.LETTERS
-            instanceRef.get()?.get()?.rebuildOnUiThread()
-        }
-
-        fun resetKeyboardLayout() {
-            setKeyboardLayoutInternal(defaultLayout)
-            currentMode = InputMode.LETTERS
-            instanceRef.get()?.get()?.rebuildOnUiThread()
-            lastClipboardModuleSignature = ""
-        }
-
-        fun sendKeyFromModule(key: String): Boolean {
-            val service = instanceRef.get()?.get() ?: return false
-            service.commitTextToInputConnection(key)
-            return true
-        }
-
-        fun backspaceFromModule(): Boolean {
-            val service = instanceRef.get()?.get() ?: return false
-            service.deleteFromInputConnection()
-            return true
-        }
-
-        fun enterFromModule(): Boolean {
-            val service = instanceRef.get()?.get() ?: return false
-            service.sendEnter()
-            return true
-        }
-
-        private fun switchToSymbols() {
-            currentMode = InputMode.SYMBOLS
-            setKeyboardLayoutInternal(symbolsLayout)
-            instanceRef.get()?.get()?.setInputMode(InputMode.SYMBOLS)
-        }
-
-        private fun switchToSpecial() {
-            currentMode = InputMode.SPECIAL
-            setKeyboardLayoutInternal(specialLayout)
-            instanceRef.get()?.get()?.setInputMode(InputMode.SPECIAL)
-        }
-
-        private fun switchToLetters() {
-            currentMode = InputMode.LETTERS
-            setKeyboardLayoutInternal(lettersLayoutBackup.ifEmpty { defaultLayout })
-            instanceRef.get()?.get()?.setInputMode(InputMode.LETTERS)
-        }
+            
+        private const val MAX_ITEMS_IN_CLIPBOARD = 10
 
         fun setClipboardSuggestionsFromModule(items: List<String>) {
             val cleaned =
@@ -4157,18 +2821,13 @@ class CustomKeyboard :
                     .filter { it.isNotEmpty() }
                     .take(MAX_ITEMS_IN_CLIPBOARD)
             val signature = cleaned.joinToString("|")
-            clipboardItems = cleaned
-            instanceRef.get()?.get()?.updateClipboardItems(cleaned)
             if (cleaned.isNotEmpty() && signature != lastClipboardModuleSignature) {
+                ClipboardRepository.setClipboardItems(cleaned)
                 lastClipboardModuleSignature = signature
                 val params = Arguments.createMap().apply { putBoolean("show", true) }
                 BackgroundServiceModule.sendEvent("showClipboard", params)
             }
         }
 
-        fun refreshClipboardFromSystem() {
-            val service = instanceRef.get()?.get() ?: return
-            service.refreshClipboardSource()
-        }
     }
 }

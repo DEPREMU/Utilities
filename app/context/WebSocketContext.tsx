@@ -1,3 +1,6 @@
+import ReconnectingWebSocket, {
+  OptionsReconnectingWS,
+} from "@/utils/reconnecting-websocket";
 import React, {
   useRef,
   useState,
@@ -29,7 +32,6 @@ import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
 import { useNotifications } from "./NotificationsContext";
-import ReconnectingWebSocket from "@/utils/reconnecting-websocket";
 import { DeviceEventEmitter, Platform } from "react-native";
 import { WebSocketMessage, ClipboardWebSocketMessage } from "@types";
 
@@ -61,6 +63,14 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(
 );
 
 const MAX_CLIPBOARD_ITEMS = Platform.OS === "web" ? 30 : 15;
+
+const OPTIONS_RECONNECT_WS: OptionsReconnectingWS = {
+  maxRetries: Infinity,
+  minReconnectionDelay: 1500,
+  maxReconnectionDelay: 10000,
+  reconnectionDelayGrowFactor: 1.5,
+  connectionTimeout: 5000,
+};
 
 const addToItemsClipboard = (
   item: string | string[],
@@ -158,13 +168,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         log("WebSocket initialized successfully.");
       };
 
-      const newSocket = new ReconnectingWebSocket(url, [], {
-        maxRetries: Infinity,
-        minReconnectionDelay: 1000,
-        maxReconnectionDelay: 10000,
-        reconnectionDelayGrowFactor: 1.5,
-        connectionTimeout: 5000,
-      });
+      const newSocket = new ReconnectingWebSocket(
+        url,
+        [],
+        OPTIONS_RECONNECT_WS,
+      );
 
       newSocket.onopen = async () => {
         log("WebSocket connection opened successfully");
@@ -177,25 +185,21 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
             loadDataStorage("THEME"),
           ]);
 
-          const initMessage: WebSocketMessage<"sentByApp"> = {
+          sendMessageRef.current("main", {
             type: "init",
             userId: userData?.userId || "",
             notifications,
             theme: theme || "auto",
             language: lang || "en",
             hasAdmin: !!hasAdmin,
-          };
+          });
 
-          newSocket.send(JSON.stringify(initMessage));
-
-          if (notifications) {
-            const notificationMessage: WebSocketMessage<"sentByApp"> = {
+          !!notifications &&
+            sendMessageRef.current("main", {
               type: "notifications",
               data: notifications,
               userId: userData?.userId || "",
-            };
-            newSocket.send(JSON.stringify(notificationMessage));
-          }
+            });
         } catch (error) {
           logError("Error during WebSocket initialization:", error);
         }
@@ -256,13 +260,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     const socket = new ReconnectingWebSocket(
       clipboardSocketURL || CLIPBOARD_WS_URL,
       [],
-      {
-        maxRetries: Infinity,
-        minReconnectionDelay: 1500,
-        maxReconnectionDelay: 10000,
-        reconnectionDelayGrowFactor: 1.5,
-        connectionTimeout: 5000,
-      },
+      OPTIONS_RECONNECT_WS,
     );
 
     socket.onopen = async () => {

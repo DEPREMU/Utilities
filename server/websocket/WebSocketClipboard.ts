@@ -7,6 +7,7 @@ import { ClipboardSync, ClipboardWebSocketMessage } from "@types";
 type DataUser = {
   userId: string;
   deviceId: string;
+  isClosing: boolean;
 };
 
 let idIntervalClipboard: NodeJS.Timeout | number | null = null;
@@ -31,7 +32,17 @@ const deleteDevice = (data: { userId: string; deviceId: string }) => {
   delete usersClipboard[data.userId];
 };
 
-const handleClose = (data: DataUser) => {
+const handleClose = (data: DataUser, ws?: WebSocket) => {
+  try {
+    if (ws && ws.readyState !== WebSocket.CLOSED && !data.isClosing) {
+      data.isClosing = true;
+      ws.close();
+      ws.removeAllListeners();
+    }
+  } catch {
+    // Ignore
+  }
+
   if (!usersClipboard[data.userId]) return;
 
   const pingIntervalId =
@@ -99,6 +110,7 @@ export const initWebSocketClipboard = () => {
       let data: DataUser = {
         userId: "",
         deviceId: "",
+        isClosing: false,
       };
 
       connectionClipboard.on("message", async (buffer) => {
@@ -110,10 +122,14 @@ export const initWebSocketClipboard = () => {
           switch (message.type) {
             case "init": {
               if (!message.userId || !message.deviceId) {
-                connectionClipboard.close?.();
+                handleClose(data, connectionClipboard);
                 return;
               }
-              data = { userId: message.userId, deviceId: message.deviceId };
+              data = {
+                userId: message.userId,
+                deviceId: message.deviceId,
+                isClosing: false,
+              };
 
               showInfo(
                 chalk.green("New clipboard client connected:"),
@@ -134,7 +150,7 @@ export const initWebSocketClipboard = () => {
                       chalk.green("-"),
                       chalk.yellow(data.deviceId),
                     );
-                    connectionClipboard.close();
+                    handleClose(data, connectionClipboard);
                   }, 10000);
                 connectionClipboard.send(JSON.stringify({ type: "ping" }));
               }, 29000);
@@ -216,13 +232,14 @@ export const initWebSocketClipboard = () => {
           chalk.green("Device ID:"),
           chalk.yellow(data.deviceId),
         );
-        handleClose(data);
-        connectionClipboard.removeAllListeners();
       });
 
       connectionClipboard.on("error", (error) => {
-        showInfo("Clipboard WebSocket error:", error);
-        connectionClipboard.close();
+        showInfo(
+          "Clipboard WebSocket error:",
+          error instanceof Error ? error.message : error,
+        );
+        handleClose(data, connectionClipboard);
       });
     });
 

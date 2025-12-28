@@ -17,44 +17,20 @@ class KeyboardModule(
         key: String,
         promise: Promise,
     ) {
-        try {
-            val success = CustomKeyboard.sendKeyFromModule(key)
-            if (!success) {
-                promise.reject("NO_IME", "Input method is not active")
-                return
-            }
-            promise.resolve("Key sent: $key")
-        } catch (e: Exception) {
-            promise.reject("ERROR", e)
-        }
+        KeyboardCommandRepository.sendCommand(KeyboardCommandRepository.Command.CommitText(key))
+        promise.resolve("Key sent: $key")
     }
 
     @ReactMethod
     fun backspace(promise: Promise) {
-        try {
-            val success = CustomKeyboard.backspaceFromModule()
-            if (!success) {
-                promise.reject("NO_IME", "Input method is not active")
-                return
-            }
-            promise.resolve(true)
-        } catch (e: Exception) {
-            promise.reject("ERROR", e)
-        }
+        KeyboardCommandRepository.sendCommand(KeyboardCommandRepository.Command.Delete)
+        promise.resolve(true)
     }
 
     @ReactMethod
     fun enter(promise: Promise) {
-        try {
-            val success = CustomKeyboard.enterFromModule()
-            if (!success) {
-                promise.reject("NO_IME", "Input method is not active")
-                return
-            }
-            promise.resolve(true)
-        } catch (e: Exception) {
-            promise.reject("ERROR", e)
-        }
+        KeyboardCommandRepository.sendCommand(KeyboardCommandRepository.Command.Enter)
+        promise.resolve(true)
     }
 
     @ReactMethod
@@ -64,7 +40,7 @@ class KeyboardModule(
     ) {
         try {
             val parsedLayout = parseLayout(layout)
-            CustomKeyboard.setKeyboardLayout(parsedLayout)
+            KeyboardCommandRepository.sendCommand(KeyboardCommandRepository.Command.SetLayout(parsedLayout))
             promise.resolve(true)
         } catch (e: Exception) {
             promise.reject("ERROR_SET_LAYOUT", e)
@@ -73,12 +49,8 @@ class KeyboardModule(
 
     @ReactMethod
     fun resetLayout(promise: Promise) {
-        try {
-            CustomKeyboard.resetKeyboardLayout()
-            promise.resolve(true)
-        } catch (e: Exception) {
-            promise.reject("ERROR_RESET_LAYOUT", e)
-        }
+        KeyboardCommandRepository.sendCommand(KeyboardCommandRepository.Command.ResetLayout)
+        promise.resolve(true)
     }
 
     @ReactMethod

@@ -34,7 +34,7 @@ export type Event = Events.Event;
 export type ErrorEvent = Events.ErrorEvent;
 export type CloseEvent = Events.CloseEvent;
 
-export type Options = {
+export type OptionsReconnectingWS = {
   WebSocket?: any;
   maxReconnectionDelay?: number;
   minReconnectionDelay?: number;
@@ -89,12 +89,12 @@ export default class ReconnectingWebSocket {
 
   private readonly _url: UrlProvider;
   private readonly _protocols?: string | string[];
-  private readonly _options: Options;
+  private readonly _options: OptionsReconnectingWS;
 
   constructor(
     url: UrlProvider,
     protocols?: string | string[],
-    options: Options = {},
+    options: OptionsReconnectingWS = {},
   ) {
     this._url = url;
     this._protocols = protocols;

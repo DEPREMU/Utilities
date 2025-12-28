@@ -44,6 +44,7 @@ const run = () => {
   execSync("npx expo run:android --no-build-cache", {
     cwd: APP_PATH,
     stdio: "inherit",
+    killSignal: "SIGINT",
     env: localEnv,
   });
 };

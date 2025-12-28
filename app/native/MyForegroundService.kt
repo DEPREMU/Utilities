@@ -60,6 +60,9 @@ class MyForegroundService : Service() {
 
             if (text.isNotBlank()) {
                 Log.d("MyForegroundService", "New clipboard text: $text")
+                ClipboardRepository.setClipboardItems(
+                    listOf(text) + ClipboardRepository.clipboardItems.value.filter { it != text }
+                )
                 BackgroundServiceModule.sendEvent(
                     "showClipboard",
                     Arguments.createMap().apply { 
