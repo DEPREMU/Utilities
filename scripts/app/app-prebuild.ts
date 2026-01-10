@@ -102,6 +102,7 @@ const editMainApplication = async () => {
       `import ${packageName}.NotificationPackage`,
       `import ${packageName}.NativeFunctionsPackage`,
       `import ${packageName}.BackgroundServicePackage`,
+      `import ${packageName}.VaultCryptoPackage`,
       "",
     ].join("\n")
   );
@@ -131,6 +132,7 @@ const editMainApplication = async () => {
     "NotificationPackage()",
     "NativeFunctionsPackage()",
     "BackgroundServicePackage()",
+    "VaultCryptoPackage()",
   ];
 
   fs.writeFileSync(

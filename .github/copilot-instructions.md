@@ -314,3 +314,445 @@ yarn run before-commit
 - Always use arrow functions while making functions for consistent syntax and lexical `this` binding.
 - If md files are added, make sure add it to folder implementation-md/ to avoid committing them.
 - Avoid using emojis in code comments or documentation within the codebase to maintain professionalism and clarity.
+
+---
+
+---
+
+---
+
+# Utilities Documentation - app
+
+## Index
+
+### App Management
+
+- **Format date, Date formatted** | [getFormattedDate](../app/utils/functions/appManagement.ts#L30)
+- **Parse JSON data, safe parse** | [parseData](../app/utils/functions/appManagement.ts#L78)
+- **Sort array, valid representation** | [sortArray](../app/utils/functions/appManagement.ts#L120)
+- **Sort object keys** | [sortObject](../app/utils/functions/appManagement.ts#L131)
+- **Stringify data, object to string** | [stringifyData](../app/utils/functions/appManagement.ts#L149)
+- **Interpolate string, replace placeholders** | [interpolateMessage](../app/utils/functions/appManagement.ts#L186)
+- **Capitalize string** | [capitalize](../app/utils/functions/appManagement.ts#L201)
+- **Check falsy value** | [isFalsy](../app/utils/functions/appManagement.ts#L215)
+- **Get future date, date add days** | [getDateWithDaysAhead](../app/utils/functions/appManagement.ts#L230)
+- **Get notifications, initialize notifications** | [getNotifications](../app/utils/functions/appManagement.ts#L239)
+- **Get cryptos from DB** | [getCryptosFromDatabase](../app/utils/functions/appManagement.ts#L249)
+- **Check update available** | [isNewUpdateAvailable](../app/utils/functions/appManagement.ts#L289)
+- **Fetch and apply update** | [fetchAndApplyUpdate](../app/utils/functions/appManagement.ts#L293)
+- **Set timeout polyfill (Android/Web)** | [setTimeoutPolyfill](../app/utils/functions/appManagement.ts#L308)
+- **Clear timeout polyfill** | [clearTimeoutPolyfill](../app/utils/functions/appManagement.ts#L316)
+- **Clear React refs** | [clearRefs](../app/utils/functions/appManagement.ts#L337)
+- **Set interval polyfill** | [setIntervalPolyfill](../app/utils/functions/appManagement.ts#L344)
+- **Clear interval polyfill** | [clearIntervalPolyfill](../app/utils/functions/appManagement.ts#L352)
+- **Check URL status** | [checkUrlStatus](../app/utils/functions/appManagement.ts#L369)
+- **Check internet connection** | [hasInternetConnection](../app/utils/functions/appManagement.ts#L397)
+- **Get random UUID** | [getRandomId](../app/utils/functions/appManagement.ts#L415)
+- **Memoize component deep** | [memoDeep](../app/utils/functions/appManagement.ts#L437)
+- **Compare values equality** | [areEqualValues](../app/utils/functions/appManagement.ts#L464)
+- **Select image from gallery** | [selectImage](../app/utils/functions/appManagement.ts#L501)
+- **Download base64 file** | [downloadBase64](../app/utils/functions/appManagement.ts#L764)
+
+### API Management
+
+- **Generate fetch options** | [fetchOptions](../app/utils/functions/APIManagement.ts#L29)
+- **Get full API route** | [getRouteAPI](../app/utils/functions/APIManagement.ts#L60)
+- **Get image URL** | [getRouteImage](../app/utils/functions/APIManagement.ts#L111)
+- **Fetch to server** | [fetchToServer](../app/utils/functions/APIManagement.ts#L147)
+
+### Authentication
+
+- **Save storage values** | [saveStorageData](../app/utils/functions/auth.ts#L60)
+- **Sign in with email** | [signInWithEmail](../app/utils/functions/auth.ts#L100)
+- **Sign up with email** | [signUpWithEmail](../app/utils/functions/auth.ts#L140)
+- **Forgot password** | [forgotPasswordWithEmail](../app/utils/functions/auth.ts#L170)
+- **Sign out** | [signOut](../app/utils/functions/auth.ts#L196)
+
+### Background & Permissions
+
+- **Check location enabled** | [isLocationEnabled](../app/utils/functions/background.ts#L23)
+- **Request location permission** | [askLocationPermission](../app/utils/functions/background.ts#L44)
+- **Request overlay permission** | [askDisplayOverOtherAppsPermission](../app/utils/functions/background.ts#L117)
+- **Request battery optimization ignore** | [askBatteryOptimizationPermission](../app/utils/functions/background.ts#L172)
+
+### Debugging
+
+- **Log message** | [log](../app/utils/functions/debug.ts#L56)
+- **Log warning** | [logWarn](../app/utils/functions/debug.ts#L114)
+- **Log error** | [logError](../app/utils/functions/debug.ts#L162)
+
+### Notifications
+
+- **Check notifications initialized** | [isNotificationsAlreadyInitialized](../app/utils/functions/notifications.ts#L28)
+- **Initialize notifications storage** | [initializeNotificationsStorage](../app/utils/functions/notifications.ts#L47)
+- **Check push permission** | [hasPushNotifications](../app/utils/functions/notifications.ts#L105)
+- **Setup notification handlers** | [setupNotificationHandlers](../app/utils/functions/notifications.ts#L129)
+- **Configure channels (Android)** | [configureNotificationChannel](../app/utils/functions/notifications.ts#L168)
+
+### Storage Management
+
+- **Save data to storage (Secure/Unsecure)** | [saveDataStorage](../app/utils/functions/storageManagement.ts#L86)
+- **Load data from storage** | [loadDataStorage](../app/utils/functions/storageManagement.ts#L163)
+
+### Screens Utils
+
+- **Get Public IP** | [getIP](../app/utils/functions/screens/IP.ts#L5)
+- **Get IP Query Data** | [getDataIPQuery](../app/utils/functions/screens/IP.ts#L10)
+- **Get IP-API Data** | [getDataIP_api](../app/utils/functions/screens/IP.ts#L19)
+- **Open URL** | [openURL](../app/utils/functions/screens/SocialMedia.ts#L10)
+- **Translate text** | [translate](../app/utils/functions/screens/Translator.ts#L5)
+
+### Task Registry
+
+- **Update database record** | [taskRegistry.updateFromDatabase](../app/utils/taskRegistry.ts#L23)
+- **Insert database record** | [taskRegistry.insertIntoDatabase](../app/utils/taskRegistry.ts#L50)
+- **Delete database record** | [taskRegistry.deleteFromDatabase](../app/utils/taskRegistry.ts#L75)
+
+### Common Validation & Error Handling
+
+- **Validate Email** | [isValidEmail](../common/both/validations.ts#L7)
+- **Validate Password** | [isValidPassword](../common/both/validations.ts#L23)
+- **Clean Float String** | [cleanFloat](../common/both/validations.ts#L34)
+- **Wrap function with error handling** | [wrapFunctionWithError](../common/both/errorHandling.ts#L35)
+- **Is Secure Storage Key** | [isSecureKey](../common/both/keysStorage.ts#L123)
+
+---
+
+## App Management Functions
+
+### `getFormattedDate`
+
+Formats a date object into a localized string.
+
+- **File**: [../app/utils/functions/appManagement.ts](../app/utils/functions/appManagement.ts)
+
+```typescript
+const dateStr = getFormattedDate(new Date(), "es-MX", { dateStyle: "short" });
+```
+
+### `parseData`
+
+Safely parses a JSON string, handling defined Symbols/Functions placeholders.
+
+- **File**: [../app/utils/functions/appManagement.ts](../app/utils/functions/appManagement.ts)
+
+```typescript
+// 1. Basic parsing
+const obj = parseData<MyType>(jsonString);
+
+// 2. Parsing failing JSON returns null/original value
+const safe = parseData(null); // returns null
+```
+
+### `stringifyData`
+
+Stringifies data safely, handling dates and sorting object keys.
+
+- **File**: [../app/utils/functions/appManagement.ts](../app/utils/functions/appManagement.ts)
+
+```typescript
+// 1. Standard stringify
+const json = stringifyData(myObject);
+
+// 2. Handling Dates and sorting keys
+const sortedJson = stringifyData({ b: 2, a: 1, date: new Date() });
+```
+
+### `interpolateMessage`
+
+Replaces `{0}`, `{1}` placeholders in strings.
+
+- **File**: [../app/utils/functions/appManagement.ts](../app/utils/functions/appManagement.ts)
+
+```typescript
+const msg = interpolateMessage("Hello {0}", ["World"]);
+```
+
+### `isFalsy`
+
+Checks if value is null, undefined, false or empty string.
+
+- **File**: [../app/utils/functions/appManagement.ts](../app/utils/functions/appManagement.ts)
+
+```typescript
+if (isFalsy(value)) {
+  /* handle falsy */
+}
+```
+
+### `setTimeoutPolyfill` / `setIntervalPolyfill`
+
+Platform-aware timer functions (uses BackgroundTimer on Android, standard on others).
+
+- **File**: [../app/utils/functions/appManagement.ts](../app/utils/functions/appManagement.ts)
+
+```typescript
+// 1. Standard timeout
+const id = setTimeoutPolyfill(() => console.log("hi"), 1000);
+
+// 2. Clear timeout
+clearTimeoutPolyfill(id);
+// Also accepts ref objects: clearTimeoutPolyfill(timerRef);
+```
+
+### `areEqualValues`
+
+Compares multiple values for deep equality.
+
+- **File**: [../app/utils/functions/appManagement.ts](../app/utils/functions/appManagement.ts)
+
+```typescript
+// 1. Check with deep equality (isEqual)
+const isEqual = areEqualValues(false, obj1, obj2);
+
+// 2. Check using JSON stringification (faster for simple objects)
+const isStringEqual = areEqualValues(true, obj1, obj2);
+
+// 3. Compare multiple values at once
+const allEqual = areEqualValues(false, val1, val2, val3);
+```
+
+### `selectImage`
+
+Opens document picker to select an image.
+
+- **File**: [../app/utils/functions/appManagement.ts](../app/utils/functions/appManagement.ts)
+
+```typescript
+// 1. Select single image with base64
+const result = await selectImage({ multiple: false, base64: true });
+
+// 2. Select multiple images
+const results = await selectImage({ multiple: true });
+```
+
+### `downloadBase64`
+
+Downloads a base64 string as a file (Web/Native compatible).
+
+- **File**: [../app/utils/functions/appManagement.ts](../app/utils/functions/appManagement.ts)
+
+```typescript
+await downloadBase64({
+  uri: base64String,
+  fileName: "image.png",
+  typeFile: "image/png",
+  directory: "images",
+  // Optional: albumName: "MyAlbum" (native)
+  // Optional: deleteAfterDownload: true
+});
+```
+
+---
+
+## API Management Functions
+
+### `fetchToServer`
+
+Generic wrapper for making API requests to the server with token/auth handling.
+
+- **File**: [../app/utils/functions/APIManagement.ts](../app/utils/functions/APIManagement.ts)
+
+```typescript
+// 1. POST Request with Body
+const res = await fetchToServer("/database/fetch", { table: "Users" }, token);
+
+// 2. GET Request (no body)
+const resGet = await fetchToServer("/health");
+
+// 3. Request without token
+const resAuth = await fetchToServer("/auth/login", { email, password });
+```
+
+### `fetchOptions`
+
+Generates headers and stringified body for fetch requests.
+
+- **File**: [../app/utils/functions/APIManagement.ts](../app/utils/functions/APIManagement.ts)
+
+```typescript
+// 1. Options with Body and Token
+const opts = fetchOptions({ some: "data" }, token);
+
+// 2. Options without Body
+const optsGet = fetchOptions(undefined, token);
+```
+
+---
+
+## Authentication Functions
+
+### `signInWithEmail`
+
+Authenticates a user and saves session data.
+
+- **File**: [../app/utils/functions/auth.ts](../app/utils/functions/auth.ts)
+
+```typescript
+const result = await signInWithEmail("user@example.com", "password123");
+if (result.success) {
+  /* user logged in */
+}
+```
+
+### `saveStorageData`
+
+Saves multiple storage key-values at once (e.g. from login response).
+
+- **File**: [../app/utils/functions/auth.ts](../app/utils/functions/auth.ts)
+
+```typescript
+await saveStorageData(response.storageValues);
+```
+
+---
+
+## Background & Permissions Functions
+
+### `askLocationPermission`
+
+Requests foreground and background location permissions.
+
+- **File**: [../app/utils/functions/background.ts](../app/utils/functions/background.ts)
+
+```typescript
+const granted = await askLocationPermission();
+```
+
+### `askDisplayOverOtherAppsPermission`
+
+Requests overlay permission (Android).
+
+- **File**: [../app/utils/functions/background.ts](../app/utils/functions/background.ts)
+
+```typescript
+const granted = await askDisplayOverOtherAppsPermission();
+```
+
+---
+
+## Debug Functions
+
+### `log` / `logWarn` / `logError`
+
+Logs to console in Dev, sends to server in Preview, ignores in Production.
+
+- **File**: [../app/utils/functions/debug.ts](../app/utils/functions/debug.ts)
+
+```typescript
+// 1. Standard Log
+log("Message");
+
+// 2. Log with data
+log("User Info", { id: 1, name: "Test" });
+
+// 3. Log Error
+logError("Critical Failure", errorObj);
+```
+
+---
+
+## Storage Management Functions
+
+### `saveDataStorage`
+
+Saves a value to storage (SecureStore for sensitive keys, AsyncStorage for others).
+
+- **File**: [../app/utils/functions/storageManagement.ts](../app/utils/functions/storageManagement.ts)
+
+```typescript
+// 1. Save Unsecure Data
+await saveDataStorage("THEME", "dark");
+
+// 2. Save Secure Data
+await saveDataStorage("USER_DATA", userData);
+
+// 3. Save with Error Callback
+await saveDataStorage("API_URL", "http://...", (err, msg) => {
+  console.error("Save failed", msg);
+});
+```
+
+### `loadDataStorage`
+
+Loads and parses a value from storage.
+
+- **File**: [../app/utils/functions/storageManagement.ts](../app/utils/functions/storageManagement.ts)
+
+```typescript
+// 1. Basic Load
+const theme = await loadDataStorage("THEME");
+
+// 2. Load with Fallback Value
+const lang = await loadDataStorage("LANGUAGE", "en");
+
+// 3. Load with Callback
+await loadDataStorage("USER_DATA", (value, err) => {
+  if (err) handleErr(err);
+  else setUser(value);
+});
+```
+
+---
+
+## Task Registry
+
+### `taskRegistry` methods
+
+Methods to perform database operations via the server.
+
+- **File**: [../app/utils/taskRegistry.ts](../app/utils/taskRegistry.ts)
+
+```typescript
+await taskRegistry.updateFromDatabase(
+  "Users",
+  { name: "New Name" },
+  { id: "123" }
+);
+await taskRegistry.insertIntoDatabase("Logs", { message: "Test" });
+await taskRegistry.deleteFromDatabase("Temp", { id: "456" });
+```
+
+---
+
+## Common Validations
+
+### `isValidEmail`
+
+Validates email format.
+
+- **File**: [../common/both/validations.ts](../common/both/validations.ts)
+
+```typescript
+if (isValidEmail("test@test.com")) { ... }
+```
+
+### `wrapFunctionWithError`
+
+Wraps a function to catch errors and optionally execute a callback.
+
+- **File**: [../common/both/errorHandling.ts](../common/both/errorHandling.ts)
+
+```typescript
+// 1. Execute immediately with error handler
+const result = await wrapFunctionWithError(
+  async () => {
+    return await riskyOperation();
+  },
+  (err) => console.log(err)
+);
+
+// 2. Return a wrapped function
+const safeFn = wrapFunctionWithError(
+  async (arg) => {
+    return await doWork(arg);
+  },
+  true,
+  (err) => null
+);
+
+// 3. Default error handling (returns undefined on error)
+const simpleSafe = wrapFunctionWithError(async () => {
+  // ...
+});
+```

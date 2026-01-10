@@ -5,6 +5,15 @@ import type {
 import { LanguagesSupported } from "./typesTranslations";
 import { ExpectedNativeWebData } from "./typesUtilitiesForPC";
 
+import type {
+  ProgressEvent,
+  VaultFolder,
+  VaultItem,
+  VaultSettings,
+  VaultWrappedMasterKey,
+  VaultAuthVerifier,
+} from "./typesVault";
+
 import { ActionNotification, ReasonNotification } from "./typesNotifications";
 
 export type EventNativeModule = {
@@ -19,7 +28,7 @@ export type EventNativeModule = {
 type ExpectedStorageTypesBoth = ExpectedStorageTypes &
   ExpectedStorageTypes<"UNSECURE">;
 
-type ChannelsIpcRenderer<
+export type ChannelsIpcRenderer<
   T extends ALL_KEYS_STORAGE_TYPE = keyof ExpectedStorageTypes<"BOTH">,
 > = {
   "user-login-status": {
@@ -97,6 +106,154 @@ type ChannelsIpcRenderer<
     functionArgs: [];
     typeIpc: "send";
   };
+
+  "vault-pick-files": {
+    functionReturn: Promise<{ canceled: boolean; paths: string[] }>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "vault-pick-folders": {
+    functionReturn: Promise<{ canceled: boolean; paths: string[] }>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "vault-ensure-initialized": {
+    functionReturn: Promise<{ ok: true } | { ok: false; error: string }>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "vault-load-settings": {
+    functionReturn: Promise<VaultSettings | null>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "vault-save-settings": {
+    functionReturn: Promise<{ ok: true } | { ok: false; error: string }>;
+    functionArgs: [settings: VaultSettings];
+    typeIpc: "invoke";
+  };
+  "vault-load-wrapped-master-key": {
+    functionReturn: Promise<VaultWrappedMasterKey | null>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "vault-save-wrapped-master-key": {
+    functionReturn: Promise<{ ok: true } | { ok: false; error: string }>;
+    functionArgs: [data: VaultWrappedMasterKey];
+    typeIpc: "invoke";
+  };
+  "vault-load-auth-verifier": {
+    functionReturn: Promise<VaultAuthVerifier | null>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "vault-save-auth-verifier": {
+    functionReturn: Promise<{ ok: true } | { ok: false; error: string }>;
+    functionArgs: [data: VaultAuthVerifier];
+    typeIpc: "invoke";
+  };
+  "vault-list-folders": {
+    functionReturn: Promise<VaultFolder[]>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "vault-create-folder": {
+    functionReturn: Promise<VaultFolder>;
+    functionArgs: [
+      folder: Omit<VaultFolder, "createdAt"> & { createdAt?: string },
+    ];
+    typeIpc: "invoke";
+  };
+  "vault-update-folder": {
+    functionReturn: Promise<VaultFolder>;
+    functionArgs: [folder: VaultFolder];
+    typeIpc: "invoke";
+  };
+  "vault-delete-folder": {
+    functionReturn: Promise<boolean>;
+    functionArgs: [folderId: string];
+    typeIpc: "invoke";
+  };
+  "vault-list-items": {
+    functionReturn: Promise<VaultItem[]>;
+    functionArgs: [folderId: string];
+    typeIpc: "invoke";
+  };
+  "vault-save-item-metadata": {
+    functionReturn: Promise<{ ok: true } | { ok: false; error: string }>;
+    functionArgs: [item: VaultItem];
+    typeIpc: "invoke";
+  };
+  "vault-delete-item": {
+    functionReturn: Promise<boolean>;
+    functionArgs: [folderId: string, itemId: string];
+    typeIpc: "invoke";
+  };
+  "vault-unlock": {
+    functionReturn: Promise<{ ok: true } | { ok: false; error: string }>;
+    functionArgs: [password: string];
+    typeIpc: "invoke";
+  };
+  "vault-lock": {
+    functionReturn: void;
+    functionArgs: [];
+    typeIpc: "send";
+  };
+  "vault-encrypt-paths": {
+    functionReturn: Promise<
+      { ok: true; items: VaultItem[] } | { ok: false; error: string }
+    >;
+    functionArgs: [jobId: string, folderId: string, inputPaths: string[]];
+    typeIpc: "invoke";
+  };
+  "vault-decrypt-to-temp": {
+    functionReturn: Promise<
+      { ok: true; tempPath: string } | { ok: false; error: string }
+    >;
+    functionArgs: [
+      jobId: string,
+      folderId: string,
+      itemId: string,
+      sessionId: string,
+    ];
+    typeIpc: "invoke";
+  };
+  "vault-clean-temp-session": {
+    functionReturn: Promise<boolean>;
+    functionArgs: [sessionId: string];
+    typeIpc: "invoke";
+  };
+  "vault-cancel-job": {
+    functionReturn: Promise<boolean>;
+    functionArgs: [jobId: string];
+    typeIpc: "invoke";
+  };
+  "vault-zip": {
+    functionReturn: Promise<
+      { ok: true; outputPath: string } | { ok: false; error: string }
+    >;
+    functionArgs: [jobId: string, inputPaths: string[], outputPath: string];
+    typeIpc: "invoke";
+  };
+  "vault-unzip": {
+    functionReturn: Promise<
+      { ok: true; outputDir: string } | { ok: false; error: string }
+    >;
+    functionArgs: [jobId: string, zipPath: string, outputDir: string];
+    typeIpc: "invoke";
+  };
+  "vault-export-backup": {
+    functionReturn: Promise<
+      { ok: true; outputDir: string } | { ok: false; error: string }
+    >;
+    functionArgs: [
+      jobId: string,
+      outputDir: string,
+      mode: "sameKey" | "reencrypt",
+      password?: string,
+    ];
+    typeIpc: "invoke";
+  };
 };
 
 type NotificationElectron = {
@@ -151,6 +308,67 @@ export type ContextBridgeType = {
     onClipboardItemsUpdated: (
       callback: (items: Array<{ id: string; content: string }>) => void
     ) => void;
+
+    vaultPickFiles: () => ChannelsIpcRenderer["vault-pick-files"]["functionReturn"];
+    vaultPickFolders: () => ChannelsIpcRenderer["vault-pick-folders"]["functionReturn"];
+    vaultEnsureInitialized: () => ChannelsIpcRenderer["vault-ensure-initialized"]["functionReturn"];
+    vaultLoadSettings: () => ChannelsIpcRenderer["vault-load-settings"]["functionReturn"];
+    vaultSaveSettings: (
+      ...args: ChannelsIpcRenderer["vault-save-settings"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-save-settings"]["functionReturn"];
+    vaultLoadWrappedMasterKey: () => ChannelsIpcRenderer["vault-load-wrapped-master-key"]["functionReturn"];
+    vaultSaveWrappedMasterKey: (
+      ...args: ChannelsIpcRenderer["vault-save-wrapped-master-key"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-save-wrapped-master-key"]["functionReturn"];
+    vaultLoadAuthVerifier: () => ChannelsIpcRenderer["vault-load-auth-verifier"]["functionReturn"];
+    vaultSaveAuthVerifier: (
+      ...args: ChannelsIpcRenderer["vault-save-auth-verifier"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-save-auth-verifier"]["functionReturn"];
+    vaultListFolders: () => ChannelsIpcRenderer["vault-list-folders"]["functionReturn"];
+    vaultCreateFolder: (
+      ...args: ChannelsIpcRenderer["vault-create-folder"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-create-folder"]["functionReturn"];
+    vaultUpdateFolder: (
+      ...args: ChannelsIpcRenderer["vault-update-folder"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-update-folder"]["functionReturn"];
+    vaultDeleteFolder: (
+      ...args: ChannelsIpcRenderer["vault-delete-folder"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-delete-folder"]["functionReturn"];
+    vaultListItems: (
+      ...args: ChannelsIpcRenderer["vault-list-items"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-list-items"]["functionReturn"];
+    vaultSaveItemMetadata: (
+      ...args: ChannelsIpcRenderer["vault-save-item-metadata"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-save-item-metadata"]["functionReturn"];
+    vaultDeleteItem: (
+      ...args: ChannelsIpcRenderer["vault-delete-item"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-delete-item"]["functionReturn"];
+    vaultUnlock: (
+      ...args: ChannelsIpcRenderer["vault-unlock"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-unlock"]["functionReturn"];
+    vaultLock: () => void;
+    vaultEncryptPaths: (
+      ...args: ChannelsIpcRenderer["vault-encrypt-paths"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-encrypt-paths"]["functionReturn"];
+    vaultDecryptToTemp: (
+      ...args: ChannelsIpcRenderer["vault-decrypt-to-temp"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-decrypt-to-temp"]["functionReturn"];
+    vaultCleanTempSession: (
+      ...args: ChannelsIpcRenderer["vault-clean-temp-session"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-clean-temp-session"]["functionReturn"];
+    vaultCancelJob: (
+      ...args: ChannelsIpcRenderer["vault-cancel-job"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-cancel-job"]["functionReturn"];
+    vaultZip: (
+      ...args: ChannelsIpcRenderer["vault-zip"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-zip"]["functionReturn"];
+    vaultUnzip: (
+      ...args: ChannelsIpcRenderer["vault-unzip"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-unzip"]["functionReturn"];
+    vaultExportBackup: (
+      ...args: ChannelsIpcRenderer["vault-export-backup"]["functionArgs"]
+    ) => ChannelsIpcRenderer["vault-export-backup"]["functionReturn"];
+    onVaultProgress: (callback: (event: ProgressEvent) => void) => void;
   };
 };
 

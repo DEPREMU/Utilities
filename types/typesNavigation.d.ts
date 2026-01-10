@@ -6,6 +6,7 @@ export type ScreensAvailable =
   | "InfoIP"
   | "SignUp"
   | "Images"
+  | "Vault"
   | "Cryptos"
   | "Recorder"
   | "Settings"

@@ -10,4 +10,5 @@ export * from "./typesTranslations";
 export * from "./typesNotifications";
 export * from "./typesNativeModules";
 export * from "./typesUtilitiesForPC";
+export * from "./typesVault";
 export * from "../app/node_modules/react-native";

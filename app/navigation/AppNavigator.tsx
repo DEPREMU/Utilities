@@ -7,6 +7,7 @@ import InfoIP from "@screens/Connectivity/IP";
 import Translator from "@screens/translator/Translator";
 import HomeScreen from "@screens/HomeScreen";
 import ScanQRCode from "@screens/auth/ScanQRCode";
+import VaultScreen from "@screens/Vault";
 import LoginScreen from "@screens/auth/LoginScreen";
 import Minesweeper from "@screens/Games/Minesweeper";
 import SignUpScreen from "@screens/auth/SignUpScreen";
@@ -77,6 +78,7 @@ const screens: Screens = {
   MarkdownViewer: { component: MarkdownViewer },
   forgotPassword: { component: ForgotPasswordScreen },
   DeviceInformation: { component: DeviceInformation },
+  Vault: { component: VaultScreen },
   Test: { component: isDev ? Test : ComponentToHome },
   Recorder: { component: isWeb ? ComponentToHome : RecorderNavigator },
   Images: { component: ImagesNavigator },

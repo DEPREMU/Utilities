@@ -12,6 +12,7 @@ import { ChannelsIpcRenderer } from "@types";
 import { createWindowClipboard } from "./clipboard";
 import { ipcMain, IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { restartComputer, scheduleReconnect, turnOffComputer } from "./server";
+import { vaultHandlers } from "./vault";
 
 type IpcDictHybrid = {
   [K in keyof ChannelsIpcRenderer]: ChannelsIpcRenderer[K]["typeIpc"] extends "send"
@@ -232,6 +233,162 @@ const ipcDict: IpcDictHybrid = {
         clipboardWindow.show();
         clipboardWindow.focus();
       } else createWindowClipboard(true);
+    },
+  },
+
+  "vault-pick-files": {
+    type: "handle",
+    func: async () => {
+      return await vaultHandlers.vaultPickFiles();
+    },
+  },
+  "vault-pick-folders": {
+    type: "handle",
+    func: async () => {
+      return await vaultHandlers.vaultPickFolders();
+    },
+  },
+  "vault-ensure-initialized": {
+    type: "handle",
+    func: async () => {
+      return await vaultHandlers.ensureInitialized();
+    },
+  },
+  "vault-load-settings": {
+    type: "handle",
+    func: async () => {
+      return await vaultHandlers.loadSettings();
+    },
+  },
+  "vault-save-settings": {
+    type: "handle",
+    func: async (_event, settings) => {
+      return await vaultHandlers.saveSettings(settings);
+    },
+  },
+  "vault-load-wrapped-master-key": {
+    type: "handle",
+    func: async () => {
+      return await vaultHandlers.loadWrappedMasterKey();
+    },
+  },
+  "vault-save-wrapped-master-key": {
+    type: "handle",
+    func: async (_event, wrapped) => {
+      return await vaultHandlers.saveWrappedMasterKey(wrapped);
+    },
+  },
+  "vault-load-auth-verifier": {
+    type: "handle",
+    func: async () => {
+      return await vaultHandlers.loadAuthVerifier();
+    },
+  },
+  "vault-save-auth-verifier": {
+    type: "handle",
+    func: async (_event, verifier) => {
+      return await vaultHandlers.saveAuthVerifier(verifier);
+    },
+  },
+  "vault-list-folders": {
+    type: "handle",
+    func: async () => {
+      return await vaultHandlers.listFolders();
+    },
+  },
+  "vault-create-folder": {
+    type: "handle",
+    func: async (_event, folder) => {
+      return await vaultHandlers.createFolder(folder);
+    },
+  },
+  "vault-update-folder": {
+    type: "handle",
+    func: async (_event, folder) => {
+      return await vaultHandlers.updateFolder(folder);
+    },
+  },
+  "vault-delete-folder": {
+    type: "handle",
+    func: async (_event, folderId) => {
+      return await vaultHandlers.deleteFolder(folderId);
+    },
+  },
+  "vault-list-items": {
+    type: "handle",
+    func: async (_event, folderId) => {
+      return await vaultHandlers.listItems(folderId);
+    },
+  },
+  "vault-save-item-metadata": {
+    type: "handle",
+    func: async (_event, item) => {
+      return await vaultHandlers.saveItemMetadata(item);
+    },
+  },
+  "vault-delete-item": {
+    type: "handle",
+    func: async (_event, folderId, itemId) => {
+      return await vaultHandlers.deleteItem(folderId, itemId);
+    },
+  },
+  "vault-unlock": {
+    type: "handle",
+    func: async (_event, password) => {
+      return await vaultHandlers.unlockVault(password);
+    },
+  },
+  "vault-lock": {
+    type: "on",
+    func: () => {
+      vaultHandlers.lockVault();
+    },
+  },
+  "vault-encrypt-paths": {
+    type: "handle",
+    func: async (_event, jobId, folderId, paths) => {
+      return await vaultHandlers.encryptPaths(jobId, folderId, paths);
+    },
+  },
+  "vault-decrypt-to-temp": {
+    type: "handle",
+    func: async (_event, jobId, folderId, itemId, sessionId) => {
+      return await vaultHandlers.decryptToTemp(
+        jobId,
+        folderId,
+        itemId,
+        sessionId
+      );
+    },
+  },
+  "vault-clean-temp-session": {
+    type: "handle",
+    func: async (_event, sessionId) => {
+      return await vaultHandlers.cleanTempSession(sessionId);
+    },
+  },
+  "vault-cancel-job": {
+    type: "handle",
+    func: async (_event, jobId) => {
+      return await vaultHandlers.cancelJob(jobId);
+    },
+  },
+  "vault-zip": {
+    type: "handle",
+    func: async (_event, jobId, inputPaths, outputPath) => {
+      return await vaultHandlers.zipPaths(jobId, inputPaths, outputPath);
+    },
+  },
+  "vault-unzip": {
+    type: "handle",
+    func: async (_event, jobId, zipPath, outputDir) => {
+      return await vaultHandlers.unzipFile(jobId, zipPath, outputDir);
+    },
+  },
+  "vault-export-backup": {
+    type: "handle",
+    func: async (_event, jobId, outputDir, mode, password) => {
+      return await vaultHandlers.exportBackup(jobId, outputDir, mode, password);
     },
   },
 };

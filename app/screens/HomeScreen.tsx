@@ -20,6 +20,7 @@ type ButtonType = {
 
 const buttons: ButtonType[] = [
   { label: "settings", screen: "Settings", noNeedsSession: true },
+  { label: "vault.title", screen: "Vault", noNeedsSession: true },
   { label: "infoIP", screen: "InfoIP", noNeedsSession: true },
   { label: "cryptoInfo", screen: "Cryptos" },
   {

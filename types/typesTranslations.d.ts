@@ -96,6 +96,24 @@ export type typeLanguages = Record<ReasonNotification, string> &
     noCryptocurrenciesSelected: string;
     autoRefresh: string;
     cryptocurrenciesTracked: string;
+    vault: {
+      title: string;
+      subtitle: string;
+      password: string;
+      unlock: string;
+      lock: string;
+      importFiles: string;
+      folders: string;
+      items: string;
+      newFolder: string;
+      folderNamePlaceholder: string;
+      decryptToTemp: string;
+      shareDecrypted: string;
+      deleteItem: string;
+      cancelJob: string;
+      noFolders: string;
+      noItems: string;
+    };
     // Login Screen translations
     errorNoSession: string;
     errorNoSessionMessage: string;

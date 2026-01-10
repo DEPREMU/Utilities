@@ -53,7 +53,7 @@ export type AdvertisementTXT = {
 
 type NotificationsSaved = Record<ReasonNotification, (() => void) | null>;
 
-type ExpectedNativeWebData = {
+export type ExpectedNativeWebData = {
   hasBattery: boolean | "unknown";
   version: string;
 };

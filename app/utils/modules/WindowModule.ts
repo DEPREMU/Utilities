@@ -28,6 +28,37 @@ const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
   showClipboardWindow: () => {
     return;
   },
+
+  vaultPickFiles: async () => ({ canceled: true, paths: [] }),
+  vaultPickFolders: async () => ({ canceled: true, paths: [] }),
+  vaultEnsureInitialized: async () => ({ ok: false, error: "Not Electron" }),
+  vaultLoadSettings: async () => null,
+  vaultSaveSettings: async () => ({ ok: false, error: "Not Electron" }),
+  vaultLoadWrappedMasterKey: async () => null,
+  vaultSaveWrappedMasterKey: async () => ({ ok: false, error: "Not Electron" }),
+  vaultLoadAuthVerifier: async () => null,
+  vaultSaveAuthVerifier: async () => ({ ok: false, error: "Not Electron" }),
+  vaultListFolders: async () => [],
+  vaultCreateFolder: async () => {
+    throw new Error("Not Electron");
+  },
+  vaultUpdateFolder: async () => {
+    throw new Error("Not Electron");
+  },
+  vaultDeleteFolder: async () => false,
+  vaultListItems: async () => [],
+  vaultSaveItemMetadata: async () => ({ ok: false, error: "Not Electron" }),
+  vaultDeleteItem: async () => false,
+  vaultUnlock: async () => ({ ok: false, error: "Not Electron" }),
+  vaultLock: () => {},
+  vaultEncryptPaths: async () => ({ ok: false, error: "Not Electron" }),
+  vaultDecryptToTemp: async () => ({ ok: false, error: "Not Electron" }),
+  vaultCleanTempSession: async () => false,
+  vaultCancelJob: async () => false,
+  vaultZip: async () => ({ ok: false, error: "Not Electron" }),
+  vaultUnzip: async () => ({ ok: false, error: "Not Electron" }),
+  vaultExportBackup: async () => ({ ok: false, error: "Not Electron" }),
+  onVaultProgress: () => {},
 };
 
 let windowModule: ContextBridgeType["UtilitiesForPC"] = defaultWindow;

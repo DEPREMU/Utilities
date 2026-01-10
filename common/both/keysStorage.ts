@@ -7,6 +7,10 @@ import {
   SerializableTask,
   AvailableFunctions,
   LanguagesSupported,
+  VaultAuthVerifier,
+  VaultIndex,
+  VaultSettings,
+  VaultWrappedMasterKey,
 } from "@types";
 
 export type ALL_KEYS_STORAGE_TYPE = keyof typeof ALL_KEYS_STORAGE;
@@ -43,6 +47,8 @@ export type ExpectedSecureStorageTypes = {
   TERMINAL_COMMANDS: Command[] | null;
   DOWN_DETECTOR_DATA: DownDetector[] | null;
   USER_SESSION_TOKEN_STORAGE: string | null;
+  VAULT_MASTER_KEY_WRAPPED: VaultWrappedMasterKey | null;
+  VAULT_AUTH_VERIFIER: VaultAuthVerifier | null;
 };
 
 export type ExpectedUnsecureStorageTypes = {
@@ -54,6 +60,8 @@ export type ExpectedUnsecureStorageTypes = {
   NOTIFICATIONS: Notifications;
   HAS_ADMIN_ACCESS: boolean | null;
   CLIPBOARD_WEBSOCKET_URL: string | null;
+  VAULT_SETTINGS: VaultSettings | null;
+  VAULT_INDEX: VaultIndex | null;
   RECORDER_DATA: {
     lastUri: string;
     quality: "low" | "high";
@@ -88,6 +96,8 @@ export const SECURE_KEYS_STORAGE: Record<
   TERMINAL_COMMANDS: "_terminalCommands",
   DOWN_DETECTOR_DATA: "_downDetectorData",
   USER_SESSION_TOKEN_STORAGE: "_userSessionTokenStorage",
+  VAULT_MASTER_KEY_WRAPPED: "_vaultMasterKeyWrapped",
+  VAULT_AUTH_VERIFIER: "_vaultAuthVerifier",
 };
 
 export const [SECURE_KEYS_STORAGE_KEYS, SECURE_KEYS_STORAGE_VALUES] =
@@ -109,6 +119,8 @@ export const UNSECURE_KEYS_STORAGE: Record<
   RECORDER_DATA: "@recorderData",
   HAS_ADMIN_ACCESS: "@hasAdminAccess",
   CLIPBOARD_WEBSOCKET_URL: "@clipboardWebSocketURL",
+  VAULT_SETTINGS: "@vaultSettings",
+  VAULT_INDEX: "@vaultIndex",
 };
 
 export const [UNSECURE_KEYS_STORAGE_KEYS, UNSECURE_KEYS_STORAGE_VALUES] =

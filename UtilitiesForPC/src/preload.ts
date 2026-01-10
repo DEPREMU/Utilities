@@ -178,6 +178,119 @@ const contextBridgeType: ContextBridgeType = {
         callback(items);
       });
     },
+
+    vaultPickFiles: async () => {
+      return await sendMessage("invoke", "vault-pick-files");
+    },
+    vaultPickFolders: async () => {
+      return await sendMessage("invoke", "vault-pick-folders");
+    },
+    vaultEnsureInitialized: async () => {
+      return await sendMessage("invoke", "vault-ensure-initialized");
+    },
+    vaultLoadSettings: async () => {
+      return await sendMessage("invoke", "vault-load-settings");
+    },
+    vaultSaveSettings: async (settings) => {
+      return await sendMessage("invoke", "vault-save-settings", settings);
+    },
+    vaultLoadWrappedMasterKey: async () => {
+      return await sendMessage("invoke", "vault-load-wrapped-master-key");
+    },
+    vaultSaveWrappedMasterKey: async (data) => {
+      return await sendMessage("invoke", "vault-save-wrapped-master-key", data);
+    },
+    vaultLoadAuthVerifier: async () => {
+      return await sendMessage("invoke", "vault-load-auth-verifier");
+    },
+    vaultSaveAuthVerifier: async (data) => {
+      return await sendMessage("invoke", "vault-save-auth-verifier", data);
+    },
+    vaultListFolders: async () => {
+      return await sendMessage("invoke", "vault-list-folders");
+    },
+    vaultCreateFolder: async (folder) => {
+      return await sendMessage("invoke", "vault-create-folder", folder);
+    },
+    vaultUpdateFolder: async (folder) => {
+      return await sendMessage("invoke", "vault-update-folder", folder);
+    },
+    vaultDeleteFolder: async (folderId) => {
+      return await sendMessage("invoke", "vault-delete-folder", folderId);
+    },
+    vaultListItems: async (folderId) => {
+      return await sendMessage("invoke", "vault-list-items", folderId);
+    },
+    vaultSaveItemMetadata: async (item) => {
+      return await sendMessage("invoke", "vault-save-item-metadata", item);
+    },
+    vaultDeleteItem: async (folderId, itemId) => {
+      return await sendMessage("invoke", "vault-delete-item", folderId, itemId);
+    },
+    vaultUnlock: async (password) => {
+      return await sendMessage("invoke", "vault-unlock", password);
+    },
+    vaultLock: () => {
+      sendMessage("send", "vault-lock");
+    },
+    vaultEncryptPaths: async (jobId, folderId, inputPaths) => {
+      return await sendMessage(
+        "invoke",
+        "vault-encrypt-paths",
+        jobId,
+        folderId,
+        inputPaths
+      );
+    },
+    vaultDecryptToTemp: async (jobId, folderId, itemId, sessionId) => {
+      return await sendMessage(
+        "invoke",
+        "vault-decrypt-to-temp",
+        jobId,
+        folderId,
+        itemId,
+        sessionId
+      );
+    },
+    vaultCleanTempSession: async (sessionId) => {
+      return await sendMessage("invoke", "vault-clean-temp-session", sessionId);
+    },
+    vaultCancelJob: async (jobId) => {
+      return await sendMessage("invoke", "vault-cancel-job", jobId);
+    },
+    vaultZip: async (jobId, inputPaths, outputPath) => {
+      return await sendMessage(
+        "invoke",
+        "vault-zip",
+        jobId,
+        inputPaths,
+        outputPath
+      );
+    },
+    vaultUnzip: async (jobId, zipPath, outputDir) => {
+      return await sendMessage(
+        "invoke",
+        "vault-unzip",
+        jobId,
+        zipPath,
+        outputDir
+      );
+    },
+    vaultExportBackup: async (jobId, outputDir, mode, password) => {
+      return await sendMessage(
+        "invoke",
+        "vault-export-backup",
+        jobId,
+        outputDir,
+        mode,
+        password
+      );
+    },
+    onVaultProgress: (callback) => {
+      ipcRenderer.on("vault-progress", (_event, progressEvent) => {
+        callback(progressEvent);
+      });
+    },
   },
 };
 
