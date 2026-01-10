@@ -1,4 +1,4 @@
-package {{packageName}}
+package com.package.name
 
 import android.content.Context
 import android.os.Build

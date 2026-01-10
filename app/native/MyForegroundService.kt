@@ -1,4 +1,4 @@
-package {{packageName}}
+package com.package.name
 
 import android.app.AlarmManager
 import android.app.PendingIntent

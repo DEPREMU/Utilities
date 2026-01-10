@@ -150,7 +150,7 @@ const createModules = async () => {
 
   console.log(chalk.blue("Creating native modules..."));
   const modules = JSON.parse(fs.readFileSync(modulesPath, "utf8")) as {
-    name: string;
+    name: string | string[];
     content: string;
     service?: string;
     initPath: string;
@@ -161,17 +161,24 @@ const createModules = async () => {
   modules.forEach((module) => {
     const modulePath = getPath(module.initPath);
 
-    const content = fs
-      .readFileSync(path.resolve(modulePath, module.name), "utf8")
-      .replace(/\{\{packageName\}\}/g, packageName);
+    [...(Array.isArray(module.name) ? module.name : [module.name])].forEach(
+      (name) => {
+        if (!fs.existsSync(path.resolve(modulePath, name)))
+          throw new Error(`Module file not found: ${name} in ${modulePath}`);
 
-    const finalPath =
-      module.finalPath +
-      (module.name.endsWith(".kt") ? packageName.replace(/\./g, "/") : "");
+        const content = fs
+          .readFileSync(path.resolve(modulePath, name), "utf8")
+          .replace(/com\.package\.name/g, packageName);
 
-    fs.writeFileSync(path.resolve(getPath(finalPath), module.name), content, {
-      encoding: "utf8",
-    });
+        const finalPath =
+          module.finalPath +
+          (name.endsWith(".kt") ? packageName.replace(/\./g, "/") : "");
+
+        fs.writeFileSync(path.resolve(getPath(finalPath), name), content, {
+          encoding: "utf8",
+        });
+      }
+    );
   });
   console.log(chalk.green("Native modules created successfully."));
 

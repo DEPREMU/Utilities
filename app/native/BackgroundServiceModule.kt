@@ -1,4 +1,4 @@
-package {{packageName}}
+package com.package.name
 
 import android.app.ActivityManager
 import android.content.Intent
@@ -12,9 +12,9 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.util.concurrent.atomic.AtomicBoolean
-import {{packageName}}.ClipboardConfig
-import {{packageName}}.ForegroundConfig
-import {{packageName}}.NotificationContent
+import com.package.name.ClipboardConfig
+import com.package.name.ForegroundConfig
+import com.package.name.NotificationContent
 
 class BackgroundServiceModule(
     reactContext: ReactApplicationContext,

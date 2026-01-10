@@ -1,4 +1,4 @@
-package {{packageName}}
+package com.package.name
 
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext

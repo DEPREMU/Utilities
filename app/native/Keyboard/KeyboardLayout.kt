@@ -1,4 +1,4 @@
-package {{packageName}}
+package com.package.name
 
 import android.content.Context
 import android.graphics.Color
@@ -16,7 +16,7 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
-import {{packageName}}.R
+import com.package.name.R
 
 interface KeyboardListenerProvider {
     fun getKeyClickListener(): View.OnClickListener

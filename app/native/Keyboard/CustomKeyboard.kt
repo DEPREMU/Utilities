@@ -1,4 +1,4 @@
-package {{packageName}}
+package com.package.name
 
 import android.app.AlertDialog
 import android.content.ClipData
@@ -59,7 +59,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
-import {{packageName}}.R
+import com.package.name.R
 
 class CustomKeyboard :
     InputMethodService(),

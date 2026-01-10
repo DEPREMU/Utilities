@@ -1,4 +1,4 @@
-package {{packageName}}
+package com.package.name
 
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow

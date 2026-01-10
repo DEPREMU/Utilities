@@ -1,4 +1,4 @@
-package {{packageName}}
+package com.package.name
 
 import android.app.AlertDialog
 import android.content.Context
@@ -21,7 +21,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
-import {{packageName}}.R
+import com.package.name.R
 
 class KeyboardThemeManager(private val context: Context) {
 
