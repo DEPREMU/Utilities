@@ -54,6 +54,17 @@ export type ExpectedUnsecureStorageTypes = {
   NOTIFICATIONS: Notifications;
   HAS_ADMIN_ACCESS: boolean | null;
   CLIPBOARD_WEBSOCKET_URL: string | null;
+  RECORDER_DATA: {
+    lastUri: string;
+    quality: "low" | "high";
+    maxXUris: number;
+    lastXUris: string[];
+    isRecording: boolean;
+    infiniteRecord: boolean;
+    secondsRecorded: number;
+    intervalOfSaves: number;
+    shouldAutoStart: boolean;
+  } | null;
 };
 
 export type ExpectedStorageTypes<
@@ -64,7 +75,10 @@ export type ExpectedStorageTypes<
     ? ExpectedSecureStorageTypes
     : ExpectedUnsecureStorageTypes;
 
-export const SECURE_KEYS_STORAGE = {
+export const SECURE_KEYS_STORAGE: Record<
+  keyof ExpectedSecureStorageTypes,
+  string
+> = {
   USER_DATA: "_userData",
   DEVICE_ID: "_deviceId",
   STREAMERS: "_streamers",
@@ -82,13 +96,17 @@ export const [SECURE_KEYS_STORAGE_KEYS, SECURE_KEYS_STORAGE_VALUES] =
     string[],
   ];
 
-export const UNSECURE_KEYS_STORAGE = {
+export const UNSECURE_KEYS_STORAGE: Record<
+  keyof ExpectedUnsecureStorageTypes,
+  string
+> = {
   THEME: "@theme",
   API_URL: "@API_URL",
   LANGUAGE: "@languageKeyStorage",
   PENDING_TASKS: "@pendingTasks",
   WEBSOCKET_URL: "@webSocketURL",
   NOTIFICATIONS: "@notifications",
+  RECORDER_DATA: "@recorderData",
   HAS_ADMIN_ACCESS: "@hasAdminAccess",
   CLIPBOARD_WEBSOCKET_URL: "@clipboardWebSocketURL",
 };

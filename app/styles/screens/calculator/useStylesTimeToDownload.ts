@@ -21,6 +21,8 @@ const useStylesTimeToDownload = () => {
         },
         input: {
           marginBottom: 16,
+          width: "100%",
+          padding: getResponsiveValue(4, 8, 12),
         },
         resultContainer: {
           marginTop: 24,
@@ -38,6 +40,9 @@ const useStylesTimeToDownload = () => {
           fontWeight: "bold",
           color: colors.text,
         },
+        section: {
+          width: "100%",
+        }, 
       }),
     [colors, getCommonStyles, getResponsiveValue],
   );

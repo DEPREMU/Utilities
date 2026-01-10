@@ -1,28 +1,28 @@
 [
   {
     "name": "CustomKeyboard.kt",
-    "initPath": "native/",
+    "initPath": "native/Keyboard/",
     "finalPath": "android/app/src/main/java/",
     "service": "<service \n  android:name=\".CustomKeyboard\" \n  android:enabled=\"true\" \n  android:exported=\"true\" \n  android:permission=\"android.permission.BIND_INPUT_METHOD\" \n  android:label=\"@string/app_name\" >\n  <intent-filter>\n    <action android:name=\"android.view.InputMethod\" />\n  </intent-filter>\n  <meta-data android:name=\"android.view.im\" \n    android:resource=\"@xml/method\" />\n</service>"
   },
   {
     "name": "KeyboardLayout.kt",
-    "initPath": "native/",
+    "initPath": "native/Keyboard/",
     "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "KeyboardTheme.kt",
-    "initPath": "native/",
+    "initPath": "native/Keyboard/",
     "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "KeyboardCommandRepository.kt",
-    "initPath": "native/",
+    "initPath": "native/Keyboard/",
     "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "ClipboardRepository.kt",
-    "initPath": "native/",
+    "initPath": "native/Keyboard/",
     "finalPath": "android/app/src/main/java/"
   },
   {
@@ -37,12 +37,12 @@
   },
   {
     "name": "KeyboardModule.kt",
-    "initPath": "native/",
+    "initPath": "native/Keyboard/",
     "finalPath": "android/app/src/main/java/"
   },
   {
     "name": "KeyboardPackage.kt",
-    "initPath": "native/",
+    "initPath": "native/Keyboard/",
     "finalPath": "android/app/src/main/java/"
   },
   {
@@ -107,5 +107,30 @@
     "name": "key_press.mp3",
     "initPath": "native/raw/",
     "finalPath": "android/app/src/main/res/raw/"
+  },
+  {
+    "name": "ClipboardMonitor.kt",
+    "initPath": "native/Keyboard/",
+    "finalPath": "android/app/src/main/java/"
+  },
+  {
+    "name": "ForegroundPreferences.kt",
+    "initPath": "native/",
+    "finalPath": "android/app/src/main/java/"
+  },
+  {
+    "name": "NotificationHelper.kt",
+    "initPath": "native/",
+    "finalPath": "android/app/src/main/java/"
+  },
+  {
+    "name": "ServiceConfig.kt",
+    "initPath": "native/",
+    "finalPath": "android/app/src/main/java/"
+  },
+  {
+    "name": "WakeLockManager.kt",
+    "initPath": "native/",
+    "finalPath": "android/app/src/main/java/"
   }
 ]

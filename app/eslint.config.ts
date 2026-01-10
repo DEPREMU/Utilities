@@ -1,14 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import stylistic from "@stylistic/eslint-plugin";
 import pluginReact from "eslint-plugin-react";
+import { defineConfig } from "eslint/config";
 import pluginReactHooks from "eslint-plugin-react-hooks";
 import typescriptParser from "@typescript-eslint/parser";
 // @ts-ignore
 import pluginReactNative from "eslint-plugin-react-native";
 
-export default [
+export default defineConfig([
   {
     ignores: [
       "node_modules/**",
@@ -75,11 +77,11 @@ export default [
       },
     },
     plugins: {
-      "@typescript-eslint": tseslint,
+      "@typescript-eslint": tseslint as any,
       "@stylistic": stylistic,
       react: pluginReact,
       "react-native": pluginReactNative,
-      "react-hooks": pluginReactHooks,
+      "react-hooks": pluginReactHooks as any,
     },
     rules: {
       "@typescript-eslint/no-unused-vars": [
@@ -95,6 +97,7 @@ export default [
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
       "react-native/no-inline-styles": "warn",
+      "react-native/no-unused-styles": "error",
       "react-native/split-platform-components": "warn",
       "react-native/no-raw-text": "warn",
       "no-console": "warn",
@@ -121,4 +124,4 @@ export default [
       },
     },
   },
-];
+]);

@@ -1,6 +1,5 @@
 package {{packageName}}
 
-import android.app.ActivityManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -57,34 +56,16 @@ class RestartServiceReceiver : BroadcastReceiver() {
     }
 
     private fun startForegroundServiceWithSavedConfig(context: Context) {
-        val prefs = context.getSharedPreferences("ForegroundServicePrefs", Context.MODE_PRIVATE)
-        
-        val wasConfigured = prefs.getBoolean("wasConfigured", false)
-        if (!wasConfigured) {
+        val preferences = ForegroundPreferences(context)
+        val savedConfig = preferences.load()
+
+        if (!savedConfig.wasConfigured) {
             Log.d("RestartServiceReceiver", "Service not yet configured, skipping auto-start")
             return
         }
-        
-        val serviceIntent = Intent(context, MyForegroundService::class.java).apply {
-            putExtra("title", prefs.getString("title", "Servicio Activo"))
-            putExtra("message", prefs.getString("message", "Utilities está ejecutándose en segundo plano."))
-            
-            val clipboardEnabled = prefs.getBoolean("clipboardEnabled", false)
-            if (clipboardEnabled) {
-                putExtra("enableClipboard", true)
-                putExtra("userId", prefs.getString("userId", null))
-                putExtra("deviceId", prefs.getString("deviceId", "${Build.MANUFACTURER} ${Build.MODEL}"))
-                putExtra("userToken", prefs.getString("userToken", null))
-                putExtra("lang", prefs.getString("lang", "en"))
-            }
-        }
-        
+
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
-            }
+            MyForegroundService.start(context, savedConfig)
             Log.d("RestartServiceReceiver", "Foreground service auto-started from receiver")
         } catch (e: Exception) {
             Log.e("RestartServiceReceiver", "Error auto-starting foreground service: ${e.message}")

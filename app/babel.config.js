@@ -3,13 +3,13 @@ module.exports = function (api) {
   const platform = process?.env?.PLATFORM;
   const isProduction = process?.env?.NODE_ENV === "production";
 
-  if (!platform) {
-    throw new Error("PLATFORM environment variable is not set");
-  }
+  if (!platform) throw new Error("PLATFORM environment variable is not set");
 
   return {
     presets: ["babel-preset-expo"],
     plugins: [
+      "react-native-reanimated/plugin",
+      "react-native-paper/babel",
       [
         "module-resolver",
         {
@@ -32,7 +32,6 @@ module.exports = function (api) {
       "babel-plugin-transform-remove-undefined",
       "babel-plugin-minify-guarded-expressions",
       "babel-plugin-minify-dead-code-elimination",
-      "react-native-worklets/plugin",
       [
         "babel-plugin-transform-replace-expressions",
         {

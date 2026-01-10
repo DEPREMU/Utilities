@@ -3,12 +3,12 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.6.0";
+const version = "1.6.0-dev";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
-    name: "Utilities",
+    name: "Utilities Dev",
     slug: "Utilities",
     updates: {
       url: "https://u.expo.dev/7dd2c093-0c91-4638-a5b9-828d458e8be0",
@@ -41,10 +41,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: "#000000",
       },
       jsEngine: "hermes",
-      package: "com.utilities.depremu",
+      package: "com.utilities.depremu.dev",
       permissions: [
         "INTERNET",
         "WAKE_LOCK",
+        "RECORD_AUDIO",
         "NOTIFICATIONS",
         "POST_NOTIFICATIONS",
         "FOREGROUND_SERVICE",
@@ -55,6 +56,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "RECEIVE_BOOT_COMPLETED",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE_DATA_SYNC",
+        "FOREGROUND_SERVICE_MICROPHONE",
         "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
       ],
       googleServicesFile: "./google-services.json",
@@ -62,6 +64,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: [
       "./plugins/handleCreateFiles.js",
       "expo-font",
+      "expo-audio",
+      "expo-video",
       "expo-camera",
       "expo-secure-store",
       "expo-localization",

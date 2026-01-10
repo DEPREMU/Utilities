@@ -73,6 +73,19 @@ const decryptFallback = (text: string): string | null => {
   }
 };
 
+const verifyCommandStructure = (str: string): string | null => {
+  try {
+    const parsed = JSON.parse(str);
+    return Array.isArray(parsed)
+      ? JSON.stringify(
+          parsed.filter((item: Command) => "command" in item && "when" in item)
+        )
+      : null;
+  } catch (error) {
+    return null;
+  }
+};
+
 export const getStorageValue = async (
   key: ALL_KEYS_STORAGE_TYPE
 ): Promise<string | null> => {
@@ -88,10 +101,18 @@ export const getStorageValue = async (
       try {
         const buffer = Buffer.from(storedValue, "base64");
         const decrypted = safeStorage.decryptString(buffer);
+
+        if (key === "TERMINAL_COMMANDS") {
+          const verified = verifyCommandStructure(decrypted);
+          if (verified) return verified;
+        }
+
         return decrypted;
       } catch (e) {
         const fallbackDecrypted = decryptFallback(storedValue);
-        if (fallbackDecrypted) return fallbackDecrypted;
+        if (fallbackDecrypted) {
+          return fallbackDecrypted;
+        }
 
         writeLog(
           `Error decrypting key ${String(key)}(${keyValue}): ${e}`,
@@ -101,7 +122,14 @@ export const getStorageValue = async (
       }
     } else {
       const fallbackDecrypted = decryptFallback(storedValue);
-      if (fallbackDecrypted) return fallbackDecrypted;
+      if (fallbackDecrypted) {
+        if (key === "TERMINAL_COMMANDS") {
+          const verified = verifyCommandStructure(fallbackDecrypted);
+          if (verified) return verified;
+        }
+
+        return fallbackDecrypted;
+      }
 
       writeLog(
         `Encryption not available and fallback failed for key ${String(key)}(${keyValue})`,

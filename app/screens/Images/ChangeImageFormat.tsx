@@ -117,7 +117,15 @@ const ChangeImageFormat = () => {
       albumName?: AlbumsImages,
     ) => {
       try {
-        downloadBase64(image.uri, image.name, albumName);
+        const extension = image.name.split(".").pop() || "png";
+
+        downloadBase64({
+          uri: image.uri,
+          fileName: image.name,
+          albumName,
+          directory: "images",
+          typeFile: `image/${extension as "png"}`,
+        });
 
         log("Image saved:", image.name);
         openSnackBar(t("images.downloadImageSuccessMessage"));

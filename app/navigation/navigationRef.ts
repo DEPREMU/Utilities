@@ -33,8 +33,8 @@ export const navigateReplace = async (
 export const getCurrentScreen = async (): Promise<ScreensAvailable> => {
   let attempts = 0;
   while (true) {
-    attempts++;
     if (navigationRef.isReady() || attempts > 100) break;
+    attempts++;
     await new Promise((resolve) => setTimeoutPolyfill(resolve, 50));
   }
   return navigationRef.getCurrentRoute()?.name ?? "Home";

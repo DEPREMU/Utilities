@@ -1,3 +1,11 @@
+import {
+  AlbumsImages,
+  Notifications,
+  ReturnSelectImage,
+  LanguagesSupported,
+  DownloadableMimeType,
+  RequestChangeImageFormat,
+} from "@types";
 import axios from "axios";
 import React from "react";
 import { v4 } from "uuid";
@@ -12,12 +20,10 @@ import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
 import { loadDataStorage } from "./storageManagement";
 import * as DocumentPicker from "expo-document-picker";
-import { ExpectedStorageTypes } from "@common";
 import { Alert, Falsy, Platform } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import { initializeNotificationsStorage } from "./notifications";
-import { AlbumsImages, RequestChangeImageFormat } from "@types";
-import { Notifications, LanguagesSupported, ReturnSelectImage } from "@types";
+import { ExpectedStorageTypes, wrapFunctionWithError } from "@common";
 
 const URL_GOOGLE_204 = "https://www.google.com/generate_204";
 
@@ -34,7 +40,7 @@ export const getFormattedDate = (
     options = {
       dateStyle: "full",
       timeStyle: "short",
-      timeZone: "America/Mexico_City",
+      timeZone: Localization.getCalendars()[0]?.timeZone || undefined,
     };
 
   return new Intl.DateTimeFormat(locale, options).format(date);
@@ -365,16 +371,18 @@ export const clearIntervalPolyfill = (
 
 export const checkUrlStatus = async (
   url: string,
-  method: "get" | "post" = "get",
-  timeout: number = 3000,
+  method?: "get" | "post",
+  timeout?: number,
 ): Promise<boolean> => {
   try {
+    if (!method) method = "get";
+    if (!timeout) timeout = 3000;
+
     const res = await axios.request<{ destroy?: () => void }>({
       url,
       method,
       timeout,
       data: method === "post" ? {} : undefined,
-      responseType: "stream",
       validateStatus: () => true,
     });
     res?.data?.destroy?.();
@@ -559,10 +567,20 @@ const askMediaLibraryPermissions = async (): Promise<boolean> => {
   return true;
 };
 
+type OptionsDownloadFile = {
+  uri: string;
+  fileName: string;
+  isImage?: boolean;
+  typeFile: DownloadableMimeType;
+  directory: "images" | "videos" | "audios" | "documents";
+  albumName?: AlbumsImages;
+  deleteAfterDownload?: boolean;
+};
+
 /**
  * Downloads a base64-encoded image as a file in a web browser.
  *
- * @param base64 - The base64-encoded string representing the image data. Can include the data URI prefix (e.g., "data:image/png;base64,") or be raw base64 data.
+ * @param base64 - The base64-encoded string representing the file data. Can include the data URI prefix (e.g., "data:image/png;base64,") or be raw base64 data.
  * @param fileName - The desired name for the downloaded file.
  *
  * @remarks
@@ -570,10 +588,10 @@ const askMediaLibraryPermissions = async (): Promise<boolean> => {
  * and triggers a download. The anchor element is automatically removed after the download starts.
  * The Blob is created with MIME type "image/png".
  */
-const downloadBase64Web = (base64: string, fileName: string) => {
-  const base64Data = base64.includes("base64,")
-    ? base64.split("base64,")[1]
-    : base64;
+const downloadBase64Web = async (options: OptionsDownloadFile) => {
+  const base64Data = options.uri.includes("base64,")
+    ? options.uri.split("base64,")[1]
+    : options.uri;
 
   const binary = atob(base64Data);
   const array = new Uint8Array(binary.length);
@@ -581,11 +599,11 @@ const downloadBase64Web = (base64: string, fileName: string) => {
     array[i] = binary.charCodeAt(i);
   }
 
-  const blob = new Blob([array], { type: "image/png" });
+  const blob = new Blob([array], { type: options.typeFile || "text/plain" });
 
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = fileName;
+  link.download = options.fileName;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -613,56 +631,117 @@ const downloadBase64Web = (base64: string, fileName: string) => {
  *
  * @throws Will log errors but won't throw them. Instead, displays error alerts to the user.
  */
-const downloadBase64Native = async (
-  imageUri: string,
-  fileName: string,
-  albumName?: AlbumsImages,
-) => {
+const downloadBase64Native = async (options: OptionsDownloadFile) => {
   try {
-    const base64 = imageUri.includes("base64,")
-      ? imageUri.split("base64,")[1]
-      : imageUri;
+    const base64 = options.uri.includes("base64,")
+      ? options.uri.split("base64,")[1]
+      : options.uri;
 
-    const destination = new Directory(Paths.cache, "images");
-    try {
+    const destination = new Directory(Paths.cache, options.directory);
+    wrapFunctionWithError(async () => {
       destination.create({
         idempotent: true,
         intermediates: true,
       });
-    } catch (error) {
-      logError("Error creating images directory:", error);
-    }
+    });
 
-    const file = new File(destination, fileName);
+    const file = new File(destination, options.fileName);
 
-    try {
-      file.create({
-        overwrite: true,
-        intermediates: true,
-      });
-    } catch (e) {
-      logError("Error creating image file:", e);
-    }
+    wrapFunctionWithError(
+      async () => {
+        file.create({
+          overwrite: true,
+          intermediates: true,
+        });
+      },
+      async (_, errMsg) => logError("Error creating file:", errMsg),
+    );
     file.write(base64, { encoding: "base64" });
 
-    if (!albumName && (await Sharing.isAvailableAsync()))
-      return await Sharing.shareAsync(file.uri);
+    if (
+      (!options.albumName || !options.isImage) &&
+      (await Sharing.isAvailableAsync())
+    ) {
+      await Sharing.shareAsync(file.uri);
+      wrapFunctionWithError(async () => {
+        if (options.deleteAfterDownload) file.delete();
+      });
+      return;
+    }
+
+    if (!options.isImage) {
+      const destCache = new Directory(Paths.cache, options.directory);
+      const destFile = new File(destCache, options.fileName);
+
+      wrapFunctionWithError(async () => {
+        destFile.create({
+          overwrite: true,
+          intermediates: true,
+        });
+      });
+      destFile.write(base64, { encoding: "base64" });
+
+      const { success, uri } = await wrapFunctionWithError(
+        async () => {
+          const directory = await Directory.pickDirectoryAsync();
+          if (!directory)
+            return {
+              success: false,
+              uri: tTyped("labels.noDirectorySelected"),
+            };
+
+          const newFile = directory.createFile(
+            options.fileName,
+            options.typeFile,
+          );
+
+          newFile.write(base64, { encoding: "base64" });
+
+          if (options.deleteAfterDownload) destFile.delete();
+          return { success: true, uri: directory.uri.split("//")[1] };
+        },
+        async (_, errMsg) => {
+          logError("Error saving file:", errMsg);
+          return { success: false, uri: tTyped("labels.noDirectorySelected") };
+        },
+      );
+
+      Alert.alert(
+        tTyped(
+          success
+            ? "labels.fileSavedSuccessTitle"
+            : "labels.fileNotSavedErrorTitle",
+        ),
+        tTyped(
+          success
+            ? "labels.fileSavedSuccessMessage"
+            : "labels.fileNotSavedErrorMessage",
+          {
+            filename: options.fileName,
+            filePath: uri,
+          },
+        ),
+      );
+
+      return;
+    }
 
     const hasPermission = await askMediaLibraryPermissions();
     if (!hasPermission) return;
 
-    albumName = albumName || "UtilitiesApp";
+    options.albumName = options.albumName || "UtilitiesApp";
 
     const asset = await MediaLibrary.createAssetAsync(file.uri);
-    const album = await MediaLibrary.getAlbumAsync(albumName);
+    const album = await MediaLibrary.getAlbumAsync(options.albumName);
 
-    if (!album) await MediaLibrary.createAlbumAsync(albumName, asset, false);
+    if (!album)
+      await MediaLibrary.createAlbumAsync(options.albumName, asset, false);
     else await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
 
     Alert.alert(
       tTyped("images.imageDownloadedInAlbumAlertTitle"),
       tTyped("images.imageDownloadedInAlbumAlertMessage", {
-        albumName,
+        albumName: options.albumName,
       }),
     );
   } catch (error) {
@@ -670,7 +749,7 @@ const downloadBase64Native = async (
     Alert.alert(
       tTyped("images.errorWhileSavingImageAlertTitle"),
       tTyped("images.errorWhileSavingImageAlertMessage", {
-        imageName: fileName,
+        imageName: options.fileName,
       }),
     );
   }

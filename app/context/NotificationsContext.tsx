@@ -208,6 +208,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
                   locationEnabled: 30,
                   allNotifications: 60,
                   noInternetConnection: 15,
+                  recorderNotification: 30,
                   loggedInStatusChannel: 15,
                 };
 

@@ -10,6 +10,8 @@ import { BackgroundProvider } from "./BackgroundContext";
 import { NotificationsProvider } from "./NotificationsContext";
 import { DeviceInformationProvider } from "./DeviceInformationContext";
 import { initializeNotificationsStorage } from "@utils";
+import { Platform } from "react-native";
+import { RecorderProvider } from "./RecorderContext";
 
 initializeNotificationsStorage();
 
@@ -27,7 +29,13 @@ const AppProviders: React.FC<AppProvidersProps> = ({ children }) => (
               <LanguageProvider>
                 <ModalProvider>
                   <NotificationsProvider>
-                    <WebSocketProvider>{children}</WebSocketProvider>
+                    <WebSocketProvider>
+                      {Platform.OS === "web" ? (
+                        children
+                      ) : (
+                        <RecorderProvider>{children}</RecorderProvider>
+                      )}
+                    </WebSocketProvider>
                   </NotificationsProvider>
                 </ModalProvider>
               </LanguageProvider>

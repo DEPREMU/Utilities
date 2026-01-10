@@ -61,12 +61,20 @@ const buttons: ButtonType[] = [
   },
 ];
 if (Platform.OS !== "web") {
-  buttons.push({
-    label: "computerControl",
-    screen: "ComputerControl",
-    noNeedsInternet: true,
-    noNeedsSession: true,
-  });
+  buttons.push(
+    {
+      label: "computerControl",
+      screen: "ComputerControl",
+      noNeedsInternet: true,
+      noNeedsSession: true,
+    },
+    {
+      label: "recorder.label",
+      screen: "Recorder",
+      noNeedsInternet: true,
+      noNeedsSession: true,
+    },
+  );
 } else {
   buttons.push({
     label: "terminalCommands",

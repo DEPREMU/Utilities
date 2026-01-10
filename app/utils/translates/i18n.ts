@@ -22,7 +22,7 @@ const configureLanguage = async () => {
 
     await i18n.changeLanguage(lng);
   } catch (error) {
-    logError("Error configuring language:", error);
+    logError?.("Error configuring language:", error);
     await i18n.changeLanguage("en");
   }
 };

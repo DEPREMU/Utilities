@@ -6,11 +6,11 @@ import React, {
   useCallback,
   createContext,
 } from "react";
-import { logError } from "@utils";
 import { cloneDeep } from "lodash";
 import { useBackground } from "./BackgroundContext";
 import { DeviceInformation } from "@types";
 import DeviceInfo, { PowerState } from "react-native-device-info";
+import { getFormattedDate, logError } from "@utils";
 
 interface DeviceInformationContextType {
   deviceInfo: DeviceInformation | null;
@@ -59,11 +59,17 @@ const deviceInformationWithItsFunc = {
 
 const getDeviceInformation = async (): Promise<DeviceInformation> => {
   const info = await Promise.all(
-    Object.entries(deviceInformationWithItsFunc).map(async ([key, func]) => {
+    Object.entries(deviceInformationWithItsFunc).map(async ([_, func]) => {
+      const key = _ as keyof DeviceInformation;
+
       try {
         const funcTyped =
           func as (typeof deviceInformationWithItsFunc)[keyof DeviceInformation];
-        const value = await DeviceInfo?.[funcTyped]?.();
+        let value = await DeviceInfo?.[funcTyped]?.();
+
+        if (key === "startupTime")
+          value = getFormattedDate(new Date(value as number));
+
         return [key, value];
       } catch (error) {
         logError(`Error getting device info for ${key}:`, error);

@@ -239,6 +239,12 @@ export const configureNotificationChannel = async () => {
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffa500",
     },
+    recorderNotification: {
+      name: tTyped("recorderNotification"),
+      importance: notifications.AndroidImportance.LOW,
+      sound: null,
+      vibrationPattern: null,
+    },
   };
 
   await Promise.all(

@@ -314,6 +314,7 @@ const connectionWss = (ws: WebSocket) => {
             timeToDownload: null,
             locationEnabled: null,
             allNotifications: null,
+            recorderNotification: null,
             noInternetConnection: null,
             loggedInStatusChannel: null,
           }),

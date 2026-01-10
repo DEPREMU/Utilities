@@ -4,6 +4,7 @@ import {
   checkUrlStatus,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
+  wrapFunctionWithError,
 } from "@utils";
 import axios from "axios";
 import { View } from "react-native";
@@ -58,9 +59,6 @@ const ComputerControl: React.FC = () => {
 
   const scanNetwork = useCallback(() => {
     const zeroconf = new Zeroconf();
-    setDevices([]);
-    setLoading(true);
-    setScanning(true);
 
     const handleResolved = async (_: Service) => {
       const service = _ as ServiceAdvertisementTXT;
@@ -98,28 +96,36 @@ const ComputerControl: React.FC = () => {
       });
     };
 
-    const handleStop = () => {
+    const handleStop = wrapFunctionWithError(async () => {
+      clearTimeoutPolyfill(timeOutRef);
       log("Scan stopped");
       setLoading(false);
       setScanning(false);
       zeroconf.removeDeviceListeners();
-      zeroconf.stop?.();
+    }, true);
+
+    const id = setTimeoutPolyfill(() => {
+      setDevices([]);
+      setLoading(true);
+      setScanning(true);
+
+      zeroconf.on("resolved", handleResolved);
+      zeroconf.on("error", (err) => {
+        logError("Zeroconf error:", err);
+        zeroconf.stop();
+      });
+      zeroconf.on("stop", handleStop);
+
+      zeroconf.scan("http", "tcp", "local.");
+
       clearTimeoutPolyfill(timeOutRef);
-    };
+      timeOutRef.current = setTimeoutPolyfill(handleStop, 30000);
+    }, 500);
 
-    zeroconf.on("resolved", handleResolved);
-    zeroconf.on("error", (err) => {
-      logError("Zeroconf error:", err);
+    return () => {
       handleStop();
-    });
-    zeroconf.on("stop", handleStop);
-
-    zeroconf.scan("http", "tcp", "local.");
-
-    clearTimeoutPolyfill(timeOutRef);
-    timeOutRef.current = setTimeoutPolyfill(handleStop, 30000);
-
-    return () => handleStop();
+      clearTimeoutPolyfill(id);
+    };
   }, []);
 
   const executeCommandOnDevice = useCallback(

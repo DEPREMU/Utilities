@@ -13,11 +13,13 @@ const useStylesTerminalCommands = () => {
         mainContainer: {
           ...getCommonStyles("mainContainer"),
           alignSelf: "center",
+          alignItems: undefined,
           maxWidth: 800,
         },
         container: {
           flex: 1,
           backgroundColor: colors.background,
+          width: "100%",
         },
         scrollContent: {
           flexGrow: 1,
@@ -84,6 +86,7 @@ const useStylesTerminalCommands = () => {
         commandCard: {
           backgroundColor: colors.secondary,
           borderRadius: 16,
+          width: "100%",
           overflow: "hidden",
           ...getCommonStyles("shadow", { shadowColor: colors.accent }),
         },
@@ -122,6 +125,7 @@ const useStylesTerminalCommands = () => {
         },
         emptyContainer: {
           flex: 1,
+          width: "100%",
           alignItems: "center",
           justifyContent: "center",
           padding: getResponsiveValue(40, 60, 80),

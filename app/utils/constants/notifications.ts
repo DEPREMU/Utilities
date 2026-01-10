@@ -8,6 +8,7 @@ const objReasonNotification: Record<ReasonNotification, null> = {
   timeToDownload: null,
   locationEnabled: null,
   allNotifications: null,
+  recorderNotification: null,
   noInternetConnection: null,
   loggedInStatusChannel: null,
 };

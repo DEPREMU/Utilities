@@ -4,14 +4,17 @@ import android.app.ActivityManager
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
-import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.util.concurrent.atomic.AtomicBoolean
+import {{packageName}}.ClipboardConfig
+import {{packageName}}.ForegroundConfig
+import {{packageName}}.NotificationContent
 
 class BackgroundServiceModule(
     reactContext: ReactApplicationContext,
@@ -48,6 +51,7 @@ class BackgroundServiceModule(
     private var userToken: String? = null
     private var title: String = "Service not running"
     private var message: String = "Utilities may not be running in the background, open the app to ensure it continues running."
+    private val defaultDeviceId: String = "${Build.MANUFACTURER} ${Build.MODEL}"
 
     init {
         Companion.reactContext = reactContext
@@ -64,17 +68,20 @@ class BackgroundServiceModule(
         title = titleNotification
         message = messageNotification
         Log.d("BackgroundServiceModule", "Starting foreground service with title: $titleNotification")
-        
-        val serviceIntent = Intent(reactApplicationContext, MyForegroundService::class.java).apply {
-            putExtra("title", titleNotification)
-            putExtra("message", messageNotification)
-        }
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            reactApplicationContext.startForegroundService(serviceIntent)
-        } else {
-            reactApplicationContext.startService(serviceIntent)
-        }
+
+        val config = ForegroundConfig(
+            notification = NotificationContent(titleNotification, messageNotification),
+            clipboard = ClipboardConfig(
+                enabled = false,
+                userId = userId,
+                deviceId = deviceId ?: defaultDeviceId,
+                lang = lang,
+                userToken = userToken,
+            ),
+            wasConfigured = true,
+        )
+
+        MyForegroundService.start(reactApplicationContext, config)
         Log.d("BackgroundServiceModule", "Foreground service started")
     }
 
@@ -106,22 +113,10 @@ class BackgroundServiceModule(
             return
         }
 
-        val serviceIntent = Intent(reactApplicationContext, MyForegroundService::class.java).apply {
-            putExtra("lang", lang)
-            putExtra("title", title)
-            putExtra("userId", userId)
-            putExtra("message", message)
-            putExtra("deviceId", deviceId)
-            putExtra("userToken", userToken)
-            putExtra("enableClipboard", true)
-        }
+        val config = buildClipboardConfig(enabled = true)
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                reactApplicationContext.startForegroundService(serviceIntent)
-            } else {
-                reactApplicationContext.startService(serviceIntent)
-            }
+            MyForegroundService.start(reactApplicationContext, config)
             Log.d("BackgroundServiceModule", "Clipboard monitoring started")
         } catch (e: Exception) {
             Log.e("BackgroundServiceModule", "Error starting clipboard service: ${e.message}")
@@ -131,18 +126,8 @@ class BackgroundServiceModule(
     @ReactMethod
     fun stopClipboardService() {
         Log.d("BackgroundServiceModule", "Stopping clipboard monitoring (service will continue)")
-        // We restart the service without clipboard enabled
-        val serviceIntent = Intent(reactApplicationContext, MyForegroundService::class.java).apply {
-            putExtra("title", title)
-            putExtra("message", message)
-            putExtra("enableClipboard", false)
-        }
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            reactApplicationContext.startForegroundService(serviceIntent)
-        } else {
-            reactApplicationContext.startService(serviceIntent)
-        }
+        val config = buildClipboardConfig(enabled = false)
+        MyForegroundService.start(reactApplicationContext, config)
     }
 
     @ReactMethod
@@ -197,5 +182,19 @@ class BackgroundServiceModule(
     @ReactMethod
     fun setReactAlive(alive: Boolean) {
         isReactAlive.set(alive)
+    }
+
+    private fun buildClipboardConfig(enabled: Boolean): ForegroundConfig {
+        return ForegroundConfig(
+            notification = NotificationContent(title, message),
+            clipboard = ClipboardConfig(
+                enabled = enabled,
+                userId = userId,
+                deviceId = deviceId ?: defaultDeviceId,
+                lang = lang,
+                userToken = userToken,
+            ),
+            wasConfigured = true,
+        )
     }
 }

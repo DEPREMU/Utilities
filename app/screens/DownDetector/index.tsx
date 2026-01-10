@@ -9,8 +9,7 @@ import DownDetector from "./DownDetector";
 import AddNewWebPage from "./AddNewWebPage";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
-import { BottomNavigation } from "react-native-paper";
-import useStylesDownDetectorNavigator from "@styles/screens/downDetector/useStylesDownDetectorNavigator";
+import GetBottomNavigation from "@components/common/GetBottomNavigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Tables, TablesKeys, DownDetector as DownDetectorType } from "@types";
 
@@ -27,11 +26,9 @@ const skeletonData: Tables[typeof tableName][] = Array.from({ length: 5 }).map(
 );
 
 const DownDetectorNavigator: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const { userData, sessionToken } = useUserContext();
-  const { styles, accent, primary } = useStylesDownDetectorNavigator();
 
-  const [index, setIndex] = useState<number>(0);
   const [downDetectorData, setDownDetectorData] = useState<
     Tables[typeof tableName][] | null
   >(skeletonData);
@@ -61,7 +58,9 @@ const DownDetectorNavigator: React.FC = () => {
         },
         sessionToken,
       );
-      const { error } = res.data || { error: res.errorText || "Unknown error" };
+      const { error } = res.data || {
+        error: res.errorText || "Unknown error",
+      };
 
       if (error) {
         logError("Error deleting downDetector item:", error);
@@ -125,43 +124,6 @@ const DownDetectorNavigator: React.FC = () => {
     [sessionToken, language],
   );
 
-  const routes = useMemo(
-    () => [
-      {
-        key: "downDetector",
-        title: t("downDetector"),
-        focusedIcon: "cloud-alert",
-      },
-      { key: "addNewWebPage", title: t("addNewWebPage"), focusedIcon: "sync" },
-    ],
-    [t],
-  );
-
-  const renderScene = useMemo(
-    () =>
-      BottomNavigation.SceneMap({
-        downDetector: () => (
-          <DownDetector
-            downDetectorData={downDetectorData}
-            deleteDownDetectorItem={deleteDownDetectorItem}
-            handleSendNotification={handleSendNotification}
-          />
-        ),
-        addNewWebPage: () => (
-          <AddNewWebPage
-            addNewItem={addNewItem}
-            downDetectorData={downDetectorData}
-          />
-        ),
-      }),
-    [
-      addNewItem,
-      downDetectorData,
-      deleteDownDetectorItem,
-      handleSendNotification,
-    ],
-  );
-
   useEffect(() => {
     if (!userData?.userId) return;
 
@@ -207,16 +169,42 @@ const DownDetectorNavigator: React.FC = () => {
     fetchDownDetectorDataFromDatabase();
   }, [userData?.userId, sessionToken, language]);
 
-  return (
-    <BottomNavigation
-      navigationState={{ index, routes }}
-      onIndexChange={setIndex}
-      renderScene={renderScene}
-      barStyle={styles.tabBar}
-      activeColor={primary}
-      inactiveColor={accent}
-    />
+  const returnValue = useMemo(
+    () =>
+      GetBottomNavigation(
+        [
+          {
+            key: "downDetector",
+            title: "downDetector",
+            focusedIcon: "cloud-alert",
+          },
+          { key: "addNewWebPage", title: "addNewWebPage", focusedIcon: "sync" },
+        ],
+        {
+          downDetector: () => (
+            <DownDetector
+              downDetectorData={downDetectorData}
+              deleteDownDetectorItem={deleteDownDetectorItem}
+              handleSendNotification={handleSendNotification}
+            />
+          ),
+          addNewWebPage: () => (
+            <AddNewWebPage
+              addNewItem={addNewItem}
+              downDetectorData={downDetectorData}
+            />
+          ),
+        },
+      )(),
+    [
+      addNewItem,
+      downDetectorData,
+      deleteDownDetectorItem,
+      handleSendNotification,
+    ],
   );
+
+  return <>{returnValue}</>;
 };
 
 export default DownDetectorNavigator;

@@ -240,11 +240,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       };
 
       newSocket.onerror = (error) => {
-        logError("WebSocket error:", error);
+        logError("WebSocket error:", error.message);
       };
 
       newSocket.onclose = (event) => {
-        log("WebSocket connection closed:", event);
+        log("WebSocket connection closed:", event.reason, event.code);
       };
 
       socketRef.current = newSocket;
@@ -291,7 +291,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     };
 
     socket.onerror = (error) => {
-      logError("Clipboard WebSocket error:", error);
+      logError("Clipboard WebSocket error:", error.message);
     };
 
     socket.onclose = () => {

@@ -177,6 +177,7 @@ export const getStorageData = async (
         .filter(Boolean),
       DEVICE_ID: "",
       USER_DATA: (user as Omit<UserData, "password">) || null,
+      RECORDER_DATA: null,
     };
 
     return storageData;

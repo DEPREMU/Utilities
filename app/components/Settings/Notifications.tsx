@@ -40,6 +40,7 @@ const intervalValues: Record<ReasonNotification, number> = {
   locationEnabled: -1,
   allNotifications: -1,
   noInternetConnection: -1,
+  recorderNotification: -1,
   loggedInStatusChannel: -1,
 };
 

@@ -41,7 +41,7 @@ const run = () => {
   });
 
   console.log("Running android build...");
-  execSync("npx expo run:android --no-build-cache", {
+  execSync("taskset -c 0-4 npx expo run:android --no-build-cache", {
     cwd: APP_PATH,
     stdio: "inherit",
     killSignal: "SIGINT",

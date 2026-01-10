@@ -14,6 +14,7 @@ export type ReasonNotification =
   | "timeToDownload"
   | "locationEnabled"
   | "allNotifications"
+  | "recorderNotification"
   | "noInternetConnection"
   | "loggedInStatusChannel";
 

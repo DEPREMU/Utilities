@@ -324,7 +324,53 @@ export type typeLanguages = Record<ReasonNotification, string> &
     small: string;
     scaleFactor: string;
     showAsPlainText: string;
+    millis: string;
+    seconds: string;
+    minutes: string;
+    hours: string;
     showAsMarkdown: string;
+    labels: {
+      fileSavedSuccessTitle: string;
+      fileSavedSuccessMessage: `${string}{{filename}}${string}{{filePath}}${string}`;
+      fileNotSavedErrorTitle: string;
+      fileNotSavedErrorMessage: `${string}{{filename}}${string}{{filePath}}${string}`;
+      noDirectorySelected: string;
+    };
+    recorder: {
+      infiniteRecord: string;
+      permissionDenied: string;
+      saved: `${string}{{uri}}${string}`;
+      failedToStop: `${string}{{message}}${string}`;
+      failedToInitialize: `${string}{{message}}${string}`;
+      label: string;
+      currentTime: `${string}{{time}}${string}`;
+      duration: `${string}{{duration}}${string}`;
+      currentQuality: `${string}{{quality}}${string}`;
+      low: string;
+      lowDescription: string;
+      high: string;
+      highDescription: string;
+      audioQuality: string;
+      stopRecording: string;
+      startRecording: string;
+      playSelectedRecording: string;
+      dataLoaded: string;
+      recordedAudios: string;
+      saveAudioNumber: `${string}{{number}}${string}`;
+      selectAudioNumber: `${string}{{number}}${string}`;
+      deleteAudioNumber: `${string}{{number}}${string}`;
+      recording: `${string}{{seconds}}${string}`;
+      autoStartRecording: string;
+      autoStartedNotification: string;
+      autoStartedFailedNotification: string;
+      autoStartedTitle: string;
+      autoStartedFailedTitle: string;
+      stopped: string;
+      pauseSelectedRecording: string;
+      typeTime: `${string}{{typeTime}}${string}`;
+      intervalOfSaves: string;
+      maxFilesToKeep: `${string}{{maxFiles}}${string}`;
+    };
     images: {
       imageSize: `${string}{{size}}${string}`;
       imageType: `${string}{{type}}${string}`;
@@ -345,6 +391,10 @@ export type typeLanguages = Record<ReasonNotification, string> &
       imageDownloadedInAlbumAlertTitle: string;
       errorWhileSavingImageAlertMessage: `${string}{{imageName}}${string}`;
       imageDownloadedInAlbumAlertMessage: `${string}{{albumName}}${string}`;
+    };
+    Cryptos: {
+      display: string;
+      selection: string;
     };
   };
 

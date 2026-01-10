@@ -7,7 +7,7 @@ import { navigateReplace } from "@navigation/navigationRef";
 import { useStylesGamesNavigator } from "@styles/screens/Games/useStylesGamesNavigator";
 import { ScreensAvailable, typeLanguagesKeys } from "@types";
 
-const buttons: Array<{ label: typeLanguagesKeys; screen: ScreensAvailable }> = [
+const buttons: { label: typeLanguagesKeys; screen: ScreensAvailable }[] = [
   { label: "minesweeper", screen: "Minesweeper" },
 ];
 

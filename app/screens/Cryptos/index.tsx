@@ -1,16 +1,11 @@
-import { View } from "react-native";
 import DisplayScreen from "./DisplayScreen";
 import SelectionScreen from "./SelectionScreen";
 import { SelectedCryptos } from "@common";
-import { BottomNavigation } from "react-native-paper";
-import useStylesCryptosNavigator from "@styles/components/cryptos/useStylesCryptosNavigator";
+import GetBottomNavigation from "@components/common/GetBottomNavigation";
 import { loadDataStorage, logError } from "@utils";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-const CryptosNavigator: React.FC = () => {
-  const { styles, colors } = useStylesCryptosNavigator();
-
-  const [index, setIndex] = useState<number>(0);
+const CryptosNavigator = () => {
   const [selectedCryptos, setSelectedCryptos] = useState<SelectedCryptos>({});
 
   const handleSetSelectedCryptos = useCallback(
@@ -20,40 +15,6 @@ const CryptosNavigator: React.FC = () => {
       setSelectedCryptos(newValue);
     },
     [],
-  );
-
-  const [routes] = useState([
-    {
-      key: "display",
-      title: "Display",
-      focusedIcon: "view-dashboard",
-      unfocusedIcon: "view-dashboard-outline",
-    },
-    {
-      key: "selection",
-      title: "Selection",
-      focusedIcon: "format-list-checks",
-      unfocusedIcon: "format-list-bulleted",
-    },
-  ]);
-
-  const renderScene = useCallback(
-    ({ route }: { route: { key: string } }) => {
-      switch (route.key) {
-        case "display":
-          return <DisplayScreen selectedCryptos={selectedCryptos} />;
-        case "selection":
-          return (
-            <SelectionScreen
-              setSelectedCryptos={handleSetSelectedCryptos}
-              selectedCryptos={selectedCryptos}
-            />
-          );
-        default:
-          return null;
-      }
-    },
-    [selectedCryptos, handleSetSelectedCryptos],
   );
 
   useEffect(() => {
@@ -68,18 +29,37 @@ const CryptosNavigator: React.FC = () => {
     loadSelectedCryptos();
   }, []);
 
-  return (
-    <View style={styles.container}>
-      <BottomNavigation
-        navigationState={{ index, routes }}
-        onIndexChange={setIndex}
-        renderScene={renderScene}
-        barStyle={styles.tabBar}
-        activeColor={colors.primary}
-        inactiveColor={colors.accent}
-      />
-    </View>
+  const returnValue = useMemo(
+    () =>
+      GetBottomNavigation(
+        [
+          {
+            key: "display",
+            title: "Cryptos.display",
+            focusedIcon: "view-dashboard",
+            unfocusedIcon: "view-dashboard-outline",
+          },
+          {
+            key: "selection",
+            title: "Cryptos.selection",
+            focusedIcon: "format-list-checks",
+            unfocusedIcon: "format-list-bulleted",
+          },
+        ],
+        {
+          display: () => <DisplayScreen selectedCryptos={selectedCryptos} />,
+          selection: () => (
+            <SelectionScreen
+              setSelectedCryptos={handleSetSelectedCryptos}
+              selectedCryptos={selectedCryptos}
+            />
+          ),
+        },
+      )(),
+    [selectedCryptos, handleSetSelectedCryptos],
   );
+
+  return <>{returnValue}</>;
 };
 
 export default CryptosNavigator;

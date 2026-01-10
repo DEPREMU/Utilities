@@ -19,6 +19,7 @@ import ImagesNavigator from "@screens/Images";
 import ComputerControl from "@screens/phone/ComputerControl";
 import CryptosNavigator from "@screens/Cryptos";
 import TerminalCommands from "@screens/Web/TerminalCommands";
+import RecorderNavigator from "@screens/phone/Recorder";
 import DeviceInformation from "@screens/DeviceInformation/DeviceInfomation";
 import ClipboardNavigator from "@screens/Clipboard";
 import CalculatorNavigator from "@screens/calculator";
@@ -52,6 +53,7 @@ const ComponentToHome: React.FC = () => {
 };
 
 const isWeb = Platform.OS === "web";
+const initialRouteName: ScreensAvailable = isDev ? "Recorder" : "Home";
 
 /**
  * Centralized configuration object for all app screens.
@@ -76,6 +78,7 @@ const screens: Screens = {
   forgotPassword: { component: ForgotPasswordScreen },
   DeviceInformation: { component: DeviceInformation },
   Test: { component: isDev ? Test : ComponentToHome },
+  Recorder: { component: isWeb ? ComponentToHome : RecorderNavigator },
   Images: { component: ImagesNavigator },
   ScanQRCode: {
     component: isWeb ? ComponentToHome : ScanQRCode,
@@ -114,7 +117,9 @@ const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer ref={navigationRef} theme={navigationTheme}>
       <BackgroundTaskProvider>
-        <Stack.Navigator initialRouteName="Home">{allScreens}</Stack.Navigator>
+        <Stack.Navigator initialRouteName={initialRouteName}>
+          {allScreens}
+        </Stack.Navigator>
       </BackgroundTaskProvider>
     </NavigationContainer>
   );

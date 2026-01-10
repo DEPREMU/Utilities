@@ -11,6 +11,7 @@ const notifications: NotificationsSaved = {
   locationEnabled: null,
   allNotifications: null,
   noInternetConnection: null,
+  recorderNotification: null,
   loggedInStatusChannel: null,
 };
 

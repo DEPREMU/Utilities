@@ -96,7 +96,7 @@ const TimeToDownload = () => {
         style={styles.input}
       />
 
-      <List.Section>
+      <List.Section style={styles.section}>
         <List.Accordion
           title={t("scale", { scale })}
           expanded={accordionExpanded}

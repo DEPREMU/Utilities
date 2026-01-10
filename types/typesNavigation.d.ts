@@ -7,6 +7,7 @@ export type ScreensAvailable =
   | "SignUp"
   | "Images"
   | "Cryptos"
+  | "Recorder"
   | "Settings"
   | "Clipboard"
   | "Calculator"

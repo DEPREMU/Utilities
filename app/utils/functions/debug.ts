@@ -14,6 +14,8 @@ type ReturnDeviceInfo = {
   deviceName: string;
 };
 
+const FILTER_BY_MESSAGE = ["RECORDER"];
+
 const getCurrentDeviceInfo = wrapFunctionWithError(
   async () => {
     const [deviceId, deviceName] = await Promise.all([
@@ -53,6 +55,7 @@ export const log = isProduction
   ? async () => {}
   : async (...args: unknown[]): Promise<void> => {
       if (!isPreview && !isDev) return;
+      if (!FILTER_BY_MESSAGE.some((msg) => args.includes(msg))) return;
 
       const date = new Date();
 
@@ -112,6 +115,7 @@ export const logWarn = isProduction
   ? async () => {}
   : async (...args: unknown[]): Promise<void> => {
       if (!isPreview && !isDev) return;
+      if (!FILTER_BY_MESSAGE.some((msg) => args.includes(msg))) return;
 
       const date = new Date();
 
@@ -160,6 +164,7 @@ export const logError = isProduction
   ? async () => {}
   : async (...args: unknown[]): Promise<void> => {
       if (!isPreview && !isDev) return;
+      if (!FILTER_BY_MESSAGE.some((msg) => args.includes(msg))) return;
 
       const date = new Date();
       const firstMessage = `Error - ${date.toLocaleString()} ::\n`;
