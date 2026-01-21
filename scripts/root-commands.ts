@@ -6,6 +6,7 @@ import {
   SERVER_PATH,
   SCRIPTS_PATH,
   UTILITIES_PATH,
+  handleExitFromScript,
   UTILITIES_FOR_PC_PATH,
 } from "./config.ts";
 import fs from "fs";
@@ -90,6 +91,7 @@ const run = () => {
 const clean = () => {
   const pathsToClean = [
     path.join(APP_PATH, ".expo"),
+    path.join(APP_PATH, "android"),
     path.join(APP_PATH, "node_modules"),
     path.join(TYPES_PATH, "node_modules"),
     path.join(SERVER_PATH, "node_modules"),
@@ -133,7 +135,9 @@ const installAll = () => {
     SCRIPTS_PATH,
     UTILITIES_FOR_PC_PATH,
   ];
-  console.log(`Installing dependencies in ${UTILITIES_PATH} for ${dirs.join(", ")} using yarn...`);
+  console.log(
+    `Installing dependencies in ${UTILITIES_PATH} for ${dirs.join(", ")} using yarn...`
+  );
 
   execSync("yarn install", {
     cwd: UTILITIES_PATH,
@@ -156,6 +160,8 @@ const formatAll = () => {
 };
 
 const beforeCommit = () => {
+  handleExitFromScript(() => {});
+
   console.log("Running before-commit in app...");
   execSync("yarn run before-commit", { cwd: APP_PATH, stdio: "inherit", env });
 

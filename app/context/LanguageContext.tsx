@@ -1,4 +1,6 @@
 import React, {
+  useRef,
+  useMemo,
   useState,
   useEffect,
   ReactNode,
@@ -13,7 +15,9 @@ import { checkLanguage, saveDataStorage } from "@utils";
 
 interface LanguageContextProps {
   language: LanguagesSupported;
-  changeLanguage: (lang: LanguagesSupported) => Promise<void>;
+  changeLanguageRef: React.RefObject<
+    (lang: LanguagesSupported) => Promise<void>
+  >;
   t: typeT;
 }
 
@@ -43,13 +47,13 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
     [i18nextT],
   );
 
-  const changeLanguage = useCallback(async (lang: LanguagesSupported) => {
+  const changeLanguageRef = useRef(async (lang: LanguagesSupported) => {
     await Promise.all([
       saveDataStorage("LANGUAGE", lang),
       i18n.changeLanguage(lang),
     ]);
     setLanguage(lang);
-  }, []);
+  });
 
   useEffect(() => {
     const loadLanguage = async () => {
@@ -61,14 +65,17 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
     loadLanguage();
   }, []);
 
+  const value: LanguageContextProps = useMemo(
+    () => ({
+      t,
+      language,
+      changeLanguageRef,
+    }),
+    [language, t],
+  );
+
   return (
-    <LanguageContext.Provider
-      value={{
-        t,
-        language,
-        changeLanguage,
-      }}
-    >
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

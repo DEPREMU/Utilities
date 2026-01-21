@@ -10,18 +10,10 @@ import {
 } from "../config.ts";
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import { execSync, spawn } from "child_process";
 import { replaceAppConfig } from "./editAppConfig.ts";
 
-const updateEasCLI = () => {
-  try {
-    execSync("yarn global add eas-cli@latest", {
-      stdio: "inherit",
-    });
-  } catch (error) {
-    console.error("Failed to update eas-cli:", error);
-  }
-};
+let expo: ReturnType<typeof spawn> | null = null;
 
 replaceAppConfig(
   (prev) => prev.replace(/-dev/g, ""),
@@ -67,8 +59,20 @@ const build = async () => {
   env.EAS_BUILD = "true";
   const buildPath = path.join(APP_PATH, "builds", `android-${profile}.apk`);
 
-  execSync(
-    `taskset -c 0-5 eas build --platform android --profile ${profile} --local --output=${buildPath}`,
+  expo = spawn(
+    "taskset",
+    [
+      "-c",
+      "0-5",
+      "eas",
+      "build",
+      "--platform",
+      "android",
+      "--profile",
+      profile,
+      "--local",
+      `--output=${buildPath}`,
+    ],
     {
       env,
       stdio: "inherit",
@@ -101,6 +105,8 @@ const build = async () => {
 
 const handleExit = () => {
   deleteAndroidFromGitIgnore(true);
+  expo?.kill();
+  spawn("pkill", ["-f", "java"]);
   process.exit();
 };
 

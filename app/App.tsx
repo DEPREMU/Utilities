@@ -9,21 +9,21 @@ import {
   checkLanguage,
   loadDataStorage,
   saveDataStorage,
+  setTimeoutPolyfill,
   fetchAndApplyUpdate,
   setIntervalPolyfill,
   isNewUpdateAvailable,
   clearIntervalPolyfill,
   askAutoStartPermission,
   configureNotificationChannel,
-  setTimeoutPolyfill,
-} from "@utils";
+} from "./utils/index";
 import AppProviders from "./context/AppProviders";
 import AppNavigator from "./navigation/AppNavigator";
 import windowModule from "./utils/modules/WindowModule";
 import { reloadAppAsync } from "expo";
 import { Alert, Platform } from "react-native";
 import NativeFunctionsModule from "./utils/modules/NativeFunctionsModule";
-import React, { useCallback, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 const hasDeviceId = async (): Promise<boolean> => {
   try {
@@ -67,7 +67,7 @@ configureNotificationChannel();
 const App = () => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
-  const handleCheckForUpdatesNatively = useCallback(async () => {
+  const handleCheckForUpdatesNativelyRef = useRef(async () => {
     try {
       if (APP_VERSION.includes("dev")) return; // Skip updates for testing builds
 
@@ -86,7 +86,7 @@ const App = () => {
           tTyped("updateAvailableMessage"),
           [
             {
-              text: tTyped("cancel"),
+              text: tTyped("labels.cancel"),
               style: "cancel",
               onPress: () => resolve(),
             },
@@ -103,15 +103,9 @@ const App = () => {
     } catch (error) {
       logError("Error while updating the app", error);
     }
-  }, []);
-  const handleCheckForUpdatesNativelyRef = React.useRef(
-    handleCheckForUpdatesNatively,
-  );
-  useEffect(() => {
-    handleCheckForUpdatesNativelyRef.current = handleCheckForUpdatesNatively;
-  }, [handleCheckForUpdatesNatively]);
+  });
 
-  const handleCheckForUpdates = useCallback(async () => {
+  const handleCheckForUpdatesRef = useRef(async () => {
     try {
       await handleCheckForUpdatesNativelyRef.current();
       saveDataStorage("LAST_UPDATE_CHECK", Date.now());
@@ -125,11 +119,7 @@ const App = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
-  const handleCheckForUpdatesRef = React.useRef(handleCheckForUpdates);
-  useEffect(() => {
-    handleCheckForUpdatesRef.current = handleCheckForUpdates;
-  }, [handleCheckForUpdates]);
+  });
 
   useEffect(() => {
     hasDeviceId().then((exists) => {
@@ -140,7 +130,7 @@ const App = () => {
     });
     if (Platform.OS === "web") return setIsLoading(false);
 
-    !isDev &&
+    if (!isDev)
       setTimeoutPolyfill(
         () =>
           NativeFunctionsModule.wasLaunchedFromService().then(

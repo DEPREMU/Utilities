@@ -3,6 +3,7 @@ import ReconnectingWebSocket, {
 } from "@/utils/reconnecting-websocket";
 import React, {
   useRef,
+  useMemo,
   useState,
   useEffect,
   useContext,
@@ -22,6 +23,7 @@ import {
   getNotifications,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
+  tTyped,
 } from "@utils";
 import { useModal } from "./ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
@@ -94,12 +96,12 @@ const addToItemsClipboard = (
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
 }) => {
+  const { language } = useLanguage();
   const { statePhone } = useBackground();
-  const { t, language } = useLanguage();
-  const { openSnackBar } = useModal();
+  const { openSnackBarRef } = useModal();
   const { sendNotificationRef } = useNotifications();
   const { userData, isLoggedIn } = useUserContext();
-  const { isBackground, initIntervalTimeouts, deleteIntervalTimeout } =
+  const { isBackground, initIntervalTimeoutsRef, deleteIntervalTimeoutRef } =
     useBackground();
 
   const [socketURL, setSocketURL] = useState<string | null>(null);
@@ -158,11 +160,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       socketRef.current?.close();
 
       const handleInitSuccessWebSocket = () => {
-        openSnackBar(
-          t("welcomeUser", { user: userData?.name || t("dearUser") }),
+        openSnackBarRef.current(
+          tTyped("welcomeUser", { user: userData?.name || tTyped("dearUser") }),
           3000,
           {
-            label: t("close"),
+            label: tTyped("common.close"),
           },
         );
         log("WebSocket initialized successfully.");
@@ -194,7 +196,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
             hasAdmin: !!hasAdmin,
           });
 
-          !!notifications &&
+          if (notifications)
             sendMessageRef.current("main", {
               type: "notifications",
               data: notifications,
@@ -249,7 +251,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
       socketRef.current = newSocket;
     },
-    [openSnackBar, t, userData?.name, userData?.userId, sendNotificationRef],
+    [openSnackBarRef, userData?.name, userData?.userId, sendNotificationRef],
   );
 
   const createClipboardWebSocket = useCallback(async () => {
@@ -324,10 +326,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     clipboardSocketRef.current = socket;
   }, [clipboardSocketURL, userData?.userId]);
-  useEffect(() => {
-    createMainWebSocketRef.current = createMainWebSocket;
-    createClipboardWebSocketRef.current = createClipboardWebSocket;
-  }, [createClipboardWebSocket, createMainWebSocket]);
+  createMainWebSocketRef.current = createMainWebSocket;
+  createClipboardWebSocketRef.current = createClipboardWebSocket;
 
   useEffect(() => {
     loadDataStorage("WEBSOCKET_URL", null).then((data) => setSocketURL(data));
@@ -431,7 +431,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       }
     };
 
-    initIntervalTimeouts("clipboardWeb", {
+    initIntervalTimeoutsRef.current("clipboardWeb", {
       fn: handleIntervalClipboardWeb,
       type: "interval",
       interval: 500,
@@ -440,12 +440,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       shouldStopWhenSuspend: false,
     });
 
-    return () => deleteIntervalTimeout("clipboardWeb");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => deleteIntervalTimeoutRef.current("clipboardWeb");
   }, [
     userData?.userId,
     isLoggedIn,
-    initIntervalTimeouts,
-    deleteIntervalTimeout,
+    initIntervalTimeoutsRef,
+    deleteIntervalTimeoutRef,
   ]);
 
   useEffect(() => {
@@ -569,8 +570,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     });
   }, [language]);
 
+  const value: WebSocketContextType = useMemo(
+    () => ({
+      setSocketURL,
+      sendMessageRef,
+    }),
+    [],
+  );
+
   return (
-    <WebSocketContext.Provider value={{ setSocketURL, sendMessageRef }}>
+    <WebSocketContext.Provider value={value}>
       {children}
     </WebSocketContext.Provider>
   );

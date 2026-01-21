@@ -3,8 +3,8 @@ import { Icon, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesCalculator from "@styles/screens/calculator/useStylesCalculator";
 import { ScrollView, View } from "react-native";
-import { logError, memoDeep, stringifyData } from "@utils";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { logError, memoDeep } from "@utils";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const layout: string[][] = [
   ["c", "d", "(", ")"],
@@ -17,22 +17,16 @@ const layout: string[][] = [
 
 const Calculator: React.FC = () => {
   const { t } = useLanguage();
-  const useStyles = useStylesCalculator();
-
-  const styles = useMemo(
-    () => useStyles.styles,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [stringifyData(useStyles.styles)],
-  );
+  const { styles } = useStylesCalculator();
 
   const [input, setInput] = useState<string>("");
   const [result, setResult] = useState<string>("");
 
-  const handlePressInput = useCallback((char: string) => {
+  const handlePressInputRef = useRef((char: string) => {
     if (char === "c") return setInput("");
     if (char === "d") return setInput((prev) => prev.slice(0, -1));
     setInput((prev) => prev + char);
-  }, []);
+  });
 
   const renderButtons = useMemo(
     () =>
@@ -47,7 +41,7 @@ const Calculator: React.FC = () => {
                 textButton: styles.buttonText,
               }}
               touchableOpacity
-              handlePress={() => handlePressInput(char)}
+              handlePress={() => handlePressInputRef.current(char)}
             >
               {char === "d" ? (
                 <Icon source="backspace-outline" size={20} />
@@ -58,7 +52,7 @@ const Calculator: React.FC = () => {
           ))}
         </View>
       )),
-    [handlePressInput, styles],
+    [styles],
   );
 
   useEffect(() => {

@@ -2,7 +2,6 @@ import {
   updateInTable,
   fetchFromTable,
   insertIntoTable,
-  deleteSessions,
 } from "../database/functions.ts";
 import {
   Cryptos,
@@ -21,8 +20,6 @@ import { dataBinance } from "../routes/cryptos.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
 import WebSocket, { WebSocketServer } from "ws";
-
-deleteSessions();
 
 const users: Record<
   string,

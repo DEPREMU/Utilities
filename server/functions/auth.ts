@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
-import env from "../env.ts";
 import chalk from "chalk";
 import { showError } from "./logger.ts";
+import { getEnvValue } from "../env.ts";
 import { wrapFunctionWithError } from "@common";
 import { deleteInTable, insertIntoTable } from "../database/functions.ts";
 
@@ -30,7 +30,7 @@ export const getDateWithDaysAhead = (days: number): Date => {
 
 export const getJWTToken = wrapFunctionWithError(
   async (storedValues: TokenJWT) => {
-    return jwt.sign(storedValues, env.JWT_SECRET, {
+    return jwt.sign(storedValues, getEnvValue("JWT_SECRET"), {
       expiresIn,
     });
   },
@@ -43,7 +43,7 @@ export const getJWTToken = wrapFunctionWithError(
 
 export const decodeJWTToken = wrapFunctionWithError(
   async (token: string) => {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as TokenJWT;
+    const decoded = jwt.verify(token, getEnvValue("JWT_SECRET")) as TokenJWT;
     return decoded;
   },
   true,

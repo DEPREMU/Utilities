@@ -41,18 +41,13 @@
     "finalPath": "android/app/src/main/java/"
   },
   {
-    "name": "NotificationModule.kt",
-    "initPath": "native/",
-    "finalPath": "android/app/src/main/java/"
-  },
-  {
-    "name": "NotificationPackage.kt",
-    "initPath": "native/",
-    "finalPath": "android/app/src/main/java/"
-  },
-  {
-    "name": "NotificationActionReceiver.kt",
-    "initPath": "native/",
+    "name": [
+      "NotificationModule.kt",
+      "NotificationHelper.kt",
+      "NotificationPackage.kt",
+      "NotificationActionReceiver.kt"
+    ],
+    "initPath": "native/Notifications",
     "finalPath": "android/app/src/main/java/",
     "service": "<receiver \n  android:name=\".NotificationActionReceiver\" \n  android:enabled=\"true\" \n  android:exported=\"false\" />"
   },
@@ -93,11 +88,6 @@
     "finalPath": "android/app/src/main/java/"
   },
   {
-    "name": "NotificationHelper.kt",
-    "initPath": "native/",
-    "finalPath": "android/app/src/main/java/"
-  },
-  {
     "name": "ServiceConfig.kt",
     "initPath": "native/",
     "finalPath": "android/app/src/main/java/"
@@ -109,7 +99,7 @@
   },
   {
     "name": ["VaultCryptoModule.kt", "VaultCryptoPackage.kt"],
-    "initPath": "native/",
+    "initPath": "native/Vault/",
     "finalPath": "android/app/src/main/java/"
   }
 ]

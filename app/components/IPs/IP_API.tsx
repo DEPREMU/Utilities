@@ -121,7 +121,7 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.textIP}>IP API</Text>
+      <Text style={styles.textIP}>{t("IP_API.title")}</Text>
 
       <View style={styles.containerIP}>
         <Text style={styles.textKey}>{t("yourIP", { ip: "" })}</Text>

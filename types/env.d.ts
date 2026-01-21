@@ -1,5 +1,4 @@
 export type Env = {
-  HOST: string;
   API_URL: string;
   DB_USER: string;
   DB_PASS: string;
@@ -19,6 +18,28 @@ export type Env = {
   DB_PORT: string;
   __DEV__: string;
   WS_URL: string;
-  PORT: string;
   IV: string;
 };
+
+export type EnvTranslated = {
+  API_URL: string;
+  DB_USER: string;
+  DB_PASS: string;
+  JWT_SECRET: string;
+  ADMIN_EMAIL: string;
+  VAPID_PRIVATE_KEY: string;
+  DELETE_OLD_SESSIONS: boolean;
+  DEEPL_TRANSLATOR_API: string;
+  SECRET_KEY_TO_ENCRYPTION: string;
+  FIREBASE_SERVICE_ACCOUNT: string;
+  DB_ENCRYPTION_PASS: string;
+  VAPID_PUBLIC_KEY: string;
+  ADMIN_PASSWORD: string;
+  USE_HTTPS: boolean;
+  DB_NAME: string;
+  DB_HOST: string;
+  DB_PORT: number;
+  __DEV__: boolean;
+  WS_URL: string;
+  IV: string;
+}

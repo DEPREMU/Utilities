@@ -11,6 +11,7 @@ import {
 } from "@types";
 import {
   log,
+  tTyped,
   logError,
   getRouteAPI,
   selectImage,
@@ -23,8 +24,8 @@ import Button from "@components/common/ButtonComponent";
 import { Text } from "react-native-paper";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
-import { useCallback, useState } from "react";
 import useStylesChangeImageFormat from "@styles/screens/Images/useStylesChangeImageFormat";
+import { useCallback, useRef, useState } from "react";
 import { Image, Platform, ScrollView, View } from "react-native";
 
 const getDataChangeImageFormat = wrapFunctionWithError(
@@ -64,7 +65,7 @@ const getDataChangeImageFormat = wrapFunctionWithError(
 const ChangeImageFormat = () => {
   const { t } = useLanguage();
   const { styles } = useStylesChangeImageFormat();
-  const { openSnackBar } = useModal();
+  const { openSnackBarRef } = useModal();
 
   const [images, setImages] = useState<
     Exclude<ReturnSelectImage, { canceled: true }>
@@ -73,6 +74,51 @@ const ChangeImageFormat = () => {
     { uri: string; name: string }[]
   >([]);
   const [converting, setConverting] = useState<number[]>([]);
+
+  const handleDownloadImageRef = useRef(
+    async (
+      image: (typeof imagesConverted)[number],
+      albumName?: AlbumsImages,
+    ) => {
+      try {
+        const extension = image.name.split(".").pop() || "png";
+
+        downloadBase64({
+          uri: image.uri,
+          fileName: image.name,
+          albumName,
+          directory: "images",
+          typeFile: `image/${extension as "png"}`,
+        });
+
+        log("Image saved:", image.name);
+        openSnackBarRef.current(tTyped("images.downloadImageSuccessMessage"));
+      } catch (error) {
+        logError("Failed to download image:", error);
+      }
+    },
+  );
+
+  const handleDeleteImageRef = useRef(
+    (image: (typeof imagesConverted)[number]) => {
+      setImagesConverted((prev) => prev.filter((img) => img.uri !== image.uri));
+      log("Deleted converted image:", image.name);
+    },
+  );
+
+  const handlePressSelectImageRef = useRef(async () => {
+    const selectedImages = await selectImage({ multiple: true, base64: true });
+    if (!Array.isArray(selectedImages)) {
+      logError("Image selection was canceled or failed.");
+      return;
+    }
+
+    setImages(selectedImages);
+    log(
+      "Selected images:",
+      selectedImages.map((img) => img.name),
+    );
+  });
 
   const changeImageFormat = useCallback(
     async (image: (typeof images)[number], format: typeof image.type) => {
@@ -92,11 +138,11 @@ const ChangeImageFormat = () => {
       }
 
       if (!data?.imageUri) {
-        openSnackBar(t("images.errorWhileConvertingImageMessage"));
+        openSnackBarRef.current(t("images.errorWhileConvertingImageMessage"));
         return;
       }
       if (data?.newFormat === image.type) {
-        openSnackBar(t("images.errorWhileConvertingImageMessage"));
+        openSnackBarRef.current(t("images.errorWhileConvertingImageMessage"));
         return;
       }
 
@@ -108,55 +154,8 @@ const ChangeImageFormat = () => {
         },
       ]);
     },
-    [t, openSnackBar, images],
+    [t, openSnackBarRef, images],
   );
-
-  const handleDownloadImage = useCallback(
-    async (
-      image: (typeof imagesConverted)[number],
-      albumName?: AlbumsImages,
-    ) => {
-      try {
-        const extension = image.name.split(".").pop() || "png";
-
-        downloadBase64({
-          uri: image.uri,
-          fileName: image.name,
-          albumName,
-          directory: "images",
-          typeFile: `image/${extension as "png"}`,
-        });
-
-        log("Image saved:", image.name);
-        openSnackBar(t("images.downloadImageSuccessMessage"));
-      } catch (error) {
-        logError("Failed to download image:", error);
-      }
-    },
-    [openSnackBar, t],
-  );
-
-  const handleDeleteImage = useCallback(
-    (image: (typeof imagesConverted)[number]) => {
-      setImagesConverted((prev) => prev.filter((img) => img.uri !== image.uri));
-      log("Deleted converted image:", image.name);
-    },
-    [],
-  );
-
-  const handlePressSelectImage = useCallback(async () => {
-    const selectedImages = await selectImage({ multiple: true, base64: true });
-    if (!Array.isArray(selectedImages)) {
-      logError("Image selection was canceled or failed.");
-      return;
-    }
-
-    setImages(selectedImages);
-    log(
-      "Selected images:",
-      selectedImages.map((img) => img.name),
-    );
-  }, []);
 
   const renderImages = useCallback(() => {
     if (!Array.isArray(images)) return null;
@@ -201,7 +200,7 @@ const ChangeImageFormat = () => {
             uri: image.uri,
           }}
           style={styles.selectedImagePreview}
-          onError={() => handleDeleteImage(image)}
+          onError={() => handleDeleteImageRef.current(image)}
         />
         {Platform.OS !== "web" &&
           Object.values(albumsImages).map((album) => (
@@ -210,23 +209,23 @@ const ChangeImageFormat = () => {
               label={t("images.downloadImageAlbumButtonLabel", {
                 albumName: album,
               })}
-              handlePress={handleDownloadImage}
+              handlePress={handleDownloadImageRef.current}
               argsFuncHandlePress={[image, album]}
             />
           ))}
         <Button
           label={t("images.downloadImageButtonLabel")}
-          handlePress={handleDownloadImage}
+          handlePress={handleDownloadImageRef.current}
           argsFuncHandlePress={[image]}
         />
         <Button
           label={t("images.deleteImageButtonLabel")}
-          handlePress={handleDeleteImage}
+          handlePress={handleDeleteImageRef.current}
           argsFuncHandlePress={[image]}
         />
       </View>
     ));
-  }, [imagesConverted, styles, t, handleDownloadImage, handleDeleteImage]);
+  }, [imagesConverted, styles, t]);
 
   return (
     <View style={styles.container}>
@@ -242,7 +241,7 @@ const ChangeImageFormat = () => {
             {t("images.changeImageFormatDescription")}
           </Text>
           <Button
-            handlePress={handlePressSelectImage}
+            handlePress={handlePressSelectImageRef.current}
             label={t("images.selectImageButtonLabel")}
           />
         </View>

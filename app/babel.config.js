@@ -8,8 +8,6 @@ module.exports = function (api) {
   return {
     presets: ["babel-preset-expo"],
     plugins: [
-      "react-native-reanimated/plugin",
-      "react-native-paper/babel",
       [
         "module-resolver",
         {
@@ -29,9 +27,6 @@ module.exports = function (api) {
           },
         },
       ],
-      "babel-plugin-transform-remove-undefined",
-      "babel-plugin-minify-guarded-expressions",
-      "babel-plugin-minify-dead-code-elimination",
       [
         "babel-plugin-transform-replace-expressions",
         {
@@ -40,6 +35,7 @@ module.exports = function (api) {
             "process.env.NODE_ENV": JSON.stringify(
               process?.env?.NODE_ENV || "production",
             ),
+            "  isDev": JSON.stringify(process?.env?.NODE_ENV !== "production"),
             ...(isProduction
               ? {
                   " log": "(()=>{})",
@@ -51,6 +47,11 @@ module.exports = function (api) {
           allowConflictingReplacements: true,
         },
       ],
+      "react-native-reanimated/plugin",
+      "babel-plugin-minify-constant-folding",
+      "babel-plugin-transform-remove-undefined",
+      "babel-plugin-minify-guarded-expressions",
+      "babel-plugin-minify-dead-code-elimination",
     ],
   };
 };

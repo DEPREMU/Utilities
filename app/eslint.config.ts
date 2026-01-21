@@ -1,13 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import js from "@eslint/js";
 import globals from "globals";
+import tsconfig from "typescript-eslint";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import stylistic from "@stylistic/eslint-plugin";
 import pluginReact from "eslint-plugin-react";
+import prettierConfig from "eslint-config-prettier";
 import { defineConfig } from "eslint/config";
 import pluginReactHooks from "eslint-plugin-react-hooks";
 import typescriptParser from "@typescript-eslint/parser";
-// @ts-ignore
+// @ts-expect-error Missing types
 import pluginReactNative from "eslint-plugin-react-native";
 
 export default defineConfig([
@@ -23,7 +25,6 @@ export default defineConfig([
       ".metro/**",
       ".yarn/**",
       "android/**",
-      "ios/**",
       "assets/**",
       "images/**",
       "coverage/**",
@@ -40,6 +41,7 @@ export default defineConfig([
     ],
   },
   js.configs.recommended,
+  tsconfig.configs.recommended,
   {
     files: ["**/*.{js,ts,jsx,tsx}"],
     languageOptions: {
@@ -53,25 +55,10 @@ export default defineConfig([
       },
       globals: {
         ...globals.browser,
-        console: "readonly",
-        process: "readonly",
-        __dirname: "readonly",
-        module: "readonly",
-        require: "readonly",
-        exports: "readonly",
-        global: "readonly",
-        Buffer: "readonly",
-        setTimeout: "readonly",
-        clearTimeout: "readonly",
-        setInterval: "readonly",
-        clearInterval: "readonly",
-        fetch: "readonly",
-        FormData: "readonly",
-        localStorage: "readonly",
-        document: "readonly",
+        ...globals.node,
+        ...globals.es2021,
         __DEV__: "readonly",
         NodeJS: "readonly",
-        KeyboardEvent: "readonly",
         Express: "readonly",
         ReactNavigation: "readonly",
       },
@@ -93,6 +80,13 @@ export default defineConfig([
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-non-null-assertion": "warn",
       "react/react-in-jsx-scope": "off",
+      "react/jsx-no-literals": [
+        "error",
+        {
+          noStrings: true,
+          ignoreProps: true,
+        },
+      ],
       "react/prop-types": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
@@ -124,4 +118,5 @@ export default defineConfig([
       },
     },
   },
+  prettierConfig,
 ]);

@@ -1,22 +1,11 @@
+import { useMemo } from "react";
 import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
-import { useCallback, useMemo } from "react";
 
 export const useStylesDisplayScreen = () => {
+  const { getResponsiveValue, getCommonStyles } = useResponsiveLayout();
   const { background, text, primary, shadow, secondary, accent } = useTheme();
-  const { isTablet, isWeb, isLargeTablet, getCommonStyles } =
-    useResponsiveLayout();
-
-  const getResponsiveValue = useCallback(
-    <T = number>(phone: T, tablet: T, largeTablet: T, web: T) => {
-      if (isWeb) return web;
-      if (isLargeTablet) return largeTablet;
-      if (isTablet) return tablet;
-      return phone;
-    },
-    [isWeb, isLargeTablet, isTablet],
-  );
 
   const styles = useMemo(
     () =>

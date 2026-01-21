@@ -1,4 +1,3 @@
-import env from "../env.ts";
 import chalk from "chalk";
 import { pool } from "./postgres.ts";
 import { TABLE_MAP } from "../config.ts";
@@ -387,23 +386,46 @@ export const insertIntoTable = async <T extends TablesKeys = TablesKeys>(
   }
 };
 
-export const deleteSessions = async () => {
-  if (!["1", "true"].includes(env.DELETE_OLD_SESSIONS)) return;
-
+export const deleteOldSessions = async () => {
   showInfo(chalk.blue("Deleting old sessions and push tokens..."));
   try {
-    const users = await fetchFromTable({ table: "Users" });
-    let data = users.data;
+    const { data } = await fetchFromTable({ table: "Users" });
     if (!data) return;
-    if (!Array.isArray(data)) data = [data];
-    if (data.length === 0) return;
+    if (!data.length) return;
+
+    const now = Date.now();
 
     const deleted = await Promise.all(
-      data.map((user) => {
-        if (!user.userId) return;
-        return Promise.all([
-          deleteInTable(user.userId, "UserSessions"),
-          deleteInTable(user.userId, "PushTokens"),
+      data.map(async (user) => {
+        const userId = user.userId;
+        if (!userId) return;
+
+        const { data: sessions } = await fetchFromTable({
+          table: "UserSessions",
+          match: { userId },
+        });
+        if (!sessions) return;
+
+        const oldSessions = sessions
+          .map((session) => {
+            try {
+              const updatedAt = new Date(session.updatedAt).getTime();
+              const diff = now - updatedAt;
+              const daysDiff = diff / (1000 * 60 * 60 * 24);
+              return daysDiff > 20 ? session : null;
+            } catch {
+              return session;
+            }
+          })
+          .filter((s) => !!s);
+
+        await Promise.all([
+          ...oldSessions.map(async (s) => {
+            await deleteInTable(user.userId, "UserSessions", { id: s.id });
+          }),
+          ...oldSessions.map(async (s) => {
+            await deleteInTable(user.userId, "PushTokens", { token: s.token });
+          }),
         ]);
       }),
     );

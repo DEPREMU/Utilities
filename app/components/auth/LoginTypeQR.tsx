@@ -27,7 +27,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
 }) => {
   const { t } = useLanguage();
   const { styles } = useStylesAuthScreens();
-  const { loginWithQRRef } = useUserContext();
+  const { dataRef } = useUserContext();
 
   const [qrData, setQRData] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
@@ -90,7 +90,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
               handleError(message.status);
               break;
             case "authenticated":
-              loginWithQRRef.current(message.response);
+              dataRef.current.loginWithQR(message.response);
               break;
             default:
               break;
@@ -114,7 +114,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
       ws.close();
       ws = null;
     };
-  }, [rememberMe, handleChangeTypeLogin, loginWithQRRef, retryAttempt]);
+  }, [rememberMe, handleChangeTypeLogin, dataRef, retryAttempt]);
 
   useEffect(() => handleLoginWithQR(), [handleLoginWithQR]);
 

@@ -6,13 +6,14 @@ import {
 } from "@types";
 import React, {
   useRef,
+  useMemo,
   useEffect,
   useContext,
-  useCallback,
   createContext,
 } from "react";
 import {
   logError,
+  showAlert,
   getRandomId,
   loadDataStorage,
   saveDataStorage,
@@ -21,10 +22,10 @@ import {
   executeRegisteredTask,
   hasInternetConnection,
 } from "@utils";
+import { BackHandler } from "react-native";
 import { useLanguage } from "./LanguageContext";
 import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
-import { Alert, BackHandler } from "react-native";
 import { getCurrentScreen, navigateReplace } from "@navigation/navigationRef";
 
 type BackgroundTask = {
@@ -49,7 +50,7 @@ type BackgroundTaskContextType = {
    *
    * @param task - The background task to execute
    */
-  runTask: (task: BackgroundTask) => void;
+  runTaskRef: React.RefObject<(task: BackgroundTask) => void>;
 
   /**
    * Adds a background task to the execution queue.
@@ -60,15 +61,17 @@ type BackgroundTaskContextType = {
    * @param meta.functionName - The name of the function to execute
    * @param meta.args - Array of arguments to pass to the function
    */
-  addTaskQueue: <T extends AvailableFunctions>(
-    task: BackgroundTask,
-    meta?: {
-      id: string;
-      args: FunctionsArguments<T>;
-      functionName: T;
-    },
-    removeTaskWithId?: string,
-  ) => void;
+  addTaskQueueRef: React.RefObject<
+    <T extends AvailableFunctions>(
+      task: BackgroundTask,
+      meta?: {
+        id: string;
+        args: FunctionsArguments<T>;
+        functionName: T;
+      },
+      removeTaskWithId?: string,
+    ) => void
+  >;
 };
 
 interface BackgroundTaskProviderProps {
@@ -124,9 +127,9 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   children,
 }) => {
   const { t } = useLanguage();
+  const { initIntervalTimeoutsRef } = useBackground();
   const { hasInternetRef, hasInternet } = useBackground();
-  const { initIntervalTimeouts, deleteIntervalTimeout } = useBackground();
-  const { isLoggedIn, refreshTokenRef, setLoggingIn, setIsLoggedIn } =
+  const { isLoggedIn, dataRef, setLoggingIn, setIsLoggedIn } =
     useUserContext();
 
   const taskQueueRef = useRef<BackgroundTask[]>([]);
@@ -134,7 +137,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   const executeWhenInternetRef = useRef<BackgroundTaskWithMeta[]>([]);
   const idFunctionRefreshTokenQueueRef = useRef<string>(getRandomId());
 
-  const persistPendingTasks = useCallback(
+  const persistPendingTasksRef = useRef(
     async <T extends AvailableFunctions>(removeTaskWithId?: string) => {
       try {
         const serializableTasks: SerializableTask<T>[] =
@@ -159,10 +162,9 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
         logError("Error persisting tasks:", error);
       }
     },
-    [],
   );
 
-  const processQueue = useCallback(async () => {
+  const processQueueRef = useRef(async () => {
     if (isProcessingRef.current) return;
 
     isProcessingRef.current = true;
@@ -186,9 +188,9 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     }
 
     isProcessingRef.current = false;
-  }, []);
+  });
 
-  const addTaskQueue = useCallback(
+  const addTaskQueueRef = useRef(
     <T extends AvailableFunctions>(
       task: BackgroundTask,
       meta?: MetaInfoFunctions<T>,
@@ -196,7 +198,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     ) => {
       if (hasInternetRef.current || !task.requiresInternet) {
         taskQueueRef.current.push(task);
-        processQueue();
+        processQueueRef.current();
         return;
       }
 
@@ -227,12 +229,11 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
       executeWhenInternetRef.current.push(taskWithMeta);
 
-      persistPendingTasks(removeTaskWithId);
+      persistPendingTasksRef.current(removeTaskWithId);
     },
-    [processQueue, hasInternetRef, persistPendingTasks],
   );
 
-  const runTask = useCallback(async (task: BackgroundTask) => {
+  const runTaskRef = useRef(async (task: BackgroundTask) => {
     try {
       if (!task.requiresInternet) return await task.func();
 
@@ -242,16 +243,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     } catch {
       logError("Error running task:", task);
     }
-  }, []);
-
-  const processQueueRef = useRef(processQueue);
-  const persistPendingTasksRef = useRef(persistPendingTasks);
-  const addTaskQueueRef = useRef(addTaskQueue);
-  useEffect(() => {
-    processQueueRef.current = processQueue;
-    addTaskQueueRef.current = addTaskQueue;
-    persistPendingTasksRef.current = persistPendingTasks;
-  }, [persistPendingTasks, addTaskQueue, processQueue]);
+  });
 
   useEffect(() => {
     const loadPersistedTasks = async () => {
@@ -291,7 +283,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       getCurrentScreen().then((currentScreen) => {
         const isFirstScreen = currentScreen === "Home";
 
-        Alert.alert(
+        showAlert(
           t(isFirstScreen ? "exitApp" : "back"),
           t(isFirstScreen ? "exitAppMessage" : "backMessage"),
           [
@@ -335,10 +327,10 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     const handleRefreshSessionWithInternet = () => {
       const id = idFunctionRefreshTokenQueueRef.current;
 
-      addTaskQueue(
+      addTaskQueueRef.current(
         {
           func: () => {
-            refreshTokenRef.current();
+            dataRef.current.refreshToken();
           },
           requiresInternet: true,
         },
@@ -351,7 +343,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       );
     };
 
-    initIntervalTimeouts("refreshSession", {
+    initIntervalTimeoutsRef.current("refreshSession", {
       fn: handleRefreshSessionWithInternet,
       interval: 8 * 60 * 60 * 1000,
       type: "interval",
@@ -362,17 +354,18 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
     const id = setTimeoutPolyfill(handleRefreshSessionWithInternet, 2000);
     return () => clearTimeoutPolyfill(id);
-  }, [
-    setLoggingIn,
-    addTaskQueue,
-    setIsLoggedIn,
-    refreshTokenRef,
-    initIntervalTimeouts,
-    deleteIntervalTimeout,
-  ]);
+  }, [setLoggingIn, setIsLoggedIn, dataRef, initIntervalTimeoutsRef]);
+
+  const value: BackgroundTaskContextType = useMemo(
+    () => ({
+      runTaskRef,
+      addTaskQueueRef,
+    }),
+    [],
+  );
 
   return (
-    <BackgroundTaskContext.Provider value={{ runTask, addTaskQueue }}>
+    <BackgroundTaskContext.Provider value={value}>
       {children}
     </BackgroundTaskContext.Provider>
   );

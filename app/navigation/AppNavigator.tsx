@@ -7,12 +7,12 @@ import InfoIP from "@screens/Connectivity/IP";
 import Translator from "@screens/translator/Translator";
 import HomeScreen from "@screens/HomeScreen";
 import ScanQRCode from "@screens/auth/ScanQRCode";
-import VaultScreen from "@screens/Vault";
 import LoginScreen from "@screens/auth/LoginScreen";
 import Minesweeper from "@screens/Games/Minesweeper";
 import SignUpScreen from "@screens/auth/SignUpScreen";
 import { useTheme } from "@context/ThemeContext";
 import { Platform } from "react-native";
+import VaultNavigator from "@screens/Vault";
 import GamesNavigator from "@screens/Games";
 import SettingsScreen from "@screens/Settings";
 import MarkdownViewer from "@screens/markdown/MarkdownViewer";
@@ -54,7 +54,7 @@ const ComponentToHome: React.FC = () => {
 };
 
 const isWeb = Platform.OS === "web";
-const initialRouteName: ScreensAvailable = isDev ? "Recorder" : "Home";
+const initialRouteName: ScreensAvailable = isDev ? "Vault" : "Home";
 
 /**
  * Centralized configuration object for all app screens.
@@ -78,7 +78,7 @@ const screens: Screens = {
   MarkdownViewer: { component: MarkdownViewer },
   forgotPassword: { component: ForgotPasswordScreen },
   DeviceInformation: { component: DeviceInformation },
-  Vault: { component: VaultScreen },
+  Vault: { component: VaultNavigator },
   Test: { component: isDev ? Test : ComponentToHome },
   Recorder: { component: isWeb ? ComponentToHome : RecorderNavigator },
   Images: { component: ImagesNavigator },
@@ -111,9 +111,28 @@ const AppNavigator: React.FC = () => {
   const { navigationTheme } = useTheme();
 
   useEffect(() => {
-    const cleanup = setupNotificationHandlers(navigateReplace);
+    if (Platform.OS !== "web") return setupNotificationHandlers();
 
-    return cleanup;
+    const func = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+
+      switch (key) {
+        case "h":
+          if (event.ctrlKey) {
+            event.preventDefault();
+            navigateReplace("Home");
+          }
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    window?.addEventListener("keydown", func);
+    return () => {
+      window?.removeEventListener("keydown", func);
+    };
   }, []);
 
   return (

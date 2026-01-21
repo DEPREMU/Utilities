@@ -112,7 +112,7 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
       >
         <TextInput
           style={styles.input}
-          label={t("emailPlaceholder")}
+          label={t("auth.emailPlaceholder")}
           placeholderTextColor={text}
           underlineColor={secondary}
           activeUnderlineColor={secondary}
@@ -139,7 +139,7 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
       >
         <TextInput
           style={styles.input}
-          label={t("passwordPlaceholder")}
+          label={t("auth.passwordPlaceholder")}
           underlineColor={secondary}
           activeUnderlineColor={secondary}
           placeholderTextColor={text}

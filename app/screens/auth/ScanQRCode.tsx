@@ -14,9 +14,9 @@ import { Platform, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import useStylesScanQRCode from "@/styles/screens/auth/useStylesScanQRCode";
+import React, { useEffect, useRef, useState } from "react";
 import { BarcodeScanningResult, Camera, CameraView } from "expo-camera";
 import { LoginWithQRMobile, MessageWebSocketQRLogin } from "@types";
-import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type PermissionCamera = "granted" | "denied" | null;
 
@@ -24,21 +24,20 @@ const ScanQRCode: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesScanQRCode();
   const { isLoggedIn } = useUserContext();
-  const { openModal, closeModal } = useModal();
+  const { openModalRef, closeModalRef } = useModal();
 
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<PermissionCamera>(null);
 
   const idTimeoutRef = useRef<number | null>(null);
 
-  const handleScannedBarcode = useCallback(
-    (scanned: BarcodeScanningResult) => {
-      if (scannedData === scanned.data) return;
+  const handleScannedBarcodeRef = useRef((scanned: BarcodeScanningResult) => {
+    setScannedData((prev) => {
+      if (scanned.data === prev) return prev;
 
-      setScannedData(scanned.data);
-    },
-    [scannedData],
-  );
+      return scanned.data;
+    });
+  });
 
   useEffect(() => {
     const getPermissionsCamera = async () => {
@@ -54,18 +53,18 @@ const ScanQRCode: React.FC = () => {
   useEffect(() => {
     if (hasPermission !== "denied") return;
 
-    openModal(
+    openModalRef.current(
       t("noCameraPermission"),
       t("needsCameraPermission"),
       <Button
         label={t("accept")}
         handlePress={() => {
-          closeModal();
+          closeModalRef.current();
           navigateReplace("Home");
         }}
       />,
     );
-  }, [hasPermission, t, openModal, closeModal]);
+  }, [hasPermission, t, openModalRef, closeModalRef]);
 
   useEffect(() => {
     if (isLoggedIn && Platform.OS !== "web") return;
@@ -99,13 +98,13 @@ const ScanQRCode: React.FC = () => {
         const handleError = () => {
           setScannedData(null);
           clearIdTimeout();
-          openModal(
+          openModalRef.current(
             t("qrLoginErrorTitle"),
             t("qrLoginErrorMessage"),
             <Button
               label={t("accept")}
               handlePress={() => {
-                closeModal();
+                closeModalRef.current();
                 navigateReplace("Home");
               }}
             />,
@@ -141,13 +140,13 @@ const ScanQRCode: React.FC = () => {
             switch (message.status) {
               case "authenticated-web":
                 clearIdTimeout();
-                openModal(
+                openModalRef.current(
                   t("qrLoginSuccessTitle"),
                   t("qrLoginSuccessMessage"),
                   <Button
                     label={t("accept")}
                     handlePress={() => {
-                      closeModal();
+                      closeModalRef.current();
                       navigateReplace("Home");
                     }}
                   />,
@@ -185,7 +184,7 @@ const ScanQRCode: React.FC = () => {
       ws.close();
       ws = null;
     };
-  }, [scannedData, t, openModal, closeModal]);
+  }, [scannedData, t, openModalRef, closeModalRef]);
 
   return (
     <View style={styles.container}>
@@ -197,7 +196,7 @@ const ScanQRCode: React.FC = () => {
           <Text style={styles.text}>{t("scanQRCodeInstructions")}</Text>
           <CameraView
             style={styles.cameraView}
-            onBarcodeScanned={handleScannedBarcode}
+            onBarcodeScanned={handleScannedBarcodeRef.current}
           />
         </>
       )}

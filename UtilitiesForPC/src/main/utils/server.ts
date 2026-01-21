@@ -1,6 +1,7 @@
 import cors from "cors";
 import DNSSD from "dnssd";
 import express from "express";
+import { app } from "electron";
 import dataApp from "./variables";
 import machineId from "node-machine-id";
 import { Server } from "http";
@@ -9,7 +10,7 @@ import { exec, execSync } from "child_process";
 import { AdvertisementTXT } from "@types";
 import { stopMemoryMonitor } from "./memoryMonitor";
 import { handleChangeImageFormat } from "@common";
-import { executeTerminalCommands } from "./storage";
+import { clearTempFiles, executeTerminalCommands } from "./storage";
 
 if (!handleChangeImageFormat)
   throw new Error("handleChangeImageFormat is not defined");
@@ -63,15 +64,15 @@ export const restartComputer = async (): Promise<boolean> => {
 const hasPermissionsMiddleware = (
   req: express.Request,
   res: express.Response,
-  next: express.NextFunction
+  next: express.NextFunction,
 ) => {
   try {
     const { deviceId } = req.body || {};
     writeLog(
       `Received deviceId: ${deviceId}, expected: ${dataApp.getValue(
-        "deviceId"
+        "deviceId",
       )} areEqual: ${deviceId === dataApp.getValue("deviceId")}`,
-      "info"
+      "info",
     );
     if (!deviceId || deviceId !== dataApp.getValue("deviceId")) {
       const message = "Unauthorized request: Invalid or missing deviceId";
@@ -97,6 +98,7 @@ export const handleShutdown = async () => {
   } catch (err) {
     writeLog(`Error executing shutdown commands: ${err}`, "error");
   }
+  await clearTempFiles();
   writeLog("Shutting down gracefully...", "info");
   cleanAdAndServer();
   stopMemoryMonitor();
@@ -131,7 +133,7 @@ export const scheduleReconnect = (reason: string) => {
   if (isReconnecting || isShuttingDown) {
     writeLog(
       `Reconnect ignored: (Reason: ${reason}, isReconnecting: ${isReconnecting}, isShuttingDown: ${isShuttingDown})`,
-      "info"
+      "info",
     );
     return;
   }
@@ -139,12 +141,12 @@ export const scheduleReconnect = (reason: string) => {
 
   const delay = Math.min(
     5000 * Math.pow(2, dataApp.getValue("reconnectAttempts")),
-    60000
+    60000,
   );
   dataApp.setValue("reconnectAttempts", (prev) => prev + 1);
   writeLog(
     `Server stopped (${reason}). Reconnecting in ${delay / 1000}s...`,
-    "warn"
+    "warn",
   );
 
   if (idTimeoutServer) {
@@ -170,11 +172,30 @@ export const scheduleReconnect = (reason: string) => {
     } catch (e) {
       writeLog(
         `Error during server close in reconnect: ${e}. Forcing restart.`,
-        "error"
+        "error",
       );
       initServer();
     }
   }, delay);
+};
+
+let serverDev: Server | null = null;
+
+const initDevServer = (): void => {
+  if (serverDev || app.isPackaged) return;
+
+  const devApp = express();
+
+  devApp.get("/close-app", (_, res) => {
+    res.json({ success: true });
+
+    setTimeout(handleShutdown, 1000);
+    serverDev?.close();
+  });
+
+  serverDev = devApp.listen(9090, "localhost", (e) => {
+    if (e) initDevServer();
+  });
 };
 
 export const initServer = (): void => {
@@ -187,7 +208,7 @@ export const initServer = (): void => {
   if (!dataApp.getValue("hasSudo") && !dataApp.getValue("isWindows")) {
     writeLog(
       "Permissions missing (no sudo or not Windows). Server will not start.",
-      "error"
+      "error",
     );
     return;
   }
@@ -259,7 +280,7 @@ export const initServer = (): void => {
           {
             name: lanIP.replace(/\./g, "-"),
             txt,
-          }
+          },
         );
         ad.start();
         dataApp.setValue("ad", ad);
@@ -289,6 +310,8 @@ export const initServer = (): void => {
         scheduleReconnect("unexpected_close");
       }
     });
+
+    initDevServer();
 
     dataApp.setValue("server", server);
   } catch (error) {

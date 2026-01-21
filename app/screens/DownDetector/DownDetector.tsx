@@ -2,7 +2,7 @@ import { Text } from "react-native-paper";
 import { openURL } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import { FlatList, View } from "react-native";
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import { Tables, DownDetector } from "@types";
 import RenderDownDetectorItemMemo from "@components/DownDetector/RenderDownDetectorItem";
 import useStylesDownDetectorScreen from "@styles/screens/downDetector/useStylesDownDetectorScreen";
@@ -23,10 +23,10 @@ const DownDetectorScreen: React.FC<DownDetectorScreenProps> = ({
   const { t } = useLanguage();
   const { styles } = useStylesDownDetectorScreen();
 
-  const visitWebsite = useCallback(async (url: string) => {
+  const visitWebsiteRef = useRef(async (url: string) => {
     if (!url) return;
     openURL(url);
-  }, []);
+  });
 
   const renderItems = useCallback(
     ({ item }: { item: Tables[typeof tableName] }) => (
@@ -36,12 +36,12 @@ const DownDetectorScreen: React.FC<DownDetectorScreenProps> = ({
         title={t("downDetectorTitle")}
         removeLabel={t("remove")}
         deleteItem={deleteDownDetectorItem}
-        visitWebsite={visitWebsite}
+        visitWebsite={visitWebsiteRef.current}
         handleSendNotification={handleSendNotification}
         visitWebsiteLabel={t("visitWebsite")}
       />
     ),
-    [t, deleteDownDetectorItem, visitWebsite, handleSendNotification],
+    [t, deleteDownDetectorItem, handleSendNotification],
   );
 
   const renderEmptyComponent = useCallback(() => {

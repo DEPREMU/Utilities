@@ -97,6 +97,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
 
         return (
           <View key={`${key}-${subKey}`} style={styles.containerEachValue}>
+            {/* eslint-disable-next-line react/jsx-no-literals */}
             <Text style={styles.textKey}>{t(translationKey)}:</Text>
             <SkeletonLoading
               showChildren={dataIP?.ip !== "yourIP"}
@@ -142,7 +143,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.textIP}>IP Query</Text>
+      <Text style={styles.textIP}>{t("IPQuery.title")}</Text>
 
       <View style={styles.containerIP}>
         <Text style={styles.textKey}>{t("yourIP", { ip: "" })}</Text>

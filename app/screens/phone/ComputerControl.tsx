@@ -1,5 +1,6 @@
 import {
   log,
+  tTyped,
   logError,
   checkUrlStatus,
   setTimeoutPolyfill,
@@ -13,8 +14,8 @@ import { useLanguage } from "@context/LanguageContext";
 import { AdvertisementTXT } from "@types";
 import Zeroconf, { Service } from "react-native-zeroconf";
 import useStylesComputerControl from "@styles/screens/ComputerControl/useStylesComputerControl";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Card, List, Text, FAB } from "react-native-paper";
-import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type ServiceAdvertisementTXT = Service & { txt: AdvertisementTXT };
 type Device = ServiceAdvertisementTXT & { url: string; deviceId: string };
@@ -49,7 +50,7 @@ const tryUrls = async (
 const ComputerControl: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesComputerControl();
-  const { openSnackBar } = useModal();
+  const { openSnackBarRef } = useModal();
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -57,7 +58,7 @@ const ComputerControl: React.FC = () => {
 
   const timeOutRef = useRef<number | null>(null);
 
-  const scanNetwork = useCallback(() => {
+  const scanNetworkRef = useRef(() => {
     const zeroconf = new Zeroconf();
 
     const handleResolved = async (_: Service) => {
@@ -126,9 +127,9 @@ const ComputerControl: React.FC = () => {
       handleStop();
       clearTimeoutPolyfill(id);
     };
-  }, []);
+  });
 
-  const executeCommandOnDevice = useCallback(
+  const executeCommandOnDevice = useRef(
     async (
       baseUrl: string,
       deviceId: string,
@@ -148,13 +149,14 @@ const ComputerControl: React.FC = () => {
       let translate: "turnOff" | "restart" = "restart";
       if (command === "turn-off-computer") translate = "turnOff";
 
-      openSnackBar(
-        t(success ? `${translate}CommandSent` : `${translate}CommandFailed`),
+      openSnackBarRef.current(
+        tTyped(
+          success ? `${translate}CommandSent` : `${translate}CommandFailed`,
+        ),
         5000,
       );
       if (success) setScanning(true);
     },
-    [openSnackBar, t],
   );
 
   useEffect(() => () => clearTimeoutPolyfill(timeOutRef), []);
@@ -162,8 +164,8 @@ const ComputerControl: React.FC = () => {
   useEffect(() => {
     if (!scanning) return;
 
-    return scanNetwork();
-  }, [scanNetwork, scanning]);
+    return scanNetworkRef.current();
+  }, [scanning]);
 
   return (
     <View style={styles.container}>
@@ -199,7 +201,7 @@ const ComputerControl: React.FC = () => {
                     <List.Icon {...props} icon="power" color="#d32f2f" />
                   )}
                   onPress={() =>
-                    executeCommandOnDevice(
+                    executeCommandOnDevice.current(
                       item.url,
                       item.deviceId,
                       "turn-off-computer",
@@ -214,7 +216,7 @@ const ComputerControl: React.FC = () => {
                     <List.Icon {...props} icon="restart" color="#1976d2" />
                   )}
                   onPress={() =>
-                    executeCommandOnDevice(
+                    executeCommandOnDevice.current(
                       item.url,
                       item.deviceId,
                       "restart-computer",

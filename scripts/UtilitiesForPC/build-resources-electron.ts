@@ -50,7 +50,14 @@ build({
   ...baseConfig,
   outfile: path.join(UTILITIES_FOR_PC_PATH, "build", "index.cjs"),
   platform: "node",
-  external: ["dnssd", "electron", "sharp"],
+  external: [
+    "dnssd",
+    "sharp",
+    "node-7z",
+    "7zip-bin",
+    "electron",
+    "electron-edge-js",
+  ],
   entryPoints: [path.join(UTILITIES_FOR_PC_PATH, "src", "main", "index.ts")],
   plugins: [
     pluginReplace([

@@ -30,6 +30,17 @@ import path from "path";
 import { exec, execSync } from "child_process";
 
 if (!dataApp.getValue("isWindows") && app.isPackaged) {
+  const sevenZipPath = path.join(
+    __dirname,
+    "node_modules/7zip-bin/linux/x64/7za"
+  );
+
+  try {
+    fs.chmodSync(sevenZipPath, 0o755);
+  } catch (err) {
+    console.error("Could not change permissions for 7za", err);
+  }
+
   try {
     exec(
       "sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools",
@@ -214,7 +225,7 @@ const createWindow = async (): Promise<void> => {
   const mainWindow = new BrowserWindow({
     width: 1000,
     height: 800,
-    show: false,
+    show: !app.isPackaged,
     webPreferences: {
       sandbox: false,
       preload: dataApp.getValue("preloadPath"),
@@ -225,11 +236,17 @@ const createWindow = async (): Promise<void> => {
     },
   });
 
-  const htmlPath = getHtmlPath();
+  if (app.isPackaged) {
+    const htmlPath = getHtmlPath();
 
-  mainWindow.loadFile(htmlPath).catch((err) => {
-    console.error("Error loading file:", err);
-  });
+    mainWindow.loadFile(htmlPath).catch((err) => {
+      console.error("Error loading file:", err);
+    });
+  } else {
+    mainWindow.loadURL("http://localhost:8081").catch((err) => {
+      console.error("Error loading URL:", err);
+    });
+  }
 
   mainWindow.on("close", (event) => {
     if (dataApp.getValue("isQuitting")) return;
@@ -274,9 +291,9 @@ const createTray = (): void => {
       },
       {
         label: t("exit"),
-        click: () => {
+        click: async () => {
           dataApp.setValue("isQuitting", true);
-          app.quit();
+          await handleShutdown();
         },
       },
     ]);

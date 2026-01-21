@@ -4,7 +4,7 @@ import { Text } from "react-native-paper";
 import RenderRow from "@components/Games/Minesweeper/RenderRow";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesMinesweeper } from "@styles/screens/Games/useStylesMinesweeper";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 
 const difficulties = {
   easy: { mines: 10, size: 8 },
@@ -92,46 +92,7 @@ const Minesweeper: React.FC = () => {
   const [numFlags, setNumFlags] = useState<number>(difficulties.easy.mines);
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
 
-  const getStatus = useCallback(() => {
-    if (finishGame.isFinished)
-      return finishGame.isWin ? t("youWin") : t("youLose");
-    if (finishGame.isPlaying)
-      return `${t("youArePlaying")}: \n${t("flagsRemaining", { count: String(numFlags) })}`;
-
-    return t("flagsRemaining", { count: String(numFlags) });
-  }, [finishGame, numFlags, t]);
-
-  const handleStartGame = useCallback(() => {
-    if (finishGame.isPlaying) return;
-
-    setFinishGame({ isPlaying: true, isFinished: false, isWin: false });
-    const localDifficulty = difficulties[difficulty];
-    const newBoard: typeCell[][] = getBoard(localDifficulty);
-    setBoard(newBoard);
-  }, [difficulty, finishGame]);
-
-  const handleChangeDifficulty = useCallback((level: Difficulty) => {
-    setDifficulty(level);
-    setNumFlags(difficulties[level].mines);
-  }, []);
-
-  const renderDifficultyButtons = useCallback(() => {
-    return Object.keys(difficulties).map((level) => (
-      <Button
-        key={level}
-        customStyles={{
-          button: level === difficulty ? styles.difficultySelected : {},
-          textButton: {},
-        }}
-        argsFuncHandlePress={[level as Difficulty]}
-        touchableOpacity
-        label={t(level as Difficulty)}
-        handlePress={handleChangeDifficulty}
-      />
-    ));
-  }, [t, handleChangeDifficulty, difficulty, styles.difficultySelected]);
-
-  const revealCell = useCallback(
+  const revealCellRef = useRef(
     (board: typeCell[][], row: number, col: number): typeCell[][] => {
       if (
         row < 0 ||
@@ -161,7 +122,7 @@ const Minesweeper: React.FC = () => {
           if (dx === 0 && dy === 0) continue;
           const newRow = row + dx;
           const newCol = col + dy;
-          const updatedBoard = revealCell(newBoard, newRow, newCol);
+          const updatedBoard = revealCellRef.current(newBoard, newRow, newCol);
           for (let i = 0; i < updatedBoard.length; i++) {
             for (let j = 0; j < updatedBoard[i].length; j++) {
               if (updatedBoard[i][j].isRevealed === newBoard[i][j].isRevealed)
@@ -174,8 +135,47 @@ const Minesweeper: React.FC = () => {
 
       return newBoard;
     },
-    [],
   );
+
+  const handleChangeDifficultyRef = useRef((level: Difficulty) => {
+    setDifficulty(level);
+    setNumFlags(difficulties[level].mines);
+  });
+
+  const getStatus = useCallback(() => {
+    if (finishGame.isFinished)
+      return finishGame.isWin ? t("youWin") : t("youLose");
+    if (finishGame.isPlaying)
+      return `${t("youArePlaying")}: \n${t("flagsRemaining", { count: String(numFlags) })}`;
+
+    return t("flagsRemaining", { count: String(numFlags) });
+  }, [finishGame, numFlags, t]);
+
+  const handleStartGame = useCallback(() => {
+    if (finishGame.isPlaying) return;
+
+    setFinishGame({ isPlaying: true, isFinished: false, isWin: false });
+    const localDifficulty = difficulties[difficulty];
+    const newBoard: typeCell[][] = getBoard(localDifficulty);
+    setBoard(newBoard);
+  }, [difficulty, finishGame]);
+
+  const renderDifficultyButtons = useCallback(() => {
+    return Object.keys(difficulties).map((level) => (
+      <Button
+        key={level}
+        customStyles={{
+          button: level === difficulty ? styles.difficultySelected : {},
+          textButton: {},
+        }}
+        touchableOpacity
+        label={t(`common.${level as Difficulty}`)}
+        handlePress={() =>
+          handleChangeDifficultyRef.current(level as Difficulty)
+        }
+      />
+    ));
+  }, [t, difficulty, styles.difficultySelected]);
 
   const handleCellPress = useCallback(
     (row: number, col: number) => {
@@ -190,10 +190,10 @@ const Minesweeper: React.FC = () => {
           return prevBoard;
         }
 
-        return revealCell(prevBoard, row, col);
+        return revealCellRef.current(prevBoard, row, col);
       });
     },
-    [revealCell, finishGame],
+    [finishGame],
   );
 
   const handleFlagLongPress = useCallback(
@@ -224,19 +224,21 @@ const Minesweeper: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("minesweeper")}</Text>
+      <Text style={styles.title}>{t("games.minesweeper.title")}</Text>
       {!finishGame.isPlaying && (
         <>
           <View style={styles.difficultyContainer}>
             {renderDifficultyButtons()}
           </View>
-          <Button label={t("startGame")} handlePress={handleStartGame} />
+          <Button label={t("games.startGame")} handlePress={handleStartGame} />
         </>
       )}
       <View style={styles.infoContainer}>
         <Text style={styles.infoText}>{getStatus()}</Text>
         <Text style={styles.infoText}>
-          {t(difficulty)} - {difficulties[difficulty].size}x
+          {t(`games.minesweeper.${difficulty}`, {
+            size: String(difficulties[difficulty].size),
+          })}
         </Text>
       </View>
 

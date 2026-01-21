@@ -16,8 +16,8 @@ import React, { useCallback, useMemo } from "react";
 const LanguagePicker: React.FC = () => {
   const { colors } = useTheme();
   const { userData, sessionToken } = useUserContext();
-  const { addTaskQueue } = useBackgroundTask();
-  const { changeLanguage: changeLang, t, language } = useLanguage();
+  const { addTaskQueueRef } = useBackgroundTask();
+  const { changeLanguageRef, t, language } = useLanguage();
 
   const changeLanguage = useCallback(
     async (lang: LanguagesSupported) => {
@@ -25,7 +25,7 @@ const LanguagePicker: React.FC = () => {
         Date.now().toString() + Math.random().toString(36).substring(2);
 
       if (sessionToken && userData?.userId)
-        addTaskQueue(
+        addTaskQueueRef.current(
           {
             requiresInternet: true,
             func: async () => {
@@ -56,9 +56,9 @@ const LanguagePicker: React.FC = () => {
           },
           id,
         );
-      await changeLang(lang);
+      await changeLanguageRef.current(lang);
     },
-    [changeLang, addTaskQueue, userData?.userId, sessionToken],
+    [changeLanguageRef, addTaskQueueRef, userData?.userId, sessionToken],
   );
 
   const itemsRendered = useMemo(

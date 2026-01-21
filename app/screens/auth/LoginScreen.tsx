@@ -1,6 +1,6 @@
-import { log } from "@utils";
 import LoginTypeQR from "@/components/auth/LoginTypeQR";
 import { useModal } from "@context/ModalContext";
+import { log, tTyped } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import ButtonComponent from "@components/common/ButtonComponent";
 import EmailAndPassword from "@components/auth/EmailAndPassword";
@@ -9,12 +9,12 @@ import { Platform, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import { Text, ActivityIndicator, Switch } from "react-native-paper";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const LoginScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { openSnackBar } = useModal();
-  const { loginRef, isLoggedIn } = useUserContext();
+  const { openSnackBarRef } = useModal();
+  const { dataRef, isLoggedIn } = useUserContext();
   const { styles, text, primary } = stylesLoginScreen();
 
   const [email, setEmail] = useState<string>("");
@@ -27,11 +27,27 @@ const LoginScreen: React.FC = () => {
     Platform.OS !== "web" ? "email" : "qr",
   );
 
+  const handleShowPasswordRef = useRef(() => {
+    setShowPassword((prev) => !prev);
+  });
+
+  const handlePressCreateAccountRef = useRef(() => {
+    navigateReplace("SignUp");
+  });
+
+  const handleForgotPasswordRef = useRef(() => {
+    navigateReplace("forgotPassword");
+  });
+
+  const handleChangeTypeLoginRef = useRef(() => {
+    setTypeLogin((prev) => (prev === "email" ? "qr" : "email"));
+  });
+
   const handlePressLogin = useCallback(() => {
     if (loggingIn) return;
     setLoggingIn(true);
 
-    loginRef.current(email, password, rememberMe, (success, error) => {
+    dataRef.current.login(email, password, rememberMe, (success, error) => {
       if (!success) {
         setError(error || "Login failed");
         setLoggingIn(false);
@@ -40,34 +56,20 @@ const LoginScreen: React.FC = () => {
 
       setLoggingIn(false);
 
-      openSnackBar(t("successLoginMessage"), 3000, { label: t("close") });
+      openSnackBarRef.current(tTyped("auth.successLoginMessage"), 3000, {
+        label: tTyped("common.close"),
+      });
     });
-  }, [email, password, openSnackBar, t, loginRef, loggingIn, rememberMe]);
-
-  const handleShowPassword = useCallback(() => {
-    setShowPassword((prev) => !prev);
-  }, []);
-
-  const handlePressCreateAccount = useCallback(() => {
-    navigateReplace("SignUp");
-  }, []);
-
-  const handleForgotPassword = useCallback(() => {
-    navigateReplace("forgotPassword");
-  }, []);
+  }, [email, password, openSnackBarRef, dataRef, loggingIn, rememberMe]);
 
   useEffect(() => {
     if (isLoggedIn) navigateReplace("Home");
   }, [isLoggedIn]);
 
-  const handleChangeTypeLogin = useCallback(() => {
-    setTypeLogin((prev) => (prev === "email" ? "qr" : "email"));
-  }, []);
-
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>{t("welcome")}</Text>
+        <Text style={styles.title}>{t("common.welcome")}</Text>
 
         {typeLogin === "email" && (
           <EmailAndPassword
@@ -75,14 +77,14 @@ const LoginScreen: React.FC = () => {
             setEmail={setEmail}
             password={password}
             showPassword={showPassword}
-            handleShowPassword={handleShowPassword}
+            handleShowPassword={handleShowPasswordRef.current}
             setPassword={setPassword}
           />
         )}
         {typeLogin === "qr" && (
           <LoginTypeQR
             rememberMe={rememberMe}
-            handleChangeTypeLogin={handleChangeTypeLogin}
+            handleChangeTypeLogin={handleChangeTypeLoginRef.current}
           />
         )}
 
@@ -90,7 +92,7 @@ const LoginScreen: React.FC = () => {
 
         {typeLogin === "email" && (
           <ButtonComponent
-            label={!loggingIn ? t("loginButton") : ""}
+            label={!loggingIn ? t("auth.loginButton") : ""}
             touchableOpacity
             disabled={loggingIn}
             children={
@@ -112,7 +114,7 @@ const LoginScreen: React.FC = () => {
 
         <View style={styles.linksContainer}>
           <View style={styles.rememberMeContainer}>
-            <Text style={styles.rememberMeText}>{t("rememberMe")}</Text>
+            <Text style={styles.rememberMeText}>{t("auth.rememberMe")}</Text>
             <Switch
               color={text}
               trackColor={{ false: primary, true: text }}
@@ -131,24 +133,24 @@ const LoginScreen: React.FC = () => {
                 trackColor={{ false: primary, true: text }}
                 thumbColor={typeLogin === "email" ? primary : text}
                 value={typeLogin === "qr"}
-                onValueChange={handleChangeTypeLogin}
+                onValueChange={handleChangeTypeLoginRef.current}
               />
             </View>
           )}
 
           <ButtonComponent
-            label={t("forgotPassword")}
+            label={t("auth.forgotPassword")}
             touchableOpacity
-            handlePress={handleForgotPassword}
+            handlePress={handleForgotPasswordRef.current}
             replaceStyles={{
               button: {},
               textButton: styles.linkText,
             }}
           />
           <ButtonComponent
-            label={t("createAccount")}
+            label={t("auth.createAccount")}
             touchableOpacity
-            handlePress={handlePressCreateAccount}
+            handlePress={handlePressCreateAccountRef.current}
             replaceStyles={{
               button: {},
               textButton: styles.linkText,

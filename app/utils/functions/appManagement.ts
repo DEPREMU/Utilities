@@ -765,3 +765,12 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
  */
 export const downloadBase64 =
   Platform.OS === "web" ? downloadBase64Web : downloadBase64Native;
+
+export const showAlert = (...args: Parameters<typeof Alert.alert>): void => {
+  if (Platform.OS === "web") alert(args[0] + "\n\n" + (args[1] || ""));
+  else Alert.alert(...args);
+};
+
+export const sanitizeFileName = (name: string) => {
+  return name.replace(/[^a-zA-Z0-9.\-_]/g, " ").trim();
+};

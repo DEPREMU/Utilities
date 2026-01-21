@@ -1,4 +1,5 @@
 import {
+  ASSETS,
   isFalsy,
   openURL,
   logError,
@@ -11,14 +12,15 @@ import {
   clearIntervalPolyfill,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
+import { Streamer } from "@types";
 import { useModal } from "@context/ModalContext";
+import { cloneDeep } from "lodash";
 import { useLanguage } from "@context/LanguageContext";
 import { useBackground } from "@context/BackgroundContext";
 import { useUserContext } from "@context/UserContext";
 import { View, ScrollView } from "react-native";
 import { useNotifications } from "@context/NotificationsContext";
 import { useStylesStreamers } from "@styles/screens/SocialMedia/useStylesStreamers";
-import { Streamer, Notifications } from "@types";
 import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -28,8 +30,8 @@ const Streamers: React.FC = () => {
   const { styles } = useStylesStreamers();
   const { t, language } = useLanguage();
   const { hasInternet } = useBackground();
-  const { openModal, closeModal } = useModal();
   const { userData, sessionToken } = useUserContext();
+  const { openModalRef, closeModalRef } = useModal();
   const { notifications, setNotifications } = useNotifications();
 
   const [streamer, setStreamer] = useState<string>("");
@@ -47,10 +49,13 @@ const Streamers: React.FC = () => {
           streamer.replace(/\s/g, "").toLowerCase(),
       )
     ) {
-      openModal(
+      openModalRef.current(
         t("error"),
         t("streamerAlreadyAdded", { name: streamer }),
-        <Button label={t("close")} handlePress={closeModal} />,
+        <Button
+          label={t("common.close")}
+          handlePress={closeModalRef.current}
+        />,
       );
       return;
     }
@@ -78,16 +83,11 @@ const Streamers: React.FC = () => {
         setStreamers((prev) => [...prev, data.streamer as StreamerWithIsLive]);
         setNotifications((prev) => {
           if (!prev || !userData?.userId) return prev;
-          const newNotifications = {
-            ...JSON.parse(JSON.stringify(prev)),
-            enabled: {
-              ...prev.enabled,
-              streamers: {
-                ...(prev.enabled?.streamers || {}),
-                [streamer]: { name: data.streamer?.name, enabled: false },
-              },
-            },
-          } as Notifications;
+          const newNotifications = cloneDeep(prev);
+          newNotifications.enabled.streamers = {
+            ...(newNotifications.enabled?.streamers || {}),
+            [streamer]: { name: data.streamer?.name || "", enabled: false },
+          };
 
           return newNotifications;
         });
@@ -99,37 +99,37 @@ const Streamers: React.FC = () => {
 
     setStreamer("");
   }, [
-    closeModal,
-    openModal,
-    streamers,
-    streamer,
     t,
+    streamer,
+    streamers,
+    openModalRef,
+    closeModalRef,
     userData?.userId,
     setNotifications,
   ]);
 
   const addStreamer = useCallback(() => {
     addingStreamer();
-    closeModal();
-  }, [addingStreamer, closeModal]);
+    closeModalRef.current();
+  }, [addingStreamer, closeModalRef]);
 
   const askAddStreamer = useCallback(async () => {
     if (!hasInternet) return;
 
     const streamerName = capitalize(streamer);
-    openModal(
+    openModalRef.current(
       t("askAddStreamerTitle"),
       t("askAddStreamerBody", { name: streamerName }),
       <>
         <Button label={t("yes")} handlePress={addStreamer} />
-        <Button label={t("no")} handlePress={closeModal} />
+        <Button label={t("no")} handlePress={closeModalRef.current} />
       </>,
     );
-  }, [addStreamer, closeModal, openModal, streamer, t, hasInternet]);
+  }, [addStreamer, closeModalRef, openModalRef, streamer, t, hasInternet]);
 
   const deleteStreamer = useCallback(
     async (id: string) => {
-      closeModal();
+      closeModalRef.current();
       if (!userData?.userId || isFalsy(id) || !sessionToken) return;
 
       const deviceId = await loadDataStorage("DEVICE_ID");
@@ -148,10 +148,13 @@ const Streamers: React.FC = () => {
 
       if (error) {
         logError(error);
-        openModal(
+        openModalRef.current(
           t("error"),
           t("errorDeletingStreamer", { error }),
-          <Button label={t("close")} handlePress={closeModal} />,
+          <Button
+            label={t("common.close")}
+            handlePress={closeModalRef.current}
+          />,
         );
         return;
       }
@@ -178,28 +181,22 @@ const Streamers: React.FC = () => {
       });
       setNotifications((prev) => {
         if (!prev || !userData?.userId) return prev;
-        const streamers = { ...prev.enabled.streamers };
-        if (streamers[id]) delete streamers[id];
+        const newNotifications = cloneDeep(prev);
 
-        const newNotifications = {
-          ...JSON.parse(JSON.stringify(prev)),
-          enabled: {
-            ...prev.enabled,
-            streamers,
-          },
-        } as Notifications;
+        if (newNotifications.enabled.streamers[id])
+          delete newNotifications.enabled.streamers[id];
 
         return newNotifications;
       });
     },
     [
-      closeModal,
-      openModal,
       t,
+      language,
+      openModalRef,
+      sessionToken,
+      closeModalRef,
       userData?.userId,
       setNotifications,
-      sessionToken,
-      language,
     ],
   );
 
@@ -208,7 +205,7 @@ const Streamers: React.FC = () => {
       if (!hasInternet) return;
 
       const streamerName = capitalize(streamer.name || streamer.id || "");
-      openModal(
+      openModalRef.current(
         t("askDeleteStreamer"),
         t("askDeleteStreamerBody", { name: streamerName }),
         <>
@@ -217,27 +214,27 @@ const Streamers: React.FC = () => {
             handlePress={deleteStreamer}
             argsFuncHandlePress={[streamer.id || ""]}
           />
-          <Button label={t("no")} handlePress={closeModal} />
+          <Button label={t("no")} handlePress={closeModalRef.current} />
         </>,
       );
     },
-    [closeModal, openModal, t, deleteStreamer, hasInternet],
+    [closeModalRef, openModalRef, t, deleteStreamer, hasInternet],
   );
 
   const handleOpenURLStreamer = useCallback(
     (url: string) => {
       if (isFalsy(url)) return;
-      closeModal();
+      closeModalRef.current();
       openURL(url);
     },
-    [closeModal],
+    [closeModalRef],
   );
 
   const openURLStreamer = useCallback(
     (name: string) => {
       if (isFalsy(name)) return;
       const url = `https://www.twitch.tv/${name?.toLowerCase()}`;
-      openModal(
+      openModalRef.current(
         t("openURL"),
         t("askOpenURL", { url }),
         <>
@@ -246,11 +243,11 @@ const Streamers: React.FC = () => {
             handlePress={handleOpenURLStreamer}
             argsFuncHandlePress={[url]}
           />
-          <Button label={t("no")} handlePress={closeModal} />
+          <Button label={t("no")} handlePress={closeModalRef.current} />
         </>,
       );
     },
-    [t, openModal, closeModal, handleOpenURLStreamer],
+    [t, openModalRef, closeModalRef, handleOpenURLStreamer],
   );
 
   const toggleNotifications = useCallback(
@@ -261,20 +258,14 @@ const Streamers: React.FC = () => {
       setNotifications((prev) => {
         if (!prev) return prev;
 
-        const newValue: Notifications = JSON.parse(JSON.stringify(prev));
-        const newNotifications = {
-          ...newValue,
-          enabled: {
-            ...newValue.enabled,
-            streamers: {
-              ...newValue.enabled.streamers,
-              [streamerName]: {
-                ...newValue.enabled.streamers[streamerName],
-                enabled: newBool,
-              },
-            },
+        const newNotifications = cloneDeep(prev);
+        newNotifications.enabled.streamers = {
+          ...(newNotifications.enabled?.streamers || {}),
+          [streamerName]: {
+            ...newNotifications.enabled.streamers[streamerName],
+            enabled: newBool,
           },
-        } as Notifications;
+        };
 
         return newNotifications;
       });
@@ -316,10 +307,13 @@ const Streamers: React.FC = () => {
 
   useEffect(() => {
     if (!userData?.userId || !hasInternet) {
-      openModal(
+      openModalRef.current(
         t("error"),
         t("youAreNotLoggedIn"),
-        <Button label={t("close")} handlePress={closeModal} />,
+        <Button
+          label={t("common.close")}
+          handlePress={closeModalRef.current}
+        />,
       );
       return;
     }
@@ -346,10 +340,13 @@ const Streamers: React.FC = () => {
 
         if (error) {
           logError(error);
-          openModal(
+          openModalRef.current(
             t("error"),
             t("errorLoadingStreamers"),
-            <Button label={t("close")} handlePress={closeModal} />,
+            <Button
+              label={t("common.close")}
+              handlePress={closeModalRef.current}
+            />,
           );
           return;
         }
@@ -362,10 +359,13 @@ const Streamers: React.FC = () => {
 
         if (data && data.length === 0) return;
         if (!data) {
-          openModal(
+          openModalRef.current(
             t("error"),
             t("errorLoadingStreamers"),
-            <Button label={t("close")} handlePress={closeModal} />,
+            <Button
+              label={t("common.close")}
+              handlePress={closeModalRef.current}
+            />,
           );
           return;
         }
@@ -404,10 +404,10 @@ const Streamers: React.FC = () => {
     t,
     userData?.userId,
     language,
-    openModal,
-    closeModal,
     hasInternet,
+    openModalRef,
     sessionToken,
+    closeModalRef,
   ]);
 
   return (
@@ -450,7 +450,7 @@ const Streamers: React.FC = () => {
                     source={
                       streamer.linkImage
                         ? { uri: streamer.linkImage }
-                        : require("@assets/icon.png")
+                        : ASSETS.icon
                     }
                   />
                   <Text style={styles.nameStreamer}>

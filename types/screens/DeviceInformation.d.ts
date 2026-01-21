@@ -15,6 +15,9 @@ export type DeviceInformation = {
   isTablet: boolean;
   hostname: string[];
   host: string;
+  batteryLevel: string;
+  batteryState: string;
+  lowPowerMode: string;
   startupTime: number;
   uniqueId: string;
   hardware: string;

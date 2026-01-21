@@ -1,9 +1,10 @@
 import React, {
+  useRef,
+  useMemo,
   useState,
   ReactNode,
   useEffect,
   useContext,
-  useCallback,
   createContext,
 } from "react";
 import { cloneDeep } from "lodash";
@@ -14,7 +15,6 @@ import { getFormattedDate, logError } from "@utils";
 
 interface DeviceInformationContextType {
   deviceInfo: DeviceInformation | null;
-  loading: boolean;
   refreshDeviceInfoRef: React.RefObject<() => Promise<void>>;
 }
 
@@ -63,8 +63,10 @@ const getDeviceInformation = async (): Promise<DeviceInformation> => {
       const key = _ as keyof DeviceInformation;
 
       try {
-        const funcTyped =
-          func as (typeof deviceInformationWithItsFunc)[keyof DeviceInformation];
+        const funcTyped = func as (typeof deviceInformationWithItsFunc)[Exclude<
+          keyof DeviceInformation,
+          "batteryLevel" | "batteryState" | "lowPowerMode"
+        >];
         let value = await DeviceInfo?.[funcTyped]?.();
 
         if (key === "startupTime")
@@ -84,27 +86,18 @@ const getDeviceInformation = async (): Promise<DeviceInformation> => {
 export const DeviceInformationProvider: React.FC<
   DeviceInformationProviderProps
 > = ({ children }) => {
-  const { initIntervalTimeouts, deleteIntervalTimeout } = useBackground();
+  const { initIntervalTimeoutsRef, deleteIntervalTimeoutRef } = useBackground();
 
-  const [loading, setLoading] = useState<boolean>(true);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInformation | null>(null);
 
-  const refreshDeviceInfo = useCallback(async () => {
-    setLoading(true);
+  const refreshDeviceInfoRef = useRef(async () => {
     try {
       const info = await getDeviceInformation();
       setDeviceInfo(info);
     } catch (error) {
       logError("Error getting device information:", error);
-    } finally {
-      setLoading(false);
     }
-  }, []);
-
-  const refreshDeviceInfoRef = React.useRef(refreshDeviceInfo);
-  useEffect(() => {
-    refreshDeviceInfoRef.current = refreshDeviceInfo;
-  }, [refreshDeviceInfo]);
+  });
 
   useEffect(() => {
     refreshDeviceInfoRef.current();
@@ -118,7 +111,7 @@ export const DeviceInformationProvider: React.FC<
       });
     };
 
-    initIntervalTimeouts("deviceInfo", {
+    initIntervalTimeoutsRef.current("deviceInfo", {
       fn: handleIntervalDeviceInfo,
       type: "interval",
       interval: 60000,
@@ -128,16 +121,18 @@ export const DeviceInformationProvider: React.FC<
     });
 
     return () => {
-      deleteIntervalTimeout("deviceInfo");
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      deleteIntervalTimeoutRef.current("deviceInfo");
     };
-  }, [refreshDeviceInfoRef, deleteIntervalTimeout, initIntervalTimeouts]);
+  }, [deleteIntervalTimeoutRef, initIntervalTimeoutsRef]);
 
-  const value: DeviceInformationContextType = {
-    loading,
-    deviceInfo,
-    refreshDeviceInfoRef,
-  };
-
+  const value: DeviceInformationContextType = useMemo(
+    () => ({
+      deviceInfo,
+      refreshDeviceInfoRef,
+    }),
+    [deviceInfo],
+  );
   return (
     <DeviceInformationContext.Provider value={value}>
       {children}

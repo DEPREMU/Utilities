@@ -15,19 +15,23 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "7zip-bin": "^5.2.0",
+    "@types/node-7z": "^2.1.11",
+    "archiver": "^7.0.1",
     "dmg-builder": "^26.0.12",
     "dnssd": "^0.4.1",
+    "electron-edge-js": "^39.0.1",
     "electron-store": "^11.0.2",
+    "node-7z": "^3.0.0",
     "node-machine-id": "^1.1.12",
     "sharp": "^0.32.5",
-    "archiver": "^7.0.1",
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
-    "electron": "39.2.7",
-    "electron-builder": "^26.0.12",
     "@types/archiver": "^6.0.3",
-    "@types/unzipper": "^0.10.11"
+    "@types/unzipper": "^0.10.11",
+    "electron": "39.2.7",
+    "electron-builder": "^26.0.12"
   },
   "build": {
     "appId": "com.utilities.depremu",

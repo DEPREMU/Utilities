@@ -53,8 +53,8 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
 }) => {
   const { styles } = useStylesNotifications();
   const { t, language } = useLanguage();
-  const { addTaskQueue } = useBackgroundTask();
   const { sendMessageRef } = useWebSocket();
+  const { addTaskQueueRef } = useBackgroundTask();
   const { userData, sessionToken } = useUserContext();
   const [notifications, setNotifications] = useState<Notifications | null>(
     null,
@@ -98,7 +98,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
               userId: userData.userId,
               reason,
             };
-            addTaskQueue(
+            addTaskQueueRef.current(
               {
                 requiresInternet: true,
                 func: async () => {
@@ -128,7 +128,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         return updated;
       });
     },
-    [userData?.userId, sessionToken, language, addTaskQueue],
+    [userData?.userId, sessionToken, language, addTaskQueueRef],
   );
 
   const handleChangeNotificationInterval = useCallback(
@@ -157,7 +157,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
             userId: userData.userId,
             reason: id,
           };
-          addTaskQueue(
+          addTaskQueueRef.current(
             {
               requiresInternet: true,
               func: async () => {
@@ -186,7 +186,7 @@ const NotificationsComponent: React.FC<NotificationsProps> = ({
         return updated;
       });
     },
-    [userData?.userId, sessionToken, language, addTaskQueue],
+    [userData?.userId, sessionToken, language, addTaskQueueRef],
   );
 
   const renderNotificationItem = useCallback(

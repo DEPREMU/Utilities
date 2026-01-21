@@ -25,11 +25,13 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
       Object.keys(selectedCryptos).length === 0 &&
       !loading && (
         <View style={styles.emptyStateContainer}>
-          <Text style={styles.emptyStateIcon}>₿</Text>
+          <Text style={styles.emptyStateIcon}>{t("Cryptos.icon")}</Text>
           <Text style={styles.emptyStateTitle}>
-            {t("noCryptocurrenciesSelected")}
+            {t("Cryptos.noCryptocurrenciesSelected")}
           </Text>
-          <Text style={styles.emptyStateSubtitle}>{t("goToSelectionTab")}</Text>
+          <Text style={styles.emptyStateSubtitle}>
+            {t("Cryptos.goToSelectionTab")}
+          </Text>
         </View>
       ),
     [loading, selectedCryptos, styles, t],
@@ -55,21 +57,21 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
             <CryptoPrice
               key={cryptoId}
               cryptoData={cryptoData}
-              ownedAmount={t("ownedAmount", {
+              ownedAmount={t("Cryptos.ownedAmount", {
                 amount: "{{amount}}",
                 cryptoName: "{{cryptoName}}",
               })}
-              firstInvest={t("firstInvest", {
+              firstInvest={t("Cryptos.firstInvest", {
                 amount: "{{amount}}",
                 cryptoName: "{{cryptoName}}",
                 price: "{{price}}",
               })}
-              gainAmount={t("gainAmount", {
+              gainAmount={t("Cryptos.gainAmount", {
                 currency: "{{currency}}",
                 gainAmount: "{{gainAmount}}",
               })}
-              datePurchased={t("datePurchased", { date: "{{date}}" })}
-              currentPrice={t("currentPrice")}
+              datePurchased={t("Cryptos.datePurchased", { date: "{{date}}" })}
+              currentPrice={t("Cryptos.currentPrice")}
             />
           ))}
         </View>
@@ -92,14 +94,15 @@ const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
   return (
     <View style={styles.container}>
       <View style={styles.headerGradient}>
-        <Text style={styles.headerTitle}>{t("myCryptoPortfolio")}</Text>
+        <Text style={styles.headerTitle}>{t("Cryptos.myCryptoPortfolio")}</Text>
         <Text style={styles.headerSubtitle}>
-          {Object.keys(selectedCryptos).length} {t("cryptocurrenciesTracked")}
+          {Object.keys(selectedCryptos).length}{" "}
+          {t("Cryptos.cryptocurrenciesTracked")}
         </Text>
       </View>
 
       <View style={styles.refreshIndicator}>
-        <Text style={styles.refreshText}>{t("autoRefresh")}</Text>
+        <Text style={styles.refreshText}>{t("common.autoRefresh")}</Text>
       </View>
 
       <ScrollView

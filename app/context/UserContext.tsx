@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/indent */
 import {
   log,
   signOut,
@@ -16,41 +15,38 @@ import { Platform } from "react-native";
 import windowModule from "@/utils/modules/WindowModule";
 import { navigateReplace } from "@navigation/navigationRef";
 import { ResponseAuth, UserData } from "@types";
-import React, { useState, useCallback, createContext, useEffect } from "react";
+import React, { useRef, useMemo, useState, createContext } from "react";
+
+type DataRef = {
+  userData: Omit<UserData, "password"> | null;
+  isLoggedIn: boolean;
+  sessionToken: string | null;
+  login: <T = null>(
+    email: string,
+    password: string,
+    rememberMe?: boolean,
+    callback?: (success: boolean, error?: string) => T,
+  ) => Promise<T | undefined>;
+  signUp: <T = void>(
+    email: string,
+    password: string,
+    callback?: (success: boolean, error?: string) => T,
+  ) => Promise<T | undefined>;
+  logout: (callback?: (success: boolean) => void) => Promise<void>;
+  loginWithQR: (response: ResponseAuth<"login">) => Promise<void>;
+  refreshToken: () => Promise<boolean>;
+  forgotPassword: (
+    email: string,
+    callback?: (success: boolean, error?: string) => void,
+  ) => Promise<void>;
+};
 
 interface UserContextType {
-  sessionToken: string | null;
+  dataRef: React.RefObject<DataRef>;
+  userData: DataRef["userData"];
   loggingIn: boolean;
   isLoggedIn: boolean;
-  loginRef: React.RefObject<
-    <T = null>(
-      email: string,
-      password: string,
-      rememberMe?: boolean,
-      callback?: (success: boolean, error?: string) => T,
-    ) => Promise<T>
-  >;
-  signUpRef: React.RefObject<
-    <T = void>(
-      email: string,
-      password: string,
-      callback?: (success: boolean, error?: string) => T,
-    ) => Promise<T>
-  >;
-  logoutRef: React.RefObject<
-    (callback?: (success: boolean) => void) => Promise<void>
-  >;
-  loginWithQRRef: React.RefObject<
-    (response: ResponseAuth<"login">) => Promise<void>
-  >;
-  refreshTokenRef: React.RefObject<() => Promise<boolean>>;
-  forgotPasswordRef: React.RefObject<
-    (
-      email: string,
-      callback?: (success: boolean, error?: string) => void,
-    ) => Promise<void>
-  >;
-  userData: Omit<UserData, "password"> | null;
+  sessionToken: DataRef["sessionToken"];
   setLoggingIn: React.Dispatch<React.SetStateAction<boolean>>;
   setIsLoggedIn: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -62,23 +58,16 @@ interface UserProviderProps {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [userData, setUserData] = useState<Omit<UserData, "password"> | null>(
-    null,
-  );
+  const [userData, setUserData] = useState<DataRef["userData"]>(null);
   const [loggingIn, setLoggingIn] = useState<boolean>(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  /**
-   * Login function using Database auth
-   */
-  const login = useCallback(
-    async <T = null,>(
-      email: string,
-      password: string,
-      rememberMe: boolean = false,
-      callback?: (success: boolean, error?: string) => void,
-    ): Promise<T> => {
+  const dataRef = useRef<DataRef>({
+    userData,
+    isLoggedIn,
+    sessionToken,
+    login: async (email, password, rememberMe = false, callback) => {
       try {
         setLoggingIn(true);
         const { user, token, error } = await signInWithEmail(
@@ -87,35 +76,27 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           rememberMe,
         );
 
-        if (error) {
-          callback?.(false, error);
-          return null as T;
-        }
+        if (error) return callback?.(false, error);
 
         if (user && token) {
           setUserData(user || null);
           setSessionToken(token);
           setIsLoggedIn(true);
           log("User logged in successfully:", user.email);
-          callback?.(true);
+          return callback?.(true);
         } else {
           const errorMsg = "No user or session data received";
-          callback?.(false, errorMsg);
+          return callback?.(false, errorMsg);
         }
       } catch (error) {
         const errorMsg = `Login error: ${error}`;
         logError(errorMsg);
-        callback?.(false, errorMsg);
+        return callback?.(false, errorMsg);
       } finally {
         setLoggingIn(false);
       }
-      return null as T;
     },
-    [],
-  );
-
-  const loginWithQR = useCallback(
-    async (response: ResponseAuth<"login">): Promise<void> => {
+    loginWithQR: async (response) => {
       if (!response.success || !response.user || !response.token) {
         logError("Invalid QR login response");
         return;
@@ -129,18 +110,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       log("User logged in with QR successfully:", response.user.email);
       navigateReplace("Home");
     },
-    [],
-  );
-
-  /**
-   * Sign up function using Database auth
-   */
-  const signUp = useCallback(
-    async <T = null,>(
-      email: string,
-      password: string,
-      callback: (success: boolean, error?: string) => T = () => null as T,
-    ) => {
+    signUp: async (email, password, callback) => {
       try {
         const { error } = await signUpWithEmail(email, password);
 
@@ -157,41 +127,30 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
       return callback?.(true);
     },
-    [],
-  );
+    logout: async (callback) => {
+      try {
+        const { error } = await authSignOut();
 
-  /**
-   * Logout function
-   */
-  const logout = useCallback(async (callback?: (success: boolean) => void) => {
-    try {
-      const { error } = await authSignOut();
+        if (error) {
+          logError("Logout error:", error);
+          callback?.(false);
+          return;
+        }
 
-      if (error) {
-        logError("Logout error:", error);
+        setSessionToken(null);
+        setUserData(null);
+        setIsLoggedIn(false);
+        navigateReplace("Login");
+        log("User logged out successfully");
+        callback?.(true);
+      } catch (error) {
+        logError("Unexpected logout error:", error);
         callback?.(false);
-        return;
+      } finally {
+        setLoggingIn(false);
       }
-
-      setSessionToken(null);
-      setUserData(null);
-      setIsLoggedIn(false);
-      navigateReplace("Login");
-      log("User logged out successfully");
-      callback?.(true);
-    } catch (error) {
-      logError("Unexpected logout error:", error);
-      callback?.(false);
-    } finally {
-      setLoggingIn(false);
-    }
-  }, []);
-
-  /**
-   * Forgot password function
-   */
-  const forgotPassword = useCallback(
-    async (
+    },
+    forgotPassword: async (
       email: string,
       callback?: (success: boolean, error?: string) => void,
     ) => {
@@ -218,100 +177,78 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         setLoggingIn(false);
       }
     },
-    [],
+    refreshToken: async (): Promise<boolean> => {
+      const sendNotificationLoginStatus =
+        Platform.OS !== "web"
+          ? () => {}
+          : (isLoggedIn: boolean) =>
+              windowModule?.notifyLoginStatus?.(isLoggedIn);
+      const handleNotLoggedIn = (reason?: string) => {
+        if (reason) log("Not logged in:", reason);
+
+        sendNotificationLoginStatus(false);
+        setLoggingIn(false);
+        setIsLoggedIn(false);
+        return false as const;
+      };
+      const handleLoggedIn = () => {
+        setIsLoggedIn(true);
+        setLoggingIn(false);
+        sendNotificationLoginStatus(true);
+        return true as const;
+      };
+
+      try {
+        const [rememberMe, sessionToken] = await Promise.all([
+          loadDataStorage("SESSION_EXPIRY"),
+          loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
+        ]);
+
+        if (!rememberMe || !sessionToken)
+          return handleNotLoggedIn("No rememberMe or token");
+
+        if (rememberMe < Date.now()) {
+          await signOut();
+          return handleNotLoggedIn(
+            `Session expired due to expiry ${rememberMe}`,
+          );
+        }
+
+        setLoggingIn(true);
+
+        const { user, token, error } = await authRefreshSession(sessionToken);
+
+        if (error) return handleNotLoggedIn();
+
+        if (!user || !token) {
+          await authSignOut();
+          return handleNotLoggedIn("No user or token returned");
+        }
+
+        setUserData(user);
+        setSessionToken(token);
+        return handleLoggedIn();
+      } catch {
+        authSignOut();
+        return handleNotLoggedIn();
+      }
+    },
+  });
+
+  const value: UserContextType = useMemo(
+    () => ({
+      dataRef,
+      userData,
+      loggingIn,
+      isLoggedIn,
+      sessionToken,
+      setLoggingIn,
+      setIsLoggedIn,
+    }),
+    [isLoggedIn, loggingIn, sessionToken, userData],
   );
 
-  /**
-   * Refresh current session
-   */
-  const refreshToken = useCallback(async (): Promise<boolean> => {
-    const sendNotificationLoginStatus =
-      Platform.OS !== "web"
-        ? () => {}
-        : (isLoggedIn: boolean) =>
-            windowModule?.notifyLoginStatus?.(isLoggedIn);
-    const handleNotLoggedIn = (reason?: string) => {
-      if (reason) log("Not logged in:", reason);
-
-      sendNotificationLoginStatus(false);
-      setLoggingIn(false);
-      setIsLoggedIn(false);
-      return false as const;
-    };
-    const handleLoggedIn = () => {
-      setIsLoggedIn(true);
-      setLoggingIn(false);
-      sendNotificationLoginStatus(true);
-      return true as const;
-    };
-
-    try {
-      const [rememberMe, sessionToken] = await Promise.all([
-        loadDataStorage("SESSION_EXPIRY"),
-        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
-      ]);
-
-      if (!rememberMe || !sessionToken)
-        return handleNotLoggedIn("No rememberMe or token");
-
-      if (rememberMe < Date.now()) {
-        await signOut();
-        return handleNotLoggedIn(`Session expired due to expiry ${rememberMe}`);
-      }
-
-      setLoggingIn(true);
-
-      const { user, token, error } = await authRefreshSession(sessionToken);
-
-      if (error) return handleNotLoggedIn();
-
-      if (!user || !token) {
-        await authSignOut();
-        return handleNotLoggedIn("No user or token returned");
-      }
-
-      setUserData(user);
-      setSessionToken(token);
-      return handleLoggedIn();
-    } catch {
-      authSignOut();
-      return handleNotLoggedIn();
-    }
-  }, []);
-
-  const loginRef = React.useRef(login);
-  const signUpRef = React.useRef(signUp);
-  const logoutRef = React.useRef(logout);
-  const loginWithQRRef = React.useRef(loginWithQR);
-  const refreshTokenRef = React.useRef(refreshToken);
-  const forgotPasswordRef = React.useRef(forgotPassword);
-  useEffect(() => {
-    loginRef.current = login;
-    signUpRef.current = signUp;
-    logoutRef.current = logout;
-    loginWithQRRef.current = loginWithQR;
-    refreshTokenRef.current = refreshToken;
-    forgotPasswordRef.current = forgotPassword;
-  }, [login, signUp, logout, refreshToken, forgotPassword, loginWithQR]);
-
-  const contextValue: UserContextType = {
-    loginRef,
-    signUpRef,
-    logoutRef,
-    userData,
-    loggingIn,
-    isLoggedIn,
-    sessionToken,
-    setLoggingIn,
-    setIsLoggedIn,
-    loginWithQRRef,
-    refreshTokenRef,
-    forgotPasswordRef,
-  };
-
-  return (
-    <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
-  );
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
 
 /**

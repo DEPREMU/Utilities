@@ -1,8 +1,8 @@
 import React, {
   useRef,
+  useMemo,
   useState,
   useEffect,
-  useCallback,
   createContext,
 } from "react";
 import {
@@ -19,8 +19,10 @@ import {
   askDisplayOverOtherAppsPermission,
 } from "@utils";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
+import { navigationRef } from "@navigation/navigationRef";
 import { reloadAppAsync } from "expo";
 import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
+import { functionsToExecute } from "@/utils/cross";
 import { AppState, DeviceEventEmitter, Platform } from "react-native";
 
 type typeDataReceivedState = { state: "suspended" | "resumed" };
@@ -46,8 +48,12 @@ type BackgroundContextType = {
   isBackground: boolean;
   hasInternetRef: React.RefObject<boolean>;
   timeControlsRef: React.RefObject<TimeControls>;
-  initIntervalTimeouts: (id: keyof TimeControls, data: dataTimeControl) => void;
-  deleteIntervalTimeout: <T extends keyof TimeControls>(id: T) => void;
+  initIntervalTimeoutsRef: React.RefObject<
+    (id: keyof TimeControls, data: dataTimeControl) => void
+  >;
+  deleteIntervalTimeoutRef: React.RefObject<
+    <T extends keyof TimeControls>(id: T) => void
+  >;
 };
 
 const BackgroundContext = createContext<BackgroundContextType | undefined>(
@@ -75,7 +81,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
     locationEnabled: null,
   });
 
-  const initIntervalTimeouts = useCallback(
+  const initIntervalTimeoutsRef = useRef(
     (id: keyof TimeControls, data: dataTimeControl) => {
       timeControlsRef.current[id] = {
         ...timeControlsRef.current[id],
@@ -104,10 +110,9 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
         };
       }
     },
-    [],
   );
 
-  const deleteIntervalTimeout = useCallback(
+  const deleteIntervalTimeoutRef = useRef(
     <T extends keyof TimeControls>(id: T): void => {
       if (!timeControlsRef.current[id])
         throw new Error("Interval/Timeout not initialized");
@@ -120,7 +125,6 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
       timeControlsRef.current[id] = null;
     },
-    [],
   );
 
   useEffect(() => {
@@ -133,10 +137,11 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       // eslint-disable-next-line react-hooks/exhaustive-deps
       Object.entries(timeControlsRef.current).forEach(([key, data]) => {
         if (!data) return;
-        deleteIntervalTimeout(key as keyof TimeControls);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        deleteIntervalTimeoutRef.current(key as keyof TimeControls);
       });
     };
-  }, [deleteIntervalTimeout]);
+  }, []);
 
   useEffect(() => {
     hasInternetRef.current = hasInternet;
@@ -147,13 +152,13 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
         const typedKey = key as keyof TimeControls;
 
-        if (!hasInternet) deleteIntervalTimeout(typedKey);
-        else if (!data.id) initIntervalTimeouts(typedKey, data);
+        if (!hasInternet) deleteIntervalTimeoutRef.current(typedKey);
+        else if (!data.id) initIntervalTimeoutsRef.current(typedKey, data);
       });
     }, 1000);
 
     return () => clearTimeoutPolyfill(id);
-  }, [hasInternet, deleteIntervalTimeout, initIntervalTimeouts]);
+  }, [hasInternet]);
 
   useEffect(() => {
     Object.entries(timeControlsRef.current).forEach(([key, data]) => {
@@ -161,16 +166,17 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       if (!data.shouldStopWhenSuspend || !data.shouldRestartAuto) return;
       const typedKey = key as keyof TimeControls;
 
-      if (statePhone === "suspended") deleteIntervalTimeout(typedKey);
+      if (statePhone === "suspended")
+        deleteIntervalTimeoutRef.current(typedKey);
       else if (statePhone === "resumed" && !data.id)
-        initIntervalTimeouts(typedKey, data);
+        initIntervalTimeoutsRef.current(typedKey, data);
     });
-  }, [statePhone, deleteIntervalTimeout, initIntervalTimeouts]);
+  }, [statePhone]);
 
   useEffect(() => {
-    const initializeBackgroundModule = async () => {
-      if (Platform.OS !== "android") return;
+    if (Platform.OS !== "android") return;
 
+    const initializeBackgroundModule = async () => {
       let attempt = 0;
       while (!BackgroundModule.start && attempt < 5) {
         attempt++;
@@ -193,9 +199,24 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
     initializeBackgroundModule();
 
+    functionsToExecute.current["AppState-change"]["setIsBackground"] = (
+      newState,
+    ) => setIsBackground(newState !== "active");
+
+    const callbackNavigator = () => {
+      const route = navigationRef.current?.getCurrentRoute();
+      Object.values(functionsToExecute.current["Screen-change"]).forEach((fn) =>
+        fn(route?.name || "Home"),
+      );
+    };
+
     const subscription = AppState.addEventListener("change", (nextAppState) => {
-      setIsBackground(nextAppState !== "active");
+      Object.values(functionsToExecute.current["AppState-change"]).forEach(
+        (fn) => fn(nextAppState),
+      );
     });
+    navigationRef.current?.addListener("state", callbackNavigator);
+
     const subscriptionStatePhone = DeviceEventEmitter.addListener(
       "onUpdateSuspendResume",
       (data: typeDataReceivedState) => {
@@ -209,6 +230,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
     return () => {
       subscription.remove();
+      navigationRef.current?.removeListener("state", callbackNavigator);
       subscriptionIsAliveRN.remove();
       subscriptionStatePhone.remove();
       BackgroundModule.stop();
@@ -228,15 +250,18 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
     return () => clearTimeoutPolyfill(id);
   }, []);
 
-  const value: BackgroundContextType = {
-    statePhone,
-    hasInternet,
-    isBackground,
-    hasInternetRef,
-    timeControlsRef,
-    initIntervalTimeouts,
-    deleteIntervalTimeout,
-  };
+  const value: BackgroundContextType = useMemo(
+    () => ({
+      statePhone,
+      hasInternet,
+      isBackground,
+      hasInternetRef,
+      timeControlsRef,
+      initIntervalTimeoutsRef,
+      deleteIntervalTimeoutRef,
+    }),
+    [statePhone, hasInternet, isBackground],
+  );
 
   return (
     <BackgroundContext.Provider value={value}>

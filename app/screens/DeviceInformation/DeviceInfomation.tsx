@@ -37,7 +37,7 @@ const DeviceInformation: React.FC = () => {
       return (
         <View key={key} style={styles.keyValueRow}>
           <View style={styles.keyContainer}>
-            <Text style={styles.textKey}>{t(key)}</Text>
+            <Text style={styles.textKey}>{t(`deviceInformation.${key}`)}</Text>
           </View>
           <View style={styles.valueContainer}>
             <Text style={styles.textValue}>{displayValue}</Text>
@@ -54,7 +54,7 @@ const DeviceInformation: React.FC = () => {
         return (
           <View key={key} style={styles.infoCard}>
             <Text style={styles.sectionTitle}>
-              {t(key as keyof DeviceInformationType)}
+              {t(`deviceInformation.${key as keyof DeviceInformationType}`)}
             </Text>
             <View style={styles.infoSection}>
               {Object.entries(value).map(([subKey, subValue]) => {
@@ -73,7 +73,7 @@ const DeviceInformation: React.FC = () => {
           <View key={key} style={[styles.infoCard, styles.keyValueRow]}>
             <View style={styles.keyContainer}>
               <Text style={styles.textKey}>
-                {t(key as keyof DeviceInformationType)}
+                {t(`deviceInformation.${key as keyof DeviceInformationType}`)}
               </Text>
             </View>
             <View style={styles.valueContainer}>
@@ -111,7 +111,7 @@ const DeviceInformation: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("deviceInformation")}</Text>
+      <Text style={styles.title}>{t("deviceInformation.title")}</Text>
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.contentContainer}

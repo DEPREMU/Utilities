@@ -2,6 +2,7 @@ import {
   log,
   openURL,
   API_URL,
+  showAlert,
   APP_VERSION,
   getRouteAPI,
   fetchToServer,
@@ -12,6 +13,7 @@ import {
   setTimeoutPolyfill,
   fetchAndApplyUpdate,
   isNewUpdateAvailable,
+  tTyped,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import ThemePicker from "@components/Settings/ThemePicker";
@@ -25,9 +27,9 @@ import { useUserContext } from "@context/UserContext";
 import { typeLanguagesKeys } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
-import { ScrollView, View, Alert, Platform } from "react-native";
+import { ScrollView, View, Platform } from "react-native";
 import { ActivityIndicator, Text, TextInput } from "react-native-paper";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type Section = {
   subtitle: typeLanguagesKeys;
@@ -45,25 +47,75 @@ type UpdatesData = {
   lookingForUpdates: boolean;
 };
 
+const getDefaultUpdatesData = (): UpdatesData => ({
+  updateState: "NOT_VERIFIED",
+  lastUpdateCheck: new Date(),
+  lookingForUpdates: false,
+});
+
 const SettingsScreen: React.FC = () => {
   const { t, language } = useLanguage();
   const { hasInternet } = useBackground();
-  const { addTaskQueue } = useBackgroundTask();
   const { setSocketURL } = useWebSocket();
   const { styles, colors } = useStylesSettingsScreen();
+  const { addTaskQueueRef } = useBackgroundTask();
   const { userData, sessionToken } = useUserContext();
 
   const [apiURL, setApiURL] = useState<string | null>(null);
   const [password, setPassword] = useState<string>("");
   const [hasAdmin, setHasAdmin] = useState<boolean>(false);
   const [socketURL, setSocketURLState] = useState<string | null>(null);
-  const [updatesData, setUpdatesData] = useState<UpdatesData>({
-    updateState: "NOT_VERIFIED",
-    lastUpdateCheck: new Date(),
-    lookingForUpdates: false,
-  });
+  const [updatesData, setUpdatesData] = useState<UpdatesData>(
+    getDefaultUpdatesData(),
+  );
   const [isOtherScrollActive, setIsOtherScrollActive] =
     useState<boolean>(false);
+
+  const handleCheckForUpdatesRef = useRef(async () => {
+    if (Platform.OS === "web") return;
+
+    saveDataStorage("LAST_UPDATE_CHECK", Date.now());
+    setUpdatesData({
+      updateState: "NOT_VERIFIED",
+      lastUpdateCheck: new Date(),
+      lookingForUpdates: true,
+    });
+
+    const hasUpdate = await isNewUpdateAvailable();
+    if (!hasUpdate) {
+      setTimeoutPolyfill(() => {
+        setUpdatesData((prevState) =>
+          cloneDeep({
+            ...prevState,
+            updateState: "NO_UPDATES",
+            lookingForUpdates: false,
+          }),
+        );
+      }, 1000);
+      return;
+    }
+    showAlert(
+      tTyped("updateAvailable"),
+      tTyped("updateAvailableMessage"),
+      [
+        {
+          text: tTyped("later"),
+          style: "cancel",
+        },
+        {
+          text: tTyped("updateNow"),
+          onPress: async () => {
+            await fetchAndApplyUpdate();
+          },
+        },
+      ],
+      { cancelable: false },
+    );
+  });
+
+  const handleOtherScrollActiveRef = useRef((touching: boolean) => {
+    setIsOtherScrollActive(touching);
+  });
 
   const handleCheckPasswordAdminSection = useCallback(async () => {
     log("Checking admin password:", password, "against:", ADMIN_PASSWORD);
@@ -98,7 +150,7 @@ const SettingsScreen: React.FC = () => {
     const id =
       Date.now().toString() + Math.random().toString(36).substring(2, 8);
 
-    addTaskQueue(
+    addTaskQueueRef.current(
       {
         requiresInternet: true,
         func: async () => {
@@ -128,7 +180,7 @@ const SettingsScreen: React.FC = () => {
       },
       id,
     );
-  }, [apiURL, addTaskQueue, userData?.userId, sessionToken, language]);
+  }, [apiURL, addTaskQueueRef, userData?.userId, sessionToken, language]);
 
   const saveSocketURL = useCallback(async () => {
     if (!socketURL || !userData?.userId) return;
@@ -136,7 +188,7 @@ const SettingsScreen: React.FC = () => {
       Date.now().toString() + Math.random().toString(36).substring(2, 8);
 
     setSocketURL(socketURL);
-    addTaskQueue(
+    addTaskQueueRef.current(
       {
         requiresInternet: true,
         func: async () => {
@@ -171,12 +223,12 @@ const SettingsScreen: React.FC = () => {
       id,
     );
   }, [
-    socketURL,
-    setSocketURL,
-    addTaskQueue,
-    userData?.userId,
-    sessionToken,
     language,
+    socketURL,
+    userData?.userId,
+    setSocketURL,
+    sessionToken,
+    addTaskQueueRef,
   ]);
 
   const renderSectionsAdmin = useCallback(() => {
@@ -226,52 +278,6 @@ const SettingsScreen: React.FC = () => {
     ));
   }, [apiURL, socketURL, styles, t, saveApiURL, saveSocketURL]);
 
-  const handleOtherScrollActive = useCallback((touching: boolean) => {
-    setIsOtherScrollActive(touching);
-  }, []);
-
-  const handleCheckForUpdates = useCallback(async () => {
-    if (Platform.OS === "web") return;
-
-    saveDataStorage("LAST_UPDATE_CHECK", Date.now());
-    setUpdatesData({
-      updateState: "NOT_VERIFIED",
-      lastUpdateCheck: new Date(),
-      lookingForUpdates: true,
-    });
-
-    const hasUpdate = await isNewUpdateAvailable();
-    if (!hasUpdate) {
-      setTimeoutPolyfill(() => {
-        setUpdatesData((prevState) =>
-          cloneDeep({
-            ...prevState,
-            updateState: "NO_UPDATES",
-            lookingForUpdates: false,
-          }),
-        );
-      }, 1000);
-      return;
-    }
-    Alert.alert(
-      t("updateAvailable"),
-      t("updateAvailableMessage"),
-      [
-        {
-          text: t("later"),
-          style: "cancel",
-        },
-        {
-          text: t("updateNow"),
-          onPress: async () => {
-            await fetchAndApplyUpdate();
-          },
-        },
-      ],
-      { cancelable: false },
-    );
-  }, [t]);
-
   const openUrlUpdatesWebPage = useCallback(async () => {
     const updatesWebPageUrl = API_URL.replace("api", "updates/web-page");
     log("Opening updates web page URL:", updatesWebPageUrl);
@@ -290,11 +296,8 @@ const SettingsScreen: React.FC = () => {
     });
     loadDataStorage("LAST_UPDATE_CHECK").then((data) => {
       if (!data) return;
-      setUpdatesData({
-        updateState: "NOT_VERIFIED",
-        lastUpdateCheck: new Date(data),
-        lookingForUpdates: false,
-      });
+
+      setUpdatesData(getDefaultUpdatesData());
     });
   }, []);
 
@@ -317,7 +320,9 @@ const SettingsScreen: React.FC = () => {
           {hasInternet && (
             <View style={styles.section}>
               <Text style={styles.subtitle}>{t("notifications")}</Text>
-              <Notifications onScrollableAreaTouch={handleOtherScrollActive} />
+              <Notifications
+                onScrollableAreaTouch={handleOtherScrollActiveRef.current}
+              />
             </View>
           )}
 
@@ -339,8 +344,8 @@ const SettingsScreen: React.FC = () => {
                   button: styles.button,
                   textButton: styles.buttonLabel,
                 }}
-                handlePress={handleCheckForUpdates}
                 disabled={updatesData?.lookingForUpdates}
+                handlePress={handleCheckForUpdatesRef.current}
               >
                 {updatesData?.lookingForUpdates ? (
                   <ActivityIndicator

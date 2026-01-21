@@ -68,12 +68,17 @@ const formatFileName = (uri: string) => {
 };
 
 const ListeningScreen: React.FC = () => {
+  const {
+    player,
+    dataRecorder,
+    statusPlayer,
+    actionAudioRef,
+    playSelectedAudio,
+  } = useRecorder();
   const { t } = useLanguage();
-  const { player, dataRecorder, statusPlayer, actionAudio, playSelectedAudio } =
-    useRecorder();
-  const { styles } = useStylesRecorderScreen();
   const { colors } = useTheme();
   const paperTheme = usePaperTheme();
+  const { styles } = useStylesRecorderScreen();
 
   const emptyIllustration = useMemo(
     () => StyleSheet.flatten(styles.emptyIllustration),
@@ -142,7 +147,7 @@ const ListeningScreen: React.FC = () => {
 
       const handlePlay = async () => {
         await Haptics.selectionAsync();
-        actionAudio(item, "select");
+        actionAudioRef.current(item, "select");
         playSelectedAudio();
       };
 
@@ -150,12 +155,12 @@ const ListeningScreen: React.FC = () => {
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Warning,
         );
-        actionAudio(item, "delete");
+        actionAudioRef.current(item, "delete");
       };
 
       const handleSave = async () => {
         await Haptics.selectionAsync();
-        actionAudio(item, "save");
+        actionAudioRef.current(item, "save");
       };
 
       return (
@@ -228,7 +233,7 @@ const ListeningScreen: React.FC = () => {
       colors,
       styles,
       metaMap,
-      actionAudio,
+      actionAudioRef,
       playSelectedAudio,
       paperTheme.colors,
       dataRecorder.lastUri,

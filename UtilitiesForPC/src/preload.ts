@@ -179,117 +179,191 @@ const contextBridgeType: ContextBridgeType = {
       });
     },
 
-    vaultPickFiles: async () => {
-      return await sendMessage("invoke", "vault-pick-files");
+    authenticate: async () => {
+      try {
+        const isAuthenticated = await sendMessage(
+          "invoke",
+          "authenticate-user"
+        );
+        return isAuthenticated;
+      } catch (error) {
+        sendLog(
+          `Error during authentication: ` + (error as Error).message,
+          "error"
+        );
+        return false;
+      }
     },
-    vaultPickFolders: async () => {
-      return await sendMessage("invoke", "vault-pick-folders");
+    copyFileToTemp: async (base64: string, fileName: string) => {
+      try {
+        const result = await sendMessage(
+          "invoke",
+          "copy-file-to-temp",
+          base64,
+          fileName
+        );
+        return result;
+      } catch (error) {
+        sendLog(
+          `Error copying file to temp: ` + (error as Error).message,
+          "error"
+        );
+        return { success: false };
+      }
     },
-    vaultEnsureInitialized: async () => {
-      return await sendMessage("invoke", "vault-ensure-initialized");
+    removeFile: async (uri: string) => {
+      try {
+        return await sendMessage("invoke", "remove-file-with-uri", uri);
+      } catch (error) {
+        sendLog(
+          `Error removing file from temp: ` + (error as Error).message,
+          "error"
+        );
+        return { success: false };
+      }
     },
-    vaultLoadSettings: async () => {
-      return await sendMessage("invoke", "vault-load-settings");
+    getSafeFolder: async () => {
+      try {
+        const directory = await sendMessage("invoke", "get-safe-folder");
+        return directory;
+      } catch (error) {
+        sendLog(
+          `Error getting safe folder: ` + (error as Error).message,
+          "error"
+        );
+        return "unknown";
+      }
     },
-    vaultSaveSettings: async (settings) => {
-      return await sendMessage("invoke", "vault-save-settings", settings);
+    pickFolder: async () => {
+      try {
+        const result = await sendMessage("invoke", "pick-folder");
+        return result;
+      } catch (error) {
+        sendLog(`Error picking folder: ` + (error as Error).message, "error");
+        return "canceled";
+      }
     },
-    vaultLoadWrappedMasterKey: async () => {
-      return await sendMessage("invoke", "vault-load-wrapped-master-key");
+    encryptFiles: async (...args) => {
+      try {
+        const result = await sendMessage(
+          "invoke",
+          "encrypt-vault-items",
+          ...args
+        );
+        return result;
+      } catch (error) {
+        sendLog(
+          `Error encrypting vault items: ` + (error as Error).message,
+          "error"
+        );
+        return { success: false };
+      }
     },
-    vaultSaveWrappedMasterKey: async (data) => {
-      return await sendMessage("invoke", "vault-save-wrapped-master-key", data);
+    loadEncryptedFiles: async (...args) => {
+      try {
+        const result = await sendMessage(
+          "invoke",
+          "load-encrypted-files",
+          ...args
+        );
+        return result;
+      } catch (error) {
+        sendLog(
+          `Error loading encrypted files: ` + (error as Error).message,
+          "error"
+        );
+        return [];
+      }
     },
-    vaultLoadAuthVerifier: async () => {
-      return await sendMessage("invoke", "vault-load-auth-verifier");
+    renameVaultItem: async (...args) => {
+      try {
+        const result = await sendMessage(
+          "invoke",
+          "rename-vault-item",
+          ...args
+        );
+        return result;
+      } catch (error) {
+        sendLog(
+          `Error renaming vault item: ` + (error as Error).message,
+          "error"
+        );
+        return { success: false };
+      }
     },
-    vaultSaveAuthVerifier: async (data) => {
-      return await sendMessage("invoke", "vault-save-auth-verifier", data);
+    actionWithVaultItem: async (...args) => {
+      try {
+        const result = await sendMessage(
+          "invoke",
+          "action-with-vault-item",
+          ...args
+        );
+        return result;
+      } catch (error) {
+        sendLog(
+          `Error performing action with vault item: ` +
+            (error as Error).message,
+          "error"
+        );
+        return { success: false };
+      }
     },
-    vaultListFolders: async () => {
-      return await sendMessage("invoke", "vault-list-folders");
+    getFileInfo: async (filePath: string) => {
+      try {
+        const result = await sendMessage("invoke", "get-file-info", filePath);
+        return result;
+      } catch (error) {
+        sendLog(
+          `Error getting file info for "${filePath}": ` +
+            (error as Error).message,
+          "error"
+        );
+        return null;
+      }
     },
-    vaultCreateFolder: async (folder) => {
-      return await sendMessage("invoke", "vault-create-folder", folder);
+    clearDecryptedFolderDirectory: async () => {
+      try {
+        await sendMessage("send", "clear-decrypted-folder-directory");
+      } catch (error) {
+        sendLog(
+          `Error clearing decrypted folder directory: ` +
+            (error as Error).message,
+          "error"
+        );
+      }
     },
-    vaultUpdateFolder: async (folder) => {
-      return await sendMessage("invoke", "vault-update-folder", folder);
+    askPath: async () => {
+      try {
+        const result = await sendMessage("invoke", "ask-path");
+        return result;
+      } catch (error) {
+        sendLog(`Error asking path: ` + (error as Error).message, "error");
+        return null;
+      }
     },
-    vaultDeleteFolder: async (folderId) => {
-      return await sendMessage("invoke", "vault-delete-folder", folderId);
-    },
-    vaultListItems: async (folderId) => {
-      return await sendMessage("invoke", "vault-list-items", folderId);
-    },
-    vaultSaveItemMetadata: async (item) => {
-      return await sendMessage("invoke", "vault-save-item-metadata", item);
-    },
-    vaultDeleteItem: async (folderId, itemId) => {
-      return await sendMessage("invoke", "vault-delete-item", folderId, itemId);
-    },
-    vaultUnlock: async (password) => {
-      return await sendMessage("invoke", "vault-unlock", password);
-    },
-    vaultLock: () => {
-      sendMessage("send", "vault-lock");
-    },
-    vaultEncryptPaths: async (jobId, folderId, inputPaths) => {
-      return await sendMessage(
-        "invoke",
-        "vault-encrypt-paths",
-        jobId,
-        folderId,
-        inputPaths
-      );
-    },
-    vaultDecryptToTemp: async (jobId, folderId, itemId, sessionId) => {
-      return await sendMessage(
-        "invoke",
-        "vault-decrypt-to-temp",
-        jobId,
-        folderId,
-        itemId,
-        sessionId
-      );
-    },
-    vaultCleanTempSession: async (sessionId) => {
-      return await sendMessage("invoke", "vault-clean-temp-session", sessionId);
-    },
-    vaultCancelJob: async (jobId) => {
-      return await sendMessage("invoke", "vault-cancel-job", jobId);
-    },
-    vaultZip: async (jobId, inputPaths, outputPath) => {
-      return await sendMessage(
-        "invoke",
-        "vault-zip",
-        jobId,
-        inputPaths,
-        outputPath
-      );
-    },
-    vaultUnzip: async (jobId, zipPath, outputDir) => {
-      return await sendMessage(
-        "invoke",
-        "vault-unzip",
-        jobId,
-        zipPath,
-        outputDir
-      );
-    },
-    vaultExportBackup: async (jobId, outputDir, mode, password) => {
-      return await sendMessage(
-        "invoke",
-        "vault-export-backup",
-        jobId,
-        outputDir,
-        mode,
-        password
-      );
-    },
-    onVaultProgress: (callback) => {
-      ipcRenderer.on("vault-progress", (_event, progressEvent) => {
-        callback(progressEvent);
-      });
+    zipFolder: async (
+      ...args: ChannelsIpcRenderer["zip-folder"]["functionArgs"]
+    ) => {
+      try {
+        ipcRenderer.on("zip-folder-data", (_event, progress, error) => {
+          if (error) args[4]?.(error);
+          if (progress)
+            args[3]?.(progress.number, progress.filename, progress.fileCount);
+        });
+        const result = await sendMessage(
+          "invoke",
+          "zip-folder",
+          args[0],
+          args[1],
+          args[2],
+          undefined,
+          undefined
+        );
+        return result;
+      } catch (error) {
+        sendLog(`Error zipping folder: ` + (error as Error).message, "error");
+        return "";
+      }
     },
   },
 };

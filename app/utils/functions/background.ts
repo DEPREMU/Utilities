@@ -63,7 +63,7 @@ export const askLocationPermission = async (): Promise<boolean> => {
       tTyped("locationPermissionMessage"),
       [
         {
-          text: tTyped("cancel"),
+          text: tTyped("labels.cancel"),
           style: "cancel",
           onPress: () => resolve(false),
         },
@@ -119,7 +119,7 @@ export const askDisplayOverOtherAppsPermission = async (): Promise<boolean> => {
       tTyped("overlayPermissionMessage"),
       [
         {
-          text: tTyped("cancel"),
+          text: tTyped("labels.cancel"),
           style: "cancel",
           onPress: () => resolve(false),
         },
@@ -189,7 +189,7 @@ export const askBatteryOptimizationPermission = async (): Promise<boolean> => {
       tTyped("batteryOptimizationPermissionMessage"),
       [
         {
-          text: tTyped("cancel"),
+          text: tTyped("labels.cancel"),
           style: "cancel",
           onPress: () => resolve(false),
         },
@@ -256,7 +256,7 @@ export const askAutoStartPermission = async (): Promise<boolean> => {
       tTyped("autoStartPermissionMessage"),
       [
         {
-          text: tTyped("cancel"),
+          text: tTyped("labels.cancel"),
           style: "cancel",
           onPress: () => resolve(false),
         },

@@ -32,15 +32,13 @@ export type typeT = <K extends typeLanguagesKeys>(
  *
  * @property key - The key for the translation.
  */
-export type typeLanguages = Record<ReasonNotification, string> &
-  Record<keyof DeviceInformation, string> &
-  Record<BatteryState, string> & {
+export type typeLanguages = Record<ReasonNotification, string> & {
+  deviceInformation: Record<keyof DeviceInformation | "title", string>;
+} & Record<Exclude<BatteryState, "unknown">, string> & {
     youAreNotLoggedInMessage: string;
     loadMore: string;
     user: string;
-    close: string;
     infoIP: string;
-    success: string;
     dearUser: string;
     cryptoInfo: string;
     welcomeUser: `${string}{{user}}${string}`;
@@ -81,61 +79,6 @@ export type typeLanguages = Record<ReasonNotification, string> &
     notAvailable: string;
     isHosting: string;
     status: string;
-    selectCurrency: string;
-    priceOfCrypto: `${string}{{cryptoName}}${string}`;
-    clearCache: string;
-    showSelected: string;
-    searchCrypto: string;
-    ownedAmount: `${string}{{amount}}${string}{{cryptoName}}${string}`;
-    firstInvest: `${string}{{amount}}${string}{{cryptoName}}${string}${string}{{price}}${string}`;
-    gainAmount: `${string}{{gainAmount}}${string}{{currency}}${string}`;
-    noCryptosFound: string;
-    showAll: string;
-    goToSelectionTab: string;
-    myCryptoPortfolio: string;
-    noCryptocurrenciesSelected: string;
-    autoRefresh: string;
-    cryptocurrenciesTracked: string;
-    vault: {
-      title: string;
-      subtitle: string;
-      password: string;
-      unlock: string;
-      lock: string;
-      importFiles: string;
-      folders: string;
-      items: string;
-      newFolder: string;
-      folderNamePlaceholder: string;
-      decryptToTemp: string;
-      shareDecrypted: string;
-      deleteItem: string;
-      cancelJob: string;
-      noFolders: string;
-      noItems: string;
-    };
-    // Login Screen translations
-    errorNoSession: string;
-    errorNoSessionMessage: string;
-    successSignUp: string;
-    successSignUpMessage: string;
-    verifyEmail: string;
-    welcome: string;
-    emailPlaceholder: string;
-    passwordPlaceholder: string;
-    loginButton: string;
-    rememberMe: string;
-    forgotPassword: string;
-    createAccount: string;
-    // SignUp Screen translations
-    signUp: string;
-    hasAccount: string;
-    // Auth success messages
-    successLogin: string;
-    successLoginMessage: string;
-    NoInternetConnection: string;
-    PleaseCheckInternetConnection: string;
-    // Settings Screen translations
     settings: string;
     adminSection: string;
     passwordAdminSection: string;
@@ -149,7 +92,6 @@ export type typeLanguages = Record<ReasonNotification, string> &
     exitAppMessage: string;
     back: string;
     backMessage: string;
-    datePurchased: `${string}{{date}}${string}`;
     language: string;
     setLanguage: string;
     logout: string;
@@ -167,18 +109,11 @@ export type typeLanguages = Record<ReasonNotification, string> &
     calculator: string;
     finances: string;
     currentPrice: string;
-    games: string;
-    minesweeper: string;
-    startGame: string;
-    easy: string;
-    medium: string;
-    hard: string;
     flagsRemaining: `${string}{{count}}${string}`;
     youWin: string;
     youLose: string;
     youArePlaying: string;
     successForgotPasswordMessage: string;
-    sending: string;
     undo: string;
     clipboard: string;
     clipboardTitle: string;
@@ -216,10 +151,6 @@ export type typeLanguages = Record<ReasonNotification, string> &
     Live: string;
     Offline: string;
     socialMedia: string;
-    deviceInformation: string;
-    batteryLevel: string;
-    batteryState: string;
-    lowPowerMode: string;
     BatteryFullyCharged: string;
     YouCanUnplugYourDevice: string;
     BatteryLow: string;
@@ -243,11 +174,13 @@ export type typeLanguages = Record<ReasonNotification, string> &
     LocationServicesEnabled: string;
     LocationServicesEnabledMessage: string;
     pause: string;
+    play: string;
+    playing: string;
+    paused: string;
     stop: string;
     dismiss: string;
     locationPermission: string;
     locationPermissionMessage: string;
-    cancel: string;
     accept: string;
     InternetConnectionRestored: string;
     YouAreBackOnline: string;
@@ -306,7 +239,6 @@ export type typeLanguages = Record<ReasonNotification, string> &
     execute: string;
     executingCommand: string;
     noOutput: string;
-    loggingIn: string;
     currentVersion: `${string}{{version}}${string}`;
     appUpdates: string;
     appUpdatesExplanation: string;
@@ -346,6 +278,7 @@ export type typeLanguages = Record<ReasonNotification, string> &
     seconds: string;
     minutes: string;
     hours: string;
+    appVersion: `${string}{{version}}${string}`;
     showAsMarkdown: string;
     labels: {
       fileSavedSuccessTitle: string;
@@ -353,6 +286,12 @@ export type typeLanguages = Record<ReasonNotification, string> &
       fileNotSavedErrorTitle: string;
       fileNotSavedErrorMessage: `${string}{{filename}}${string}{{filePath}}${string}`;
       noDirectorySelected: string;
+      continue: string;
+      cancel: string;
+      save: string;
+      mode: string;
+      fileInfo: string;
+      deselect: string;
     };
     recorder: {
       infiniteRecord: string;
@@ -411,8 +350,222 @@ export type typeLanguages = Record<ReasonNotification, string> &
       imageDownloadedInAlbumAlertMessage: `${string}{{albumName}}${string}`;
     };
     Cryptos: {
+      icon: string;
       display: string;
       selection: string;
+      currentPrice: string;
+      price: `${string}{{currency}}${string}: $${string}{{price}}${string}`;
+      owned: `${string}{{amount}}${string} (${string}{{cryptoName}}${string})`;
+      priceOfCrypto: `${string}{{cryptoName}}${string}`;
+      clearCache: string;
+      searchCrypto: string;
+      ownedAmount: `${string}{{amount}}${string}{{cryptoName}}${string}`;
+      firstInvest: `${string}{{amount}}${string}{{cryptoName}}${string}${string}{{price}}${string}`;
+      gainAmount: `${string}{{gainAmount}}${string}{{currency}}${string}`;
+      datePurchased: `${string}{{date}}${string}`;
+      selectCurrency: string;
+      noCryptosFound: string;
+      goToSelectionTab: string;
+      myCryptoPortfolio: string;
+      noCryptocurrenciesSelected: string;
+      cryptocurrenciesTracked: string;
+    };
+    auth: {
+      errorNoSession: string;
+      errorNoSessionMessage: string;
+      successSignUp: string;
+      successSignUpMessage: string;
+      verifyEmail: string;
+      incorrectPassword: string;
+      loggingIn: string;
+      authFailed: string;
+      authFailedMessage: string;
+      emailPlaceholder: string;
+      passwordPlaceholder: string;
+      loginButton: string;
+      rememberMe: string;
+      forgotPassword: string;
+      createAccount: string;
+      signUp: string;
+      hasAccount: string;
+      successLogin: string;
+      successLoginMessage: string;
+      authenticate: string;
+      authenticateMessage: string;
+    };
+    games: {
+      title: string;
+      startGame: string;
+      minesweeper: {
+        title: string;
+        easy: `${string}{{size}}${string}`;
+        medium: `${string}{{size}}${string}`;
+        hard: `${string}{{size}}${string}`;
+      };
+    };
+    vault: {
+      title: string;
+      subtitle: string;
+      unlock: string;
+      lock: string;
+      rootNotAvailable: string;
+      editFolder: string;
+      newFolder: string;
+      folderName: string;
+      folderNameRequired: string;
+      encryptionPolicy: string;
+      importFiles: string;
+      importFolders: string;
+      compression: string;
+      preview: string;
+      editText: string;
+      closePreview: string;
+      loadingPreview: string;
+      previewNotSupported: string;
+      folders: string;
+      items: string;
+      newFolder: string;
+      folderNamePlaceholder: string;
+      decryptToTemp: string;
+      shareDecrypted: string;
+      deleteItem: string;
+      cancelJob: string;
+      noFolders: string;
+      noItems: string;
+      inProgress: `${string}{{jobId}}${string}${string}{{phase}}${string}`;
+      dragAndDrop: string;
+      createFolder: string;
+      encryptFilesSuccessTitle: string;
+      encryptFilesSuccessMessage: `${string}{{count}}${string}`;
+      selectFromHere: string;
+      selectedItems: `${string}{{count}}${string}`;
+      makeReadonly: string;
+      makeWritable: string;
+      useDefaultFolder: string;
+      noDefaultFolder: string;
+      noPasswordAssigned: `${string}{{folderName}}${string}`;
+      unsupportedPlatformAlert: string;
+      encryptFilesErrorMessage: `${string}{{count}}${string}${string}{{filenames}}${string}`;
+      selectFolderMessage: string;
+      policy: {
+        inheritMaster: string;
+        perFolder: string;
+      };
+      backup: {
+        title: string;
+        description: string;
+        exportBackup: string;
+        exportDisabled: string;
+        modeSameKey: string;
+        modeReencrypt: string;
+        passwordLabel: `${string}{{min}}${string}`;
+        passwordTooShortReencrypt: `${string}{{min}}${string}`;
+        androidExportDescription: string;
+      };
+      settings: {
+        notSupportedPlatform: string;
+        authPassword: string;
+        authPasswordBiometricAndroid: string;
+        autoLockSeconds: string;
+        failedAttemptsLimit: string;
+        cooldownSeconds: string;
+        integrityCheckOnImport: string;
+        integrityCheckOnAccess: string;
+        compressionThresholdMb: string;
+        autoCompressLargeFiles: string;
+        minLengthPassword: `${string}{{min}}${string}`;
+        confirmPasswordMessage: `${string}{{folderName}}${string}`;
+        incognitoMode: string;
+        secretMode: string;
+        setAuthPasswordMessage: `${string}{{folderName}}${string}`;
+        setAutoLockTime: string;
+        autoLockTimeInMinutes: string;
+        title: string;
+      };
+      import: {
+        title: string;
+        import: string;
+        preflight: string;
+        folderName: string;
+        selectFiles: string;
+        importButton: string;
+        selectFolders: string;
+        encryptFiles: string;
+      };
+      menu: {
+        rename: string;
+        delete: string;
+        moveToFolder: string;
+        copyToFolder: string;
+        info: string;
+        select: string;
+        selectFromLastToHere: string;
+      };
+      viewer: {
+        title: string;
+        decrypting: string;
+        lockedTitle: string;
+      };
+      modal: {
+        deleteTitle: string;
+        deleteMessage: `${string}{{name}}${string}`;
+        renameMessage: string;
+        enterNewName: string;
+        renameConfirmTitle: string;
+        renameConfirmMessage: `${string}{{oldName}}${string}{{newName}}${string}`;
+        enterPasswordZipMessage: string;
+        compressionSuccessMessage: `${string}{{path}}${string}`;
+      };
+    };
+    common: {
+      confirm: string;
+      zip: string;
+      unzip: string;
+      privacy: string;
+      showAll: string;
+      compress: string;
+      security: string;
+      decompress: string;
+      autoRefresh: string;
+      showSelected: string;
+      NoInternetConnection: string;
+      PleaseCheckInternetConnection: string;
+      unknown: string;
+      fileExtension: `${string}{{ext}}${string}`;
+      fileType: `${string}{{type}}${string}`;
+      fileName: `${string}{{name}}${string}`;
+      fileSize: `${string}{{size}}${string}`;
+      modifiedAt: `${string}{{time}}${string}`;
+      createdAt: `${string}{{time}}${string}`;
+      sending: string;
+      selectFolder: string;
+      welcome: string;
+      close: string;
+      success: string;
+      easy: string;
+      medium: string;
+      hard: string;
+      loading: string;
+      openWith: string;
+      folders: string;
+      items: string;
+      unlock: string;
+      empty: string;
+      preview: string;
+      edit: string;
+      delete: string;
+      unsupported: string;
+      readonly: string;
+      lock: string;
+      confirmPassword: string;
+      confirmPasswordMessage: string;
+      share: string;
+    };
+    IPQuery: {
+      title: string;
+    };
+    IP_API: {
+      title: string;
     };
   };
 

@@ -1,5 +1,5 @@
 import { wrapFunctionWithError } from "@common";
-/* eslint-disable @stylistic/indent */
+
 /* eslint-disable no-console */
 import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
@@ -14,7 +14,7 @@ type ReturnDeviceInfo = {
   deviceName: string;
 };
 
-const FILTER_BY_MESSAGE = ["RECORDER"];
+const FILTER_BY_MESSAGE: string[] = ["ENCRYPT", "DECRYPT", "VAULT"];
 
 const getCurrentDeviceInfo = wrapFunctionWithError(
   async () => {
@@ -55,7 +55,11 @@ export const log = isProduction
   ? async () => {}
   : async (...args: unknown[]): Promise<void> => {
       if (!isPreview && !isDev) return;
-      if (!FILTER_BY_MESSAGE.some((msg) => args.includes(msg))) return;
+      if (
+        FILTER_BY_MESSAGE.length &&
+        !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
+      )
+        return;
 
       const date = new Date();
 

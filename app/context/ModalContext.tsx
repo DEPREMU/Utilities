@@ -1,9 +1,10 @@
 import React, {
   useRef,
+  useMemo,
   useState,
+  useEffect,
   ReactNode,
   useContext,
-  useCallback,
   createContext,
 } from "react";
 import ModalComponent from "@components/common/ModalComponent";
@@ -24,6 +25,7 @@ export type OpenModal = (
   title: string,
   body: ReactNode | string,
   buttons: ReactNode,
+  onDismiss?: () => void,
 ) => void;
 
 export type OpenSnackBar = (
@@ -33,9 +35,9 @@ export type OpenSnackBar = (
 ) => void;
 
 interface ModalContextProps {
-  openModal: OpenModal;
-  closeModal: () => void;
-  openSnackBar: OpenSnackBar;
+  openModalRef: React.RefObject<OpenModal>;
+  closeModalRef: React.RefObject<() => void>;
+  openSnackBarRef: React.RefObject<OpenSnackBar>;
   setCustomStyles: React.Dispatch<
     React.SetStateAction<Record<StylesModal, object> | undefined>
   >;
@@ -59,8 +61,8 @@ interface SnackBarConfig {
  * It allows components to open and close the modal, set its title, body, and buttons.
  *
  * @context
- * @property {function} openModal - Function to open the modal with a specified title, body, and buttons.
- * @property {function} closeModal - Function to close the modal and reset its state.
+ * @property {function} openModalRef - Function to open the modal with a specified title, body, and buttons.
+ * @property {function} closeModalRef - Function to close the modal and reset its state.
  */
 const ModalContext = createContext<ModalContextProps | undefined>(undefined);
 
@@ -77,8 +79,8 @@ const ModalContext = createContext<ModalContextProps | undefined>(undefined);
  * @property {string} title - The title of the modal.
  * @property {ReactNode} body - The content/body of the modal.
  * @property {ReactNode} buttons - The buttons to be displayed in the modal.
- * @property {function} openModal - Function to open the modal with a specified title, body, and buttons.
- * @property {function} closeModal - Function to close the modal and reset its state.
+ * @property {function} openModalRef - Function to open the modal with a specified title, body, and buttons.
+ * @property {function} closeModalRef - Function to close the modal and reset its state.
  */
 export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   const [body, setBody] = useState<ReactNode | string>(null);
@@ -92,33 +94,18 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   const [snackbar, setSnackbar] = useState<SnackBarConfig[]>([]);
 
   const idTimeout = useRef<number | null>(null);
-  /**
-   * Clears the timeout stored in `idTimeout.current` if it exists.
-   *
-   * This function is used to prevent memory leaks and ensure that the timeout
-   * does not execute after the modal has been closed or reset.
-   */
-  const clearIdTimeout = useRef(() => {
-    clearTimeoutPolyfill(idTimeout);
-  });
+  const onDismissRef = useRef<() => void>(() => {});
+  const clearIdTimeout = useRef(() => clearTimeoutPolyfill(idTimeout));
 
-  /**
-   * Opens a modal with the specified title, body, and buttons.
-   *
-   * @param modalTitle - The title to display in the modal.
-   * @param modalBody - The content to display in the body of the modal. This should be a ReactNode.
-   * @param modalButtons - The buttons to display in the modal footer. This should be a ReactNode.
-   *
-   * @remarks
-   * This function clears any existing timeout before setting the modal's title, body, and buttons,
-   * and then opens the modal by setting its state to open.
-   */
-  const openModal: OpenModal = useCallback(
-    (modalTitle, modalBody, modalButtons) => {
+  const openModalRef = useRef<OpenModal>(
+    (modalTitle, modalBody, modalButtons, onDismiss) => {
       setIsOpen((prev) => {
         if (prev) return prev;
 
         clearIdTimeout.current();
+
+        onDismissRef.current =
+          typeof onDismiss === "function" ? onDismiss : () => {};
 
         setTitle(modalTitle);
         setBody(modalBody);
@@ -126,18 +113,9 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
         return true;
       });
     },
-    [],
   );
 
-  /**
-   * Closes the modal by performing the following actions:
-   * - Clears any existing timeout using `clearIdTimeout`.
-   * - Sets the modal's open state to `false`.
-   * - Schedules a timeout to reset the modal's title, body, and buttons after 1 second.
-   *
-   * Note: Ensure that `clearIdTimeout` properly clears the timeout stored in `idTimeout.current`.
-   */
-  const closeModal = useCallback(() => {
+  const closeModalRef = useRef<() => void>(() => {
     clearIdTimeout.current();
 
     setIsOpen(false);
@@ -146,32 +124,22 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
       setBody(null);
       setButtons(null);
     }, 1000);
-  }, []);
+  });
 
-  /**
-   * Opens a snackbar with the specified label, duration, and action.
-   *
-   * @param label - The label to display in the snackbar.
-   * @param duration - The duration for which the snackbar should be visible (in milliseconds).
-   * @param action - An optional action button for the snackbar.
-   */
-  const openSnackBar = useCallback(
-    (
-      label: string,
-      duration: number = 3000,
-      action?: SnackbarProps["action"],
-    ) => {
+  const openSnackBarRef = useRef<OpenSnackBar>(
+    (label: string, duration?: number, action?: SnackbarProps["action"]) => {
       setSnackbar((prev) => {
+        if (!duration || duration <= 0) duration = 5000;
+
         const id = Math.random().toString(36).substring(2, 15);
 
         const timeout = setTimeoutPolyfill(() => {
           setSnackbar((prev) => prev.filter((snackbar) => snackbar.id !== id));
         }, duration);
 
-        return [...prev, { label, duration, action, id, timeout }];
+        return [...prev, { label, duration: duration, action, id, timeout }];
       });
     },
-    [],
   );
 
   /**
@@ -179,19 +147,34 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
    *
    * @param id - The id of the snackbar to dismiss.
    */
-  const onDismissSnackbar = useCallback((id: string) => {
+  const onDismissSnackbarRef = useRef((id: string) => {
     setSnackbar((prev) => {
       const snackbar = prev.find((snackbar) => snackbar.id === id);
       if (snackbar?.timeout) clearTimeoutPolyfill(snackbar.timeout);
 
       return prev.filter((snackbar) => snackbar.id !== id);
     });
-  }, []);
+  });
+
+  useEffect(() => {
+    if (isOpen) return;
+
+    onDismissRef.current();
+    onDismissRef.current = () => {};
+  }, [isOpen]);
+
+  const value: ModalContextProps = useMemo(
+    () => ({
+      openModalRef,
+      closeModalRef,
+      openSnackBarRef,
+      setCustomStyles,
+    }),
+    [],
+  );
 
   return (
-    <ModalContext.Provider
-      value={{ openModal, closeModal, setCustomStyles, openSnackBar }}
-    >
+    <ModalContext.Provider value={value}>
       <View style={styles.snackbarContainer} pointerEvents="box-none">
         {snackbar.map((snackbar) => (
           <SnackBarComponent
@@ -199,16 +182,16 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
             label={snackbar.label}
             actionSnackbar={snackbar.action}
             id={snackbar.id}
-            onDismiss={onDismissSnackbar}
+            onDismiss={onDismissSnackbarRef.current}
           />
         ))}
       </View>
       <ModalComponent
-        onClose={closeModal}
-        title={title}
         body={body}
-        buttons={buttons}
+        title={title}
         isOpen={isOpen}
+        onClose={closeModalRef.current}
+        buttons={buttons}
         hideModal={hideModal}
         setHideModal={setHideModal}
         customStyles={customStyles}
@@ -240,19 +223,19 @@ const styles = StyleSheet.create({
  * @returns {ModalContextProps} The context value for modal management.
  *
  * @example
- *  const { openModal, closeModal } = useModal();
+ *  const { openModalRef, closeModalRef } = useModal();
  *
  *  const handlePress = () => {
  *    const customStyles = StyleSheet.create({
  *      button: { backgroundColor: "black" },
  *      textButton: { color: "green" },
  *    });
- *    openModal(
+ *    openModalRef.current(
  *      "Test Modal",
  *      <Text>This is a test modal body</Text>,
  *      <ButtonComponent
  *        label="Close Modal"
- *        handlePress={closeModal}
+ *        handlePress={closeModalRef}
  *        customStyles={customStyles}
  *      />
  *    );
@@ -260,8 +243,7 @@ const styles = StyleSheet.create({
  */
 export const useModal = (): ModalContextProps => {
   const context = useContext(ModalContext);
-  if (!context) {
-    throw new Error("useModal must be used within a ModalProvider");
-  }
+  if (!context) throw new Error("useModal must be used within a ModalProvider");
+
   return context;
 };

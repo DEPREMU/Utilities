@@ -1,8 +1,8 @@
 import os from "os";
-import env from "../env.ts";
 import chalk from "chalk";
 import pidUsage from "pidusage";
 import { execSync } from "child_process";
+import { getEnvValue } from "../env.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 
 let pidDB: number | null = null;
@@ -33,7 +33,7 @@ const monitorDB = async () => {
 
     if (!ok || !pidDB) {
       let pids: string[] = [];
-      const dbName = env.DB_NAME || "UtilitiesDB";
+      const dbName = getEnvValue("DB_NAME");
 
       if (os.platform() === "win32") {
         const output = execSync(
@@ -98,6 +98,6 @@ export const monitorServerUsage = () => {
   }
 };
 
-export default ["1", "true"].includes(env.__DEV__)
+export default getEnvValue("__DEV__")
   ? setInterval(monitorServerUsage, 10000)
   : undefined;

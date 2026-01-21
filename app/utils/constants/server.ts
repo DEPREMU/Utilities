@@ -2,12 +2,10 @@
 import { Platform } from "react-native";
 import { API_URL_BASE, WS_URL_BASE } from "./constants";
 
-const isDev = process.env.NODE_ENV === "development" || __DEV__;
+const isDev = process.env.NODE_ENV === "development";
 
-export const fallbackAPI_URL: string =
-  API_URL_BASE || "http://158.101.7.150:3000/api";
-export const fallbackURL_WEB_SOCKET: string =
-  WS_URL_BASE || "ws://158.101.7.150:3000/ws";
+export const fallbackAPI_URL: string = API_URL_BASE;
+export const fallbackURL_WEB_SOCKET: string = WS_URL_BASE;
 
 if (!API_URL_BASE && isDev) {
   console.warn(
@@ -22,7 +20,7 @@ if (!WS_URL_BASE && isDev) {
 
 const getLocalIP = () => {
   console.warn(
-    "Getting local IP address has been called, make sure you configure your local IP.",
+    "\n\nGetting local IP address has been called, make sure you configure your local IP\n",
   );
 
   return "192.168.1.136:3000";

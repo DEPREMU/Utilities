@@ -6,7 +6,7 @@ import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import useStylesAddNewWebPage from "@styles/screens/downDetector/useStylesAddNewWebPage";
 import { Switch, Text, TextInput } from "react-native-paper";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { fetchToServer, loadDataStorage } from "@utils";
 
 interface AddNewWebPageScreenProps {
@@ -21,21 +21,27 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
 }) => {
   const { styles } = useStylesAddNewWebPage();
   const { t, language } = useLanguage();
-  const { openSnackBar } = useModal();
+  const { openSnackBarRef } = useModal();
   const { userData, sessionToken } = useUserContext();
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sendNotification, setSendNotification] = useState(true);
 
+  const handleNewSendNotificationRef = useRef(() => {
+    setSendNotification((prev) => !prev);
+  });
+
   const handleAddToDatabase = useCallback(async () => {
-    if (!userData?.userId) return openSnackBar(t("youAreNotLoggedIn"));
+    if (!userData?.userId)
+      return openSnackBarRef.current(t("youAreNotLoggedIn"));
 
-    if (!inputText.trim()) return openSnackBar(t("pleaseEnterWebPageURL"));
+    if (!inputText.trim())
+      return openSnackBarRef.current(t("pleaseEnterWebPageURL"));
     if (!inputText.trim().startsWith("http"))
-      return openSnackBar(t("webPageMustStartWithHTTP"));
+      return openSnackBarRef.current(t("webPageMustStartWithHTTP"));
 
-    if (!sessionToken) return openSnackBar(t("youAreNotLoggedIn"));
+    if (!sessionToken) return openSnackBarRef.current(t("youAreNotLoggedIn"));
 
     setIsLoading(true);
     try {
@@ -60,16 +66,16 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
         error: res.errorText || "Unknown error",
       };
 
-      if (error) openSnackBar(t("errorOccurred", { error }));
+      if (error) openSnackBarRef.current(t("errorOccurred", { error }));
       else {
-        openSnackBar(t("webPageAddedSuccessfully"));
+        openSnackBarRef.current(t("webPageAddedSuccessfully"));
         setInputText("");
         if (!data) return;
         if (Array.isArray(data)) data.forEach((item) => addNewItem(item));
         else addNewItem(data);
       }
     } catch {
-      openSnackBar(t("failedToAddTextToDatabase"));
+      openSnackBarRef.current(t("failedToAddTextToDatabase"));
     } finally {
       setIsLoading(false);
     }
@@ -78,15 +84,11 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
     language,
     inputText,
     addNewItem,
-    openSnackBar,
     sessionToken,
+    openSnackBarRef,
     sendNotification,
     userData?.userId,
   ]);
-
-  const handleNewSendNotification = useCallback(() => {
-    setSendNotification((prev) => !prev);
-  }, []);
 
   return (
     <View style={styles.container}>
@@ -100,13 +102,13 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
       />
 
       <Button
-        handlePress={handleNewSendNotification}
+        handlePress={handleNewSendNotificationRef.current}
         replaceStyles={{ button: styles.switchContainer, textButton: {} }}
       >
         <Text style={styles.switchLabel}>{t("sendNotification")}</Text>
         <Switch
           value={sendNotification}
-          onValueChange={handleNewSendNotification}
+          onValueChange={handleNewSendNotificationRef.current}
           style={styles.switch}
         />
       </Button>

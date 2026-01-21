@@ -1,7 +1,7 @@
 import dataApp from "./variables";
 import { execSync } from "child_process";
 import { handleShutdown } from "./server";
-import { app, powerMonitor } from "electron";
+import { app, dialog, powerMonitor } from "electron";
 import { initNewLogSession, writeLog } from "./logger";
 
 powerMonitor.on("resume", () => {
@@ -44,6 +44,24 @@ const elevatePrivileges = (): void => {
 
     app.quit();
     process.exit(0);
+  }
+};
+
+export const askPath = async (): Promise<string | null> => {
+  try {
+    const mainWindow = dataApp.getValue("mainWindow");
+    if (!mainWindow) return null;
+
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ["openFile", "dontAddToRecent"],
+    });
+    if (result.canceled) return null;
+    if (!result.filePaths.length) return null;
+
+    return result.filePaths[0].split("/").slice(0, -1).join("/");
+  } catch (error) {
+    writeLog("Error asking path: " + String(error), "error");
+    return null;
   }
 };
 

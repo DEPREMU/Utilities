@@ -5,6 +5,7 @@ import {
   loadDataStorage,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
+  checkLanguage,
 } from "@utils";
 import {
   View,
@@ -48,7 +49,7 @@ const limitLoadMore = Platform.OS === "web" ? 20 : 15;
 const ClipboardScreen: React.FC = () => {
   const { t, language } = useLanguage();
   const { styles, colors } = useStylesClipboardScreen();
-  const { userData, sessionToken } = useUserContext();
+  const { sessionToken, dataRef } = useUserContext();
 
   const [deleted, setDeleted] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -97,12 +98,16 @@ const ClipboardScreen: React.FC = () => {
     },
   );
 
-  const changeClipboardItemDeleted = useCallback(
+  const changeClipboardItemDeletedRef = useRef(
     async (id: string, deleted: boolean) => {
       if (!id) return logError("No ID provided for deletion");
-      if (!sessionToken) return logError("No session token available");
+      if (!dataRef.current.sessionToken)
+        return logError("No session token available");
 
-      const deviceId = await loadDataStorage("DEVICE_ID");
+      const [deviceId, language] = await Promise.all([
+        loadDataStorage("DEVICE_ID"),
+        checkLanguage(),
+      ]);
 
       const res = await fetchToServer(
         "/database/update",
@@ -113,7 +118,7 @@ const ClipboardScreen: React.FC = () => {
           table: "ClipboardSync",
           values: { deleted },
         },
-        sessionToken,
+        dataRef.current.sessionToken,
       );
 
       const { error } = res.data || { error: res.errorText || "Unknown error" };
@@ -127,100 +132,175 @@ const ClipboardScreen: React.FC = () => {
         (prevData) => prevData?.filter((item) => item.id !== id) ?? null,
       );
     },
-    [sessionToken, language],
   );
 
-  const fetchClipboardFromDatabase = useCallback(
-    async (searchText?: string) => {
-      if (
-        isLoadingRef.current ||
-        hasNoMoreData.current ||
-        hasNoMoreDataSearch.current
-      )
-        return;
-      if (!sessionToken || !userData?.userId) return;
+  const fetchClipboardFromDatabaseRef = useRef(async (searchText?: string) => {
+    if (
+      isLoadingRef.current ||
+      hasNoMoreData.current ||
+      hasNoMoreDataSearch.current
+    )
+      return;
 
-      isLoadingRef.current = true;
-      setNoMoreData(false);
+    const language = await checkLanguage();
+    const { userData, sessionToken } = dataRef.current;
 
-      const deviceId = await loadDataStorage("DEVICE_ID");
-      if (!deviceId) return;
+    if (!sessionToken || !userData?.userId) return;
 
-      const page = (searchText ? pageRefSearch.current : pageRef.current) || 0;
-      if (page === 0) {
-        isLoadingSkeletonRef.current = true;
-        if (searchText) setSearchData(getSkeletonData(!!deletedRef.current));
-        else setClipboardData(getSkeletonData(!!deletedRef.current));
-      }
+    isLoadingRef.current = true;
+    setNoMoreData(false);
 
-      const res = await fetchToServer(
-        "/database/fetch",
-        {
-          match: {
-            userId: userData?.userId,
-            deleted: !!deletedRef.current,
-          },
-          lang: language,
-          limit: limitLoadMore,
-          table: "ClipboardSync",
-          search: searchText || undefined,
-          offset: page * limitLoadMore,
-          orderBy: "createdAt",
-          deviceId,
-          pagination: true,
-          orderDirection: "DESC",
-          columnsToSearch: "content",
+    const deviceId = await loadDataStorage("DEVICE_ID");
+    if (!deviceId) return;
+
+    const page = (searchText ? pageRefSearch.current : pageRef.current) || 0;
+    if (page === 0) {
+      isLoadingSkeletonRef.current = true;
+      if (searchText) setSearchData(getSkeletonData(!!deletedRef.current));
+      else setClipboardData(getSkeletonData(!!deletedRef.current));
+    }
+
+    const res = await fetchToServer(
+      "/database/fetch",
+      {
+        match: {
+          userId: userData?.userId,
+          deleted: !!deletedRef.current,
         },
-        sessionToken,
-      );
+        lang: language,
+        limit: limitLoadMore,
+        table: "ClipboardSync",
+        search: searchText || undefined,
+        offset: page * limitLoadMore,
+        orderBy: "createdAt",
+        deviceId,
+        pagination: true,
+        orderDirection: "DESC",
+        columnsToSearch: "content",
+      },
+      sessionToken,
+    );
 
-      const { data, error } = res.data || {
-        error: res.errorText || "Unknown error",
-      };
+    const { data, error } = res.data || {
+      error: res.errorText || "Unknown error",
+    };
 
-      const handleSetVars = (data?: Tables["ClipboardSync"][]) => {
-        isLoadingRef.current = false;
-        setRefreshing(false);
+    const handleSetVars = (data?: Tables["ClipboardSync"][]) => {
+      isLoadingRef.current = false;
+      setRefreshing(false);
 
-        const prevIsLoadingSkeleton = isLoadingSkeletonRef.current;
-        isLoadingSkeletonRef.current = false;
+      const prevIsLoadingSkeleton = isLoadingSkeletonRef.current;
+      isLoadingSkeletonRef.current = false;
 
-        if (!data) return;
+      if (!data) return;
 
-        const refSet = searchText ? setSearchData : setClipboardData;
-        refSet((prev) => {
-          const oldData = prevIsLoadingSkeleton ? [] : prev || [];
+      const refSet = searchText ? setSearchData : setClipboardData;
+      refSet((prev) => {
+        const oldData = prevIsLoadingSkeleton ? [] : prev || [];
 
-          const newData = [...oldData, ...data];
+        const newData = [...oldData, ...data];
 
-          allClipboardDataRef.current = newData;
-          return newData;
-        });
+        allClipboardDataRef.current = newData;
+        return newData;
+      });
 
-        if (data.length === 0 || data.length < limitLoadMore) {
-          setNoMoreData(true);
-          if (searchText) hasNoMoreDataSearch.current = true;
-          else hasNoMoreData.current = true;
-        } else {
-          if (searchText) pageRefSearch.current = page + 1;
-          else pageRef.current = page + 1;
-        }
-      };
-
-      if (error) {
-        logError("Error fetching clipboard data:", error);
-        handleSetVars();
-        return;
+      if (data.length === 0 || data.length < limitLoadMore) {
+        setNoMoreData(true);
+        if (searchText) hasNoMoreDataSearch.current = true;
+        else hasNoMoreData.current = true;
+      } else {
+        if (searchText) pageRefSearch.current = page + 1;
+        else pageRef.current = page + 1;
       }
-      clearTimeoutPolyfill(idTimeoutRef);
+    };
 
-      idTimeoutRef.current = setTimeoutPolyfill(
-        () => handleSetVars(data || undefined),
-        page > 0 ? 100 : data ? 3000 : 2000,
-      );
+    if (error) {
+      logError("Error fetching clipboard data:", error);
+      handleSetVars();
+      return;
+    }
+    clearTimeoutPolyfill(idTimeoutRef);
+
+    idTimeoutRef.current = setTimeoutPolyfill(
+      () => handleSetVars(data || undefined),
+      page > 0 ? 100 : data ? 3000 : 2000,
+    );
+  });
+
+  const handleScrollRef = useRef(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { layoutMeasurement, contentOffset, contentSize } =
+        event.nativeEvent;
+
+      setIsFarFromStart(contentOffset.y > 500);
+
+      if (isLoadingRef.current || hasNoMoreData.current) return;
+
+      const distanceFromEnd =
+        contentSize.height - (layoutMeasurement.height + contentOffset.y);
+
+      if (distanceFromEnd < 750) fetchClipboardFromDatabaseRef.current();
     },
-    [sessionToken, userData?.userId, language],
   );
+
+  const handleRefreshRef = useRef(() => {
+    setDefaultStates.current?.();
+
+    fetchClipboardFromDatabaseRef.current();
+  });
+
+  const copyClipboardContentRef = useRef(async (content: string) => {
+    if (!content) return logError("No content provided for copying");
+
+    await Clipboard.setStringAsync(content);
+  });
+
+  const handleGoToTopRef = useRef(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    setIsFarFromStart(false);
+  });
+
+  const handleSearchingRef = useRef((text: string) => {
+    setSearchText(text);
+
+    const prevSearch = prevSearchTextRef.current || "";
+    prevSearchTextRef.current = text;
+
+    if (isLoadingSkeletonRef.current || isLoadingRef.current) return;
+
+    if (text.length < 3) {
+      setSearchData(null);
+      hasNoMoreDataSearch.current = false;
+      return;
+    }
+
+    if (hasNoMoreData.current)
+      return setSearchData(
+        allClipboardDataRef.current?.filter(
+          (item) => !!item.content?.toLowerCase()?.includes(text.toLowerCase()),
+        ) || [],
+      );
+    if (hasNoMoreDataSearch.current) {
+      if (text.includes(prevSearch) || prevSearch.includes(text)) {
+        return setSearchData(
+          allClipboardDataRef.current?.filter(
+            (item) =>
+              !!item.content?.toLowerCase()?.includes(text.toLowerCase()),
+          ) || [],
+        );
+      } else {
+        hasNoMoreDataSearch.current = false;
+        pageRefSearch.current = 0;
+        setSearchData(getSkeletonData(!!deletedRef.current));
+      }
+    }
+
+    clearTimeoutPolyfill(idTimeoutSearch);
+
+    idTimeoutSearch.current = setTimeoutPolyfill(() => {
+      fetchClipboardFromDatabaseRef.current(text);
+    }, 2000);
+  });
 
   const handleDeleteRestoreAll = useCallback(async () => {
     if (!sessionToken) return logError("No session token available");
@@ -249,91 +329,11 @@ const ClipboardScreen: React.FC = () => {
       return;
     }
 
-    fetchClipboardFromDatabase(searchText);
+    fetchClipboardFromDatabaseRef.current(searchText);
     setDeleted(newDeleted);
     setDefaultStates.current?.();
     deletedRef.current = newDeleted;
-  }, [sessionToken, language, searchText, fetchClipboardFromDatabase]);
-
-  const copyClipboardContent = useCallback(async (content: string) => {
-    if (!content) return logError("No content provided for copying");
-
-    await Clipboard.setStringAsync(content);
-  }, []);
-
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const { layoutMeasurement, contentOffset, contentSize } =
-        event.nativeEvent;
-
-      setIsFarFromStart(contentOffset.y > 500);
-
-      if (isLoadingRef.current || hasNoMoreData.current) return;
-
-      const distanceFromEnd =
-        contentSize.height - (layoutMeasurement.height + contentOffset.y);
-
-      distanceFromEnd < 750 && fetchClipboardFromDatabase();
-    },
-    [fetchClipboardFromDatabase],
-  );
-
-  const handleRefresh = useCallback(() => {
-    setDefaultStates.current?.();
-
-    fetchClipboardFromDatabase();
-  }, [fetchClipboardFromDatabase]);
-
-  const handleGoToTop = useCallback(() => {
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    setIsFarFromStart(false);
-  }, []);
-
-  const handleSearching = useCallback(
-    (text: string) => {
-      setSearchText(text);
-
-      const prevSearch = prevSearchTextRef.current || "";
-      prevSearchTextRef.current = text;
-
-      if (isLoadingSkeletonRef.current || isLoadingRef.current) return;
-
-      if (text.length < 3) {
-        setSearchData(null);
-        hasNoMoreDataSearch.current = false;
-        return;
-      }
-
-      if (hasNoMoreData.current)
-        return setSearchData(
-          allClipboardDataRef.current?.filter(
-            (item) =>
-              !!item.content?.toLowerCase()?.includes(text.toLowerCase()),
-          ) || [],
-        );
-      if (hasNoMoreDataSearch.current) {
-        if (text.includes(prevSearch) || prevSearch.includes(text)) {
-          return setSearchData(
-            allClipboardDataRef.current?.filter(
-              (item) =>
-                !!item.content?.toLowerCase()?.includes(text.toLowerCase()),
-            ) || [],
-          );
-        } else {
-          hasNoMoreDataSearch.current = false;
-          pageRefSearch.current = 0;
-          setSearchData(getSkeletonData(!!deletedRef.current));
-        }
-      }
-
-      clearTimeoutPolyfill(idTimeoutSearch);
-
-      idTimeoutSearch.current = setTimeoutPolyfill(() => {
-        fetchClipboardFromDatabase(text);
-      }, 2000);
-    },
-    [fetchClipboardFromDatabase],
-  );
+  }, [sessionToken, language, searchText]);
 
   const renderItems = useCallback(
     ({ item }: { item: Tables["ClipboardSync"] }) => (
@@ -341,12 +341,12 @@ const ClipboardScreen: React.FC = () => {
         item={item}
         title={t("clipboardTitle")}
         copyLabel={t("copy")}
-        deleteItem={changeClipboardItemDeleted}
-        copyContent={copyClipboardContent}
+        deleteItem={changeClipboardItemDeletedRef.current}
+        copyContent={copyClipboardContentRef.current}
         removeLabel={t(!deleted ? "remove" : "restore")}
       />
     ),
-    [t, changeClipboardItemDeleted, copyClipboardContent, deleted],
+    [t, deleted],
   );
 
   const renderEmptyComponent = useCallback(() => {
@@ -375,9 +375,9 @@ const ClipboardScreen: React.FC = () => {
 
     clearTimeoutPolyfill(idTimeoutSearch);
     idTimeoutSearch.current = setTimeoutPolyfill(() => {
-      fetchClipboardFromDatabase(searchText);
+      fetchClipboardFromDatabaseRef.current(searchText);
     }, 1000);
-  }, [fetchClipboardFromDatabase, searchText, deleted]);
+  }, [searchText, deleted]);
 
   useEffect(() => {
     return () => {
@@ -390,10 +390,10 @@ const ClipboardScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchClipboardFromDatabase();
+    fetchClipboardFromDatabaseRef.current();
 
     return () => clearTimeoutPolyfill(idTimeoutRef);
-  }, [fetchClipboardFromDatabase]);
+  }, []);
 
   const isLoading =
     refreshing || !!isLoadingRef.current || !!isLoadingSkeletonRef.current;
@@ -405,7 +405,7 @@ const ClipboardScreen: React.FC = () => {
         style={styles.searchBar}
         editable={!isLoading}
         placeholder={t("search")}
-        onChangeText={handleSearching}
+        onChangeText={handleSearchingRef.current}
       />
 
       <View style={styles.sectionContainer}>
@@ -437,13 +437,16 @@ const ClipboardScreen: React.FC = () => {
         ref={flatListRef}
         data={searchData || clipboardData}
         style={styles.containerFlatList}
-        onScroll={handleScroll}
+        onScroll={handleScrollRef.current}
         renderItem={renderItems}
         keyExtractor={(item) => String(item.id || Math.random())}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.contentContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefreshRef.current}
+          />
         }
       />
       {noMoreData && (
@@ -457,7 +460,7 @@ const ClipboardScreen: React.FC = () => {
           icon="arrow-up"
           color={colors.primary}
           style={styles.scrollToTopFAB}
-          onPress={handleGoToTop}
+          onPress={handleGoToTopRef.current}
           animated
         />
       )}
@@ -467,7 +470,7 @@ const ClipboardScreen: React.FC = () => {
           icon="refresh"
           color={colors.primary}
           style={styles.scrollToTopFAB}
-          onPress={handleRefresh}
+          onPress={handleRefreshRef.current}
           disabled={isLoading}
           animated
         />

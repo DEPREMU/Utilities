@@ -3,7 +3,6 @@ import "./database/initDB.ts";
 
 import cors from "cors";
 import http from "http";
-// import https from "https";
 import chalk from "chalk";
 import helmet from "helmet";
 import { URL } from "url";
@@ -17,9 +16,9 @@ import { runAllTests } from "./testingRoutes/index.ts";
 import { handleInitDB } from "./database/postgres.ts";
 import { WebSocketPathname } from "@types";
 import { showError, showInfo } from "./functions/logger.ts";
-import env, { validateServerEnv } from "./env.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
 import { initWebSocketLoginQRCode } from "./websocket/WebSocketQRLogin.ts";
+import { validateServerEnv, getEnvValue } from "./env.ts";
 import { initWebSocket, initWebSocketClipboard } from "./websocket/index.ts";
 
 const app = express();
@@ -32,9 +31,10 @@ try {
   showError(chalk.red("Failed to initialize Firebase Admin SDK:"), error);
 }
 
-const sourceProtocol = env.USE_HTTPS ? "https" : "http";
+const sourceProtocol = getEnvValue("USE_HTTPS") ? "https" : "http";
+const sourceProtocolWs = getEnvValue("USE_HTTPS") ? "wss" : "ws";
 
-if (!env.__DEV__)
+if (!getEnvValue("__DEV__"))
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -55,7 +55,7 @@ if (!env.__DEV__)
 app.use(
   rateLimit({
     windowMs: 5 * 60 * 1000,
-    limit: !env.__DEV__ ? 200 : Infinity,
+    limit: !getEnvValue("__DEV__") ? 200 : Infinity,
   }),
 );
 app.use(cors());
@@ -76,8 +76,10 @@ server.on("upgrade", (request, socket, head) => {
     return;
   }
 
-  const pathname = new URL(request.url, `http://${request.headers.host}`)
-    .pathname as WebSocketPathname;
+  const pathname = new URL(
+    request.url,
+    `${sourceProtocol}://${request.headers.host}`,
+  ).pathname as WebSocketPathname;
 
   let wsCalled: typeof clipboardWss | null = null;
 
@@ -115,14 +117,16 @@ handleInitDB().then(() => {
   server.listen(port, host, () => {
     showInfo(
       "",
-      chalk.green(`Server is running on http://${host}:${port}`),
-      "\n",
-      chalk.green(`WebSocket is running on ws://${host}:${port}/ws`),
+      chalk.green(`Server is running on ${sourceProtocol}://${host}:${port}`),
       "\n",
       chalk.green(
-        `Clipboard WebSocket is running on ws://${host}:${port}/clipboard`,
+        `WebSocket is running on ${sourceProtocolWs}://${host}:${port}/ws`,
+      ),
+      "\n",
+      chalk.green(
+        `Clipboard WebSocket is running on ${sourceProtocolWs}://${host}:${port}/clipboard`,
       ),
     );
-    ["1", "true"].includes(env.__DEV__) && runAllTests(true);
+    getEnvValue("__DEV__") && runAllTests(true);
   });
 });

@@ -1,9 +1,15 @@
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useContext,
+  createContext,
+} from "react";
 import { Theme } from "@types";
 import { useColors } from "@hooks/useColors";
 import { StatusBar } from "react-native";
 import { PaperProvider } from "react-native-paper";
 import { loadDataStorage, saveDataStorage } from "@utils";
-import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -33,8 +39,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   const { paperTheme, isLight } = colors;
 
+  const value: ThemeContextType = useMemo(
+    () => ({
+      ...colors,
+      themeState,
+      setThemeState,
+    }),
+    [colors, themeState],
+  );
+
   return (
-    <ThemeContext.Provider value={{ setThemeState, ...colors, themeState }}>
+    <ThemeContext.Provider value={value}>
       <PaperProvider theme={paperTheme}>
         <StatusBar
           barStyle={isLight ? "light-content" : "dark-content"}

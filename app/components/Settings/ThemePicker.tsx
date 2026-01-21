@@ -9,7 +9,7 @@ import { fetchToServer, loadDataStorage, memoDeep } from "@utils";
 
 const ThemePicker: React.FC = () => {
   const { t, language } = useLanguage();
-  const { addTaskQueue } = useBackgroundTask();
+  const { addTaskQueueRef } = useBackgroundTask();
   const { userData, sessionToken } = useUserContext();
   const { themeState, setThemeState, colors } = useTheme();
 
@@ -17,7 +17,7 @@ const ThemePicker: React.FC = () => {
     (newTheme: Theme) => {
       setThemeState(newTheme);
       if (!userData?.userId || !sessionToken) return;
-      addTaskQueue({
+      addTaskQueueRef.current({
         requiresInternet: true,
         func: async () => {
           if (!userData?.userId || !sessionToken) return;
@@ -37,7 +37,7 @@ const ThemePicker: React.FC = () => {
         },
       });
     },
-    [setThemeState, userData, addTaskQueue, sessionToken, language],
+    [setThemeState, userData, addTaskQueueRef, sessionToken, language],
   );
 
   const renderAccordionItem = useMemo(() => {

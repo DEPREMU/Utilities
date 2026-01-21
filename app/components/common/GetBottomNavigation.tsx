@@ -4,7 +4,7 @@ import { typeLanguagesKeys } from "@types";
 import useStylesBottomNavigator from "@styles/components/common/useStylesBottomNavigator";
 import React, { useMemo, useState } from "react";
 
-type Route = {
+export type Route = {
   key: string;
   title: typeLanguagesKeys;
   focusedIcon: string;

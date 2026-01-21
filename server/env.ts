@@ -1,13 +1,11 @@
 import dotenv from "dotenv";
-import { Env } from "@types";
+import { Env, EnvTranslated } from "@types";
 import { showWarn } from "./functions/logger";
 
 dotenv.config({ path: "../.env" });
 
 const REQUIRED_VARS: (keyof Env)[] = [
   "IV",
-  "HOST",
-  "PORT",
   "WS_URL",
   "__DEV__",
   "DB_PORT",
@@ -46,8 +44,6 @@ export const validateServerEnv = () => {
 
 const env: Env = {
   __DEV__: process.env.__DEV__ || "false",
-  HOST: process.env.HOST || "localhost",
-  PORT: process.env.PORT || "3000",
   WS_URL: process.env.WS_URL || "ws://localhost:3000/",
   API_URL: process.env.API_URL || "http://localhost:3000/api",
   DB_USER: process.env.DB_USER || "Utilities",
@@ -70,4 +66,29 @@ const env: Env = {
   IV: process.env.IV || "abcdef9876543210",
 };
 
-export default env;
+const envTranslated: EnvTranslated = {
+  __DEV__: env.__DEV__ === "true",
+  WS_URL: env.WS_URL,
+  API_URL: env.API_URL,
+  DB_USER: env.DB_USER,
+  DB_PORT: Number(env.DB_PORT),
+  DB_PASS: env.DB_PASS,
+  DB_NAME: env.DB_NAME,
+  DB_HOST: env.DB_HOST,
+  USE_HTTPS: env.USE_HTTPS === "true",
+  JWT_SECRET: env.JWT_SECRET,
+  ADMIN_PASSWORD: env.ADMIN_PASSWORD,
+  VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY,
+  DB_ENCRYPTION_PASS: env.DB_ENCRYPTION_PASS,
+  DELETE_OLD_SESSIONS: env.DELETE_OLD_SESSIONS === "true",
+  DEEPL_TRANSLATOR_API: env.DEEPL_TRANSLATOR_API,
+  FIREBASE_SERVICE_ACCOUNT: env.FIREBASE_SERVICE_ACCOUNT,
+  SECRET_KEY_TO_ENCRYPTION: env.SECRET_KEY_TO_ENCRYPTION,
+  ADMIN_EMAIL: env.ADMIN_EMAIL,
+  IV: env.IV,
+};
+
+export const getEnvValue = <T extends keyof EnvTranslated>(
+  key: T,
+): EnvTranslated[T] => envTranslated[key];

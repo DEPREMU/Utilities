@@ -1,26 +1,30 @@
 import "./backups/index.ts";
 
 import fs from "fs";
-import env from "../env.ts";
 import path from "path";
 import chalk from "chalk";
 import { Pool } from "pg";
 import { exec } from "child_process";
 import { initDB } from "./initDB.ts";
 import { PoolConfig } from "pg";
+import { getEnvValue } from "../env.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 
 export let dbInitialized = false;
 
 const dbConfig: PoolConfig = {
-  port: Number(env.DB_PORT),
-  host: env.DB_HOST,
-  user: env.DB_USER,
-  password: env.DB_PASS,
-  database: env.DB_NAME,
+  port: getEnvValue("DB_PORT"),
+  host: getEnvValue("DB_HOST"),
+  user: getEnvValue("DB_USER"),
+  password: getEnvValue("DB_PASS"),
+  database: getEnvValue("DB_NAME"),
 };
 
-if (!env.DB_USER || !env.DB_PASS || !env.DB_NAME) {
+if (
+  !getEnvValue("DB_USER") ||
+  !getEnvValue("DB_PASS") ||
+  !getEnvValue("DB_NAME")
+) {
   throw new Error(
     chalk.red(
       "DB_USER, DB_PASS or DB_NAME is not defined in environment variables",
@@ -62,7 +66,7 @@ pool.on("error", (err) => {
  * to construct the password file content.
  */
 const handleCreatePgPassFile = () => {
-  const pgpass = `${env.DB_HOST}:${env.DB_PORT}:${env.DB_NAME}:${env.DB_USER}:${env.DB_PASS}`;
+  const pgpass = `${getEnvValue("DB_HOST")}:${getEnvValue("DB_PORT")}:${getEnvValue("DB_NAME")}:${getEnvValue("DB_USER")}:${getEnvValue("DB_PASS")}`;
 
   const isWindows = process.platform === "win32";
 

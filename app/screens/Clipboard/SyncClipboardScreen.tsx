@@ -11,17 +11,19 @@ import { fetchToServer, loadDataStorage } from "@utils";
 const SyncClipboardScreen: React.FC = () => {
   const { styles } = useStylesSyncClipboard();
   const { t, language } = useLanguage();
-  const { openSnackBar } = useModal();
+  const { openSnackBarRef } = useModal();
   const { userData, sessionToken } = useUserContext();
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAddToDatabase = useCallback(async () => {
-    if (!userData?.userId) return openSnackBar(t("youAreNotLoggedIn"));
+    if (!userData?.userId)
+      return openSnackBarRef.current(t("youAreNotLoggedIn"));
 
-    if (!inputText.trim()) return openSnackBar(t("pleaseEnterSomeText"));
-    if (!sessionToken) return openSnackBar(t("youAreNotLoggedIn"));
+    if (!inputText.trim())
+      return openSnackBarRef.current(t("pleaseEnterSomeText"));
+    if (!sessionToken) return openSnackBarRef.current(t("youAreNotLoggedIn"));
 
     setIsLoading(true);
     try {
@@ -46,17 +48,17 @@ const SyncClipboardScreen: React.FC = () => {
         error: res.errorText || "Unknown error",
       };
 
-      if (error) openSnackBar(t("errorOccurred", { error }));
+      if (error) openSnackBarRef.current(t("errorOccurred", { error }));
       else {
-        openSnackBar(t("textAddedToDatabase"));
+        openSnackBarRef.current(t("textAddedToDatabase"));
         setInputText("");
       }
     } catch {
-      openSnackBar(t("failedToAddTextToDatabase"));
+      openSnackBarRef.current(t("failedToAddTextToDatabase"));
     } finally {
       setIsLoading(false);
     }
-  }, [inputText, openSnackBar, t, userData?.userId, sessionToken, language]);
+  }, [inputText, openSnackBarRef, t, userData?.userId, sessionToken, language]);
 
   return (
     <View style={styles.container}>

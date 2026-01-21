@@ -13,3 +13,4 @@ export const isBuildAppElectron = fileCalled?.includes("build-app-electron");
 export const isBuildResourcesElectron = fileCalled?.includes(
   "build-resources-electron"
 );
+export const isAppBuildDev = fileCalled?.includes("app-build-dev");

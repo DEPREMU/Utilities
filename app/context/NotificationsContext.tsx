@@ -1,10 +1,10 @@
 import React, {
   useRef,
+  useMemo,
   useState,
   useEffect,
   ReactNode,
   useContext,
-  useCallback,
   createContext,
 } from "react";
 import {
@@ -45,10 +45,9 @@ type SendNotification = (
 
 interface NotificationsContextType {
   sendNotificationRef: React.RefObject<SendNotification>;
-  removeNotification: (
-    id: number,
-    reasonNotification: ReasonNotification,
-  ) => void;
+  removeNotificationRef: React.RefObject<
+    (id: number, reasonNotification: ReasonNotification) => void
+  >;
   notifications?: NotificationsType | null;
   setNotifications: React.Dispatch<
     React.SetStateAction<NotificationsType | null>
@@ -68,18 +67,19 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 }) => {
   const { deviceInfo } = useDeviceInformation();
   const { t, language } = useLanguage();
-  const { openSnackBar } = useModal();
+  const { openSnackBarRef } = useModal();
   const { sessionToken, userData, isLoggedIn } = useUserContext();
-  const { hasInternet, initIntervalTimeouts, deleteIntervalTimeout } =
+  const { hasInternet, initIntervalTimeoutsRef, deleteIntervalTimeoutRef } =
     useBackground();
 
-  const notificationsFromStorage = useRef<NotificationsType | null>(null);
   const [notifications, setNotifications] = useState<NotificationsType | null>(
     null,
   );
-  const prevHasInternet = useRef<boolean | null>(null);
 
-  const sendNotification = useCallback(
+  const prevHasInternet = useRef<boolean | null>(null);
+  const notificationsFromStorage = useRef<NotificationsType | null>(null);
+
+  const sendNotificationRef = useRef(
     async (notification: Omit<Notification, "id" | "timestamp">) => {
       const notifications = await getNotifications();
 
@@ -107,7 +107,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       }
 
       if (AppState.currentState === "active") {
-        openSnackBar(
+        openSnackBarRef.current(
           [notification.title, notification.message].join("\n"),
           8000,
         );
@@ -121,7 +121,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
             type: "button",
             text: action.title,
           })),
-          closeButtonText: t("close"),
+          closeButtonText: t("common.close"),
           reasonNotification: notification.reasonNotification,
         });
 
@@ -160,11 +160,9 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         trigger: notification.trigger || null,
       });
     },
-    [openSnackBar, t],
   );
-  const sendNotificationRef = useRef<SendNotification>(sendNotification);
 
-  const removeNotification = useCallback(
+  const removeNotificationRef = useRef(
     (id: number, reasonNotification: ReasonNotification) => {
       if (Platform.OS === "web") return;
 
@@ -178,7 +176,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
       Notifications.cancelScheduledNotificationAsync(String(id));
     },
-    [],
   );
 
   useEffect(() => {
@@ -376,7 +373,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, [deviceInfo?.powerState]);
 
   useEffect(() => {
-    sendNotificationRef.current = sendNotification;
     if (Platform.OS === "android")
       NotificationModule.cancelPreviousReasonNotification(
         "noInternetConnection",
@@ -389,16 +385,16 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (hasInternet === prevHasInternet.current) return;
 
     if (!hasInternet && prevHasInternet.current) {
-      sendNotification({
-        title: tTyped("NoInternetConnection"),
-        message: tTyped("PleaseCheckInternetConnection"),
+      sendNotificationRef.current({
+        title: tTyped("common.NoInternetConnection"),
+        message: tTyped("common.PleaseCheckInternetConnection"),
         type: "error",
         overrideNotification: false,
         channelId: "noInternetConnection",
         reasonNotification: "noInternetConnection",
       });
     } else {
-      sendNotification({
+      sendNotificationRef.current({
         title: tTyped("InternetConnectionRestored"),
         message: tTyped("YouAreBackOnline"),
         type: "success",
@@ -410,7 +406,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     if (prevHasInternet.current !== hasInternet)
       prevHasInternet.current = hasInternet;
-  }, [hasInternet, sendNotification]);
+  }, [hasInternet]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -423,7 +419,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       const locationEnabled = await isLocationEnabled();
       if (!locationEnabled) return;
 
-      sendNotification({
+      sendNotificationRef.current({
         title: tTyped("LocationServicesEnabled"),
         message: tTyped("LocationServicesEnabledMessage"),
         type: "info",
@@ -445,7 +441,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       });
     };
 
-    initIntervalTimeouts("locationEnabled", {
+    initIntervalTimeoutsRef.current("locationEnabled", {
       fn: verifyLocation,
       type: "interval",
       interval: 60000,
@@ -457,9 +453,10 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     verifyLocation();
 
     return () => {
-      deleteIntervalTimeout("locationEnabled");
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      deleteIntervalTimeoutRef.current("locationEnabled");
     };
-  }, [sendNotification, initIntervalTimeouts, deleteIntervalTimeout]);
+  }, [initIntervalTimeoutsRef, deleteIntervalTimeoutRef]);
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
@@ -481,12 +478,15 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     return () => clearTimeoutPolyfill(id);
   }, [sessionToken, userData?.userId, language]);
 
-  const value: NotificationsContextType = {
-    notifications,
-    setNotifications,
-    removeNotification,
-    sendNotificationRef,
-  };
+  const value: NotificationsContextType = useMemo(
+    () => ({
+      notifications,
+      setNotifications,
+      sendNotificationRef,
+      removeNotificationRef,
+    }),
+    [notifications],
+  );
 
   return (
     <NotificationsContext.Provider value={value}>

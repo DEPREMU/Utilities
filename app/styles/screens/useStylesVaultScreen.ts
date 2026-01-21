@@ -1,33 +1,208 @@
-import { useTheme } from "@context/ThemeContext";
 import { useMemo } from "react";
-import { StyleSheet } from "react-native";
+import { useTheme } from "@context/ThemeContext";
+import { useResponsiveLayout } from "@context/LayoutContext";
+import { Platform, StyleSheet } from "react-native";
 
 const useStylesVaultScreen = () => {
   const { colors } = useTheme();
+  const { getCommonStyles, getResponsiveValue, width, height } =
+    useResponsiveLayout();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        screen: { flex: 1, backgroundColor: colors.background },
-        content: { padding: 16, gap: 12 },
-        subtitle: { opacity: 0.8 },
-        loading: { paddingVertical: 24, alignItems: "center" },
-        section: { gap: 8 },
-        row: { flexDirection: "row", gap: 8, alignItems: "center" },
-        spacer: { flex: 1 },
-        progressBox: { gap: 8 },
-        progressRow: {
+        content: {
+          paddingHorizontal: 8,
+        },
+        container: {
+          ...getCommonStyles("mainContainer"),
+          alignItems: undefined,
+          justifyContent: "flex-start",
+        },
+        title: {
+          fontSize: getResponsiveValue(24, 28, 32),
+          fontWeight: "bold",
+          color: colors.text,
+          marginBottom: 16,
+        },
+        subtitle: {
+          opacity: 0.8,
+          fontSize: getResponsiveValue(14, 16, 18),
+          color: colors.text,
+        },
+        section: {
+          gap: 8,
+          width: "100%",
+        },
+        sectionTitle: {
+          fontSize: getResponsiveValue(18, 20, 22),
+          fontWeight: "600",
+          color: colors.text,
+          marginBottom: 8,
+        },
+        margin8: {
+          marginTop: 8,
+          marginBottom: 8,
+        },
+        lockedScreen: {
+          ...getCommonStyles("mainContainer"),
+        },
+        lockedTitle: {
+          fontSize: getResponsiveValue(20, 24, 28),
+          fontWeight: "bold",
+          color: colors.text,
+          marginBottom: 8,
+        },
+        lockedMessage: {
+          fontSize: getResponsiveValue(14, 16, 18),
+          color: colors.text,
+          textAlign: "center",
+        },
+        iconLeft: {
+          width: getResponsiveValue(40, 50, 60),
+          height: getResponsiveValue(40, 50, 60),
+          borderRadius: 8,
+          marginRight: getResponsiveValue(6, 8, 10),
+          alignSelf: "center",
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        foldersList: {
+          maxHeight: 100,
+        },
+        filesList: {
+          maxHeight: 200,
+        },
+        filesViewerList: {
+          width: "100%",
+          gap: 8,
+          paddingBottom: 16,
+        },
+        fileItem: {
+          alignItems: "center",
+          justifyContent: "center",
+          width: width / (Platform.OS === "web" ? 4 : 3) - 10,
+          height: width / (Platform.OS === "web" ? 4 : 3) - 10,
+        },
+        fileName: {
+          fontSize: getResponsiveValue(16, 18, 20),
+          color: colors.text,
+        },
+        folderItem: {
+          flexDirection: "row",
+          alignItems: "center",
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          marginRight: 12,
+        },
+        folderIcon: {
+          marginRight: 8,
+        },
+        folderName: {
+          fontSize: getResponsiveValue(16, 18, 20),
+          color: colors.text,
+        },
+        modalContent: {
+          width: "100%",
+          height: "100%",
+          backgroundColor: colors.secondary,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        imageModal: {
+          width: "100%",
+          height: "100%",
+        },
+        videoModal: {
+          width: "100%",
+          height: "100%",
+        },
+        modal: {
+          flex: 1,
+          justifyContent: "center",
+          position: "absolute",
+          height,
+          width,
+          alignSelf: "center",
+          zIndex: 10,
+          backgroundColor: colors.accent,
+        },
+        modalContainer: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        modalHeader: {
+          flexDirection: "row",
+          alignItems: "center",
+          width: "100%",
+          padding: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        },
+        modalTitle: {
+          fontSize: getResponsiveValue(18, 20, 22),
+          fontWeight: "600",
+          color: colors.text,
+          marginLeft: 8,
+        },
+        modalCloseButton: {
+          flex: 1 / 4,
+        },
+        modalInfoLabel: {
+          fontSize: getResponsiveValue(14, 16, 18),
+          fontWeight: "500",
+          color: colors.text,
+        },
+        modalInfoValue: {
+          fontSize: getResponsiveValue(14, 16, 18),
+          color: colors.primary,
+          marginBottom: 8,
+        },
+        modalInfoRow: {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
+          width: "100%",
+          paddingHorizontal: 16,
         },
-        muted: { opacity: 0.7 },
-        itemActions: { flexDirection: "row", alignItems: "center" },
+        modalInfoColumn: {
+          flexDirection: "column",
+          width: "100%",
+          paddingHorizontal: 16,
+        },
+        modalScrollView: {
+          flexGrow: 0,
+          maxHeight: height / 2,
+        },
+        modalText: {
+          color: colors.text,
+          fontSize: getResponsiveValue(16, 18, 20),
+        },
+        fileItemSelected: {
+          borderStyle: "solid",
+          borderWidth: 2,
+          borderColor: colors.info,
+        },
+        progressBar: {
+          height: 10,
+          borderRadius: 5,
+          backgroundColor: colors.border,
+        },
+        modalTextInput: {
+          marginTop: 16,
+          marginBottom: 16,
+          color: colors.text,
+        },
       }),
-    [colors.background],
+    [colors, getCommonStyles, getResponsiveValue, width, height],
   );
 
-  return { styles };
+  const returnValue = useMemo(
+    () => ({ styles, width, height }),
+    [styles, width, height],
+  );
+
+  return returnValue;
 };
 
 export default useStylesVaultScreen;

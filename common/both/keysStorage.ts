@@ -4,13 +4,10 @@ import {
   UserData,
   DownDetector,
   Notifications,
+  VaultSettings,
   SerializableTask,
   AvailableFunctions,
   LanguagesSupported,
-  VaultAuthVerifier,
-  VaultIndex,
-  VaultSettings,
-  VaultWrappedMasterKey,
 } from "@types";
 
 export type ALL_KEYS_STORAGE_TYPE = keyof typeof ALL_KEYS_STORAGE;
@@ -42,13 +39,13 @@ export type ExpectedSecureStorageTypes = {
   USER_DATA: Omit<UserData, "password"> | null;
   STREAMERS: (Streamer & { isLive: boolean })[] | null;
   SESSION_EXPIRY: number | -1;
+  VAULT_PASSWORD: { [folder: string]: string } | null;
+  VAULT_DIRECTORY: string | null;
   SELECTED_CRYPTOS: SelectedCryptos | null;
   LAST_UPDATE_CHECK: number | null;
   TERMINAL_COMMANDS: Command[] | null;
   DOWN_DETECTOR_DATA: DownDetector[] | null;
   USER_SESSION_TOKEN_STORAGE: string | null;
-  VAULT_MASTER_KEY_WRAPPED: VaultWrappedMasterKey | null;
-  VAULT_AUTH_VERIFIER: VaultAuthVerifier | null;
 };
 
 export type ExpectedUnsecureStorageTypes = {
@@ -61,7 +58,6 @@ export type ExpectedUnsecureStorageTypes = {
   HAS_ADMIN_ACCESS: boolean | null;
   CLIPBOARD_WEBSOCKET_URL: string | null;
   VAULT_SETTINGS: VaultSettings | null;
-  VAULT_INDEX: VaultIndex | null;
   RECORDER_DATA: {
     lastUri: string;
     quality: "low" | "high";
@@ -91,13 +87,13 @@ export const SECURE_KEYS_STORAGE: Record<
   DEVICE_ID: "_deviceId",
   STREAMERS: "_streamers",
   SESSION_EXPIRY: "_sessionExpiry",
+  VAULT_PASSWORD: "_vaultPassword",
+  VAULT_DIRECTORY: "_vaultDirectory",
   SELECTED_CRYPTOS: "_selectedCryptos",
   LAST_UPDATE_CHECK: "_lastUpdateCheck",
   TERMINAL_COMMANDS: "_terminalCommands",
   DOWN_DETECTOR_DATA: "_downDetectorData",
   USER_SESSION_TOKEN_STORAGE: "_userSessionTokenStorage",
-  VAULT_MASTER_KEY_WRAPPED: "_vaultMasterKeyWrapped",
-  VAULT_AUTH_VERIFIER: "_vaultAuthVerifier",
 };
 
 export const [SECURE_KEYS_STORAGE_KEYS, SECURE_KEYS_STORAGE_VALUES] =
@@ -120,7 +116,6 @@ export const UNSECURE_KEYS_STORAGE: Record<
   HAS_ADMIN_ACCESS: "@hasAdminAccess",
   CLIPBOARD_WEBSOCKET_URL: "@clipboardWebSocketURL",
   VAULT_SETTINGS: "@vaultSettings",
-  VAULT_INDEX: "@vaultIndex",
 };
 
 export const [UNSECURE_KEYS_STORAGE_KEYS, UNSECURE_KEYS_STORAGE_VALUES] =
@@ -137,6 +132,15 @@ export const ALL_KEYS_STORAGE = {
 export const [ALL_KEYS_STORAGE_KEYS, ALL_KEYS_STORAGE_VALUES] = Object.entries(
   ALL_KEYS_STORAGE
 ) as unknown as [(keyof typeof ALL_KEYS_STORAGE)[], string[]];
+
+export const DO_NOT_DELETE_OR_SAVE: ALL_KEYS_STORAGE_TYPE[] = [
+  "DEVICE_ID",
+  "RECORDER_DATA",
+  "VAULT_SETTINGS",
+  "VAULT_PASSWORD",
+  "VAULT_DIRECTORY",
+  "TERMINAL_COMMANDS",
+];
 
 /**
  * Checks if a given storage key is a secure key that requires encrypted storage.

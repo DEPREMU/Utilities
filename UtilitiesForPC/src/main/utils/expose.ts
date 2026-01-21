@@ -1,18 +1,35 @@
 import {
+  app,
+  dialog,
+  ipcMain,
+  IpcMainEvent,
+  IpcMainInvokeEvent,
+} from "electron";
+import {
+  getFileInfo,
+  decryptFiles,
+  encryptFiles,
+  copyFileToTemp,
   getStorageValue,
+  renameVaultItem,
   saveStorageValue,
+  removeFileWithUri,
   removeStorageValue,
+  actionWithVaultItem,
 } from "./storage";
+import fs from "fs";
+import path from "path";
 import dataApp from "./variables";
 import { exec } from "child_process";
 import nativeData from "./nativeData";
 import { writeLog } from "./logger";
+import { authenticateUser } from "./vault";
 import { sendNotification } from "./notifications";
 import { ChannelsIpcRenderer } from "@types";
 import { createWindowClipboard } from "./clipboard";
-import { ipcMain, IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { restartComputer, scheduleReconnect, turnOffComputer } from "./server";
-import { vaultHandlers } from "./vault";
+import { askPath } from "@utils";
+import { zipFolder } from "./zip";
 
 type IpcDictHybrid = {
   [K in keyof ChannelsIpcRenderer]: ChannelsIpcRenderer[K]["typeIpc"] extends "send"
@@ -236,159 +253,199 @@ const ipcDict: IpcDictHybrid = {
     },
   },
 
-  "vault-pick-files": {
+  "authenticate-user": {
     type: "handle",
     func: async () => {
-      return await vaultHandlers.vaultPickFiles();
+      writeLog(`Received authenticate-user request`, "info");
+      return await authenticateUser();
     },
   },
-  "vault-pick-folders": {
+
+  "copy-file-to-temp": {
+    type: "handle",
+    func: async (_, base64, filename) => {
+      try {
+        const info = await copyFileToTemp(base64, filename);
+        return { success: !info, ...(info ? { info } : {}) };
+      } catch (error) {
+        return { success: false };
+      }
+    },
+  },
+  "remove-file-with-uri": {
+    type: "handle",
+    func: async (_event, uri) => {
+      try {
+        return await removeFileWithUri(uri);
+      } catch (error) {
+        writeLog(
+          `Error removing file with URI ${uri}: ` + String(error),
+          "error"
+        );
+        return { success: false };
+      }
+    },
+  },
+  "get-safe-folder": {
     type: "handle",
     func: async () => {
-      return await vaultHandlers.vaultPickFolders();
+      try {
+        let directory = app.getPath("documents");
+        if (!directory) directory = app.getPath("appData");
+        if (!directory) directory = app.getPath("userData");
+        if (!directory) return "unknown";
+
+        directory = path.join(directory, "UtilitiesForPCSafe");
+        try {
+          if (!fs.existsSync(directory))
+            fs.mkdirSync(directory, {
+              recursive: true,
+            });
+        } catch {
+          return "unknown";
+        }
+
+        return directory;
+      } catch (error) {
+        writeLog(`Error getting safe folder path: ` + String(error), "error");
+        return "unknown";
+      }
     },
   },
-  "vault-ensure-initialized": {
+  "pick-folder": {
     type: "handle",
     func: async () => {
-      return await vaultHandlers.ensureInitialized();
+      try {
+        const mainWindow = dataApp.getValue("mainWindow");
+        if (!mainWindow) return "canceled";
+
+        const result = await dialog.showOpenDialog(mainWindow, {
+          properties: ["openDirectory"],
+        });
+        if (result.canceled) return "canceled";
+        if (result.filePaths.length === 0) return "canceled";
+
+        return result.filePaths[0];
+      } catch (error) {
+        writeLog(`Error picking folder: ` + String(error), "error");
+        return "canceled";
+      }
     },
   },
-  "vault-load-settings": {
+  "encrypt-vault-items": {
     type: "handle",
-    func: async () => {
-      return await vaultHandlers.loadSettings();
+    func: async (_event, ...args) => {
+      writeLog(`Received encrypt-vault-items request`, "info");
+
+      const returnValue = await encryptFiles(...args);
+      return returnValue;
     },
   },
-  "vault-save-settings": {
+  "load-encrypted-files": {
     type: "handle",
-    func: async (_event, settings) => {
-      return await vaultHandlers.saveSettings(settings);
+    func: async (_event, ...args) => {
+      writeLog(`Received load-encrypted-files request`, "info");
+
+      const files = await decryptFiles(...args);
+      return files;
     },
   },
-  "vault-load-wrapped-master-key": {
+  "action-with-vault-item": {
     type: "handle",
-    func: async () => {
-      return await vaultHandlers.loadWrappedMasterKey();
+    func: async (_event, ...args) => {
+      writeLog(`Received action-with-vault-item request`, "info");
+
+      const { success, error } = await actionWithVaultItem(...args);
+
+      return { success, ...(error ? { error } : {}) };
     },
   },
-  "vault-save-wrapped-master-key": {
+  "rename-vault-item": {
     type: "handle",
-    func: async (_event, wrapped) => {
-      return await vaultHandlers.saveWrappedMasterKey(wrapped);
+    func: async (_event, ...args) => {
+      writeLog(`Received rename-vault-item request`, "info");
+
+      const { success, error } = await renameVaultItem(...args);
+
+      return { success, ...(error ? { error } : {}) };
     },
   },
-  "vault-load-auth-verifier": {
+  "get-file-info": {
     type: "handle",
-    func: async () => {
-      return await vaultHandlers.loadAuthVerifier();
+    func: async (_event, filePath) => {
+      writeLog(`Received get-file-info request for path: ${filePath}`, "info");
+      const fileInfo = await getFileInfo(filePath);
+
+      return fileInfo;
     },
   },
-  "vault-save-auth-verifier": {
-    type: "handle",
-    func: async (_event, verifier) => {
-      return await vaultHandlers.saveAuthVerifier(verifier);
-    },
-  },
-  "vault-list-folders": {
-    type: "handle",
-    func: async () => {
-      return await vaultHandlers.listFolders();
-    },
-  },
-  "vault-create-folder": {
-    type: "handle",
-    func: async (_event, folder) => {
-      return await vaultHandlers.createFolder(folder);
-    },
-  },
-  "vault-update-folder": {
-    type: "handle",
-    func: async (_event, folder) => {
-      return await vaultHandlers.updateFolder(folder);
-    },
-  },
-  "vault-delete-folder": {
-    type: "handle",
-    func: async (_event, folderId) => {
-      return await vaultHandlers.deleteFolder(folderId);
-    },
-  },
-  "vault-list-items": {
-    type: "handle",
-    func: async (_event, folderId) => {
-      return await vaultHandlers.listItems(folderId);
-    },
-  },
-  "vault-save-item-metadata": {
-    type: "handle",
-    func: async (_event, item) => {
-      return await vaultHandlers.saveItemMetadata(item);
-    },
-  },
-  "vault-delete-item": {
-    type: "handle",
-    func: async (_event, folderId, itemId) => {
-      return await vaultHandlers.deleteItem(folderId, itemId);
-    },
-  },
-  "vault-unlock": {
-    type: "handle",
-    func: async (_event, password) => {
-      return await vaultHandlers.unlockVault(password);
-    },
-  },
-  "vault-lock": {
+  "clear-decrypted-folder-directory": {
     type: "on",
-    func: () => {
-      vaultHandlers.lockVault();
-    },
-  },
-  "vault-encrypt-paths": {
-    type: "handle",
-    func: async (_event, jobId, folderId, paths) => {
-      return await vaultHandlers.encryptPaths(jobId, folderId, paths);
-    },
-  },
-  "vault-decrypt-to-temp": {
-    type: "handle",
-    func: async (_event, jobId, folderId, itemId, sessionId) => {
-      return await vaultHandlers.decryptToTemp(
-        jobId,
-        folderId,
-        itemId,
-        sessionId
+    func: async () => {
+      writeLog(`Received clear-decrypted-folder-directory request`, "info");
+      const tempDir = path.join(
+        app.getPath("temp"),
+        "UtilitiesForPC",
+        "decrypted"
       );
+
+      try {
+        if (fs.existsSync(tempDir)) {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+          writeLog(`Cleared decrypted folder directory at ${tempDir}`, "info");
+        }
+      } catch (error) {
+        writeLog(
+          `Error clearing decrypted folder directory at ${tempDir}: ` +
+            String(error),
+          "error"
+        );
+      }
     },
   },
-  "vault-clean-temp-session": {
+  "ask-path": {
     type: "handle",
-    func: async (_event, sessionId) => {
-      return await vaultHandlers.cleanTempSession(sessionId);
+    func: async () => {
+      writeLog(`Received ask-path request`, "info");
+      return await askPath();
     },
   },
-  "vault-cancel-job": {
+  "zip-folder": {
     type: "handle",
-    func: async (_event, jobId) => {
-      return await vaultHandlers.cancelJob(jobId);
-    },
-  },
-  "vault-zip": {
-    type: "handle",
-    func: async (_event, jobId, inputPaths, outputPath) => {
-      return await vaultHandlers.zipPaths(jobId, inputPaths, outputPath);
-    },
-  },
-  "vault-unzip": {
-    type: "handle",
-    func: async (_event, jobId, zipPath, outputDir) => {
-      return await vaultHandlers.unzipFile(jobId, zipPath, outputDir);
-    },
-  },
-  "vault-export-backup": {
-    type: "handle",
-    func: async (_event, jobId, outputDir, mode, password) => {
-      return await vaultHandlers.exportBackup(jobId, outputDir, mode, password);
+    func: async (_event, ...args) => {
+      const [sourceFolder, outputZipPath, password] = args;
+
+      writeLog(
+        `Received zip-folder request for folder: ${sourceFolder}, output: ${outputZipPath}`,
+        "info"
+      );
+      const mainWindow = dataApp.getValue("mainWindow");
+      if (!mainWindow) return "";
+
+      const onProgress = (
+        progress: number,
+        filename: string,
+        fileCount: number
+      ) => {
+        mainWindow.webContents.send("zip-folder-data", {
+          number: progress,
+          filename,
+          fileCount,
+        });
+      };
+      const onError = (error: Error) => {
+        mainWindow.webContents.send("zip-folder-data", null, error);
+      };
+
+      const result = await zipFolder(
+        sourceFolder,
+        outputZipPath,
+        password,
+        onProgress,
+        onError
+      );
+
+      return result;
     },
   },
 };

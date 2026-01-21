@@ -4,13 +4,14 @@ import {
   saveDataStorage,
   loadDataStorage,
   setTimeoutPolyfill,
+  checkLanguage,
 } from "@utils";
 import DownDetector from "./DownDetector";
 import AddNewWebPage from "./AddNewWebPage";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import GetBottomNavigation from "@components/common/GetBottomNavigation";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Tables, TablesKeys, DownDetector as DownDetectorType } from "@types";
 
 const tableName: TablesKeys = "DownDetector" as const;
@@ -27,102 +28,105 @@ const skeletonData: Tables[typeof tableName][] = Array.from({ length: 5 }).map(
 
 const DownDetectorNavigator: React.FC = () => {
   const { language } = useLanguage();
-  const { userData, sessionToken } = useUserContext();
+  const { userData, sessionToken, dataRef } = useUserContext();
 
   const [downDetectorData, setDownDetectorData] = useState<
     Tables[typeof tableName][] | null
   >(skeletonData);
 
-  const addNewItem = useCallback((item: DownDetectorType) => {
+  const addNewItemRef = useRef((item: DownDetectorType) => {
     setDownDetectorData((prevData) => {
       const newData = prevData ? [item, ...prevData] : [item];
       saveDataStorage("DOWN_DETECTOR_DATA", newData);
       return newData;
     });
-  }, []);
+  });
 
-  const deleteDownDetectorItem = useCallback(
-    async (id: string) => {
-      if (!id) return logError("No ID provided for deletion");
-      if (!sessionToken) return logError("No session token available");
+  const deleteDownDetectorItemRef = useRef(async (id: string) => {
+    if (!id) return logError("No ID provided for deletion");
 
-      const deviceId = await loadDataStorage("DEVICE_ID");
+    const { sessionToken } = dataRef.current;
 
-      const res = await fetchToServer(
-        "/database/delete",
-        {
-          lang: language,
-          match: { id },
-          table: tableName,
-          deviceId,
-        },
-        sessionToken,
-      );
-      const { error } = res.data || {
-        error: res.errorText || "Unknown error",
-      };
+    if (!sessionToken) return logError("No session token available");
 
-      if (error) {
-        logError("Error deleting downDetector item:", error);
-        return;
-      }
+    const [deviceId, language] = await Promise.all([
+      loadDataStorage("DEVICE_ID"),
+      checkLanguage(),
+    ]);
 
-      setDownDetectorData((prevData) => {
-        const newData = prevData?.filter((item) => item.id !== id) || null;
-        saveDataStorage("DOWN_DETECTOR_DATA", newData);
+    const res = await fetchToServer(
+      "/database/delete",
+      {
+        lang: language,
+        match: { id },
+        table: tableName,
+        deviceId,
+      },
+      sessionToken,
+    );
+    const { error } = res.data || {
+      error: res.errorText || "Unknown error",
+    };
 
-        return newData;
-      });
-    },
-    [sessionToken, language],
-  );
+    if (error) {
+      logError("Error deleting downDetector item:", error);
+      return;
+    }
 
-  const handleSendNotification = useCallback(
-    async (id: string) => {
-      setDownDetectorData((prevData) => {
-        const newItem = prevData?.find((item) => item.id === id);
+    setDownDetectorData((prevData) => {
+      const newData = prevData?.filter((item) => item.id !== id) || null;
+      saveDataStorage("DOWN_DETECTOR_DATA", newData);
 
-        if (!newItem) return prevData;
-        newItem.sendNotification = !newItem.sendNotification;
+      return newData;
+    });
+  });
 
-        const newData = [
-          newItem,
-          ...(prevData?.filter((item) => item.id !== id) || []),
-        ];
+  const handleSendNotificationRef = useRef(async (id: string) => {
+    setDownDetectorData((prevData) => {
+      const newItem = prevData?.find((item) => item.id === id);
 
-        loadDataStorage("DEVICE_ID").then(async (deviceId) => {
-          if (!sessionToken) return logError("No session token available");
+      if (!newItem) return prevData;
+      newItem.sendNotification = !newItem.sendNotification;
 
-          fetchToServer(
-            "/database/update",
-            {
-              lang: language,
-              table: tableName,
-              match: { id },
-              values: { sendNotification: newItem.sendNotification },
-              deviceId,
-            },
-            sessionToken,
-          ).then((res) => {
-            const { success, error } = res.data || {
-              error: res.errorText || "Unknown error",
-            };
+      const newData = [
+        newItem,
+        ...(prevData?.filter((item) => item.id !== id) || []),
+      ];
 
-            if (error) {
-              logError("Error updating sendNotification status:", error);
-            } else if (!success) {
-              logError("Failed to update sendNotification status");
-              setDownDetectorData(prevData);
-              return;
-            }
-            saveDataStorage("DOWN_DETECTOR_DATA", newData);
-          });
+      loadDataStorage("DEVICE_ID").then(async (deviceId) => {
+        const { sessionToken } = dataRef.current;
+        if (!sessionToken) return logError("No session token available");
+
+        const language = await checkLanguage();
+
+        fetchToServer(
+          "/database/update",
+          {
+            lang: language,
+            table: tableName,
+            match: { id },
+            values: { sendNotification: newItem.sendNotification },
+            deviceId,
+          },
+          sessionToken,
+        ).then((res) => {
+          const { success, error } = res.data || {
+            error: res.errorText || "Unknown error",
+          };
+
+          if (error) {
+            logError("Error updating sendNotification status:", error);
+          } else if (!success) {
+            logError("Failed to update sendNotification status");
+            setDownDetectorData(prevData);
+            return;
+          }
+          saveDataStorage("DOWN_DETECTOR_DATA", newData);
         });
-        return newData;
       });
-    },
-    [sessionToken, language],
-  );
+      return newData;
+    });
+  });
 
   useEffect(() => {
     if (!userData?.userId) return;
@@ -184,24 +188,23 @@ const DownDetectorNavigator: React.FC = () => {
           downDetector: () => (
             <DownDetector
               downDetectorData={downDetectorData}
-              deleteDownDetectorItem={deleteDownDetectorItem}
-              handleSendNotification={handleSendNotification}
+              deleteDownDetectorItem={(id) =>
+                deleteDownDetectorItemRef.current(id)
+              }
+              handleSendNotification={(id) =>
+                handleSendNotificationRef.current(id)
+              }
             />
           ),
           addNewWebPage: () => (
             <AddNewWebPage
-              addNewItem={addNewItem}
+              addNewItem={(item) => addNewItemRef.current(item)}
               downDetectorData={downDetectorData}
             />
           ),
         },
       )(),
-    [
-      addNewItem,
-      downDetectorData,
-      deleteDownDetectorItem,
-      handleSendNotification,
-    ],
+    [downDetectorData],
   );
 
   return <>{returnValue}</>;

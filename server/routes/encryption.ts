@@ -1,7 +1,7 @@
-import env from "env.ts";
 import chalk from "chalk";
 import crypto from "crypto";
 import { showError } from "../functions/logger.ts";
+import { getEnvValue } from "env.ts";
 import { sendResponse } from "@common";
 import type { Response } from "express";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
@@ -17,7 +17,11 @@ import { RequestDecrypt, RequestEncrypt, ResponseGetRandomUUID } from "@types";
  * - Ensure that the secret key is kept secure and not exposed in version control.
  * - The default value is intended for development purposes only and should be overridden in production.
  */
-const SECRET_KEY = crypto.scryptSync(env.SECRET_KEY_TO_ENCRYPTION, "salt", 32);
+const SECRET_KEY = crypto.scryptSync(
+  getEnvValue("SECRET_KEY_TO_ENCRYPTION"),
+  "salt",
+  32,
+);
 
 /**
  * Initialization Vector (IV) used for encryption algorithms.
@@ -30,7 +34,7 @@ const SECRET_KEY = crypto.scryptSync(env.SECRET_KEY_TO_ENCRYPTION, "salt", 32);
  * to ensure security. Using a static or predictable IV can compromise the security
  * of the encrypted data.
  */
-const IV = Buffer.from(env.IV, "utf-8");
+const IV = Buffer.from(getEnvValue("IV"), "utf-8");
 
 /**
  * The encryption algorithm used for cryptographic operations.

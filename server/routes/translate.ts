@@ -1,10 +1,9 @@
-import env from "../env.ts";
 import chalk from "chalk";
 import { showError } from "../functions/logger.ts";
+import { getEnvValue } from "../env.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { URLSearchParams } from "url";
 import { RequestTranslate } from "@types";
-
 
 export const translate = getHandlerPost(
   "/translate",
@@ -23,7 +22,7 @@ export const translate = getHandlerPost(
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          auth_key: env.DEEPL_TRANSLATOR_API,
+          auth_key: getEnvValue("DEEPL_TRANSLATOR_API"),
           text,
           target_lang: targetLang,
         }),

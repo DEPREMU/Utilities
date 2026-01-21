@@ -2,6 +2,7 @@ import {
   isUpdate,
   isAppLint,
   isAppStart,
+  isAppBuildDev,
   isBuildAndroid,
   isUploadElectron,
   isBuildAppElectron,
@@ -32,7 +33,7 @@ export type TYPE_ARGS = {
 const showHelp = () => {
   const options: string[] = [];
 
-  if (isBuildUploadAndroid) {
+  if (isBuildUploadAndroid || isAppBuildDev) {
     options.push(
       `  -sba, --skip-build-android   Skip the Android build process and only upload the existing APK`
     );

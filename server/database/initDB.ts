@@ -1,9 +1,10 @@
 import fs from "fs";
-import env from "env.ts";
 import path from "path";
 import chalk from "chalk";
 import { pool } from "./postgres";
 import DataJSON from "./data.json";
+import { getEnvValue } from "env.ts";
+import { deleteOldSessions } from "./functions.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 import { wrapFunctionWithError } from "@common";
 import { serverPath, TABLE_MAP } from "../config.ts";
@@ -31,6 +32,8 @@ if (!fs.existsSync(fileDataPath)) {
   );
   process.exit(1);
 }
+
+let intervalIdDeleteOldSessions: NodeJS.Timeout;
 
 export const initDB = async () => {
   const fileSQL = fs.readFileSync(fileSQLPath, "utf-8");
@@ -112,7 +115,7 @@ export const initDB = async () => {
       }
 
       dataJSON.prevVersionSQL = fileVersion;
-      !["1", "true"].includes(env.__DEV__) &&
+      !getEnvValue("__DEV__") &&
         fs.writeFileSync(
           fileDataPath,
           JSON.stringify(dataJSON, null, 2),
@@ -139,4 +142,12 @@ export const initDB = async () => {
     },
   );
   client.release();
+
+  if (intervalIdDeleteOldSessions) clearInterval(intervalIdDeleteOldSessions);
+  else await deleteOldSessions();
+
+  intervalIdDeleteOldSessions = setInterval(
+    deleteOldSessions,
+    24 * 60 * 60 * 1000,
+  );
 };

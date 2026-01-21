@@ -8,30 +8,38 @@ import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@/navigation/navigationRef";
 import useStylesAuthScreens from "@styles/screens/auth/useStylesAuthScreens";
 import { ActivityIndicator } from "react-native-paper";
-import { log, isValidEmail, isValidPassword, clearRefs } from "@utils";
+import { log, isValidEmail, isValidPassword, tTyped } from "@utils";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const SignUpScreen: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesAuthScreens();
-  const { openSnackBar } = useModal();
-  const { signUpRef, isLoggedIn } = useUserContext();
+  const { openSnackBarRef } = useModal();
+  const { dataRef, isLoggedIn } = useUserContext();
 
   const [email, setEmail] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
+  const handlePressShowPasswordRef = useRef(() => {
+    setShowPassword((prev) => !prev);
+  });
+
+  const handlePressLoginRef = useRef(() => {
+    navigateReplace("Login");
+  });
+
   const signingUpRef = useRef<boolean | null>(false);
 
-  const handlePressSignUp = () => {
+  const handlePressSignUp = useCallback(() => {
     if (signingUpRef.current) return;
     if (!isValidEmail(email)) return;
     if (!isValidPassword(password)) return;
 
     signingUpRef.current = true;
 
-    signUpRef.current(email, password, (success, error) => {
+    dataRef.current.signUp(email, password, (success, error) => {
       if (!success) {
         setError(error || "Sign up failed");
         signingUpRef.current = false;
@@ -39,31 +47,24 @@ const SignUpScreen: React.FC = () => {
       }
 
       signingUpRef.current = false;
-      openSnackBar(`${t("successSignUpMessage")}\n${t("verifyEmail")}`, 8000, {
-        label: t("close"),
-      });
+      openSnackBarRef.current(
+        `${tTyped("auth.successSignUpMessage")}\n${tTyped("auth.verifyEmail")}`,
+        8000,
+        {
+          label: tTyped("common.close"),
+        },
+      );
     });
-  };
-
-  const handlePressShowPassword = useCallback(() => {
-    setShowPassword((prev) => !prev);
-  }, []);
-
-  const handlePressLogin = useCallback(() => {
-    navigateReplace("Login");
-  }, []);
+  }, [email, password, openSnackBarRef, dataRef]);
 
   useEffect(() => {
     if (isLoggedIn) navigateReplace("Home");
   }, [isLoggedIn]);
 
-  // Cleanup refs on unmount
-  useEffect(() => () => clearRefs(signingUpRef), []);
-
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>{t("welcome")}</Text>
+        <Text style={styles.title}>{t("common.welcome")}</Text>
 
         <EmailAndPassword
           email={email}
@@ -71,13 +72,13 @@ const SignUpScreen: React.FC = () => {
           password={password}
           setPassword={setPassword}
           showPassword={showPassword}
-          handleShowPassword={handlePressShowPassword}
+          handleShowPassword={handlePressShowPasswordRef.current}
         />
 
         {!!error && <Text style={styles.errorText}>{error}</Text>}
 
         <ButtonComponent
-          label={!signingUpRef.current ? t("signUp") : ""}
+          label={!signingUpRef.current ? t("auth.signUp") : ""}
           children={
             signingUpRef.current ? (
               <ActivityIndicator
@@ -98,9 +99,9 @@ const SignUpScreen: React.FC = () => {
 
         <View style={styles.linksContainer}>
           <ButtonComponent
-            label={t("hasAccount")}
+            label={t("auth.hasAccount")}
             touchableOpacity
-            handlePress={handlePressLogin}
+            handlePress={handlePressLoginRef.current}
             replaceStyles={{
               button: {},
               textButton: styles.linkText,

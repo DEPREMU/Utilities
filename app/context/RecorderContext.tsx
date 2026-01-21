@@ -5,6 +5,7 @@ import React, {
   useContext,
   useCallback,
   createContext,
+  useMemo,
 } from "react";
 import {
   AudioModule,
@@ -35,15 +36,19 @@ import { Directory, File, Paths } from "expo-file-system";
 
 interface RecorderContextType {
   player: AudioPlayer;
-  actionAudio: (uri: string, action: "delete" | "select" | "save") => void;
+  actionAudioRef: React.RefObject<
+    (uri: string, action: "delete" | "select" | "save") => void
+  >;
   statusPlayer: AudioStatus;
   dataRecorder: DataRecorder;
   statusMessage: string;
   stopRecording: (options?: { keepService?: boolean }) => void;
-  editDataRecorder: <T extends keyof DataRecorder | "infiniteRecord">(
-    key: T,
-    value: T extends keyof DataRecorder ? DataRecorder[T] : boolean,
-  ) => void;
+  editDataRecorderRef: React.RefObject<
+    <T extends keyof DataRecorder | "infiniteRecord">(
+      key: T,
+      value: T extends keyof DataRecorder ? DataRecorder[T] : boolean,
+    ) => void
+  >;
   startRecording: () => void;
   handlePressRecord: (pause?: boolean) => void;
   playSelectedAudio: () => void;
@@ -68,7 +73,7 @@ let prevDataRecorder: DataRecorder | null = null;
 export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { openSnackBar } = useModal();
+  const { openSnackBarRef } = useModal();
   const { sendNotificationRef } = useNotifications();
 
   const [dataRecorder, setDataRecorder] = useState<DataRecorder>({
@@ -96,12 +101,12 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
   const audioRecorderRef = useRef(audioRecorder);
   const recorderStateRef = useRef(recorderState);
   const startRecordingRef = useRef(() => {});
+  recorderStateRef.current = recorderState;
   useEffect(() => {
-    recorderStateRef.current = recorderState;
     if (dataRecorder.isRecording) return;
 
     audioRecorderRef.current = audioRecorder;
-  }, [audioRecorder, dataRecorder.isRecording, recorderState]);
+  }, [audioRecorder, dataRecorder.isRecording]);
 
   const startRecording = useCallback(
     async () =>
@@ -126,12 +131,16 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
         },
         async (_, errorMsg) => {
           logError("RECORDER", "Error starting recording:", errorMsg);
-          openSnackBar(
+          openSnackBarRef.current(
             tTyped("recorder.failedToInitialize", { message: errorMsg }),
           );
         },
       ),
-    [openSnackBar, dataRecorder.intervalOfSaves, dataRecorder.infiniteRecord],
+    [
+      openSnackBarRef,
+      dataRecorder.intervalOfSaves,
+      dataRecorder.infiniteRecord,
+    ],
   );
 
   const stopRecording = useCallback(async () => {
@@ -185,10 +194,10 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
           secondsRecorded: 0,
         };
       });
-      openSnackBar(tTyped("recorder.saved", { uri }), 5000);
+      openSnackBarRef.current(tTyped("recorder.saved", { uri }), 5000);
       setStatusMessage(tTyped("recorder.stopped"));
     } catch (error) {
-      openSnackBar(
+      openSnackBarRef.current(
         tTyped("recorder.failedToStop", {
           message: (error as Error).message,
         }),
@@ -197,7 +206,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       isStoppingRef.current = false;
     }
-  }, [openSnackBar, dataRecorder.isRecording]);
+  }, [openSnackBarRef, dataRecorder.isRecording]);
 
   const pauseRecording = useCallback(async () => {
     if (!dataRecorder.isRecording) return;
@@ -220,7 +229,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     player.play();
   }, [player]);
 
-  const actionAudio: RecorderContextType["actionAudio"] = useCallback(
+  const actionAudioRef: RecorderContextType["actionAudioRef"] = useRef(
     async (uri, action) => {
       switch (action) {
         case "select":
@@ -260,23 +269,24 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
           break;
       }
     },
-    [],
   );
 
   const handlePressRecord = useCallback(
     (pause?: boolean) => {
-      if (dataRecorder.isRecording) pause ? pauseRecording() : stopRecording();
+      if (dataRecorder.isRecording)
+        if (pause) pauseRecording();
+        else stopRecording();
       else startRecording();
     },
     [dataRecorder.isRecording, stopRecording, startRecording, pauseRecording],
   );
 
-  const editDataRecorder: RecorderContextType["editDataRecorder"] = useCallback(
-    async (key, value) => {
+  const editDataRecorderRef: RecorderContextType["editDataRecorderRef"] =
+    useRef(async (key, value) => {
       if (key === "shouldAutoStart") {
         const permission = await AudioModule.requestRecordingPermissionsAsync();
         if (!permission.granted) {
-          openSnackBar(tTyped("recorder.permissionDenied"));
+          openSnackBarRef.current(tTyped("recorder.permissionDenied"));
           return;
         }
       }
@@ -284,9 +294,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
         ...prev,
         [key]: value,
       }));
-    },
-    [openSnackBar],
-  );
+    });
 
   useEffect(() => {
     startRecordingRef.current = () => stopRecording().then(startRecording);
@@ -300,7 +308,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!data) return;
       const permission = await AudioModule.requestRecordingPermissionsAsync();
       if (!permission.granted)
-        openSnackBar(tTyped("recorder.permissionDenied"));
+        openSnackBarRef.current(tTyped("recorder.permissionDenied"));
       else
         await AudioModule.setAudioModeAsync({
           shouldPlayInBackground: true,
@@ -345,7 +353,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     loadData();
-  }, [sendNotificationRef, openSnackBar]);
+  }, [sendNotificationRef, openSnackBarRef]);
 
   useEffect(() => {
     const partialMain: Partial<DataRecorder> = { ...dataRecorder };
@@ -390,22 +398,35 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     recorderState.durationMillis,
   ]);
 
+  const value: RecorderContextType = useMemo(
+    () => ({
+      player,
+      dataRecorder,
+      statusPlayer,
+      statusMessage,
+      stopRecording,
+      actionAudioRef,
+      pauseRecording,
+      startRecording,
+      playSelectedAudio,
+      handlePressRecord,
+      editDataRecorderRef,
+    }),
+    [
+      player,
+      dataRecorder,
+      statusPlayer,
+      statusMessage,
+      stopRecording,
+      pauseRecording,
+      startRecording,
+      playSelectedAudio,
+      handlePressRecord,
+    ],
+  );
+
   return (
-    <RecorderContext.Provider
-      value={{
-        player,
-        actionAudio,
-        dataRecorder,
-        statusPlayer,
-        statusMessage,
-        stopRecording,
-        pauseRecording,
-        startRecording,
-        editDataRecorder,
-        playSelectedAudio,
-        handlePressRecord,
-      }}
-    >
+    <RecorderContext.Provider value={value}>
       {children}
     </RecorderContext.Provider>
   );

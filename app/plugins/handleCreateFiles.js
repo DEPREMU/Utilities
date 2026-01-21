@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable no-console */
 const fs = require("fs");
 const path = require("path");
@@ -56,7 +57,7 @@ const withGoogleServices = (config) => {
 
       console.log(chalk.green("File verified to exist"));
       const stats = fs.statSync(googleServicesPath);
-      (console.log("File size:"), stats.size, "bytes");
+      console.log("File size:", stats.size, "bytes");
     } catch (error) {
       console.error(chalk.red("Error creating google-services.json:"), error);
       throw error;

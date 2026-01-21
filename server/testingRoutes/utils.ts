@@ -1,4 +1,5 @@
-import env from "../env.ts";
+import { host, port } from "../config.ts";
+import { getEnvValue } from "../env.ts";
 import { RoutesAPI, MethodsAvailableInAPI, UpdatesRoutes } from "@types";
 
 /**
@@ -6,9 +7,7 @@ import { RoutesAPI, MethodsAvailableInAPI, UpdatesRoutes } from "@types";
  * @returns The complete API URL (e.g., http://localhost:3000/api)
  */
 export const getApiUrl = (isUpdatesRoute: boolean): string => {
-  const protocol = env.USE_HTTPS === "true" ? "https" : "http";
-  const host = env.HOST;
-  const port = env.PORT;
+  const protocol = getEnvValue("USE_HTTPS") ? "https" : "http";
 
   return `${protocol}://${host}:${port}/${isUpdatesRoute ? "updates" : "api"}`;
 };
@@ -17,9 +16,7 @@ export const getApiUrl = (isUpdatesRoute: boolean): string => {
  * Gets the WebSocket URL from environment variables
  * @returns The complete WebSocket URL
  */
-export const getWsUrl = (): string => {
-  return env.WS_URL;
-};
+export const getWsUrl = (): string => getEnvValue("WS_URL");
 
 const routesUpdates: Record<UpdatesRoutes, null> = {
   "/web-page": null,

@@ -19,7 +19,7 @@ import * as Events from "./events";
 
 const getGlobalWebSocket = (): WebSocket | undefined => {
   if (typeof WebSocket !== "undefined") {
-    // @ts-ignore
+    // @ts-expect-error TS doesn't know WebSocket exists in this environment
     return WebSocket;
   }
 };
@@ -286,7 +286,7 @@ export default class ReconnectingWebSocket {
     listener: Events.WebSocketEventListenerMap[T],
   ): void {
     if (this._listeners[type]) {
-      // @ts-ignore
+      // @ts-expect-error TS doesn't know WebSocket exists in this environment
       this._listeners[type].push(listener);
     }
   }
@@ -310,7 +310,7 @@ export default class ReconnectingWebSocket {
     listener: Events.WebSocketEventListenerMap[T],
   ): void {
     if (this._listeners[type]) {
-      // @ts-ignore
+      // @ts-expect-error TS doesn't know WebSocket exists in this environment
       this._listeners[type] = this._listeners[type].filter(
         (l) => l !== listener,
       );
@@ -442,10 +442,10 @@ export default class ReconnectingWebSocket {
     listener: Events.WebSocketEventListenerMap[T],
   ) {
     if ("handleEvent" in listener) {
-      // @ts-ignore
+      // @ts-expect-error TS doesn't know WebSocket exists in this environment
       listener.handleEvent(event);
     } else {
-      // @ts-ignore
+      // @ts-expect-error TS doesn't know WebSocket exists in this environment
       listener(event);
     }
   }
@@ -527,7 +527,7 @@ export default class ReconnectingWebSocket {
     this._ws.removeEventListener("open", this._handleOpen);
     this._ws.removeEventListener("close", this._handleClose);
     this._ws.removeEventListener("message", this._handleMessage);
-    // @ts-ignore
+    // @ts-expect-error TS doesn't know WebSocket exists in this environment
     this._ws.removeEventListener("error", this._handleError);
   }
 
@@ -539,7 +539,7 @@ export default class ReconnectingWebSocket {
     this._ws.addEventListener("open", this._handleOpen);
     this._ws.addEventListener("close", this._handleClose);
     this._ws.addEventListener("message", this._handleMessage);
-    // @ts-ignore
+    // @ts-expect-error TS doesn't know WebSocket exists in this environment
     this._ws.addEventListener("error", this._handleError);
   }
 

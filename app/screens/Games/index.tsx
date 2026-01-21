@@ -8,7 +8,7 @@ import { useStylesGamesNavigator } from "@styles/screens/Games/useStylesGamesNav
 import { ScreensAvailable, typeLanguagesKeys } from "@types";
 
 const buttons: { label: typeLanguagesKeys; screen: ScreensAvailable }[] = [
-  { label: "minesweeper", screen: "Minesweeper" },
+  { label: "games.minesweeper.title", screen: "Minesweeper" },
 ];
 
 const GamesNavigator: React.FC = () => {
@@ -32,7 +32,7 @@ const GamesNavigator: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
-        <Text style={styles.title}>{t("games")}</Text>
+        <Text style={styles.title}>{t("games.title")}</Text>
         {renderButtons}
       </View>
     </View>

@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from "react";
+import { colors } from "@utils";
+import { useMemo } from "react";
 import { useColorScheme } from "react-native";
-import { colors, Colors } from "@utils";
 import { MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 import { DarkTheme, DefaultTheme } from "@react-navigation/native";
 
@@ -65,20 +65,12 @@ export const useColors = (themeArg: "light" | "dark" | "auto" = "auto") => {
     [isLight, theme],
   );
 
-  const getColor = useCallback(
-    (colorName: Colors): string => {
-      return colors[theme][colorName];
-    },
-    [theme],
-  );
-
   const colorsMemo = useMemo(() => colors[theme], [theme]);
 
   return {
     theme,
     isLight,
     colors: colorsMemo,
-    getColor,
     paperTheme,
     navigationTheme,
     ...colorsMemo,

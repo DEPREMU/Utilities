@@ -1,7 +1,7 @@
-import env from "../env.ts";
 import chalk from "chalk";
 import { pool } from "../database/postgres.ts";
 import { showError } from "../functions/logger.ts";
+import { getEnvValue } from "../env.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { ResponseDoQuery } from "@types";
 
@@ -12,7 +12,7 @@ export const handleDoQueryDatabase = getHandlerPost(
     showFields: ["boolean", "undefined"],
   },
   async (body, sendResponse) => {
-    if (!["1", "true"].includes(env.__DEV__)) {
+    if (!getEnvValue("__DEV__")) {
       sendResponse("FORBIDDEN", { success: false, error: "Not available" });
       return;
     }

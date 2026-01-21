@@ -1,165 +1,97 @@
-export type VaultSchemaVersion = 1;
+import * as ExpoFileSystem from "expo-file-system";
+import { DownloadableMimeType } from "./typesStorage";
 
-export type VaultProgressPhase =
-  | "scan"
-  | "compress"
-  | "decompress"
-  | "copy"
-  | "encrypt"
-  | "decrypt"
-  | "verify"
-  | "cleanup";
-
-export type ProgressEvent = {
-  jobId: string;
-  fileId?: string;
-  phase: VaultProgressPhase;
-  writtenBytes: number;
-  totalBytes?: number;
-  percent?: number;
-  rateBytesPerSec?: number;
-};
-
-export type VaultEncryptionAlgorithm = "AES-256-GCM";
-
-export type VaultItemEncryption = {
-  schemaVersion: VaultSchemaVersion;
-  algorithm: VaultEncryptionAlgorithm;
-  keyId: string;
-  nonceBase64: string;
-  tagLength: 16;
-  aad?: string;
-};
-
-export type VaultItemIntegrity = {
-  hashAlg: "SHA-256";
-  hashCipherHex: string;
-};
-
-export type VaultItemFlags = {
-  readOnly: boolean;
-  incognito: boolean;
-  secretHidden: boolean;
-};
-
-export type VaultItemAccessControl = {
-  requiresAuth: boolean;
-  accessTTLSeconds: number;
-  lastAuthAt: string | null;
-  lockedUntil: string | null;
-};
-
-export type VaultItemAudit = {
-  failedAttempts: number;
-  lastFailedAt: string | null;
-};
-
-export type VaultItem = {
-  id: string;
-  folderId: string;
-  displayName: string;
-  originalName: string;
+export type FileInfo = {
+  uri: string;
+  name: string;
+  size: number;
+  createdAt: Date;
+  modifiedAt: Date;
   extension: string;
-  mimeType: string;
-  sizePlainBytes: number | null;
-  sizeCipherBytes: number;
-  importedAt: string;
-  modifiedAt: string | null;
-  encryption: VaultItemEncryption;
-  integrity: VaultItemIntegrity;
-  flags: VaultItemFlags;
-  accessControl: VaultItemAccessControl;
-  audit: VaultItemAudit;
-};
-
-export type VaultFolderFlags = {
-  readOnly: boolean;
-  secretHidden: boolean;
-};
-
-export type VaultFolderEncryptionPolicy = "inheritMaster" | "perFolderKey";
-
-export type VaultFolder = {
-  id: string;
-  displayName: string;
-  createdAt: string;
-  encryptionPolicy: VaultFolderEncryptionPolicy;
-  keyId: string;
-  flags: VaultFolderFlags;
-  accessTTLSeconds: number;
-};
-
-export type VaultKdfParamsScrypt = {
-  algorithm: "scrypt";
-  saltBase64: string;
-  N: number;
-  r: number;
-  p: number;
-  keyLen: 32;
-};
-
-export type VaultKdfParamsPbkdf2 = {
-  algorithm: "pbkdf2";
-  saltBase64: string;
-  iterations: number;
-  hash: "SHA-256";
-  keyLen: 32;
-};
-
-export type VaultManifest = {
-  schemaVersion: VaultSchemaVersion;
-  encryptionVersion: 1;
-  folders: string[];
-  kdf?: VaultKdfParamsScrypt | VaultKdfParamsPbkdf2;
-  masterKeyId: string;
-};
-
-export type VaultAuthMethod =
-  | "none"
-  | "pin"
-  | "password"
-  | "biometric"
-  | "pin+biometric"
-  | "password+biometric";
-
-export type VaultBackupPolicy = {
-  allowExport: boolean;
-  allowSameKeyExport: boolean;
-  requireLongPasswordForReencrypt: boolean;
+  mimeType?: DownloadableMimeType;
 };
 
 export type VaultSettings = {
-  authMethod: VaultAuthMethod;
   autoLockSeconds: number;
-  failedAttemptsLimit: number;
-  cooldownSeconds: number;
-  integrityCheckOnImport: boolean;
-  integrityCheckOnAccess: boolean;
-  compressionThresholdBytes: number;
-  autoCompressLargeFiles: boolean;
-  incognitoModeEnabled: boolean;
-  secretModeEnabled: boolean;
-  backupPolicy: VaultBackupPolicy;
 };
 
-export type VaultWrappedMasterKey = {
-  schemaVersion: VaultSchemaVersion;
-  keyId: string;
-  wrappedKeyBase64: string;
-  wrapNonceBase64: string;
-  kdf: VaultKdfParamsScrypt | VaultKdfParamsPbkdf2;
+export type PickedFile = {
+  uri: string;
+  name: string;
+  size: number | null;
+  mimeType: DownloadableMimeType | null;
 };
 
-export type VaultAuthVerifier = {
-  schemaVersion: VaultSchemaVersion;
-  method: Exclude<VaultAuthMethod, "none">;
-  kdf: VaultKdfParamsScrypt | VaultKdfParamsPbkdf2;
-  verifierBase64: string;
-};
+export type FolderFiles = (PickedFile & { originalUri: string })[];
 
-export type VaultIndex = {
-  schemaVersion: VaultSchemaVersion;
-  updatedAt: string;
-  foldersById: Record<string, VaultFolder>;
-  itemsByFolderId: Record<string, VaultItem[]>;
-};
+export type EncryptFile = (
+  inputPath: string,
+  outputPath: string,
+  password: string,
+  onProgress?: (percentage: number) => void
+) => Promise<boolean>;
+
+export declare const encryptFile: EncryptFile;
+
+export type DecryptFile = (
+  inputPath: string,
+  outputPath: string,
+  password: string,
+  onProgress?: (percentage: number) => void
+) => Promise<boolean>;
+
+export declare const decryptFile: DecryptFile;
+
+export type DecryptFolderFiles = (
+  folder: string,
+  password: string,
+  onDecryptedFile?: (file: FolderFiles[number]) => void
+) => Promise<FolderFiles>;
+
+export declare const decryptFolderFiles: DecryptFolderFiles;
+
+export type ActionWithVaultItem = (
+  action: "copy" | "move",
+  item: FolderFiles[number],
+  targetFolderId: string
+) => Promise<{ success: boolean; error?: string }>;
+
+export declare const actionWithVaultItem: ActionWithVaultItem;
+
+export type RenameVaultItem = (
+  item: FolderFiles[number],
+  newName: string
+) => Promise<{ success: boolean; error?: string }>;
+
+export declare const renameVaultItem: RenameVaultItem;
+
+export type FetchFileInfo = (uri: string) => Promise<FileInfo | null>;
+
+export declare const fetchFileInfo: FetchFileInfo;
+
+export type ClearDecryptedFolderDirectory = () => Promise<void>;
+
+export declare const clearDecryptedFolderDirectory: ClearDecryptedFolderDirectory;
+
+export type GetDecryptedFolderDirectory = () => ExpoFileSystem.Directory;
+
+export type HasPasswordZIP = (filePath: string) => Promise<boolean>;
+
+export declare const hasPasswordZIP: HasPasswordZIP;
+
+export type UnzipFile = (
+  filePath: string,
+  destinationPath: string,
+  onPasswordRequired?: () => Promise<string | null>
+) => Promise<string[]>;
+
+export declare const unzipFile: UnzipFile;
+
+export type ZipFile = (
+  sourcePaths: string[],
+  onProgress: (percentage: number) => void,
+  password?: string,
+  onZip?: (path: string, deleteTempFile: () => void) => unknown
+) => Promise<string>;
+
+export declare const zipFile: ZipFile;

@@ -23,7 +23,7 @@ import useStylesCryptoItem from "@styles/components/cryptos/useStylesCryptoItem"
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSelectionScreen from "@styles/components/cryptos/useStylesSelectionScreen";
 import { SelectedCryptos, PriceBinanceAPI } from "@common";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 
 interface SelectionScreenProps {
   setSelectedCryptos: React.Dispatch<React.SetStateAction<SelectedCryptos>>;
@@ -36,7 +36,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 }) => {
   const { styles } = useStylesSelectionScreen();
   const { t, language } = useLanguage();
-  const { addTaskQueue } = useBackgroundTask();
+  const { addTaskQueueRef } = useBackgroundTask();
   const { userData, sessionToken } = useUserContext();
   const { styles: stylesCryptoItem } = useStylesCryptoItem();
 
@@ -48,11 +48,19 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
   const [ownedCryptos, setOwnedCryptos] =
     useState<SelectedCryptos>(selectedCryptos);
 
-  const handleClearCache = useCallback(async () => {
+  const handleClearCacheRef = useRef(async () => {
     await removeDataStorage("SELECTED_CRYPTOS");
     setShowSelected(false);
     setOwnedCryptos({});
-  }, []);
+  });
+
+  const handleShowSelectedRef = useRef(() => {
+    setShowSelected((prev) => !prev);
+  });
+
+  const handleKeyExtractorRef = useRef(
+    (item: PriceBinanceAPI[0]) => item.symbol,
+  );
 
   const getDataFlatList = useCallback((): PriceBinanceAPI => {
     if (!cryptos) return [];
@@ -106,10 +114,6 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     [currency, ownedCryptos, cryptos, userData],
   );
 
-  const handleShowSelected = useCallback(() => {
-    setShowSelected((prev) => !prev);
-  }, []);
-
   const handleTextInputAmount = useCallback(
     async (text: string, id: string) => {
       if (!userData?.userId) return;
@@ -161,7 +165,9 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       <>
         {!loading && lengthCryptos === 0 && (
           <View style={stylesCryptoItem.checkBoxRow}>
-            <Text style={stylesCryptoItem.text}>{t("noCryptosFound")}</Text>
+            <Text style={stylesCryptoItem.text}>
+              {t("Cryptos.noCryptosFound")}
+            </Text>
           </View>
         )}
         {loading &&
@@ -177,20 +183,15 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       </>
     );
   }, [
-    stylesCryptoItem.checkBoxRow,
-    stylesCryptoItem.text,
-    stylesCryptoItem.padding0,
     t,
     cryptos,
     loading,
     ownedCryptos,
     showSelected,
+    stylesCryptoItem.text,
+    stylesCryptoItem.padding0,
+    stylesCryptoItem.checkBoxRow,
   ]);
-
-  const handleKeyExtractor = useCallback(
-    (item: PriceBinanceAPI[0]) => item.symbol,
-    [],
-  );
 
   useEffect(() => {
     const fetchOwnedCryptos = async () => {
@@ -255,7 +256,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       });
       if (cryptosToUpdate && cryptosToUpdate.length > 0 && sessionToken) {
         const id = "updateCryptos";
-        addTaskQueue(
+        addTaskQueueRef.current(
           {
             requiresInternet: true,
             func: async () => {
@@ -287,7 +288,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       if (cryptosToAdd && cryptosToAdd.length > 0 && sessionToken) {
         const id = "insertCryptos";
         const table: TablesKeys = "Cryptos";
-        addTaskQueue(
+        addTaskQueueRef.current(
           {
             requiresInternet: true,
             func: async () => {
@@ -322,7 +323,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         const deviceId = await loadDataStorage("DEVICE_ID");
 
         cryptosToDelete.map((uid) =>
-          addTaskQueue(
+          addTaskQueueRef.current(
             {
               requiresInternet: true,
               func: async () => {
@@ -354,11 +355,11 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     save();
   }, [
     userData?.userId,
-    ownedCryptos,
-    addTaskQueue,
-    setSelectedCryptos,
     language,
     sessionToken,
+    ownedCryptos,
+    addTaskQueueRef,
+    setSelectedCryptos,
   ]);
 
   useEffect(() => {
@@ -372,7 +373,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       <View style={styles.header}>
         <TextInput
           style={styles.input}
-          label={t("selectCurrency")}
+          label={t("Cryptos.selectCurrency")}
           value={currency}
           textColor="#f0f0f0"
           onChangeText={(t) => setCurrency(t.toUpperCase())}
@@ -380,7 +381,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         <TextInput
           style={styles.input}
           textColor="#f0f0f0"
-          label={t("searchCrypto")}
+          label={t("Cryptos.searchCrypto")}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -390,7 +391,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
         data={getDataFlatList()}
-        keyExtractor={handleKeyExtractor}
+        keyExtractor={handleKeyExtractorRef.current}
         showsVerticalScrollIndicator={false}
         renderItem={renderItem}
         ListEmptyComponent={handleEmptyList}
@@ -398,8 +399,8 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 
       <View style={styles.buttonsBottom}>
         <Button
-          handlePress={handleClearCache}
-          label={t("clearCache")}
+          handlePress={handleClearCacheRef.current}
+          label={t("Cryptos.clearCache")}
           touchableOpacity
           replaceStyles={{
             button: styles.clearCacheButton,
@@ -407,8 +408,8 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           }}
         />
         <Button
-          handlePress={handleShowSelected}
-          label={showSelected ? t("showAll") : t("showSelected")}
+          handlePress={handleShowSelectedRef.current}
+          label={showSelected ? t("common.showAll") : t("common.showSelected")}
           touchableOpacity
           replaceStyles={{
             button: styles.showSelectedButton,

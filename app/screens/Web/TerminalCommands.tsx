@@ -14,13 +14,13 @@ import { useLanguage } from "@context/LanguageContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import useStylesTerminalCommands from "@styles/screens/Web/useStylesTerminalCommands";
 import { FlatList, Platform, View, ScrollView } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { loadDataStorage, logError, saveDataStorage } from "@utils";
 
 const TerminalCommands: React.FC = () => {
   const { t } = useLanguage();
   const { styles, colors } = useStylesTerminalCommands();
-  const { openModal, closeModal } = useModal();
+  const { openModalRef, closeModalRef } = useModal();
 
   const [commands, setCommands] = useState<Command[]>([]);
   const [newCommand, setNewCommand] = useState<Command>({
@@ -29,31 +29,35 @@ const TerminalCommands: React.FC = () => {
   });
   const [executing, setExecuting] = useState<boolean>(false);
 
-  const handleChangeCommand = useCallback(() => {
+  const handleChangeCommandRef = useRef(() => {
     setNewCommand((prev) => ({
       ...prev,
       when: prev.when === "Start-up" ? "Shut-down" : "Start-up",
     }));
-  }, []);
+  });
+
+  const handleAddTextRef = useRef((text: string) => {
+    setNewCommand((prev) => ({ ...prev, command: text }));
+  });
 
   const handleAddCommand = useCallback(async () => {
-    closeModal();
+    closeModalRef.current();
     setNewCommand({ when: "Start-up", command: "" });
     setCommands((prev) => {
       const updatedCommands = [...prev, newCommand];
       saveDataStorage("TERMINAL_COMMANDS", updatedCommands);
       return updatedCommands;
     });
-  }, [newCommand, closeModal]);
+  }, [newCommand, closeModalRef]);
 
   const handleExecuteCommand = useCallback(
     async (command: string) => {
       setExecuting(true);
-      closeModal();
+      closeModalRef.current();
       try {
         const result = await windowModule.executeCommand(command);
         setExecuting(false);
-        openModal(
+        openModalRef.current(
           t("commandExecuted"),
           t("commandOutput") + ":\n" + (result || t("noOutput")),
           <Button
@@ -69,12 +73,12 @@ const TerminalCommands: React.FC = () => {
         logError("Error executing command:", error);
         const message = error instanceof Error ? error.message : String(error);
 
-        openModal(
+        openModalRef.current(
           t("error"),
           t("commandExecutionFailed") + ":\n" + message,
           <Button
-            handlePress={closeModal}
-            label={t("close")}
+            handlePress={closeModalRef.current}
+            label={t("common.close")}
             replaceStyles={{
               button: styles.executeButton,
               textButton: styles.executeButtonLabel,
@@ -83,18 +87,18 @@ const TerminalCommands: React.FC = () => {
         );
       }
     },
-    [openModal, closeModal, styles, t, handleAddCommand],
+    [openModalRef, closeModalRef, styles, t, handleAddCommand],
   );
 
   const handleAskAddCommand = useCallback(async () => {
     if (!newCommand.command.trim()) return;
-    openModal(
+    openModalRef.current(
       t("askExecuteCommand"),
       t("confirmExecuteCommand"),
       <>
         <Button
-          handlePress={closeModal}
-          label={t("cancel")}
+          handlePress={closeModalRef.current}
+          label={t("labels.cancel")}
           replaceStyles={{
             button: styles.cancelButton,
             textButton: styles.cancelButtonLabel,
@@ -111,7 +115,14 @@ const TerminalCommands: React.FC = () => {
         />
       </>,
     );
-  }, [openModal, newCommand, closeModal, styles, t, handleExecuteCommand]);
+  }, [
+    t,
+    styles,
+    newCommand,
+    openModalRef,
+    closeModalRef,
+    handleExecuteCommand,
+  ]);
 
   const handleDeleteCommand = useCallback(
     async (index: number) => {
@@ -121,10 +132,6 @@ const TerminalCommands: React.FC = () => {
     },
     [commands],
   );
-
-  const handleAddText = useCallback((text: string) => {
-    setNewCommand((prev) => ({ ...prev, command: text }));
-  }, []);
 
   const handleRenderCommands = useCallback(
     ({ item, index }: { item: Command; index: number }) => {
@@ -209,7 +216,7 @@ const TerminalCommands: React.FC = () => {
               placeholder={t("enterCommand")}
               style={styles.input}
               value={newCommand.command}
-              onChangeText={handleAddText}
+              onChangeText={handleAddTextRef.current}
               multiline
               numberOfLines={3}
               outlineColor={colors.border}
@@ -222,7 +229,7 @@ const TerminalCommands: React.FC = () => {
               </Text>
               <Switch
                 value={newCommand.when === "Start-up"}
-                onValueChange={handleChangeCommand}
+                onValueChange={handleChangeCommandRef.current}
                 color={colors.accent}
               />
             </View>

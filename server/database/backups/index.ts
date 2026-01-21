@@ -1,10 +1,10 @@
 import fs from "fs";
-import env from "../../env.ts";
 import path from "path";
 import chalk from "chalk";
 import crypto from "crypto";
 import { pool } from "../postgres.ts";
 import { execSync } from "child_process";
+import { getEnvValue } from "../../env.ts";
 import { showError, showInfo } from "../../functions/logger.ts";
 
 const backupPath = path.join(path.resolve("."), "database", "backups");
@@ -88,7 +88,7 @@ export const decryptFile = (filePath: string, password: string) => {
  * ```
  */
 export const handleBackupDatabase = async () => {
-  if (["1", "true"].includes(env.__DEV__)) return;
+  if (getEnvValue("__DEV__")) return;
 
   await deletePreviousBackups();
   const client = await pool.connect();
@@ -97,11 +97,11 @@ export const handleBackupDatabase = async () => {
     const backupFileName = path.join(backupPath, `backup-${timestamp}.sql`);
 
     const writeFile = `pg_dump --data-only --inserts --column-inserts \
-  --host=${env.DB_HOST} --port=${env.DB_PORT} --username=${env.DB_USER} --dbname=${env.DB_NAME} \
+  --host=${getEnvValue("DB_HOST")} --port=${getEnvValue("DB_PORT")} --username=${getEnvValue("DB_USER")} --dbname=${getEnvValue("DB_NAME")} \
 | sed '/^INSERT INTO / s/);$/) ON CONFLICT DO NOTHING;/' > ${backupFileName}`;
 
     execSync(writeFile);
-    encryptFile(backupFileName, env.DB_ENCRYPTION_PASS);
+    encryptFile(backupFileName, getEnvValue("DB_ENCRYPTION_PASS"));
   } catch (error) {
     showError("Error during database backup:", error);
   } finally {

@@ -12,6 +12,7 @@ import SkeletonLoading from "@components/common/SkeletonLoading";
 import { SelectedCryptos } from "@common";
 import { useStylesCryptoPrice } from "@styles/components/cryptos/useStylesCryptoPrice";
 import React, { useState, useEffect } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 type CryptoPriceProps = {
   cryptoData: SelectedCryptos[string];
@@ -22,14 +23,8 @@ type CryptoPriceProps = {
   currentPrice: string;
 };
 
-const CryptoPrice: React.FC<CryptoPriceProps> = ({
-  cryptoData,
-  ownedAmount = "You own: {{amount}} {{cryptoName}}",
-  firstInvest = "You invested: {{amount}} {{cryptoName}} with the price of {{price}}",
-  gainAmount = "You gained: {{gainAmount}} {{currency}}",
-  datePurchased = "Date purchased: {{date}}",
-  currentPrice = "Current Price",
-}) => {
+const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
+  const { t } = useLanguage();
   const { styles } = useStylesCryptoPrice();
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -98,15 +93,22 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
       </View>
 
       <View style={styles.priceContainer}>
-        <Text style={styles.priceLabel}>{currentPrice}</Text>
+        <Text style={styles.priceLabel}>{t("Cryptos.currentPrice")}</Text>
         <SkeletonLoading
           style={[styles.pricesContainer, styles.padding0]}
           showChildren={!loading}
         >
           <View style={styles.pricesContainer}>
             <Text style={styles.price}>
-              {cryptoData.currency}: ${priceUsd?.toFixed(2)}
-              {priceMxn !== null && `\nMXN: $${priceMxn?.toFixed(2)}`}
+              {t("Cryptos.price", {
+                currency: cryptoData.currency,
+                price: priceUsd ? priceUsd.toFixed(2) : "N/A",
+              })}
+              {priceMxn !== null &&
+                t("Cryptos.price", {
+                  currency: "MXN",
+                  price: priceMxn.toFixed(2),
+                })}
             </Text>
           </View>
         </SkeletonLoading>
@@ -118,9 +120,10 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
           showChildren={!loading}
         >
           <Text style={styles.ownedText}>
-            {ownedAmount
-              .replace("{{amount}}", Number(cryptoData.amount).toString())
-              .replace("{{cryptoName}}", cryptoData.id || "")}
+            {t("Cryptos.owned", {
+              amount: cryptoData.amount,
+              cryptoName: cryptoData.id || "",
+            })}
           </Text>
         </SkeletonLoading>
         <SkeletonLoading
@@ -128,6 +131,7 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
           showChildren={!loading}
         >
           <Text style={styles.ownedAmount}>
+            {/* eslint-disable-next-line react/jsx-no-literals */}
             {cryptoData.currency}: $
             {(parseFloat(cryptoData.amount) * (priceUsd || 0)).toFixed(2)}
           </Text>
@@ -138,7 +142,10 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
         >
           {priceMxn !== null && !loading && (
             <Text style={styles.ownedAmount}>
-              MXN: ${(parseFloat(cryptoData.amount) * priceMxn).toFixed(2)}
+              {t("Cryptos.price", {
+                currency: "MXN",
+                price: (parseFloat(cryptoData.amount) * priceMxn).toFixed(2),
+              })}
             </Text>
           )}
         </SkeletonLoading>
@@ -151,10 +158,11 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
         showChildren={!loading}
       >
         <Text style={styles.firstInvest}>
-          {firstInvest
-            .replace("{{amount}}", Number(cryptoData.amount).toString())
-            .replace("{{cryptoName}}", cryptoData.id || "")
-            .replace("{{price}}", cryptoData.firstPricePurchased.toString())}
+          {t("Cryptos.firstInvest", {
+            cryptoName: cryptoData.id || "",
+            amount: Number(cryptoData.amount).toString(),
+            price: cryptoData.firstPricePurchased.toString(),
+          })}
         </Text>
       </SkeletonLoading>
 
@@ -164,17 +172,15 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
           showChildren={!loading}
         >
           <Text style={styles.gainAmount}>
-            {gainAmount
-              .replace(
-                "{{gainAmount}}",
-                String(
-                  (
-                    Number(cryptoData.amount) * (priceUsd || 0) -
-                    cryptoData.firstPricePurchased * Number(cryptoData.amount)
-                  ).toFixed(2),
-                ),
-              )
-              .replace("{{currency}}", cryptoData?.currency || "")}
+            {t("Cryptos.gainAmount", {
+              gainAmount: String(
+                (
+                  Number(cryptoData.amount) * (priceUsd || 0) -
+                  cryptoData.firstPricePurchased * Number(cryptoData.amount)
+                ).toFixed(2),
+              ),
+              currency: cryptoData.currency,
+            })}
           </Text>
         </SkeletonLoading>
         <SkeletonLoading
@@ -198,13 +204,16 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({
           showChildren={!loading}
         >
           <Text style={styles.datePurchasedText}>
-            {datePurchased.replace(
-              "{{date}}",
-              getFormattedDate(new Date(cryptoData.datePurchased), undefined, {
-                dateStyle: "medium",
-                timeStyle: "short",
-              }),
-            )}
+            {t("Cryptos.datePurchased", {
+              date: getFormattedDate(
+                new Date(cryptoData.datePurchased),
+                undefined,
+                {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                },
+              ),
+            })}
           </Text>
         </SkeletonLoading>
       )}

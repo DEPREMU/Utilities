@@ -18,7 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { memoDeep } from "@utils";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useRef, useMemo, useState, useEffect } from "react";
 
 interface SkeletonLoadingProps {
   showChildren: boolean;
@@ -40,10 +40,10 @@ const SkeletonLoading: React.FC<SkeletonLoadingProps> = ({
     transform: [{ translateX: progress.value }],
   }));
 
-  const changeLayout = useCallback((event: LayoutChangeEvent) => {
+  const changeLayoutRef = useRef((event: LayoutChangeEvent) => {
     const layoutLocal = event.nativeEvent.layout;
     setLayout(layoutLocal);
-  }, []);
+  });
 
   const options: WithTimingConfig = useMemo(
     () => ({
@@ -71,7 +71,8 @@ const SkeletonLoading: React.FC<SkeletonLoadingProps> = ({
 
   if (showChildren) return <React.Fragment>{children}</React.Fragment>;
 
-  if (!layout) return <View style={styles.fill} onLayout={changeLayout} />;
+  if (!layout)
+    return <View style={styles.fill} onLayout={changeLayoutRef.current} />;
 
   return (
     <View style={[styles.overflowHidden, style]}>

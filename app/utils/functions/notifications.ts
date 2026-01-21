@@ -9,6 +9,7 @@ import { tTyped } from "../translates";
 import * as notifications from "expo-notifications";
 import NotificationModule from "../modules/NotificationModule";
 import { Platform, Falsy } from "react-native";
+import { navigateReplace } from "@navigation/navigationRef";
 import { reasonNotification } from "../constants";
 import { areEqualValues, getNotifications } from "./appManagement";
 import { loadDataStorage, saveDataStorage } from "./storageManagement";
@@ -126,9 +127,7 @@ export const hasPushNotifications = async (): Promise<boolean> => {
 /**
  * Sets up notification handlers for when notifications are received and tapped
  */
-export const setupNotificationHandlers = (
-  navigateToScreen: (screen: ScreensAvailable) => void,
-) => {
+export const setupNotificationHandlers = () => {
   notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowList: true,
@@ -145,7 +144,7 @@ export const setupNotificationHandlers = (
 
       if (!data?.screen) return;
 
-      navigateToScreen(data.screen);
+      navigateReplace(data.screen);
     });
 
   const foregroundListener = notifications.addNotificationReceivedListener(

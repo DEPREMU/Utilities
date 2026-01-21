@@ -16,7 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     experiments: { baseUrl: "." },
     runtimeVersion: version.split(".").slice(0, 2).join("."),
     version,
-    orientation: "portrait",
+    orientation: "default",
     icon: "./assets/icon.png",
     userInterfaceStyle: "dark",
     newArchEnabled: true,
@@ -70,6 +70,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-secure-store",
       "expo-localization",
       "expo-notifications",
+      "react-native-quick-crypto",
       [
         "react-native-permissions",
         {

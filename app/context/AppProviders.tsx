@@ -1,8 +1,11 @@
 import React from "react";
+import { Platform } from "react-native";
 import { UserProvider } from "@context/UserContext";
 import { ThemeProvider } from "./ThemeContext";
+import { VaultProvider } from "./VaultContext";
 import { ModalProvider } from "@context/ModalContext";
 import { LayoutProvider } from "@context/LayoutContext";
+import { RecorderProvider } from "./RecorderContext";
 import { LanguageProvider } from "@context/LanguageContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { WebSocketProvider } from "./WebSocketContext";
@@ -10,8 +13,6 @@ import { BackgroundProvider } from "./BackgroundContext";
 import { NotificationsProvider } from "./NotificationsContext";
 import { DeviceInformationProvider } from "./DeviceInformationContext";
 import { initializeNotificationsStorage } from "@utils";
-import { Platform } from "react-native";
-import { RecorderProvider } from "./RecorderContext";
 
 initializeNotificationsStorage();
 
@@ -30,11 +31,13 @@ const AppProviders: React.FC<AppProvidersProps> = ({ children }) => (
                 <ModalProvider>
                   <NotificationsProvider>
                     <WebSocketProvider>
-                      {Platform.OS === "web" ? (
-                        children
-                      ) : (
-                        <RecorderProvider>{children}</RecorderProvider>
-                      )}
+                      <VaultProvider>
+                        {Platform.OS === "web" ? (
+                          children
+                        ) : (
+                          <RecorderProvider>{children}</RecorderProvider>
+                        )}
+                      </VaultProvider>
                     </WebSocketProvider>
                   </NotificationsProvider>
                 </ModalProvider>

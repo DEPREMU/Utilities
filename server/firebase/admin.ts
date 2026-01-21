@@ -1,6 +1,6 @@
-import env from "../env.ts";
 import chalk from "chalk";
 import admin from "firebase-admin";
+import { getEnvValue } from "../env.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 import { ScreensAvailable, ChannelsId } from "@types";
 
@@ -10,7 +10,7 @@ export const initializeFirebaseAdmin = () => {
   if (firebaseApp) return firebaseApp;
 
   try {
-    const serviceAccount = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT);
+    const serviceAccount = JSON.parse(getEnvValue("FIREBASE_SERVICE_ACCOUNT"));
 
     firebaseApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
@@ -79,9 +79,7 @@ export const sendFCMNotification = async (
       showError(chalk.red(`Failures: ${response.failureCount}`));
       response.responses.forEach((resp, idx) => {
         if (!resp.success) {
-          showError(
-            chalk.red(`Error in token ${tokens[idx]}: ${resp.error}`),
-          );
+          showError(chalk.red(`Error in token ${tokens[idx]}: ${resp.error}`));
         }
       });
     }

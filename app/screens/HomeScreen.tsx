@@ -1,6 +1,6 @@
 import Button from "@components/common/ButtonComponent";
-import { isDev } from "@utils";
 import windowModule from "@/utils/modules/WindowModule";
+import { isElectron } from "@utils";
 import { List, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
 import { useBackground } from "@context/BackgroundContext";
@@ -9,7 +9,7 @@ import { navigateReplace } from "@navigation/navigationRef";
 import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
 import { Platform, ScrollView, View } from "react-native";
 import { ScreensAvailable, typeLanguagesKeys } from "@types";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useRef, useMemo, useState, useEffect } from "react";
 
 type ButtonType = {
   label: typeLanguagesKeys;
@@ -18,9 +18,40 @@ type ButtonType = {
   noNeedsInternet?: boolean;
 };
 
+const buttonsNative: ButtonType[] = [
+  {
+    label: "computerControl",
+    screen: "ComputerControl",
+    noNeedsInternet: true,
+    noNeedsSession: true,
+  },
+  {
+    label: "recorder.label",
+    screen: "Recorder",
+    noNeedsInternet: true,
+    noNeedsSession: true,
+  },
+];
+
+const buttonsWeb: ButtonType[] = [
+  {
+    label: "terminalCommands",
+    screen: "TerminalCommands",
+    noNeedsInternet: true,
+    noNeedsSession: true,
+  },
+];
+
+const buttonsDev: ButtonType[] = [
+  {
+    label: "test",
+    screen: "Test",
+    noNeedsInternet: true,
+  },
+];
+
 const buttons: ButtonType[] = [
   { label: "settings", screen: "Settings", noNeedsSession: true },
-  { label: "vault.title", screen: "Vault", noNeedsSession: true },
   { label: "infoIP", screen: "InfoIP", noNeedsSession: true },
   { label: "cryptoInfo", screen: "Cryptos" },
   {
@@ -30,7 +61,7 @@ const buttons: ButtonType[] = [
     noNeedsSession: true,
   },
   {
-    label: "games",
+    label: "games.title",
     screen: "Games",
     noNeedsInternet: false,
     noNeedsSession: true,
@@ -39,7 +70,7 @@ const buttons: ButtonType[] = [
   { label: "translator", screen: "Translator" },
   { label: "socialMedia", screen: "SocialMedia" },
   {
-    label: "deviceInformation",
+    label: "deviceInformation.title",
     screen: "DeviceInformation",
     noNeedsInternet: false,
     noNeedsSession: true,
@@ -60,54 +91,73 @@ const buttons: ButtonType[] = [
     noNeedsSession: true,
     noNeedsInternet: Platform.OS === "web",
   },
-];
-if (Platform.OS !== "web") {
-  buttons.push(
-    {
-      label: "computerControl",
-      screen: "ComputerControl",
-      noNeedsInternet: true,
-      noNeedsSession: true,
-    },
-    {
-      label: "recorder.label",
-      screen: "Recorder",
-      noNeedsInternet: true,
-      noNeedsSession: true,
-    },
-  );
-} else {
-  buttons.push({
-    label: "terminalCommands",
-    screen: "TerminalCommands",
-    noNeedsInternet: true,
+  {
+    label: "vault.title",
+    screen: "Vault",
     noNeedsSession: true,
-  });
-}
-if (isDev)
-  buttons.push({
-    label: "test",
-    screen: "Test",
     noNeedsInternet: true,
-  });
+  },
+  ...(Platform.OS !== "web" ? buttonsNative : buttonsWeb),
+  ...(process.env.NODE_ENV === "development" ? buttonsDev : []),
+];
 
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
   const { hasInternet } = useBackground();
   const { styles, background } = useStylesHomeScreen();
-  const { userData, logoutRef, isLoggedIn, loggingIn } = useUserContext();
+  const { userData, dataRef, isLoggedIn, loggingIn } = useUserContext();
 
   const [version, setVersion] = useState<string>("");
 
-  const handleLogout = useCallback(() => {
-    logoutRef.current();
-  }, [logoutRef]);
-
-  const handleLoginInWeb = useCallback(() => {
+  const handleLoginInWebRef = useRef(() => {
     if (Platform.OS === "web") return;
 
     navigateReplace("ScanQRCode");
-  }, []);
+  });
+
+  const handleLoginPressRef = useRef(() => navigateReplace("Login"));
+
+  const renderButtons = useMemo(() => {
+    return buttons.map((button, i) =>
+      Platform.OS === "web" &&
+      button.screen === "Vault" &&
+      !isElectron ? null : (
+        <View style={styles.buttonContainer} key={i}>
+          <List.Icon
+            style={styles.leftIcon}
+            color={background}
+            icon={
+              (hasInternet ||
+                button.noNeedsInternet ||
+                button.label === "settings") &&
+              (isLoggedIn || button.noNeedsSession)
+                ? "check-circle"
+                : "cancel"
+            }
+          />
+          <Button
+            disabled={
+              (!hasInternet &&
+                !button.noNeedsInternet &&
+                button.label !== "settings") ||
+              (!button.noNeedsSession && !isLoggedIn)
+            }
+            label={t(button.label)}
+            argsFuncHandlePress={[button.screen]}
+            touchableOpacity
+            handlePress={navigateReplace}
+          />
+        </View>
+      ),
+    );
+  }, [
+    t,
+    hasInternet,
+    styles.leftIcon,
+    styles.buttonContainer,
+    background,
+    isLoggedIn,
+  ]);
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -119,67 +169,30 @@ const HomeScreen: React.FC = () => {
     fetchVersion();
   }, []);
 
-  const renderButtons = useMemo(() => {
-    return buttons.map((button, i) => (
-      <View style={styles.buttonContainer} key={i}>
-        <List.Icon
-          style={styles.leftIcon}
-          color={background}
-          icon={
-            (hasInternet ||
-              button.noNeedsInternet ||
-              button.label === "settings") &&
-            (isLoggedIn || button.noNeedsSession)
-              ? "check-circle"
-              : "cancel"
-          }
-        />
-        <Button
-          disabled={
-            (!hasInternet &&
-              !button.noNeedsInternet &&
-              button.label !== "settings") ||
-            (!button.noNeedsSession && !isLoggedIn)
-          }
-          label={t(button.label)}
-          argsFuncHandlePress={[button.screen]}
-          touchableOpacity
-          handlePress={navigateReplace}
-        />
-      </View>
-    ));
-  }, [
-    t,
-    hasInternet,
-    styles.leftIcon,
-    styles.buttonContainer,
-    background,
-    isLoggedIn,
-  ]);
-
-  const handleLoginPress = useCallback(() => navigateReplace("Login"), []);
-
   return (
     <View style={styles.container}>
       {isLoggedIn && (
         <View style={styles.headerButtonsContainer}>
-          <Button label={t("logout")} handlePress={handleLogout} />
+          <Button label={t("logout")} handlePress={dataRef.current.logout} />
           {Platform.OS !== "web" && (
-            <Button label={t("loginWithQR")} handlePress={handleLoginInWeb} />
+            <Button
+              label={t("loginWithQR")}
+              handlePress={handleLoginInWebRef.current}
+            />
           )}
         </View>
       )}
       {(!isLoggedIn || loggingIn) && (
         <Button
-          label={t(loggingIn ? "loggingIn" : "loginButton")}
-          handlePress={handleLoginPress}
+          label={t(`auth.${loggingIn ? "loggingIn" : "loginButton"}`)}
+          handlePress={handleLoginPressRef.current}
         />
       )}
       {!hasInternet && (
         <Text style={styles.doesNotHaveInternet}>
-          {t("NoInternetConnection")}
+          {t("common.NoInternetConnection")}
           {"\n"}
-          {t("PleaseCheckInternetConnection")}
+          {t("common.PleaseCheckInternetConnection")}
         </Text>
       )}
 
@@ -194,7 +207,9 @@ const HomeScreen: React.FC = () => {
       </ScrollView>
       {Platform.OS === "web" && (
         <Text style={styles.footer}>
-          {t("appVersion")} - {version}
+          {t("appVersion", {
+            version,
+          })}
         </Text>
       )}
     </View>

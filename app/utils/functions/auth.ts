@@ -2,6 +2,7 @@ import {
   KeyStorageValues,
   ALL_KEYS_STORAGE_TYPE,
   ExpectedStorageTypes,
+  DO_NOT_DELETE_OR_SAVE,
 } from "@common";
 import {
   log,
@@ -55,15 +56,14 @@ export const saveStorageData = async (
       wrapFunctionWithError(
         async ([keyStorage, value]) => {
           const keyTyped = keyStorage as ALL_KEYS_STORAGE_TYPE;
-          if (keyTyped === "DEVICE_ID" || keyTyped === "TERMINAL_COMMANDS")
-            return;
+          if (DO_NOT_DELETE_OR_SAVE.includes(keyTyped)) return;
 
           const valueTyped = value as ExpectedStorageTypes<"BOTH">[Exclude<
             KeyStorageValues,
             "DEVICE_ID" | "TERMINAL_COMMANDS"
           >];
 
-          saveDataStorage(keyTyped, valueTyped);
+          await saveDataStorage(keyTyped, valueTyped);
         },
         true,
         (e) => e,
@@ -230,12 +230,12 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
 
     const storedValues: ALL_KEYS_STORAGE_TYPE[] = [
       "API_URL",
-      "WEBSOCKET_URL",
-      "NOTIFICATIONS",
-      "HAS_ADMIN_ACCESS",
       "USER_DATA",
       "STREAMERS",
+      "WEBSOCKET_URL",
+      "NOTIFICATIONS",
       "SESSION_EXPIRY",
+      "HAS_ADMIN_ACCESS",
       "SELECTED_CRYPTOS",
       "USER_SESSION_TOKEN_STORAGE",
     ];

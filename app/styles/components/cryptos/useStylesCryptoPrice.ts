@@ -1,22 +1,11 @@
+import { useMemo } from "react";
 import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
-import { useCallback, useMemo } from "react";
 
 export const useStylesCryptoPrice = () => {
-  const { isTablet, isWeb, isLargeTablet, getCommonStyles } =
-    useResponsiveLayout();
+  const { getResponsiveValue, getCommonStyles } = useResponsiveLayout();
   const { text, primary, secondary, accent } = useTheme();
-
-  const getResponsiveValue = useCallback(
-    <T = number>(phone: T, tablet: T, largeTablet: T, web: T) => {
-      if (isWeb) return web;
-      if (isLargeTablet) return largeTablet;
-      if (isTablet) return tablet;
-      return phone;
-    },
-    [isTablet, isLargeTablet, isWeb],
-  );
 
   const styles = useMemo(
     () =>

@@ -14,7 +14,7 @@ import { useRecorder } from "@/context/RecorderContext";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesRecorderScreen from "@styles/screens/phone/useStylesRecorderScreen";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 
 const qualities = ["low", "high"] as const;
 const typesTime = ["millis", "seconds", "minutes", "hours"] as const;
@@ -60,9 +60,9 @@ const convertToExpectedTime = (
 };
 
 const RecorderSettings: React.FC = () => {
-  const { dataRecorder, editDataRecorder } = useRecorder();
   const { t } = useLanguage();
   const { styles } = useStylesRecorderScreen();
+  const { dataRecorder, editDataRecorderRef } = useRecorder();
 
   const preferredUnit = useMemo<(typeof typesTime)[number]>(() => {
     const interval = dataRecorder.intervalOfSaves;
@@ -104,13 +104,13 @@ const RecorderSettings: React.FC = () => {
           key={quality}
           onPress={async () => {
             await Haptics.selectionAsync();
-            editDataRecorder("quality", quality);
+            editDataRecorderRef.current("quality", quality);
             setMenus((prev) => ({ ...prev, quality: false }));
           }}
           title={t(`recorder.${quality}Description`)}
         />
       )),
-    [editDataRecorder, t],
+    [editDataRecorderRef, t],
   );
 
   const typesTimeRendered = useMemo(
@@ -145,20 +145,17 @@ const RecorderSettings: React.FC = () => {
     const safe = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
     const millis = convertToExpectedTime(typeTimeRendered, safe, "millis");
     Haptics.selectionAsync();
-    editDataRecorder("intervalOfSaves", millis);
-  }, [editDataRecorder, timeInterval, typeTimeRendered]);
+    editDataRecorderRef.current("intervalOfSaves", millis);
+  }, [editDataRecorderRef, timeInterval, typeTimeRendered]);
 
-  const adjustMaxFiles = useCallback(
-    (delta: number) => {
-      Haptics.selectionAsync();
-      setMaxFiles((prev) => {
-        const next = Math.max(1, prev + delta);
-        editDataRecorder("maxXUris", next);
-        return next;
-      });
-    },
-    [editDataRecorder],
-  );
+  const adjustMaxFilesRef = useRef((delta: number) => {
+    Haptics.selectionAsync();
+    setMaxFiles((prev) => {
+      const next = Math.max(1, prev + delta);
+      editDataRecorderRef.current("maxXUris", next);
+      return next;
+    });
+  });
 
   return (
     <View style={styles.container}>
@@ -212,7 +209,7 @@ const RecorderSettings: React.FC = () => {
                 value={dataRecorder.shouldAutoStart}
                 onValueChange={async (value) => {
                   await Haptics.selectionAsync();
-                  editDataRecorder("shouldAutoStart", value);
+                  editDataRecorderRef.current("shouldAutoStart", value);
                 }}
                 style={styles.switch}
               />
@@ -272,7 +269,7 @@ const RecorderSettings: React.FC = () => {
               <IconButton
                 icon="minus"
                 size={22}
-                onPress={() => adjustMaxFiles(-1)}
+                onPress={() => adjustMaxFilesRef.current(-1)}
                 style={styles.listActionButton}
               />
               <View style={styles.stepperValue}>
@@ -281,7 +278,7 @@ const RecorderSettings: React.FC = () => {
               <IconButton
                 icon="plus"
                 size={22}
-                onPress={() => adjustMaxFiles(1)}
+                onPress={() => adjustMaxFilesRef.current(1)}
                 style={styles.listActionButton}
               />
             </View>
@@ -295,7 +292,7 @@ const RecorderSettings: React.FC = () => {
               <Switch
                 onValueChange={async (value) => {
                   await Haptics.selectionAsync();
-                  editDataRecorder("infiniteRecord", value);
+                  editDataRecorderRef.current("infiniteRecord", value);
                 }}
                 value={dataRecorder.infiniteRecord}
                 style={styles.switch}

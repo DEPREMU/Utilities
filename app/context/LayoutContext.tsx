@@ -2,13 +2,10 @@ import {
   Platform,
   TextStyle,
   ViewStyle,
-  Dimensions,
-  ScaledSize,
+  useWindowDimensions,
 } from "react-native";
 import React, {
   useMemo,
-  useState,
-  useEffect,
   ReactNode,
   useContext,
   useCallback,
@@ -97,7 +94,7 @@ const isPlatformWeb = Platform.OS === "web";
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const { colors } = useTheme();
 
-  const [dimensions, setDimensions] = useState(Dimensions.get("window"));
+  const { width, height } = useWindowDimensions();
 
   const rawInsets = useSafeAreaInsets();
 
@@ -111,7 +108,6 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     [rawInsets.top, rawInsets.bottom, rawInsets.left, rawInsets.right],
   );
 
-  const { width, height } = dimensions;
   const isPortrait: boolean = useMemo(() => height >= width, [height, width]);
 
   const isWeb: boolean = useMemo(() => isPlatformWeb && width > 768, [width]);
@@ -192,7 +188,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
 
       return styleToReturn;
     },
-    [colors.shadow, getStylesSafeAreaContainer],
+    [colors, getStylesSafeAreaContainer],
   );
 
   const getResponsiveValue = useCallback(
@@ -210,29 +206,35 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     [isTablet, isLargeTablet, isWeb],
   );
 
-  const layoutData: LayoutContextProps = {
-    isWeb,
-    insets,
-    isPhone,
-    isPortrait,
-    isLargeTablet,
-    getCommonStyles,
-    getResponsiveValue,
-    getStylesSafeAreaContainer,
-    isPlatformWeb,
-    isTablet,
-    height,
-    width,
-  };
-
-  useEffect(() => {
-    const onChange = ({ window }: { window: ScaledSize }) => {
-      setDimensions(window);
-    };
-    const subscription = Dimensions.addEventListener("change", onChange);
-
-    return () => subscription?.remove();
-  }, []);
+  const layoutData: LayoutContextProps = useMemo(
+    () => ({
+      isWeb,
+      insets,
+      isPhone,
+      isPortrait,
+      isLargeTablet,
+      getCommonStyles,
+      getResponsiveValue,
+      getStylesSafeAreaContainer,
+      isPlatformWeb,
+      isTablet,
+      height,
+      width,
+    }),
+    [
+      isWeb,
+      width,
+      height,
+      insets,
+      isPhone,
+      isTablet,
+      isPortrait,
+      isLargeTablet,
+      getCommonStyles,
+      getResponsiveValue,
+      getStylesSafeAreaContainer,
+    ],
+  );
 
   return (
     <LayoutContext.Provider value={layoutData}>

@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/indent */
 import humanizeDuration from "humanize-duration";
 import { Platform, View } from "react-native";
 import * as Notifications from "expo-notifications";
@@ -31,10 +30,10 @@ const TimeToDownload = () => {
 
   const prevIdNotifications = useRef<string | null>(null);
 
-  const handleSelectScale = useCallback((value: ScaleKey) => {
+  const handleSelectScaleRef = useRef((value: ScaleKey) => {
     setScale(value);
     setAccordionExpanded(false);
-  }, []);
+  });
 
   const handleSetAlarm = useCallback(async () => {
     if (Platform.OS !== "android") return;
@@ -106,7 +105,7 @@ const TimeToDownload = () => {
             <List.Item
               key={key}
               title={key}
-              onPress={() => handleSelectScale(key as ScaleKey)}
+              onPress={() => handleSelectScaleRef.current(key as ScaleKey)}
             />
           ))}
         </List.Accordion>

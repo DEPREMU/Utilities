@@ -25,10 +25,10 @@ type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<
 
 const ForgotPasswordScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { forgotPasswordRef } = useUserContext();
   const { styles } = useStylesAuthScreens();
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
-  const { openSnackBar } = useModal();
+  const { dataRef } = useUserContext();
+  const { openSnackBarRef } = useModal();
 
   const [email, setEmail] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +51,7 @@ const ForgotPasswordScreen: React.FC = () => {
     setEmailSent(true);
     setSendingEmail(true);
 
-    forgotPasswordRef.current(email, (success, error) => {
+    dataRef.current.forgotPassword(email, (success, error) => {
       if (!success) {
         setError(error || "Sign up failed");
         setEmailSent(false);
@@ -61,8 +61,8 @@ const ForgotPasswordScreen: React.FC = () => {
 
       setSendingEmail(false);
       setEmailSent(true);
-      openSnackBar(t("successForgotPasswordMessage"), 8000, {
-        label: t("close"),
+      openSnackBarRef.current(t("successForgotPasswordMessage"), 8000, {
+        label: t("common.close"),
       });
     });
   };
@@ -102,7 +102,7 @@ const ForgotPasswordScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>{t("welcome")}</Text>
+        <Text style={styles.title}>{t("common.welcome")}</Text>
 
         {/* Email space */}
         <Animated.View
@@ -114,7 +114,7 @@ const ForgotPasswordScreen: React.FC = () => {
         >
           <TextInput
             style={styles.input}
-            label={t("emailPlaceholder")}
+            label={t("auth.emailPlaceholder")}
             underlineColor="#00a69d"
             activeUnderlineColor="#00a69d"
             keyboardType="email-address"
@@ -129,7 +129,7 @@ const ForgotPasswordScreen: React.FC = () => {
         {!!error && <Text style={styles.errorText}>{error}</Text>}
 
         <ButtonComponent
-          label={sendingEmail ? t("sending") : t("forgotPassword")}
+          label={sendingEmail ? t("common.sending") : t("auth.forgotPassword")}
           disabled={emailSent}
           touchableOpacity
           children={
@@ -150,7 +150,7 @@ const ForgotPasswordScreen: React.FC = () => {
 
         <View style={styles.linksContainer}>
           <ButtonComponent
-            label={t("hasAccount")}
+            label={t("auth.hasAccount")}
             touchableOpacity
             handlePress={handlePressLogin}
             replaceStyles={{

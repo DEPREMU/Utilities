@@ -5,12 +5,12 @@ import {
   RequestDownloadViaTempUrl,
 } from "@types";
 import fs from "fs";
-import env from "../env.ts";
 import path from "path";
 import chalk from "chalk";
 import { v4 } from "uuid";
 import { showError } from "../functions/logger.ts";
 import { UPLOAD_DIR } from "../config.ts";
+import { getEnvValue } from "../env.ts";
 import { sendResponse } from "@common";
 import { getFinalFileName } from "./uploadUpdate.ts";
 import { Request, Response } from "express";
@@ -28,7 +28,7 @@ const tempUrls: TempUrls = {};
 export const createTempDownloadUrl = (data: RequestUploadUpdate) => {
   try {
     const id = v4();
-    const url = env.API_URL.replace(
+    const url = getEnvValue("API_URL").replace(
       "api",
       `updates/download/${data.buildType}/${data.version || "release"}/${data.platformOS || data.buildType}/${id}`,
     );
@@ -56,7 +56,7 @@ export const handleDownload = (
     const { buildType, platformOS, version, id } =
       (req.params as RequestDownloadViaTempUrl) || {};
 
-    const fullUrl = env.API_URL.replace(
+    const fullUrl = getEnvValue("API_URL").replace(
       "api",
       `updates/download/${buildType}/${version}/${platformOS}/${id}`,
     );

@@ -5,9 +5,9 @@ import {
   RequestUploadUpdate,
 } from "@types";
 import fs from "fs";
-import env from "../env.ts";
 import path from "path";
 import { showError } from "../functions/logger.ts";
+import { getEnvValue } from "../env.ts";
 import { getFinalFileName } from "./uploadUpdate.ts";
 import { PATH_DATA_UPDATES, UPLOAD_DIR } from "../config.ts";
 
@@ -110,7 +110,7 @@ export const updateDataUploads = (
         timestamp: Date.now(),
       };
 
-    if (!["1", 1, "true"].includes(env.__DEV__))
+    if (!getEnvValue("__DEV__"))
       fs.writeFileSync(
         PATH_DATA_UPDATES,
         JSON.stringify(dataUploads, null, 2),

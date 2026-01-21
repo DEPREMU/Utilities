@@ -25,40 +25,22 @@ const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
   onClipboardItemsUpdated: () => {
     return;
   },
-  showClipboardWindow: () => {
-    return;
-  },
+  showClipboardWindow: () => void 0,
 
-  vaultPickFiles: async () => ({ canceled: true, paths: [] }),
-  vaultPickFolders: async () => ({ canceled: true, paths: [] }),
-  vaultEnsureInitialized: async () => ({ ok: false, error: "Not Electron" }),
-  vaultLoadSettings: async () => null,
-  vaultSaveSettings: async () => ({ ok: false, error: "Not Electron" }),
-  vaultLoadWrappedMasterKey: async () => null,
-  vaultSaveWrappedMasterKey: async () => ({ ok: false, error: "Not Electron" }),
-  vaultLoadAuthVerifier: async () => null,
-  vaultSaveAuthVerifier: async () => ({ ok: false, error: "Not Electron" }),
-  vaultListFolders: async () => [],
-  vaultCreateFolder: async () => {
-    throw new Error("Not Electron");
-  },
-  vaultUpdateFolder: async () => {
-    throw new Error("Not Electron");
-  },
-  vaultDeleteFolder: async () => false,
-  vaultListItems: async () => [],
-  vaultSaveItemMetadata: async () => ({ ok: false, error: "Not Electron" }),
-  vaultDeleteItem: async () => false,
-  vaultUnlock: async () => ({ ok: false, error: "Not Electron" }),
-  vaultLock: () => {},
-  vaultEncryptPaths: async () => ({ ok: false, error: "Not Electron" }),
-  vaultDecryptToTemp: async () => ({ ok: false, error: "Not Electron" }),
-  vaultCleanTempSession: async () => false,
-  vaultCancelJob: async () => false,
-  vaultZip: async () => ({ ok: false, error: "Not Electron" }),
-  vaultUnzip: async () => ({ ok: false, error: "Not Electron" }),
-  vaultExportBackup: async () => ({ ok: false, error: "Not Electron" }),
-  onVaultProgress: () => {},
+  authenticate: async () => false,
+  copyFileToTemp: async () => ({ success: false }),
+  removeFile: async () => ({ success: false }),
+  getSafeFolder: async () => "unknown",
+  pickFolder: async () => "canceled",
+  encryptFiles: async () => ({ success: false }),
+  renameVaultItem: async () => ({ success: false }),
+  loadEncryptedFiles: async () => [],
+  actionWithVaultItem: async () => ({ success: false }),
+  getFileInfo: async () => null,
+  clearDecryptedFolderDirectory: async () => {},
+  askPath: async () => null,
+  zipFolder: async (_1, _2, _3, _4, onError) =>
+    onError?.(new Error("Not implemented")) || "",
 };
 
 let windowModule: ContextBridgeType["UtilitiesForPC"] = defaultWindow;

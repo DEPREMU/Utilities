@@ -1,13 +1,13 @@
 import fs from "fs";
-import env from "../../env.ts";
 import path from "path";
 import chalk from "chalk";
 import { showError } from "../../functions/logger.ts";
 import { serverPath } from "../../config.ts";
+import { getEnvValue } from "../../env.ts";
 import { Request, Response } from "express";
 
 const webPageDir = path.join(serverPath, "updates", "web-page");
-const UPDATES_SERVER_URL = env.API_URL.replace(
+const UPDATES_SERVER_URL = getEnvValue("API_URL").replace(
   "api",
   "updates/is-update-available",
 );
