@@ -19,7 +19,7 @@ const RecorderNavigator = GetBottomNavigation(
     },
     {
       key: "RecorderSettings",
-      title: "settings",
+      title: "common.settings",
       focusedIcon: "cog",
       unfocusedIcon: "cog-outline",
     },

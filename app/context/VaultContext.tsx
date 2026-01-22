@@ -314,7 +314,10 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                 statesRef.current.currentFolderId ||
                 DEFAULT_VAULT_DATA.DEFAULT_FOLDER_NAME,
             }),
-            <Button label={tTyped("back")} handlePress={onPressDismiss} />,
+            <Button
+              label={tTyped("common.back")}
+              handlePress={onPressDismiss}
+            />,
             onPressDismiss,
           );
           callback?.(false);

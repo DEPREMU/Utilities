@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import {
   log,
+  tTyped,
   logError,
   parseData,
   getRandomId,
@@ -20,10 +21,8 @@ import {
   URL_WEB_SOCKET,
   loadDataStorage,
   CLIPBOARD_WS_URL,
-  getNotifications,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
-  tTyped,
 } from "@utils";
 import { useModal } from "./ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
@@ -180,9 +179,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         log("WebSocket connection opened successfully");
 
         try {
-          const [lang, notifications, hasAdmin, theme] = await Promise.all([
+          const [lang, hasAdmin, theme] = await Promise.all([
             checkLanguage(),
-            getNotifications(),
             loadDataStorage("HAS_ADMIN_ACCESS"),
             loadDataStorage("THEME"),
           ]);
@@ -190,18 +188,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           sendMessageRef.current("main", {
             type: "init",
             userId: userData?.userId || "",
-            notifications,
             theme: theme || "auto",
             language: lang || "en",
             hasAdmin: !!hasAdmin,
           });
-
-          if (notifications)
-            sendMessageRef.current("main", {
-              type: "notifications",
-              data: notifications,
-              userId: userData?.userId || "",
-            });
         } catch (error) {
           logError("Error during WebSocket initialization:", error);
         }

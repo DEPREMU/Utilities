@@ -6,13 +6,13 @@ import {
 } from "@types";
 import { log } from "./debug";
 import { tTyped } from "../translates";
+import { cloneDeep } from "lodash";
 import * as notifications from "expo-notifications";
 import NotificationModule from "../modules/NotificationModule";
 import { Platform, Falsy } from "react-native";
 import { navigateReplace } from "@navigation/navigationRef";
-import { reasonNotification } from "../constants";
-import { areEqualValues, getNotifications } from "./appManagement";
 import { loadDataStorage, saveDataStorage } from "./storageManagement";
+import { objByReasonNotification, reasonNotification } from "../constants";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -32,11 +32,16 @@ export const isNotificationsAlreadyInitialized = (
 ): notificationsData is Notifications => {
   if (!notificationsData) return false;
 
-  const { enabled, intervals } = notificationsData;
-  const keysEnabled = Object.keys(enabled || {});
-  const keysIntervals = Object.keys(intervals || {});
+  const keys = Object.keys(notificationsData) as Array<keyof Notifications>;
 
-  return areEqualValues(true, keysEnabled, keysIntervals, reasonNotification);
+  const countValuesKeys = keys
+    .map((key) => Object.keys(notificationsData[key]))
+    .map((subKeys) => subKeys.length)
+    .reduce((a, b) => a + b, 0);
+  const countValuesExpected =
+    Object.keys(objByReasonNotification).length * reasonNotification.length;
+
+  return countValuesKeys === countValuesExpected;
 };
 
 /**
@@ -46,51 +51,33 @@ export const isNotificationsAlreadyInitialized = (
  */
 export const initializeNotificationsStorage =
   async (): Promise<Notifications> => {
-    let notificationsData = await loadDataStorage("NOTIFICATIONS");
+    const notificationsData = await loadDataStorage("NOTIFICATIONS");
 
     if (isNotificationsAlreadyInitialized(notificationsData))
       return notificationsData;
 
-    const pausedNotifications = {} as Notifications["paused"];
-    const enabledNotifications = {} as Notifications["enabled"];
-    const intervalsNotifications = {} as Notifications["intervals"];
-    reasonNotification.forEach((reason) => {
-      if (reason === "streamers") {
-        enabledNotifications[reason] = {};
-      } else {
-        enabledNotifications[reason] = false;
-        pausedNotifications[reason] = { isPaused: false, timePaused: -1 };
-      }
-      intervalsNotifications[reason] = null;
-      if (reason === "cryptos") intervalsNotifications[reason] = 1000 * 60 * 10;
-    });
-
-    if (!notificationsData || typeof notificationsData !== "object") {
-      const { status } = await notifications.requestPermissionsAsync();
-      if (status !== notifications.PermissionStatus.GRANTED) {
-        notificationsData = {
-          enabled: { ...enabledNotifications, allNotifications: false },
-          paused: pausedNotifications,
-          intervals: intervalsNotifications,
-        };
-        saveDataStorage("NOTIFICATIONS", notificationsData);
-        return notificationsData;
+    const newNotifications = reasonNotification.reduce((acc, reason) => {
+      acc[reason] = cloneDeep(objByReasonNotification) as never;
+      switch (reason) {
+        case "downDetector":
+          acc[reason].enabled = true;
+          break;
+        case "streamers":
+          acc[reason].streamersList = [];
+          break;
+        case "cryptos":
+          acc[reason].interval = 1000 * 60 * 10;
+          break;
+        default:
+          break;
       }
 
-      notificationsData = {
-        enabled: { ...enabledNotifications, allNotifications: true },
-        paused: pausedNotifications,
-        intervals: intervalsNotifications,
-      };
-      saveDataStorage("NOTIFICATIONS", notificationsData);
-      return notificationsData;
-    }
+      return acc;
+    }, {} as Notifications);
 
-    const newNotifications: Notifications = {
-      enabled: { ...enabledNotifications, allNotifications: true },
-      paused: { ...pausedNotifications },
-      intervals: { ...intervalsNotifications },
-    };
+    const { status } = await notifications.requestPermissionsAsync();
+    newNotifications.allNotifications.enabled =
+      status === notifications.PermissionStatus.GRANTED;
 
     saveDataStorage("NOTIFICATIONS", newNotifications);
     return newNotifications;
@@ -106,22 +93,17 @@ export const initializeNotificationsStorage =
  * @returns {Promise<boolean>} A promise that resolves to `true` if push notification permission is granted, otherwise `false`.
  */
 export const hasPushNotifications = async (): Promise<boolean> => {
-  const promise = await Promise.all([
-    notifications.requestPermissionsAsync(),
-    getNotifications(),
-  ]);
-  const { status } = promise[0];
-  let notificationsData = promise[1];
-  if (!notificationsData)
-    notificationsData = await initializeNotificationsStorage();
+  const { status } = await notifications.requestPermissionsAsync();
+  const notificationsData =
+    notificationsManager.getNotification("allNotifications");
 
   if (status === notifications.PermissionStatus.GRANTED)
-    return notificationsData.enabled.allNotifications;
+    return notificationsData.enabled;
 
   const { status: newStatus } = await notifications.requestPermissionsAsync();
   if (newStatus !== notifications.PermissionStatus.GRANTED) return false;
 
-  return notificationsData.enabled.allNotifications;
+  return notificationsData.enabled;
 };
 
 /**
@@ -256,3 +238,71 @@ export const configureNotificationChannel = async () => {
     ),
   );
 };
+
+class NotificationsManager {
+  constructor() {
+    initializeNotificationsStorage().then((data) => {
+      this.notifications = data;
+    });
+  }
+
+  private notifications: Notifications = null as unknown as Notifications;
+
+  public getNotifications = (): Notifications => {
+    return this.notifications;
+  };
+
+  public getNotification = <T extends ReasonNotification>(
+    reason: T,
+  ): Notifications[T] => {
+    const notificationsData = this.notifications;
+    return notificationsData[reason];
+  };
+
+  public editNotification = async <T extends ReasonNotification>(
+    reason: T,
+    data:
+      | Notifications[T]
+      | ((prev: Notifications[T]) => Partial<Notifications[T]>),
+    callback?: (
+      notifications: Notifications,
+      notification: Notifications[T],
+    ) => void,
+  ): Promise<void> => {
+    const notificationsData = this.notifications;
+
+    const prevData = notificationsData[reason];
+    const newData = typeof data === "function" ? data(prevData) : { ...data };
+
+    this.notifications = {
+      ...notificationsData,
+      [reason]: {
+        ...prevData,
+        ...newData,
+      },
+    };
+
+    await saveDataStorage("NOTIFICATIONS", this.notifications);
+    if (callback) callback(this.notifications, this.notifications[reason]);
+  };
+
+  public editNotifications = async (
+    data:
+      | Partial<Notifications>
+      | ((prev: Notifications) => Partial<Notifications>),
+  ): Promise<void> => {
+    const notificationsData = this.notifications;
+
+    const newData =
+      typeof data === "function" ? data(notificationsData) : { ...data };
+
+    this.notifications = {
+      ...notificationsData,
+      ...newData,
+    };
+
+    await saveDataStorage("NOTIFICATIONS", this.notifications);
+  };
+}
+
+export const notificationsManager = new NotificationsManager();

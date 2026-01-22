@@ -9,17 +9,16 @@ import {
   saveDataStorage,
   loadDataStorage,
   setIntervalPolyfill,
+  notificationsManager,
   clearIntervalPolyfill,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import { Streamer } from "@types";
 import { useModal } from "@context/ModalContext";
-import { cloneDeep } from "lodash";
 import { useLanguage } from "@context/LanguageContext";
 import { useBackground } from "@context/BackgroundContext";
 import { useUserContext } from "@context/UserContext";
 import { View, ScrollView } from "react-native";
-import { useNotifications } from "@context/NotificationsContext";
 import { useStylesStreamers } from "@styles/screens/SocialMedia/useStylesStreamers";
 import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -28,11 +27,10 @@ type StreamerWithIsLive = Streamer & { isLive: boolean };
 
 const Streamers: React.FC = () => {
   const { styles } = useStylesStreamers();
+  const { statesRef } = useBackground();
   const { t, language } = useLanguage();
-  const { hasInternet } = useBackground();
   const { userData, sessionToken } = useUserContext();
   const { openModalRef, closeModalRef } = useModal();
-  const { notifications, setNotifications } = useNotifications();
 
   const [streamer, setStreamer] = useState<string>("");
   const [streamers, setStreamers] = useState<StreamerWithIsLive[]>([]);
@@ -81,15 +79,14 @@ const Streamers: React.FC = () => {
 
       if (Object.keys(data.streamer || {}).length > 3) {
         setStreamers((prev) => [...prev, data.streamer as StreamerWithIsLive]);
-        setNotifications((prev) => {
-          if (!prev || !userData?.userId) return prev;
-          const newNotifications = cloneDeep(prev);
-          newNotifications.enabled.streamers = {
-            ...(newNotifications.enabled?.streamers || {}),
-            [streamer]: { name: data.streamer?.name || "", enabled: false },
+        notificationsManager.editNotification("streamers", (prev) => {
+          return {
+            ...prev,
+            streamersList: [
+              ...(prev.streamersList || []),
+              { name: data.streamer?.name || "", enabled: false },
+            ],
           };
-
-          return newNotifications;
         });
       }
     } catch (error) {
@@ -98,34 +95,27 @@ const Streamers: React.FC = () => {
     }
 
     setStreamer("");
-  }, [
-    t,
-    streamer,
-    streamers,
-    openModalRef,
-    closeModalRef,
-    userData?.userId,
-    setNotifications,
-  ]);
-
-  const addStreamer = useCallback(() => {
-    addingStreamer();
-    closeModalRef.current();
-  }, [addingStreamer, closeModalRef]);
+  }, [t, streamer, streamers, openModalRef, closeModalRef, userData?.userId]);
 
   const askAddStreamer = useCallback(async () => {
-    if (!hasInternet) return;
+    if (!statesRef.current.hasInternet) return;
 
     const streamerName = capitalize(streamer);
     openModalRef.current(
       t("askAddStreamerTitle"),
       t("askAddStreamerBody", { name: streamerName }),
       <>
-        <Button label={t("yes")} handlePress={addStreamer} />
+        <Button
+          label={t("yes")}
+          handlePress={() => {
+            addingStreamer();
+            closeModalRef.current();
+          }}
+        />
         <Button label={t("no")} handlePress={closeModalRef.current} />
       </>,
     );
-  }, [addStreamer, closeModalRef, openModalRef, streamer, t, hasInternet]);
+  }, [closeModalRef, openModalRef, streamer, t, statesRef, addingStreamer]);
 
   const deleteStreamer = useCallback(
     async (id: string) => {
@@ -179,30 +169,29 @@ const Streamers: React.FC = () => {
 
         return prev.filter((streamer) => streamer.id !== id);
       });
-      setNotifications((prev) => {
-        if (!prev || !userData?.userId) return prev;
-        const newNotifications = cloneDeep(prev);
 
-        if (newNotifications.enabled.streamers[id])
-          delete newNotifications.enabled.streamers[id];
+      notificationsManager.editNotification("streamers", (prev) => {
+        const streamerExists = prev.streamersList.find(
+          (streamer) => streamer.name === id,
+        );
 
-        return newNotifications;
+        if (!streamerExists) return prev;
+
+        const newStreamersList = prev.streamersList.filter(
+          (streamer) => streamer.name !== streamerExists?.name,
+        );
+        return {
+          ...prev,
+          streamersList: newStreamersList,
+        };
       });
     },
-    [
-      t,
-      language,
-      openModalRef,
-      sessionToken,
-      closeModalRef,
-      userData?.userId,
-      setNotifications,
-    ],
+    [t, language, openModalRef, sessionToken, closeModalRef, userData?.userId],
   );
 
   const askDeleteStreamer = useCallback(
     (streamer: Streamer) => {
-      if (!hasInternet) return;
+      if (!statesRef.current.hasInternet) return;
 
       const streamerName = capitalize(streamer.name || streamer.id || "");
       openModalRef.current(
@@ -218,7 +207,7 @@ const Streamers: React.FC = () => {
         </>,
       );
     },
-    [closeModalRef, openModalRef, t, deleteStreamer, hasInternet],
+    [closeModalRef, openModalRef, t, deleteStreamer, statesRef],
   );
 
   const handleOpenURLStreamer = useCallback(
@@ -252,23 +241,19 @@ const Streamers: React.FC = () => {
 
   const toggleNotifications = useCallback(
     async (streamerName: string, newBool: boolean) => {
-      if (!streamerName || !notifications || !setNotifications || !hasInternet)
-        return;
+      if (!streamerName || !statesRef.current.hasInternet) return;
 
-      setNotifications((prev) => {
-        if (!prev) return prev;
-
-        const newNotifications = cloneDeep(prev);
-        newNotifications.enabled.streamers = {
-          ...(newNotifications.enabled?.streamers || {}),
-          [streamerName]: {
-            ...newNotifications.enabled.streamers[streamerName],
-            enabled: newBool,
-          },
+      notificationsManager.editNotification("streamers", (prev) => {
+        return {
+          ...prev,
+          streamersList: prev.streamersList.map((streamer) =>
+            streamer.name === streamerName
+              ? { ...streamer, enabled: newBool }
+              : streamer,
+          ),
         };
-
-        return newNotifications;
       });
+
       if (!userData?.userId || !sessionToken) return;
 
       const deviceId = await loadDataStorage("DEVICE_ID");
@@ -289,14 +274,7 @@ const Streamers: React.FC = () => {
         sessionToken,
       );
     },
-    [
-      notifications,
-      setNotifications,
-      userData?.userId,
-      hasInternet,
-      language,
-      sessionToken,
-    ],
+    [userData?.userId, statesRef, language, sessionToken],
   );
 
   useEffect(() => {
@@ -306,7 +284,7 @@ const Streamers: React.FC = () => {
   }, [streamers]);
 
   useEffect(() => {
-    if (!userData?.userId || !hasInternet) {
+    if (!userData?.userId || !statesRef.current.hasInternet) {
       openModalRef.current(
         t("error"),
         t("youAreNotLoggedIn"),
@@ -377,7 +355,7 @@ const Streamers: React.FC = () => {
         );
 
         let newData: StreamerWithIsLive[] | null = null;
-        if (hasInternet)
+        if (statesRef.current.hasInternet)
           newData = await Promise.all(
             allStreamers.map(async (streamer: StreamerWithIsLive) => {
               const res = await fetchToServer("/getIsLiveStreamer", {
@@ -404,7 +382,7 @@ const Streamers: React.FC = () => {
     t,
     userData?.userId,
     language,
-    hasInternet,
+    statesRef,
     openModalRef,
     sessionToken,
     closeModalRef,
@@ -439,7 +417,10 @@ const Streamers: React.FC = () => {
       >
         {streamers.map((streamer, index) => {
           const notificationsEnabled =
-            notifications?.enabled.streamers?.[streamer.name]?.enabled || false;
+            notificationsManager
+              .getNotification("streamers")
+              .streamersList.find((s) => s.name === streamer.name)?.enabled ||
+            false;
 
           return (
             <Card key={index} style={styles.containerStreamer}>
@@ -496,7 +477,7 @@ const Streamers: React.FC = () => {
               </Card.Content>
               <View style={styles.notificationsContainer}>
                 <Text style={styles.notificationsTitle}>
-                  {t("notifications")}
+                  {t("common.notifications")}
                 </Text>
                 <Switch
                   value={notificationsEnabled}

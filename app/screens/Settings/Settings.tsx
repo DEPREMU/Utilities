@@ -18,11 +18,9 @@ import {
 import Button from "@components/common/ButtonComponent";
 import ThemePicker from "@components/Settings/ThemePicker";
 import { cloneDeep } from "lodash";
-import Notifications from "@components/Settings/Notifications";
 import LanguagePicker from "@components/Settings/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
-import { useBackground } from "@context/BackgroundContext";
 import { useUserContext } from "@context/UserContext";
 import { typeLanguagesKeys } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
@@ -55,7 +53,6 @@ const getDefaultUpdatesData = (): UpdatesData => ({
 
 const SettingsScreen: React.FC = () => {
   const { t, language } = useLanguage();
-  const { hasInternet } = useBackground();
   const { setSocketURL } = useWebSocket();
   const { styles, colors } = useStylesSettingsScreen();
   const { addTaskQueueRef } = useBackgroundTask();
@@ -68,8 +65,6 @@ const SettingsScreen: React.FC = () => {
   const [updatesData, setUpdatesData] = useState<UpdatesData>(
     getDefaultUpdatesData(),
   );
-  const [isOtherScrollActive, setIsOtherScrollActive] =
-    useState<boolean>(false);
 
   const handleCheckForUpdatesRef = useRef(async () => {
     if (Platform.OS === "web") return;
@@ -111,10 +106,6 @@ const SettingsScreen: React.FC = () => {
       ],
       { cancelable: false },
     );
-  });
-
-  const handleOtherScrollActiveRef = useRef((touching: boolean) => {
-    setIsOtherScrollActive(touching);
   });
 
   const handleCheckPasswordAdminSection = useCallback(async () => {
@@ -234,8 +225,8 @@ const SettingsScreen: React.FC = () => {
   const renderSectionsAdmin = useCallback(() => {
     const sections: Section[] = [
       {
-        subtitle: "setApiURL",
-        labelTextInput: "apiURL",
+        subtitle: "settings.setApiURL",
+        labelTextInput: "settings.apiURL",
         value: apiURL,
         onChangeText: setApiURL,
         placeholder: "https://api.example.com",
@@ -243,8 +234,8 @@ const SettingsScreen: React.FC = () => {
         labelButton: "save",
       },
       {
-        subtitle: "setWebSocketURL",
-        labelTextInput: "webSocketURL",
+        subtitle: "settings.setWebSocketURL",
+        labelTextInput: "settings.webSocketURL",
         value: socketURL,
         onChangeText: setSocketURLState,
         placeholder: "wss://socket.example.com",
@@ -304,11 +295,10 @@ const SettingsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.contentWrapper}>
-        <Text style={styles.title}>{t("settings")}</Text>
+        <Text style={styles.title}>{t("common.settings")}</Text>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
-          scrollEnabled={!isOtherScrollActive}
         >
           <View style={styles.section}>
             <ThemePicker />
@@ -316,15 +306,6 @@ const SettingsScreen: React.FC = () => {
           <View style={styles.section}>
             <LanguagePicker />
           </View>
-
-          {hasInternet && (
-            <View style={styles.section}>
-              <Text style={styles.subtitle}>{t("notifications")}</Text>
-              <Notifications
-                onScrollableAreaTouch={handleOtherScrollActiveRef.current}
-              />
-            </View>
-          )}
 
           <View style={styles.section}>
             <Text style={styles.subtitle}>

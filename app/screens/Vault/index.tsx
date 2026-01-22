@@ -39,7 +39,7 @@ const routes: Route[] = [
   },
   {
     key: "settings",
-    title: "settings",
+    title: "common.settings",
     focusedIcon: "cog",
   },
 ] as const;

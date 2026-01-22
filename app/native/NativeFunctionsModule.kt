@@ -331,4 +331,22 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
             )
         }
     }
+
+    @ReactMethod
+    fun isDoNotDisturbEnabled(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val nm =
+                context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            val isEnabled = nm.currentInterruptionFilter != android.app.NotificationManager.INTERRUPTION_FILTER_ALL
+            promise.resolve(isEnabled)
+        } catch (e: Exception) {
+            Log.e("NativeFunctionsModule", "Error checking DND status", e)
+            promise.reject(
+                "E_CHECK_DND_STATUS",
+                "Error checking DND status: ${e.message}",
+                e
+            )   
+        }
+    }
 }

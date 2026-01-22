@@ -16,14 +16,8 @@ export type WebSocketMessage<T extends "sentByApp" | "sentByServer"> =
             type: "init";
             userId: string;
             language: LanguagesSupported;
-            notifications: typeNotifications | null;
             hasAdmin: boolean;
             theme: "light" | "dark" | "auto";
-          }
-        | {
-            type: "notifications";
-            data: typeNotifications;
-            userId: string;
           }
         | {
             type: "language-change";

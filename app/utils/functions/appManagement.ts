@@ -1,6 +1,5 @@
 import {
   AlbumsImages,
-  Notifications,
   ReturnSelectImage,
   LanguagesSupported,
   DownloadableMimeType,
@@ -22,7 +21,6 @@ import { loadDataStorage } from "./storageManagement";
 import * as DocumentPicker from "expo-document-picker";
 import { Alert, Falsy, Platform } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
-import { initializeNotificationsStorage } from "./notifications";
 import { ExpectedStorageTypes, wrapFunctionWithError } from "@common";
 
 const URL_GOOGLE_204 = "https://www.google.com/generate_204";
@@ -232,18 +230,6 @@ export const getDateWithDaysAhead = (days: number): Date => {
   const date = new Date();
   date.setDate(date.getDate() + days);
   return date;
-};
-
-/**
- * Retrieves the notifications data from storage.
- *
- * This function initializes the notifications storage if it hasn't been set up yet.
- * It returns the current notifications data or null if not found.
- *
- * @returns A promise that resolves to the notifications data or null.
- */
-export const getNotifications = async (): Promise<Notifications> => {
-  return await initializeNotificationsStorage();
 };
 
 export const getCryptosFromDatabase = async (

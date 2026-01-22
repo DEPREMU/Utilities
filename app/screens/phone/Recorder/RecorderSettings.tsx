@@ -168,7 +168,7 @@ const RecorderSettings: React.FC = () => {
       >
         <View style={styles.contentWidth}>
           <View style={styles.headline}>
-            <Text style={styles.title}>{t("settings")}</Text>
+            <Text style={styles.title}>{t("common.settings")}</Text>
             <Text style={styles.subtitle}>{t("recorder.label")}</Text>
           </View>
 

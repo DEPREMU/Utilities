@@ -42,12 +42,18 @@ type TimeControls = Record<
   dataTimeControl | null
 >;
 
-type BackgroundContextType = {
+type StatesObj = {
   statePhone: typeDataReceivedState["state"] | null;
   hasInternet: boolean;
   isBackground: boolean;
-  hasInternetRef: React.RefObject<boolean>;
-  timeControlsRef: React.RefObject<TimeControls>;
+};
+
+type BackgroundContextType = {
+  statesRef: React.RefObject<StatesObj>;
+  statePhone: StatesObj["statePhone"];
+  hasInternet: StatesObj["hasInternet"];
+  isBackground: StatesObj["isBackground"];
+
   initIntervalTimeoutsRef: React.RefObject<
     (id: keyof TimeControls, data: dataTimeControl) => void
   >;
@@ -72,7 +78,14 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
   const [statePhone, setStatePhone] =
     useState<typeDataReceivedState["state"]>("resumed");
 
-  const hasInternetRef = useRef<boolean>(true);
+  const statesRef = useRef<StatesObj>({
+    statePhone,
+    hasInternet,
+    isBackground,
+  });
+  statesRef.current.statePhone = statePhone;
+  statesRef.current.hasInternet = hasInternet;
+  statesRef.current.isBackground = isBackground;
 
   const timeControlsRef = React.useRef<TimeControls>({
     deviceInfo: null,
@@ -144,8 +157,6 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
   }, []);
 
   useEffect(() => {
-    hasInternetRef.current = hasInternet;
-
     const id = setTimeoutPolyfill(() => {
       Object.entries(timeControlsRef.current).forEach(([key, data]) => {
         if (!data?.workWithInternet || !data.shouldRestartAuto) return;
@@ -252,10 +263,10 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
   const value: BackgroundContextType = useMemo(
     () => ({
+      statesRef,
       statePhone,
       hasInternet,
       isBackground,
-      hasInternetRef,
       timeControlsRef,
       initIntervalTimeoutsRef,
       deleteIntervalTimeoutRef,

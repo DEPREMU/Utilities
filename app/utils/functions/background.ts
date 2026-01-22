@@ -1,12 +1,8 @@
-import {
-  areEqualValues,
-  getNotifications,
-  setTimeoutPolyfill,
-} from "./appManagement";
 import { tTyped } from "../translates";
 import * as Location from "expo-location";
-import { saveDataStorage } from "./storageManagement";
 import NativeFunctionsModule from "../modules/NativeFunctionsModule";
+import { setTimeoutPolyfill } from "./appManagement";
+import { notificationsManager } from "./notifications";
 import { Alert, AppState, Platform } from "react-native";
 
 /**
@@ -86,11 +82,10 @@ export const askLocationPermission = async (): Promise<boolean> => {
     granted = status === "granted";
   }
 
-  const notifications = await getNotifications();
-  const newNotifications = { ...notifications };
-  newNotifications.enabled.locationEnabled = granted;
-  if (!areEqualValues(false, notifications, newNotifications))
-    await saveDataStorage("NOTIFICATIONS", newNotifications);
+  notificationsManager.editNotification("locationEnabled", (prev) => ({
+    ...prev,
+    enabled: granted,
+  }));
 
   return granted;
 };

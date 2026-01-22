@@ -1,9 +1,22 @@
 import windowModule from "../modules/WindowModule";
+import { PlatformData } from "./platform";
 
-let isElectron = false;
+const DATA_PLATFORM: PlatformData = {
+  isElectron: false,
+  hasBattery: false,
+  version: "",
+};
 
 windowModule.isElectronBuild().then((result) => {
-  isElectron = result;
+  DATA_PLATFORM.isElectron = result;
+});
+windowModule.getNativeData("hasBattery").then((result) => {
+  if (result === "unknown") return;
+
+  DATA_PLATFORM.hasBattery = result as boolean;
+});
+windowModule.getNativeData("version").then((result) => {
+  DATA_PLATFORM.version = result as string;
 });
 
-export { isElectron };
+export { DATA_PLATFORM };

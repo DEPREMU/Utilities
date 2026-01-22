@@ -66,8 +66,10 @@ const env: Env = {
   IV: process.env.IV || "abcdef9876543210",
 };
 
+const trueArray = ["true", "1", "yes", "on"];
+
 const envTranslated: EnvTranslated = {
-  __DEV__: env.__DEV__ === "true",
+  __DEV__: trueArray.includes(env.__DEV__),
   WS_URL: env.WS_URL,
   API_URL: env.API_URL,
   DB_USER: env.DB_USER,
@@ -75,13 +77,13 @@ const envTranslated: EnvTranslated = {
   DB_PASS: env.DB_PASS,
   DB_NAME: env.DB_NAME,
   DB_HOST: env.DB_HOST,
-  USE_HTTPS: env.USE_HTTPS === "true",
+  USE_HTTPS: trueArray.includes(env.USE_HTTPS),
   JWT_SECRET: env.JWT_SECRET,
   ADMIN_PASSWORD: env.ADMIN_PASSWORD,
   VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY,
   DB_ENCRYPTION_PASS: env.DB_ENCRYPTION_PASS,
-  DELETE_OLD_SESSIONS: env.DELETE_OLD_SESSIONS === "true",
+  DELETE_OLD_SESSIONS: trueArray.includes(env.DELETE_OLD_SESSIONS),
   DEEPL_TRANSLATOR_API: env.DEEPL_TRANSLATOR_API,
   FIREBASE_SERVICE_ACCOUNT: env.FIREBASE_SERVICE_ACCOUNT,
   SECRET_KEY_TO_ENCRYPTION: env.SECRET_KEY_TO_ENCRYPTION,

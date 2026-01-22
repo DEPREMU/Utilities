@@ -1,15 +1,14 @@
 import Button from "@components/common/ButtonComponent";
-import windowModule from "@/utils/modules/WindowModule";
-import { isElectron } from "@utils";
 import { List, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
+import { DATA_PLATFORM } from "@utils";
 import { useBackground } from "@context/BackgroundContext";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
+import React, { useRef, useMemo } from "react";
 import { Platform, ScrollView, View } from "react-native";
 import { ScreensAvailable, typeLanguagesKeys } from "@types";
-import React, { useRef, useMemo, useState, useEffect } from "react";
 
 type ButtonType = {
   label: typeLanguagesKeys;
@@ -51,7 +50,7 @@ const buttonsDev: ButtonType[] = [
 ];
 
 const buttons: ButtonType[] = [
-  { label: "settings", screen: "Settings", noNeedsSession: true },
+  { label: "common.settings", screen: "Settings", noNeedsSession: true },
   { label: "infoIP", screen: "InfoIP", noNeedsSession: true },
   { label: "cryptoInfo", screen: "Cryptos" },
   {
@@ -107,8 +106,6 @@ const HomeScreen: React.FC = () => {
   const { styles, background } = useStylesHomeScreen();
   const { userData, dataRef, isLoggedIn, loggingIn } = useUserContext();
 
-  const [version, setVersion] = useState<string>("");
-
   const handleLoginInWebRef = useRef(() => {
     if (Platform.OS === "web") return;
 
@@ -121,7 +118,7 @@ const HomeScreen: React.FC = () => {
     return buttons.map((button, i) =>
       Platform.OS === "web" &&
       button.screen === "Vault" &&
-      !isElectron ? null : (
+      !DATA_PLATFORM.isElectron ? null : (
         <View style={styles.buttonContainer} key={i}>
           <List.Icon
             style={styles.leftIcon}
@@ -129,7 +126,7 @@ const HomeScreen: React.FC = () => {
             icon={
               (hasInternet ||
                 button.noNeedsInternet ||
-                button.label === "settings") &&
+                button.label === "common.settings") &&
               (isLoggedIn || button.noNeedsSession)
                 ? "check-circle"
                 : "cancel"
@@ -139,7 +136,7 @@ const HomeScreen: React.FC = () => {
             disabled={
               (!hasInternet &&
                 !button.noNeedsInternet &&
-                button.label !== "settings") ||
+                button.label !== "common.settings") ||
               (!button.noNeedsSession && !isLoggedIn)
             }
             label={t(button.label)}
@@ -159,21 +156,14 @@ const HomeScreen: React.FC = () => {
     isLoggedIn,
   ]);
 
-  useEffect(() => {
-    const fetchVersion = async () => {
-      if (Platform.OS !== "web") return;
-
-      const version = await windowModule.getNativeData("version");
-      setVersion(String(version));
-    };
-    fetchVersion();
-  }, []);
-
   return (
     <View style={styles.container}>
       {isLoggedIn && (
         <View style={styles.headerButtonsContainer}>
-          <Button label={t("logout")} handlePress={dataRef.current.logout} />
+          <Button
+            label={t("common.logout")}
+            handlePress={dataRef.current.logout}
+          />
           {Platform.OS !== "web" && (
             <Button
               label={t("loginWithQR")}
@@ -208,7 +198,7 @@ const HomeScreen: React.FC = () => {
       {Platform.OS === "web" && (
         <Text style={styles.footer}>
           {t("appVersion", {
-            version,
+            version: DATA_PLATFORM.version,
           })}
         </Text>
       )}

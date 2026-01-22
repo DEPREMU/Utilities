@@ -40,11 +40,11 @@ const GetBottomNavigation = <T extends Route[]>(
         shifting
         sceneAnimationEnabled
         style={styles.tabBar}
-        activeColor={colors.background}
-        inactiveColor={colors.text}
         barStyle={{ backgroundColor: colors.primary }}
         renderScene={renderScene}
+        activeColor={colors.background}
         onIndexChange={setIndex}
+        inactiveColor={colors.text}
         navigationState={{ index, routes: routesNavigator }}
       />
     );

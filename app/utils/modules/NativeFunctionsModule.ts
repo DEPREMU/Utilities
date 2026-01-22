@@ -25,6 +25,7 @@ export interface Spec extends TurboModule {
   >;
   minimizeApp: () => void;
   wasLaunchedFromService: () => Promise<boolean>;
+  isDoNotDisturbEnabled: () => Promise<boolean>;
 }
 
 const defaultNativeFunctionsModule: Spec = {
@@ -40,6 +41,7 @@ const defaultNativeFunctionsModule: Spec = {
   requestAutoStartPermission: async () => "GENERIC_SETTINGS_OPENED",
   minimizeApp: () => {},
   wasLaunchedFromService: async () => false,
+  isDoNotDisturbEnabled: async () => false,
 };
 
 const NativeFunctionsModule =

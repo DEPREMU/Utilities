@@ -1,7 +1,6 @@
 import React, {
   useRef,
   useMemo,
-  useState,
   useEffect,
   ReactNode,
   useContext,
@@ -9,7 +8,6 @@ import React, {
 } from "react";
 import {
   Notification,
-  Notifications as NotificationsType,
   EventNativeModule,
   ReasonNotification,
   NotificationAction,
@@ -17,14 +15,14 @@ import {
 import {
   tTyped,
   logError,
-  stringifyData,
+  DATA_PLATFORM,
   loadDataStorage,
-  saveDataStorage,
-  getNotifications,
   isLocationEnabled,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
+  notificationsManager,
 } from "@utils";
+import DeviceInfo from "react-native-device-info";
 import { useModal } from "./ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
 import * as Location from "expo-location";
@@ -37,7 +35,7 @@ import NotificationModule from "@/utils/modules/NotificationModule";
 import { navigateReplace } from "@/navigation/navigationRef";
 import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
 import { useDeviceInformation } from "./DeviceInformationContext";
-import { DeviceEventEmitter, AppState, Platform } from "react-native";
+import { DeviceEventEmitter, Platform } from "react-native";
 
 type SendNotification = (
   notification: Omit<Notification, "id" | "timestamp">,
@@ -47,10 +45,6 @@ interface NotificationsContextType {
   sendNotificationRef: React.RefObject<SendNotification>;
   removeNotificationRef: React.RefObject<
     (id: number, reasonNotification: ReasonNotification) => void
-  >;
-  notifications?: NotificationsType | null;
-  setNotifications: React.Dispatch<
-    React.SetStateAction<NotificationsType | null>
   >;
 }
 
@@ -65,6 +59,7 @@ interface NotificationsProviderProps {
 export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   children,
 }) => {
+  const { statesRef } = useBackground();
   const { deviceInfo } = useDeviceInformation();
   const { t, language } = useLanguage();
   const { openSnackBarRef } = useModal();
@@ -72,93 +67,127 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   const { hasInternet, initIntervalTimeoutsRef, deleteIntervalTimeoutRef } =
     useBackground();
 
-  const [notifications, setNotifications] = useState<NotificationsType | null>(
-    null,
-  );
-
   const prevHasInternet = useRef<boolean | null>(null);
-  const notificationsFromStorage = useRef<NotificationsType | null>(null);
 
   const sendNotificationRef = useRef(
     async (notification: Omit<Notification, "id" | "timestamp">) => {
-      const notifications = await getNotifications();
-
       try {
+        const localNotification = notificationsManager.getNotification(
+          notification.reasonNotification,
+        );
+
+        if (!localNotification?.enabled) return;
+
         if (
           notification.reasonNotification !== "streamers" &&
-          notifications.paused[notification.reasonNotification]?.isPaused
+          localNotification?.paused
         ) {
-          const timePaused =
-            notifications.paused[notification.reasonNotification]?.timePaused;
-          if (Date.now() < timePaused) return Promise.resolve("");
+          const timePaused = localNotification?.paused.timePaused || 0;
+          if (Date.now() < timePaused) return;
 
-          const newNotifications = { ...notifications };
-          newNotifications.paused[notification.reasonNotification] = {
-            isPaused: false,
-            timePaused: -1,
-          };
-
-          await saveDataStorage("NOTIFICATIONS", newNotifications);
-          setNotifications(newNotifications);
-          notificationsFromStorage.current = newNotifications;
-        }
-      } catch (error) {
-        logError("Error checking paused notifications", error);
-      }
-
-      if (AppState.currentState === "active") {
-        openSnackBarRef.current(
-          [notification.title, notification.message].join("\n"),
-          8000,
-        );
-        return Promise.resolve("");
-      }
-      if (Platform.OS === "web") {
-        windowModule.sendNotification({
-          body: notification.message,
-          title: notification.title,
-          actions: notification.actions?.map((action) => ({
-            type: "button",
-            text: action.title,
-          })),
-          closeButtonText: t("common.close"),
-          reasonNotification: notification.reasonNotification,
-        });
-
-        return Promise.resolve("");
-      }
-      if (!notifications?.enabled?.[notification.reasonNotification])
-        return Promise.resolve("");
-
-      if (Platform.OS === "android") {
-        try {
-          const notificationId = Math.floor(Math.random() * 1000000);
-
-          await NotificationModule.sendNotification(
-            notificationId,
-            notification.title,
-            notification.message,
-            notification.channelId,
+          notificationsManager.editNotification(
             notification.reasonNotification,
-            true,
-            notification.data || {},
-            notification.actions || null,
+            (prev) => {
+              return {
+                ...prev,
+                paused: {
+                  isPaused: false,
+                  timePaused: -1,
+                },
+              };
+            },
           );
-
-          return String(notificationId);
-        } catch (error) {
-          logError("Error sending native notification", error);
         }
-      }
 
-      return await Notifications.scheduleNotificationAsync({
-        content: {
-          title: notification.title,
-          body: notification.message,
-          data: { type: notification.type, ...notification.data },
-        },
-        trigger: notification.trigger || null,
-      });
+        if (!statesRef.current.isBackground) {
+          if (
+            !localNotification.behavior.onlyWhenScreenOff &&
+            !localNotification.behavior.onlyWhenAppInBackground
+          )
+            openSnackBarRef.current(
+              [notification.title, notification.message].join("\n"),
+              8000,
+            );
+
+          return;
+        }
+
+        if (localNotification.behavior.onlyDuringSpecificHours.enabled) {
+          const currentHour = new Date().getHours();
+          const { startHour, endHour } =
+            localNotification.behavior.onlyDuringSpecificHours;
+
+          if (currentHour < startHour || currentHour >= endHour) return;
+        }
+
+        if (Platform.OS === "web") {
+          windowModule.sendNotification({
+            body: notification.message,
+            title: notification.title,
+            actions: notification.actions?.map((action) => ({
+              type: "button",
+              text: action.title,
+            })),
+            closeButtonText: t("common.close"),
+            reasonNotification: notification.reasonNotification,
+          });
+
+          return;
+        } else {
+          try {
+            const isDND = await NativeFunctionsModule.isDoNotDisturbEnabled();
+
+            if (
+              localNotification.behavior.onlyWhenScreenOff &&
+              statesRef.current.statePhone !== "resumed"
+            ) {
+              return;
+            } else if (localNotification.behavior.onlyWhenConnectedToPower) {
+              const isCharging = await DeviceInfo.isBatteryCharging();
+              if (!isCharging) return;
+            } else if (
+              localNotification.behavior.onlyWhenNotInDoNotDisturb &&
+              isDND
+            ) {
+              return;
+            } else if (localNotification.behavior.bypassDoNotDisturb) {
+              await NativeFunctionsModule.disableDoNotDisturb();
+            }
+
+            const notificationId = Math.floor(Math.random() * 1000000);
+
+            await NotificationModule.sendNotification(
+              notificationId,
+              notification.title,
+              notification.message,
+              notification.channelId,
+              notification.reasonNotification,
+              true,
+              notification.data || {},
+              notification.actions || null,
+            );
+
+            if (isDND && localNotification.behavior.bypassDoNotDisturb) {
+              await NativeFunctionsModule.enableDoNotDisturb();
+            }
+
+            return String(notificationId);
+          } catch (error) {
+            logError("Error sending native notification", error);
+          }
+        }
+
+        return await Notifications.scheduleNotificationAsync({
+          content: {
+            title: notification.title,
+            body: notification.message,
+            data: { type: notification.type, ...notification.data },
+          },
+          trigger: notification.trigger || null,
+        });
+      } catch (error) {
+        logError("NOTIFICATIONS", "Error checking paused notifications", error);
+      }
     },
   );
 
@@ -179,8 +208,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   );
 
   useEffect(() => {
-    getNotifications().then((data) => setNotifications(data ?? null));
-
     if (Platform.OS !== "android") return;
 
     const subscription = DeviceEventEmitter.addListener(
@@ -213,34 +240,34 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
               };
 
               if (event.reasonNotification === "streamers") break;
-              const notifications = await getNotifications();
 
-              const newNotifications = { ...notifications };
-              newNotifications.paused[event.reasonNotification] = {
-                isPaused: true,
-                timePaused:
-                  Date.now() + getTimeWithReason(event.reasonNotification),
-              };
-
-              setNotifications(newNotifications);
-              await saveDataStorage("NOTIFICATIONS", newNotifications);
-              notificationsFromStorage.current = newNotifications;
+              notificationsManager.editNotification(
+                event.reasonNotification,
+                (prev) => ({
+                  ...prev,
+                  paused: {
+                    ...prev.paused,
+                    isPaused: true,
+                    timePaused:
+                      Date.now() + getTimeWithReason(event.reasonNotification),
+                  },
+                }),
+              );
             } catch (error) {
               logError("Error pausing notifications", error);
             }
             break;
           case "stop":
             {
-              if (event.reasonNotification == "streamers") break;
+              if (event.reasonNotification === "streamers") break;
 
-              const notifications = await getNotifications();
-
-              const newNotifications = { ...notifications };
-              newNotifications.enabled[event.reasonNotification] = false;
-
-              setNotifications(newNotifications);
-              await saveDataStorage("NOTIFICATIONS", newNotifications);
-              notificationsFromStorage.current = newNotifications;
+              notificationsManager.editNotification(
+                event.reasonNotification,
+                (prev) => ({
+                  ...prev,
+                  enabled: false,
+                }),
+              );
             }
             break;
           default:
@@ -255,29 +282,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
     return () => subscription.remove();
   }, []);
-
-  useEffect(() => {
-    if (!notifications) return;
-    if (!notificationsFromStorage.current) {
-      notificationsFromStorage.current = notifications;
-      return;
-    }
-    if (
-      stringifyData(notificationsFromStorage.current) ===
-      stringifyData(notifications)
-    )
-      return;
-
-    const saveNewNotifications = async () => {
-      try {
-        await saveDataStorage("NOTIFICATIONS", notifications);
-      } catch (error) {
-        logError("Error saving notifications to storage", error);
-      }
-    };
-    saveNewNotifications();
-    notificationsFromStorage.current = notifications;
-  }, [notifications]);
 
   useEffect(() => {
     if (isLoggedIn || !hasInternet) return;
@@ -364,11 +368,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     };
 
     const id = setTimeoutPolyfill(handleBatteryNotifications, 5000);
-    if (Platform.OS === "web")
-      windowModule.getNativeData("hasBattery").then((hasBattery) => {
-        if (hasBattery) return;
-        clearTimeoutPolyfill(id);
-      });
+    if (Platform.OS === "web" && !DATA_PLATFORM.hasBattery)
+      clearTimeoutPolyfill(id);
     return () => clearTimeoutPolyfill(id);
   }, [deviceInfo?.powerState]);
 
@@ -480,12 +481,10 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
   const value: NotificationsContextType = useMemo(
     () => ({
-      notifications,
-      setNotifications,
       sendNotificationRef,
       removeNotificationRef,
     }),
-    [notifications],
+    [],
   );
 
   return (

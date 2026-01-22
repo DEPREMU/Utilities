@@ -83,7 +83,7 @@ const LanguagePicker: React.FC = () => {
   return (
     <>
       <List.Accordion
-        title={t("setLanguage")}
+        title={t("settings.setLanguage")}
         left={(props) => <List.Icon {...props} icon="translate" />}
       >
         {itemsRendered}

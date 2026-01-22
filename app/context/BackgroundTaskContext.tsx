@@ -127,10 +127,9 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   children,
 }) => {
   const { t } = useLanguage();
+  const { hasInternet, statesRef } = useBackground();
   const { initIntervalTimeoutsRef } = useBackground();
-  const { hasInternetRef, hasInternet } = useBackground();
-  const { isLoggedIn, dataRef, setLoggingIn, setIsLoggedIn } =
-    useUserContext();
+  const { isLoggedIn, dataRef, setLoggingIn, setIsLoggedIn } = useUserContext();
 
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);
@@ -196,7 +195,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       meta?: MetaInfoFunctions<T>,
       removeTaskWithId?: string,
     ) => {
-      if (hasInternetRef.current || !task.requiresInternet) {
+      if (statesRef.current.hasInternet || !task.requiresInternet) {
         taskQueueRef.current.push(task);
         processQueueRef.current();
         return;
@@ -284,8 +283,8 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
         const isFirstScreen = currentScreen === "Home";
 
         showAlert(
-          t(isFirstScreen ? "exitApp" : "back"),
-          t(isFirstScreen ? "exitAppMessage" : "backMessage"),
+          t(`common.${isFirstScreen ? "exitApp" : "back"}`),
+          t(`common.${isFirstScreen ? "exitAppMessage" : "backMessage"}`),
           [
             {
               text: t("no"),

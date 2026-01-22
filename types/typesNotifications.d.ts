@@ -27,16 +27,42 @@ export type typePausedNotification = {
 
 export type ActionNotification = "pause" | "stop" | "dismiss" | "settings";
 
-export type Notifications = {
-  enabled: Record<Exclude<ReasonNotification, "streamers">, boolean> & {
-    streamers: Record<string, typeStreamerNotification>;
-  };
-  paused: Record<
-    Exclude<ReasonNotification, "streamers">,
-    typePausedNotification
-  >;
+"cryptos" |
+  "streamers" |
+  "downDetector" |
+  "batteryAlerts" |
+  "timeToDownload" |
+  "locationEnabled" |
+  "allNotifications" |
+  "recorderNotification" |
+  "noInternetConnection" |
+  "loggedInStatusChannel";
 
-  intervals: Record<ReasonNotification, number | null>;
+export type typeBehaviorNotification = {
+  onlyWhenScreenOff: boolean;
+  bypassDoNotDisturb: boolean;
+  onlyWhenAppInBackground: boolean;
+  onlyWhenConnectedToPower: boolean;
+  onlyWhenNotInDoNotDisturb: boolean;
+  onlyDuringSpecificHours: {
+    enabled: boolean;
+    startHour: number;
+    endHour: number;
+  };
+};
+
+export type typeBehaviorBatteryNotification = {};
+
+export type Notifications = {
+  [reason in ReasonNotification]: {
+    paused: typePausedNotification;
+    enabled: boolean;
+    interval: number;
+    behavior: typeBehaviorNotification &
+      (reason extends "batteryAlerts" ? typeBehaviorBatteryNotification : {});
+  } & (reason extends "streamers"
+    ? { streamersList: typeStreamerNotification[] }
+    : {});
 };
 
 export type Notification = {

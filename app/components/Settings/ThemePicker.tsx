@@ -44,7 +44,7 @@ const ThemePicker: React.FC = () => {
     return ["auto", "light", "dark"].map((key) => (
       <List.Item
         key={key}
-        title={t(key as Theme)}
+        title={t(`settings.${key as Theme}`)}
         left={(props) => (
           <List.Icon
             {...props}
@@ -59,7 +59,7 @@ const ThemePicker: React.FC = () => {
 
   return (
     <List.Accordion
-      title={t("setTheme")}
+      title={t("settings.setTheme")}
       left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
     >
       {renderAccordionItem}
