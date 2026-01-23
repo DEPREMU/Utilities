@@ -494,6 +494,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
         renameConfirmMessage: `${string}{{oldName}}${string}{{newName}}${string}`;
         enterPasswordZipMessage: string;
         compressionSuccessMessage: `${string}{{path}}${string}`;
+        deleteFolderMessage: `${string}{{folderName}}${string}`;
       };
     };
     settings: {

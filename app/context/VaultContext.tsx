@@ -68,6 +68,8 @@ type VaultFunctions = {
     mimeType: DownloadableMimeType | Falsy,
   ) => ModalData["type"];
   selectFile: (item: FolderFiles[number]) => Promise<void>;
+  renameFolder: (folderId: string, newName: string) => Promise<void>;
+  deleteFolder: (folderId: string) => void;
 };
 
 export type FilesSelected = {
@@ -792,6 +794,47 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
           updated.files[currentFolderId][item.uri] = true;
           return updated;
         });
+    },
+
+    renameFolder: async (folderId, newName) => {
+      setFolders((prevFolders) => {
+        const updatedFolders = cloneDeep(prevFolders);
+        updatedFolders[newName] = cloneDeep(updatedFolders[folderId]);
+        delete updatedFolders[folderId];
+        return updatedFolders;
+      });
+
+      if (Platform.OS === "web") {
+        windowModule.renameFolderVault(folderId, newName);
+      } else {
+        const directory = await loadDataStorage("VAULT_DIRECTORY", "");
+        const oldFolderPath = new FileSystem.Directory(directory, folderId);
+        try {
+          oldFolderPath.rename(newName);
+        } catch {
+          // ignore error
+        }
+      }
+    },
+
+    deleteFolder: async (folderId) => {
+      setFolders((prevFolders) => {
+        const updatedFolders = cloneDeep(prevFolders);
+        delete updatedFolders[folderId];
+        return updatedFolders;
+      });
+
+      if (Platform.OS === "web") {
+        windowModule.deleteFolderVault(folderId);
+      } else {
+        const directory = await loadDataStorage("VAULT_DIRECTORY", "");
+        const folderPath = new FileSystem.Directory(directory, folderId);
+        try {
+          folderPath.delete();
+        } catch {
+          // ignore error
+        }
+      }
     },
   });
 

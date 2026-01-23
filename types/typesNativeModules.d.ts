@@ -191,10 +191,20 @@ export type ChannelsIpcRenderer<
       onProgress?: (
         progress: number,
         filename: string,
-        fileCount: number
+        fileCount: number,
       ) => void,
       onError?: (error: Error) => void,
     ];
+    typeIpc: "invoke";
+  };
+  "delete-folder": {
+    functionReturn: Promise<void>;
+    functionArgs: [folderId: string];
+    typeIpc: "invoke";
+  };
+  "rename-folder": {
+    functionReturn: Promise<void>;
+    functionArgs: [oldFolderId: string, newFolderId: string];
     typeIpc: "invoke";
   };
 };
@@ -222,13 +232,13 @@ export type ContextBridgeType = {
     ) => void;
     saveData: <T extends ALL_KEYS_STORAGE_TYPE>(
       key: T,
-      value: string
+      value: string,
     ) => Promise<{ success: boolean }>;
     loadData: (
       ...args: ChannelsIpcRenderer["load-data"]["functionArgs"]
     ) => ChannelsIpcRenderer["load-data"]["functionReturn"];
     removeData: <T extends ALL_KEYS_STORAGE_TYPE>(
-      key: T
+      key: T,
     ) => Promise<ChannelsIpcRenderer<T>["remove-data"]["functionReturn"]>;
     isElectronBuild: () => Promise<boolean>;
     sendNotification: (
@@ -249,7 +259,7 @@ export type ContextBridgeType = {
     hideClipboardWindow: () => void;
     showClipboardWindow: () => void;
     onClipboardItemsUpdated: (
-      callback: (items: Array<{ id: string; content: string }>) => void
+      callback: (items: Array<{ id: string; content: string }>) => void,
     ) => void;
 
     authenticate: () => Promise<boolean>;
@@ -281,6 +291,12 @@ export type ContextBridgeType = {
     zipFolder: (
       ...args: ChannelsIpcRenderer["zip-folder"]["functionArgs"]
     ) => ChannelsIpcRenderer["zip-folder"]["functionReturn"];
+    deleteFolderVault: (
+      ...args: ChannelsIpcRenderer["delete-folder"]["functionArgs"]
+    ) => ChannelsIpcRenderer["delete-folder"]["functionReturn"];
+    renameFolderVault: (
+      ...args: ChannelsIpcRenderer["rename-folder"]["functionArgs"]
+    ) => ChannelsIpcRenderer["rename-folder"]["functionReturn"];
   };
 };
 

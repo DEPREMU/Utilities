@@ -73,7 +73,7 @@ const ipcDict: IpcDictHybrid = {
       writeLog(
         "Received set-data-electron request: " +
           JSON.stringify({ deviceId, language }, null, 2),
-        "info"
+        "info",
       );
       dataApp.setValue("deviceId", deviceId);
       dataApp.setValue("language", language);
@@ -88,9 +88,9 @@ const ipcDict: IpcDictHybrid = {
         `Received send-notification request: ${JSON.stringify(
           notification,
           null,
-          2
+          2,
         )}`,
-        "info"
+        "info",
       );
       sendNotification(notification);
     },
@@ -101,7 +101,7 @@ const ipcDict: IpcDictHybrid = {
       const result = nativeData.getValue(key);
       writeLog(
         `Received get-native-data request for key: ${key}, value: ${result}`,
-        "info"
+        "info",
       );
       return result;
     },
@@ -171,7 +171,7 @@ const ipcDict: IpcDictHybrid = {
       } catch (error) {
         writeLog(
           `Error loading data for key ${key}: ` + String(error),
-          "error"
+          "error",
         );
         return null;
       }
@@ -186,7 +186,7 @@ const ipcDict: IpcDictHybrid = {
       } catch (error) {
         writeLog(
           `Failed to remove data for key: ${key}, error: ${error}`,
-          "error"
+          "error",
         );
       }
       return false;
@@ -212,7 +212,7 @@ const ipcDict: IpcDictHybrid = {
     func: (_event, items) => {
       writeLog(
         `Received set-clipboard-history request with ${items.length} items`,
-        "info"
+        "info",
       );
       const itemsCleaned = Array.isArray(items) ? items : [];
 
@@ -226,7 +226,7 @@ const ipcDict: IpcDictHybrid = {
         itemsCleaned.map((content, index) => ({
           id: index.toString(),
           content,
-        }))
+        })),
       );
     },
   },
@@ -280,7 +280,7 @@ const ipcDict: IpcDictHybrid = {
       } catch (error) {
         writeLog(
           `Error removing file with URI ${uri}: ` + String(error),
-          "error"
+          "error",
         );
         return { success: false };
       }
@@ -386,7 +386,7 @@ const ipcDict: IpcDictHybrid = {
       const tempDir = path.join(
         app.getPath("temp"),
         "UtilitiesForPC",
-        "decrypted"
+        "decrypted",
       );
 
       try {
@@ -398,7 +398,7 @@ const ipcDict: IpcDictHybrid = {
         writeLog(
           `Error clearing decrypted folder directory at ${tempDir}: ` +
             String(error),
-          "error"
+          "error",
         );
       }
     },
@@ -417,7 +417,7 @@ const ipcDict: IpcDictHybrid = {
 
       writeLog(
         `Received zip-folder request for folder: ${sourceFolder}, output: ${outputZipPath}`,
-        "info"
+        "info",
       );
       const mainWindow = dataApp.getValue("mainWindow");
       if (!mainWindow) return "";
@@ -425,7 +425,7 @@ const ipcDict: IpcDictHybrid = {
       const onProgress = (
         progress: number,
         filename: string,
-        fileCount: number
+        fileCount: number,
       ) => {
         mainWindow.webContents.send("zip-folder-data", {
           number: progress,
@@ -442,10 +442,60 @@ const ipcDict: IpcDictHybrid = {
         outputZipPath,
         password,
         onProgress,
-        onError
+        onError,
       );
 
       return result;
+    },
+  },
+  "delete-folder": {
+    type: "handle",
+    func: async (_event, folderId) => {
+      writeLog(
+        `Received delete-folder request for folderId: ${folderId}`,
+        "info",
+      );
+      const directory = await getStorageValue("VAULT_DIRECTORY");
+      if (!directory) return;
+
+      const folderPath = path.join(directory, folderId);
+      try {
+        if (!fs.existsSync(folderPath)) return;
+
+        await fs.promises.rm(folderPath, { recursive: true, force: true });
+        writeLog(`Deleted folder vault at ${folderPath}`, "info");
+      } catch (error) {
+        writeLog(
+          `Error deleting folder vault at ${folderPath}: ` + String(error),
+          "error",
+        );
+      }
+    },
+  },
+  "rename-folder": {
+    type: "handle",
+    func: async (_event, oldFolderId, newFolderId) => {
+      writeLog(
+        `Received rename-folder request from ${oldFolderId} to ${newFolderId}`,
+        "info",
+      );
+      const directory = await getStorageValue("VAULT_DIRECTORY");
+      if (!directory) return;
+
+      const oldFolderPath = path.join(directory, oldFolderId);
+      const newFolderPath = path.join(directory, newFolderId);
+
+      try {
+        if (!fs.existsSync(oldFolderPath)) return;
+
+        await fs.promises.rename(oldFolderPath, newFolderPath);
+        writeLog(
+          `Renamed folder vault from ${oldFolderPath} to ${newFolderPath}`,
+          "info",
+        );
+      } catch (error) {
+        // Ignore error
+      }
     },
   },
 };

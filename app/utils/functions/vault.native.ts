@@ -13,20 +13,11 @@ import {
   ClearDecryptedFolderDirectory,
 } from "@types";
 import * as ZIP from "react-native-zip-archive";
-import { Buffer } from "buffer";
-import QuickCrypto from "react-native-quick-crypto";
 import * as FileSystem from "@dr.pogodin/react-native-fs";
 import * as ExpoFileSystem from "expo-file-system";
-import {
-  log,
-  logError,
-  loadDataStorage,
-  sanitizeFileName,
-  setTimeoutPolyfill,
-} from "../functions";
+import NativeFunctionsModule from "../modules/NativeFunctionsModule";
+import { logError, loadDataStorage, sanitizeFileName } from "../functions";
 import { FetchFileInfo, DecryptFolderFiles, ActionWithVaultItem } from "@types";
-
-const CHUNK_SIZE = 1024 * 1024;
 
 type ProgressCallback = (percentage: number) => void;
 
@@ -65,103 +56,41 @@ export const encryptFile = async (
   inputPath = decodeURIComponent(inputPath);
   outputPath = decodeURIComponent(outputPath);
 
+  let remove = () => {};
+
   try {
     if (!(await FileSystem.exists(inputPath))) return false;
-    log("ENCRYPT", "Starting encryption for:", inputPath, "to", outputPath);
 
-    const salt = QuickCrypto.randomBytes(16);
-    const iv = QuickCrypto.randomBytes(12);
+    if (onProgress) {
+      remove = NativeFunctionsModule.subscribeToProgressEncrypt((per, uri) => {
+        const cleanUri = uri.startsWith(URI_EXTENSION)
+          ? uri.slice(URI_EXTENSION.length)
+          : uri;
+        const cleanInput = inputPath.startsWith(URI_EXTENSION)
+          ? inputPath.slice(URI_EXTENSION.length)
+          : inputPath;
 
-    const key = await new Promise<Buffer>((resolve, reject) => {
-      QuickCrypto.pbkdf2(
-        password,
-        salt,
-        100000,
-        32,
-        "sha256",
-        (err, derivedKey) => {
-          if (err || !derivedKey) reject(err);
-          else resolve(derivedKey as unknown as Buffer);
-        },
-      );
-    });
-
-    const cipher = QuickCrypto.createCipheriv("aes-256-gcm", key, iv);
-
-    const tagPlaceholder = Buffer.alloc(16, 0);
-    const header = Buffer.concat([salt, iv, tagPlaceholder]);
-
-    const splittedOutputPath = outputPath.split("/");
-
-    const filename = splittedOutputPath.pop() || "encrypted_file.enc";
-    const dir = splittedOutputPath.join("/");
-
-    if (!(await FileSystem.exists(dir))) await FileSystem.mkdir(dir);
-    const sanitizedFilename = sanitizeFileName(filename);
-    outputPath = dir + "/" + sanitizedFilename.trim();
-
-    await FileSystem.writeFile(outputPath, header.toString("base64"), "base64");
-
-    const fileStat = await FileSystem.stat(inputPath);
-    const fileSize = fileStat.size;
-    let readOffset = 0;
-
-    if (onProgress) onProgress(0);
-
-    while (readOffset < fileSize) {
-      const currentChunkSize = Math.min(CHUNK_SIZE, fileSize - readOffset);
-
-      const chunkBase64 = await FileSystem.read(
-        inputPath,
-        currentChunkSize,
-        readOffset,
-        "base64",
-      );
-      const chunkBuffer = Buffer.from(chunkBase64, "base64");
-      const encryptedChunk = cipher.update(chunkBuffer);
-
-      if (encryptedChunk.length > 0) {
-        await FileSystem.appendFile(
-          outputPath,
-          encryptedChunk.toString("base64"),
-          "base64",
-        );
-      }
-
-      readOffset += currentChunkSize;
-
-      if (onProgress) {
-        const percentage = (readOffset / fileSize) * 100;
-        if (percentage % 5 < 1 || percentage >= 99) {
-          onProgress(Math.min(percentage, 100));
+        if (decodeURIComponent(cleanUri) === decodeURIComponent(cleanInput)) {
+          onProgress(per);
         }
-      }
-
-      await new Promise((resolve) => setTimeoutPolyfill(resolve, 1));
+      });
     }
 
-    const finalChunk = cipher.final();
-    if (finalChunk.length > 0) {
-      await FileSystem.appendFile(
-        outputPath,
-        finalChunk.toString("base64"),
-        "base64",
-      );
-    }
-
-    const authTag = cipher.getAuthTag();
-    await FileSystem.write(
+    const success = await NativeFunctionsModule.encryptFile(
+      inputPath,
       outputPath,
-      authTag.toString("base64"),
-      28,
-      "base64",
+      password,
     );
+    remove();
 
-    if (onProgress) onProgress(100);
-
-    return true;
+    return success;
   } catch (error) {
-    logError("ENCRYPT", "Encryption failed:", error);
+    remove();
+    logError(
+      "ENCRYPT",
+      "Encryption failed:",
+      error instanceof Error ? error.message : error,
+    );
     try {
       if (await FileSystem.exists(outputPath))
         await FileSystem.unlink(outputPath);
@@ -186,6 +115,8 @@ export const decryptFile = async (
   inputPath = decodeURIComponent(inputPath);
   outputPath = decodeURIComponent(outputPath);
 
+  let remove = () => {};
+
   try {
     const [inputExists, outputExists] = await Promise.all([
       FileSystem.exists(inputPath),
@@ -198,87 +129,32 @@ export const decryptFile = async (
     }
     if (outputExists) return true;
 
-    const fileStat = await FileSystem.stat(inputPath);
-    const fileSize = fileStat.size;
+    if (onProgress) {
+      remove = NativeFunctionsModule.subscribeToProgressEncrypt((per, uri) => {
+        const cleanUri = uri.startsWith(URI_EXTENSION)
+          ? uri.slice(URI_EXTENSION.length)
+          : uri;
+        const cleanInput = inputPath.startsWith(URI_EXTENSION)
+          ? inputPath.slice(URI_EXTENSION.length)
+          : inputPath;
 
-    const headerBase64 = await FileSystem.read(inputPath, 44, 0, "base64");
-    const header = Buffer.from(headerBase64, "base64");
-
-    if (header.length < 44) return false;
-
-    const salt = header.subarray(0, 16);
-    const iv = header.subarray(16, 28);
-    const authTag = header.subarray(28, 44);
-
-    const key = await new Promise<Buffer>((resolve, reject) => {
-      QuickCrypto.pbkdf2(
-        password,
-        salt,
-        100000,
-        32,
-        "sha256",
-        (err, derivedKey) => {
-          if (err || !derivedKey) reject(err);
-          else resolve(derivedKey as unknown as Buffer);
-        },
-      );
-    });
-
-    const decipher = QuickCrypto.createDecipheriv("aes-256-gcm", key, iv);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    decipher.setAuthTag(authTag as any);
-
-    await FileSystem.writeFile(outputPath, "", "utf8");
-
-    let readOffset = 44;
-
-    if (onProgress) onProgress(0);
-
-    while (readOffset < fileSize) {
-      const currentChunkSize = Math.min(CHUNK_SIZE, fileSize - readOffset);
-
-      const chunkBase64 = await FileSystem.read(
-        inputPath,
-        currentChunkSize,
-        readOffset,
-        "base64",
-      );
-      const chunkBuffer = Buffer.from(chunkBase64, "base64");
-
-      const decryptedChunk = decipher.update(chunkBuffer);
-
-      if (decryptedChunk.length > 0) {
-        await FileSystem.appendFile(
-          outputPath,
-          decryptedChunk.toString("base64"),
-          "base64",
-        );
-      }
-
-      readOffset += currentChunkSize;
-
-      if (onProgress) {
-        const percentage = (readOffset / fileSize) * 100;
-        onProgress(Math.min(percentage, 100));
-      }
-
-      await new Promise((resolve) => setTimeoutPolyfill(resolve, 1));
+        if (decodeURIComponent(cleanUri) === decodeURIComponent(cleanInput)) {
+          onProgress(per);
+        }
+      });
     }
 
-    const finalChunk = decipher.final();
-    if (finalChunk.length > 0) {
-      await FileSystem.appendFile(
-        outputPath,
-        finalChunk.toString("base64"),
-        "base64",
-      );
-    }
+    const success = await NativeFunctionsModule.decryptFile(
+      inputPath,
+      outputPath,
+      password,
+    );
+    remove();
 
-    if (onProgress) onProgress(100);
-
-    return true;
+    return success;
   } catch (error) {
-    logError("DECRYPT", "Decryption failed:", error);
+    remove();
+    logError("DECRYPT", "Decryption failed:", (error as Error).message);
     if (await FileSystem.exists(outputPath)) FileSystem.unlink(outputPath);
 
     return false;
@@ -344,6 +220,7 @@ export const decryptFolderFiles: DecryptFolderFiles = async (
           outputPath,
           password,
         );
+
         if (!success) continue;
 
         fileDecrypted.uri = outputPath;

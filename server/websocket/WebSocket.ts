@@ -7,12 +7,9 @@ import {
   Cryptos,
   UserConfig,
   Notification,
-  Notifications,
-  ScreensAvailable,
   WebSocketMessage,
   ReasonNotification,
   LanguagesSupported,
-  UserNotificationsConfig,
 } from "@types";
 import chalk from "chalk";
 import { t } from "@common";
@@ -89,7 +86,6 @@ const handleInitWebSocket = (
       };
     } else users[data.userId].pingIntervalId = pingIntervalId;
 
-    insertNotifications(data.userId, data.notifications || null);
     insertUserConfig({
       userId: data.userId,
       language: data.language || "en",
@@ -115,48 +111,6 @@ const handleInitWebSocket = (
   } catch (error) {
     showError(chalk.red("Error in handleInitWebSocket:"), error);
     return "";
-  }
-};
-
-const insertNotifications = async (
-  userId: string,
-  notifications: Notifications | null,
-) => {
-  try {
-    const fetchedData = await fetchFromTable({
-      table: "UserNotificationsConfig",
-      match: { userId },
-    });
-    let data = fetchedData.data;
-
-    if (!data) return;
-    if (!Array.isArray(data)) data = [data];
-
-    await Promise.all(
-      data.map(async (item: UserNotificationsConfig) => {
-        let newData: UserNotificationsConfig = {
-          ...item,
-          updatedAt: new Date().toISOString(),
-        };
-        if (item.reason !== "streamers")
-          newData = {
-            ...newData,
-            enabled: notifications?.enabled?.[item.reason] as boolean,
-            interval: notifications?.intervals?.[item.reason] || -1,
-          };
-        else if (notifications?.enabled.streamers && item.streamer)
-          newData = {
-            ...newData,
-            enabled:
-              notifications?.enabled?.streamers?.[item.streamer]?.enabled ||
-              false,
-          };
-
-        updateInTable("UserNotificationsConfig", newData, { id: item.id });
-      }),
-    );
-  } catch (error) {
-    showError(chalk.red("Error in insertNotifications:"), error);
   }
 };
 
@@ -236,133 +190,6 @@ const connectionWss = (ws: WebSocket) => {
       }
     };
 
-    const handleNotificationCrypto = async (
-      data: WebSocketMessage<"sentByApp"> & { type: "notifications" },
-      ws: WebSocket,
-      interval: number,
-    ) => {
-      try {
-        if (!users[data.userId]) {
-          users[data.userId] = {
-            ws,
-            intervalsId: null,
-            pingTimeoutId: null,
-            pingIntervalId: null,
-          };
-        }
-
-        const handleInterval = async () => {
-          try {
-            const fetchedData = await fetchFromTable({
-              table: "Cryptos",
-              match: { userId: data.userId },
-            });
-
-            let cryptos = fetchedData.data;
-            if (!cryptos) cryptos = [];
-            if (!Array.isArray(cryptos)) cryptos = [cryptos];
-
-            if (!cryptos || cryptos.length === 0) return;
-            const notification = await getNotificationCrypto(cryptos);
-            if (!notification) return;
-
-            const message: WebSocketMessage<"sentByServer"> = {
-              type: "notification",
-              notification,
-            };
-
-            if (ws.readyState === WebSocket.OPEN)
-              return ws.send(JSON.stringify(message));
-
-            const tokens = await fetchFromTable({
-              table: "PushTokens",
-              match: { userId: data.userId },
-            });
-            const pushTokens = (tokens.data || [])?.map((dt) => dt.token);
-            if (!pushTokens || pushTokens.length === 0) return;
-
-            sendFCMNotification(
-              pushTokens,
-              {
-                title: notification.title,
-                body: notification.message,
-              },
-              notification.channelId,
-              {
-                ...(notification.data || {}),
-                screen:
-                  (notification.data?.screen as ScreensAvailable) || "Cryptos",
-              },
-            );
-          } catch (error) {
-            showError(
-              chalk.red("Error in handleInterval of handleNotificationCrypto:"),
-              error,
-            );
-          }
-        };
-
-        const intervalId = setInterval(handleInterval, interval);
-        users[data.userId].intervalsId = {
-          ...(users[data.userId].intervalsId || {
-            streamers: null,
-            downDetector: null,
-            batteryAlerts: null,
-            timeToDownload: null,
-            locationEnabled: null,
-            allNotifications: null,
-            recorderNotification: null,
-            noInternetConnection: null,
-            loggedInStatusChannel: null,
-          }),
-          cryptos: intervalId,
-        };
-      } catch (error) {
-        showError(chalk.red("Error in handleNotificationCrypto:"), error);
-      }
-    };
-
-    const handleNotifications = (
-      data: WebSocketMessage<"sentByApp"> & { type: "notifications" },
-      ws: WebSocket,
-    ) => {
-      try {
-        insertNotifications(data.userId, data.data);
-
-        if (!users[data.userId]) {
-          users[data.userId] = {
-            ws,
-            intervalsId: null,
-            pingTimeoutId: null,
-            pingIntervalId: null,
-          };
-        }
-        if (!data.data.enabled.allNotifications) return;
-        Object.entries(data.data.enabled).forEach(([key, value]) => {
-          try {
-            if (key === "allNotifications") return;
-            const keyTyped = key as ReasonNotification;
-            if (!value) return;
-
-            const interval = data.data.intervals[keyTyped];
-            if (!interval) return;
-            switch (keyTyped) {
-              case "cryptos":
-                handleNotificationCrypto(data, ws, interval);
-                break;
-
-              default:
-                break;
-            }
-          } catch {
-            // Ignore
-          }
-        });
-      } catch (error) {
-        showError(chalk.red("Error in handleNotifications:"), error);
-      }
-    };
-
     const handleClose = () => {
       if (!users[userId]) return;
 
@@ -390,9 +217,6 @@ const connectionWss = (ws: WebSocket) => {
         switch (data.type) {
           case "init":
             userId = handleInitWebSocket(data, ws);
-            break;
-          case "notifications":
-            handleNotifications(data, ws);
             break;
           case "language-change":
             if (!users[userId]) return;

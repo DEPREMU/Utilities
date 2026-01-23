@@ -27,6 +27,7 @@ export type Menu = {
   x: number;
   y: number;
   item: FolderFiles[number] | null;
+  folderId?: string;
 };
 
 export type DataVaultViewer = { renderModal: ModalData; menu: Menu };
@@ -63,11 +64,19 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
     React.useState<ModalData>(defaultModalData);
   const [menu, setMenu] = React.useState<Menu>(defaultMenuState);
 
+  const dataRef = React.useRef<DataVaultViewer>({
+    menu,
+    renderModal,
+  });
+  dataRef.current = { renderModal, menu };
+
   const onDismissRef = useRef(() => {
     setRenderModal(defaultModalData);
   });
   const onLongPressRef = useRef(
     (event: GestureResponderEvent, item: FolderFiles[number]) => {
+      if (dataRef.current.renderModal.type === "video") return;
+
       const { pageX, pageY } = event.nativeEvent;
       setMenu({
         x: pageX,
@@ -77,11 +86,6 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
       });
     },
   );
-  const dataRef = React.useRef<DataVaultViewer>({
-    menu,
-    renderModal,
-  });
-  dataRef.current = { renderModal, menu };
 
   const renderEmptyOrLocked = useCallback(() => {
     if (folders[currentFolderId] === "locked") {
@@ -163,6 +167,22 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
     [styles, filesSelected, functionsRef],
   );
 
+  const onLongPress = useCallback(
+    (event: GestureResponderEvent, folderId: string) => {
+      const x = event.nativeEvent.pageX;
+      const y = event.nativeEvent.pageY;
+
+      setMenu({
+        x,
+        y,
+        item: null,
+        folderId,
+        visible: true,
+      });
+    },
+    [],
+  );
+
   return (
     <View style={styles.container}>
       <ActionsMenu
@@ -190,22 +210,32 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
         contentContainerStyle={styles.content}
         horizontal
       >
-        {Object.entries(folders).map(([folderName, files], i) => (
-          <Button
-            key={i}
-            style={styles.folderItem}
-            onPress={() => {
-              setCurrentFolderId(folderName);
-            }}
-          >
-            <List.Icon
-              style={styles.folderIcon}
-              icon={files === "locked" ? "folder-lock" : "folder"}
-              color={"#666"}
-            />
-            <Text style={styles.folderName}>{folderName}</Text>
-          </Button>
-        ))}
+        {Object.entries(folders).map(([folderName, files], i) => {
+          let icon = "folder-lock";
+          const isCurrent =
+            functionsRef.current.getCurrentFolderId() === folderName;
+
+          if (files === "locked") {
+            if (isCurrent) icon = "folder-lock-outline";
+          } else {
+            if (isCurrent) icon = "folder";
+            else icon = "folder-outline";
+          }
+
+          return (
+            <Button
+              key={i}
+              style={styles.folderItem}
+              onPress={() => {
+                setCurrentFolderId(folderName);
+              }}
+              onLongPress={(event) => onLongPress(event, folderName)}
+            >
+              <List.Icon style={styles.folderIcon} icon={icon} color={"#666"} />
+              <Text style={styles.folderName}>{folderName}</Text>
+            </Button>
+          );
+        })}
       </ScrollView>
 
       <Divider style={styles.margin8} />

@@ -88,7 +88,7 @@ const contextBridgeType: ContextBridgeType = {
       } catch (error) {
         sendLog(
           `Error getting native data for key ${args[0]}: ` + String(error),
-          "error"
+          "error",
         );
         return "unknown";
       }
@@ -108,7 +108,7 @@ const contextBridgeType: ContextBridgeType = {
         const result = await sendMessage<typeof key, "load-data">(
           "invoke",
           "load-data",
-          key
+          key,
         );
         return result;
       } catch (error) {
@@ -124,7 +124,7 @@ const contextBridgeType: ContextBridgeType = {
       } catch (error) {
         sendLog(
           `Error removing data for key ${key}: ` + String(error),
-          "error"
+          "error",
         );
         return false;
       }
@@ -148,7 +148,7 @@ const contextBridgeType: ContextBridgeType = {
       } catch (error) {
         sendLog(
           `Error executing command "${command}": ` + String(error),
-          "error"
+          "error",
         );
         return error instanceof Error ? error.message : String(error);
       }
@@ -172,7 +172,7 @@ const contextBridgeType: ContextBridgeType = {
       sendMessage("send", "show-clipboard-window");
     },
     onClipboardItemsUpdated: (
-      callback: (items: Array<{ id: string; content: string }>) => void
+      callback: (items: Array<{ id: string; content: string }>) => void,
     ) => {
       ipcRenderer.on("clipboard-items-updated", (_event, items) => {
         callback(items);
@@ -183,13 +183,13 @@ const contextBridgeType: ContextBridgeType = {
       try {
         const isAuthenticated = await sendMessage(
           "invoke",
-          "authenticate-user"
+          "authenticate-user",
         );
         return isAuthenticated;
       } catch (error) {
         sendLog(
           `Error during authentication: ` + (error as Error).message,
-          "error"
+          "error",
         );
         return false;
       }
@@ -200,13 +200,13 @@ const contextBridgeType: ContextBridgeType = {
           "invoke",
           "copy-file-to-temp",
           base64,
-          fileName
+          fileName,
         );
         return result;
       } catch (error) {
         sendLog(
           `Error copying file to temp: ` + (error as Error).message,
-          "error"
+          "error",
         );
         return { success: false };
       }
@@ -217,7 +217,7 @@ const contextBridgeType: ContextBridgeType = {
       } catch (error) {
         sendLog(
           `Error removing file from temp: ` + (error as Error).message,
-          "error"
+          "error",
         );
         return { success: false };
       }
@@ -229,7 +229,7 @@ const contextBridgeType: ContextBridgeType = {
       } catch (error) {
         sendLog(
           `Error getting safe folder: ` + (error as Error).message,
-          "error"
+          "error",
         );
         return "unknown";
       }
@@ -248,13 +248,13 @@ const contextBridgeType: ContextBridgeType = {
         const result = await sendMessage(
           "invoke",
           "encrypt-vault-items",
-          ...args
+          ...args,
         );
         return result;
       } catch (error) {
         sendLog(
           `Error encrypting vault items: ` + (error as Error).message,
-          "error"
+          "error",
         );
         return { success: false };
       }
@@ -264,13 +264,13 @@ const contextBridgeType: ContextBridgeType = {
         const result = await sendMessage(
           "invoke",
           "load-encrypted-files",
-          ...args
+          ...args,
         );
         return result;
       } catch (error) {
         sendLog(
           `Error loading encrypted files: ` + (error as Error).message,
-          "error"
+          "error",
         );
         return [];
       }
@@ -280,13 +280,13 @@ const contextBridgeType: ContextBridgeType = {
         const result = await sendMessage(
           "invoke",
           "rename-vault-item",
-          ...args
+          ...args,
         );
         return result;
       } catch (error) {
         sendLog(
           `Error renaming vault item: ` + (error as Error).message,
-          "error"
+          "error",
         );
         return { success: false };
       }
@@ -296,14 +296,14 @@ const contextBridgeType: ContextBridgeType = {
         const result = await sendMessage(
           "invoke",
           "action-with-vault-item",
-          ...args
+          ...args,
         );
         return result;
       } catch (error) {
         sendLog(
           `Error performing action with vault item: ` +
             (error as Error).message,
-          "error"
+          "error",
         );
         return { success: false };
       }
@@ -316,7 +316,7 @@ const contextBridgeType: ContextBridgeType = {
         sendLog(
           `Error getting file info for "${filePath}": ` +
             (error as Error).message,
-          "error"
+          "error",
         );
         return null;
       }
@@ -328,7 +328,7 @@ const contextBridgeType: ContextBridgeType = {
         sendLog(
           `Error clearing decrypted folder directory: ` +
             (error as Error).message,
-          "error"
+          "error",
         );
       }
     },
@@ -357,12 +357,32 @@ const contextBridgeType: ContextBridgeType = {
           args[1],
           args[2],
           undefined,
-          undefined
+          undefined,
         );
         return result;
       } catch (error) {
         sendLog(`Error zipping folder: ` + (error as Error).message, "error");
         return "";
+      }
+    },
+    deleteFolderVault: async (folderId: string) => {
+      try {
+        await sendMessage("invoke", "delete-folder", folderId);
+      } catch (error) {
+        sendLog(
+          `Error deleting folder vault: ` + (error as Error).message,
+          "error",
+        );
+      }
+    },
+    renameFolderVault: async (oldFolderId: string, newFolderId: string) => {
+      try {
+        await sendMessage("invoke", "rename-folder", oldFolderId, newFolderId);
+      } catch (error) {
+        sendLog(
+          `Error renaming folder vault: ` + (error as Error).message,
+          "error",
+        );
       }
     },
   },

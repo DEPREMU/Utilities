@@ -24,6 +24,7 @@ import {
   isValidPassword,
   SelectedCryptos,
   ExpectedStorageTypes,
+  objByReasonNotification,
 } from "@common";
 import chalk from "chalk";
 import bcrypt from "bcryptjs";
@@ -108,17 +109,13 @@ export const getStorageData = async (
 
     delete user["password"];
 
-    const streamers: Notifications["enabled"]["streamers"] = Object.fromEntries(
+    const streamers: Notifications["streamers"]["streamersList"] =
       userNotificationsConfig
         ?.filter((config) => config.reason === "streamers" && !!config.streamer)
-        .map((config) => [
-          config.streamer,
-          {
-            name: config.streamer,
-            enabled: config.enabled,
-          },
-        ]) || [],
-    );
+        .map((config) => ({
+          name: config.streamer as string,
+          enabled: config.enabled,
+        }));
 
     const cryptosToSave: SelectedCryptos =
       cryptos?.reduce((acc, crypto) => {
@@ -127,22 +124,16 @@ export const getStorageData = async (
       }, {} as SelectedCryptos) || {};
 
     const userNotificationsConfigToSave: Notifications =
-      userNotificationsConfig.reduce(
-        (acc, config) => {
-          const reason = config.reason as ReasonNotification;
-          if (reason === "streamers") acc.enabled[reason] = streamers;
-          else {
-            acc.enabled[reason] = config.enabled;
-            acc.paused[reason] = {
-              isPaused: config.paused,
-              timePaused: config.pauseTime,
-            };
-          }
-          acc.intervals[reason] = config.interval;
-          return acc;
-        },
-        { enabled: {}, intervals: {}, paused: {} } as Notifications,
-      );
+      userNotificationsConfig.reduce((acc, config) => {
+        const reason = config.reason as ReasonNotification;
+        acc[reason] = {
+          ...objByReasonNotification,
+          ...acc[reason],
+          ...(reason === "streamers" && { streamersList: streamers }),
+        } as never;
+
+        return acc;
+      }, {} as Notifications);
 
     const userConfigToSave: Tables["UserConfig"] = {
       userId,

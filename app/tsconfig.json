@@ -5,7 +5,8 @@
     "**/*.ts",
     "**/*.tsx",
     "../common/both/index.ts",
-    "../types/screens/vault.d.ts"
+    "../types/screens/vault.d.ts",
+    "../common/both/notifications.ts"
   ],
   "compilerOptions": {
     "strict": true,

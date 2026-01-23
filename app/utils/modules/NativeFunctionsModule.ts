@@ -1,6 +1,10 @@
 import { logError } from "../functions";
 import type { TurboModule } from "react-native";
-import { Platform, TurboModuleRegistry } from "react-native";
+import {
+  DeviceEventEmitter,
+  Platform,
+  TurboModuleRegistry,
+} from "react-native";
 
 export interface Spec extends TurboModule {
   checkOverlayPermission: () => Promise<boolean>;
@@ -26,6 +30,22 @@ export interface Spec extends TurboModule {
   minimizeApp: () => void;
   wasLaunchedFromService: () => Promise<boolean>;
   isDoNotDisturbEnabled: () => Promise<boolean>;
+  subscribeToProgressEncrypt: (
+    callback: (progress: number, filePath: string) => void,
+  ) => () => void;
+  subscribeToProgressDecrypt: (
+    callback: (progress: number, filePath: string) => void,
+  ) => () => void;
+  decryptFile: (
+    inputPath: string,
+    outputPath: string,
+    password: string,
+  ) => Promise<boolean>;
+  encryptFile: (
+    inputPath: string,
+    outputPath: string,
+    password: string,
+  ) => Promise<boolean>;
 }
 
 const defaultNativeFunctionsModule: Spec = {
@@ -42,14 +62,46 @@ const defaultNativeFunctionsModule: Spec = {
   minimizeApp: () => {},
   wasLaunchedFromService: async () => false,
   isDoNotDisturbEnabled: async () => false,
+  subscribeToProgressDecrypt: () => () => {},
+  subscribeToProgressEncrypt: () => () => {},
+  decryptFile: async () => false,
+  encryptFile: async () => false,
 };
 
 const NativeFunctionsModule =
-  Platform.OS !== "android"
+  Platform.OS === "web"
     ? defaultNativeFunctionsModule
     : TurboModuleRegistry.getEnforcing<Spec>("NativeFunctionsModule");
 
-if (process.env.NODE_ENV === "development" && Platform.OS === "android") {
+if (Platform.OS !== "web") {
+  const methods = [
+    {
+      eventName: "FileEncryptionProgress",
+      subscribeMethod: "subscribeToProgressEncrypt",
+    },
+    {
+      eventName: "FileDecryptionProgress",
+      subscribeMethod: "subscribeToProgressDecrypt",
+    },
+  ] as const;
+
+  methods.forEach(({ eventName, subscribeMethod }) => {
+    NativeFunctionsModule[subscribeMethod] = (callback) => {
+      const sub = DeviceEventEmitter.addListener(eventName, (data) => {
+        const { progress = 0, filePath = "unknown" } = data || {};
+        callback?.(progress, filePath);
+      });
+
+      return sub.remove;
+    };
+  });
+}
+
+if (
+  process.env.NODE_ENV === "development" &&
+  Platform.OS !== "web" &&
+  !NativeFunctionsModule
+) {
   logError("NativeFunctionsModule is not available.");
 }
 

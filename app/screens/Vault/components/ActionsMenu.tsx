@@ -11,7 +11,7 @@ import { useVault } from "@context/VaultContext";
 import { cloneDeep } from "lodash";
 import { ScrollView, View } from "react-native";
 import useStylesVaultScreen from "@styles/screens/useStylesVaultScreen";
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import { FolderFiles, memoDeep, PickedFile, tTyped } from "@utils";
 import {
   ModalData,
@@ -19,6 +19,11 @@ import {
   defaultMenuState,
   Menu as MenuType,
 } from "../VaultViewer";
+
+type ActionFolder = {
+  icon: string;
+  action: "rename" | "delete";
+};
 
 type Action = {
   action:
@@ -63,6 +68,17 @@ const ACTIONS_MENU: Action[] = [
   },
 ];
 
+const ACTIONS_MENU_FOLDER: ActionFolder[] = [
+  {
+    icon: "pencil",
+    action: "rename",
+  },
+  {
+    icon: "delete",
+    action: "delete",
+  },
+];
+
 interface ActionsMenuProps {
   menu: MenuType;
   setMenu: React.Dispatch<React.SetStateAction<MenuType>>;
@@ -82,6 +98,128 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
 }) => {
   const { closeModalRef, openModalRef } = useModal();
   const { statesRef, functionsRef, setFilesSelected, folders } = useVault();
+
+  const renameRef = useRef(async (currentName: string) => {
+    let newName = currentName;
+
+    return await new Promise<string | null>((r) => {
+      const onDismiss = () => {
+        closeModalRef.current();
+        r(null);
+      };
+
+      openModalRef.current(
+        tTyped("vault.menu.rename"),
+        <View style={styles.modalScrollView}>
+          <Text style={styles.modalText}>
+            {tTyped("vault.modal.renameMessage")}
+          </Text>
+
+          <Divider style={styles.margin8} />
+
+          <TextInput
+            label={tTyped("vault.modal.enterNewName")}
+            defaultValue={currentName}
+            onChangeText={(text) => (newName = text)}
+          />
+        </View>,
+        <>
+          <Button mode="outlined" onPress={onDismiss}>
+            {tTyped("labels.cancel")}
+          </Button>
+          <Button
+            mode="contained"
+            onPress={() => {
+              closeModalRef.current();
+              openModalRef.current(
+                tTyped("vault.modal.renameConfirmTitle"),
+                <View style={styles.modalScrollView}>
+                  <Text style={styles.modalText}>
+                    {tTyped("vault.modal.renameConfirmMessage", {
+                      oldName: currentName,
+                      newName: newName || currentName,
+                    })}
+                  </Text>
+                </View>,
+                <>
+                  <Button mode="outlined" onPress={onDismiss}>
+                    {tTyped("labels.cancel")}
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={() => {
+                      r(newName);
+                      onDismiss();
+                    }}
+                  >
+                    {tTyped("common.confirm")}
+                  </Button>
+                </>,
+              );
+            }}
+          >
+            {tTyped("vault.menu.rename")}
+          </Button>
+        </>,
+      );
+    });
+  });
+
+  const handlePressByActionFolder = useCallback(
+    (action: ActionFolder["action"], folderId: string) => {
+      setMenu(defaultMenuState);
+
+      if (!folderId) return;
+
+      onDismissModal();
+
+      switch (action) {
+        case "delete": {
+          openModalRef.current(
+            tTyped("vault.modal.deleteTitle"),
+            tTyped("vault.modal.deleteFolderMessage", {
+              folderName: folderId,
+            }),
+            <>
+              <Button mode="outlined" onPress={() => closeModalRef.current()}>
+                {tTyped("labels.cancel")}
+              </Button>
+              <Button
+                mode="contained"
+                onPress={() => {
+                  functionsRef.current.deleteFolder(folderId);
+                  closeModalRef.current();
+                }}
+              >
+                {tTyped("common.delete")}
+              </Button>
+            </>,
+          );
+          break;
+        }
+        case "rename":
+          renameRef.current(folderId).then((newName) => {
+            if (
+              !newName ||
+              newName === folderId ||
+              statesRef.current.folders[newName]
+            )
+              return;
+
+            functionsRef.current.renameFolder(folderId, newName);
+          });
+          break;
+      }
+    },
+    [
+      setMenu,
+      statesRef,
+      openModalRef,
+      functionsRef,
+      closeModalRef,
+      onDismissModal,
+    ],
+  );
 
   const handlePressByAction = useCallback(
     (action: Action["action"], item: FolderFiles[number] | null) => {
@@ -120,64 +258,12 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
           break;
         }
         case "rename": {
-          let newName = item.name;
-          openModalRef.current(
-            tTyped("vault.menu.rename"),
-            <View style={styles.modalScrollView}>
-              <Text style={styles.modalText}>
-                {tTyped("vault.modal.renameMessage")}
-              </Text>
+          renameRef.current(item.name).then((newName) => {
+            if (!newName || newName === item.name) return;
 
-              <Divider style={styles.margin8} />
+            functionsRef.current.renameFile(item, newName);
+          });
 
-              <TextInput
-                label={tTyped("vault.modal.enterNewName")}
-                defaultValue={item.name}
-                onChangeText={(text) => (newName = text)}
-              />
-            </View>,
-            <>
-              <Button mode="outlined" onPress={onDismiss}>
-                {tTyped("labels.cancel")}
-              </Button>
-              <Button
-                mode="contained"
-                onPress={() => {
-                  closeModalRef.current();
-                  openModalRef.current(
-                    tTyped("vault.modal.renameConfirmTitle"),
-                    <View style={styles.modalScrollView}>
-                      <Text style={styles.modalText}>
-                        {tTyped("vault.modal.renameConfirmMessage", {
-                          oldName: item.name,
-                          newName: newName || item.name,
-                        })}
-                      </Text>
-                    </View>,
-                    <>
-                      <Button mode="outlined" onPress={onDismiss}>
-                        {tTyped("labels.cancel")}
-                      </Button>
-                      <Button
-                        mode="contained"
-                        onPress={() => {
-                          functionsRef.current.renameFile(
-                            item,
-                            newName || item.name,
-                          );
-                          onDismiss();
-                        }}
-                      >
-                        {tTyped("common.confirm")}
-                      </Button>
-                    </>,
-                  );
-                }}
-              >
-                {tTyped("vault.menu.rename")}
-              </Button>
-            </>,
-          );
           break;
         }
         case "moveToFolder":
@@ -283,71 +369,97 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
     ],
   );
 
-  const actionsMenu = useCallback(
-    () =>
-      ACTIONS_MENU.map((action) => {
-        let title = "";
-        if (
-          action.action === "copyToFolder" ||
-          action.action === "moveToFolder"
-        ) {
-          const folderCount = Object.keys(folders).length;
-          if (folderCount <= 1) return null;
-        } else if (
-          action.action === "select" ||
-          action.action === "selectFromLastToHere"
-        ) {
-          const currentFolderId = functionsRef.current.getCurrentFolderId();
-          const folderFiles = statesRef.current.folders[currentFolderId];
-
-          if (folderFiles === "locked") return null;
-
-          const isSelected =
-            statesRef.current.filesSelected.files[currentFolderId]?.[
-              dataRef.current.menu.item?.uri || ""
-            ];
-          if (isSelected && action.action === "select") {
-            title = tTyped("labels.deselect");
-          } else if (!isSelected && action.action === "selectFromLastToHere") {
-            const currentIndex = folderFiles.findIndex(
-              (f) => f.uri === dataRef.current.menu.item?.uri,
-            );
-            const lastSelectedIndex = folderFiles.findIndex((file) =>
-              Object.keys(
-                statesRef.current.filesSelected.files[currentFolderId] || {},
-              ).includes(file.uri),
-            );
-
-            if (lastSelectedIndex === -1 || currentIndex === -1) return null;
-
-            if (
-              (lastSelectedIndex < currentIndex &&
-                currentIndex - lastSelectedIndex === 1) ||
-              (lastSelectedIndex > currentIndex &&
-                lastSelectedIndex - currentIndex === 1)
-            )
-              return null;
-
-            title = tTyped("vault.menu.selectFromLastToHere");
-          } else if (isSelected && action.action === "selectFromLastToHere") {
-            return null;
-          }
-        }
-
+  const actionsMenu = useCallback(() => {
+    if (dataRef.current.menu.visible && dataRef.current.menu.folderId) {
+      return ACTIONS_MENU_FOLDER.map((action) => {
         return (
           <Menu.Item
             key={action.action}
-            title={title || tTyped(`vault.menu.${action.action}`)}
+            title={tTyped(`vault.menu.${action.action}`)}
             onPress={() => {
-              handlePressByAction(action.action, dataRef.current.menu.item);
+              handlePressByActionFolder(
+                action.action,
+                dataRef.current.menu.folderId || "",
+              );
               setMenu(defaultMenuState);
             }}
             leadingIcon={action.icon}
           />
         );
-      }),
-    [handlePressByAction, folders, statesRef, functionsRef, dataRef, setMenu],
-  );
+      });
+    }
+    if (!dataRef.current.menu.item) return null;
+
+    return ACTIONS_MENU.map((action) => {
+      let title = "";
+      if (
+        action.action === "copyToFolder" ||
+        action.action === "moveToFolder"
+      ) {
+        const folderCount = Object.keys(folders).length;
+        if (folderCount <= 1) return null;
+      } else if (
+        action.action === "select" ||
+        action.action === "selectFromLastToHere"
+      ) {
+        const currentFolderId = functionsRef.current.getCurrentFolderId();
+        const folderFiles = statesRef.current.folders[currentFolderId];
+
+        if (folderFiles === "locked") return null;
+
+        const isSelected =
+          statesRef.current.filesSelected.files[currentFolderId]?.[
+            dataRef.current.menu.item?.uri || ""
+          ];
+        if (isSelected && action.action === "select") {
+          title = tTyped("labels.deselect");
+        } else if (!isSelected && action.action === "selectFromLastToHere") {
+          const currentIndex = folderFiles.findIndex(
+            (f) => f.uri === dataRef.current.menu.item?.uri,
+          );
+          const lastSelectedIndex = folderFiles.findIndex((file) =>
+            Object.keys(
+              statesRef.current.filesSelected.files[currentFolderId] || {},
+            ).includes(file.uri),
+          );
+
+          if (lastSelectedIndex === -1 || currentIndex === -1) return null;
+
+          if (
+            (lastSelectedIndex < currentIndex &&
+              currentIndex - lastSelectedIndex === 1) ||
+            (lastSelectedIndex > currentIndex &&
+              lastSelectedIndex - currentIndex === 1)
+          )
+            return null;
+
+          title = tTyped("vault.menu.selectFromLastToHere");
+        } else if (isSelected && action.action === "selectFromLastToHere") {
+          return null;
+        }
+      }
+
+      return (
+        <Menu.Item
+          key={action.action}
+          title={title || tTyped(`vault.menu.${action.action}`)}
+          onPress={() => {
+            handlePressByAction(action.action, dataRef.current.menu.item);
+            setMenu(defaultMenuState);
+          }}
+          leadingIcon={action.icon}
+        />
+      );
+    });
+  }, [
+    folders,
+    dataRef,
+    setMenu,
+    statesRef,
+    functionsRef,
+    handlePressByAction,
+    handlePressByActionFolder,
+  ]);
 
   if (!menu.visible) return null;
 

@@ -1,46 +1,46 @@
 import { Platform } from "react-native";
 import { ContextBridgeType } from "@types";
 
+const voidFunction = () => {};
+const falseFunction = async () => false;
+const successFunction = async () => ({ success: true });
+const asyncVoidFunction = async () => {};
+
 const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
-  notifyLoginStatus: () => {},
+  notifyLoginStatus: voidFunction,
   readClipboard: () => "",
-  setClipboard: () => {},
-  turnOffComputer: async () => false,
-  restartComputer: async () => false,
-  setData: () => {},
-  saveData: async () => ({ success: false }),
+  setClipboard: voidFunction,
+  turnOffComputer: falseFunction,
+  restartComputer: falseFunction,
+  setData: voidFunction,
+  saveData: successFunction,
   loadData: async () => null,
-  isElectronBuild: async () => false,
-  removeData: async () => false,
+  isElectronBuild: falseFunction,
+  removeData: falseFunction,
   sendNotification: () => {},
   getNativeData: async () => "unknown",
   executeCommand: async () => "",
   getClipboardHistory: async () => [],
-  setClipboardHistory: async () => {
-    return;
-  },
-  hideClipboardWindow: () => {
-    return;
-  },
-  onClipboardItemsUpdated: () => {
-    return;
-  },
-  showClipboardWindow: () => void 0,
-
-  authenticate: async () => false,
-  copyFileToTemp: async () => ({ success: false }),
-  removeFile: async () => ({ success: false }),
+  setClipboardHistory: asyncVoidFunction,
+  hideClipboardWindow: voidFunction,
+  onClipboardItemsUpdated: voidFunction,
+  showClipboardWindow: voidFunction,
+  authenticate: falseFunction,
+  copyFileToTemp: successFunction,
+  removeFile: successFunction,
   getSafeFolder: async () => "unknown",
   pickFolder: async () => "canceled",
-  encryptFiles: async () => ({ success: false }),
-  renameVaultItem: async () => ({ success: false }),
+  encryptFiles: successFunction,
+  renameVaultItem: successFunction,
   loadEncryptedFiles: async () => [],
-  actionWithVaultItem: async () => ({ success: false }),
+  actionWithVaultItem: successFunction,
   getFileInfo: async () => null,
-  clearDecryptedFolderDirectory: async () => {},
+  clearDecryptedFolderDirectory: asyncVoidFunction,
   askPath: async () => null,
   zipFolder: async (_1, _2, _3, _4, onError) =>
     onError?.(new Error("Not implemented")) || "",
+  deleteFolderVault: asyncVoidFunction,
+  renameFolderVault: asyncVoidFunction,
 };
 
 let windowModule: ContextBridgeType["UtilitiesForPC"] = defaultWindow;

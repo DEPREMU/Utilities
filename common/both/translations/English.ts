@@ -580,6 +580,8 @@ export const enApp: typeLanguages = {
       "Please select a folder to be used as your vault. You can create a new folder if needed.",
     useDefaultFolder: "Use Default Folder",
     modal: {
+      deleteFolderMessage:
+        'Are you sure you want to delete the folder "{{folderName}}" and all its contents? This action cannot be undone.',
       deleteTitle: "Delete Item",
       deleteMessage: 'Are you sure you want to delete "{{name}}"?',
       renameMessage: "Please enter the new name for the item.",

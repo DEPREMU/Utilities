@@ -3,4 +3,4 @@ export * from "./colors";
 export * from "./server";
 export * from "./platform";
 export * from "./constants";
-export * from "./notifications";
+export * from "../../../common/both/notifications";

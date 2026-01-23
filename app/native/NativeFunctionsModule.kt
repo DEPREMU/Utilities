@@ -1,19 +1,41 @@
-package com.package.name
+package com.utilities.depremu.dev
 
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.util.Log
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream // This was missing
+import java.io.RandomAccessFile
+import java.security.SecureRandom
+import java.security.spec.KeySpec
+import javax.crypto.Cipher
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.SecretKeySpec
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 class NativeFunctionsModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
-    override fun getName() = "NativeFunctionsModule"
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val CHUNK_SIZE = 1024 * 1024 * 4
 
+    override fun getName() = "NativeFunctionsModule"
 
     @ReactMethod
     fun requestIgnoreBatteryOptimizations() {
@@ -347,6 +369,176 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
                 "Error checking DND status: ${e.message}",
                 e
             )   
+        }
+    }
+
+    private fun sendProgressEvent(eventName: String, progress: Int, filePath: String) {
+        try {
+            val params = Arguments.createMap().apply {
+                putInt("progress", progress)
+                putString("filePath", filePath)
+            }
+            BackgroundServiceModule.sendEvent(eventName, params)
+        } catch (e: Exception) {
+            Log.e("NativeFunctionsModule", "Error sending progress event", e)
+        }
+    }
+
+    @ReactMethod
+    fun encryptFile(inputPath: String, outputPath: String, password: String, promise: Promise) {
+        scope.launch {
+            try {
+                val inputFile = File(inputPath)
+                val outputFile = File(outputPath)
+
+                if (!inputFile.exists()) {
+                    promise.reject("ERROR", "Input file does not exist")
+                    return@launch
+                }
+
+                outputFile.parentFile?.mkdirs()
+
+                val salt = ByteArray(16).apply { SecureRandom().nextBytes(this) }
+                val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                val spec: KeySpec = PBEKeySpec(password.toCharArray(), salt, 100000, 256)
+                val secretKey = SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
+
+                val totalBytes = inputFile.length()
+                var bytesProcessed = 0L
+                var lastProgress = 0
+
+                // Explicit types added to fix type inference errors
+                FileInputStream(inputFile).use { fis: FileInputStream ->
+                    FileOutputStream(outputFile).use { fos: FileOutputStream ->
+                        DataOutputStream(fos).use { dos: DataOutputStream ->
+                            
+                            // Write Salt (16 bytes)
+                            dos.write(salt)
+
+                            val buffer = ByteArray(CHUNK_SIZE)
+                            var bytesRead: Int
+
+                            while (fis.read(buffer).also { bytesRead = it } != -1) {
+                                val iv = ByteArray(12).apply { SecureRandom().nextBytes(this) }
+                                
+                                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                                val gcmSpec = GCMParameterSpec(128, iv)
+                                cipher.init(Cipher.ENCRYPT_MODE, secretKey, gcmSpec)
+
+                                val encryptedBytes = cipher.doFinal(buffer, 0, bytesRead)
+
+                                // Write Block: [Length(4)] + [IV(12)] + [Data(N)]
+                                dos.writeInt(encryptedBytes.size)
+                                dos.write(iv)
+                                dos.write(encryptedBytes)
+
+                                bytesProcessed += bytesRead
+                                val progress = ((bytesProcessed.toDouble() / totalBytes) * 100).toInt()
+                                if (progress > lastProgress) {
+                                    lastProgress = progress
+                                    withContext(Dispatchers.Main) {
+                                        sendProgressEvent("FileEncryptionProgress", progress, inputPath)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    sendProgressEvent("FileEncryptionProgress", 100, inputPath)
+                }
+                promise.resolve(true)
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                val outputFile = File(outputPath)
+                if (outputFile.exists()) outputFile.delete()
+                promise.reject("ENCRYPT_ERROR", e.localizedMessage, e)
+            }
+        }
+    }
+
+    @ReactMethod
+    fun decryptFile(inputPath: String, outputPath: String, password: String, promise: Promise) {
+        scope.launch {
+            try {
+                val inputFile = File(inputPath)
+                val outputFile = File(outputPath)
+
+                if (!inputFile.exists()) {
+                    promise.reject("ERROR", "Input file does not exist")
+                    return@launch
+                }
+
+                // Explicitly declare variables before use block to clarify scope
+                val fis = FileInputStream(inputFile)
+                val dis = DataInputStream(fis)
+                
+                // Read Salt
+                val salt = ByteArray(16)
+                if (dis.read(salt) != 16) {
+                    dis.close()
+                    promise.reject("ERROR", "Invalid file format")
+                    return@launch
+                }
+
+                val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                val spec: KeySpec = PBEKeySpec(password.toCharArray(), salt, 100000, 256)
+                val secretKey = SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
+
+                val totalBytes = inputFile.length()
+                var bytesProcessed = 16L
+                var lastProgress = 0
+
+                // Explicit type added to fix type inference errors
+                FileOutputStream(outputFile).use { fos: FileOutputStream ->
+                    try {
+                        while (true) {
+                            try {
+                                val chunkSize = dis.readInt()
+                                val iv = ByteArray(12)
+                                dis.readFully(iv)
+                                val encryptedBytes = ByteArray(chunkSize)
+                                dis.readFully(encryptedBytes)
+
+                                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                                val gcmSpec = GCMParameterSpec(128, iv)
+                                cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmSpec)
+
+                                val decryptedBytes = cipher.doFinal(encryptedBytes)
+                                fos.write(decryptedBytes)
+
+                                bytesProcessed += (4 + 12 + chunkSize)
+                                val progress = ((bytesProcessed.toDouble() / totalBytes) * 100).toInt()
+                                if (progress > lastProgress) {
+                                    lastProgress = progress
+                                    withContext(Dispatchers.Main) {
+                                        sendProgressEvent("FileDecryptionProgress", progress, inputPath)
+                                    }
+                                }
+                            } catch (e: java.io.EOFException) {
+                                break
+                            }
+                        }
+                    } catch (e: Exception) {
+                        throw e
+                    }
+                }
+                
+                dis.close()
+
+                withContext(Dispatchers.Main) {
+                    sendProgressEvent("FileDecryptionProgress", 100, inputPath)
+                }
+                promise.resolve(true)
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                val outputFile = File(outputPath)
+                if (outputFile.exists()) outputFile.delete()
+                promise.reject("DECRYPT_ERROR", "Error decrypting: ${e.message}", e)
+            }
         }
     }
 }
