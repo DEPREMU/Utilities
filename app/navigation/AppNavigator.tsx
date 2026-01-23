@@ -54,7 +54,7 @@ const ComponentToHome: React.FC = () => {
 };
 
 const isWeb = Platform.OS === "web";
-const initialRouteName: ScreensAvailable = isDev ? "Settings" : "Home";
+const initialRouteName: ScreensAvailable = isDev ? "Vault" : "Home";
 
 /**
  * Centralized configuration object for all app screens.

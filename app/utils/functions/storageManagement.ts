@@ -10,14 +10,15 @@ import {
   SECURE_KEYS_STORAGE_TYPE,
   DO_NOT_DELETE_OR_SAVE,
 } from "@common";
+import { isDev } from "../constants";
 import { logError } from "./debug";
 import { Platform } from "react-native";
 import windowModule from "../modules/WindowModule";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
+import { DATA_PLATFORM } from "../constants/";
 import * as Localization from "expo-localization";
 import { reloadAppAsync } from "expo";
-import { isDev, isElectron } from "../constants";
 import { LanguagesSupported } from "@types";
 import { parseData, stringifyData } from "./appManagement";
 
@@ -122,8 +123,10 @@ export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
       return returnType(new Error(errMsg), errMsg);
     }
 
-    if (!isElectron && !isDev) throw new Error("Not an Electron build");
-    else if (!isElectron) localStorage.setItem(key, stringifiedValue);
+    if (!DATA_PLATFORM.isElectron && !isDev)
+      throw new Error("Not an Electron build");
+    else if (!DATA_PLATFORM.isElectron)
+      localStorage.setItem(key, stringifiedValue);
     else {
       const { success } = (await windowModule.saveData(
         keyStorage,
@@ -196,8 +199,9 @@ export const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
 
     let value: string | null = null;
 
-    if (!isElectron && !isDev) throw new Error("Not an Electron build");
-    else if (!isElectron) value = localStorage.getItem(key);
+    if (!DATA_PLATFORM.isElectron && !isDev)
+      throw new Error("Not an Electron build");
+    else if (!DATA_PLATFORM.isElectron) value = localStorage.getItem(key);
     else value = await windowModule.loadData(keyStorage);
 
     const parsedResponse = parseData(value);
@@ -266,8 +270,9 @@ export const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
       return returnType();
     }
 
-    if (!isElectron && !isDev) throw new Error("Not an Electron build");
-    else if (!isElectron) localStorage.removeItem(key);
+    if (!DATA_PLATFORM.isElectron && !isDev)
+      throw new Error("Not an Electron build");
+    else if (!DATA_PLATFORM.isElectron) localStorage.removeItem(key);
     else await windowModule.removeData(keyStorage);
 
     return returnType();
@@ -301,7 +306,7 @@ export const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
 export const cleanAllStorageData = wrapFunctionWithError(
   async () => {
     if (Platform.OS === "web") {
-      if (!isElectron) return;
+      if (!DATA_PLATFORM.isElectron) return;
 
       localStorage.clear();
       await Promise.all(

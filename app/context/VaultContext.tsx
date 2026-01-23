@@ -31,7 +31,7 @@ import {
   clearDecryptedFolderDirectory,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
-import { Platform } from "react-native";
+import { Falsy, Platform } from "react-native";
 import { useModal } from "./ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
 import { TextInput } from "react-native-paper";
@@ -39,6 +39,8 @@ import * as ExpoAuth from "expo-local-authentication";
 import * as FileSystem from "expo-file-system";
 import * as DocumentPicker from "expo-document-picker";
 import { navigateReplace } from "@/navigation/navigationRef";
+import { ModalData } from "@/screens/Vault/VaultViewer";
+import { cloneDeep } from "lodash";
 
 type VaultData = {
   sessionId: string;
@@ -62,6 +64,10 @@ type VaultFunctions = {
     folderId: string,
   ) => void;
   getCurrentFolderId: () => string;
+  getTypeModalData: (
+    mimeType: DownloadableMimeType | Falsy,
+  ) => ModalData["type"];
+  selectFile: (item: FolderFiles[number]) => Promise<void>;
 };
 
 export type FilesSelected = {
@@ -508,6 +514,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (success) {
           setFiles([]);
+          functionsRef.current.unlockFolder();
         } else {
           showAlert(tTyped("error"));
         }
@@ -568,6 +575,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
               count: String(successes),
             }),
           );
+          functionsRef.current.unlockFolder();
         }
       }
     },
@@ -577,46 +585,59 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         statesRef.current.currentFolderId ||
         DEFAULT_VAULT_DATA.DEFAULT_FOLDER_NAME;
 
-      const password = await new Promise<string>((resolve) => {
-        let pass = "";
-        let success = false;
-        let verifying = false;
+      const isLocked = statesRef.current.folders[folderId] === "locked";
 
-        openModalRef.current(
-          tTyped("vault.unlock"),
-          <TextInput
-            secureTextEntry
-            placeholder={tTyped("auth.passwordPlaceholder")}
-            onChangeText={(t) => (pass = t)}
-            defaultValue=""
-          />,
-          <Button
-            label={tTyped("common.confirm")}
-            handlePress={async () => {
-              if (verifying) return;
-              verifying = true;
+      let password = "";
 
-              const passwords = await loadDataStorage(
-                "VAULT_PASSWORD",
-                {} as Record<string, string>,
-              );
-              const correctPassword = passwords[folderId];
+      if (!isLocked) {
+        const passwords = await loadDataStorage("VAULT_PASSWORD");
+        if (passwords) {
+          const correctPassword = passwords[folderId];
+          password = correctPassword || "";
+        }
+      }
 
-              if (pass !== correctPassword) {
-                showAlert(tTyped("error"), tTyped("auth.incorrectPassword"), [
-                  { text: tTyped("common.confirm") },
-                ]);
-                resolve("");
-              } else {
-                success = true;
-                resolve(pass);
-              }
-              closeModalRef.current();
-            }}
-          />,
-          () => resolve(verifying && success ? pass : ""),
-        );
-      });
+      if (!password)
+        password = await new Promise<string>((resolve) => {
+          let pass = "";
+          let success = false;
+          let verifying = false;
+
+          openModalRef.current(
+            tTyped("vault.unlock"),
+            <TextInput
+              secureTextEntry
+              placeholder={tTyped("auth.passwordPlaceholder")}
+              onChangeText={(t) => (pass = t)}
+              defaultValue=""
+            />,
+            <Button
+              label={tTyped("common.confirm")}
+              handlePress={async () => {
+                if (verifying) return;
+                verifying = true;
+
+                const passwords = await loadDataStorage(
+                  "VAULT_PASSWORD",
+                  {} as Record<string, string>,
+                );
+                const correctPassword = passwords[folderId];
+
+                if (pass !== correctPassword) {
+                  showAlert(tTyped("error"), tTyped("auth.incorrectPassword"), [
+                    { text: tTyped("common.confirm") },
+                  ]);
+                  resolve("");
+                } else {
+                  success = true;
+                  resolve(pass);
+                }
+                closeModalRef.current();
+              }}
+            />,
+            () => resolve(verifying && success ? pass : ""),
+          );
+        });
 
       if (!password) return;
 
@@ -635,6 +656,10 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
           (file) => {
             setFolders((prevFolders) => {
               const existingFiles = prevFolders[folderId];
+              const existFile = Array.isArray(existingFiles)
+                ? existingFiles.find((f) => f.originalUri === file.originalUri)
+                : null;
+              if (existFile) return prevFolders;
 
               return {
                 ...prevFolders,
@@ -723,6 +748,50 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         renameVaultItem(file, newName);
       }
+    },
+
+    getTypeModalData: (
+      mimeType: DownloadableMimeType | Falsy,
+    ): ModalData["type"] => {
+      if (!mimeType) return "none";
+      if (mimeType.startsWith("image/")) return "image";
+      if (mimeType.startsWith("video/")) return "video";
+      if (mimeType.startsWith("text/")) return "text";
+      if (mimeType === "application/pdf") return "pdf";
+
+      return "none";
+    },
+
+    selectFile: async (item) => {
+      const currentFolderId = functionsRef.current?.getCurrentFolderId();
+      const isSelected =
+        !!statesRef.current.filesSelected.files[currentFolderId]?.[item.uri];
+
+      if (isSelected)
+        setFilesSelected((prev) => {
+          const updated = cloneDeep(prev);
+          delete updated.files[currentFolderId][item.uri];
+          if (!Object.keys(updated.files[currentFolderId]).length)
+            delete updated.files[currentFolderId];
+
+          if (!Object.keys(updated.files).length) updated.selecting = false;
+
+          return updated;
+        });
+      else
+        setFilesSelected((prev) => {
+          if (statesRef.current.folders[currentFolderId] === "locked")
+            return prev;
+
+          const updated = cloneDeep(prev);
+          if (!updated.files[currentFolderId])
+            updated.files[currentFolderId] = {};
+          updated.selecting = true;
+          updated.lastIndex =
+            statesRef.current.folders[currentFolderId].indexOf(item) ?? null;
+          updated.files[currentFolderId][item.uri] = true;
+          return updated;
+        });
     },
   });
 

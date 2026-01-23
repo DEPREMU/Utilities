@@ -9,11 +9,11 @@ import SettingsScreen from "@screens/Vault/SettingsScreen";
 import { useLanguage } from "@context/LanguageContext";
 import CompressionScreen from "@screens/Vault/CompressionScreen";
 import { navigateReplace } from "@/navigation/navigationRef";
+import { DATA_PLATFORM, memoDeep, tTyped } from "@utils";
 import useStylesVaultScreen from "@styles/screens/useStylesVaultScreen";
 import { functionsToExecute } from "@/utils/cross";
 import useStylesBottomNavigator from "@styles/components/common/useStylesBottomNavigator";
 import { BottomNavigation, Text } from "react-native-paper";
-import { isElectron, memoDeep, tTyped } from "@utils";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 
 const routes: Route[] = [
@@ -108,7 +108,7 @@ const VaultNavigator = () => {
   }, [functionsRef]);
 
   useEffect(() => {
-    if (Platform.OS !== "web" || isElectron) return;
+    if (Platform.OS !== "web" || DATA_PLATFORM.isElectron) return;
 
     alert(tTyped("vault.unsupportedPlatformAlert"));
     navigateReplace("Home");

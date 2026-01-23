@@ -15,10 +15,15 @@ import {
 import * as ZIP from "react-native-zip-archive";
 import { Buffer } from "buffer";
 import QuickCrypto from "react-native-quick-crypto";
-import { Platform } from "react-native";
 import * as FileSystem from "@dr.pogodin/react-native-fs";
 import * as ExpoFileSystem from "expo-file-system";
-import { log, logError, loadDataStorage, sanitizeFileName } from "../functions";
+import {
+  log,
+  logError,
+  loadDataStorage,
+  sanitizeFileName,
+  setTimeoutPolyfill,
+} from "../functions";
 import { FetchFileInfo, DecryptFolderFiles, ActionWithVaultItem } from "@types";
 
 const CHUNK_SIZE = 1024 * 1024;
@@ -127,10 +132,12 @@ export const encryptFile = async (
 
       if (onProgress) {
         const percentage = (readOffset / fileSize) * 100;
-        onProgress(Math.min(percentage, 100));
+        if (percentage % 5 < 1 || percentage >= 99) {
+          onProgress(Math.min(percentage, 100));
+        }
       }
 
-      await new Promise((resolve) => setImmediate(resolve));
+      await new Promise((resolve) => setTimeoutPolyfill(resolve, 1));
     }
 
     const finalChunk = cipher.final();
@@ -180,7 +187,16 @@ export const decryptFile = async (
   outputPath = decodeURIComponent(outputPath);
 
   try {
-    if (!(await FileSystem.exists(inputPath))) return false;
+    const [inputExists, outputExists] = await Promise.all([
+      FileSystem.exists(inputPath),
+      FileSystem.exists(outputPath),
+    ]);
+
+    if (!inputExists) {
+      if (outputExists) await FileSystem.unlink(outputPath);
+      return false;
+    }
+    if (outputExists) return true;
 
     const fileStat = await FileSystem.stat(inputPath);
     const fileSize = fileStat.size;
@@ -246,7 +262,7 @@ export const decryptFile = async (
         onProgress(Math.min(percentage, 100));
       }
 
-      await new Promise((resolve) => setImmediate(resolve));
+      await new Promise((resolve) => setTimeoutPolyfill(resolve, 1));
     }
 
     const finalChunk = decipher.final();
@@ -274,7 +290,6 @@ export const decryptFolderFiles: DecryptFolderFiles = async (
   password,
   onDecryptedFile,
 ) => {
-  if (Platform.OS === "web") return [];
   if (folder.startsWith(URI_EXTENSION))
     folder = folder.slice(URI_EXTENSION.length);
 
@@ -293,46 +308,59 @@ export const decryptFolderFiles: DecryptFolderFiles = async (
       // Ignore errors
     }
 
-    const decryptedFiles = await Promise.all(
-      files.map(async (file) => {
-        if (!file.isFile()) return;
+    const decryptedFiles: FolderFiles = [];
 
-        try {
-          const finalFilename = sanitizeFileName(
-            file.name.replace(/\.enc$/, ""),
-          );
+    for (const file of files) {
+      if (!file.isFile()) continue;
 
-          const expoFile = new ExpoFileSystem.File(
-            URI_EXTENSION + folder,
-            file.name,
-          );
-          const outputPath = new ExpoFileSystem.File(outputDir, finalFilename)
-            .uri;
+      const finalFilename = sanitizeFileName(file.name.replace(/\.enc$/, ""));
 
-          const success = await decryptFile(expoFile.uri, outputPath, password);
-          if (!success) return;
+      const fileDecrypted: FolderFiles[number] = {
+        uri: "",
+        size: file.size,
+        name: finalFilename,
+        mimeType: getMimeTypeFromExtension(
+          finalFilename.split(".").pop() || "",
+        ),
+        originalUri: "",
+      };
 
-          const fileDecrypted: FolderFiles[number] = {
-            uri: outputPath,
-            size: file.size,
-            name: finalFilename,
-            mimeType: getMimeTypeFromExtension(
-              finalFilename.split(".").pop() || "",
-            ),
-            originalUri: expoFile.uri,
-          };
-          if (onDecryptedFile) onDecryptedFile(fileDecrypted);
-          return fileDecrypted;
-        } catch (error) {
-          logError(
-            "DECRYPT",
-            `Error decrypting file ${file.name}:`,
-            error instanceof Error ? error.message : error,
-          );
-          return;
-        }
-      }),
-    );
+      try {
+        const expoFile = new ExpoFileSystem.File(
+          URI_EXTENSION + folder,
+          file.name,
+        );
+        fileDecrypted.originalUri = expoFile.uri;
+      } catch {
+        continue;
+      }
+
+      try {
+        const outputPath = new ExpoFileSystem.File(outputDir, finalFilename)
+          .uri;
+
+        const success = await decryptFile(
+          fileDecrypted.originalUri,
+          outputPath,
+          password,
+        );
+        if (!success) continue;
+
+        fileDecrypted.uri = outputPath;
+
+        decryptedFiles.push(fileDecrypted);
+        if (onDecryptedFile) onDecryptedFile(fileDecrypted);
+
+        await new Promise((r) => setTimeout(r, 10));
+      } catch (error) {
+        logError(
+          "DECRYPT",
+          `Error decrypting file ${file.name}:`,
+          error instanceof Error ? error.message : error,
+        );
+        continue;
+      }
+    }
 
     return decryptedFiles.filter((f): f is FolderFiles[number] => !!f);
   } catch (error) {
@@ -350,8 +378,6 @@ export const actionWithVaultItem: ActionWithVaultItem = async (
   item,
   targetFolderId,
 ) => {
-  if (Platform.OS === "web") return { success: false, error: "Not supported." };
-
   try {
     const directory = await loadDataStorage("VAULT_DIRECTORY", "");
 
