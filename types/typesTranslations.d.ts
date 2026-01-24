@@ -585,6 +585,17 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     IP_API: {
       title: string;
     };
+    PDF: {
+      open: string;
+      close: string;
+      lover: string;
+      viewer: string;
+      converter: string;
+      convertToPdf: string;
+      currentPaperSize: `${string}{{size}}${string}`;
+      selectImagesToConvert: string;
+      selectCurrentPaperSize: `${string}{{size}}${string}`;
+    };
   };
 
 export type typeLanguagesServer = {

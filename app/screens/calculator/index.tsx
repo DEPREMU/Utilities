@@ -1,5 +1,6 @@
 import Finances from "./finances";
 import Calculator from "./calculator";
+import { memoDeep } from "@utils";
 import TimeToDownload from "./timeToDownload";
 import GetBottomNavigation from "@components/common/GetBottomNavigation";
 
@@ -20,4 +21,4 @@ const CalculatorNavigator = GetBottomNavigation(
   },
 );
 
-export default CalculatorNavigator;
+export default memoDeep(CalculatorNavigator);

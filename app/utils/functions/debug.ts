@@ -14,7 +14,7 @@ type ReturnDeviceInfo = {
   deviceName: string;
 };
 
-const FILTER_BY_MESSAGE: string[] = ["ENCRYPT", "DECRYPT", "VAULT"];
+const FILTER_BY_MESSAGE: string[] = ["PDF"];
 
 const getCurrentDeviceInfo = wrapFunctionWithError(
   async () => {

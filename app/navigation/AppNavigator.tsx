@@ -9,9 +9,11 @@ import HomeScreen from "@screens/HomeScreen";
 import ScanQRCode from "@screens/auth/ScanQRCode";
 import LoginScreen from "@screens/auth/LoginScreen";
 import Minesweeper from "@screens/Games/Minesweeper";
-import SignUpScreen from "@screens/auth/SignUpScreen";
-import { useTheme } from "@context/ThemeContext";
+import * as Linking from "expo-linking";
+import PDFNavigator from "@screens/PDF";
 import { Platform } from "react-native";
+import { useTheme } from "@context/ThemeContext";
+import SignUpScreen from "@screens/auth/SignUpScreen";
 import VaultNavigator from "@screens/Vault";
 import GamesNavigator from "@screens/Games";
 import SettingsScreen from "@screens/Settings";
@@ -54,7 +56,7 @@ const ComponentToHome: React.FC = () => {
 };
 
 const isWeb = Platform.OS === "web";
-const initialRouteName: ScreensAvailable = isDev ? "Vault" : "Home";
+const initialRouteName: ScreensAvailable = isDev ? "PDF" : "Home";
 
 /**
  * Centralized configuration object for all app screens.
@@ -91,6 +93,7 @@ const screens: Screens = {
   TerminalCommands: {
     component: isWeb ? TerminalCommands : ComponentToHome,
   },
+  PDF: { component: PDFNavigator as React.FC },
 };
 
 const allScreens = Object.entries(screens).map(
@@ -111,7 +114,28 @@ const AppNavigator: React.FC = () => {
   const { navigationTheme } = useTheme();
 
   useEffect(() => {
-    if (Platform.OS !== "web") return setupNotificationHandlers();
+    if (Platform.OS !== "web") {
+      const handleNavigate = (url: string | null) => {
+        if (!url || (!url.startsWith("content") && !url.startsWith("file")))
+          return;
+
+        navigateReplace("PDF", { uri: decodeURIComponent(url) });
+      };
+
+      const sub = Linking.addEventListener("url", ({ url }) => {
+        handleNavigate(url);
+      });
+      const removeNotifications = setupNotificationHandlers();
+
+      Linking.getInitialURL().then((url) => {
+        handleNavigate(url);
+      });
+
+      return () => {
+        sub.remove();
+        removeNotifications();
+      };
+    }
 
     const func = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();

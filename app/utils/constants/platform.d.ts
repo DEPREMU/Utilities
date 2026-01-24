@@ -5,3 +5,10 @@ export type PlatformData = {
 };
 
 export declare const DATA_PLATFORM: PlatformData;
+
+/**
+ * @platform `native`
+ */
+export type DeleteDirectoryPickerFolder = () => void;
+
+export declare const deleteDirectoryPickerFolder: DeleteDirectoryPickerFolder;

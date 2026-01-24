@@ -680,4 +680,15 @@ export const enApp: typeLanguages = {
     noFolders: "No folders yet",
     noItems: "No items yet",
   },
+  PDF: {
+    open: "Open PDF",
+    lover: "PDF Lover",
+    close: "Close PDF",
+    viewer: "PDF Viewer",
+    converter: "PDF Converter",
+    convertToPdf: "Convert to PDF",
+    currentPaperSize: "Current Paper Size: {{size}}",
+    selectCurrentPaperSize: "Select Paper Size, current: {{size}}",
+    selectImagesToConvert: "Select Images to Convert to PDF",
+  },
 };

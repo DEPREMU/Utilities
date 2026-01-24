@@ -96,6 +96,12 @@ const buttons: ButtonType[] = [
     noNeedsSession: true,
     noNeedsInternet: true,
   },
+  {
+    label: "PDF.lover",
+    screen: "PDF",
+    noNeedsSession: true,
+    noNeedsInternet: true,
+  },
   ...(Platform.OS !== "web" ? buttonsNative : buttonsWeb),
   ...(process.env.NODE_ENV === "development" ? buttonsDev : []),
 ];
@@ -115,38 +121,39 @@ const HomeScreen: React.FC = () => {
   const handleLoginPressRef = useRef(() => navigateReplace("Login"));
 
   const renderButtons = useMemo(() => {
-    return buttons.map((button, i) =>
-      Platform.OS === "web" &&
-      button.screen === "Vault" &&
-      !DATA_PLATFORM.isElectron ? null : (
+    return buttons.map((button, i) => {
+      if (
+        Platform.OS === "web" &&
+        button.screen === "Vault" &&
+        !DATA_PLATFORM.isElectron
+      )
+        return null;
+
+      const loggedIn = button.noNeedsSession || isLoggedIn;
+      const internet = button.noNeedsInternet || hasInternet;
+      const isValidScreen = button.label === "common.settings";
+
+      return (
         <View style={styles.buttonContainer} key={i}>
           <List.Icon
-            style={styles.leftIcon}
             color={background}
+            style={styles.leftIcon}
             icon={
-              (hasInternet ||
-                button.noNeedsInternet ||
-                button.label === "common.settings") &&
-              (isLoggedIn || button.noNeedsSession)
+              (internet || isValidScreen) && loggedIn
                 ? "check-circle"
                 : "cancel"
             }
           />
           <Button
-            disabled={
-              (!hasInternet &&
-                !button.noNeedsInternet &&
-                button.label !== "common.settings") ||
-              (!button.noNeedsSession && !isLoggedIn)
-            }
-            label={t(button.label)}
-            argsFuncHandlePress={[button.screen]}
             touchableOpacity
+            label={t(button.label)}
+            disabled={(!internet && !isValidScreen) || !loggedIn}
             handlePress={navigateReplace}
+            argsFuncHandlePress={[button.screen]}
           />
         </View>
-      ),
-    );
+      );
+    });
   }, [
     t,
     hasInternet,

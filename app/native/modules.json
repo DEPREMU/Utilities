@@ -96,10 +96,5 @@
     "name": "WakeLockManager.kt",
     "initPath": "native/",
     "finalPath": "android/app/src/main/java/"
-  },
-  {
-    "name": ["VaultCryptoModule.kt", "VaultCryptoPackage.kt"],
-    "initPath": "native/Vault/",
-    "finalPath": "android/app/src/main/java/"
   }
 ]

@@ -8,13 +8,28 @@ import { APP_CONFIG, APP_PATH, env } from "../config.ts";
 const packageName = APP_CONFIG.android?.package;
 if (!packageName) throw new Error("Package name not found in app config");
 
+const INTENTS_TO_ADD = `    
+    <intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+
+    <data
+      android:mimeType="application/pdf"
+      android:scheme="content" />
+    <data
+      android:mimeType="application/pdf"
+      android:scheme="file" />
+    </intent-filter>
+`;
+
 const getPath = (relativePath: string) => {
   const pathLocal = path.resolve(APP_PATH, relativePath);
   if (!fs.existsSync(pathLocal)) {
     console.log(
       chalk.yellow(
-        `Creating directory: ${pathLocal} with relative path: ${relativePath}`
-      )
+        `Creating directory: ${pathLocal} with relative path: ${relativePath}`,
+      ),
     );
     fs.mkdirSync(pathLocal, { recursive: true });
   }
@@ -24,7 +39,7 @@ const getPath = (relativePath: string) => {
 
 const addStringToXML = async () => {
   const stringsXMLPathEn = getPath(
-    "android/app/src/main/res/values/strings.xml"
+    "android/app/src/main/res/values/strings.xml",
   );
   const stringsXMLPathEs = getPath("android/app/src/main/res/values-es");
   const stringsPathNative = getPath("native/strings.xml");
@@ -36,7 +51,7 @@ const addStringToXML = async () => {
 
   if (!es || !en) {
     console.error(
-      chalk.red("Could not find <en> or <es> sections in native strings.xml")
+      chalk.red("Could not find <en> or <es> sections in native strings.xml"),
     );
     return;
   }
@@ -45,12 +60,12 @@ const addStringToXML = async () => {
 
   const newEn = stringsDefault.replace(
     /<\/(resource|resources)>/g,
-    `${en.replace(/<\/?en>/g, "").trim()}\n</$1>`
+    `${en.replace(/<\/?en>/g, "").trim()}\n</$1>`,
   );
 
   const newEs = stringsDefault.replace(
     /<\/(resource|resources)>/g,
-    `${es.replace(/<\/?es>/g, "").trim()}\n</$1>`
+    `${es.replace(/<\/?es>/g, "").trim()}\n</$1>`,
   );
 
   fs.writeFileSync(stringsXMLPathEn, newEn);
@@ -65,7 +80,7 @@ const addDependencies = async () => {
 
   const dependenciesToAdd = [
     'implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")',
-    'implementation("org.bouncycastle:bcprov-jdk15to18:1.78.1")'
+    'implementation("org.bouncycastle:bcprov-jdk15to18:1.78.1")',
   ];
 
   let newContent = buildGradleContent;
@@ -74,7 +89,7 @@ const addDependencies = async () => {
     if (!newContent.includes(dependency)) {
       newContent = newContent.replace(
         /dependencies\s*{/,
-        `dependencies {\n    ${dependency}`
+        `dependencies {\n    ${dependency}`,
       );
     }
   });
@@ -89,8 +104,8 @@ const editMainApplication = async () => {
   const mainApplicationPath = getPath(
     `android/app/src/main/java/${packageName.replace(
       /\./g,
-      "/"
-    )}/MainApplication.kt`
+      "/",
+    )}/MainApplication.kt`,
   );
   const mainApplicationContent = fs.readFileSync(mainApplicationPath, "utf8");
   const packageMA = `package ${packageName}\n`;
@@ -103,9 +118,8 @@ const editMainApplication = async () => {
       `import ${packageName}.NotificationPackage`,
       `import ${packageName}.NativeFunctionsPackage`,
       `import ${packageName}.BackgroundServicePackage`,
-      `import ${packageName}.VaultCryptoPackage`,
       "",
-    ].join("\n")
+    ].join("\n"),
   );
 
   const getPackagesRegex = /getPackages\(\)[^}]+}/g;
@@ -114,7 +128,7 @@ const editMainApplication = async () => {
   if (!getPackagesMatch) {
     console.error(
       chalk.red("Could not find getPackages function"),
-      "add manual package in MainApplication.kt fun getPackages()"
+      "add manual package in MainApplication.kt fun getPackages()",
     );
     return;
   }
@@ -123,7 +137,7 @@ const editMainApplication = async () => {
   if (!curlyBraces) {
     console.error(
       chalk.red("Could not find curly braces in getPackages function"),
-      "add manual package in MainApplication.kt fun getPackages()"
+      "add manual package in MainApplication.kt fun getPackages()",
     );
     return;
   }
@@ -133,7 +147,6 @@ const editMainApplication = async () => {
     "NotificationPackage()",
     "NativeFunctionsPackage()",
     "BackgroundServicePackage()",
-    "VaultCryptoPackage()",
   ];
 
   fs.writeFileSync(
@@ -143,7 +156,7 @@ const editMainApplication = async () => {
       match = packagesNotAdded.map((p) => `add(${p})`).join("\n");
 
       return `{\n${match}\n}`;
-    })
+    }),
   );
   console.log(chalk.green("MainApplication.kt edited successfully."));
 };
@@ -180,7 +193,7 @@ const createModules = async () => {
         fs.writeFileSync(path.resolve(getPath(finalPath), name), content, {
           encoding: "utf8",
         });
-      }
+      },
     );
   });
   console.log(chalk.green("Native modules created successfully."));
@@ -201,7 +214,7 @@ const addPermissionsToManifest = async (newPermissions: string[]) => {
       "app",
       "src",
       "main",
-      "AndroidManifest.xml"
+      "AndroidManifest.xml",
     );
 
     try {
@@ -211,29 +224,41 @@ const addPermissionsToManifest = async (newPermissions: string[]) => {
         .match(/<uses-permission[^>]+>/g)
         ?.map((match) => match.trim());
       const permissions = permissionsAlreadyPresent?.map(
-        (perm) => perm.match(/android:name="([^"]+)"/)?.[1]
+        (perm) => perm.match(/android:name="([^"]+)"/)?.[1],
       );
 
       newPermissions = newPermissions.filter(
-        (perm) => !permissions?.includes(perm)
+        (perm) => !permissions?.includes(perm),
       );
 
       const permissionTags = newPermissions.map(
-        (perm) => `    <uses-permission android:name="${perm}"/>`
+        (perm) => `    <uses-permission android:name="${perm}"/>`,
       );
 
-      if (permissionTags.length === 0) {
+      let newManifestContent = manifestContent.replace(
+        permissionsAlreadyPresent?.[0] || "</manifest>",
+        [permissionsAlreadyPresent?.[0] || "", ...permissionTags].join("\n"),
+      );
+
+      const activity = manifestContent
+        .match(/<activity[\s\S]*<\/activity>/g)
+        ?.find((act) => act.includes("MainActivity"));
+      if (!activity)
+        throw new Error("MainActivity not found in AndroidManifest.xml");
+
+      newManifestContent = newManifestContent.replace(
+        activity,
+        activity.replace("</activity>", INTENTS_TO_ADD + "\n</activity>"),
+      );
+
+      permissionTags.push("");
+
+      if (!permissionTags.length) {
         resolve();
         return;
       }
 
-      fs.writeFileSync(
-        androidManifestPath,
-        manifestContent.replace(
-          permissionsAlreadyPresent?.[0] || "</manifest>",
-          [permissionsAlreadyPresent?.[0] || "", ...permissionTags].join("\n")
-        )
-      );
+      fs.writeFileSync(androidManifestPath, newManifestContent);
     } catch (error) {
       console.error(chalk.red("Error modifying AndroidManifest.xml:"), error);
     }
@@ -251,7 +276,7 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
       "app",
       "src",
       "main",
-      "AndroidManifest.xml"
+      "AndroidManifest.xml",
     );
     const backupPath = androidManifestPath + ".bak";
 
@@ -261,7 +286,7 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
       console.log(chalk.blue("Modifying AndroidManifest.xml..."));
       const manifestContent = fs.readFileSync(androidManifestPath, "utf8");
       const application = manifestContent.match(
-        /<application.*<\/application>/s
+        /<application.*<\/application>/s,
       )?.[0];
 
       if (!application)
@@ -269,14 +294,14 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
 
       const services = Array.isArray(newServices) ? newServices : [newServices];
 
-      const newApplication = application?.replace(
+      const newApplication = application.replace(
         "</application>",
-        [...services, "</application>"].join("\n")
+        [...services, "</application>"].join("\n"),
       );
 
       fs.writeFileSync(
         androidManifestPath,
-        manifestContent.replace(application, newApplication)
+        manifestContent.replace(application, newApplication),
       );
     } catch (error) {
       console.error(chalk.red("Error modifying AndroidManifest.xml:"), error);
