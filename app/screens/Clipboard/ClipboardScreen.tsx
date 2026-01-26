@@ -1,6 +1,7 @@
 import {
-  logError,
+  logger,
   clearRefs,
+  REPLACERS,
   fetchToServer,
   loadDataStorage,
   setTimeoutPolyfill,
@@ -10,7 +11,6 @@ import {
 import {
   View,
   FlatList,
-  Platform,
   RefreshControl,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -44,7 +44,7 @@ const skeletonDataRestore: Tables["ClipboardSync"][] = skeletonData.map(
 const getSkeletonData = (deleted: boolean) =>
   deleted ? skeletonDataRestore : skeletonData;
 
-const limitLoadMore = Platform.OS === "web" ? 20 : 15;
+const limitLoadMore = REPLACERS.isWeb ? 20 : 15;
 
 const ClipboardScreen: React.FC = () => {
   const { t, language } = useLanguage();
@@ -100,9 +100,9 @@ const ClipboardScreen: React.FC = () => {
 
   const changeClipboardItemDeletedRef = useRef(
     async (id: string, deleted: boolean) => {
-      if (!id) return logError("No ID provided for deletion");
+      if (!id) return logger.error("No ID provided for deletion");
       if (!dataRef.current.sessionToken)
-        return logError("No session token available");
+        return logger.error("No session token available");
 
       const [deviceId, language] = await Promise.all([
         loadDataStorage("DEVICE_ID"),
@@ -124,7 +124,7 @@ const ClipboardScreen: React.FC = () => {
       const { error } = res.data || { error: res.errorText || "Unknown error" };
 
       if (error) {
-        logError("Error deleting clipboard item:", error);
+        logger.error("Error deleting clipboard item:", error);
         return;
       }
 
@@ -215,7 +215,7 @@ const ClipboardScreen: React.FC = () => {
     };
 
     if (error) {
-      logError("Error fetching clipboard data:", error);
+      logger.error("Error fetching clipboard data:", error);
       handleSetVars();
       return;
     }
@@ -250,7 +250,7 @@ const ClipboardScreen: React.FC = () => {
   });
 
   const copyClipboardContentRef = useRef(async (content: string) => {
-    if (!content) return logError("No content provided for copying");
+    if (!content) return logger.error("No content provided for copying");
 
     await Clipboard.setStringAsync(content);
   });
@@ -303,7 +303,7 @@ const ClipboardScreen: React.FC = () => {
   });
 
   const handleDeleteRestoreAll = useCallback(async () => {
-    if (!sessionToken) return logError("No session token available");
+    if (!sessionToken) return logger.error("No session token available");
 
     const deviceId = await loadDataStorage("DEVICE_ID");
 
@@ -325,7 +325,7 @@ const ClipboardScreen: React.FC = () => {
     const { error } = res.data || { error: res.errorText || "Unknown error" };
 
     if (error) {
-      logError("Error deleting clipboard item:", error);
+      logger.error("Error deleting clipboard item:", error);
       return;
     }
 
@@ -464,7 +464,7 @@ const ClipboardScreen: React.FC = () => {
           animated
         />
       )}
-      {Platform.OS === "web" && !isFarFromStart && (
+      {REPLACERS.isWeb && !isFarFromStart && (
         <FAB
           size="small"
           icon="refresh"

@@ -1,8 +1,8 @@
 import {
-  isDev,
+  logger,
   tTyped,
   openURL,
-  logError,
+  REPLACERS,
   APP_VERSION,
   getRandomId,
   fetchToServer,
@@ -17,24 +17,24 @@ import {
   askAutoStartPermission,
   configureNotificationChannel,
 } from "./utils/index";
+import { Alert } from "react-native";
 import AppProviders from "./context/AppProviders";
 import AppNavigator from "./navigation/AppNavigator";
 import windowModule from "./utils/modules/WindowModule";
 import { reloadAppAsync } from "expo";
-import { Alert, Platform } from "react-native";
 import NativeFunctionsModule from "./utils/modules/NativeFunctionsModule";
 import React, { useEffect, useRef } from "react";
 
 const hasDeviceId = async (): Promise<boolean> => {
   try {
     const deviceId = await loadDataStorage("DEVICE_ID");
-    if (Platform.OS === "web" && deviceId)
+    if (REPLACERS.isWeb && deviceId)
       windowModule.setData(deviceId, await checkLanguage());
 
     if (deviceId) return true;
     askAutoStartPermission();
 
-    if (Platform.OS === "web") {
+    if (REPLACERS.isWeb) {
       const deviceId = getRandomId() + "-" + getRandomId();
       windowModule.setData(deviceId, await checkLanguage());
       await saveDataStorage("DEVICE_ID", deviceId);
@@ -46,7 +46,7 @@ const hasDeviceId = async (): Promise<boolean> => {
         const result = res.data;
         uuid = result?.uuid;
       } catch (error) {
-        logError("Error saving device ID:", error);
+        logger.error("Error saving device ID:", error);
       }
       if (!uuid)
         uuid = Array.from({ length: 3 }, () => getRandomId()).join("-");
@@ -101,7 +101,7 @@ const App = () => {
         );
       });
     } catch (error) {
-      logError("Error while updating the app", error);
+      logger.error("Error while updating the app", error);
     }
   });
 
@@ -115,7 +115,7 @@ const App = () => {
 
       await fetchAndApplyUpdate();
     } catch (error) {
-      logError("Error while updating the app", error);
+      logger.error("Error while updating the app", error);
     } finally {
       setIsLoading(false);
     }
@@ -125,12 +125,12 @@ const App = () => {
     hasDeviceId().then((exists) => {
       if (exists) return;
 
-      if (isDev) logError("Error setting up device ID:");
+      if (REPLACERS.isDev) logger.error("Error setting up device ID:");
       reloadAppAsync();
     });
-    if (Platform.OS === "web") return setIsLoading(false);
+    if (REPLACERS.isWeb) return setIsLoading(false);
 
-    if (!isDev)
+    if (!REPLACERS.isDev)
       setTimeoutPolyfill(
         () =>
           NativeFunctionsModule.wasLaunchedFromService().then(

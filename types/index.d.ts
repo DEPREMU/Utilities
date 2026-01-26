@@ -12,3 +12,10 @@ export * from "./typesNativeModules";
 export * from "./typesUtilitiesForPC";
 export * from "./typesVault";
 export * from "../app/node_modules/react-native";
+
+export type REPLACERS_TYPE =
+  | "isDev"
+  | "isWeb"
+  | "isNative"
+  | "isPreview"
+  | "isProduction";

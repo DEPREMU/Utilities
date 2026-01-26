@@ -1,16 +1,16 @@
-import React, { useState } from "react";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
   withTiming,
+  withSequence,
+  useSharedValue,
+  useAnimatedStyle,
 } from "react-native-reanimated";
+import { Keyboard } from "react-native";
 import { TextInput } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
 import ButtonComponent from "@components/common/ButtonComponent";
+import React, { useState } from "react";
 import useStylesAuthScreens from "@styles/screens/auth/useStylesAuthScreens";
-import { Keyboard, Platform } from "react-native";
-import { isValidEmail, isValidPassword } from "@utils";
+import { isValidEmail, isValidPassword, REPLACERS } from "@utils";
 
 interface LoginTypeEmailProps {
   email: string;
@@ -121,7 +121,7 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
           value={email}
           onChangeText={setEmail}
           onFocus={() => {
-            if (Platform.OS !== "android") return;
+            if (!REPLACERS.isNative) return;
             if (typeof Keyboard.emit === "function")
               Keyboard?.emit("keyboardDidShow");
           }}
@@ -147,7 +147,7 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
           value={password}
           onChangeText={setPassword}
           onFocus={() => {
-            if (Platform.OS !== "android") return;
+            if (!REPLACERS.isNative) return;
             if (typeof Keyboard.emit === "function")
               Keyboard?.emit("keyboardDidShow");
           }}

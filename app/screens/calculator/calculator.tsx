@@ -2,8 +2,8 @@ import Button from "@components/common/ButtonComponent";
 import { Icon, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesCalculator from "@styles/screens/calculator/useStylesCalculator";
+import { logger, memoDeep } from "@utils";
 import { ScrollView, View } from "react-native";
-import { logError, memoDeep } from "@utils";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const layout: string[][] = [
@@ -68,7 +68,7 @@ const Calculator: React.FC = () => {
       if (!isFinite(value)) setResult("Error");
       else setResult(value.toString());
     } catch (error) {
-      logError(error);
+      logger.error(error);
       setResult("Error");
     }
   }, [input, t]);

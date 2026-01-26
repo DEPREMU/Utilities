@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useTheme } from "@context/ThemeContext";
+import { REPLACERS } from "@utils";
+import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
-import { Platform, StyleSheet } from "react-native";
 
 const useStylesVaultScreen = () => {
   const { colors } = useTheme();
@@ -81,8 +82,8 @@ const useStylesVaultScreen = () => {
         fileItem: {
           alignItems: "center",
           justifyContent: "center",
-          width: width / (Platform.OS === "web" ? 4 : 3) - 10,
-          height: width / (Platform.OS === "web" ? 4 : 3) - 10,
+          width: width / (REPLACERS.isWeb ? 4 : 3) - 10,
+          height: width / (REPLACERS.isWeb ? 4 : 3) - 10,
         },
         fileName: {
           fontSize: getResponsiveValue(16, 18, 20),

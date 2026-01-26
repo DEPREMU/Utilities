@@ -16,7 +16,7 @@ import * as ZIP from "react-native-zip-archive";
 import * as FileSystem from "@dr.pogodin/react-native-fs";
 import * as ExpoFileSystem from "expo-file-system";
 import NativeFunctionsModule from "../modules/NativeFunctionsModule";
-import { logError, loadDataStorage, sanitizeFileName } from "../functions";
+import { logger, loadDataStorage, sanitizeFileName } from "../functions";
 import { FetchFileInfo, DecryptFolderFiles, ActionWithVaultItem } from "@types";
 
 type ProgressCallback = (percentage: number) => void;
@@ -34,7 +34,7 @@ export const clearDecryptedFolderDirectory: ClearDecryptedFolderDirectory =
 
       outputDir.delete();
     } catch (error) {
-      logError(
+      logger.error(
         "DECRYPT",
         "Error clearing decrypted folder directory:",
         error instanceof Error ? error.message : error,
@@ -86,7 +86,7 @@ export const encryptFile = async (
     return success;
   } catch (error) {
     remove();
-    logError(
+    logger.error(
       "ENCRYPT",
       "Encryption failed:",
       error instanceof Error ? error.message : error,
@@ -154,7 +154,7 @@ export const decryptFile = async (
     return success;
   } catch (error) {
     remove();
-    logError("DECRYPT", "Decryption failed:", (error as Error).message);
+    logger.error("DECRYPT", "Decryption failed:", (error as Error).message);
     if (await FileSystem.exists(outputPath)) FileSystem.unlink(outputPath);
 
     return false;
@@ -230,7 +230,7 @@ export const decryptFolderFiles: DecryptFolderFiles = async (
 
         await new Promise((r) => setTimeout(r, 10));
       } catch (error) {
-        logError(
+        logger.error(
           "DECRYPT",
           `Error decrypting file ${file.name}:`,
           error instanceof Error ? error.message : error,
@@ -241,7 +241,7 @@ export const decryptFolderFiles: DecryptFolderFiles = async (
 
     return decryptedFiles.filter((f): f is FolderFiles[number] => !!f);
   } catch (error) {
-    logError(
+    logger.error(
       "DECRYPT",
       "Error decrypting folder files:",
       error instanceof Error ? error.message : error,
@@ -278,7 +278,7 @@ export const actionWithVaultItem: ActionWithVaultItem = async (
 
     return { success: true };
   } catch (error) {
-    logError(
+    logger.error(
       "ACTION_VAULT_ITEM",
       `Error performing ${action} on vault item:`,
       error instanceof Error ? error.message : error,
@@ -297,7 +297,7 @@ export const renameVaultItem = async (
 
     return { success: true };
   } catch (error) {
-    logError(
+    logger.error(
       "RENAME_VAULT_ITEM",
       `Error renaming vault item:`,
       error instanceof Error ? error.message : error,
@@ -339,7 +339,7 @@ export const hasPasswordZIP: HasPasswordZIP = async (zipPath) => {
   try {
     return await ZIP.isPasswordProtected(zipPath);
   } catch (error) {
-    logError(
+    logger.error(
       "ZIP_INFO",
       "Error checking if ZIP has password:",
       error instanceof Error ? error.message : error,
@@ -379,7 +379,7 @@ export const zipFile: ZipFile = async (files, onProgress, password, onZip) => {
 
         return destUri;
       } catch (error) {
-        logError(
+        logger.error(
           "VAULT",
           `Error copying file ${f} to temp directory:`,
           error instanceof Error ? error.message : error,
@@ -430,7 +430,7 @@ export const zipFile: ZipFile = async (files, onProgress, password, onZip) => {
 
     return path;
   } catch (error) {
-    logError(
+    logger.error(
       "VAULT",
       "Error getting ZIP file list:",
       error instanceof Error ? error.message : error,
@@ -474,7 +474,7 @@ export const unzipFile: UnzipFile = async (
     const files = new ExpoFileSystem.Directory(extractedPath).list();
     return files.map((f) => f.uri);
   } catch (error) {
-    logError(
+    logger.error(
       "UNZIP_LIST",
       "Error getting UNZIP file list:",
       error instanceof Error ? error.message : error,

@@ -9,17 +9,18 @@ import axios from "axios";
 import React from "react";
 import { v4 } from "uuid";
 import isEqual from "react-fast-compare";
+import { logger } from "./debug";
 import { tTyped } from "../translates";
 import * as Updates from "expo-updates";
 import * as Sharing from "expo-sharing";
+import { REPLACERS } from "../constants";
+import { Alert, Falsy } from "react-native";
 import _BackgroundTimer from "react-native-background-timer";
-import { log, logError } from "./debug";
 import * as MediaLibrary from "expo-media-library";
 import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
 import { loadDataStorage } from "./storageManagement";
 import * as DocumentPicker from "expo-document-picker";
-import { Alert, Falsy, Platform } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import { ExpectedStorageTypes, wrapFunctionWithError } from "@common";
 
@@ -45,7 +46,7 @@ export const getFormattedDate = (
 };
 
 const functionFallback = (functionName: string) => () =>
-  log(
+  logger.log(
     `Function created after parsed data, original function name: "${functionName}"`,
   );
 const symbolFallback = (symbolName: string) =>
@@ -159,7 +160,7 @@ export const stringifyData = (value: unknown): string => {
 
     return JSON.stringify(value);
   } catch (error) {
-    logError("Error stringifying data:", error, value);
+    logger.error("Error stringifying data:", error, value);
     return "notValid";
   }
 };
@@ -249,7 +250,7 @@ export const getCryptosFromDatabase = async (
   );
 
   if (!response.ok) {
-    logError(
+    logger.error(
       "Error fetching cryptos from Database:",
       response.errorText || "Unknown error",
     );
@@ -281,13 +282,13 @@ export const fetchAndApplyUpdate = async (): Promise<void> => {
     const update = await Updates.fetchUpdateAsync();
 
     if (update.isNew) {
-      log("New update downloaded, applying update...");
+      logger.log("New update downloaded, applying update...");
       await Updates.reloadAsync();
     } else {
-      log("No new update available to fetch.");
+      logger.log("No new update available to fetch.");
     }
   } catch (error) {
-    logError("Error fetching or applying update:", error);
+    logger.error("Error fetching or applying update:", error);
   }
 };
 
@@ -295,8 +296,7 @@ export const setTimeoutPolyfill = (
   fn: (...args: unknown[]) => void,
   timeout: number,
 ): number => {
-  if (Platform.OS === "android")
-    return _BackgroundTimer.setTimeout(fn, timeout);
+  if (REPLACERS.isNative) return _BackgroundTimer.setTimeout(fn, timeout);
   else return setTimeout(fn, timeout);
 };
 
@@ -312,7 +312,7 @@ export const clearTimeoutPolyfill = (
 
     if (!id) return;
 
-    if (Platform.OS === "android") _BackgroundTimer.clearTimeout(id as number);
+    if (REPLACERS.isNative) _BackgroundTimer.clearTimeout(id as number);
     else clearTimeout(id);
   });
 };
@@ -333,8 +333,7 @@ export const setIntervalPolyfill = (
   fn: (...args: unknown[]) => void,
   interval: number,
 ): number => {
-  if (Platform.OS === "android")
-    return _BackgroundTimer.setInterval(fn, interval);
+  if (REPLACERS.isNative) return _BackgroundTimer.setInterval(fn, interval);
   else return setInterval(fn, interval);
 };
 
@@ -350,7 +349,7 @@ export const clearIntervalPolyfill = (
 
     if (!id) return;
 
-    if (Platform.OS === "android") _BackgroundTimer.clearInterval(id);
+    if (REPLACERS.isNative) _BackgroundTimer.clearInterval(id);
     else clearInterval(id);
   });
 };
@@ -374,7 +373,7 @@ export const checkUrlStatus = async (
     res?.data?.destroy?.();
     return res.status >= 200 && res.status < 400;
   } catch (error) {
-    logError(`Error checking URL status for ${url}:`, error);
+    logger.error(`Error checking URL status for ${url}:`, error);
     return false;
   }
 };
@@ -408,7 +407,7 @@ export const hasInternetConnection = async (): Promise<boolean> => {
 export const getRandomId = (): string => {
   let id: string | null = null;
 
-  if (Platform.OS === "web") id = v4();
+  if (REPLACERS.isWeb) id = v4();
 
   if (!id)
     id = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
@@ -527,9 +526,9 @@ export const selectImage = async (
         }),
       );
 
-    log("Image selection was canceled.");
+    logger.log("Image selection was canceled.");
   } catch (error) {
-    logError("Error selecting image:", error);
+    logger.error("Error selecting image:", error);
   }
   return { canceled: true };
 };
@@ -640,7 +639,7 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
           intermediates: true,
         });
       },
-      async (_, errMsg) => logError("Error creating file:", errMsg),
+      async (_, errMsg) => logger.error("Error creating file:", errMsg),
     );
     file.write(base64, { encoding: "base64" });
 
@@ -687,7 +686,7 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
           return { success: true, uri: directory.uri.split("//")[1] };
         },
         async (_, errMsg) => {
-          logError("Error saving file:", errMsg);
+          logger.error("Error saving file:", errMsg);
           return { success: false, uri: tTyped("labels.noDirectorySelected") };
         },
       );
@@ -731,7 +730,7 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
       }),
     );
   } catch (error) {
-    logError("Error downloading image:", error);
+    logger.error("Error downloading image:", error);
     Alert.alert(
       tTyped("images.errorWhileSavingImageAlertTitle"),
       tTyped("images.errorWhileSavingImageAlertMessage", {
@@ -749,11 +748,12 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
  * implementation for downloading base64 content. On web platforms, it uses `downloadBase64Web`,
  * while on native platforms (iOS/Android), it uses `downloadBase64Native`.
  */
-export const downloadBase64 =
-  Platform.OS === "web" ? downloadBase64Web : downloadBase64Native;
+export const downloadBase64 = REPLACERS.isWeb
+  ? downloadBase64Web
+  : downloadBase64Native;
 
 export const showAlert = (...args: Parameters<typeof Alert.alert>): void => {
-  if (Platform.OS === "web") alert(args[0] + "\n\n" + (args[1] || ""));
+  if (REPLACERS.isWeb) alert(args[0] + "\n\n" + (args[1] || ""));
   else Alert.alert(...args);
 };
 

@@ -1,11 +1,11 @@
 import React, {
   useRef,
+  useMemo,
   useState,
   useEffect,
   useContext,
   useCallback,
   createContext,
-  useMemo,
 } from "react";
 import {
   AudioModule,
@@ -19,16 +19,16 @@ import {
 } from "expo-audio";
 import {
   tTyped,
-  logError,
+  logger,
+  REPLACERS,
   areEqualValues,
   downloadBase64,
   loadDataStorage,
   saveDataStorage,
+  setTimeoutPolyfill,
   wrapFunctionWithError,
   ExpectedUnsecureStorageTypes,
-  setTimeoutPolyfill,
 } from "@utils";
-import { Platform } from "react-native";
 import { useModal } from "./ModalContext";
 import { useNotifications } from "./NotificationsContext";
 import { NotificationAction } from "@types";
@@ -130,7 +130,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
           }));
         },
         async (_, errorMsg) => {
-          logError("RECORDER", "Error starting recording:", errorMsg);
+          logger.error("RECORDER", "Error starting recording:", errorMsg);
           openSnackBarRef.current(
             tTyped("recorder.failedToInitialize", { message: errorMsg }),
           );
@@ -170,7 +170,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
           return newFile.uri;
         },
         async (_, errorMsg) => {
-          logError("RECORDER", "Error moving recording file:", errorMsg);
+          logger.error("RECORDER", "Error moving recording file:", errorMsg);
           return uri;
         },
       );
@@ -202,7 +202,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
           message: (error as Error).message,
         }),
       );
-      logError("RECORDER", "Error stopping recording:", error);
+      logger.error("RECORDER", "Error stopping recording:", error);
     } finally {
       isStoppingRef.current = false;
     }
@@ -435,7 +435,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
 export const useRecorder = (): RecorderContextType => {
   const context = useContext(RecorderContext);
 
-  if (!context && Platform.OS !== "web")
+  if (!context && !REPLACERS.isWeb)
     throw new Error("useRecorder must be used within a RecorderProvider");
 
   return context || ({} as RecorderContextType);

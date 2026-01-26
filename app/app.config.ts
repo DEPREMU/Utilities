@@ -3,12 +3,12 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.6.0-dev";
+const version = "1.7.0";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
-    name: "Utilities Dev",
+    name: "Utilities",
     slug: "Utilities",
     updates: {
       url: "https://u.expo.dev/7dd2c093-0c91-4638-a5b9-828d458e8be0",
@@ -41,7 +41,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: "#000000",
       },
       jsEngine: "hermes",
-      package: "com.utilities.depremu.dev",
+      package: "com.utilities.depremu",
       permissions: [
         "INTERNET",
         "WAKE_LOCK",

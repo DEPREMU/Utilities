@@ -1,12 +1,6 @@
 /* eslint-disable react/jsx-no-literals */
 /* eslint-disable react-native/no-inline-styles */
 import {
-  memoDeep,
-  clearRefs,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-} from "@utils";
-import {
   View,
   Pressable,
   StyleSheet,
@@ -22,6 +16,7 @@ import { Text } from "react-native-paper";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { memoDeep, setTimeoutPolyfill, clearTimeoutPolyfill } from "@utils";
 
 interface AnimatedCircleProps {
   x: number;
@@ -128,14 +123,6 @@ const ButtonWithLiquidEffectAndAnimatedCircles = () => {
       return filteredTouches;
     });
   }, []);
-
-  // Cleanup refs on unmount
-  useEffect(
-    () => () => {
-      clearRefs(lastPress, pressRef);
-    },
-    [],
-  );
 
   useEffect(() => {
     translateY.value = withRepeat(withTiming(60, { duration: 4000 }), -1, true);

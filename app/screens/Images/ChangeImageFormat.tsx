@@ -10,9 +10,9 @@ import {
   ResponseChangeImageFormat,
 } from "@types";
 import {
-  log,
   tTyped,
-  logError,
+  logger,
+  REPLACERS,
   getRouteAPI,
   selectImage,
   checkLanguage,
@@ -25,12 +25,12 @@ import { Text } from "react-native-paper";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesChangeImageFormat from "@styles/screens/Images/useStylesChangeImageFormat";
+import { Image, ScrollView, View } from "react-native";
 import { useCallback, useRef, useState } from "react";
-import { Image, Platform, ScrollView, View } from "react-native";
 
 const getDataChangeImageFormat = wrapFunctionWithError(
   async (body: RequestChangeImageFormat) => {
-    if (Platform.OS === "web") {
+    if (REPLACERS.isWeb) {
       const data = await wrapFunctionWithError(
         async () => {
           const res = await axios.post<ResponseChangeImageFormat>(
@@ -54,7 +54,7 @@ const getDataChangeImageFormat = wrapFunctionWithError(
   },
   true,
   async (_, errorMessage) => {
-    logError(errorMessage);
+    logger.error(errorMessage);
     return {
       success: false,
       error: t("images.errorWhileConvertingImageMessage"),
@@ -91,10 +91,10 @@ const ChangeImageFormat = () => {
           typeFile: `image/${extension as "png"}`,
         });
 
-        log("Image saved:", image.name);
+        logger.log("Image saved:", image.name);
         openSnackBarRef.current(tTyped("images.downloadImageSuccessMessage"));
       } catch (error) {
-        logError("Failed to download image:", error);
+        logger.error("Failed to download image:", error);
       }
     },
   );
@@ -102,19 +102,19 @@ const ChangeImageFormat = () => {
   const handleDeleteImageRef = useRef(
     (image: (typeof imagesConverted)[number]) => {
       setImagesConverted((prev) => prev.filter((img) => img.uri !== image.uri));
-      log("Deleted converted image:", image.name);
+      logger.log("Deleted converted image:", image.name);
     },
   );
 
   const handlePressSelectImageRef = useRef(async () => {
     const selectedImages = await selectImage({ multiple: true, base64: true });
     if (!Array.isArray(selectedImages)) {
-      logError("Image selection was canceled or failed.");
+      logger.error("Image selection was canceled or failed.");
       return;
     }
 
     setImages(selectedImages);
-    log(
+    logger.log(
       "Selected images:",
       selectedImages.map((img) => img.name),
     );
@@ -122,7 +122,7 @@ const ChangeImageFormat = () => {
 
   const changeImageFormat = useCallback(
     async (image: (typeof images)[number], format: typeof image.type) => {
-      log("Changing format for image:", image.name, "to", format);
+      logger.log("Changing format for image:", image.name, "to", format);
       setConverting((prev) => [...prev, images.indexOf(image)]);
 
       const data = await getDataChangeImageFormat({
@@ -133,7 +133,7 @@ const ChangeImageFormat = () => {
       setConverting((prev) => prev.filter((i) => i !== images.indexOf(image)));
 
       if (!data) {
-        logError("Failed to change image format, data fetched:", data);
+        logger.error("Failed to change image format, data fetched:", data);
         return;
       }
 
@@ -202,7 +202,7 @@ const ChangeImageFormat = () => {
           style={styles.selectedImagePreview}
           onError={() => handleDeleteImageRef.current(image)}
         />
-        {Platform.OS !== "web" &&
+        {REPLACERS.isNative &&
           Object.values(albumsImages).map((album) => (
             <Button
               key={album}

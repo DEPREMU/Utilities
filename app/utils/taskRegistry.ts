@@ -3,13 +3,8 @@ import {
   RequestDatabaseDelete,
   RequestDatabaseUpdate,
 } from "@types";
-import {
-  logError,
-  checkLanguage,
-  fetchToServer,
-  loadDataStorage,
-} from "@utils";
 import { TablesKeys, RequestDatabaseInsert } from "@types";
+import { logger, checkLanguage, fetchToServer, loadDataStorage } from "@utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TaskFunction = (...args: any[]) => Promise<void> | void;
@@ -43,7 +38,7 @@ const taskRegistry: TaskRegistry = {
 
       await fetchToServer("/database/update", body as never, token);
     } catch (error) {
-      logError(`Error updating ${table}:`, error);
+      logger.error(`Error updating ${table}:`, error);
     }
   },
 
@@ -68,7 +63,7 @@ const taskRegistry: TaskRegistry = {
 
       await fetchToServer("/database/insert", body as never, token);
     } catch (error) {
-      logError(`Error inserting into ${table}:`, error);
+      logger.error(`Error inserting into ${table}:`, error);
     }
   },
 
@@ -93,7 +88,7 @@ const taskRegistry: TaskRegistry = {
 
       await fetchToServer("/database/delete", body as never, token);
     } catch (error) {
-      logError(`Error deleting from ${table}:`, error);
+      logger.error(`Error deleting from ${table}:`, error);
     }
   },
 };
@@ -105,20 +100,22 @@ export const executeRegisteredTask = async (
   args: unknown[],
 ): Promise<void> => {
   if (functionName === "refreshSession") {
-    logError("refreshSession should not be executed via executeRegisteredTask");
+    logger.error(
+      "refreshSession should not be executed via executeRegisteredTask",
+    );
     return;
   }
 
   const taskFunction = taskRegistry[functionName];
 
   if (!taskFunction) {
-    logError(`Task function ${functionName} not found in registry`);
+    logger.error(`Task function ${functionName} not found in registry`);
     return;
   }
 
   try {
     await taskFunction(...(args || []));
   } catch (error) {
-    logError(`Error executing task ${functionName}:`, error);
+    logger.error(`Error executing task ${functionName}:`, error);
   }
 };

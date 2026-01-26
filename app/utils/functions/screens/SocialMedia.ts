@@ -1,5 +1,5 @@
+import { logger } from "../debug";
 import { Linking } from "react-native";
-import { logError } from "../debug";
 
 /**
  * Opens the specified URL.
@@ -8,5 +8,7 @@ import { logError } from "../debug";
  * @returns {void}
  */
 export const openURL = (link: string): void => {
-  Linking.openURL(link).catch((err) => logError("Failed to open URL:", err));
+  Linking.openURL(link).catch((err) =>
+    logger.error("Failed to open URL:", err),
+  );
 };

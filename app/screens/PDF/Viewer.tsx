@@ -1,4 +1,3 @@
-import PDF from "react-native-pdf";
 import { View } from "react-native";
 import * as RNFS from "@dr.pogodin/react-native-fs";
 import { useLanguage } from "@context/LanguageContext";
@@ -7,9 +6,9 @@ import * as ExpoFileSystem from "expo-file-system";
 import { Button, Divider } from "react-native-paper";
 import * as DocumentPicker from "expo-document-picker";
 import React, { useCallback, useEffect, useState } from "react";
-import { logError, memoDeep, sanitizeFileName, URI_EXTENSION } from "@utils";
+import { logger, memoDeep, sanitizeFileName, URI_EXTENSION, PDF } from "@utils";
 
-type ViewerProps = {            
+type ViewerProps = {
   uri?: string;
 };
 
@@ -56,7 +55,7 @@ const Viewer: React.FC<ViewerProps> = ({ uri }) => {
         }
       })
       .catch((error) => {
-        logError("PDF", "Error copying file to cache", error);
+        logger.error("PDF", "Error copying file to cache", error);
       });
 
     return () => {

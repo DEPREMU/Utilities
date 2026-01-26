@@ -11,7 +11,7 @@ import { cloneDeep } from "lodash";
 import { useBackground } from "./BackgroundContext";
 import { DeviceInformation } from "@types";
 import DeviceInfo, { PowerState } from "react-native-device-info";
-import { getFormattedDate, logError } from "@utils";
+import { getFormattedDate, logger } from "@utils";
 
 interface DeviceInformationContextType {
   deviceInfo: DeviceInformation | null;
@@ -74,7 +74,7 @@ const getDeviceInformation = async (): Promise<DeviceInformation> => {
 
         return [key, value];
       } catch (error) {
-        logError(`Error getting device info for ${key}:`, error);
+        logger.error(`Error getting device info for ${key}:`, error);
         return [key, null];
       }
     }),
@@ -95,7 +95,7 @@ export const DeviceInformationProvider: React.FC<
       const info = await getDeviceInformation();
       setDeviceInfo(info);
     } catch (error) {
-      logError("Error getting device information:", error);
+      logger.error("Error getting device information:", error);
     }
   });
 

@@ -1,10 +1,10 @@
 import {
-  logError,
+  logger,
   fetchToServer,
+  checkLanguage,
   saveDataStorage,
   loadDataStorage,
   setTimeoutPolyfill,
-  checkLanguage,
 } from "@utils";
 import DownDetector from "./DownDetector";
 import AddNewWebPage from "./AddNewWebPage";
@@ -43,11 +43,11 @@ const DownDetectorNavigator: React.FC = () => {
   });
 
   const deleteDownDetectorItemRef = useRef(async (id: string) => {
-    if (!id) return logError("No ID provided for deletion");
+    if (!id) return logger.error("No ID provided for deletion");
 
     const { sessionToken } = dataRef.current;
 
-    if (!sessionToken) return logError("No session token available");
+    if (!sessionToken) return logger.error("No session token available");
 
     const [deviceId, language] = await Promise.all([
       loadDataStorage("DEVICE_ID"),
@@ -69,7 +69,7 @@ const DownDetectorNavigator: React.FC = () => {
     };
 
     if (error) {
-      logError("Error deleting downDetector item:", error);
+      logger.error("Error deleting downDetector item:", error);
       return;
     }
 
@@ -95,7 +95,7 @@ const DownDetectorNavigator: React.FC = () => {
 
       loadDataStorage("DEVICE_ID").then(async (deviceId) => {
         const { sessionToken } = dataRef.current;
-        if (!sessionToken) return logError("No session token available");
+        if (!sessionToken) return logger.error("No session token available");
 
         const language = await checkLanguage();
 
@@ -115,9 +115,9 @@ const DownDetectorNavigator: React.FC = () => {
           };
 
           if (error) {
-            logError("Error updating sendNotification status:", error);
+            logger.error("Error updating sendNotification status:", error);
           } else if (!success) {
-            logError("Failed to update sendNotification status");
+            logger.error("Failed to update sendNotification status");
             setDownDetectorData(prevData);
             return;
           }
@@ -132,7 +132,7 @@ const DownDetectorNavigator: React.FC = () => {
     if (!userData?.userId) return;
 
     const fetchDownDetectorDataFromDatabase = async () => {
-      if (!sessionToken) return logError("No session token available");
+      if (!sessionToken) return logger.error("No session token available");
 
       const deviceId = await loadDataStorage("DEVICE_ID");
 
@@ -164,7 +164,7 @@ const DownDetectorNavigator: React.FC = () => {
           );
         }
       } catch (error) {
-        logError("Error fetching downDetector data:", error);
+        logger.error("Error fetching downDetector data:", error);
       }
       const fallbackData = await loadDataStorage("DOWN_DETECTOR_DATA");
       setTimeoutPolyfill(() => setDownDetectorData(fallbackData || null), 2000);

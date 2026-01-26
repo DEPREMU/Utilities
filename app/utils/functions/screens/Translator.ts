@@ -1,4 +1,4 @@
-import { logError } from "../debug";
+import { logger } from "../debug";
 import { fetchToServer } from "../APIManagement";
 
 export const translate = async (
@@ -13,7 +13,9 @@ export const translate = async (
     });
 
     if (!res.ok) {
-      logError(`Error while translating: ${res.errorText || "Unknown error"}`);
+      logger.error(
+        `Error while translating: ${res.errorText || "Unknown error"}`,
+      );
       return `Error: ${res.errorText || "Unknown error"}`;
     }
 

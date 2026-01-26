@@ -1,7 +1,6 @@
 import {
   View,
   Image,
-  Platform,
   FlatList,
   Pressable,
   ScrollView,
@@ -10,6 +9,7 @@ import {
 import Modal from "./components/Modal";
 import ActionsMenu from "./components/ActionsMenu";
 import { useVault } from "@context/VaultContext";
+import { REPLACERS } from "@utils";
 import { FolderFiles } from "@types";
 import { useLanguage } from "@context/LanguageContext";
 import { VaultScreenProps } from ".";
@@ -246,7 +246,7 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
             ? folders[currentFolderId]
             : []
         }
-        numColumns={Platform.OS === "web" ? 4 : 3}
+        numColumns={REPLACERS.isWeb ? 4 : 3}
         renderItem={renderItem}
         keyExtractor={(_, index) => String(index)}
         ListEmptyComponent={renderEmptyOrLocked}

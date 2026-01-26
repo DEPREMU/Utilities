@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { REPLACERS } from "../constants";
 import { ContextBridgeType } from "@types";
 
 const voidFunction = () => {};
@@ -45,10 +45,7 @@ const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
 
 let windowModule: ContextBridgeType["UtilitiesForPC"] = defaultWindow;
 
-export const supportedPlatformsWeb: Platform["OS"][] = ["web", "windows"];
-
 const assignWindowModule = () => {
-  if (!supportedPlatformsWeb.includes(Platform.OS)) return;
   const windowType: ContextBridgeType =
     (window as unknown as ContextBridgeType) || null;
   if (!windowType) return;
@@ -56,6 +53,7 @@ const assignWindowModule = () => {
 
   windowModule = windowType.UtilitiesForPC;
 };
-assignWindowModule();
+
+if (REPLACERS.isWeb) assignWindowModule();
 
 export default windowModule;

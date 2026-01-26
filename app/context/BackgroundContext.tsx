@@ -6,8 +6,9 @@ import React, {
   createContext,
 } from "react";
 import {
-  log,
+  logger,
   tTyped,
+  REPLACERS,
   loadDataStorage,
   setTimeoutPolyfill,
   setIntervalPolyfill,
@@ -23,7 +24,7 @@ import { navigationRef } from "@navigation/navigationRef";
 import { reloadAppAsync } from "expo";
 import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
 import { functionsToExecute } from "@/utils/cross";
-import { AppState, DeviceEventEmitter, Platform } from "react-native";
+import { AppState, DeviceEventEmitter } from "react-native";
 
 type typeDataReceivedState = { state: "suspended" | "resumed" };
 
@@ -185,14 +186,16 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
   }, [statePhone]);
 
   useEffect(() => {
-    if (Platform.OS !== "android") return;
+    if (!REPLACERS.isNative) return;
 
     const initializeBackgroundModule = async () => {
       let attempt = 0;
       while (!BackgroundModule.start && attempt < 5) {
         attempt++;
         await new Promise((resolve) => setTimeoutPolyfill(resolve, 1000));
-        log(`Waiting for BackgroundModule to be ready... Attempt ${attempt}`);
+        logger.log(
+          `Waiting for BackgroundModule to be ready... Attempt ${attempt}`,
+        );
       }
 
       if (!BackgroundModule.start) return reloadAppAsync();
@@ -249,7 +252,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== "android") return;
+    if (!REPLACERS.isNative) return;
 
     const askPermissions = async () => {
       await askLocationPermission();

@@ -11,7 +11,6 @@ import LoginScreen from "@screens/auth/LoginScreen";
 import Minesweeper from "@screens/Games/Minesweeper";
 import * as Linking from "expo-linking";
 import PDFNavigator from "@screens/PDF";
-import { Platform } from "react-native";
 import { useTheme } from "@context/ThemeContext";
 import SignUpScreen from "@screens/auth/SignUpScreen";
 import VaultNavigator from "@screens/Vault";
@@ -34,7 +33,7 @@ import DownDetectorNavigator from "@screens/DownDetector";
 import { NavigationContainer } from "@react-navigation/native";
 import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
 import { navigateReplace, navigationRef } from "./navigationRef";
-import { isDev, setupNotificationHandlers } from "@utils";
+import { REPLACERS, setupNotificationHandlers } from "@utils";
 
 export type RootStackParamList = Record<ScreensAvailable, object | undefined>;
 
@@ -55,8 +54,7 @@ const ComponentToHome: React.FC = () => {
   return null;
 };
 
-const isWeb = Platform.OS === "web";
-const initialRouteName: ScreensAvailable = isDev ? "PDF" : "Home";
+const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "PDF" : "Home";
 
 /**
  * Centralized configuration object for all app screens.
@@ -81,17 +79,19 @@ const screens: Screens = {
   forgotPassword: { component: ForgotPasswordScreen },
   DeviceInformation: { component: DeviceInformation },
   Vault: { component: VaultNavigator },
-  Test: { component: isDev ? Test : ComponentToHome },
-  Recorder: { component: isWeb ? ComponentToHome : RecorderNavigator },
+  Test: { component: REPLACERS.isDev ? Test : ComponentToHome },
+  Recorder: {
+    component: REPLACERS.isWeb ? ComponentToHome : RecorderNavigator,
+  },
   Images: { component: ImagesNavigator },
   ScanQRCode: {
-    component: isWeb ? ComponentToHome : ScanQRCode,
+    component: REPLACERS.isWeb ? ComponentToHome : ScanQRCode,
   },
   ComputerControl: {
-    component: isWeb ? ComponentToHome : ComputerControl,
+    component: REPLACERS.isWeb ? ComponentToHome : ComputerControl,
   },
   TerminalCommands: {
-    component: isWeb ? TerminalCommands : ComponentToHome,
+    component: REPLACERS.isWeb ? TerminalCommands : ComponentToHome,
   },
   PDF: { component: PDFNavigator as React.FC },
 };
@@ -114,7 +114,7 @@ const AppNavigator: React.FC = () => {
   const { navigationTheme } = useTheme();
 
   useEffect(() => {
-    if (Platform.OS !== "web") {
+    if (REPLACERS.isNative) {
       const handleNavigate = (url: string | null) => {
         if (!url || (!url.startsWith("content") && !url.startsWith("file")))
           return;

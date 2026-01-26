@@ -6,15 +6,15 @@ import {
   TextInput,
   ProgressBar,
 } from "react-native-paper";
+import { View } from "react-native";
 import { useVault } from "@context/VaultContext";
 import { useModal } from "@context/ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
-import { Platform, View } from "react-native";
 import { VaultScreenProps } from ".";
 import React, { useCallback, useMemo, useState } from "react";
-import { FolderFiles, logError, tTyped, zipFile } from "@utils";
+import { FolderFiles, logger, REPLACERS, tTyped, zipFile } from "@utils";
 
 const CompressionScreen: React.FC<VaultScreenProps> = ({
   useStylesVaultScreen,
@@ -91,7 +91,7 @@ const CompressionScreen: React.FC<VaultScreenProps> = ({
 
     let pathZip = "";
 
-    if (Platform.OS === "web") {
+    if (REPLACERS.isWeb) {
       const path = await windowModule.askPath();
       if (!path) return;
 
@@ -103,7 +103,7 @@ const CompressionScreen: React.FC<VaultScreenProps> = ({
           setProgress(progressPercent / 100);
         },
         (error) => {
-          logError("VAULT", "Error zipping folder:", error);
+          logger.error("VAULT", "Error zipping folder:", error);
         },
       );
     } else {
@@ -118,7 +118,7 @@ const CompressionScreen: React.FC<VaultScreenProps> = ({
             });
             deleteTempFile();
           } catch (error) {
-            logError("SHARE", "Error sharing zip file:", error);
+            logger.error("SHARE", "Error sharing zip file:", error);
           }
         },
       );

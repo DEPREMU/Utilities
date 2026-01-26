@@ -116,8 +116,8 @@ const startExpo = (): ChildProcess => {
 
   const expoEnv = {
     ...process.env,
-    NODE_ENV: "development",
     PLATFORM: "web",
+    BUILD_PROFILE: "development",
   };
 
   return spawn("npx", ["expo", "start", "-c"], {

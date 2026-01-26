@@ -15,12 +15,13 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import { REPLACERS } from "@utils";
 import { useRecorder } from "@/context/RecorderContext";
 import { useLanguage } from "@context/LanguageContext";
-import useStylesRecorderScreen from "@styles/screens/phone/useStylesRecorderScreen";
-import { Platform, StyleProp, View, ViewStyle } from "react-native";
-import React, { useCallback, useEffect, useMemo } from "react";
 import humanizeDuration from "humanize-duration";
+import useStylesRecorderScreen from "@styles/screens/phone/useStylesRecorderScreen";
+import { StyleProp, View, ViewStyle } from "react-native";
+import React, { useCallback, useEffect, useMemo } from "react";
 
 const formatDuration = (seconds: number) => {
   const safeSeconds = Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
@@ -136,7 +137,7 @@ const RecorderScreen: React.FC = () => {
               icon={dataRecorder.isRecording ? "pause" : "microphone"}
               onPress={() => onPressRecord(true)}
               style={styles.fab}
-              size={Platform.OS === "web" ? "large" : "medium"}
+              size={REPLACERS.isWeb ? "large" : "medium"}
               color={paperColors.onPrimary}
               mode="flat"
             />

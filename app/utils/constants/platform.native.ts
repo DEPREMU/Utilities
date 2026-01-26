@@ -20,3 +20,6 @@ export const deleteDirectoryPickerFolder = () => {
     }
   }, 1000);
 };
+
+import PDF from "react-native-pdf";
+export { PDF };

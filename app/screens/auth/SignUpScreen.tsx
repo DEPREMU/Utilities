@@ -8,7 +8,7 @@ import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@/navigation/navigationRef";
 import useStylesAuthScreens from "@styles/screens/auth/useStylesAuthScreens";
 import { ActivityIndicator } from "react-native-paper";
-import { log, isValidEmail, isValidPassword, tTyped } from "@utils";
+import { logger, isValidEmail, isValidPassword, tTyped } from "@utils";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const SignUpScreen: React.FC = () => {
@@ -43,7 +43,7 @@ const SignUpScreen: React.FC = () => {
       if (!success) {
         setError(error || "Sign up failed");
         signingUpRef.current = false;
-        return log("Sign up failed:", error, email);
+        return logger.log("Sign up failed:", error, email);
       }
 
       signingUpRef.current = false;

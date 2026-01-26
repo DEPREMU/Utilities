@@ -3,9 +3,10 @@ import type {
   NotificationAction,
   ReasonNotification,
 } from "@types";
-import { logError } from "../functions";
+import { logger } from "../functions";
+import { REPLACERS } from "../constants";
 import type { TurboModule } from "react-native";
-import { Platform, TurboModuleRegistry } from "react-native";
+import { TurboModuleRegistry } from "react-native";
 
 export interface Spec extends TurboModule {
   createNotificationChannel: (
@@ -39,16 +40,15 @@ const defaultNotificationModule: Spec = {
   cancelPreviousReasonNotification: () => {},
 };
 
-const NotificationModule =
-  Platform.OS === "android"
-    ? TurboModuleRegistry.getEnforcing<Spec>("NotificationModule")
-    : defaultNotificationModule;
+const NotificationModule = REPLACERS.isNative
+  ? TurboModuleRegistry.getEnforcing<Spec>("NotificationModule")
+  : defaultNotificationModule;
 
 if (
-  process.env.NODE_ENV === "development" &&
+  REPLACERS.isDev &&
   (!NotificationModule || Object.keys(NotificationModule).length === 0)
 ) {
-  logError?.("NotificationModule is not available");
+  logger.error?.("NotificationModule is not available");
 }
 
 export default NotificationModule;

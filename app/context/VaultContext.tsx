@@ -14,8 +14,9 @@ import React, {
 } from "react";
 import {
   tTyped,
-  logError,
+  logger,
   showAlert,
+  REPLACERS,
   getRandomId,
   encryptFile,
   loadDataStorage,
@@ -31,16 +32,16 @@ import {
   clearDecryptedFolderDirectory,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
-import { Falsy, Platform } from "react-native";
+import { Falsy } from "react-native";
 import { useModal } from "./ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
+import { cloneDeep } from "lodash";
 import { TextInput } from "react-native-paper";
 import * as ExpoAuth from "expo-local-authentication";
+import { ModalData } from "@screens/Vault/VaultViewer";
 import * as FileSystem from "expo-file-system";
 import * as DocumentPicker from "expo-document-picker";
 import { navigateReplace } from "@/navigation/navigationRef";
-import { ModalData } from "@/screens/Vault/VaultViewer";
-import { cloneDeep } from "lodash";
 
 type VaultData = {
   sessionId: string;
@@ -264,17 +265,16 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
               <Button
                 label={tTyped("vault.useDefaultFolder")}
                 handlePress={async () => {
-                  directory =
-                    Platform.OS === "web"
-                      ? await windowModule.getSafeFolder()
-                      : new FileSystem.Directory(
-                          FileSystem.Paths.document.uri,
-                          ".vault",
-                        ).uri;
+                  directory = REPLACERS.isWeb
+                    ? await windowModule.getSafeFolder()
+                    : new FileSystem.Directory(
+                        FileSystem.Paths.document.uri,
+                        ".vault",
+                      ).uri;
 
                   if (directory === "unknown") await handlePressSelectFolder();
                   else {
-                    if (Platform.OS !== "web") {
+                    if (REPLACERS.isNative) {
                       try {
                         new FileSystem.Directory(directory).create({
                           idempotent: true,
@@ -296,7 +296,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
           );
         });
 
-        if (Platform.OS === "web") {
+        if (REPLACERS.isWeb) {
           if (directory === "unknown" || directory === "canceled") {
             directory = await windowModule.pickFolder();
             if (directory === "canceled") {
@@ -334,7 +334,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       try {
-        if (Platform.OS === "web") {
+        if (REPLACERS.isWeb) {
           const res = await windowModule.authenticate();
           if (!res) {
             callback?.(false);
@@ -374,7 +374,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         setData(initializeVault(true));
         callback?.(true);
       } catch (error) {
-        logError("Error during authentication:", (error as Error).message);
+        logger.error("Error during authentication:", (error as Error).message);
         callback?.(false);
       }
     },
@@ -390,7 +390,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         setFilesSelected(defaultFilesSelected);
         callback?.();
 
-        if (Platform.OS === "web") windowModule.clearDecryptedFolderDirectory();
+        if (REPLACERS.isWeb) windowModule.clearDecryptedFolderDirectory();
         else clearDecryptedFolderDirectory();
       }, statesRef.current.settings.autoLockSeconds * 1000);
     },
@@ -413,7 +413,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                 let size = file.size || 0;
                 let mimeType = file.mimeType as DownloadableMimeType | null;
 
-                if ((!size || !mimeType) && Platform.OS !== "web") {
+                if ((!size || !mimeType) && REPLACERS.isNative) {
                   const fileRead = new FileSystem.File(file.uri);
                   const fileInfo = fileRead.info();
                   if (!size) {
@@ -423,7 +423,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                     mimeType = getMimeTypeFromExtension(fileRead.extension);
                   }
                 }
-                if (Platform.OS === "web") {
+                if (REPLACERS.isWeb) {
                   const { info } = await windowModule.copyFileToTemp(
                     file.base64 || "",
                     file.name,
@@ -445,7 +445,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
 
                 return pickedFile;
               } catch (error) {
-                logError("Error picking file:", (error as Error).message);
+                logger.error("Error picking file:", (error as Error).message);
                 return null;
               }
             }),
@@ -456,7 +456,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
 
         return files;
       } catch (error) {
-        logError("Error picking files:", (error as Error).message);
+        logger.error("Error picking files:", (error as Error).message);
         return "canceled";
       }
     },
@@ -465,7 +465,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
       setFiles((prevFiles) =>
         prevFiles.filter((file) => file.uri !== fileToRemove.uri),
       );
-      if (Platform.OS === "web") {
+      if (REPLACERS.isWeb) {
         windowModule.removeFile(fileToRemove.uri);
       } else {
         try {
@@ -493,7 +493,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const files = statesRef.current.files;
 
-      if (Platform.OS === "web") {
+      if (REPLACERS.isWeb) {
         const { success, errFiles } = await windowModule.encryptFiles(
           files,
           password,
@@ -562,7 +562,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                 prevFiles.filter((f) => f.uri !== file.uri),
               );
             } catch (error) {
-              logError(
+              logger.error(
                 "ENCRYPT",
                 "Error encrypting file:",
                 (error as Error).message,
@@ -643,7 +643,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (!password) return;
 
-      if (Platform.OS === "web") {
+      if (REPLACERS.isWeb) {
         const files = await windowModule.loadEncryptedFiles(folderId, password);
         setFolders((prevFolders) => ({
           ...prevFolders,
@@ -725,7 +725,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
             : [...prevFolders[folderId], item],
       }));
 
-      if (Platform.OS === "web")
+      if (REPLACERS.isWeb)
         windowModule.actionWithVaultItem(action, item, folderId);
       else actionWithVaultItem(action, item, folderId);
     },
@@ -745,7 +745,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         ),
       }));
 
-      if (Platform.OS === "web") {
+      if (REPLACERS.isWeb) {
         windowModule.renameVaultItem(file, newName);
       } else {
         renameVaultItem(file, newName);
@@ -804,7 +804,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         return updatedFolders;
       });
 
-      if (Platform.OS === "web") {
+      if (REPLACERS.isWeb) {
         windowModule.renameFolderVault(folderId, newName);
       } else {
         const directory = await loadDataStorage("VAULT_DIRECTORY", "");
@@ -824,7 +824,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         return updatedFolders;
       });
 
-      if (Platform.OS === "web") {
+      if (REPLACERS.isWeb) {
         windowModule.deleteFolderVault(folderId);
       } else {
         const directory = await loadDataStorage("VAULT_DIRECTORY", "");
@@ -871,7 +871,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const removePreviousSession = async () => {
       setData(initializeVault(false));
-      if (Platform.OS === "web") windowModule.clearDecryptedFolderDirectory();
+      if (REPLACERS.isWeb) windowModule.clearDecryptedFolderDirectory();
       else clearDecryptedFolderDirectory();
     };
 

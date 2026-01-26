@@ -1,8 +1,6 @@
 import {
-  log,
-  logError,
+  logger,
   parseData,
-  clearRefs,
   loadDataStorage,
   QR_LOGIN_WS_URL,
   setTimeoutPolyfill,
@@ -36,12 +34,15 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
   const isValidQRRef = useRef<boolean | null>(false);
 
   const handleLoginWithQR = useCallback(() => {
-    log("Initializing WebSocket connection for QR login", QR_LOGIN_WS_URL);
+    logger.log(
+      "Initializing WebSocket connection for QR login",
+      QR_LOGIN_WS_URL,
+    );
 
     let ws: WebSocket | null = null;
 
     const handleClose = () => {
-      log("Closing QR login WebSocket connection");
+      logger.log("Closing QR login WebSocket connection");
       ws?.close();
       ws = null;
       isValidQRRef.current = false;
@@ -49,7 +50,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
 
     const handleError = (message: string) => {
       setRetryAttempt(retryAttempt + 1);
-      logError(message);
+      logger.error(message);
       handleChangeTypeLogin();
       handleClose();
     };
@@ -96,7 +97,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
               break;
           }
         } catch (error) {
-          logError("Error parsing WebSocket message for QR login", error);
+          logger.error("Error parsing WebSocket message for QR login", error);
           handleError(
             "Error parsing WebSocket message for QR login" +
               (error instanceof Error ? ": " + error.message : String(error)),
@@ -117,9 +118,6 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
   }, [rememberMe, handleChangeTypeLogin, dataRef, retryAttempt]);
 
   useEffect(() => handleLoginWithQR(), [handleLoginWithQR]);
-
-  // Cleanup refs on unmount
-  useEffect(() => () => clearRefs(isValidQRRef), []);
 
   return (
     <View style={styles.containerQR}>

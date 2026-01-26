@@ -1,13 +1,13 @@
 import Button from "@components/common/ButtonComponent";
 import { List, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
-import { DATA_PLATFORM } from "@utils";
 import { useBackground } from "@context/BackgroundContext";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
+import { ScrollView, View } from "react-native";
 import { useStylesHomeScreen } from "@styles/screens/useStylesHomeScreen";
 import React, { useRef, useMemo } from "react";
-import { Platform, ScrollView, View } from "react-native";
+import { DATA_PLATFORM, REPLACERS } from "@utils";
 import { ScreensAvailable, typeLanguagesKeys } from "@types";
 
 type ButtonType = {
@@ -88,7 +88,7 @@ const buttons: ButtonType[] = [
     label: "images.labelImages",
     screen: "Images",
     noNeedsSession: true,
-    noNeedsInternet: Platform.OS === "web",
+    noNeedsInternet: REPLACERS.isWeb,
   },
   {
     label: "vault.title",
@@ -102,8 +102,8 @@ const buttons: ButtonType[] = [
     noNeedsSession: true,
     noNeedsInternet: true,
   },
-  ...(Platform.OS !== "web" ? buttonsNative : buttonsWeb),
-  ...(process.env.NODE_ENV === "development" ? buttonsDev : []),
+  ...(REPLACERS.isNative ? buttonsNative : buttonsWeb),
+  ...(REPLACERS.isDev ? buttonsDev : []),
 ];
 
 const HomeScreen: React.FC = () => {
@@ -113,7 +113,7 @@ const HomeScreen: React.FC = () => {
   const { userData, dataRef, isLoggedIn, loggingIn } = useUserContext();
 
   const handleLoginInWebRef = useRef(() => {
-    if (Platform.OS === "web") return;
+    if (REPLACERS.isWeb) return;
 
     navigateReplace("ScanQRCode");
   });
@@ -123,7 +123,7 @@ const HomeScreen: React.FC = () => {
   const renderButtons = useMemo(() => {
     return buttons.map((button, i) => {
       if (
-        Platform.OS === "web" &&
+        REPLACERS.isWeb &&
         button.screen === "Vault" &&
         !DATA_PLATFORM.isElectron
       )
@@ -171,7 +171,7 @@ const HomeScreen: React.FC = () => {
             label={t("common.logout")}
             handlePress={dataRef.current.logout}
           />
-          {Platform.OS !== "web" && (
+          {REPLACERS.isNative && (
             <Button
               label={t("loginWithQR")}
               handlePress={handleLoginInWebRef.current}
@@ -202,7 +202,7 @@ const HomeScreen: React.FC = () => {
       >
         {renderButtons}
       </ScrollView>
-      {Platform.OS === "web" && (
+      {REPLACERS.isWeb && (
         <Text style={styles.footer}>
           {t("appVersion", {
             version: DATA_PLATFORM.version,

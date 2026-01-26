@@ -5,8 +5,7 @@ import {
   DO_NOT_DELETE_OR_SAVE,
 } from "@common";
 import {
-  log,
-  logError,
+  logger,
   checkLanguage,
   fetchToServer,
   saveDataStorage,
@@ -14,8 +13,8 @@ import {
   removeDataStorage,
   cleanAllStorageData,
 } from "../functions";
-import { Platform } from "react-native";
 import windowModule from "../modules/WindowModule";
+import { REPLACERS } from "../constants/constants";
 import { reloadAppAsync } from "expo";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
@@ -32,7 +31,7 @@ import { UserData, ResponseAuth, ResponseFetch } from "@types";
  */
 const getDevicePushToken = wrapFunctionWithError(
   async () => {
-    if (Platform.OS === "web") return "Web";
+    if (REPLACERS.isWeb) return "Web";
 
     const token: string =
       (await Notifications.getDevicePushTokenAsync()).data || "";
@@ -41,7 +40,7 @@ const getDevicePushToken = wrapFunctionWithError(
   },
   true,
   (_, errMsg) => {
-    logError("Error getting device push token:", errMsg);
+    logger.error("Error getting device push token:", errMsg);
     return "";
   },
 );
@@ -72,7 +71,7 @@ export const saveStorageData = async (
   );
 
   if (results.some((res) => res)) {
-    logError("Error saving some storage values");
+    logger.error("Error saving some storage values");
     return false;
   }
   return true;
@@ -113,15 +112,15 @@ export const signInWithEmail = async (
 
     if (!dataInsert || isFalsy(dataInsert?.user)) {
       const errorMsg = "No session or user data received from Database";
-      logError(errorMsg);
+      logger.error(errorMsg);
       return { success: false, error: errorMsg };
     }
     if (dataInsert.error) {
-      logError("Error signing in:", dataInsert.error);
+      logger.error("Error signing in:", dataInsert.error);
       return { success: false, error: dataInsert.error };
     }
 
-    log("User signed in successfully:", dataInsert.user.email);
+    logger.log("User signed in successfully:", dataInsert.user.email);
 
     await saveStorageData(dataInsert.storageValues);
     return {
@@ -131,7 +130,7 @@ export const signInWithEmail = async (
     };
   } catch (error) {
     const errorMsg = `Unexpected error during sign in: ${error}`;
-    logError(errorMsg);
+    logger.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 };
@@ -154,14 +153,14 @@ export const signUpWithEmail = async (
 
     if (data?.error || !res.ok) {
       const message = data?.error || res.errorText || "Unknown error";
-      logError("Error signing up:", message);
+      logger.error("Error signing up:", message);
       return { success: false, error: message };
     }
 
     return { success: true };
   } catch (error) {
     const errorMsg = `Unexpected error during sign up: ${error}`;
-    logError(errorMsg);
+    logger.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 };
@@ -182,11 +181,11 @@ export const forgotPasswordWithEmail = async (
       return { success: true };
     }
 
-    logError("Error sending forgot password email:", error.message);
+    logger.error("Error sending forgot password email:", error.message);
     callback?.(false, error.message);
     return { success: false, error: error.message };
   } catch (error) {
-    logError("Unexpected error sending forgot password email:", error);
+    logger.error("Unexpected error sending forgot password email:", error);
     callback?.(false, error as string);
     return { success: false, error: error as string };
   }
@@ -219,12 +218,12 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
     const data = res.data;
     if (!res.ok || !data) {
       const message = res.errorText || "Unknown error";
-      logError("Error signing out:", message);
+      logger.error("Error signing out:", message);
       return { error: message };
     }
 
     if (data.error) {
-      logError("Error signing out:", data.error);
+      logger.error("Error signing out:", data.error);
       return { error: data.error };
     }
 
@@ -241,14 +240,14 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
     ];
 
     await Promise.all(storedValues.map(removeDataStorage));
-    if (Platform.OS !== "web") removeDataStorage("TERMINAL_COMMANDS");
+    if (REPLACERS.isNative) removeDataStorage("TERMINAL_COMMANDS");
 
-    log("User signed out successfully");
+    logger.log("User signed out successfully");
     navigateReplace("Login");
     return { error: null };
   } catch (error) {
     const errorMsg = `Unexpected error during sign out: ${error}`;
-    logError(errorMsg);
+    logger.error(errorMsg);
     return { error: errorMsg };
   }
 };
@@ -266,7 +265,7 @@ export const getCurrentUser = async (): Promise<ResponseAuth<"login">> => {
     };
   } catch (error) {
     const errorMsg = `Unexpected error getting current user: ${error}`;
-    logError(errorMsg);
+    logger.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 };
@@ -286,8 +285,8 @@ export const refreshSession = async (
 
     if (!deviceId) {
       cleanAllStorageData();
-      logError("No device ID found");
-      if (Platform.OS === "android") await reloadAppAsync();
+      logger.error("No device ID found");
+      if (REPLACERS.isNative) await reloadAppAsync();
       else window?.location?.reload();
       return { success: false, error: "No device ID found" };
     }
@@ -310,17 +309,17 @@ export const refreshSession = async (
 
         if (res.ok) break;
 
-        logError(
+        logger.error(
           `Attempt ${attempt + 1} to refresh session failed: ${res.errorText || "Unknown error"}`,
         );
         res = null;
       } catch (error) {
-        logError("Error refreshing session:", error);
+        logger.error("Error refreshing session:", error);
       }
     }
     if (!res) {
       const errorMsg = "Failed to refresh session after multiple attempts";
-      logError(errorMsg);
+      logger.error(errorMsg);
       return { success: false, error: errorMsg };
     }
 
@@ -332,32 +331,32 @@ export const refreshSession = async (
         res.errorText
           ? `: ${res.errorText} `
           : "";
-      logError(errorMsg);
+      logger.error(errorMsg);
       return { success: false, error: errorMsg };
     }
 
     if (data.error) {
-      logError("Error refreshing session:", data.error);
-      if (Platform.OS === "web") windowModule.notifyLoginStatus?.(false);
+      logger.error("Error refreshing session:", data.error);
+      if (REPLACERS.isWeb) windowModule.notifyLoginStatus?.(false);
       return { success: false, error: data.error };
     }
 
     if (!data.token || !data.user) {
       const errorMsg = "No token or user data received from refresh session";
-      logError(errorMsg);
+      logger.error(errorMsg);
       signOut();
       return { success: false, error: errorMsg };
     }
 
     saveDataStorage("USER_DATA", data.user);
     saveDataStorage("USER_SESSION_TOKEN_STORAGE", data.token);
-    log("Session refreshed successfully");
+    logger.log("Session refreshed successfully");
     return {
       ...data,
     };
   } catch (error) {
     const errorMsg = `Unexpected error refreshing session: ${error}`;
-    logError(errorMsg);
+    logger.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 };
@@ -387,7 +386,7 @@ export const getUserData = async (
     };
   } catch (error) {
     const errorMsg = `Unexpected error getting user data: ${error}`;
-    logError(errorMsg);
+    logger.error(errorMsg);
     return { error: errorMsg };
   }
 };

@@ -3,34 +3,35 @@ import {
   ReasonNotification,
   RequestDatabaseUpdate,
 } from "@types";
+import React, {
+  useRef,
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import {
   memoDeep,
+  REPLACERS,
   fetchToServer,
-  loadDataStorage,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-  notificationsManager,
-  askLocationPermission,
-  getDefaultMinutes,
-  getFormattedDate,
   DATA_PLATFORM,
+  loadDataStorage,
+  getFormattedDate,
+  getDefaultMinutes,
+  setTimeoutPolyfill,
+  notificationsManager,
+  clearTimeoutPolyfill,
+  askLocationPermission,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
-import { FlatList, Platform, View } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
+import { FlatList, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesNotifications from "@styles/components/settings/useStylesNotifications";
 import { Switch, Text, TextInput } from "react-native-paper";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 
 type typeMinutes = Record<ReasonNotification, number | null> | null;
 
@@ -242,7 +243,7 @@ const NotificationsScreen: React.FC = () => {
 
   const renderNotificationItem = useCallback(
     ({ item }: { item: NotificationsData[number] }) => {
-      if (Platform.OS === "web") {
+      if (REPLACERS.isWeb) {
         if (
           item.id === "cryptos" ||
           item.id === "streamers" ||
@@ -348,7 +349,7 @@ const NotificationsScreen: React.FC = () => {
                     <Text style={styles.detailSectionTitle}>
                       {t("settings.notificationDetailsBehavior")}
                     </Text>
-                    {Platform.OS !== "web" && (
+                    {REPLACERS.isNative && (
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>
                           {t("settings.notificationDetailsOnlyWhenScreenOff")}
@@ -380,8 +381,8 @@ const NotificationsScreen: React.FC = () => {
                         }
                       />
                     </View>
-                    {(Platform.OS !== "web" ||
-                      (Platform.OS === "web" && DATA_PLATFORM.hasBattery)) && (
+                    {(REPLACERS.isNative ||
+                      (REPLACERS.isWeb && DATA_PLATFORM.hasBattery)) && (
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>
                           {t(
@@ -399,7 +400,7 @@ const NotificationsScreen: React.FC = () => {
                         />
                       </View>
                     )}
-                    {Platform.OS !== "web" && (
+                    {REPLACERS.isNative && (
                       <>
                         <View style={styles.detailRow}>
                           <Text style={styles.detailLabel}>

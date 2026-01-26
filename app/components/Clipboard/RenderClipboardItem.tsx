@@ -1,13 +1,13 @@
 import Button from "@components/common/ButtonComponent";
 import Markdown from "react-native-marked";
 import { Tables } from "@types";
-import { useLanguage } from "@/context/LanguageContext";
+import { ScrollView } from "react-native";
+import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@components/common/SkeletonLoading";
-import { Platform, ScrollView } from "react-native";
 import useStylesClipboardScreen from "@styles/screens/clipboard/useStylesClipboardScreen";
 import { Card, Text, TextInput } from "react-native-paper";
-import { clearRefs, getFormattedDate, memoDeep } from "@utils";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { clearRefs, getFormattedDate, memoDeep, REPLACERS } from "@utils";
 
 interface RenderClipboardItemProps {
   item: Tables["ClipboardSync"];
@@ -18,7 +18,7 @@ interface RenderClipboardItemProps {
   copyContent: (content: string) => Promise<void>;
 }
 
-const MAX_CONTENT_LENGTH = Platform.OS === "web" ? 10000 : 5000;
+const MAX_CONTENT_LENGTH = REPLACERS.isWeb ? 10000 : 5000;
 
 const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
   item,
@@ -38,7 +38,6 @@ const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
     setMaxTextLength((prev) => prev + MAX_CONTENT_LENGTH);
   });
 
-
   const cardTitle = useMemo(
     () => <Card.Title style={styles.titleCard} title={title} />,
     [styles.titleCard, title],
@@ -51,7 +50,7 @@ const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
       ? item.content.slice(0, maxTextLength) + "..."
       : item.content;
 
-    if (Platform.OS === "web")
+    if (REPLACERS.isWeb)
       return (
         <>
           {isMarkdown ? (

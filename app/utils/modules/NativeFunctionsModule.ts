@@ -1,10 +1,7 @@
-import { logError } from "../functions";
+import { logger } from "../functions";
+import { REPLACERS } from "../constants";
 import type { TurboModule } from "react-native";
-import {
-  DeviceEventEmitter,
-  Platform,
-  TurboModuleRegistry,
-} from "react-native";
+import { DeviceEventEmitter, TurboModuleRegistry } from "react-native";
 
 export interface Spec extends TurboModule {
   checkOverlayPermission: () => Promise<boolean>;
@@ -68,12 +65,11 @@ const defaultNativeFunctionsModule: Spec = {
   encryptFile: async () => false,
 };
 
-const NativeFunctionsModule =
-  Platform.OS === "web"
-    ? defaultNativeFunctionsModule
-    : TurboModuleRegistry.getEnforcing<Spec>("NativeFunctionsModule");
+const NativeFunctionsModule = REPLACERS.isWeb
+  ? defaultNativeFunctionsModule
+  : TurboModuleRegistry.getEnforcing<Spec>("NativeFunctionsModule");
 
-if (Platform.OS !== "web") {
+if (REPLACERS.isNative) {
   const methods = [
     {
       eventName: "FileEncryptionProgress",
@@ -98,11 +94,11 @@ if (Platform.OS !== "web") {
 }
 
 if (
-  process.env.NODE_ENV === "development" &&
-  Platform.OS !== "web" &&
+  REPLACERS.isDev &&
+  REPLACERS.isNative &&
   !NativeFunctionsModule
 ) {
-  logError("NativeFunctionsModule is not available.");
+  logger.error("NativeFunctionsModule is not available.");
 }
 
 export default NativeFunctionsModule;

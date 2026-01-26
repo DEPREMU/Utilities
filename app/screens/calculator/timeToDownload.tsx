@@ -1,13 +1,12 @@
+import Button from "@components/common/ButtonComponent";
+import { View } from "react-native";
+import { useLanguage } from "@context/LanguageContext";
 import humanizeDuration from "humanize-duration";
-import { Platform, View } from "react-native";
 import * as Notifications from "expo-notifications";
+import { tTyped, REPLACERS } from "@utils";
+import useStylesTimeToDownload from "@styles/screens/calculator/useStylesTimeToDownload";
 import { Text, TextInput, List } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-
-import { useLanguage } from "@/context/LanguageContext";
-import useStylesTimeToDownload from "@/styles/screens/calculator/useStylesTimeToDownload";
-import Button from "@/components/common/ButtonComponent";
-import { tTyped } from "@/utils";
 
 const SCALE = {
   KB: 1 / 1024,
@@ -36,7 +35,7 @@ const TimeToDownload = () => {
   });
 
   const handleSetAlarm = useCallback(async () => {
-    if (Platform.OS !== "android") return;
+    if (REPLACERS.isWeb) return;
     if (timeMS <= 0) return;
 
     const alarmTime = Date.now() + timeMS;
@@ -123,7 +122,7 @@ const TimeToDownload = () => {
         <Text style={styles.resultLabel}>{t("timeToDownloadResult")}</Text>
 
         <Text style={styles.resultValue}>{timeText}</Text>
-        {timeMS > 0 && Platform.OS !== "web" && (
+        {timeMS > 0 && REPLACERS.isNative && (
           <Button
             label={t("setAlarmWhenDone", { time: timeText })}
             handlePress={handleSetAlarm}

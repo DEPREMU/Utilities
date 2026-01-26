@@ -1,5 +1,6 @@
-import { logError } from "../functions/debug";
-import { NativeModules, Platform } from "react-native";
+import { logger } from "../functions/debug";
+import { REPLACERS } from "../constants/constants";
+import { NativeModules } from "react-native";
 
 type KeyboardLayout = string[][];
 
@@ -24,16 +25,16 @@ const defaultKeyboardModule: KeyboardModuleSpec = {
 const { KeyboardModule } = NativeModules;
 
 const keyboardModule: KeyboardModuleSpec =
-  Platform.OS === "android" && KeyboardModule
+  REPLACERS.isNative && KeyboardModule
     ? (KeyboardModule as KeyboardModuleSpec)
     : defaultKeyboardModule;
 
 if (
-  process.env.NODE_ENV === "development" &&
-  Platform.OS === "android" &&
+  REPLACERS.isDev &&
+  REPLACERS.isNative &&
   (!KeyboardModule || Object.keys(KeyboardModule).length === 0)
 ) {
-  logError("KeyboardModule is not available.");
+  logger.error("KeyboardModule is not available.");
 }
 
 export type { KeyboardLayout };

@@ -18,7 +18,7 @@ let expo: ReturnType<typeof spawn> | null = null;
 replaceAppConfig(
   (prev) => prev.replace(/-dev/g, ""),
   (prev) => prev.replace(/ Dev/g, ""),
-  (prev) => prev.replace(/\.dev/g, "")
+  (prev) => prev.replace(/\.dev/g, ""),
 );
 
 const build = async () => {
@@ -40,7 +40,6 @@ const build = async () => {
       profile = "preview";
     else profile = "production";
   }
-  env.NODE_ENV = profile;
   env.BUILD_PROFILE = profile;
 
   if (!ARGS["skip-prebuild-android"]) {
@@ -78,13 +77,29 @@ const build = async () => {
       stdio: "inherit",
       cwd: APP_PATH,
       killSignal: "SIGINT",
-    }
+    },
   );
+
+  let timePassed = 0;
+
+  while (expo.exitCode === null) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    timePassed += 1;
+
+    if (timePassed % 60 === 0)
+      console.log(
+        `EAS Build is still running... ${timePassed} seconds passed.`,
+      );
+  }
+
+  expo.once("message", (msg) => {
+    console.log("EAS Build message:", msg);
+  });
 
   if (!ARGS.yes) {
     const answerInstall = (
       await ask(
-        "Do you want to install the APK on a connected device? (y/n):\n"
+        "Do you want to install the APK on a connected device? (y/n):\n",
       )
     )
       .toLowerCase()
@@ -93,6 +108,8 @@ const build = async () => {
     if (!answerInstall.includes("y"))
       return console.log("Build process completed without installation.");
   }
+  if (!fs.existsSync(buildPath))
+    throw new Error(`APK not found at path: ${buildPath}`);
 
   console.log("Installing APK on connected device...");
 

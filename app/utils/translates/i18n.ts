@@ -2,7 +2,7 @@ import i18n from "i18next";
 import { typeT } from "@types";
 import { enApp, esApp } from "@common";
 import { initReactI18next } from "react-i18next";
-import { logError, checkLanguage } from "../functions";
+import { logger, checkLanguage } from "../functions";
 
 i18n.use(initReactI18next).init({
   lng: "en",
@@ -22,7 +22,7 @@ const configureLanguage = async () => {
 
     await i18n.changeLanguage(lng);
   } catch (error) {
-    logError?.("Error configuring language:", error);
+    logger.error?.("Error configuring language:", error);
     await i18n.changeLanguage("en");
   }
 };

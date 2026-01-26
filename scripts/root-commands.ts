@@ -18,7 +18,7 @@ const run = () => {
   const action = ARGS.action;
   if (!action) {
     throw new Error(
-      "No action specified. Use --action=<action> or -h for help."
+      "No action specified. Use --action=<action> or -h for help.",
     );
   }
 
@@ -71,15 +71,15 @@ const run = () => {
       const envWeb = {
         ...env,
         PLATFORM: "web",
-        NODE_ENV: env.BUILD_PROFILE || "production",
+        BUILD_PROFILE: env.BUILD_PROFILE || "production",
       };
       execSync(
-        `npx expo export -c -p web ${envWeb.NODE_ENV === "production" ? "" : "--dev --no-minify"}`,
+        `npx expo export -c -p web ${envWeb.BUILD_PROFILE === "production" ? "" : "--dev --no-minify"}`,
         {
           env: envWeb,
           cwd: APP_PATH,
           stdio: "inherit",
-        }
+        },
       );
       break;
     }
@@ -122,7 +122,7 @@ const clean = () => {
   } catch (e) {
     console.warn(
       "Failed to clean yarn cache in app, continuing...",
-      e instanceof Error ? e.message : e
+      e instanceof Error ? e.message : e,
     );
   }
 };
@@ -136,7 +136,7 @@ const installAll = () => {
     UTILITIES_FOR_PC_PATH,
   ];
   console.log(
-    `Installing dependencies in ${UTILITIES_PATH} for ${dirs.join(", ")} using yarn...`
+    `Installing dependencies in ${UTILITIES_PATH} for ${dirs.join(", ")} using yarn...`,
   );
 
   execSync("yarn install", {

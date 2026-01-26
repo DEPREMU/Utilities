@@ -14,7 +14,8 @@ import {
 } from "@types";
 import {
   tTyped,
-  logError,
+  logger,
+  REPLACERS,
   DATA_PLATFORM,
   loadDataStorage,
   isLocationEnabled,
@@ -34,8 +35,8 @@ import * as Notifications from "expo-notifications";
 import NotificationModule from "@/utils/modules/NotificationModule";
 import { navigateReplace } from "@/navigation/navigationRef";
 import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
+import { DeviceEventEmitter } from "react-native";
 import { useDeviceInformation } from "./DeviceInformationContext";
-import { DeviceEventEmitter, Platform } from "react-native";
 
 type SendNotification = (
   notification: Omit<Notification, "id" | "timestamp">,
@@ -120,7 +121,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           if (currentHour < startHour || currentHour >= endHour) return;
         }
 
-        if (Platform.OS === "web") {
+        if (REPLACERS.isWeb) {
           windowModule.sendNotification({
             body: notification.message,
             title: notification.title,
@@ -173,7 +174,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
 
             return String(notificationId);
           } catch (error) {
-            logError("Error sending native notification", error);
+            logger.error("Error sending native notification", error);
           }
         }
 
@@ -186,29 +187,30 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           trigger: notification.trigger || null,
         });
       } catch (error) {
-        logError("NOTIFICATIONS", "Error checking paused notifications", error);
+        logger.error(
+          "NOTIFICATIONS",
+          "Error checking paused notifications",
+          error,
+        );
       }
     },
   );
 
   const removeNotificationRef = useRef(
     (id: number, reasonNotification: ReasonNotification) => {
-      if (Platform.OS === "web") return;
+      if (REPLACERS.isWeb) return;
 
-      if (Platform.OS === "android") {
-        try {
-          NotificationModule.cancelNotification(id, reasonNotification);
-        } catch (error) {
-          logError("Error canceling native notification", error);
-        }
+      try {
+        NotificationModule.cancelNotification(id, reasonNotification);
+      } catch (error) {
+        logger.error("Error canceling native notification", error);
       }
-
       Notifications.cancelScheduledNotificationAsync(String(id));
     },
   );
 
   useEffect(() => {
-    if (Platform.OS !== "android") return;
+    if (!REPLACERS.isNative) return;
 
     const subscription = DeviceEventEmitter.addListener(
       "onNotificationAction",
@@ -254,7 +256,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
                 }),
               );
             } catch (error) {
-              logError("Error pausing notifications", error);
+              logger.error("Error pausing notifications", error);
             }
             break;
           case "stop":
@@ -330,7 +332,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           icon: "pause",
         });
       }
-      if (Platform.OS === "android") {
+      if (REPLACERS.isNative) {
         NotificationModule.cancelPreviousReasonNotification(reasonNotification);
       }
 
@@ -368,13 +370,12 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     };
 
     const id = setTimeoutPolyfill(handleBatteryNotifications, 5000);
-    if (Platform.OS === "web" && !DATA_PLATFORM.hasBattery)
-      clearTimeoutPolyfill(id);
+    if (REPLACERS.isWeb && !DATA_PLATFORM.hasBattery) clearTimeoutPolyfill(id);
     return () => clearTimeoutPolyfill(id);
   }, [deviceInfo?.powerState]);
 
   useEffect(() => {
-    if (Platform.OS === "android")
+    if (REPLACERS.isNative)
       NotificationModule.cancelPreviousReasonNotification(
         "noInternetConnection",
       );
@@ -410,7 +411,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, [hasInternet]);
 
   useEffect(() => {
-    if (Platform.OS === "web") return;
+    if (REPLACERS.isWeb) return;
 
     const verifyLocation = async () => {
       const { status } = await Location.getBackgroundPermissionsAsync();
@@ -460,7 +461,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   }, [initIntervalTimeoutsRef, deleteIntervalTimeoutRef]);
 
   useEffect(() => {
-    if (Platform.OS !== "android") return;
+    if (!REPLACERS.isNative) return;
     if (!sessionToken || !userData?.userId) return;
 
     const id = setTimeoutPolyfill(

@@ -14,9 +14,9 @@ import {
   ResponseHealth,
   RoutesAPIWithItsMethod,
 } from "@types";
+import { logger } from "./debug";
 import { isFalsy } from "@utils";
 import { stringifyData } from "./appManagement";
-import { logError, logWarn } from "./debug";
 import axios, { AxiosRequestConfig } from "axios";
 import { loadDataStorage, saveDataStorage } from "./storageManagement";
 
@@ -32,7 +32,7 @@ export const fetchOptions = <T = RequestBody>(body?: T, token?: string) => {
   try {
     if (body) body = stringifyData(body) as T;
   } catch (error) {
-    logError("Error stringifying request body:", error);
+    logger.error("Error stringifying request body:", error);
     body = undefined;
   }
   return {
@@ -71,7 +71,7 @@ export const getRouteAPI = async (
       });
       isOk = res.data.status === "running";
     } catch {
-      logWarn("Error fetching API URL health");
+      logger.warn("Error fetching API URL health");
     }
 
     if (isOk)
@@ -81,7 +81,7 @@ export const getRouteAPI = async (
         saveDataStorage("CLIPBOARD_WEBSOCKET_URL", CLIPBOARD_WS_URL),
       ]);
     else {
-      logWarn("Falling back to server API URL and WebSocket URL");
+      logger.warn("Falling back to server API URL and WebSocket URL");
       apiUrl = fallbackAPI_URL;
       await Promise.all([
         saveDataStorage("API_URL", fallbackAPI_URL),
@@ -190,7 +190,11 @@ export const fetchToServer = async <
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logError?.(`Error fetching to server at route ${route}:`, errorMessage);
+    logger.error(
+      "FETCH_TO_SERVER",
+      `Error fetching to server at route ${route}:`,
+      errorMessage,
+    );
     return {
       ok: false,
       data: null,

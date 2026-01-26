@@ -25,7 +25,7 @@ let isNewVersionWeb = {
 };
 
 const checkIsNewVersion = async (
-  buildType: "web" | "android" = "android"
+  buildType: "web" | "android" = "android",
 ): Promise<boolean> => {
   if (!versionExpo) {
     console.error("Version not found");
@@ -35,7 +35,7 @@ const checkIsNewVersion = async (
   try {
     const url = `${process.env.API_URL?.replace(
       "api",
-      "updates"
+      "updates",
     )}/is-update-available`;
     console.log("Checking for new version at URL:", url);
     if (buildType === "android") {
@@ -63,12 +63,12 @@ const checkIsNewVersion = async (
           { ...body, platformOS: "linux" },
           {
             timeout: 10000,
-          }
+          },
         ),
       ]);
       const isNewForWindows = isNewVersion(
         versionExpo,
-        res1.data?.latestVersion
+        res1.data?.latestVersion,
       );
       const isNewForLinux = isNewVersion(versionExpo, res2.data?.latestVersion);
 
@@ -80,7 +80,7 @@ const checkIsNewVersion = async (
   } catch (error) {
     console.error(
       "Error checking for new version:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }
@@ -96,7 +96,7 @@ const uploadWeb = async (): Promise<boolean> => {
       "_expo",
       "static",
       "js",
-      "web"
+      "web",
     );
 
     execSync("yarn run build-web-app-electron", {
@@ -120,7 +120,7 @@ const uploadWeb = async (): Promise<boolean> => {
 
     const url = `${process.env.API_URL?.replace(
       "api",
-      "updates"
+      "updates",
     )}/upload-update`;
     console.log("Uploading updates to URL:", url);
 
@@ -182,13 +182,13 @@ const uploadWeb = async (): Promise<boolean> => {
       console.log(`${result.platformOS}: ${status}`);
       if (!result.success) {
         console.log(
-          `  Error: ${result.data?.error || result?.error || "Unknown error"}`
+          `  Error: ${result.data?.error || result?.error || "Unknown error"}`,
         );
       }
     });
 
     console.log(
-      `\nTotal: ${successCount}/${results.length} successful uploads`
+      `\nTotal: ${successCount}/${results.length} successful uploads`,
     );
 
     if (successCount === 0) {
@@ -198,17 +198,17 @@ const uploadWeb = async (): Promise<boolean> => {
   } catch (error) {
     console.error(
       "Fatal error:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }
 };
 
 const uploadAndroidAssets = async () => {
-  const NODE_ENV = ARGS["profile"] || "production";
+  const BUILD_PROFILE = ARGS["profile"] || "production";
 
   execSync(
-    `npx eas update --channel ${NODE_ENV} --platform android --clear-cache`,
+    `npx eas update --channel ${BUILD_PROFILE} --platform android --clear-cache`,
     {
       stdio: "inherit",
       cwd: APP_PATH,
@@ -216,10 +216,9 @@ const uploadAndroidAssets = async () => {
         ...env,
         PLATFORM: "android",
         EAS_BUILD: "true",
-        NODE_ENV,
-        BUILD_PROFILE: NODE_ENV,
+        BUILD_PROFILE,
       },
-    }
+    },
   );
 };
 

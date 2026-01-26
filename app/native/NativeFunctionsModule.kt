@@ -1,4 +1,4 @@
-package com.utilities.depremu.dev
+package com.package.name
 
 import android.content.Intent
 import android.net.Uri
@@ -13,7 +13,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
 import java.io.FileInputStream
-import java.io.FileOutputStream // This was missing
+import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.security.SecureRandom
 import java.security.spec.KeySpec
@@ -407,12 +407,10 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
                 var bytesProcessed = 0L
                 var lastProgress = 0
 
-                // Explicit types added to fix type inference errors
                 FileInputStream(inputFile).use { fis: FileInputStream ->
                     FileOutputStream(outputFile).use { fos: FileOutputStream ->
                         DataOutputStream(fos).use { dos: DataOutputStream ->
                             
-                            // Write Salt (16 bytes)
                             dos.write(salt)
 
                             val buffer = ByteArray(CHUNK_SIZE)
@@ -427,7 +425,6 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
 
                                 val encryptedBytes = cipher.doFinal(buffer, 0, bytesRead)
 
-                                // Write Block: [Length(4)] + [IV(12)] + [Data(N)]
                                 dos.writeInt(encryptedBytes.size)
                                 dos.write(iv)
                                 dos.write(encryptedBytes)
@@ -471,11 +468,9 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
                     return@launch
                 }
 
-                // Explicitly declare variables before use block to clarify scope
                 val fis = FileInputStream(inputFile)
                 val dis = DataInputStream(fis)
                 
-                // Read Salt
                 val salt = ByteArray(16)
                 if (dis.read(salt) != 16) {
                     dis.close()
@@ -491,7 +486,6 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
                 var bytesProcessed = 16L
                 var lastProgress = 0
 
-                // Explicit type added to fix type inference errors
                 FileOutputStream(outputFile).use { fos: FileOutputStream ->
                     try {
                         while (true) {

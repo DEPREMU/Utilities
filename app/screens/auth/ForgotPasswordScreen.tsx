@@ -4,19 +4,19 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { log } from "@utils";
 import { useModal } from "@context/ModalContext";
-import ButtonComponent from "@components/common/ButtonComponent";
 import { useLanguage } from "@context/LanguageContext";
+import ButtonComponent from "@components/common/ButtonComponent";
 import { useNavigation } from "@react-navigation/native";
 import { useUserContext } from "@context/UserContext";
-import { ActivityIndicator, Text, TextInput } from "react-native-paper";
+import { View, Keyboard } from "react-native";
 import useStylesAuthScreens from "@styles/screens/auth/useStylesAuthScreens";
+import { logger, REPLACERS } from "@utils";
 import { RootStackParamList } from "navigation/AppNavigator";
-import { View, Keyboard, Platform } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useState } from "react";
 import { isValidEmail as isValidEmailFunc } from "@utils";
+import { ActivityIndicator, Text, TextInput } from "react-native-paper";
 
 type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -56,7 +56,7 @@ const ForgotPasswordScreen: React.FC = () => {
         setError(error || "Sign up failed");
         setEmailSent(false);
         setSendingEmail(false);
-        return log("Sign up failed:", error, email);
+        return logger.log("Sign up failed:", error, email);
       }
 
       setSendingEmail(false);
@@ -95,7 +95,7 @@ const ForgotPasswordScreen: React.FC = () => {
   }, [navigation]);
 
   const handlerOnFocus = useCallback(() => {
-    if (Platform.OS !== "android") return;
+    if (REPLACERS.isWeb) return;
     if (typeof Keyboard.emit === "function") Keyboard?.emit("keyboardDidShow");
   }, []);
 

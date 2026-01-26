@@ -9,23 +9,23 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import {
-  fetchFileInfo,
+  PDF,
+  memoDeep,
   FileInfo,
   FolderFiles,
+  fetchFileInfo,
   getFormattedDate,
-  memoDeep,
-} from "@/utils";
-import { View, Image, Pressable, GestureResponderEvent } from "react-native";
+} from "@utils";
+import bytes from "bytes";
+import { useLanguage } from "@/context/LanguageContext";
 import { scheduleOnRN } from "react-native-worklets";
 import useStylesVaultScreen from "@styles/screens/useStylesVaultScreen";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { DataVaultViewer, ModalData } from "../VaultViewer";
 import { DEFAULT_VAULT_DATA, useVault } from "@/context/VaultContext";
-import { Divider, IconButton, Modal, Portal, Text } from "react-native-paper";
 import React, { useCallback, useEffect, useMemo } from "react";
-import Pdf from "react-native-pdf";
-import { useLanguage } from "@/context/LanguageContext";
-import bytes from "bytes";
+import { Divider, IconButton, Modal, Portal, Text } from "react-native-paper";
+import { View, Image, Pressable, GestureResponderEvent } from "react-native";
 
 type ModalComponentProps = {
   dataRef: React.RefObject<DataVaultViewer>;
@@ -260,7 +260,7 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
                   <VideoView player={video} style={styles.videoModal} />
                 )}
                 {renderModal.type === "pdf" && (
-                  <Pdf
+                  <PDF
                     scale={1}
                     style={styles.pdf}
                     source={{ uri: renderModal.item.uri }}

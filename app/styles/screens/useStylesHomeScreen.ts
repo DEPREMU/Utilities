@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useTheme } from "@context/ThemeContext";
+import { REPLACERS } from "@utils";
 import { useResponsiveLayout } from "@context/LayoutContext";
-import { DimensionValue, Platform, StyleSheet } from "react-native";
+import { DimensionValue, StyleSheet } from "react-native";
 
 export const useStylesHomeScreen = () => {
   const theme = useTheme();
@@ -64,8 +65,8 @@ export const useStylesHomeScreen = () => {
         },
         headerButtonsContainer: {
           flexDirection: "row",
-          justifyContent: Platform.OS !== "web" ? "space-between" : "center",
-          width: Platform.OS !== "web" ? "90%" : "100%",
+          justifyContent: REPLACERS.isNative ? "space-between" : "center",
+          width: REPLACERS.isNative ? "90%" : "100%",
           paddingHorizontal: 20,
           marginBottom: 10,
         },

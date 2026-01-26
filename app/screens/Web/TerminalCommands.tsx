@@ -13,9 +13,9 @@ import windowModule from "@/utils/modules/WindowModule";
 import { useLanguage } from "@context/LanguageContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import useStylesTerminalCommands from "@styles/screens/Web/useStylesTerminalCommands";
-import { FlatList, Platform, View, ScrollView } from "react-native";
+import { FlatList, View, ScrollView } from "react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { loadDataStorage, logError, saveDataStorage } from "@utils";
+import { loadDataStorage, logger, REPLACERS, saveDataStorage } from "@utils";
 
 const TerminalCommands: React.FC = () => {
   const { t } = useLanguage();
@@ -70,7 +70,7 @@ const TerminalCommands: React.FC = () => {
           />,
         );
       } catch (error) {
-        logError("Error executing command:", error);
+        logger.error("Error executing command:", error);
         const message = error instanceof Error ? error.message : String(error);
 
         openModalRef.current(
@@ -188,7 +188,7 @@ const TerminalCommands: React.FC = () => {
   }, [styles, t, colors]);
 
   useEffect(() => {
-    if (Platform.OS !== "web") {
+    if (REPLACERS.isNative) {
       navigateReplace("Home");
       return;
     }

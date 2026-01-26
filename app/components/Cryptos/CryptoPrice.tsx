@@ -1,5 +1,5 @@
 import {
-  logError,
+  logger,
   memoDeep,
   fetchToServer,
   getFormattedDate,
@@ -8,11 +8,11 @@ import {
   clearIntervalPolyfill,
 } from "@utils";
 import { View, Text } from "react-native";
+import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@components/common/SkeletonLoading";
 import { SelectedCryptos } from "@common";
 import { useStylesCryptoPrice } from "@styles/components/cryptos/useStylesCryptoPrice";
 import React, { useState, useEffect } from "react";
-import { useLanguage } from "@/context/LanguageContext";
 
 type CryptoPriceProps = {
   cryptoData: SelectedCryptos[string];
@@ -52,14 +52,14 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
         if (error) {
           setPriceUsd(null);
           setPriceMxn(null);
-          logError(error);
+          logger.error(error);
           return;
         }
         setPriceUsd(priceUSD || null);
         if (!priceUSD || !priceUSDTMXN) return;
         setPriceMxn(priceUSDTMXN * priceUSD);
       } catch (error) {
-        logError(error);
+        logger.error(error);
       }
     };
 

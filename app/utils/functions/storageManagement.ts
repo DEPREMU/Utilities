@@ -7,14 +7,13 @@ import {
   wrapFunctionWithError,
   ALL_KEYS_STORAGE_TYPE,
   ALL_KEYS_STORAGE_KEYS,
-  SECURE_KEYS_STORAGE_TYPE,
   DO_NOT_DELETE_OR_SAVE,
+  SECURE_KEYS_STORAGE_TYPE,
 } from "@common";
-import { isDev } from "../constants";
-import { logError } from "./debug";
-import { Platform } from "react-native";
+import { logger } from "./debug";
 import windowModule from "../modules/WindowModule";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { REPLACERS } from "../constants";
 import * as SecureStore from "expo-secure-store";
 import { DATA_PLATFORM } from "../constants/";
 import * as Localization from "expo-localization";
@@ -110,7 +109,7 @@ export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
 
     const stringifiedValue = stringifyData(value);
 
-    if (Platform.OS !== "web") {
+    if (REPLACERS.isNative) {
       if (isSecureKey(keyStorage))
         await SecureStore.setItemAsync(key, stringifiedValue);
       else await AsyncStorage.setItem(key, stringifiedValue);
@@ -123,7 +122,7 @@ export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
       return returnType(new Error(errMsg), errMsg);
     }
 
-    if (!DATA_PLATFORM.isElectron && !isDev)
+    if (!DATA_PLATFORM.isElectron && !REPLACERS.isDev)
       throw new Error("Not an Electron build");
     else if (!DATA_PLATFORM.isElectron)
       localStorage.setItem(key, stringifiedValue);
@@ -147,7 +146,7 @@ export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
     const errCallback = args?.[1]; // [value, errCallback]
     if (typeof errCallback === "function") return errCallback(err, errMsg);
 
-    logError(`saveDataStorage("${keyStorage}") => ${errMsg}`);
+    logger.error(`saveDataStorage("${keyStorage}") => ${errMsg}`);
   },
 );
 
@@ -188,7 +187,7 @@ export const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
       return value;
     };
 
-    if (Platform.OS !== "web") {
+    if (REPLACERS.isNative) {
       let value: string | null;
       if (isSecureKey(keyStorage)) value = await SecureStore.getItemAsync(key);
       else value = await AsyncStorage.getItem(key);
@@ -199,7 +198,7 @@ export const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
 
     let value: string | null = null;
 
-    if (!DATA_PLATFORM.isElectron && !isDev)
+    if (!DATA_PLATFORM.isElectron && !REPLACERS.isDev)
       throw new Error("Not an Electron build");
     else if (!DATA_PLATFORM.isElectron) value = localStorage.getItem(key);
     else value = await windowModule.loadData(keyStorage);
@@ -213,7 +212,7 @@ export const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
     if (typeof arg === "function") return arg(null, err, errMsg);
     if (keyStorage === "DEVICE_ID") reloadAppAsync();
 
-    logError(`loadDataStorage("${keyStorage}") => ${errMsg}`);
+    logger.error(`loadDataStorage("${keyStorage}") => ${errMsg}`);
     if (typeof arg !== "undefined") return arg;
     return null;
   },
@@ -258,19 +257,19 @@ export const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
       const errMsg = "Cannot remove device ID from storage";
       return returnType(new Error(errMsg), errMsg);
     }
-    if (Platform.OS === "web" && key === "TERMINAL_COMMANDS") {
+    if (REPLACERS.isWeb && key === "TERMINAL_COMMANDS") {
       const errMsg = "Cannot remove terminal commands on web";
       return returnType(new Error(errMsg), errMsg);
     }
 
-    if (Platform.OS !== "web") {
+    if (REPLACERS.isNative) {
       if (isSecureKey(keyStorage)) await SecureStore.deleteItemAsync(key);
       else await AsyncStorage.removeItem(key);
 
       return returnType();
     }
 
-    if (!DATA_PLATFORM.isElectron && !isDev)
+    if (!DATA_PLATFORM.isElectron && !REPLACERS.isDev)
       throw new Error("Not an Electron build");
     else if (!DATA_PLATFORM.isElectron) localStorage.removeItem(key);
     else await windowModule.removeData(keyStorage);
@@ -284,7 +283,7 @@ export const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
     const errCallback = args?.[0];
     if (typeof errCallback === "function") return errCallback(err, errMsg);
 
-    logError(`removeDataStorage("${keyStorage}") => ${errMsg}`);
+    logger.error(`removeDataStorage("${keyStorage}") => ${errMsg}`);
   },
 );
 
@@ -305,7 +304,7 @@ export const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
  */
 export const cleanAllStorageData = wrapFunctionWithError(
   async () => {
-    if (Platform.OS === "web") {
+    if (REPLACERS.isWeb) {
       if (!DATA_PLATFORM.isElectron) return;
 
       localStorage.clear();
@@ -334,7 +333,7 @@ export const cleanAllStorageData = wrapFunctionWithError(
   },
   true,
   async (_, errMsg) => {
-    logError(`cleanAllStorageData() => ${errMsg}`);
+    logger.error(`cleanAllStorageData() => ${errMsg}`);
   },
 );
 
@@ -383,7 +382,7 @@ export const getLanguageFromDevice = wrapFunctionWithError(
   },
   true,
   async (_, errMsg) => {
-    logError(`.utils/functions/getLanguageFromDevice() => ${errMsg}`);
+    logger.error(`.utils/functions/getLanguageFromDevice() => ${errMsg}`);
     return "en" as LanguagesSupported;
   },
 );

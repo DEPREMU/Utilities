@@ -1,18 +1,15 @@
 /* eslint-disable no-console */
-import { Platform } from "react-native";
-import { API_URL_BASE, WS_URL_BASE } from "./constants";
-
-const isDev = process.env.NODE_ENV === "development";
+import { API_URL_BASE, REPLACERS, WS_URL_BASE } from "./constants";
 
 export const fallbackAPI_URL: string = API_URL_BASE;
 export const fallbackURL_WEB_SOCKET: string = WS_URL_BASE;
 
-if (!API_URL_BASE && isDev) {
+if (!API_URL_BASE && REPLACERS.isDev) {
   console.warn(
     "API_URL is not defined in environment variables, using fallback URL.",
   );
 }
-if (!WS_URL_BASE && isDev) {
+if (!WS_URL_BASE && REPLACERS.isDev) {
   console.warn(
     "WS_URL is not defined in environment variables, using fallback URL.",
   );
@@ -26,23 +23,23 @@ const getLocalIP = () => {
   return "192.168.1.136:3000";
 };
 
-export const API_URL = !isDev
+export const API_URL = !REPLACERS.isDev
   ? fallbackAPI_URL
-  : Platform.OS === "web"
+  : REPLACERS.isWeb
     ? "http://localhost:3000/api"
     : `http://${getLocalIP()}/api`;
-export const URL_WEB_SOCKET = !isDev
+export const URL_WEB_SOCKET = !REPLACERS.isDev
   ? fallbackURL_WEB_SOCKET
-  : Platform.OS === "web"
+  : REPLACERS.isWeb
     ? "ws://localhost:3000/ws"
     : `ws://${getLocalIP()}/ws`;
-export const CLIPBOARD_WS_URL = !isDev
+export const CLIPBOARD_WS_URL = !REPLACERS.isDev
   ? `${fallbackURL_WEB_SOCKET.replace("/ws", "/clipboard")}`
-  : Platform.OS === "web"
+  : REPLACERS.isWeb
     ? "ws://localhost:3000/clipboard"
     : `ws://${getLocalIP()}/clipboard`;
-export const QR_LOGIN_WS_URL = !isDev
+export const QR_LOGIN_WS_URL = !REPLACERS.isDev
   ? `${fallbackURL_WEB_SOCKET.replace("/ws", "/ws-login-qr")}`
-  : Platform.OS === "web"
+  : REPLACERS.isWeb
     ? "ws://localhost:3000/ws-login-qr"
     : `ws://${getLocalIP()}/ws-login-qr`;

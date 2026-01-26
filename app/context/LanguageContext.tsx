@@ -8,8 +8,8 @@ import React, {
   useCallback,
   createContext,
 } from "react";
-import { i18n, isDev } from "@utils";
 import { useTranslation } from "react-i18next";
+import { i18n, REPLACERS } from "@utils";
 import { LanguagesSupported, typeT } from "@types";
 import { checkLanguage, saveDataStorage } from "@utils";
 
@@ -39,7 +39,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
     (key, ...args) => {
       const translation = i18nextT(key, ...(args as []));
 
-      if (isDev && translation === key)
+      if (REPLACERS.isDev && translation === key)
         throw new Error(`Missing translation for key: "${key}"`);
 
       return translation;

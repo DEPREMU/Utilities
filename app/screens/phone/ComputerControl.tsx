@@ -1,7 +1,6 @@
 import {
-  log,
+  logger,
   tTyped,
-  logError,
   checkUrlStatus,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
@@ -41,7 +40,7 @@ const tryUrls = async (
         if (await checkUrlStatus(url, "get", 2000))
           resolve(url.replace("/status", ""));
       } catch (error) {
-        logError(`Error while fetching ${url}:`, error);
+        logger.error(`Error while fetching ${url}:`, error);
       }
     });
   });
@@ -67,7 +66,7 @@ const ComputerControl: React.FC = () => {
 
       const validUrl = await tryUrls(service);
       if (!validUrl) {
-        logError(
+        logger.error(
           "Could not find a valid service for",
           new Error("Could not find a valid service."),
         );
@@ -99,7 +98,7 @@ const ComputerControl: React.FC = () => {
 
     const handleStop = wrapFunctionWithError(async () => {
       clearTimeoutPolyfill(timeOutRef);
-      log("Scan stopped");
+      logger.log("Scan stopped");
       setLoading(false);
       setScanning(false);
       zeroconf.removeDeviceListeners();
@@ -112,7 +111,7 @@ const ComputerControl: React.FC = () => {
 
       zeroconf.on("resolved", handleResolved);
       zeroconf.on("error", (err) => {
-        logError("Zeroconf error:", err);
+        logger.error("Zeroconf error:", err);
         zeroconf.stop();
       });
       zeroconf.on("stop", handleStop);
@@ -144,7 +143,7 @@ const ComputerControl: React.FC = () => {
         );
         success = res?.data?.success;
       } catch (error) {
-        logError(`Error sending ${command} command to ${baseUrl}:`, error);
+        logger.error(`Error sending ${command} command to ${baseUrl}:`, error);
       }
       let translate: "turnOff" | "restart" = "restart";
       if (command === "turn-off-computer") translate = "turnOff";

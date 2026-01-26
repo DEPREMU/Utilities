@@ -1,7 +1,7 @@
 import {
-  log,
+  logger,
   signOut,
-  logError,
+  REPLACERS,
   isValidEmail,
   loadDataStorage,
   signInWithEmail,
@@ -11,7 +11,6 @@ import {
   refreshSession as authRefreshSession,
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
-import { Platform } from "react-native";
 import windowModule from "@/utils/modules/WindowModule";
 import { navigateReplace } from "@navigation/navigationRef";
 import { ResponseAuth, UserData } from "@types";
@@ -82,7 +81,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           setUserData(user || null);
           setSessionToken(token);
           setIsLoggedIn(true);
-          log("User logged in successfully:", user.email);
+          logger.log("User logged in successfully:", user.email);
           return callback?.(true);
         } else {
           const errorMsg = "No user or session data received";
@@ -90,7 +89,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         }
       } catch (error) {
         const errorMsg = `Login error: ${error}`;
-        logError(errorMsg);
+        logger.error(errorMsg);
         return callback?.(false, errorMsg);
       } finally {
         setLoggingIn(false);
@@ -98,16 +97,16 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     },
     loginWithQR: async (response) => {
       if (!response.success || !response.user || !response.token) {
-        logError("Invalid QR login response");
+        logger.error("Invalid QR login response");
         return;
       }
-      log("Logging in user with QR successfully:", response.user.email);
+      logger.log("Logging in user with QR successfully:", response.user.email);
 
       setUserData(response.user);
       setIsLoggedIn(true);
       setSessionToken(response.token);
       await saveStorageData(response.storageValues);
-      log("User logged in with QR successfully:", response.user.email);
+      logger.log("User logged in with QR successfully:", response.user.email);
       navigateReplace("Home");
     },
     signUp: async (email, password, callback) => {
@@ -116,11 +115,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
         if (error) return callback?.(false, error);
 
-        log("User signed up successfully:", email);
+        logger.log("User signed up successfully:", email);
         callback?.(true);
       } catch (error) {
         const errorMsg = `Sign up error: ${error}`;
-        logError(errorMsg);
+        logger.error(errorMsg);
         return callback?.(false, errorMsg);
       } finally {
         setLoggingIn(false);
@@ -132,7 +131,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const { error } = await authSignOut();
 
         if (error) {
-          logError("Logout error:", error);
+          logger.error("Logout error:", error);
           callback?.(false);
           return;
         }
@@ -141,10 +140,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         setUserData(null);
         setIsLoggedIn(false);
         navigateReplace("Login");
-        log("User logged out successfully");
+        logger.log("User logged out successfully");
         callback?.(true);
       } catch (error) {
-        logError("Unexpected logout error:", error);
+        logger.error("Unexpected logout error:", error);
         callback?.(false);
       } finally {
         setLoggingIn(false);
@@ -164,27 +163,26 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const { success, error } = await authForgotPassword(email);
 
         if (!success || error) {
-          logError("Forgot password error:", error);
+          logger.error("Forgot password error:", error);
           callback?.(false, error);
           return;
         }
 
         callback?.(true);
       } catch (error) {
-        logError("Unexpected forgot password error:", error);
+        logger.error("Unexpected forgot password error:", error);
         callback?.(false, error as string);
       } finally {
         setLoggingIn(false);
       }
     },
     refreshToken: async (): Promise<boolean> => {
-      const sendNotificationLoginStatus =
-        Platform.OS !== "web"
-          ? () => {}
-          : (isLoggedIn: boolean) =>
-              windowModule?.notifyLoginStatus?.(isLoggedIn);
+      const sendNotificationLoginStatus = !REPLACERS.isWeb
+        ? () => {}
+        : (isLoggedIn: boolean) =>
+            windowModule?.notifyLoginStatus?.(isLoggedIn);
       const handleNotLoggedIn = (reason?: string) => {
-        if (reason) log("Not logged in:", reason);
+        if (reason) logger.log("Not logged in:", reason);
 
         sendNotificationLoginStatus(false);
         setLoggingIn(false);

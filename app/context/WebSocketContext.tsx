@@ -11,10 +11,10 @@ import React, {
   createContext,
 } from "react";
 import {
-  log,
   tTyped,
-  logError,
+  logger,
   parseData,
+  REPLACERS,
   getRandomId,
   checkLanguage,
   fetchToServer,
@@ -33,7 +33,7 @@ import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
 import { useNotifications } from "./NotificationsContext";
-import { DeviceEventEmitter, Platform } from "react-native";
+import { DeviceEventEmitter } from "react-native";
 import { WebSocketMessage, ClipboardWebSocketMessage } from "@types";
 
 type WebSockets = "clipboard" | "main";
@@ -63,7 +63,7 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(
   undefined,
 );
 
-const MAX_CLIPBOARD_ITEMS = Platform.OS === "web" ? 30 : 15;
+const MAX_CLIPBOARD_ITEMS = REPLACERS.isWeb ? 30 : 15;
 
 const OPTIONS_RECONNECT_WS: OptionsReconnectingWS = {
   maxRetries: Infinity,
@@ -87,7 +87,7 @@ const addToItemsClipboard = (
   if (listRef.current.length > MAX_CLIPBOARD_ITEMS)
     listRef.current = listRef.current.slice(0, MAX_CLIPBOARD_ITEMS);
 
-  if (Platform.OS !== "web") return;
+  if (REPLACERS.isNative) return;
 
   windowModule.setClipboardHistory?.(listRef.current);
 };
@@ -124,7 +124,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       ws === "clipboard" ? clipboardSocketRef.current : socketRef.current;
 
     if (!currentSocket) {
-      logError(`Cannot send message to ${ws}: Socket is null`);
+      logger.error(`Cannot send message to ${ws}: Socket is null`);
       return;
     }
 
@@ -133,7 +133,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     while (currentSocket.readyState === WebSocket.CONNECTING) {
       if (attempts >= maxAttempts) {
-        logError(
+        logger.error(
           `WebSocket ${ws} connection timed out after ${maxAttempts} attempts (still CONNECTING).`,
         );
         return;
@@ -145,7 +145,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (currentSocket.readyState === WebSocket.OPEN) {
       currentSocket.send(JSON.stringify(message));
     } else {
-      logError(
+      logger.error(
         `Failed to send message to ${ws}: Socket state is ${currentSocket.readyState}`,
       );
     }
@@ -166,7 +166,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
             label: tTyped("common.close"),
           },
         );
-        log("WebSocket initialized successfully.");
+        logger.log("WebSocket initialized successfully.");
       };
 
       const newSocket = new ReconnectingWebSocket(
@@ -176,7 +176,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       );
 
       newSocket.onopen = async () => {
-        log("WebSocket connection opened successfully");
+        logger.log("WebSocket connection opened successfully");
 
         try {
           const [lang, hasAdmin, theme] = await Promise.all([
@@ -193,7 +193,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
             hasAdmin: !!hasAdmin,
           });
         } catch (error) {
-          logError("Error during WebSocket initialization:", error);
+          logger.error("Error during WebSocket initialization:", error);
         }
       };
 
@@ -202,10 +202,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           const parsedMessage: WebSocketMessage<"sentByServer"> | null =
             parseData(event.data);
           if (!parsedMessage) return;
-          log("Message from server:", parsedMessage);
+          logger.log("Message from server:", parsedMessage);
 
           if (!parsedMessage.type) {
-            logError("Received message without type:", parsedMessage);
+            logger.error("Received message without type:", parsedMessage);
             return;
           }
 
@@ -214,7 +214,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
               handleInitSuccessWebSocket();
               break;
             case "not-user-id":
-              logError("No user ID provided:", parsedMessage.message);
+              logger.error("No user ID provided:", parsedMessage.message);
               break;
             case "notification":
               await sendNotificationRef.current(parsedMessage.notification);
@@ -223,20 +223,20 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
               sendMessageRef.current("main", { type: "pong" });
               break;
             default:
-              log("Unknown message type:", parsedMessage);
+              logger.log("Unknown message type:", parsedMessage);
               break;
           }
         } catch (error) {
-          logError("Error processing WebSocket message:", error);
+          logger.error("Error processing WebSocket message:", error);
         }
       };
 
       newSocket.onerror = (error) => {
-        logError("WebSocket error:", error.message);
+        logger.error("WebSocket error:", error.message);
       };
 
       newSocket.onclose = (event) => {
-        log("WebSocket connection closed:", event.reason, event.code);
+        logger.log("WebSocket connection closed:", event.reason, event.code);
       };
 
       socketRef.current = newSocket;
@@ -248,7 +248,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (!userData?.userId) return;
     if (!shouldConnectRef.current.clipboard) return;
 
-    log("Initializing Clipboard WebSocket connection...");
+    logger.log("Initializing Clipboard WebSocket connection...");
     const socket = new ReconnectingWebSocket(
       clipboardSocketURL || CLIPBOARD_WS_URL,
       [],
@@ -262,7 +262,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       ]);
 
       if (!token || !deviceId) {
-        logError(
+        logger.error(
           "No session token or device ID found for Clipboard WebSocket.",
         );
         socket.close();
@@ -276,18 +276,18 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         deviceId,
       };
       socket.send(JSON.stringify(message));
-      log(
+      logger.log(
         "Clipboard WebSocket connection opened and init message sent.",
         message,
       );
     };
 
     socket.onerror = (error) => {
-      logError("Clipboard WebSocket error:", error.message);
+      logger.error("Clipboard WebSocket error:", error.message);
     };
 
     socket.onclose = () => {
-      log("Clipboard WebSocket connection closed.");
+      logger.log("Clipboard WebSocket connection closed.");
     };
 
     socket.onmessage = (event) => {
@@ -305,12 +305,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
         lastItemCopiedRef.current = parsedMessage.content;
 
-        if (Platform.OS === "android")
+        if (REPLACERS.isNative)
           BackgroundModule?.setClipboardText?.(parsedMessage.content);
-        else if (Platform.OS === "web")
+        else if (REPLACERS.isWeb)
           windowModule?.setClipboard(parsedMessage.content);
       } catch (error) {
-        logError("Error parsing Clipboard WebSocket message:", error);
+        logger.error("Error parsing Clipboard WebSocket message:", error);
       }
     };
 
@@ -374,7 +374,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
   useEffect(() => {
     if (!isBackground) {
-      log("App became active");
+      logger.log("App became active");
       shouldConnectRef.current.main = true;
       return;
     }
@@ -387,7 +387,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, [isBackground]);
 
   useEffect(() => {
-    if (Platform.OS !== "web") return;
+    if (REPLACERS.isNative) return;
     if (!isLoggedIn) return;
 
     const handleIntervalClipboardWeb = async () => {
@@ -417,7 +417,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           content,
         });
       } catch (error) {
-        logError("Error reading clipboard content", error);
+        logger.error("Error reading clipboard content", error);
       }
     };
 
@@ -486,7 +486,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, [clipboardSocketURL, isLoggedIn, userData?.userId]);
 
   useEffect(() => {
-    if (Platform.OS === "web") return;
+    if (REPLACERS.isWeb) return;
 
     const listenerClipboard = DeviceEventEmitter.addListener(
       "ClipboardUpdated",

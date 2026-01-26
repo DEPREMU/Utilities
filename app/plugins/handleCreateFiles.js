@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable no-console */
-const fs = require("fs");
-const path = require("path");
-const { Chalk } = require("chalk");
+import fs from "fs";
+import path from "path";
+import { Chalk } from "chalk";
 const chalk = new Chalk({ level: 1 });
 
 const withGoogleServices = (config) => {
@@ -83,4 +82,4 @@ const withGoogleServices = (config) => {
   return config;
 };
 
-module.exports = withGoogleServices;
+export default withGoogleServices;

@@ -1,16 +1,17 @@
 import {
-  logError,
+  logger,
   parseData,
+  REPLACERS,
   loadDataStorage,
   QR_LOGIN_WS_URL,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
+import { View } from "react-native";
 import { Text } from "react-native-paper";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
-import { Platform, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
 import useStylesScanQRCode from "@/styles/screens/auth/useStylesScanQRCode";
@@ -67,7 +68,7 @@ const ScanQRCode: React.FC = () => {
   }, [hasPermission, t, openModalRef, closeModalRef]);
 
   useEffect(() => {
-    if (isLoggedIn && Platform.OS !== "web") return;
+    if (isLoggedIn && REPLACERS.isNative) return;
 
     navigateReplace("Home");
   }, [isLoggedIn]);
@@ -88,7 +89,7 @@ const ScanQRCode: React.FC = () => {
 
         const token = await loadDataStorage("USER_SESSION_TOKEN_STORAGE");
         if (!token) {
-          logError("No session token available for QR login");
+          logger.error("No session token available for QR login");
           navigateReplace("Home");
           return;
         }
@@ -120,7 +121,7 @@ const ScanQRCode: React.FC = () => {
           ws?.send(JSON.stringify(message));
           idTimeoutRef.current = setTimeoutPolyfill(
             () => {
-              logError("QR login error: timeout");
+              logger.error("QR login error: timeout");
               ws?.close();
               navigateReplace("Home");
             },
@@ -161,16 +162,16 @@ const ScanQRCode: React.FC = () => {
             ws?.close();
             navigateReplace("Home");
           } catch (error) {
-            logError("Error parsing WebSocket message:", error);
+            logger.error("Error parsing WebSocket message:", error);
           }
         };
 
         ws.onerror = (error) => {
-          logError("WebSocket error:", error);
+          logger.error("WebSocket error:", error);
           handleError();
         };
       } catch (error) {
-        logError("Error handling QR login:", error);
+        logger.error("Error handling QR login:", error);
       }
     };
 

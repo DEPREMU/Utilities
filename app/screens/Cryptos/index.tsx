@@ -2,7 +2,7 @@ import DisplayScreen from "./DisplayScreen";
 import SelectionScreen from "./SelectionScreen";
 import { SelectedCryptos } from "@common";
 import GetBottomNavigation from "@components/common/GetBottomNavigation";
-import { loadDataStorage, logError } from "@utils";
+import { loadDataStorage, logger } from "@utils";
 import React, { useRef, useMemo, useState, useEffect } from "react";
 
 const CryptosNavigator = () => {
@@ -52,7 +52,10 @@ const CryptosNavigator = () => {
         const storedCryptos = await loadDataStorage("SELECTED_CRYPTOS");
         if (storedCryptos) setSelectedCryptos(storedCryptos);
       } catch (error) {
-        logError("Error loading selected cryptocurrencies from storage", error);
+        logger.error(
+          "Error loading selected cryptocurrencies from storage",
+          error,
+        );
       }
     };
     loadSelectedCryptos();

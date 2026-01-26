@@ -1,8 +1,10 @@
 import {
-  log,
+  logger,
+  tTyped,
   openURL,
   API_URL,
   showAlert,
+  REPLACERS,
   APP_VERSION,
   getRouteAPI,
   fetchToServer,
@@ -13,7 +15,6 @@ import {
   setTimeoutPolyfill,
   fetchAndApplyUpdate,
   isNewUpdateAvailable,
-  tTyped,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
 import ThemePicker from "@components/Settings/ThemePicker";
@@ -22,10 +23,10 @@ import LanguagePicker from "@components/Settings/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
+import { ScrollView, View } from "react-native";
 import { typeLanguagesKeys } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
-import { ScrollView, View, Platform } from "react-native";
 import { ActivityIndicator, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -67,7 +68,7 @@ const SettingsScreen: React.FC = () => {
   );
 
   const handleCheckForUpdatesRef = useRef(async () => {
-    if (Platform.OS === "web") return;
+    if (REPLACERS.isWeb) return;
 
     saveDataStorage("LAST_UPDATE_CHECK", Date.now());
     setUpdatesData({
@@ -109,7 +110,12 @@ const SettingsScreen: React.FC = () => {
   });
 
   const handleCheckPasswordAdminSection = useCallback(async () => {
-    log("Checking admin password:", password, "against:", ADMIN_PASSWORD);
+    logger.log(
+      "Checking admin password:",
+      password,
+      "against:",
+      ADMIN_PASSWORD,
+    );
     if (!password || !ADMIN_PASSWORD) return;
     if (!userData?.userId || !sessionToken) return;
     if (password !== ADMIN_PASSWORD) return;
@@ -271,7 +277,7 @@ const SettingsScreen: React.FC = () => {
 
   const openUrlUpdatesWebPage = useCallback(async () => {
     const updatesWebPageUrl = API_URL.replace("api", "updates/web-page");
-    log("Opening updates web page URL:", updatesWebPageUrl);
+    logger.log("Opening updates web page URL:", updatesWebPageUrl);
     openURL(updatesWebPageUrl);
   }, []);
 
@@ -309,17 +315,17 @@ const SettingsScreen: React.FC = () => {
 
           <View style={styles.section}>
             <Text style={styles.subtitle}>
-              {t(Platform.OS === "android" ? "lastUpdateCheck" : "appUpdates")}
+              {t(REPLACERS.isNative ? "lastUpdateCheck" : "appUpdates")}
             </Text>
             <Text style={styles.dateText}>
               {t("currentVersion", { version: APP_VERSION })}
             </Text>
             <Text style={styles.dateText}>
-              {Platform.OS === "android"
+              {REPLACERS.isNative
                 ? getFormattedDate(updatesData?.lastUpdateCheck || new Date())
                 : t("appUpdatesExplanation")}
             </Text>
-            {Platform.OS === "android" && (
+            {REPLACERS.isNative && (
               <Button
                 customStyles={{
                   button: styles.button,

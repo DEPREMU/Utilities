@@ -1,9 +1,3 @@
-import {
-  Platform,
-  TextStyle,
-  ViewStyle,
-  useWindowDimensions,
-} from "react-native";
 import React, {
   useMemo,
   ReactNode,
@@ -12,7 +6,9 @@ import React, {
   createContext,
 } from "react";
 import { useTheme } from "./ThemeContext";
+import { REPLACERS } from "@utils";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TextStyle, ViewStyle, useWindowDimensions } from "react-native";
 
 interface LayoutProviderProps {
   children: ReactNode;
@@ -38,7 +34,6 @@ export type OptionsCommonStyles = {
 
 interface LayoutContextProps {
   isLargeTablet: boolean;
-  isPlatformWeb: boolean;
   getStylesSafeAreaContainer: (
     fallbackValues?: propGetStylesSafeAreaContainer,
   ) => SafeAreaContainerStyle;
@@ -71,8 +66,6 @@ interface LayoutContextProps {
  * @returns {LayoutContextProps} The context value containing layout information.
  */
 const LayoutContext = createContext<LayoutContextProps | undefined>(undefined);
-
-const isPlatformWeb = Platform.OS === "web";
 
 /**
  * Provides layout-related context values to its children, such as device type and screen dimensions.
@@ -110,7 +103,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
 
   const isPortrait: boolean = useMemo(() => height >= width, [height, width]);
 
-  const isWeb: boolean = useMemo(() => isPlatformWeb && width > 768, [width]);
+  const isWeb: boolean = useMemo(() => REPLACERS.isWeb && width > 768, [width]);
   const isPhone: boolean = useMemo(
     () => width <= 768 && height <= 1600,
     [width, height],
@@ -216,7 +209,6 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
       getCommonStyles,
       getResponsiveValue,
       getStylesSafeAreaContainer,
-      isPlatformWeb,
       isTablet,
       height,
       width,

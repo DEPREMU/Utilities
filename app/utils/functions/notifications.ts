@@ -1,18 +1,22 @@
 import {
+  REPLACERS,
+  reasonNotification,
+  objByReasonNotification,
+} from "../constants";
+import {
   ChannelsId,
   Notifications,
   ScreensAvailable,
   ReasonNotification,
 } from "@types";
-import { log } from "./debug";
+import { Falsy } from "react-native";
+import { logger } from "./debug";
 import { tTyped } from "../translates";
 import { cloneDeep } from "lodash";
 import * as notifications from "expo-notifications";
 import NotificationModule from "../modules/NotificationModule";
-import { Platform, Falsy } from "react-native";
 import { navigateReplace } from "@navigation/navigationRef";
 import { loadDataStorage, saveDataStorage } from "./storageManagement";
-import { objByReasonNotification, reasonNotification } from "../constants";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -131,7 +135,10 @@ export const setupNotificationHandlers = () => {
 
   const foregroundListener = notifications.addNotificationReceivedListener(
     (notification) => {
-      log("Notification received in foreground:", notification.request.content);
+      logger.log(
+        "Notification received in foreground:",
+        notification.request.content,
+      );
       const data = notification.request?.content?.data as NotificationData;
       if (!data) return;
       if (data.reason)
@@ -148,7 +155,7 @@ export const setupNotificationHandlers = () => {
 };
 
 export const configureNotificationChannel = async () => {
-  if (Platform.OS === "web") return;
+  if (REPLACERS.isWeb) return;
 
   const channels: Record<ChannelsId, notifications.NotificationChannelInput> = {
     cryptos: {

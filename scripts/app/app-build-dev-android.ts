@@ -17,14 +17,13 @@ import { execSync, spawn } from "child_process";
 const localEnv = {
   ...env,
   PLATFORM: "android",
-  NODE_ENV: "development",
   BUILD_PROFILE: "development",
 };
 
 replaceAppConfig(
   (prev) => (prev.endsWith("-dev") ? prev : `${prev}-dev`),
   (prev) => (prev.includes("Dev") ? prev : `${prev} Dev`),
-  (prev) => (prev.includes(".dev") ? prev : `${prev}.dev`)
+  (prev) => (prev.includes(".dev") ? prev : `${prev}.dev`),
 );
 
 let expo: ReturnType<typeof spawn>;
@@ -59,13 +58,13 @@ const run = () => {
       cwd: APP_PATH,
       env: localEnv,
       stdio: "inherit",
-    }
+    },
   );
 };
 
 const runExpo = () => {
   console.log("Running expo...");
-  expo = spawn("npx", ["expo", "start", "--dev-client"], {
+  expo = spawn("npx", ["expo", "start", "--dev-client", "--clear"], {
     cwd: APP_PATH,
     env: localEnv,
     stdio: "inherit",

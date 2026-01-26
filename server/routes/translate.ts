@@ -20,9 +20,9 @@ export const translate = getHandlerPost(
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `DeepL-Auth-Key ${getEnvValue("DEEPL_TRANSLATOR_API")}`,
         },
         body: new URLSearchParams({
-          auth_key: getEnvValue("DEEPL_TRANSLATOR_API"),
           text,
           target_lang: targetLang,
         }),

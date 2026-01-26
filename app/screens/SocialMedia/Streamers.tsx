@@ -1,8 +1,8 @@
 import {
   ASSETS,
+  logger,
   isFalsy,
   openURL,
-  logError,
   clearRefs,
   capitalize,
   fetchToServer,
@@ -67,13 +67,13 @@ const Streamers: React.FC = () => {
       const data = res.data;
 
       if (!data || data.error) {
-        logError(
+        logger.error(
           data?.error || res.errorText || "Unknown error adding streamer",
         );
         return;
       }
       if (!data.success || !data.streamer) {
-        logError("Failed to add streamer");
+        logger.error("Failed to add streamer");
         return;
       }
 
@@ -90,7 +90,7 @@ const Streamers: React.FC = () => {
         });
       }
     } catch (error) {
-      logError(error);
+      logger.error(error);
       return;
     }
 
@@ -137,7 +137,7 @@ const Streamers: React.FC = () => {
       const { error } = res.data || { error: res.errorText || "Unknown error" };
 
       if (error) {
-        logError(error);
+        logger.error(error);
         openModalRef.current(
           t("error"),
           t("errorDeletingStreamer", { error }),
@@ -317,7 +317,7 @@ const Streamers: React.FC = () => {
         };
 
         if (error) {
-          logError(error);
+          logger.error(error);
           openModalRef.current(
             t("error"),
             t("errorLoadingStreamers"),
@@ -370,7 +370,7 @@ const Streamers: React.FC = () => {
         setStreamers(newData ? newData : allStreamers);
         saveDataStorage("STREAMERS", allStreamers);
       } catch (error) {
-        logError(error);
+        logger.error(error);
       }
     };
 

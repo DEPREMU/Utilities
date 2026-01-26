@@ -1,5 +1,5 @@
 import {
-  logError,
+  logger,
   memoDeep,
   cleanFloat,
   fetchToServer,
@@ -216,7 +216,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         });
         const data = response.data;
         if (!data || data?.error || !response.ok) {
-          logError(
+          logger.error(
             "Error fetching cryptos:",
             data?.error || response.errorText || "Unknown error",
           );

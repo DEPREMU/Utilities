@@ -1,9 +1,10 @@
 import { tTyped } from "../translates";
+import { REPLACERS } from "../constants";
 import * as Location from "expo-location";
+import { Alert, AppState } from "react-native";
 import NativeFunctionsModule from "../modules/NativeFunctionsModule";
 import { setTimeoutPolyfill } from "./appManagement";
 import { notificationsManager } from "./notifications";
-import { Alert, AppState, Platform } from "react-native";
 
 /**
  * Checks if location services are enabled on the device.
@@ -17,7 +18,7 @@ import { Alert, AppState, Platform } from "react-native";
  * Location API to check if services are enabled.
  */
 export const isLocationEnabled = async (): Promise<boolean> => {
-  if (Platform.OS === "web") return false;
+  if (REPLACERS.isWeb) return false;
 
   try {
     return await Location.hasServicesEnabledAsync();
@@ -39,7 +40,7 @@ export const isLocationEnabled = async (): Promise<boolean> => {
  *          `false` on web platform.
  */
 export const askLocationPermission = async (): Promise<boolean> => {
-  if (Platform.OS === "web") return false;
+  if (REPLACERS.isWeb) return false;
 
   let { status } = await Location.getForegroundPermissionsAsync();
 
@@ -103,7 +104,7 @@ export const askLocationPermission = async (): Promise<boolean> => {
  *          `false` otherwise. Always returns `false` on non-Android platforms.
  */
 export const askDisplayOverOtherAppsPermission = async (): Promise<boolean> => {
-  if (Platform.OS !== "android") return false;
+  if (REPLACERS.isWeb) return false;
 
   let hasPermission = await NativeFunctionsModule.checkOverlayPermission();
   if (hasPermission) return true;
@@ -169,7 +170,7 @@ export const askDisplayOverOtherAppsPermission = async (): Promise<boolean> => {
  * - If user cancels the alert, immediately rechecks current permission status
  */
 export const askBatteryOptimizationPermission = async (): Promise<boolean> => {
-  if (Platform.OS !== "android") return false;
+  if (REPLACERS.isWeb) return false;
 
   let hasPermission =
     await NativeFunctionsModule.isIgnoringBatteryOptimizations();
@@ -240,7 +241,7 @@ export const askBatteryOptimizationPermission = async (): Promise<boolean> => {
  * - Supports: Xiaomi, Redmi, Oppo, Vivo, Letv, Honor, Huawei, Asus, and generic devices
  */
 export const askAutoStartPermission = async (): Promise<boolean> => {
-  if (Platform.OS !== "android") return false;
+  if (REPLACERS.isWeb) return false;
 
   if (await NativeFunctionsModule?.checkOverlayPermission?.())
     NativeFunctionsModule?.openApp?.();

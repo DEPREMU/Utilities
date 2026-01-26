@@ -12,7 +12,7 @@ import React, {
   createContext,
 } from "react";
 import {
-  logError,
+  logger,
   showAlert,
   getRandomId,
   loadDataStorage,
@@ -158,7 +158,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
         await saveDataStorage("PENDING_TASKS", serializableTasks);
       } catch (error) {
-        logError("Error persisting tasks:", error);
+        logger.error("Error persisting tasks:", error);
       }
     },
   );
@@ -182,7 +182,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
         }
         await task.func();
       } catch (err) {
-        logError("Error in background task:", err);
+        logger.error("Error in background task:", err);
       }
     }
 
@@ -202,14 +202,14 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       }
 
       if (!meta) {
-        logError(
+        logger.error(
           "Meta is required for tasks that execute when internet is available",
         );
         return;
       }
 
       if (executeWhenInternetRef.current.length >= MAX_PENDING_TASKS) {
-        logError(
+        logger.error(
           `Max pending tasks limit (${MAX_PENDING_TASKS}) reached. Removing oldest task.`,
         );
         executeWhenInternetRef.current.shift();
@@ -240,7 +240,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       if (!hasInternet) executeWhenInternetRef.current.push({ task });
       else await task.func();
     } catch {
-      logError("Error running task:", task);
+      logger.error("Error running task:", task);
     }
   });
 
@@ -265,7 +265,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
         executeWhenInternetRef.current = rebuiltTasks;
       } catch (error) {
-        logError("Error loading persisted tasks:", error);
+        logger.error("Error loading persisted tasks:", error);
       }
     };
 

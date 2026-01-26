@@ -1,13 +1,13 @@
+import { View } from "react-native";
 import LoginTypeQR from "@/components/auth/LoginTypeQR";
 import { useModal } from "@context/ModalContext";
-import { log, tTyped } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import ButtonComponent from "@components/common/ButtonComponent";
 import EmailAndPassword from "@components/auth/EmailAndPassword";
 import stylesLoginScreen from "@styles/screens/auth/useStylesAuthScreens";
-import { Platform, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
 import { navigateReplace } from "@navigation/navigationRef";
+import { logger, tTyped, REPLACERS } from "@utils";
 import { Text, ActivityIndicator, Switch } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -24,7 +24,7 @@ const LoginScreen: React.FC = () => {
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [typeLogin, setTypeLogin] = useState<"email" | "qr">(
-    Platform.OS !== "web" ? "email" : "qr",
+    REPLACERS.isNative ? "email" : "qr",
   );
 
   const handleShowPasswordRef = useRef(() => {
@@ -51,7 +51,8 @@ const LoginScreen: React.FC = () => {
       if (!success) {
         setError(error || "Login failed");
         setLoggingIn(false);
-        return log("Login failed:", error, email);
+        logger.error("AUTH", "Login failed:", error, email);
+        return;
       }
 
       setLoggingIn(false);
@@ -81,7 +82,7 @@ const LoginScreen: React.FC = () => {
             setPassword={setPassword}
           />
         )}
-        {typeLogin === "qr" && (
+        {REPLACERS.isWeb && typeLogin === "qr" && (
           <LoginTypeQR
             rememberMe={rememberMe}
             handleChangeTypeLogin={handleChangeTypeLoginRef.current}
@@ -123,7 +124,7 @@ const LoginScreen: React.FC = () => {
               onValueChange={setRememberMe}
             />
           </View>
-          {Platform.OS === "web" && (
+          {REPLACERS.isWeb && (
             <View style={styles.typeLoginContainer}>
               <Text style={styles.typeLoginText}>
                 {t(typeLogin === "email" ? "loginWithEmail" : "loginWithQR")}

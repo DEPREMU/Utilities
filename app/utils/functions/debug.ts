@@ -4,17 +4,17 @@ import { wrapFunctionWithError } from "@common";
 import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
+import { REPLACERS } from "../constants/constants";
 import { fetchToServer } from "./APIManagement";
 import { loadDataStorage } from "./storageManagement";
 import { getCurrentUserId } from "./auth";
-import { isDev, isPreview, isProduction } from "../constants/constants";
 
 type ReturnDeviceInfo = {
   deviceId: string;
   deviceName: string;
 };
 
-const FILTER_BY_MESSAGE: string[] = ["PDF"];
+const FILTER_BY_MESSAGE: string[] = [];
 
 const getCurrentDeviceInfo = wrapFunctionWithError(
   async () => {
@@ -33,7 +33,7 @@ const getCurrentDeviceInfo = wrapFunctionWithError(
   },
   true,
   (_, errMsg) => {
-    logError?.("Error getting device info:", errMsg);
+    error?.("Error getting device info:", errMsg);
     return {
       deviceId: "Platform: " + Platform.OS,
       deviceName: "Unknown Device",
@@ -51,53 +51,51 @@ const getCurrentDeviceInfo = wrapFunctionWithError(
  * - In preview mode, sends the log to a server endpoint.
  * - In production mode, does nothing.
  */
-export const log = isProduction
-  ? async () => {}
-  : async (...args: unknown[]): Promise<void> => {
-      if (!isPreview && !isDev) return;
-      if (
-        FILTER_BY_MESSAGE.length &&
-        !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
-      )
-        return;
+const log = async (...args: unknown[]): Promise<void> => {
+  if (!REPLACERS.isPreview && !REPLACERS.isDev) return;
+  if (
+    FILTER_BY_MESSAGE.length &&
+    !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
+  )
+    return;
 
-      const date = new Date();
+  const date = new Date();
 
-      const firstMessage = `Log - ${date.toLocaleString()} ::\n`;
+  const firstMessage = `Log - ${date.toLocaleString()} ::\n`;
 
-      if (isDev)
-        console.log(
-          Chalk.blue.bold(firstMessage),
-          ...args.map((arg) =>
-            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-          ),
-        );
-      else if (isPreview) {
-        try {
-          const message = [firstMessage, ...args]
-            .filter(Boolean)
-            .map((arg) =>
-              typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-            )
-            .join(" ");
+  if (REPLACERS.isDev)
+    console.log(
+      Chalk.blue.bold(firstMessage),
+      ...args.map((arg) =>
+        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+      ),
+    );
+  else if (REPLACERS.isPreview) {
+    try {
+      const message = [firstMessage, ...args]
+        .filter(Boolean)
+        .map((arg) =>
+          typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+        )
+        .join(" ");
 
-          const [userId, deviceInfo] = await Promise.all([
-            getCurrentUserId(),
-            getCurrentDeviceInfo(),
-          ]);
+      const [userId, deviceInfo] = await Promise.all([
+        getCurrentUserId(),
+        getCurrentDeviceInfo(),
+      ]);
 
-          fetchToServer("/log", {
-            type: "log",
-            userId: userId || "",
-            message,
-            timestamp: date.toISOString(),
-            ...deviceInfo,
-          });
-        } catch (error) {
-          console.error("Failed to log message to server:", error);
-        }
-      }
-    };
+      fetchToServer("/log", {
+        type: "log",
+        userId: userId || "",
+        message,
+        timestamp: date.toISOString(),
+        ...deviceInfo,
+      });
+    } catch (error) {
+      console.error("Failed to log message to server:", error);
+    }
+  }
+};
 
 /**
  * Logs warning messages based on the current environment.
@@ -111,48 +109,50 @@ export const log = isProduction
  *
  * @example
  * ```typescript
- * await logWarn("User validation failed", { userId: 123, error: "Invalid email" });
- * await logWarn("API rate limit exceeded");
+ * awaitlogger.logWarn("User validation failed", { userId: 123, error: "Invalid email" });
+ * awaitlogger.logWarn("API rate limit exceeded");
  * ```
  */
-export const logWarn = isProduction
-  ? async () => {}
-  : async (...args: unknown[]): Promise<void> => {
-      if (!isPreview && !isDev) return;
-      if (!FILTER_BY_MESSAGE.some((msg) => args.includes(msg))) return;
+const warn = async (...args: unknown[]): Promise<void> => {
+  if (!REPLACERS.isPreview && !REPLACERS.isDev) return;
+  if (
+    FILTER_BY_MESSAGE.length &&
+    !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
+  )
+    return;
 
-      const date = new Date();
+  const date = new Date();
 
-      const firstMessage = `Warning - ${date.toLocaleString()} ::\n`;
+  const firstMessage = `Warning - ${date.toLocaleString()} ::\n`;
 
-      if (isDev) console.warn(Chalk.yellow.bold(firstMessage), ...args);
-      else if (isPreview) {
-        try {
-          const warningMessage = [firstMessage, ...args]
-            .filter(Boolean)
-            .map((arg) =>
-              typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-            )
-            .join(" ");
+  if (REPLACERS.isDev) console.warn(Chalk.yellow.bold(firstMessage), ...args);
+  else if (REPLACERS.isPreview) {
+    try {
+      const warningMessage = [firstMessage, ...args]
+        .filter(Boolean)
+        .map((arg) =>
+          typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+        )
+        .join(" ");
 
-          const [userId, deviceInfo] = await Promise.all([
-            getCurrentUserId(),
-            getCurrentDeviceInfo(),
-          ]);
+      const [userId, deviceInfo] = await Promise.all([
+        getCurrentUserId(),
+        getCurrentDeviceInfo(),
+      ]);
 
-          fetchToServer("/log", {
-            type: "warn",
-            userId: userId || "",
-            message: warningMessage,
-            timestamp: date.toISOString(),
-            deviceId: deviceInfo.deviceId || "",
-            deviceName: deviceInfo.deviceName,
-          });
-        } catch (error) {
-          console.error("Failed to log warning to server:", error);
-        }
-      }
-    };
+      fetchToServer("/log", {
+        type: "warn",
+        userId: userId || "",
+        message: warningMessage,
+        timestamp: date.toISOString(),
+        deviceId: deviceInfo.deviceId || "",
+        deviceName: deviceInfo.deviceName,
+      });
+    } catch (error) {
+      console.error("Failed to log warning to server:", error);
+    }
+  }
+};
 
 /**
  * Logs an error message to the console or sends it to a server.
@@ -164,46 +164,60 @@ export const logWarn = isProduction
  * - In preview mode, sends the log to a server endpoint.
  * - In production mode, does nothing.
  */
-export const logError = isProduction
-  ? async () => {}
-  : async (...args: unknown[]): Promise<void> => {
-      if (!isPreview && !isDev) return;
-      if (!FILTER_BY_MESSAGE.some((msg) => args.includes(msg))) return;
+const error = async (...args: unknown[]): Promise<void> => {
+  if (!REPLACERS.isPreview && !REPLACERS.isDev) return;
+  if (
+    FILTER_BY_MESSAGE.length &&
+    !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
+  )
+    return;
 
-      const date = new Date();
-      const firstMessage = `Error - ${date.toLocaleString()} ::\n`;
+  const date = new Date();
+  const firstMessage = `Error - ${date.toLocaleString()} ::\n`;
 
-      if (isDev)
-        console.error(
-          Chalk.red.bold(firstMessage),
-          ...args.map((arg) =>
-            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-          ),
-        );
-      else if (isPreview) {
-        try {
-          const errorMessage = [firstMessage, ...args]
-            .filter(Boolean)
-            .map((arg) =>
-              typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-            )
-            .join(" ");
+  if (REPLACERS.isDev)
+    console.error(
+      Chalk.red.bold(firstMessage),
+      ...args.map((arg) =>
+        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+      ),
+    );
+  else if (REPLACERS.isPreview) {
+    try {
+      const errorMessage = [firstMessage, ...args]
+        .filter(Boolean)
+        .map((arg) =>
+          typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
+        )
+        .join(" ");
 
-          const [userId, deviceInfo] = await Promise.all([
-            getCurrentUserId(),
-            getCurrentDeviceInfo(),
-          ]);
+      const [userId, deviceInfo] = await Promise.all([
+        getCurrentUserId(),
+        getCurrentDeviceInfo(),
+      ]);
 
-          fetchToServer("/log", {
-            type: "error",
-            userId: userId || "",
-            message: errorMessage,
-            timestamp: date.toISOString(),
-            deviceId: deviceInfo.deviceId || "",
-            deviceName: deviceInfo.deviceName,
-          });
-        } catch (error) {
-          console.error("Failed to log error to server:", error);
-        }
-      }
+      fetchToServer("/log", {
+        type: "error",
+        userId: userId || "",
+        message: errorMessage,
+        timestamp: date.toISOString(),
+        deviceId: deviceInfo.deviceId || "",
+        deviceName: deviceInfo.deviceName,
+      });
+    } catch (error) {
+      console.error("Failed to log error to server:", error);
+    }
+  }
+};
+
+export const logger = !REPLACERS.isProduction
+  ? {
+      log,
+      warn,
+      error,
+    }
+  : {
+      log: async () => {},
+      warn: async () => {},
+      error: async () => {},
     };

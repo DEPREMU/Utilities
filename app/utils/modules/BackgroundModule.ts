@@ -1,7 +1,8 @@
-import { logError } from "../functions";
+import { logger } from "../functions";
+import { REPLACERS } from "../constants/constants";
 import type { TurboModule } from "react-native";
 import { LanguagesSupported } from "@types";
-import { Platform, TurboModuleRegistry } from "react-native";
+import { TurboModuleRegistry } from "react-native";
 
 export interface Spec extends TurboModule {
   start: (titleNotification: string, messageNotification: string) => void;
@@ -32,16 +33,15 @@ const defaultBackgroundModule: Spec = {
   startClipboardService: () => {},
 };
 
-const BackgroundModule =
-  Platform.OS === "android"
-    ? TurboModuleRegistry.getEnforcing<Spec>("BackgroundServiceModule")
-    : defaultBackgroundModule;
+const BackgroundModule = REPLACERS.isNative
+  ? TurboModuleRegistry.getEnforcing<Spec>("BackgroundServiceModule")
+  : defaultBackgroundModule;
 
 if (
-  process.env.NODE_ENV === "development" &&
+  REPLACERS.isDev &&
   (!BackgroundModule || Object.keys(BackgroundModule).length === 0)
 ) {
-  logError("BackgroundServiceModule is not available");
+  logger.error("BackgroundServiceModule is not available");
 }
 
 export default BackgroundModule;

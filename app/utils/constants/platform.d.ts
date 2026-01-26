@@ -1,3 +1,5 @@
+import type PDF from "react-native-pdf";
+
 export type PlatformData = {
   version: string;
   isElectron: boolean;
@@ -12,3 +14,5 @@ export declare const DATA_PLATFORM: PlatformData;
 export type DeleteDirectoryPickerFolder = () => void;
 
 export declare const deleteDirectoryPickerFolder: DeleteDirectoryPickerFolder;
+
+export declare const PDF: typeof PDF;

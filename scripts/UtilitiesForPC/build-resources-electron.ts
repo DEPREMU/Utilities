@@ -36,7 +36,7 @@ build({
     pluginReplace([
       {
         filter: /\.ts|\.js$/,
-        replace: /process\.env\.PROFILE/g,
+        replace: /process\.env\.BUILD_PROFILE/g,
         replacer: () => JSON.stringify(ARGS["profile"] || "production"),
       },
     ]),

@@ -3,28 +3,28 @@ import {
   SortableGridRenderItem,
 } from "react-native-sortables/dist/typescript/types";
 import {
-  logError,
-  memoDeep,
-  URI_EXTENSION,
-  deleteDirectoryPickerFolder,
-} from "@utils";
-import {
   View,
   Image,
-  Platform,
   Pressable,
   ScrollView,
   GestureResponderEvent,
 } from "react-native";
+import {
+  logger,
+  memoDeep,
+  REPLACERS,
+  URI_EXTENSION,
+  deleteDirectoryPickerFolder,
+} from "@utils";
 import Sortable from "react-native-sortables";
 import { cloneDeep } from "lodash";
 import { createPdf } from "react-native-pdf-from-image";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
-import { Button, Divider, Menu, Text, TextInput } from "react-native-paper";
 import { useStylesPDF } from "@styles/screens/PDF/useStylesPDF";
 import * as ExpoFileSystem from "expo-file-system";
 import * as DirectoryPicker from "expo-document-picker";
+import { Button, Divider, Menu, Text, TextInput } from "react-native-paper";
 
 import React, { useCallback, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -155,10 +155,14 @@ const PDFConverter: React.FC = () => {
         const file = new ExpoFileSystem.File(URI_EXTENSION + filePath);
 
         shareAsync(file.uri, { mimeType: "application/pdf" });
-        if (Platform.OS !== "web") deleteDirectoryPickerFolder();
+        if (REPLACERS.isNative) deleteDirectoryPickerFolder();
         return [];
       } catch (error) {
-        logError("PDF", "error converting to PDF", (error as Error).message);
+        logger.error(
+          "PDF",
+          "error converting to PDF",
+          (error as Error).message,
+        );
         return prev;
       }
     });
