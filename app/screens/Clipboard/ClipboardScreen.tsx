@@ -142,16 +142,16 @@ const ClipboardScreen: React.FC = () => {
     )
       return;
 
-    const language = await checkLanguage();
     const { userData, sessionToken } = dataRef.current;
-
     if (!sessionToken || !userData?.userId) return;
+
+    const [language, deviceId] = await Promise.all([
+      checkLanguage(),
+      loadDataStorage("DEVICE_ID"),
+    ]);
 
     isLoadingRef.current = true;
     setNoMoreData(false);
-
-    const deviceId = await loadDataStorage("DEVICE_ID");
-    if (!deviceId) return;
 
     const page = (searchText ? pageRefSearch.current : pageRef.current) || 0;
     if (page === 0) {

@@ -57,6 +57,7 @@ export type ClipboardWebSocketMessage<T extends "sentByApp" | "sentByServer"> =
           }
     :
         | {
+            id: string;
             type: "new-clipboard-item";
             content: string;
           }

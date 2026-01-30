@@ -1,4 +1,5 @@
 import {
+  ClipboardItem,
   ContextBridgeType,
   LanguagesSupported,
   ChannelsIpcRenderer,
@@ -162,7 +163,7 @@ const contextBridgeType: ContextBridgeType = {
         return [];
       }
     },
-    setClipboardHistory: (items: string[]) => {
+    setClipboardHistory: (items: ClipboardItem[]) => {
       sendMessage("send", "set-clipboard-history", items);
     },
     hideClipboardWindow: () => {

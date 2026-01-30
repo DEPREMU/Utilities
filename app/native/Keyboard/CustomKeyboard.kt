@@ -11,17 +11,10 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
 import android.inputmethodservice.InputMethodService
-import android.media.AudioAttributes
-import android.media.AudioManager
-import android.media.SoundPool
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.provider.Settings
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -32,7 +25,6 @@ import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.MotionEvent
-import android.view.SoundEffectConstants
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -85,9 +77,7 @@ class CustomKeyboard :
     private var backspaceTapCount: Int = 0
     private var lastBackspaceTapTimeMs: Long = 0L
 
-    private var soundPool: SoundPool? = null
-    private var keyClickSoundId: Int = 0
-    private var vibrator: Vibrator? = null
+    private lateinit var soundHaptics: KeyboardSoundHaptics
 
     private var backspaceInitialIntervalMs = 260L
     private var backspaceAccelerationMs = 30L
@@ -117,7 +107,6 @@ class CustomKeyboard :
 
     private var keyboardHeightFactor: Float = 1.0f
     private var keyGapPx: Int = 0
-    private var vibrationDurationMs: Int = 0
     private var longPressDelayMs: Long = 400L
     private var keyTextSizePx: Float = 0f
     private var keyMinWidthPx: Int = 0
@@ -152,12 +141,6 @@ class CustomKeyboard :
     private var autoPunctuationChars: String = ".,;:?! )"
     private var autoCapSentenceDelimiters: String = ".:;?!\n"
     private var pasteAddsTrailingSpace: Boolean = true
-    private var soundEnabled: Boolean = true
-    private var soundVolume: Float = 1f
-    private var soundRate: Float = 1f
-    private var vibrationPattern: LongArray? = null
-    private var vibrationPatternRepeat: Int = -1
-    private var vibrationAmplitude: Int = -1
     private var maxSuggestions: Int = 3
     private var maxClipboardItems: Int = 10
     private var autoCorrectThresholdShort: Double = 0.75
@@ -179,7 +162,7 @@ class CustomKeyboard :
         layoutManager.dismissKeyPreview()
         suggestionsJob?.cancel()
         suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
-        soundHapticJob?.cancel()
+        soundHaptics.cancel()
     }
 
     override fun onWindowHidden() {
@@ -187,7 +170,7 @@ class CustomKeyboard :
         layoutManager.dismissKeyPreview()
         suggestionsJob?.cancel()
         suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
-        soundHapticJob?.cancel()
+        soundHaptics.cancel()
         dictionaryLoadJob?.cancel()
         speechRecognizer?.destroy()
     }
@@ -220,6 +203,7 @@ class CustomKeyboard :
     private var cachedBothSnapshot: SuggestionEngine.Snapshot? = null
 
     private var suggestionSlotsCapitalizeFirst: Boolean = false
+    private val suggestionSlotUseRawCase: MutableList<Boolean> = mutableListOf()
 
     enum class InputMode {
         LETTERS,
@@ -246,36 +230,11 @@ class CustomKeyboard :
     private var pendingNextWordBase: String? = null
     private var pendingNextWordMode: Boolean = false
     private var suggestionUpdateRunnable: Runnable? = null
-    private var soundHapticJob: Job? = null
 
     private var isPrivateMode: Boolean = false
     private var areSuggestionsEnabled: Boolean = true
     private var isRebuildPending: Boolean = false
     private var isCapsVisualUpdatePending: Boolean = false
-
-    private fun shouldPlayKeyClickSound(): Boolean {
-        if (!themeManager.isSoundEnabled) return false
-        if (!soundEnabled) return false
-        if (soundVolume <= 0f) return false
-        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return false
-
-        val soundEffectsEnabled =
-            runCatching {
-                Settings.System.getInt(
-                    contentResolver,
-                    Settings.System.SOUND_EFFECTS_ENABLED,
-                    1
-                ) == 1
-            }.getOrElse { true }
-
-        if (!soundEffectsEnabled) return false
-
-        val systemVolume =
-            runCatching { audioManager.getStreamVolume(AudioManager.STREAM_SYSTEM) }.getOrElse { 0 }
-        val musicVolume =
-            runCatching { audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) }.getOrElse { 0 }
-        return systemVolume > 0 || musicVolume > 0
-    }
 
     private fun observeClipboard() {
         serviceScope.launch {
@@ -328,12 +287,25 @@ class CustomKeyboard :
         themeManager = KeyboardThemeManager(this)
         themeManager.loadPreferences()
 
+        soundHaptics = KeyboardSoundHaptics(
+            context = this,
+            coroutineScope = serviceScope,
+            themeManager = themeManager,
+            uiHandler = uiHandler,
+        )
+        soundHaptics.init()
+
         observeClipboard()
         observeCommands()
 
         listenerProvider = object : KeyboardListenerProvider {
             override fun getKeyClickListener() = keyClickListener
             override fun getSuggestionClickListener() = suggestionClickListener
+            override fun getSuggestionLongClickListener(index: Int): View.OnLongClickListener {
+                return View.OnLongClickListener {
+                    showSuggestionOptionsDialog(index)
+                }
+            }
             override fun getKeyTouchListener(key: String): View.OnTouchListener {
                 val lower = key.lowercase()
                 return when (lower) {
@@ -426,26 +398,6 @@ class CustomKeyboard :
         }
 
         themeManager.initPalette(isPrivateMode)
-
-        
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-        soundPool = SoundPool.Builder()
-            .setMaxStreams(1)
-            .setAudioAttributes(audioAttributes)
-            .build()
-        
-        
-        keyClickSoundId = try {
-            soundPool?.load(this, R.raw.key_press, 1) ?: 0
-        } catch (_: Exception) {
-            0
-        }
-
-        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-
         loadBigramModelFromAssets(BIGRAM_FILE_EN, BIGRAM_FILE_ES)
     }
 
@@ -577,7 +529,7 @@ class CustomKeyboard :
         stopBackspaceRepeat()
         suggestionsJob?.cancel()
         suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
-        soundHapticJob?.cancel()
+        soundHaptics.cancel()
         dictionaryLoadJob?.cancel()
         suggestionEngine.clear()
         bigramModel.clear()
@@ -586,8 +538,7 @@ class CustomKeyboard :
         cachedBothSnapshot = null
         serviceScope.cancel()
         speechRecognizer?.destroy()
-        soundPool?.release()
-        soundPool = null
+        soundHaptics.release()
     }
 
     override fun onCreateInputView(): View {
@@ -925,8 +876,18 @@ class CustomKeyboard :
         inputProcessor.pasteText(item)
     }
 
+    private fun sendClipboardEvent(type: String, text: String? = null) {
+        val params = Arguments.createMap().apply {
+            putString("type", type)
+            if (!text.isNullOrBlank()) {
+                putString("text", text)
+            }
+        }
+        BackgroundServiceModule.sendEvent("ClipboardEvent", params)
+    }
+
     private fun showClipboardDialog(text: String) {
-        val (pasteLabel, closeLabel) = getClipboardDialogLabels()
+        val (pasteLabel, deleteLabel, closeLabel) = getClipboardDialogLabels()
         val windowToken =
             window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
         uiHandler.post {
@@ -935,6 +896,13 @@ class CustomKeyboard :
                     .setMessage(text)
                     .setPositiveButton(pasteLabel) { dialogInterface, _ ->
                         pasteClipboardItem(text)
+                        dialogInterface.dismiss()
+                    }
+                    .setNeutralButton(deleteLabel) { dialogInterface, _ ->
+                        val updated = ClipboardRepository.clipboardItems.value.filter { it != text }
+                        ClipboardRepository.setClipboardItems(updated, maxClipboardItems)
+                        renderClipboardSuggestions()
+                        sendClipboardEvent("delete", text)
                         dialogInterface.dismiss()
                     }
                     .setNegativeButton(closeLabel) { dialogInterface, _ ->
@@ -952,9 +920,10 @@ class CustomKeyboard :
         }
     }
 
-    private fun getClipboardDialogLabels(): Pair<String, String> {
-        return Pair(
+    private fun getClipboardDialogLabels(): Triple<String, String, String> {
+        return Triple(
             getString(R.string.btn_paste),
+            getString(R.string.btn_delete),
             getString(R.string.btn_close),
         )
     }
@@ -2767,9 +2736,29 @@ class CustomKeyboard :
 
         suggestionSlotsCapitalizeFirst = capitalizeFirst
 
+        val rawCurrentWord = pendingSuggestionCurrentWord
+        val useRawFirstSlot = isTypedWordSuggestion(rawCurrentWord)
+        val displaySuggestions = ArrayList<String>(maxSuggestions)
+        val seen = HashSet<String>(maxSuggestions * 2)
+
+        if (useRawFirstSlot && rawCurrentWord != null) {
+            displaySuggestions.add(rawCurrentWord)
+            seen.add(rawCurrentWord.lowercase())
+        }
+
+        for (suggestion in suggestions) {
+            val lower = suggestion.lowercase()
+            if (!seen.add(lower)) continue
+            displaySuggestions.add(suggestion)
+            if (displaySuggestions.size >= maxSuggestions) break
+        }
+
+        ensureSuggestionSlotFlags()
+
         for (i in 0 until maxSuggestions) {
             val button = layoutManager.suggestionButtons.getOrNull(i) ?: continue
-            val suggestion = suggestions.getOrNull(i)
+            val suggestion = displaySuggestions.getOrNull(i)
+            suggestionSlotUseRawCase[i] = useRawFirstSlot && i == 0
             if (layoutManager.suggestionSlotValues.size > i) {
                 layoutManager.suggestionSlotValues[i] = suggestion
             }
@@ -2783,7 +2772,9 @@ class CustomKeyboard :
             }
 
             val displayText =
-                if (capitalizeFirst) {
+                if (suggestionSlotUseRawCase[i]) {
+                    suggestion
+                } else if (capitalizeFirst) {
                     suggestion.replaceFirstChar { it.uppercaseChar() }
                 } else {
                     suggestion
@@ -2798,10 +2789,23 @@ class CustomKeyboard :
         if (layoutManager.selectionActionsContainer?.visibility == View.VISIBLE) {
             container.visibility = View.INVISIBLE
         } else {
-            container.visibility = if (suggestions.isEmpty()) View.INVISIBLE else View.VISIBLE
+            container.visibility = if (displaySuggestions.isEmpty()) View.INVISIBLE else View.VISIBLE
         }
 
         renderClipboardSuggestions()
+    }
+
+    private fun ensureSuggestionSlotFlags() {
+        if (suggestionSlotUseRawCase.size == maxSuggestions) return
+        suggestionSlotUseRawCase.clear()
+        repeat(maxSuggestions) {
+            suggestionSlotUseRawCase.add(false)
+        }
+    }
+
+    private fun isTypedWordSuggestion(word: String?): Boolean {
+        if (word.isNullOrBlank()) return false
+        return word.any { it.isLetter() }
     }
 
 
@@ -2810,8 +2814,63 @@ class CustomKeyboard :
         View.OnClickListener { v ->
             val index = v.tag as? Int ?: return@OnClickListener
             val suggestion = layoutManager.suggestionSlotValues.getOrNull(index) ?: return@OnClickListener
-            applySuggestion(suggestion, suggestionSlotsCapitalizeFirst)
+            val useRawCase = suggestionSlotUseRawCase.getOrNull(index) == true
+            val capitalize = if (useRawCase) false else suggestionSlotsCapitalizeFirst
+            applySuggestion(suggestion, capitalize)
         }
+
+    private fun showSuggestionOptionsDialog(index: Int): Boolean {
+        val suggestion = layoutManager.suggestionSlotValues.getOrNull(index) ?: return false
+        val windowToken =
+            window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return false
+
+        val normalized = normalizeWord(suggestion)
+        val inDictionary = normalized.isNotBlank() && userDictionary.contains(normalized)
+        val dictionaryLabel =
+            if (inDictionary) getString(R.string.suggestion_remove_dictionary) else getString(R.string.suggestion_save_dictionary)
+        val placeLabel = getString(R.string.suggestion_place)
+        val closeLabel = getString(R.string.btn_close)
+        val items = arrayOf(dictionaryLabel, placeLabel)
+        val useRawCase = suggestionSlotUseRawCase.getOrNull(index) == true
+        val capitalize = if (useRawCase) false else suggestionSlotsCapitalizeFirst
+
+        uiHandler.post {
+            val dialog =
+                AlertDialog.Builder(this)
+                    .setTitle(getString(R.string.suggestion_options_title))
+                    .setItems(items) { dialogInterface, which ->
+                        when (which) {
+                            0 -> {
+                                if (normalized.isNotBlank()) {
+                                    if (inDictionary) {
+                                        userDictionary.remove(normalized)
+                                    } else {
+                                        userDictionary.add(normalized)
+                                    }
+                                    saveUserDictionary()
+                                    updateSuggestions()
+                                }
+                            }
+                            1 -> applySuggestion(suggestion, capitalize)
+                        }
+                        dialogInterface.dismiss()
+                    }
+                    .setNegativeButton(closeLabel) { dialogInterface, _ ->
+                        dialogInterface.dismiss()
+                    }
+                    .create()
+
+            dialog.window?.apply {
+                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+                attributes?.token = windowToken
+                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            }
+
+            dialog.show()
+        }
+
+        return true
+    }
 
     private val keyClickListener: View.OnClickListener =
         View.OnClickListener { v ->
@@ -2832,47 +2891,7 @@ class CustomKeyboard :
                 "space" -> commitKeyWithCaps(" ")
                 else -> commitKeyWithCaps(key)
             }
-
-            soundHapticJob?.cancel()
-            soundHapticJob = serviceScope.launch(Dispatchers.Default) {
-                if (themeManager.isVibrationEnabled) {
-                    if (vibrationPattern != null) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            vibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, vibrationPatternRepeat))
-                        } else {
-                            @Suppress("DEPRECATION")
-                            vibrator?.vibrate(vibrationPattern, vibrationPatternRepeat)
-                        }
-                    } else if (vibrationDurationMs > 0) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            val amplitude = if (vibrationAmplitude >= 0) vibrationAmplitude else when (key.lowercase()) {
-                                "enter", "backspace", "space" -> 60
-                                else -> 30
-                            }
-                            vibrator?.vibrate(
-                                VibrationEffect.createOneShot(
-                                    vibrationDurationMs.toLong(),
-                                    amplitude
-                                )
-                            )
-                        } else {
-                            @Suppress("DEPRECATION")
-                            vibrator?.vibrate(vibrationDurationMs.toLong())
-                        }
-                    } else if (vibrationDurationMs < 0) {
-                        uiHandler.post { v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
-                    }
-                }
-
-                if (shouldPlayKeyClickSound()) {
-                    if (keyClickSoundId != 0) {
-                        soundPool?.play(keyClickSoundId, soundVolume, soundVolume, 1, 0, soundRate)
-                    } else {
-                        val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                        am.playSoundEffect(AudioManager.FX_KEY_CLICK)
-                    }
-                }
-            }
+            soundHaptics.playKeyFeedback(v, key)
         }
 
     private fun handleBackspacePress() {
@@ -2927,7 +2946,7 @@ class CustomKeyboard :
         val radiusDp = prefs.getInt(KeyboardThemeManager.PREF_KEY_CORNER_RADIUS, 6)
         themeManager.cornerRadiusPx = dpToPx(radiusDp)
 
-        vibrationDurationMs = prefs.getInt(PREF_KEY_VIBRATION_DURATION, 0)
+        soundHaptics.vibrationDurationMs = prefs.getInt(PREF_KEY_VIBRATION_DURATION, 0)
 
 
         longPressDelayMs = prefs.getLong(PREF_KEY_LONG_PRESS_DELAY, 400L)
@@ -3027,13 +3046,13 @@ class CustomKeyboard :
         updateMaxClipboardItems(maxClipboardItems)
         ClipboardRepository.setClipboardItems(ClipboardRepository.clipboardItems.value, maxClipboardItems)
 
-        soundEnabled = themeManager.isSoundEnabled
-        soundVolume = prefs.getFloat(PREF_KEY_SOUND_VOLUME, 1f)
-        soundRate = prefs.getFloat(PREF_KEY_SOUND_RATE, 1f)
-        vibrationAmplitude = prefs.getInt(PREF_KEY_VIBRATION_AMPLITUDE, -1)
+        soundHaptics.soundEnabled = themeManager.isSoundEnabled
+        soundHaptics.soundVolume = prefs.getFloat(PREF_KEY_SOUND_VOLUME, 1f)
+        soundHaptics.soundRate = prefs.getFloat(PREF_KEY_SOUND_RATE, 1f)
+        soundHaptics.vibrationAmplitude = prefs.getInt(PREF_KEY_VIBRATION_AMPLITUDE, -1)
         val patternStr = prefs.getString(PREF_KEY_VIBRATION_PATTERN, null)
-        vibrationPattern = parseVibrationPattern(patternStr)
-        vibrationPatternRepeat = prefs.getInt(PREF_KEY_VIBRATION_PATTERN_REPEAT, -1)
+        soundHaptics.vibrationPattern = parseVibrationPattern(patternStr)
+        soundHaptics.vibrationPatternRepeat = prefs.getInt(PREF_KEY_VIBRATION_PATTERN_REPEAT, -1)
 
         inputProcessor.updateConfig(
             InputBehaviorConfig(
@@ -3163,668 +3182,6 @@ class CustomKeyboard :
                 uiHandler.postDelayed(this, backspaceIntervalMs)
             }
         }
-
-    private class BigramModel {
-        private data class BigramKey(
-            val prev: String,
-            val next: String,
-        )
-
-        private val lock = Any()
-        private val maxTotalBigrams = 20_000
-        private val maxBigramsPerPrefix = 64
-        private val maxPrefixes = 2_000
-        private val maxTokenLength = 30
-
-        private val data: ConcurrentHashMap<String, LinkedHashMap<String, Int>> = ConcurrentHashMap()
-        private val globalLru: LinkedHashMap<BigramKey, Int> = LinkedHashMap(16, 0.75f, true)
-        private val prefixLru: LinkedHashMap<String, Unit> = LinkedHashMap(16, 0.75f, true)
-
-        fun add(prev: String, next: String, count: Int = 1) {
-            if (prev.isBlank() || next.isBlank()) return
-            if (count <= 0) return
-            if (prev.length > maxTokenLength || next.length > maxTokenLength) return
-
-            synchronized(lock) {
-                val inner = data.getOrPut(prev) { LinkedHashMap(16, 0.75f, true) }
-                prefixLru[prev] = Unit
-                val current = inner[next] ?: 0
-                val newValue = current + count
-                inner[next] = newValue
-                globalLru[BigramKey(prev, next)] = newValue
-
-                if (inner.size > maxBigramsPerPrefix) {
-                    val iterator = inner.entries.iterator()
-                    if (iterator.hasNext()) {
-                        val eldest = iterator.next()
-                        iterator.remove()
-                        globalLru.remove(BigramKey(prev, eldest.key))
-                    }
-                }
-
-                while (globalLru.size > maxTotalBigrams) {
-                    val iterator = globalLru.entries.iterator()
-                    if (!iterator.hasNext()) break
-                    val eldest = iterator.next()
-                    iterator.remove()
-
-                    val prevKey = eldest.key.prev
-                    val nextKey = eldest.key.next
-                    val innerMap = data[prevKey]
-                    if (innerMap != null) {
-                        innerMap.remove(nextKey)
-                        if (innerMap.isEmpty()) {
-                            data.remove(prevKey)
-                            prefixLru.remove(prevKey)
-                        }
-                    }
-                }
-
-                if (prefixLru.size > maxPrefixes) {
-                    val iterator = prefixLru.entries.iterator()
-                    if (iterator.hasNext()) {
-                        val eldest = iterator.next()
-                        iterator.remove()
-                        val removedPrev = eldest.key
-                        data.remove(removedPrev)
-                        val globalIterator = globalLru.entries.iterator()
-                        while (globalIterator.hasNext()) {
-                            if (globalIterator.next().key.prev == removedPrev) {
-                                globalIterator.remove()
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        fun suggestNext(prev: String, limit: Int): List<String> {
-            if (prev.isBlank()) return emptyList()
-            val safeLimit = limit.coerceAtLeast(1)
-
-            val snapshot: List<Map.Entry<String, Int>> = synchronized(lock) {
-                val map = data[prev] ?: return emptyList()
-                map.entries.map { it.toMutableEntry() }
-            }
-
-            return snapshot
-                .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-                .take(safeLimit)
-                .map { it.key }
-        }
-
-        private fun <K, V> Map.Entry<K, V>.toMutableEntry(): Map.Entry<K, V> {
-            val key = this.key
-            val value = this.value
-            return object : Map.Entry<K, V> {
-                override val key: K = key
-                override val value: V = value
-            }
-        }
-
-        fun clear() {
-            synchronized(lock) {
-                data.clear()
-                globalLru.clear()
-                prefixLru.clear()
-            }
-        }
-    }
-
-    private class SuggestionEngine(
-        private var maxSuggestions: Int,
-    ) {
-        private companion object {
-            private const val ALPHABET_SIZE = 26
-            private const val ASCII_A = 'a'.code
-            private const val MAX_WORDS_SNAPSHOT = 150_000
-            private const val MAX_NODES_SNAPSHOT = 1_500_000
-            private const val MAX_TOKEN_LENGTH = 40
-            private const val MAX_SUGGEST_QUEUE = 20_000
-        }
-
-        private data class TrieNode(
-            val childrenBasic: IntArray = IntArray(ALPHABET_SIZE) { -1 },
-            var childrenExtra: HashMap<Char, Int>? = null,
-            var isTerminal: Boolean = false,
-            var original: String? = null,
-            var frequency: Int = 0,
-        )
-
-        data class Snapshot(
-            val nodes: List<TrieNode>,
-            val maxWordLength: Int,
-        )
-
-        @Volatile
-        private var snapshot: Snapshot = Snapshot(listOf(TrieNode()), 0)
-
-        fun applySnapshot(newSnapshot: Snapshot) {
-            snapshot = newSnapshot
-        }
-
-        fun clear() {
-            snapshot = Snapshot(listOf(TrieNode()), 0)
-        }
-
-        fun buildSnapshot(words: Sequence<String>): Snapshot {
-            val iterator = words.iterator()
-            if (!iterator.hasNext()) return Snapshot(listOf(TrieNode()), 0)
-
-            val nodes = ArrayList<TrieNode>(1024)
-            nodes.add(TrieNode())
-            var nodeCount = 1
-            var wordCount = 0
-            var maxWordLength = 0
-            while (iterator.hasNext()) {
-                val word = iterator.next()
-                val normalized = word.trim()
-                if (normalized.isEmpty()) {
-                    continue
-                }
-
-                val (token, freq) = parseWordWithFrequency(normalized)
-                if (token.isEmpty() || token.length > MAX_TOKEN_LENGTH) {
-                    continue
-                }
-
-                val lower = token.lowercase()
-                val firstNonLetterIndex = lower.indexOfFirst { !it.isLetter() }
-                val usableLower = if (firstNonLetterIndex == -1) lower else lower.substring(
-                    0,
-                    firstNonLetterIndex
-                )
-                if (usableLower.isEmpty()) {
-                    continue
-                }
-
-                if (usableLower.length > maxWordLength) {
-                    maxWordLength = usableLower.length
-                }
-
-                var nodeIndex = 0
-                for (c in usableLower) {
-                    val childIndex = getChildIndex(nodes[nodeIndex], c)
-                    if (childIndex >= 0) {
-                        nodeIndex = childIndex
-                    } else {
-                        if (nodeCount >= MAX_NODES_SNAPSHOT) {
-                            return Snapshot(nodes = nodes, maxWordLength = maxWordLength)
-                        }
-                        val newNode = TrieNode()
-                        val newIndex = nodes.size
-                        nodes.add(newNode)
-                        nodeCount += 1
-                        setChildIndex(nodes[nodeIndex], c, newIndex)
-                        nodeIndex = newIndex
-                    }
-                }
-                val node = nodes[nodeIndex]
-                node.isTerminal = true
-                if (freq > node.frequency || node.original == null) {
-                    node.frequency = freq
-                    node.original = token
-                } else if (freq == node.frequency && node.original != null && token < node.original!!) {
-                    node.original = token
-                }
-
-                wordCount += 1
-                if (wordCount >= MAX_WORDS_SNAPSHOT) {
-                    break
-                }
-            }
-
-            return Snapshot(nodes = nodes, maxWordLength = maxWordLength)
-        }
-
-        fun contains(wordLower: String): Boolean {
-            if (wordLower.isEmpty()) return false
-            val current = snapshot
-            var nodeIndex = 0
-            for (c in wordLower) {
-                val nextIndex = getChildIndex(current.nodes[nodeIndex], c)
-                if (nextIndex < 0) return false
-                nodeIndex = nextIndex
-            }
-            return current.nodes[nodeIndex].isTerminal
-        }
-
-        fun bestFuzzyMatch(wordLower: String, similarityThreshold: Double): String? {
-            if (wordLower.isEmpty()) return null
-            val current = snapshot
-            val nodes = current.nodes
-            val maxWordLength = current.maxWordLength
-            if (maxWordLength == 0) return null
-
-            val len = wordLower.length
-            val maxDistance = maxDistanceForLength(len, similarityThreshold)
-            val rowBuffers = Array(maxWordLength + 1) { IntArray(len + 1) }
-            val firstRow = rowBuffers[0]
-            for (i in 0..len) {
-                firstRow[i] = i
-            }
-
-            var bestScore = similarityThreshold
-            var bestDistance = Int.MAX_VALUE
-            var bestPrefix = -1
-            var bestOriginal: String? = null
-
-            fun computeScore(distance: Int, candidateLen: Int, prefixLen: Int): Double {
-                val denom = maxOf(len, candidateLen)
-                val baseScore = (denom - distance).toDouble() / denom.toDouble()
-                val prefixBonus = (prefixLen.toDouble() / denom.toDouble()) * 0.12
-                val lengthPenalty = (abs(len - candidateLen).toDouble() / denom.toDouble()) * 0.08
-                val isPrefixShape =
-                    (candidateLen <= len && prefixLen == candidateLen) ||
-                        (candidateLen >= len && prefixLen >= len)
-                val shapeBonus = if (isPrefixShape) 0.06 else 0.0
-                val isLikelySubstitution = distance == 1 && candidateLen == len
-                val substitutionBonus = if (isLikelySubstitution) 0.04 else 0.0
-                return baseScore + prefixBonus + shapeBonus + substitutionBonus - lengthPenalty
-            }
-
-            fun dfs(nodeIndex: Int, depth: Int, prevRow: IntArray, prefixLen: Int) {
-                val node = nodes[nodeIndex]
-                if (node.isTerminal) {
-                    val dist = prevRow[len]
-                    if (dist <= maxDistance) {
-                        val score = computeScore(dist, depth, prefixLen)
-                        if (score > bestScore || (score == bestScore && (dist < bestDistance || prefixLen > bestPrefix))) {
-                            bestScore = score
-                            bestDistance = dist
-                            bestPrefix = prefixLen
-                            bestOriginal = node.original
-                            if (score >= 0.985) {
-                                return
-                            }
-                        }
-                    }
-                }
-
-                if (depth >= maxWordLength) return
-
-                val nextDepth = depth + 1
-                if (nextDepth > len + maxDistance) return
-
-                val currRow = rowBuffers[nextDepth]
-                forEachChild(node) { char, childIndex ->
-                    currRow[0] = nextDepth
-                    var rowMin = currRow[0]
-                    for (i in 1..len) {
-                        val cost = if (wordLower[i - 1] == char) 0 else 1
-                        val deletion = prevRow[i] + 1
-                        val insertion = currRow[i - 1] + 1
-                        val substitution = prevRow[i - 1] + cost
-                        val value = minOf(deletion, insertion, substitution)
-                        currRow[i] = value
-                        if (value < rowMin) rowMin = value
-                    }
-
-                    if (rowMin <= maxDistance) {
-                        val nextPrefixLen = if (prefixLen == depth && depth < len && wordLower[depth] == char) {
-                            prefixLen + 1
-                        } else {
-                            prefixLen
-                        }
-                        dfs(childIndex, nextDepth, currRow, nextPrefixLen)
-                    }
-                }
-            }
-
-            dfs(0, 0, firstRow, 0)
-            return bestOriginal
-        }
-
-        fun search(prefixLower: String): List<String> {
-            if (prefixLower.isEmpty()) return emptyList()
-            val current = snapshot
-            val nodes = current.nodes
-            var nodeIndex = 0
-            for (c in prefixLower) {
-                val nextIndex = getChildIndex(nodes[nodeIndex], c)
-                if (nextIndex < 0) return emptyList()
-                nodeIndex = nextIndex
-            }
-
-            val results = ArrayList<String>()
-            fun dfsSearch(currentIndex: Int) {
-                val node = nodes[currentIndex]
-                if (node.isTerminal) {
-                    node.original?.let { results.add(it) }
-                }
-                forEachChild(node) { _, childIndex ->
-                    dfsSearch(childIndex)
-                }
-            }
-
-            dfsSearch(nodeIndex)
-            return results
-        }
-
-        fun suggest(prefixLower: String, shouldCancel: () -> Boolean = { false }): List<String> {
-            if (prefixLower.isEmpty()) return emptyList()
-
-            val exact = suggestExact(prefixLower, shouldCancel)
-            if (exact.size >= maxSuggestions) return exact
-
-            val outSet = LinkedHashSet<String>(maxSuggestions)
-            exact.forEach { outSet.add(it) }
-
-            val remaining = (maxSuggestions - outSet.size).coerceAtLeast(0)
-            if (remaining > 0) {
-                val fuzzy = fuzzySuggest(prefixLower, remaining, shouldCancel, outSet)
-                fuzzy.forEach { outSet.add(it) }
-            }
-
-            return ArrayList(outSet)
-        }
-
-        private fun suggestExact(prefixLower: String, shouldCancel: () -> Boolean): List<String> {
-            val current = snapshot
-            val nodes = current.nodes
-            var nodeIndex = 0
-            for (c in prefixLower) {
-                val nextIndex = getChildIndex(nodes[nodeIndex], c)
-                if (nextIndex < 0) return emptyList()
-                nodeIndex = nextIndex
-            }
-
-            data class SuggestState(
-                val nodeIndex: Int,
-                val wordLower: String,
-                val depth: Int,
-            )
-
-            val comparator = compareByDescending<SuggestState> { nodes[it.nodeIndex].frequency }
-                .thenBy { it.depth }
-                .thenBy { it.wordLower }
-            val queue = java.util.PriorityQueue(comparator)
-            queue.add(SuggestState(nodeIndex, prefixLower, prefixLower.length))
-
-            val tryOffer: (Int, Char, SuggestState) -> Unit = { childIndex, key, state ->
-                if (queue.size < MAX_SUGGEST_QUEUE) {
-                    queue.add(
-                        SuggestState(
-                            childIndex,
-                            state.wordLower + key,
-                            state.depth + 1
-                        )
-                    )
-                }
-            }
-
-            val out = ArrayList<String>(maxSuggestions)
-            while (queue.isNotEmpty() && out.size < maxSuggestions) {
-                if (shouldCancel()) return out
-                val state = queue.poll()
-                val node = nodes[state.nodeIndex]
-                if (node.isTerminal) {
-                    node.original?.let { out.add(it) }
-                    if (out.size >= maxSuggestions) break
-                }
-
-                val extras = node.childrenExtra
-                if (extras.isNullOrEmpty()) {
-                    for (i in 0 until ALPHABET_SIZE) {
-                        val child = node.childrenBasic[i]
-                        if (child < 0) continue
-                        val key = (ASCII_A + i).toChar()
-                        tryOffer(child, key, state)
-                    }
-                } else {
-                    val extraKeys = ArrayList<Char>(extras.size)
-                    extras.keys.forEach { extraKeys.add(it) }
-                    extraKeys.sort()
-
-                    var extraIndex = 0
-                    for (i in 0 until ALPHABET_SIZE) {
-                        val basicChar = (ASCII_A + i).toChar()
-                        while (extraIndex < extraKeys.size && extraKeys[extraIndex] < basicChar) {
-                            val key = extraKeys[extraIndex]
-                            val child = getChildIndex(node, key)
-                            if (child >= 0) {
-                                tryOffer(child, key, state)
-                            }
-                            extraIndex += 1
-                        }
-
-                        val child = node.childrenBasic[i]
-                        if (child >= 0) {
-                            tryOffer(child, basicChar, state)
-                        }
-                    }
-
-                    while (extraIndex < extraKeys.size) {
-                        val key = extraKeys[extraIndex]
-                        val child = getChildIndex(node, key)
-                        if (child >= 0) {
-                            tryOffer(child, key, state)
-                        }
-                        extraIndex += 1
-                    }
-                }
-            }
-
-            return out
-        }
-
-        private data class FuzzyCandidate(
-            val word: String,
-            val score: Double,
-            val distance: Int,
-            val frequency: Int,
-            val prefixLen: Int,
-        )
-
-        private fun fuzzySuggest(
-            inputLower: String,
-            maxNeeded: Int,
-            shouldCancel: () -> Boolean,
-            exclude: Set<String>,
-        ): List<String> {
-            if (inputLower.isEmpty() || maxNeeded <= 0) return emptyList()
-            val current = snapshot
-            val nodes = current.nodes
-            val maxWordLength = current.maxWordLength
-            if (maxWordLength == 0) return emptyList()
-
-            val len = inputLower.length
-            val similarityThreshold = fuzzySimilarityThreshold(len)
-            val maxDistance = maxDistanceForLength(len, similarityThreshold)
-            val rowBuffers = Array(maxWordLength + 1) { IntArray(len + 1) }
-            val firstRow = rowBuffers[0]
-            for (i in 0..len) {
-                firstRow[i] = i
-            }
-
-            val maxQueue = (maxNeeded * 8 + 12).coerceAtMost(MAX_SUGGEST_QUEUE)
-            val bestByWord = HashMap<String, FuzzyCandidate>(maxQueue)
-            val heap = java.util.PriorityQueue<FuzzyCandidate>(compareBy<FuzzyCandidate> { it.score }
-                .thenByDescending { it.distance }
-                .thenBy { it.word })
-
-            fun scoreCandidate(distance: Int, candidateLen: Int, prefixLen: Int, frequency: Int): Double {
-                val denom = maxOf(len, candidateLen)
-                val baseScore = (denom - distance).toDouble() / denom.toDouble()
-                val prefixBonus = (prefixLen.toDouble() / denom.toDouble()) * 0.12
-                val lengthPenalty = (abs(len - candidateLen).toDouble() / denom.toDouble()) * 0.12
-                val isPrefixShape =
-                    (candidateLen <= len && prefixLen == candidateLen) ||
-                        (candidateLen >= len && prefixLen >= len)
-                val shapeBonus = if (isPrefixShape) 0.06 else 0.0
-                val freqBonus = kotlin.math.ln((frequency + 1).toDouble())
-                    .div(12.0)
-                    .coerceAtMost(0.08)
-                return baseScore + prefixBonus + shapeBonus - lengthPenalty + freqBonus
-            }
-
-            fun offerCandidate(candidate: FuzzyCandidate) {
-                val existing = bestByWord[candidate.word]
-                if (existing != null && existing.score >= candidate.score) return
-                if (existing != null) {
-                    heap.remove(existing)
-                }
-                bestByWord[candidate.word] = candidate
-                heap.add(candidate)
-                if (heap.size > maxQueue) {
-                    val removed = heap.poll()
-                    if (removed != null && bestByWord[removed.word] == removed) {
-                        bestByWord.remove(removed.word)
-                    }
-                }
-            }
-
-            fun dfs(nodeIndex: Int, depth: Int, prevRow: IntArray, prefixLen: Int) {
-                if (shouldCancel()) return
-                val node = nodes[nodeIndex]
-                if (node.isTerminal) {
-                    val dist = prevRow[len]
-                    if (dist <= maxDistance) {
-                        val original = node.original
-                        if (!original.isNullOrEmpty() && !exclude.contains(original)) {
-                            val score = scoreCandidate(dist, depth, prefixLen, node.frequency)
-                            offerCandidate(
-                                FuzzyCandidate(
-                                    word = original,
-                                    score = score,
-                                    distance = dist,
-                                    frequency = node.frequency,
-                                    prefixLen = prefixLen,
-                                )
-                            )
-                        }
-                    }
-                }
-
-                if (depth >= maxWordLength) return
-                val nextDepth = depth + 1
-                if (nextDepth > len + maxDistance) return
-
-                val currRow = rowBuffers[nextDepth]
-                forEachChild(node) { char, childIndex ->
-                    currRow[0] = nextDepth
-                    var rowMin = currRow[0]
-                    for (i in 1..len) {
-                        val cost = if (inputLower[i - 1] == char) 0 else 1
-                        val deletion = prevRow[i] + 1
-                        val insertion = currRow[i - 1] + 1
-                        val substitution = prevRow[i - 1] + cost
-                        val value = minOf(deletion, insertion, substitution)
-                        currRow[i] = value
-                        if (value < rowMin) rowMin = value
-                    }
-
-                    if (rowMin <= maxDistance) {
-                        val nextPrefixLen = if (prefixLen == depth && depth < len && inputLower[depth] == char) {
-                            prefixLen + 1
-                        } else {
-                            prefixLen
-                        }
-                        dfs(childIndex, nextDepth, currRow, nextPrefixLen)
-                    }
-                }
-            }
-
-            dfs(0, 0, firstRow, 0)
-
-            if (bestByWord.isEmpty()) return emptyList()
-            val highScoreThreshold = fuzzyHighScoreThreshold(len)
-            val candidates = bestByWord.values.toList().sortedWith(
-                compareByDescending<FuzzyCandidate> { it.score >= highScoreThreshold }
-                    .thenByDescending { it.score }
-                    .thenBy { it.distance }
-                    .thenByDescending { it.frequency }
-                    .thenBy { it.word }
-            )
-
-            return candidates.take(maxNeeded).map { it.word }
-        }
-
-        private fun getChildIndex(node: TrieNode, ch: Char): Int {
-            val lower = ch.lowercaseChar()
-            val idx = lower.code - ASCII_A
-            if (idx in 0 until ALPHABET_SIZE) {
-                return node.childrenBasic[idx]
-            }
-            return node.childrenExtra?.get(lower) ?: -1
-        }
-
-        private fun setChildIndex(node: TrieNode, ch: Char, index: Int) {
-            val lower = ch.lowercaseChar()
-            val idx = lower.code - ASCII_A
-            if (idx in 0 until ALPHABET_SIZE) {
-                node.childrenBasic[idx] = index
-                return
-            }
-            val map = node.childrenExtra ?: HashMap<Char, Int>(4).also { node.childrenExtra = it }
-            map[lower] = index
-        }
-
-        private inline fun forEachChild(node: TrieNode, action: (Char, Int) -> Unit) {
-            for (i in 0 until ALPHABET_SIZE) {
-                val childIndex = node.childrenBasic[i]
-                if (childIndex >= 0) {
-                    action((ASCII_A + i).toChar(), childIndex)
-                }
-            }
-            node.childrenExtra?.forEach { (char, index) -> action(char, index) }
-        }
-
-        private fun parseWordWithFrequency(raw: String): Pair<String, Int> {
-            val trimmed = raw.trim()
-            if (trimmed.isEmpty()) return "" to 0
-
-            var end = trimmed.length - 1
-            while (end >= 0 && trimmed[end].isWhitespace()) end -= 1
-            if (end <= 0) return trimmed to 1
-
-            var start = end
-            while (start >= 0 && !trimmed[start].isWhitespace()) start -= 1
-
-            if (start <= 0) return trimmed to 1
-
-            val freqToken = trimmed.substring(start + 1, end + 1)
-            val freq = freqToken.toIntOrNull()
-            if (freq != null) {
-                val word = trimmed.substring(0, start).trim()
-                return if (word.isEmpty()) trimmed to 1 else word to freq.coerceAtLeast(1)
-            }
-
-            return trimmed to 1
-        }
-
-        fun updateMaxSuggestions(newMax: Int) {
-            maxSuggestions = newMax.coerceAtLeast(1)
-        }
-
-        private fun maxDistanceForLength(len: Int, similarityThreshold: Double): Int {
-            val base = ((1.0 - similarityThreshold) * len).toInt().coerceAtLeast(1)
-            val cap = when {
-                len <= 3 -> 1
-                len <= 6 -> 2
-                else -> (len / 3).coerceAtLeast(2)
-            }
-            return base.coerceAtMost(cap)
-        }
-
-        private fun fuzzySimilarityThreshold(len: Int): Double {
-            return when {
-                len <= 3 -> 0.66
-                len <= 5 -> 0.70
-                len <= 8 -> 0.74
-                else -> 0.78
-            }
-        }
-
-        private fun fuzzyHighScoreThreshold(len: Int): Double {
-            return when {
-                len <= 3 -> 0.74
-                len <= 5 -> 0.78
-                len <= 8 -> 0.82
-                else -> 0.86
-            }
-        }
-    }
 
     private fun sendSelectionKey(keyCode: Int) {
         val inputConnection = currentInputConnection ?: return
@@ -4436,8 +3793,8 @@ class CustomKeyboard :
             if (cleaned.isNotEmpty() && signature != lastClipboardModuleSignature) {
                 ClipboardRepository.setClipboardItems(cleaned, maxClipboardItemsOverride)
                 lastClipboardModuleSignature = signature
-                val params = Arguments.createMap().apply { putBoolean("show", true) }
-                BackgroundServiceModule.sendEvent("showClipboard", params)
+                val params = Arguments.createMap().apply { putString("type", "show") }
+                BackgroundServiceModule.sendEvent("ClipboardEvent", params)
             }
         }
 

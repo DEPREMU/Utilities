@@ -1,8 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { TablesKeys } from "@types";
+import { getEnvValue } from "env";
 
-export const host: string = "localhost";
+export const host: string = getEnvValue("__DEV__") ? "0.0.0.0" : "localhost";
 export const port: number = 3000;
 export const serverPath = path.resolve();
 export const UPLOAD_DIR = path.join(serverPath, "updates", "uploads");

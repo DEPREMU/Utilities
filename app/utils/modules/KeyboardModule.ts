@@ -1,5 +1,6 @@
 import { logger } from "../functions/debug";
 import { REPLACERS } from "../constants/constants";
+import { ClipboardItem } from "@types";
 import { NativeModules } from "react-native";
 
 type KeyboardLayout = string[][];
@@ -10,7 +11,7 @@ export interface KeyboardModuleSpec {
   enter: () => Promise<boolean>;
   setLayout: (layout: KeyboardLayout) => Promise<boolean>;
   resetLayout: () => Promise<boolean>;
-  setClipboardSuggestions: (list: string[]) => Promise<boolean>;
+  setClipboardSuggestions: (list: ClipboardItem[]) => Promise<boolean>;
 }
 
 const defaultKeyboardModule: KeyboardModuleSpec = {

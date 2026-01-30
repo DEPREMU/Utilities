@@ -34,8 +34,13 @@
   <string name="option_system">System</string>
   <string name="option_transparent">Transparent</string>
   <string name="btn_paste">Paste</string>
+  <string name="btn_delete">Delete</string>
   <string name="btn_copy">Copy</string>
   <string name="btn_cut">Cut</string>
+  <string name="suggestion_options_title">Suggestion options</string>
+  <string name="suggestion_save_dictionary">Save to dictionary</string>
+  <string name="suggestion_remove_dictionary">Remove from dictionary</string>
+  <string name="suggestion_place">Write/Place</string>
   <string name="msg_copied">Copied</string>
   <string name="msg_cut">Cut</string>
   <string name="category_autocomplete">Autocomplete</string>
@@ -222,8 +227,13 @@
   <string name="option_system">Sistema</string>
   <string name="option_transparent">Transparente</string>
   <string name="btn_paste">Pegar</string>
+  <string name="btn_delete">Eliminar</string>
   <string name="btn_copy">Copiar</string>
   <string name="btn_cut">Cortar</string>
+  <string name="suggestion_options_title">Opciones de sugerencia</string>
+  <string name="suggestion_save_dictionary">Guardar en diccionario</string>
+  <string name="suggestion_remove_dictionary">Eliminar del diccionario</string>
+  <string name="suggestion_place">Escribir/Colocar</string>
   <string name="msg_copied">Copiado</string>
   <string name="msg_cut">Cortado</string>
   <string name="category_autocomplete">Auto-completado</string>

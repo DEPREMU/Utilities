@@ -232,6 +232,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
     },
   });
+  dataRef.current.userData = userData;
+  dataRef.current.isLoggedIn = isLoggedIn;
+  dataRef.current.sessionToken = sessionToken;
 
   const value: UserContextType = useMemo(
     () => ({

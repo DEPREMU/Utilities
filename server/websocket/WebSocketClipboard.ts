@@ -1,7 +1,11 @@
 import chalk from "chalk";
 import { showError, showInfo } from "../functions/logger.ts";
 import { WebSocket, WebSocketServer } from "ws";
-import { fetchFromTable, insertIntoTable } from "../database/functions.ts";
+import {
+  fetchFromTable,
+  insertIntoTable,
+  updateInTable,
+} from "../database/functions.ts";
 import { ClipboardSync, ClipboardWebSocketMessage } from "@types";
 
 type DataUser = {
@@ -88,6 +92,7 @@ export const initWebSocketClipboard = () => {
                 return;
               }
               const message: ClipboardWebSocketMessage<"sentByServer"> = {
+                id: lastItem.id as string,
                 type: "new-clipboard-item",
                 content: lastItem.content,
               };
@@ -175,20 +180,50 @@ export const initWebSocketClipboard = () => {
                 createdAt: new Date().toISOString(),
               };
 
-              insertIntoTable("ClipboardSync", value);
+              const { data: existsData } = await fetchFromTable({
+                table: "ClipboardSync",
+                match: {
+                  userId: data.userId,
+                  deviceId: data.deviceId,
+                  content: message.content,
+                },
+                limit: 1,
+                orderBy: "createdAt",
+                orderDirection: "DESC",
+              });
+              let id = existsData?.[0].id as string;
 
-              const devices = usersClipboard[data.userId];
+              if (id) {
+                updateInTable(
+                  "ClipboardSync",
+                  {
+                    createdAt: new Date().toISOString(),
+                  },
+                  {
+                    id,
+                  },
+                );
+              } else {
+                const { data: insertedData } = await insertIntoTable(
+                  "ClipboardSync",
+                  value,
+                );
+                if (!insertedData || !insertedData.length) break;
+                id = insertedData[0].id as string;
+              }
+
+              const devices = usersClipboard[data.userId] || {};
               devices[data.deviceId].lastContent = message.content;
 
-              Object.entries(devices || {}).forEach(([deviceId, device]) => {
+              Object.entries(devices).forEach(([deviceId, device]) => {
                 try {
-                  if (deviceId === data.deviceId) return;
                   if (device.lastContent === message.content) return;
                   if (device.ws.readyState !== WebSocket.OPEN) {
                     deleteDevice({ userId: data.userId, deviceId });
                     return;
                   }
                   const msg: ClipboardWebSocketMessage<"sentByServer"> = {
+                    id,
                     type: "new-clipboard-item",
                     content: message.content,
                   };

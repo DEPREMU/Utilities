@@ -20,7 +20,7 @@ const getLocalIP = () => {
     "\n\nGetting local IP address has been called, make sure you configure your local IP\n",
   );
 
-  return "192.168.1.136:3000";
+  return "192.168.1.163:3000";
 };
 
 export const API_URL = !REPLACERS.isDev

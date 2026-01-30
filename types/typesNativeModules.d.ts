@@ -3,6 +3,7 @@ import type {
   ALL_KEYS_STORAGE_TYPE,
 } from "../common/both/keysStorage";
 import { FolderFiles } from "./typesVault";
+import { ClipboardItem } from "./screens";
 import { LanguagesSupported } from "./typesTranslations";
 import { ExpectedNativeWebData } from "./typesUtilitiesForPC";
 
@@ -92,13 +93,13 @@ export type ChannelsIpcRenderer<
     typeIpc: "invoke";
   };
   "get-clipboard-history": {
-    functionReturn: Promise<string[]>;
+    functionReturn: Promise<ClipboardItem[]>;
     functionArgs: [];
     typeIpc: "invoke";
   };
   "set-clipboard-history": {
     functionReturn: void;
-    functionArgs: [items: string[]];
+    functionArgs: [items: ClipboardItem[]];
     typeIpc: "send";
   };
   "hide-clipboard-window": {

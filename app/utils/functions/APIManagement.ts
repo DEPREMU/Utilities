@@ -143,7 +143,7 @@ const routes: RoutesAPIWithItsMethod = {
   },
 };
 
-export const fetchToServer = async <
+type FetchToServer = <
   R extends RoutesAPI | UpdatesRoutes,
   B extends RequestBody<R> extends { table: infer T }
     ? T extends TablesKeys
@@ -157,7 +157,9 @@ export const fetchToServer = async <
     : R extends RoutesAPI<"middleware">
       ? [body: B, token: string]
       : [body: B]
-): Promise<ResponseFetch<R, B>> => {
+) => Promise<ResponseFetch<R, B>>;
+
+export const fetchToServer: FetchToServer = async (route, ...bodyAndToken) => {
   try {
     const apiRoute = await getRouteAPI(route);
 
@@ -166,7 +168,7 @@ export const fetchToServer = async <
     const body = bodyAndToken?.[0];
     const token = bodyAndToken?.[1];
 
-    const isBodyMethod = ["post", "put"].includes(method);
+    const isBodyMethod = method === "post" || method === "put";
 
     const data = isBodyMethod && body ? stringifyData(body) : undefined;
 

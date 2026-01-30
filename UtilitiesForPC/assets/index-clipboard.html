@@ -184,12 +184,7 @@
       const loadClipboardItems = async () => {
         const list = document.getElementById("clipboardList");
         try {
-          clipboardItems = (
-            await window.UtilitiesForPC.getClipboardHistory()
-          ).map((content, index) => ({
-            id: index.toString(),
-            content,
-          }));
+          clipboardItems = await window.UtilitiesForPC.getClipboardHistory();
 
           renderItems(clipboardItems);
 
@@ -217,7 +212,7 @@
                 <div class="item-id">${escapeHtml(id)}</div>
                 <div class="item-content">${escapeHtml(content)}</div>
               </div>
-            `
+            `,
           )
           .join("");
         list.scrollTop = 0;
@@ -250,8 +245,8 @@
           clipboardItems.filter(
             (i) =>
               i.id.toLowerCase().includes(value) ||
-              i.content.toLowerCase().includes(value)
-          )
+              i.content.toLowerCase().includes(value),
+          ),
         );
       });
 

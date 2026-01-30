@@ -3,6 +3,7 @@ import { Advertisement } from "dnssd";
 import { LanguagesSupported } from "./typesTranslations";
 import { ReasonNotification } from "./typesNotifications";
 import { ExpectedStorageTypes } from "./API";
+import { ClipboardItem } from "./screens";
 
 export type ElectronStoreType = {
   get: <T extends keyof ExpectedStorageTypes<"BOTH">>(
@@ -40,7 +41,7 @@ export type DataAppElectron = {
   userIsLoggedIn: boolean;
   clipboardWindow: Electron.BrowserWindow | null;
   downloadFilePath: string;
-  clipboardHistory: string[];
+  clipboardHistory: ClipboardItem[];
   reconnectAttempts: number;
   currentWebVersion: string;
   currentElectronVersion: string;

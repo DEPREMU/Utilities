@@ -87,15 +87,16 @@ class MyForegroundService : Service() {
                     maxItems,
                 )
                 BackgroundServiceModule.sendEvent(
-                    "ClipboardUpdated",
+                    "ClipboardEvent",
                     com.facebook.react.bridge.Arguments.createMap().apply {
+                        putString("type", "update")
                         putString("text", text)
                     },
                 )
                 BackgroundServiceModule.sendEvent(
-                    "showClipboard",
+                    "ClipboardEvent",
                     com.facebook.react.bridge.Arguments.createMap().apply {
-                        putBoolean("show", true)
+                        putString("type", "show")
                     },
                 )
             }

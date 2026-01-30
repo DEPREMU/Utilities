@@ -21,6 +21,7 @@ import com.package.name.R
 interface KeyboardListenerProvider {
     fun getKeyClickListener(): View.OnClickListener
     fun getSuggestionClickListener(): View.OnClickListener
+    fun getSuggestionLongClickListener(index: Int): View.OnLongClickListener
     fun getKeyTouchListener(key: String): View.OnTouchListener
     fun getKeyLongClickListener(key: String): View.OnLongClickListener?
     fun getCopyClickListener(): View.OnClickListener
@@ -647,6 +648,7 @@ class KeyboardLayout(
                     setTextColor(themeManager.paletteTextColor)
                     tag = i
                     setOnClickListener(listenerProvider.getSuggestionClickListener())
+                    setOnLongClickListener(listenerProvider.getSuggestionLongClickListener(i))
                     visibility = View.INVISIBLE
                 }
 

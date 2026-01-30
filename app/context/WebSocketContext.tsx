@@ -34,7 +34,12 @@ import { useUserContext } from "./UserContext";
 import * as ExpoClipboard from "expo-clipboard";
 import { useNotifications } from "./NotificationsContext";
 import { DeviceEventEmitter } from "react-native";
-import { WebSocketMessage, ClipboardWebSocketMessage } from "@types";
+import {
+  WebSocketMessage,
+  ClipboardWebSocketMessage,
+  EventClipboardNative,
+  ClipboardItem,
+} from "@types";
 
 type WebSockets = "clipboard" | "main";
 
@@ -74,18 +79,28 @@ const OPTIONS_RECONNECT_WS: OptionsReconnectingWS = {
 };
 
 const addToItemsClipboard = (
-  item: string | string[],
-  listRef: React.RefObject<string[]>,
+  item: ClipboardItem | ClipboardItem[],
+  listRef: React.RefObject<ClipboardItem[]>,
 ) => {
-  if (Array.isArray(item)) {
+  const isArray = Array.isArray(item);
+
+  let newItems = listRef.current.filter((i) =>
+    isArray
+      ? !item.some((it) => it.content === i.content)
+      : i.content !== item.content,
+  );
+
+  if (isArray) {
     item.reverse().forEach((it) => {
       if (!it) return;
-      listRef.current.unshift(it);
+      newItems.unshift(it);
     });
-  } else listRef.current.unshift(item);
+  } else newItems.unshift(item);
 
-  if (listRef.current.length > MAX_CLIPBOARD_ITEMS)
-    listRef.current = listRef.current.slice(0, MAX_CLIPBOARD_ITEMS);
+  if (newItems.length > MAX_CLIPBOARD_ITEMS)
+    newItems = newItems.slice(0, MAX_CLIPBOARD_ITEMS);
+
+  listRef.current = newItems;
 
   if (REPLACERS.isNative) return;
 
@@ -96,10 +111,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
 }) => {
   const { language } = useLanguage();
-  const { statePhone } = useBackground();
   const { openSnackBarRef } = useModal();
   const { sendNotificationRef } = useNotifications();
-  const { userData, isLoggedIn } = useUserContext();
+  const { statePhone, statesRef, hasInternet } = useBackground();
+  const { userData, isLoggedIn, sessionToken } = useUserContext();
   const { isBackground, initIntervalTimeoutsRef, deleteIntervalTimeoutRef } =
     useBackground();
 
@@ -111,9 +126,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const socketRef = useRef<ReconnectingWebSocket | null>(null);
   const lastItemCopiedRef = useRef<string | null>(null);
   const clipboardSocketRef = useRef<ReconnectingWebSocket | null>(null);
-  const listItemsClipboardRef = useRef<string[]>([]);
+  const listItemsClipboardRef = useRef<ClipboardItem[]>([]);
   const createMainWebSocketRef = useRef<((url: string) => void) | null>(null);
   const createClipboardWebSocketRef = useRef<(() => void) | null>(null);
+  const listItemsClipboardNoInternetRef = useRef<ClipboardItem[]>([]);
   const shouldConnectRef = useRef<ShouldConnect>({
     main: true,
     clipboard: true,
@@ -138,7 +154,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         );
         return;
       }
-      attempts += 1;
+      attempts++;
       await new Promise((resolve) => setTimeoutPolyfill(resolve, 1000));
     }
 
@@ -301,7 +317,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
         if (parsedMessage.content === lastItemCopiedRef.current) return;
 
-        addToItemsClipboard(parsedMessage.content, listItemsClipboardRef);
+        addToItemsClipboard(
+          {
+            id: parsedMessage.id,
+            content: parsedMessage.content,
+          },
+          listItemsClipboardRef,
+        );
 
         lastItemCopiedRef.current = parsedMessage.content;
 
@@ -362,7 +384,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       if (data.length === 0 || !data[0]?.content) return;
       lastItemCopiedRef.current = data[0].content;
       addToItemsClipboard(
-        data.map((item) => item.content),
+        data.map((item) => ({ id: item.id || "", content: item.content })),
         listItemsClipboardRef,
       );
     };
@@ -408,14 +430,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           return;
         }
         if (!content || lastItemCopiedRef.current === content) return;
-
-        lastItemCopiedRef.current = content;
-        addToItemsClipboard(content, listItemsClipboardRef);
-
-        sendMessageRef.current("clipboard", {
-          type: "add-new-item",
-          content,
-        });
+        if (!statesRef.current.hasInternet)
+          addToItemsClipboard(
+            { id: getRandomId(), content },
+            listItemsClipboardNoInternetRef,
+          );
+        else
+          sendMessageRef.current("clipboard", {
+            type: "add-new-item",
+            content,
+          });
       } catch (error) {
         logger.error("Error reading clipboard content", error);
       }
@@ -434,6 +458,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     return () => deleteIntervalTimeoutRef.current("clipboardWeb");
   }, [
     userData?.userId,
+    statesRef,
     isLoggedIn,
     initIntervalTimeoutsRef,
     deleteIntervalTimeoutRef,
@@ -489,39 +514,88 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (REPLACERS.isWeb) return;
 
     const listenerClipboard = DeviceEventEmitter.addListener(
-      "ClipboardUpdated",
-      (event: { text: string }) => {
-        const content = event?.text;
-        if (!content || lastItemCopiedRef.current === content) return;
+      "ClipboardEvent",
+      async (event: EventClipboardNative) => {
+        switch (event.type) {
+          case "update":
+            {
+              const content = event?.text;
+              if (!content || lastItemCopiedRef.current === content) return;
 
-        addToItemsClipboard(content, listItemsClipboardRef);
-        lastItemCopiedRef.current = content;
+              if (statesRef.current.hasInternet)
+                sendMessageRef.current("clipboard", {
+                  type: "add-new-item",
+                  content,
+                });
+              else
+                addToItemsClipboard(
+                  { id: getRandomId(), content },
+                  listItemsClipboardNoInternetRef,
+                );
+            }
+            break;
+          case "show":
+            setTimeoutPolyfill(() => {
+              if (listItemsClipboardRef.current.length === 0) return;
 
-        sendMessageRef.current("clipboard", {
-          type: "add-new-item",
-          content,
-        });
+              keyboardModule?.setClipboardSuggestions?.([
+                ...(listItemsClipboardRef.current || []),
+              ]);
+            }, 100);
+            break;
+          case "delete": {
+            const idToDelete = event?.id || null;
+            const textToDelete = event?.text || null;
+            const resolvedId =
+              idToDelete ||
+              listItemsClipboardRef.current.find(
+                (item) => item.content === textToDelete,
+              )?.id ||
+              null;
+
+            if (!resolvedId && !textToDelete) return;
+
+            listItemsClipboardRef.current = resolvedId
+              ? listItemsClipboardRef.current.filter(
+                  (item) => item.id !== resolvedId,
+                )
+              : listItemsClipboardRef.current.filter(
+                  (item) => item.content !== textToDelete,
+                );
+            const [lang, deviceId] = await Promise.all([
+              checkLanguage(),
+              loadDataStorage("DEVICE_ID"),
+            ]);
+            if (!sessionToken) return;
+
+            const match = resolvedId
+              ? { id: resolvedId }
+              : textToDelete
+                ? { content: textToDelete }
+                : null;
+
+            if (!match) return;
+
+            fetchToServer(
+              "/database/delete",
+              {
+                table: "ClipboardSync",
+                deviceId,
+                lang,
+                match,
+              },
+              sessionToken,
+            );
+            break;
+          }
+          default:
+            break;
+        }
       },
     );
 
-    const listenerShowClipboardKeyboard = DeviceEventEmitter.addListener(
-      "showClipboard",
-      (_data: { show: boolean }) => {
-        setTimeoutPolyfill(() => {
-          if (listItemsClipboardRef.current.length === 0) return;
-
-          keyboardModule?.setClipboardSuggestions?.([
-            ...(listItemsClipboardRef.current || []),
-          ]);
-        }, 100);
-      },
-    );
-
-    return () => {
-      listenerClipboard.remove();
-      listenerShowClipboardKeyboard.remove();
-    };
-  }, []);
+    return () => listenerClipboard.remove();
+  }, [statesRef, sessionToken]);
 
   useEffect(() => {
     if (!shouldConnectRef.current.main && isBackground) return;
@@ -559,6 +633,19 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       language,
     });
   }, [language]);
+
+  useEffect(() => {
+    if (!hasInternet) return;
+    if (!listItemsClipboardNoInternetRef.current.length) return;
+
+    for (const item of listItemsClipboardNoInternetRef.current) {
+      sendMessageRef.current("clipboard", {
+        type: "add-new-item",
+        content: item.content,
+      });
+    }
+    listItemsClipboardNoInternetRef.current = [];
+  }, [hasInternet]);
 
   const value: WebSocketContextType = useMemo(
     () => ({
