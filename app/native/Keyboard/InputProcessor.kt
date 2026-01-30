@@ -18,13 +18,29 @@ class InputProcessor(private val service: CustomKeyboard) {
     @Volatile var ignoreAutoCorrectWord: String? = null
 
     private var lastSpaceTapTimeMs: Long = 0L
+    private var doubleSpaceWindowMs: Long = 800L
+    private var doubleSpaceLookbackChars: Int = 6
+    private var deleteWordLookbackChars: Int = 120
+    private var autoPunctuationChars: String = ".,;:?! )"
+    private var pasteAddsTrailingSpace: Boolean = true
+    private var doubleSpaceEnabled: Boolean = true
+    private var autoSpaceEnabled: Boolean = true
+    private var deleteWordEnabled: Boolean = true
+
+    private var lastAutoCorrectAppliedAtMs: Long = 0L
+    private var lastAutoCorrectReplacementLength: Int = 0
+    private var lastAutoCorrectHasTrailingSpace: Boolean = false
+    private var autoCorrectRevertWindowMs: Long = 2500L
 
     private val logicHandler = InputLogicHandler(
         connectionProvider = { service.currentInputConnection },
-        defaultDispatcher = Dispatchers.Default.limitedParallelism(1),
+        defaultDispatcher = Dispatchers.Main.immediate,
     )
 
     fun commitText(text: String) {
+        if (text.isNotEmpty() && text.any { !it.isWhitespace() }) {
+            clearAutoCorrectionState()
+        }
         logicHandler.enqueue(notifyMain = ::onTextCommitted) { ic ->
             ic.commitText(text, 1)
         }
@@ -40,15 +56,19 @@ class InputProcessor(private val service: CustomKeyboard) {
 
             val replacement = lastAutoCorrectReplacement
             val original = lastAutoCorrectOriginal
-            if (!replacement.isNullOrEmpty() && !original.isNullOrEmpty()) {
-                val replacementWithSpace = "$replacement "
-                val before = ic.getTextBeforeCursor(replacementWithSpace.length, 0)?.toString().orEmpty()
-                if (before == replacementWithSpace) {
-                    ic.deleteSurroundingText(replacementWithSpace.length, 0)
+            if (!replacement.isNullOrEmpty() && !original.isNullOrEmpty() && isWithinAutoCorrectWindow()) {
+                val extra = if (lastAutoCorrectHasTrailingSpace) 1 else 0
+                val before = ic.getTextBeforeCursor(replacement.length + extra, 0)?.toString().orEmpty()
+                val after = ic.getTextAfterCursor(1, 0)?.toString().orEmpty()
+                val endsWithReplacement = before.endsWith(replacement)
+                val endsWithReplacementSpace = lastAutoCorrectHasTrailingSpace && before.endsWith("$replacement ")
+                val hasSpaceAfter = after.startsWith(" ")
+                if (endsWithReplacementSpace || (endsWithReplacement && (hasSpaceAfter || before.length == replacement.length))) {
+                    val deleteCount = if (endsWithReplacementSpace) replacement.length + 1 else replacement.length
+                    ic.deleteSurroundingText(deleteCount, 0)
                     ic.commitText(original, 1)
                     ignoreAutoCorrectWord = original.lowercase()
-                    lastAutoCorrectOriginal = null
-                    lastAutoCorrectReplacement = null
+                    clearAutoCorrectionState()
                     return@enqueue
                 }
             }
@@ -58,6 +78,7 @@ class InputProcessor(private val service: CustomKeyboard) {
     }
 
     fun handleDeleteWord() {
+        if (!deleteWordEnabled) return
         logicHandler.enqueue(beginBatch = true, notifyMain = ::onTextCommitted) { ic ->
             val selectedText = ic.getSelectedText(0)
             if (!selectedText.isNullOrEmpty()) {
@@ -65,7 +86,7 @@ class InputProcessor(private val service: CustomKeyboard) {
                 return@enqueue
             }
 
-            val beforeCursor = ic.getTextBeforeCursor(120, 0)?.toString().orEmpty()
+            val beforeCursor = ic.getTextBeforeCursor(deleteWordLookbackChars, 0)?.toString().orEmpty()
             if (beforeCursor.isEmpty()) return@enqueue
 
             var toDelete = 0
@@ -92,13 +113,14 @@ class InputProcessor(private val service: CustomKeyboard) {
     }
 
     fun handleDoubleSpace(): Boolean {
+        if (!doubleSpaceEnabled) return false
         val now = SystemClock.elapsedRealtime()
         val delta = now - lastSpaceTapTimeMs
         lastSpaceTapTimeMs = now
-        if (delta > 800) return false
+        if (delta > doubleSpaceWindowMs) return false
 
         val inputConnection = service.currentInputConnection ?: return false
-        val before = inputConnection.getTextBeforeCursor(6, 0)?.toString().orEmpty()
+        val before = inputConnection.getTextBeforeCursor(doubleSpaceLookbackChars, 0)?.toString().orEmpty()
 
         if (before.length >= 2 && before.last() == ' ' && !before[before.length - 2].isWhitespace()) {
             logicHandler.enqueue(connectionOverride = inputConnection, beginBatch = true, notifyMain = ::onTextCommitted) { ic ->
@@ -112,6 +134,7 @@ class InputProcessor(private val service: CustomKeyboard) {
     }
 
     fun maybeInsertAutoSpace(raw: String) {
+        if (!autoSpaceEnabled) return
         if (raw.length != 1) return
         val ch = raw[0]
         if (!isPunctuation(ch)) return
@@ -120,6 +143,8 @@ class InputProcessor(private val service: CustomKeyboard) {
         logicHandler.enqueue(connectionOverride = inputConnection) { ic ->
             val after = ic.getTextAfterCursor(1, 0)?.toString().orEmpty()
             if (after.isNotEmpty() && after[0].isWhitespace()) return@enqueue
+            val before = ic.getTextBeforeCursor(1, 0)?.toString().orEmpty()
+            if (before.isNotEmpty() && before[0].isWhitespace()) return@enqueue
             ic.commitText(" ", 1)
         }
     }
@@ -144,7 +169,8 @@ class InputProcessor(private val service: CustomKeyboard) {
     fun pasteText(text: String) {
         val inputConnection = service.currentInputConnection ?: return
         logicHandler.enqueue(connectionOverride = inputConnection, beginBatch = true, notifyMain = ::onTextCommitted) { ic ->
-            ic.commitText(text + " ", 1)
+            val suffix = if (pasteAddsTrailingSpace) " " else ""
+            ic.commitText(text + suffix, 1)
         }
     }
 
@@ -186,14 +212,71 @@ class InputProcessor(private val service: CustomKeyboard) {
         service.onTextCommitted()
     }
 
+    fun recordAutoCorrection(
+        original: String,
+        replacement: String,
+        hasTrailingSpace: Boolean,
+    ) {
+        lastAutoCorrectOriginal = original
+        lastAutoCorrectReplacement = replacement
+        lastAutoCorrectReplacementLength = replacement.length
+        lastAutoCorrectHasTrailingSpace = hasTrailingSpace
+        lastAutoCorrectAppliedAtMs = SystemClock.elapsedRealtime()
+    }
+
+    fun clearAutoCorrectionState() {
+        lastAutoCorrectOriginal = null
+        lastAutoCorrectReplacement = null
+        lastAutoCorrectReplacementLength = 0
+        lastAutoCorrectHasTrailingSpace = false
+        lastAutoCorrectAppliedAtMs = 0L
+    }
+
+    fun shouldApplyAutoCorrection(original: String, replacement: String): Boolean {
+        if (original.length < 3) return false
+        if (original.equals(replacement, ignoreCase = true)) return false
+        if (original.any { it.isDigit() }) return false
+        val hasInternalUppercase = original.drop(1).any { it.isUpperCase() }
+        if (hasInternalUppercase) return false
+        return true
+    }
+
     private fun isPunctuation(ch: Char): Boolean {
-        return ch == '.' || ch == ',' || ch == ':' || ch == ';' || ch == '?' || ch == '!' || ch == ')'
+        return autoPunctuationChars.contains(ch)
+    }
+
+    private fun isWithinAutoCorrectWindow(): Boolean {
+        if (lastAutoCorrectAppliedAtMs <= 0L) return false
+        val now = SystemClock.elapsedRealtime()
+        return now - lastAutoCorrectAppliedAtMs <= autoCorrectRevertWindowMs
     }
 
     fun resetLastSpaceTap() {
         lastSpaceTapTimeMs = 0L
     }
+
+    fun updateConfig(config: InputBehaviorConfig) {
+        doubleSpaceWindowMs = config.doubleSpaceWindowMs
+        doubleSpaceLookbackChars = config.doubleSpaceLookbackChars
+        deleteWordLookbackChars = config.deleteWordLookbackChars
+        autoPunctuationChars = config.autoPunctuationChars
+        pasteAddsTrailingSpace = config.pasteAddsTrailingSpace
+        doubleSpaceEnabled = config.doubleSpaceEnabled
+        autoSpaceEnabled = config.autoSpaceEnabled
+        deleteWordEnabled = config.deleteWordEnabled
+    }
 }
+
+data class InputBehaviorConfig(
+    val doubleSpaceWindowMs: Long,
+    val doubleSpaceLookbackChars: Int,
+    val deleteWordLookbackChars: Int,
+    val autoPunctuationChars: String,
+    val pasteAddsTrailingSpace: Boolean,
+    val doubleSpaceEnabled: Boolean,
+    val autoSpaceEnabled: Boolean,
+    val deleteWordEnabled: Boolean,
+)
 
 private class InputLogicHandler(
     private val connectionProvider: () -> InputConnection?,
@@ -209,6 +292,24 @@ private class InputLogicHandler(
         notifyMain: (() -> Unit)? = null,
         block: (InputConnection) -> Unit,
     ) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            val ic = connectionOverride ?: connectionProvider() ?: return
+            var began = false
+            if (beginBatch) {
+                began = ic.safeBeginBatch()
+            }
+            try {
+                block(ic)
+            } catch (_: Throwable) {
+            } finally {
+                if (began) {
+                    ic.safeEndBatch()
+                }
+                notifyMain?.invoke()
+            }
+            return
+        }
+
         scope.launch {
             val ic = connectionOverride ?: connectionProvider() ?: return@launch
             var began = false

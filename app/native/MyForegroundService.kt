@@ -80,8 +80,11 @@ class MyForegroundService : Service() {
 
         if (config.clipboard.enabled) {
             clipboardMonitor.start(config.clipboard) { text ->
+                val prefs = getSharedPreferences(KeyboardThemeManager.PREFS_NAME, MODE_PRIVATE)
+                val maxItems = prefs.getInt("max_clipboard_items", 10).coerceAtLeast(1)
                 ClipboardRepository.setClipboardItems(
                     listOf(text) + ClipboardRepository.clipboardItems.value.filter { it != text },
+                    maxItems,
                 )
                 BackgroundServiceModule.sendEvent(
                     "ClipboardUpdated",
@@ -178,7 +181,17 @@ class MyForegroundService : Service() {
         }
 
         val triggerAt = SystemClock.elapsedRealtime() + delayMs
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pendingIntent)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pendingIntent)
+            } else {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pendingIntent)
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pendingIntent)
+        }
+        
         Log.d("MyForegroundService", "Scheduled restart in ${delayMs}ms")
     }
 

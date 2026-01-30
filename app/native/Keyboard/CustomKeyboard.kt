@@ -58,8 +58,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.isActive
+import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import com.package.name.R
+import java.util.concurrent.ConcurrentHashMap
 
 class CustomKeyboard :
     InputMethodService(),
@@ -71,11 +74,13 @@ class CustomKeyboard :
     private var capsMode: CapsMode = CapsMode.OFF
     private var currentKeyboardLayout: List<List<String>> = defaultLayout
     private var lettersLayoutBackup: List<List<String>> = defaultLayout
+    private var symbolsLayoutOverride: List<List<String>>? = null
+    private var specialLayoutOverride: List<List<String>>? = null
     private var currentMode: InputMode = InputMode.LETTERS
     private var autoCapSuppressed: Boolean = false
     private var lastAutoCapitalizeNext: Boolean = true
     private var isBackspaceRepeating: Boolean = false
-    private var backspaceIntervalMs = BACKSPACE_INITIAL_INTERVAL_MS
+    private var backspaceIntervalMs = 260L
     private var lastShiftTapTimeMs: Long = 0L
     private var backspaceTapCount: Int = 0
     private var lastBackspaceTapTimeMs: Long = 0L
@@ -84,9 +89,9 @@ class CustomKeyboard :
     private var keyClickSoundId: Int = 0
     private var vibrator: Vibrator? = null
 
-    private var backspaceInitialIntervalMs = BACKSPACE_INITIAL_INTERVAL_MS
-    private var backspaceAccelerationMs = BACKSPACE_ACCELERATION_STEP_MS
-    private var backspaceMinIntervalMs = BACKSPACE_MIN_INTERVAL_MS
+    private var backspaceInitialIntervalMs = 260L
+    private var backspaceAccelerationMs = 30L
+    private var backspaceMinIntervalMs = 70L
     private var backspaceSwipeThresholdPx = 0f
 
     private var spaceSwipeDownX: Float = 0f
@@ -96,6 +101,8 @@ class CustomKeyboard :
     private var spaceSwipeStartThresholdPx: Float = 0f
     private var spaceSwipeStepPx: Float = 0f
     private var spaceSwipeVerticalStepPx: Float = 0f
+    private var touchSlopPx: Float = 0f
+    private var accentSwipeThresholdPx: Float = 0f
 
     private var px1: Int = 0
     private var px4: Int = 0
@@ -113,23 +120,74 @@ class CustomKeyboard :
     private var vibrationDurationMs: Int = 0
     private var longPressDelayMs: Long = 400L
     private var keyTextSizePx: Float = 0f
+    private var keyMinWidthPx: Int = 0
+    private var keyMinHeightPx: Int = 0
+    private var keyMinWideWidthPx: Int = 0
+    private var keyRowHeightPx: Int = 0
+    private var suggestionBarHeightPx: Int = 0
+    private var selectionBarHeightPx: Int = 0
+    private var clipboardBarHeightPx: Int = 0
+    private var suggestionTextSizePx: Float = 0f
+    private var selectionTextSizePx: Float = 0f
+    private var clipboardTextSizePx: Float = 0f
+    private var keyPreviewTextSizePx: Float = 0f
+    private var accentTextSizePx: Float = 0f
+    private var hintTextSizeFactor: Float = 0f
+    private var keyPaddingHorizontalPx: Int = 0
+    private var keyPaddingVerticalPx: Int = 0
+    private var keyPreviewPaddingPx: Int = 0
+    private var keyPreviewBorderWidthPx: Int = 0
+    private var keyElevationPx: Float = 0f
+
+    private var doubleTapThresholdMs: Long = 350L
+    private var backspaceMultiTapWindowMs: Long = 450L
+    private var backspaceMultiTapCount: Int = 3
+    private var edgeRepeatIntervalMs: Long = 150L
+    private var spaceSwipeEdgeThresholdPx: Float = 0f
+    private var doubleSpaceWindowMs: Long = 800L
+    private var autoCapLookbackChars: Int = 200
+    private var currentWordLookbackChars: Int = 50
+    private var doubleSpaceLookbackChars: Int = 6
+    private var deleteWordLookbackChars: Int = 120
+    private var autoPunctuationChars: String = ".,;:?! )"
+    private var autoCapSentenceDelimiters: String = ".:;?!\n"
+    private var pasteAddsTrailingSpace: Boolean = true
+    private var soundEnabled: Boolean = true
+    private var soundVolume: Float = 1f
+    private var soundRate: Float = 1f
+    private var vibrationPattern: LongArray? = null
+    private var vibrationPatternRepeat: Int = -1
+    private var vibrationAmplitude: Int = -1
+    private var maxSuggestions: Int = 3
+    private var maxClipboardItems: Int = 10
+    private var autoCorrectThresholdShort: Double = 0.75
+    private var autoCorrectThresholdMedium: Double = 0.70
+    private var autoCorrectThresholdLong: Double = 0.65
+    private var pendingWordPromotionThreshold: Int = 3
+    private var maxPendingWordCache: Int = 250
+    private val pendingWordCounts = ConcurrentHashMap<String, Int>()
 
     private lateinit var themeManager: KeyboardThemeManager
     private lateinit var themeDialogs: KeyboardThemeDialogs
 
     private val userDictionary = mutableSetOf<String>()
     private var speechRecognizer: SpeechRecognizer? = null
+    private var isVoiceListening: Boolean = false
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         layoutManager.dismissKeyPreview()
         suggestionsJob?.cancel()
+        suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
+        soundHapticJob?.cancel()
     }
 
     override fun onWindowHidden() {
         super.onWindowHidden()
         layoutManager.dismissKeyPreview()
         suggestionsJob?.cancel()
+        suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
+        soundHapticJob?.cancel()
         dictionaryLoadJob?.cancel()
         speechRecognizer?.destroy()
     }
@@ -137,7 +195,9 @@ class CustomKeyboard :
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(serviceJob + Dispatchers.Main.immediate)
 
-    private val suggestionEngine = SuggestionEngine(MAX_SUGGESTIONS)
+    private var suggestionEngine = SuggestionEngine(maxSuggestions)
+    private val bigramModel = BigramModel()
+    private var lastCommittedWordLower: String? = null
 
     private enum class AutocompleteMode {
         EN,
@@ -149,6 +209,7 @@ class CustomKeyboard :
         QWERTY("qwerty"),
         QWERTZ("qwertz"),
         AZERTY("azerty"),
+        CUSTOM("custom"),
     }
 
     private var dictionaryLoadJob: Job? = null
@@ -176,11 +237,26 @@ class CustomKeyboard :
 
     private var suggestionsJob: Job? = null
     private var suggestionsRequestId: Long = 0L
+    private var suggestionDebounceMs: Long = 24L
+    private var suggestionMinIntervalMs: Long = 48L
+    private var lastSuggestionComputeAtMs: Long = 0L
+    private var pendingSuggestionPrefix: String? = null
+    private var pendingSuggestionCurrentWord: String? = null
+    private var pendingSuggestionCapitalize: Boolean = false
+    private var pendingNextWordBase: String? = null
+    private var pendingNextWordMode: Boolean = false
+    private var suggestionUpdateRunnable: Runnable? = null
+    private var soundHapticJob: Job? = null
 
     private var isPrivateMode: Boolean = false
     private var areSuggestionsEnabled: Boolean = true
+    private var isRebuildPending: Boolean = false
+    private var isCapsVisualUpdatePending: Boolean = false
 
     private fun shouldPlayKeyClickSound(): Boolean {
+        if (!themeManager.isSoundEnabled) return false
+        if (!soundEnabled) return false
+        if (soundVolume <= 0f) return false
         val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return false
 
         val soundEffectsEnabled =
@@ -201,12 +277,14 @@ class CustomKeyboard :
         return systemVolume > 0 || musicVolume > 0
     }
 
-
-
     private fun observeClipboard() {
         serviceScope.launch {
             ClipboardRepository.clipboardItems.collect { items ->
                 withContext(Dispatchers.Main) {
+                    if (!themeManager.isClipboardSuggestionsEnabled) {
+                        renderClipboardSuggestions()
+                        return@withContext
+                    }
                     renderClipboardSuggestions()
                 }
             }
@@ -277,7 +355,11 @@ class CustomKeyboard :
                         true
                     }
                     "," -> View.OnLongClickListener {
-                        startVoiceInput()
+                        if (isVoiceListening) {
+                            stopVoiceInput()
+                        } else {
+                            startVoiceInput()
+                        }
                         true
                     }
                     "caps" -> View.OnLongClickListener {
@@ -315,7 +397,10 @@ class CustomKeyboard :
                 rebuildOnUiThread()
             },
             onNavigate = { screen ->
-                if (screen == "main") openKeyboardConfigDialog()
+                when (screen) {
+                    "main" -> openKeyboardConfigDialog()
+                    "behavior" -> openBehaviorDialog()
+                }
             },
             getWindowToken = {
                 window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token
@@ -328,7 +413,12 @@ class CustomKeyboard :
             LayoutStyle.QWERTY -> qwertyLayout
             LayoutStyle.QWERTZ -> qwertzLayout
             LayoutStyle.AZERTY -> azertyLayout
+            LayoutStyle.CUSTOM -> loadLayoutFromPrefs(PREF_KEY_LAYOUT_LETTERS) ?: qwertyLayout
         }
+        symbolsLayoutOverride = loadLayoutFromPrefs(PREF_KEY_LAYOUT_SYMBOLS)
+        specialLayoutOverride = loadLayoutFromPrefs(PREF_KEY_LAYOUT_SPECIAL)
+        layoutManager.updateKeyWeightOverrides(loadKeyWeightOverrides())
+        updateTopRowMapOverrides()
 
         val savedUserWords = getPrefs().getStringSet(PREF_KEY_USER_DICTIONARY, emptySet())
         if (savedUserWords != null) {
@@ -355,6 +445,8 @@ class CustomKeyboard :
         }
 
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+
+        loadBigramModelFromAssets(BIGRAM_FILE_EN, BIGRAM_FILE_ES)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -379,7 +471,7 @@ class CustomKeyboard :
             isPrivateMode = newPrivateMode
         }
 
-        areSuggestionsEnabled = !isPrivateMode && !hasNoSuggestionsFlag(inputType)
+        areSuggestionsEnabled = !isPrivateMode && !hasNoSuggestionsFlag(inputType) && themeManager.isAutoCorrectionEnabled
 
         if (isNumericOrPhoneInputType(inputType)) {
             switchToSymbols()
@@ -462,18 +554,19 @@ class CustomKeyboard :
             
             
             userDictionary.clear()
-            
-            
+            suggestionEngine.clear()
+            bigramModel.clear()
+            lastCommittedWordLower = null
+
             cachedEnSnapshot = null
             cachedEsSnapshot = null
             cachedBothSnapshot = null
-            
-            
+
             layoutManager.dismissKeyPreview()
             layoutManager.keyPreviewPopup = null
             layoutManager.popupTextView = null
-            
-            
+
+            suggestionsJob?.cancel()
             dictionaryLoadJob?.cancel()
             dictionaryLoadJob = null
         }
@@ -483,7 +576,14 @@ class CustomKeyboard :
         super.onDestroy()
         stopBackspaceRepeat()
         suggestionsJob?.cancel()
+        suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
+        soundHapticJob?.cancel()
         dictionaryLoadJob?.cancel()
+        suggestionEngine.clear()
+        bigramModel.clear()
+        cachedEnSnapshot = null
+        cachedEsSnapshot = null
+        cachedBothSnapshot = null
         serviceScope.cancel()
         speechRecognizer?.destroy()
         soundPool?.release()
@@ -501,6 +601,8 @@ class CustomKeyboard :
 
 
     private fun refreshAppearanceFromPrefsIfNeeded() {
+        themeManager.loadPreferences()
+        initPxCache()
         val savedTheme = themeManager.getOrInitSavedThemeMode()
         val savedBackground = themeManager.getOrInitSavedBackgroundMode()
 
@@ -569,10 +671,12 @@ class CustomKeyboard :
         val letters = if (currentMode == InputMode.LETTERS) currentKeyboardLayout else lettersLayoutBackup
         layoutManager.rebuildLayout(
             lettersLayout = letters.ifEmpty { defaultLayout },
-            symbolsLayout = symbolsLayout,
-            specialLayout = specialLayout,
+            symbolsLayout = symbolsLayoutOverride ?: symbolsLayout,
+            specialLayout = specialLayoutOverride ?: specialLayout,
             capsVisualMode = effectiveCapsMode()
         )
+
+        layoutManager.ensureSuggestionButtons(maxSuggestions)
 
         refreshClipboardSource()
         updateSuggestions()
@@ -583,8 +687,6 @@ class CustomKeyboard :
 
         setInputMode(currentMode)
     }
-
-
 
     private fun setInputMode(mode: InputMode) {
         layoutManager.lettersKeyboardContainer?.visibility =
@@ -599,10 +701,6 @@ class CustomKeyboard :
             updateCapsVisualsOnUiThread()
         }
     }
-
-
-
-
 
     private fun effectiveCapsMode(): CapsMode {
         return cachedEffectiveCaps
@@ -639,7 +737,7 @@ class CustomKeyboard :
             }
 
             CapsMode.SINGLE -> {
-                if (delta <= DOUBLE_TAP_THRESHOLD_MS) {
+                if (delta <= doubleTapThresholdMs) {
                     setCapsMode(CapsMode.LOCK)
                 } else {
                     setCapsMode(CapsMode.OFF)
@@ -647,7 +745,7 @@ class CustomKeyboard :
             }
 
             CapsMode.OFF -> {
-                if (delta <= DOUBLE_TAP_THRESHOLD_MS) {
+                if (delta <= doubleTapThresholdMs) {
                     setCapsMode(CapsMode.LOCK)
                 } else {
                     setCapsMode(CapsMode.SINGLE)
@@ -665,7 +763,10 @@ class CustomKeyboard :
     }
 
     private fun rebuildOnUiThread() {
+        if (isRebuildPending) return
+        isRebuildPending = true
         uiHandler.post {
+            isRebuildPending = false
             if (layoutManager.rootLayout != null) {
                 rebuildLayout()
             }
@@ -673,7 +774,10 @@ class CustomKeyboard :
     }
 
     private fun updateCapsVisualsOnUiThread() {
+        if (isCapsVisualUpdatePending) return
+        isCapsVisualUpdatePending = true
         uiHandler.post {
+            isCapsVisualUpdatePending = false
             if (layoutManager.rootLayout != null) {
                 updateCapsVisuals()
             }
@@ -692,6 +796,7 @@ class CustomKeyboard :
     }
 
     fun commitText(text: String) {
+        learnFromCommittedText(text)
         inputProcessor.commitText(text)
     }
 
@@ -715,26 +820,12 @@ class CustomKeyboard :
 
                 if (inputProcessor.ignoreAutoCorrectWord != null && inputProcessor.ignoreAutoCorrectWord == currentLower) {
                     inputProcessor.ignoreAutoCorrectWord = null
-                    inputProcessor.lastAutoCorrectOriginal = null
-                    inputProcessor.lastAutoCorrectReplacement = null
+                    inputProcessor.clearAutoCorrectionState()
                 } else {
                     val existsExact = suggestionEngine.contains(currentLower)
-                    if (!existsExact) {
-                        if (currentWord.all { it.isLetter() }) {
-                            if (userDictionary.add(currentWord)) {
-                                saveUserDictionary()
-                                
-                                cachedEnSnapshot = null
-                                cachedEsSnapshot = null
-                                cachedBothSnapshot = null
-                                
-                                val mode = currentAutocompleteMode ?: AutocompleteMode.EN
-                                currentAutocompleteMode = null 
-                                applyAutocompleteMode(mode, false)
-                            }
-                        }
-
-                        val match = suggestionEngine.bestFuzzyMatch(currentLower, 0.80)
+                    if (!existsExact && currentWord.length >= 2) {
+                        val threshold = getAutoCorrectThreshold(currentWord.length)
+                        val match = suggestionEngine.bestFuzzyMatch(currentLower, threshold)
                         if (!match.isNullOrBlank()) {
                             val replacement =
                                 if (currentWord.firstOrNull()?.isUpperCase() == true) {
@@ -743,20 +834,26 @@ class CustomKeyboard :
                                     match
                                 }
 
-                            inputProcessor.lastAutoCorrectOriginal = currentWord
-                            inputProcessor.lastAutoCorrectReplacement = replacement
-                            inputProcessor.ignoreAutoCorrectWord = null
+                            if (!inputProcessor.shouldApplyAutoCorrection(currentWord, replacement)) {
+                                inputProcessor.clearAutoCorrectionState()
+                            } else {
+                                inputProcessor.recordAutoCorrection(currentWord, replacement, true)
+                                inputProcessor.ignoreAutoCorrectWord = null
 
-                            inputProcessor.runBatchEdit(inputConnection) { ic ->
-                                ic.deleteSurroundingText(currentWord.length, 0)
-                                ic.commitText("$replacement ", 1)
+                                inputProcessor.runBatchEdit(inputConnection) { ic ->
+                                    ic.deleteSurroundingText(currentWord.length, 0)
+                                    ic.commitText("$replacement ", 1)
+                                }
+
+                                recordCommittedWord(replacement)
+                                onTextCommitted()
+                                return
                             }
-
-                            onTextCommitted()
-                            return
                         }
                     }
                 }
+
+                recordCommittedWord(currentWord)
             }
         } else {
             inputProcessor.resetLastSpaceTap()
@@ -799,6 +896,10 @@ class CustomKeyboard :
     }
 
     private fun refreshClipboardSource() {
+        if (!themeManager.isClipboardSuggestionsEnabled) {
+            renderClipboardSuggestions()
+            return
+        }
         val items = ClipboardRepository.clipboardItems.value
         if (items.isNotEmpty()) {
             renderClipboardSuggestions()
@@ -806,14 +907,18 @@ class CustomKeyboard :
         }
 
         serviceScope.launch {
-            val loaded = ClipboardRepository.loadSystemClipboard(this@CustomKeyboard)
-            ClipboardRepository.updateFromSystem(loaded)
+            val loaded = ClipboardRepository.loadSystemClipboard(this@CustomKeyboard, maxClipboardItems)
+            ClipboardRepository.setClipboardItems(loaded, maxClipboardItems)
             renderClipboardSuggestions()
         }
     }
 
     private fun renderClipboardSuggestions() {
-        layoutManager.renderClipboardSuggestions(ClipboardRepository.clipboardItems.value, MAX_ITEMS_IN_CLIPBOARD)
+        if (!themeManager.isClipboardSuggestionsEnabled) {
+            layoutManager.renderClipboardSuggestions(emptyList(), 0)
+            return
+        }
+        layoutManager.renderClipboardSuggestions(ClipboardRepository.clipboardItems.value, maxClipboardItems)
     }
 
     private fun pasteClipboardItem(item: String) {
@@ -859,6 +964,7 @@ class CustomKeyboard :
     }
 
     private fun startVoiceInput() {
+        if (!themeManager.isVoiceInputEnabled) return
         if (checkCallingOrSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(
                 this,
@@ -885,8 +991,11 @@ class CustomKeyboard :
                             override fun onBeginningOfSpeech() {}
                             override fun onRmsChanged(rmsdB: Float) {}
                             override fun onBufferReceived(buffer: ByteArray?) {}
-                            override fun onEndOfSpeech() {}
+                            override fun onEndOfSpeech() {
+                                isVoiceListening = false
+                            }
                             override fun onError(error: Int) {
+                                isVoiceListening = false
                                 Toast.makeText(
                                     this@CustomKeyboard,
                                     getString(R.string.error_voice_input),
@@ -901,6 +1010,7 @@ class CustomKeyboard :
                                     val text = matches[0]
                                     commitText("$text ")
                                 }
+                                isVoiceListening = false
                             }
 
                             override fun onPartialResults(partialResults: Bundle?) {}
@@ -908,21 +1018,27 @@ class CustomKeyboard :
                         })
                     }
                 }
+                isVoiceListening = true
                 speechRecognizer?.startListening(intent)
                 Toast.makeText(this, getString(R.string.listening_voice_input), Toast.LENGTH_SHORT)
                     .show()
             } catch (e: Exception) {
+                isVoiceListening = false
                 Toast.makeText(this, getString(R.string.voice_input_failed), Toast.LENGTH_SHORT)
                     .show()
             }
         }
     }
 
-    private fun isPunctuation(ch: Char): Boolean =
-    when (ch) {
-        '.', ',', ':', ';', '?', '!', ')' -> true
-        else -> false
+    private fun stopVoiceInput() {
+        isVoiceListening = false
+        runCatching { speechRecognizer?.stopListening() }
+        runCatching { speechRecognizer?.cancel() }
+        Toast.makeText(this, getString(R.string.voice_input_stopped), Toast.LENGTH_SHORT).show()
     }
+
+    private fun isPunctuation(ch: Char): Boolean =
+    autoPunctuationChars.contains(ch)
 
     private fun updateSelectionActions() {
         val selectedText = currentInputConnection?.getSelectedText(0)
@@ -1009,6 +1125,13 @@ class CustomKeyboard :
             resources.displayMetrics,
         ).toInt()
 
+    private fun spToPx(sp: Float): Float =
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_SP,
+            sp,
+            resources.displayMetrics,
+        )
+
     private fun getPrefs() = getSharedPreferences(KeyboardThemeManager.PREFS_NAME, MODE_PRIVATE)
 
     private fun getOrInitSavedLayoutStyle(): LayoutStyle {
@@ -1060,6 +1183,23 @@ class CustomKeyboard :
         currentAutocompleteMode = mode
         dictionaryLoadJob?.cancel()
 
+        when (mode) {
+            AutocompleteMode.EN -> {
+                cachedEsSnapshot = null
+                cachedBothSnapshot = null
+            }
+
+            AutocompleteMode.ES -> {
+                cachedEnSnapshot = null
+                cachedBothSnapshot = null
+            }
+
+            AutocompleteMode.BOTH -> {
+                cachedEnSnapshot = null
+                cachedEsSnapshot = null
+            }
+        }
+
         val cached =
             when (mode) {
                 AutocompleteMode.EN -> cachedEnSnapshot
@@ -1079,6 +1219,7 @@ class CustomKeyboard :
                     AutocompleteMode.EN -> {
                         val snapshot =
                             withContext(Dispatchers.IO) {
+                                suggestionEngine.clear()
                                 suggestionEngine.buildSnapshot(
                                     loadWordsSequenceFromAssets(
                                         AUTOCOMPLETE_FILE_EN
@@ -1093,6 +1234,7 @@ class CustomKeyboard :
                     AutocompleteMode.ES -> {
                         val snapshot =
                             withContext(Dispatchers.IO) {
+                                suggestionEngine.clear()
                                 suggestionEngine.buildSnapshot(
                                     loadWordsSequenceFromAssets(
                                         AUTOCOMPLETE_FILE_ES
@@ -1107,6 +1249,7 @@ class CustomKeyboard :
                     AutocompleteMode.BOTH -> {
                         val bothSnapshot =
                             withContext(Dispatchers.IO) {
+                                suggestionEngine.clear()
                                 suggestionEngine.buildSnapshot(
                                     loadWordsSequenceFromAssets(
                                         AUTOCOMPLETE_FILE_EN,
@@ -1124,14 +1267,24 @@ class CustomKeyboard :
 
     private fun loadWordsSequenceFromAssets(vararg fileNames: String): Sequence<String> {
         return sequence {
-            yieldAll(userDictionary)
+            var yielded = 0
+
+            for (word in userDictionary) {
+                if (yielded >= MAX_DICTIONARY_WORDS) return@sequence
+                yield(word)
+                yielded += 1
+            }
+
             fileNames.forEach { fileName ->
+                if (yielded >= MAX_DICTIONARY_WORDS) return@sequence
                 try {
                     assets.open(fileName).bufferedReader().useLines { lines ->
                         for (line in lines) {
+                            if (yielded >= MAX_DICTIONARY_WORDS) return@useLines
                             val trimmed = line.trim()
                             if (trimmed.isNotEmpty()) {
                                 yield(trimmed)
+                                yielded += 1
                             }
                         }
                     }
@@ -1239,13 +1392,15 @@ class CustomKeyboard :
         val items = arrayOf(
             getString(R.string.option_qwerty),
             getString(R.string.option_qwertz),
-            getString(R.string.option_azerty)
+            getString(R.string.option_azerty),
+            getString(R.string.option_custom_layout)
         )
         val checked =
             when (currentLayoutStyle) {
                 LayoutStyle.QWERTY -> 0
                 LayoutStyle.QWERTZ -> 1
                 LayoutStyle.AZERTY -> 2
+                LayoutStyle.CUSTOM -> 3
             }
 
         val windowToken =
@@ -1259,7 +1414,8 @@ class CustomKeyboard :
                             when (which) {
                                 0 -> LayoutStyle.QWERTY
                                 1 -> LayoutStyle.QWERTZ
-                                else -> LayoutStyle.AZERTY
+                                2 -> LayoutStyle.AZERTY
+                                else -> LayoutStyle.CUSTOM
                             }
                         currentLayoutStyle = selected
                         setSavedLayoutStyle(selected)
@@ -1268,11 +1424,20 @@ class CustomKeyboard :
                             LayoutStyle.QWERTY -> qwertyLayout
                             LayoutStyle.QWERTZ -> qwertzLayout
                             LayoutStyle.AZERTY -> azertyLayout
+                            LayoutStyle.CUSTOM -> loadLayoutFromPrefs(PREF_KEY_LAYOUT_LETTERS) ?: qwertyLayout
                         }
+                        symbolsLayoutOverride = loadLayoutFromPrefs(PREF_KEY_LAYOUT_SYMBOLS)
+                        specialLayoutOverride = loadLayoutFromPrefs(PREF_KEY_LAYOUT_SPECIAL)
+                        layoutManager.updateKeyWeightOverrides(loadKeyWeightOverrides())
+                        updateTopRowMapOverrides()
                         rebuildOnUiThread()
-                        
+
                         dialogInterface.dismiss()
-                        openKeyboardConfigDialog()
+                        if (selected == LayoutStyle.CUSTOM) {
+                            openCustomLayoutDialog()
+                        } else {
+                            openKeyboardConfigDialog()
+                        }
                     }
                     .setNegativeButton(closeLabel) { dialogInterface, _ ->
                         dialogInterface.dismiss()
@@ -1291,6 +1456,140 @@ class CustomKeyboard :
 
             dialog.show()
         }
+    }
+
+    private fun openCustomLayoutDialog() {
+        val context = this
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px10 * 2, px10, px10 * 2, px10)
+        }
+
+        val prefs = getPrefs()
+        val initialLetters = prefs.getString(PREF_KEY_LAYOUT_LETTERS, layoutToString(lettersLayoutBackup)) ?: ""
+        val initialSymbols = prefs.getString(PREF_KEY_LAYOUT_SYMBOLS, layoutToString(symbolsLayout)) ?: ""
+        val initialSpecial = prefs.getString(PREF_KEY_LAYOUT_SPECIAL, layoutToString(specialLayout)) ?: ""
+        val initialWeights = prefs.getString(PREF_KEY_KEY_WEIGHTS, "") ?: ""
+        val initialTopRow = prefs.getString(PREF_KEY_TOP_ROW_MAP, "") ?: ""
+
+        val lettersInput = EditText(context).apply {
+            hint = getString(R.string.hint_letters_layout)
+            setText(initialLetters)
+        }
+        val symbolsInput = EditText(context).apply {
+            hint = getString(R.string.hint_symbols_layout)
+            setText(initialSymbols)
+        }
+        val specialInput = EditText(context).apply {
+            hint = getString(R.string.hint_special_layout)
+            setText(initialSpecial)
+        }
+        val weightsInput = EditText(context).apply {
+            hint = getString(R.string.hint_key_weights)
+            setText(initialWeights)
+        }
+        val topRowInput = EditText(context).apply {
+            hint = getString(R.string.hint_top_row_map)
+            setText(initialTopRow)
+        }
+
+        layout.addView(lettersInput)
+        layout.addView(symbolsInput)
+        layout.addView(specialInput)
+        layout.addView(weightsInput)
+        layout.addView(topRowInput)
+
+        val windowToken = window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
+        uiHandler.post {
+            val dialog = AlertDialog.Builder(context)
+                .setTitle(getString(R.string.dialog_custom_layout_title))
+                .setView(layout)
+                .setPositiveButton(getString(R.string.btn_ok)) { _, _ ->
+                    prefs.edit {
+                        putString(PREF_KEY_LAYOUT_LETTERS, lettersInput.text.toString())
+                        putString(PREF_KEY_LAYOUT_SYMBOLS, symbolsInput.text.toString())
+                        putString(PREF_KEY_LAYOUT_SPECIAL, specialInput.text.toString())
+                        putString(PREF_KEY_KEY_WEIGHTS, weightsInput.text.toString())
+                        putString(PREF_KEY_TOP_ROW_MAP, topRowInput.text.toString())
+                    }
+                    lettersLayoutBackup = loadLayoutFromPrefs(PREF_KEY_LAYOUT_LETTERS) ?: qwertyLayout
+                    symbolsLayoutOverride = loadLayoutFromPrefs(PREF_KEY_LAYOUT_SYMBOLS)
+                    specialLayoutOverride = loadLayoutFromPrefs(PREF_KEY_LAYOUT_SPECIAL)
+                    layoutManager.updateKeyWeightOverrides(loadKeyWeightOverrides())
+                    updateTopRowMapOverrides()
+                    rebuildOnUiThread()
+                    openLayoutDialog()
+                }
+                .setNegativeButton(getString(R.string.btn_cancel)) { _, _ ->
+                    openLayoutDialog()
+                }
+                .setOnCancelListener {
+                    openLayoutDialog()
+                }
+                .create()
+
+            dialog.window?.apply {
+                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+                attributes?.token = windowToken
+                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            }
+            dialog.show()
+        }
+    }
+
+    private fun layoutToString(layout: List<List<String>>): String {
+        return layout.joinToString(";\n") { row -> row.joinToString(",") }
+    }
+
+    private fun loadLayoutFromPrefs(key: String): List<List<String>>? {
+        val raw = getPrefs().getString(key, null)?.trim().orEmpty()
+        if (raw.isBlank()) return null
+        val rows = raw.split(";", "\n").map { it.trim() }.filter { it.isNotEmpty() }
+        if (rows.isEmpty()) return null
+        val parsed = rows.mapNotNull { row ->
+            val keys = row.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            if (keys.isEmpty()) null else keys
+        }
+        return if (parsed.isEmpty()) null else parsed
+    }
+
+    private fun loadKeyWeightOverrides(): Map<String, Float> {
+        val raw = getPrefs().getString(PREF_KEY_KEY_WEIGHTS, "")?.trim().orEmpty()
+        if (raw.isBlank()) return emptyMap()
+        val pairs = raw.split(";", "\n").map { it.trim() }.filter { it.isNotEmpty() }
+        val map = mutableMapOf<String, Float>()
+        pairs.forEach { pair ->
+            val parts = pair.split("=").map { it.trim() }
+            if (parts.size == 2) {
+                val key = parts[0].lowercase()
+                val value = parts[1].toFloatOrNull()
+                if (value != null) {
+                    map[key] = value
+                }
+            }
+        }
+        return map
+    }
+
+    private fun updateTopRowMapOverrides() {
+        val raw = getPrefs().getString(PREF_KEY_TOP_ROW_MAP, "")?.trim().orEmpty()
+        if (raw.isBlank()) {
+            topRowMap = defaultTopRowMap
+            return
+        }
+        val rows = raw.split(";", "\n").map { it.trim() }.filter { it.isNotEmpty() }
+        val map = mutableMapOf<String, List<String>>()
+        rows.forEach { row ->
+            val parts = row.split("=")
+            if (parts.size == 2) {
+                val key = parts[0].trim().lowercase()
+                val values = parts[1].split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                if (values.isNotEmpty()) {
+                    map[key] = values
+                }
+            }
+        }
+        topRowMap = if (map.isEmpty()) defaultTopRowMap else map
     }
 
     private fun openDimensionsDialog() {
@@ -1396,19 +1695,18 @@ class CustomKeyboard :
         }
     }
 
-
-
-
-
-
-
     private fun openBehaviorDialog() {
         val items = arrayOf(
             getString(R.string.item_vibration),
             getString(R.string.item_long_press_delay),
             getString(R.string.item_autocomplete),
-            "Swipe Settings",
-            "Typing Speed"
+            getString(R.string.item_swipe_settings),
+            getString(R.string.item_typing_speed),
+            getString(R.string.item_sound_effects),
+            getString(R.string.item_vibration_pattern),
+            getString(R.string.item_input_rules),
+            getString(R.string.item_features),
+            getString(R.string.item_limits)
         )
 
         val windowToken =
@@ -1424,6 +1722,11 @@ class CustomKeyboard :
                         2 -> openAutocompleteConfigDialog()
                         3 -> openSwipeSettingsDialog()
                         4 -> openTypingSpeedDialog()
+                        5 -> openSoundDialog()
+                        6 -> openVibrationPatternDialog()
+                        7 -> openInputRulesDialog()
+                        8 -> themeDialogs.openFeaturesDialog()
+                        9 -> openLimitsDialog()
                     }
                 }
                 .setNegativeButton(getString(R.string.btn_close)) { _, _ ->
@@ -1455,15 +1758,19 @@ class CustomKeyboard :
         val initialHStep = prefs.getInt(PREF_KEY_SWIPE_H_STEP, 12)
         val initialVStep = prefs.getInt(PREF_KEY_SWIPE_V_STEP, 24)
         val initialBsThreshold = prefs.getInt(PREF_KEY_BACKSPACE_SWIPE_THRESHOLD, 36)
+        val initialTouchSlop = prefs.getInt(PREF_KEY_TOUCH_SLOP_DP, 10)
+        val initialAccentSwipe = prefs.getInt(PREF_KEY_ACCENT_SWIPE_THRESHOLD_DP, 20)
+        val initialEdgeThreshold = prefs.getInt(PREF_KEY_EDGE_SWIPE_THRESHOLD_DP, 36)
+        val initialEdgeRepeat = prefs.getLong(PREF_KEY_EDGE_REPEAT_INTERVAL, 150L)
 
-        val addSeek = { label: String, initial: Int, key: String, max: Int ->
-            val tv = TextView(context).apply { text = "$label: $initial dp" }
+        val addSeek = { labelResId: Int, initial: Int, key: String, max: Int ->
+            val tv = TextView(context).apply { text = getString(labelResId, initial) }
             val seek = SeekBar(context).apply {
                 this.max = max
                 progress = initial
                 setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                     override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                        tv.text = "$label: $progress dp"
+                        tv.text = getString(labelResId, progress)
                     }
                     override fun onStartTrackingTouch(seekBar: SeekBar?) {}
                     override fun onStopTrackingTouch(seekBar: SeekBar?) {
@@ -1476,15 +1783,40 @@ class CustomKeyboard :
             layout.addView(seek)
         }
 
-        addSeek("Swipe Start Threshold", initialThreshold, PREF_KEY_SWIPE_THRESHOLD, 50)
-        addSeek("Horizontal Step", initialHStep, PREF_KEY_SWIPE_H_STEP, 100)
-        addSeek("Vertical Step", initialVStep, PREF_KEY_SWIPE_V_STEP, 100)
-        addSeek("Backspace Swipe Threshold", initialBsThreshold, PREF_KEY_BACKSPACE_SWIPE_THRESHOLD, 100)
+        addSeek(R.string.label_swipe_start_threshold_fmt, initialThreshold, PREF_KEY_SWIPE_THRESHOLD, 50)
+        addSeek(R.string.label_swipe_horizontal_step_fmt, initialHStep, PREF_KEY_SWIPE_H_STEP, 100)
+        addSeek(R.string.label_swipe_vertical_step_fmt, initialVStep, PREF_KEY_SWIPE_V_STEP, 100)
+        addSeek(R.string.label_backspace_swipe_threshold_fmt, initialBsThreshold, PREF_KEY_BACKSPACE_SWIPE_THRESHOLD, 100)
+        addSeek(R.string.label_touch_slop_fmt, initialTouchSlop, PREF_KEY_TOUCH_SLOP_DP, 50)
+        addSeek(R.string.label_accent_swipe_threshold_fmt, initialAccentSwipe, PREF_KEY_ACCENT_SWIPE_THRESHOLD_DP, 80)
+        addSeek(R.string.label_edge_swipe_threshold_fmt, initialEdgeThreshold, PREF_KEY_EDGE_SWIPE_THRESHOLD_DP, 80)
+
+        val edgeRepeatLabel = TextView(context).apply {
+            text = getString(R.string.label_edge_repeat_interval_fmt, initialEdgeRepeat)
+        }
+        val edgeRepeatSeek = SeekBar(context).apply {
+            max = 500
+            progress = initialEdgeRepeat.toInt().coerceIn(50, 500)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val value = progress.coerceAtLeast(50)
+                    edgeRepeatLabel.text = getString(R.string.label_edge_repeat_interval_fmt, value)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    val value = seekBar?.progress?.coerceAtLeast(50) ?: 50
+                    prefs.edit { putLong(PREF_KEY_EDGE_REPEAT_INTERVAL, value.toLong()) }
+                    initPxCache()
+                }
+            })
+        }
+        layout.addView(edgeRepeatLabel)
+        layout.addView(edgeRepeatSeek)
 
         val windowToken = window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
         uiHandler.post {
             val dialog = AlertDialog.Builder(this)
-                .setTitle("Swipe Settings")
+                .setTitle(getString(R.string.dialog_swipe_settings_title))
                 .setView(layout)
                 .setPositiveButton(getString(R.string.btn_close)) { _, _ -> openBehaviorDialog() }
                 .setOnCancelListener { openBehaviorDialog() }
@@ -1507,18 +1839,18 @@ class CustomKeyboard :
         }
 
         val prefs = getPrefs()
-        val initialInitial = prefs.getLong(PREF_KEY_BACKSPACE_INITIAL_INTERVAL, BACKSPACE_INITIAL_INTERVAL_MS)
-        val initialAccel = prefs.getLong(PREF_KEY_BACKSPACE_ACCELERATION, BACKSPACE_ACCELERATION_STEP_MS)
-        val initialMin = prefs.getLong(PREF_KEY_BACKSPACE_MIN_INTERVAL, BACKSPACE_MIN_INTERVAL_MS)
+        val initialInitial = prefs.getLong(PREF_KEY_BACKSPACE_INITIAL_INTERVAL, 260L)
+        val initialAccel = prefs.getLong(PREF_KEY_BACKSPACE_ACCELERATION, 30L)
+        val initialMin = prefs.getLong(PREF_KEY_BACKSPACE_MIN_INTERVAL, 70L)
 
-        val addSeek = { label: String, initial: Long, key: String, max: Int ->
-            val tv = TextView(context).apply { text = "$label: $initial ms" }
+        val addSeek = { labelResId: Int, initial: Long, key: String, max: Int ->
+            val tv = TextView(context).apply { text = getString(labelResId, initial) }
             val seek = SeekBar(context).apply {
                 this.max = max
                 progress = initial.toInt()
                 setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                     override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                        tv.text = "$label: $progress ms"
+                        tv.text = getString(labelResId, progress)
                     }
                     override fun onStartTrackingTouch(seekBar: SeekBar?) {}
                     override fun onStopTrackingTouch(seekBar: SeekBar?) {
@@ -1531,19 +1863,504 @@ class CustomKeyboard :
             layout.addView(seek)
         }
 
-        addSeek("Backspace Initial Delay", initialInitial, PREF_KEY_BACKSPACE_INITIAL_INTERVAL, 1000)
-        addSeek("Backspace Acceleration", initialAccel, PREF_KEY_BACKSPACE_ACCELERATION, 200)
-        addSeek("Backspace Min Interval", initialMin, PREF_KEY_BACKSPACE_MIN_INTERVAL, 200)
+        addSeek(R.string.label_backspace_initial_delay_fmt, initialInitial, PREF_KEY_BACKSPACE_INITIAL_INTERVAL, 1000)
+        addSeek(R.string.label_backspace_acceleration_fmt, initialAccel, PREF_KEY_BACKSPACE_ACCELERATION, 200)
+        addSeek(R.string.label_backspace_min_interval_fmt, initialMin, PREF_KEY_BACKSPACE_MIN_INTERVAL, 200)
 
         val windowToken = window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
         uiHandler.post {
             val dialog = AlertDialog.Builder(this)
-                .setTitle("Typing Speed Settings")
+                .setTitle(getString(R.string.dialog_typing_speed_title))
                 .setView(layout)
                 .setPositiveButton(getString(R.string.btn_close)) { _, _ -> openBehaviorDialog() }
                 .setOnCancelListener { openBehaviorDialog() }
                 .create()
             
+            dialog.window?.apply {
+                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+                attributes?.token = windowToken
+                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            }
+            dialog.show()
+        }
+    }
+
+    private fun openSoundDialog() {
+        val context = this
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px10 * 2, px10 * 2, px10 * 2, px10 * 2)
+        }
+
+        val prefs = getPrefs()
+        val initialEnabled = themeManager.isSoundEnabled
+        val initialVolume = prefs.getFloat(PREF_KEY_SOUND_VOLUME, 1f)
+        val initialRate = prefs.getFloat(PREF_KEY_SOUND_RATE, 1f)
+
+        val enabledCheck = android.widget.CheckBox(context).apply {
+            text = getString(R.string.label_enable_sounds)
+            isChecked = initialEnabled
+        }
+
+        val volumeLabel = TextView(context).apply {
+            text = getString(R.string.label_volume_fmt, (initialVolume * 100).toInt())
+        }
+        val volumeSeek = SeekBar(context).apply {
+            max = 100
+            progress = (initialVolume * 100).toInt().coerceIn(0, 100)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    volumeLabel.text = getString(R.string.label_volume_fmt, progress)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        val rateLabel = TextView(context).apply {
+            text = getString(R.string.label_rate_fmt, (initialRate * 100).toInt())
+        }
+        val rateSeek = SeekBar(context).apply {
+            max = 200
+            progress = (initialRate * 100).toInt().coerceIn(50, 200)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val normalized = progress.coerceAtLeast(50)
+                    rateLabel.text = getString(R.string.label_rate_fmt, normalized)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        layout.addView(enabledCheck)
+        layout.addView(volumeLabel)
+        layout.addView(volumeSeek)
+        layout.addView(rateLabel)
+        layout.addView(rateSeek)
+
+        val applySoundEnabled = { enabled: Boolean ->
+            themeManager.saveFeatureFlags(
+                autoCorrectionEnabled = themeManager.isAutoCorrectionEnabled,
+                clipboardSuggestionsEnabled = themeManager.isClipboardSuggestionsEnabled,
+                soundEnabled = enabled,
+                vibrationEnabled = themeManager.isVibrationEnabled,
+                gestureTypingEnabled = themeManager.isGestureTypingEnabled,
+                voiceInputEnabled = themeManager.isVoiceInputEnabled,
+                doubleSpaceEnabled = themeManager.isDoubleSpaceEnabled,
+                autoSpaceEnabled = themeManager.isAutoSpaceEnabled,
+                deleteWordEnabled = themeManager.isDeleteWordEnabled,
+                backspaceSwipeEnabled = themeManager.isBackspaceSwipeEnabled,
+                backspaceTripleTapEnabled = themeManager.isBackspaceTripleTapEnabled,
+            )
+        }
+
+        val windowToken = window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
+        uiHandler.post {
+            val dialog = AlertDialog.Builder(this)
+                .setTitle(getString(R.string.dialog_sound_effects_title))
+                .setView(layout)
+                .setPositiveButton(getString(R.string.btn_ok)) { _, _ ->
+                    val volume = volumeSeek.progress / 100f
+                    val rate = (rateSeek.progress.coerceAtLeast(50) / 100f)
+                    prefs.edit {
+                        putFloat(PREF_KEY_SOUND_VOLUME, volume)
+                        putFloat(PREF_KEY_SOUND_RATE, rate)
+                    }
+                    applySoundEnabled(enabledCheck.isChecked)
+                    initPxCache()
+                    openBehaviorDialog()
+                }
+                .setNegativeButton(getString(R.string.btn_cancel)) { _, _ ->
+                    prefs.edit {
+                        putFloat(PREF_KEY_SOUND_VOLUME, initialVolume)
+                        putFloat(PREF_KEY_SOUND_RATE, initialRate)
+                    }
+                    applySoundEnabled(initialEnabled)
+                    initPxCache()
+                    openBehaviorDialog()
+                }
+                .setOnCancelListener {
+                    prefs.edit {
+                        putFloat(PREF_KEY_SOUND_VOLUME, initialVolume)
+                        putFloat(PREF_KEY_SOUND_RATE, initialRate)
+                    }
+                    applySoundEnabled(initialEnabled)
+                    initPxCache()
+                    openBehaviorDialog()
+                }
+                .create()
+
+            dialog.window?.apply {
+                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+                attributes?.token = windowToken
+                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            }
+            dialog.show()
+        }
+    }
+
+    private fun openVibrationPatternDialog() {
+        val context = this
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px10 * 2, px10 * 2, px10 * 2, px10 * 2)
+        }
+
+        val prefs = getPrefs()
+        val initialPattern = prefs.getString(PREF_KEY_VIBRATION_PATTERN, "") ?: ""
+        val initialRepeat = prefs.getInt(PREF_KEY_VIBRATION_PATTERN_REPEAT, -1)
+        val initialAmplitude = prefs.getInt(PREF_KEY_VIBRATION_AMPLITUDE, -1)
+
+        val patternInput = EditText(context).apply {
+            hint = getString(R.string.hint_vibration_pattern)
+            setText(initialPattern)
+        }
+        val repeatLabel = TextView(context).apply {
+            text = getString(R.string.label_repeat_index_fmt, initialRepeat)
+        }
+        val repeatSeek = SeekBar(context).apply {
+            max = 10
+            progress = initialRepeat.coerceAtLeast(0)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val value = if (progress == 0) -1 else progress - 1
+                    repeatLabel.text = getString(R.string.label_repeat_index_fmt, value)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+        val amplitudeLabel = TextView(context).apply {
+            text = getString(R.string.label_amplitude_fmt, initialAmplitude)
+        }
+        val amplitudeSeek = SeekBar(context).apply {
+            max = 255
+            progress = if (initialAmplitude < 0) 0 else initialAmplitude
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val value = if (progress == 0) -1 else progress
+                    amplitudeLabel.text = getString(R.string.label_amplitude_fmt, value)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        layout.addView(patternInput)
+        layout.addView(repeatLabel)
+        layout.addView(repeatSeek)
+        layout.addView(amplitudeLabel)
+        layout.addView(amplitudeSeek)
+
+        val windowToken = window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
+        uiHandler.post {
+            val dialog = AlertDialog.Builder(this)
+                .setTitle(getString(R.string.dialog_vibration_pattern_title))
+                .setView(layout)
+                .setPositiveButton(getString(R.string.btn_ok)) { _, _ ->
+                    val repeat = if (repeatSeek.progress == 0) -1 else repeatSeek.progress - 1
+                    val amplitude = if (amplitudeSeek.progress == 0) -1 else amplitudeSeek.progress
+                    prefs.edit {
+                        putString(PREF_KEY_VIBRATION_PATTERN, patternInput.text.toString())
+                        putInt(PREF_KEY_VIBRATION_PATTERN_REPEAT, repeat)
+                        putInt(PREF_KEY_VIBRATION_AMPLITUDE, amplitude)
+                    }
+                    initPxCache()
+                    openBehaviorDialog()
+                }
+                .setNegativeButton(getString(R.string.btn_cancel)) { _, _ ->
+                    prefs.edit {
+                        putString(PREF_KEY_VIBRATION_PATTERN, initialPattern)
+                        putInt(PREF_KEY_VIBRATION_PATTERN_REPEAT, initialRepeat)
+                        putInt(PREF_KEY_VIBRATION_AMPLITUDE, initialAmplitude)
+                    }
+                    initPxCache()
+                    openBehaviorDialog()
+                }
+                .setOnCancelListener {
+                    prefs.edit {
+                        putString(PREF_KEY_VIBRATION_PATTERN, initialPattern)
+                        putInt(PREF_KEY_VIBRATION_PATTERN_REPEAT, initialRepeat)
+                        putInt(PREF_KEY_VIBRATION_AMPLITUDE, initialAmplitude)
+                    }
+                    initPxCache()
+                    openBehaviorDialog()
+                }
+                .create()
+
+            dialog.window?.apply {
+                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+                attributes?.token = windowToken
+                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            }
+            dialog.show()
+        }
+    }
+
+    private fun openInputRulesDialog() {
+        val context = this
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px10 * 2, px10 * 2, px10 * 2, px10 * 2)
+        }
+
+        val prefs = getPrefs()
+        val initialDoubleSpaceWindow = prefs.getLong(PREF_KEY_DOUBLE_SPACE_WINDOW, 800L)
+        val initialDoubleSpaceLookback = prefs.getInt(PREF_KEY_DOUBLE_SPACE_LOOKBACK, 6)
+        val initialDeleteWordLookback = prefs.getInt(PREF_KEY_DELETE_WORD_LOOKBACK, 120)
+        val initialAutoCapLookback = prefs.getInt(PREF_KEY_AUTOCAP_LOOKBACK, 200)
+        val initialCurrentWordLookback = prefs.getInt(PREF_KEY_CURRENT_WORD_LOOKBACK, 50)
+        val initialAutoPunctuation = prefs.getString(PREF_KEY_AUTO_PUNCTUATION_CHARS, ".,;:?!)") ?: ".,;:?!)"
+        val initialAutoCapDelims = prefs.getString(PREF_KEY_AUTOCAP_DELIMITERS, ".:;?!\n") ?: ".:;?!\n"
+        val initialPasteSpace = prefs.getBoolean(PREF_KEY_PASTE_ADD_SPACE, true)
+
+        val doubleSpaceLabel = TextView(context).apply {
+            text = getString(R.string.label_double_space_window_fmt, initialDoubleSpaceWindow)
+        }
+        val doubleSpaceSeek = SeekBar(context).apply {
+            max = 1500
+            progress = initialDoubleSpaceWindow.toInt().coerceIn(0, 1500)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    doubleSpaceLabel.text = getString(R.string.label_double_space_window_fmt, progress)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        val doubleSpaceLookbackLabel = TextView(context).apply {
+            text = getString(R.string.label_double_space_lookback_fmt, initialDoubleSpaceLookback)
+        }
+        val doubleSpaceLookbackSeek = SeekBar(context).apply {
+            max = 20
+            progress = initialDoubleSpaceLookback.coerceIn(1, 20)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val value = progress.coerceAtLeast(1)
+                    doubleSpaceLookbackLabel.text = getString(R.string.label_double_space_lookback_fmt, value)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        val deleteWordLabel = TextView(context).apply {
+            text = getString(R.string.label_delete_word_lookback_fmt, initialDeleteWordLookback)
+        }
+        val deleteWordSeek = SeekBar(context).apply {
+            max = 300
+            progress = initialDeleteWordLookback.coerceIn(20, 300)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val value = progress.coerceAtLeast(20)
+                    deleteWordLabel.text = getString(R.string.label_delete_word_lookback_fmt, value)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        val autoCapLabel = TextView(context).apply {
+            text = getString(R.string.label_autocap_lookback_fmt, initialAutoCapLookback)
+        }
+        val autoCapSeek = SeekBar(context).apply {
+            max = 400
+            progress = initialAutoCapLookback.coerceIn(50, 400)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val value = progress.coerceAtLeast(50)
+                    autoCapLabel.text = getString(R.string.label_autocap_lookback_fmt, value)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        val currentWordLabel = TextView(context).apply {
+            text = getString(R.string.label_current_word_lookback_fmt, initialCurrentWordLookback)
+        }
+        val currentWordSeek = SeekBar(context).apply {
+            max = 200
+            progress = initialCurrentWordLookback.coerceIn(10, 200)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val value = progress.coerceAtLeast(10)
+                    currentWordLabel.text = getString(R.string.label_current_word_lookback_fmt, value)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        val autoPunctuationInput = EditText(context).apply {
+            hint = getString(R.string.hint_auto_punctuation_chars)
+            setText(initialAutoPunctuation)
+        }
+        val autoCapInput = EditText(context).apply {
+            hint = getString(R.string.hint_autocap_delimiters)
+            setText(initialAutoCapDelims)
+        }
+        val pasteCheck = android.widget.CheckBox(context).apply {
+            text = getString(R.string.label_paste_add_space)
+            isChecked = initialPasteSpace
+        }
+
+        layout.addView(doubleSpaceLabel)
+        layout.addView(doubleSpaceSeek)
+        layout.addView(doubleSpaceLookbackLabel)
+        layout.addView(doubleSpaceLookbackSeek)
+        layout.addView(deleteWordLabel)
+        layout.addView(deleteWordSeek)
+        layout.addView(autoCapLabel)
+        layout.addView(autoCapSeek)
+        layout.addView(currentWordLabel)
+        layout.addView(currentWordSeek)
+        layout.addView(autoPunctuationInput)
+        layout.addView(autoCapInput)
+        layout.addView(pasteCheck)
+
+        val windowToken = window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
+        uiHandler.post {
+            val dialog = AlertDialog.Builder(this)
+                .setTitle(getString(R.string.dialog_input_rules_title))
+                .setView(layout)
+                .setPositiveButton(getString(R.string.btn_ok)) { _, _ ->
+                    prefs.edit {
+                        putLong(PREF_KEY_DOUBLE_SPACE_WINDOW, doubleSpaceSeek.progress.toLong())
+                        putInt(PREF_KEY_DOUBLE_SPACE_LOOKBACK, doubleSpaceLookbackSeek.progress.coerceAtLeast(1))
+                        putInt(PREF_KEY_DELETE_WORD_LOOKBACK, deleteWordSeek.progress.coerceAtLeast(20))
+                        putInt(PREF_KEY_AUTOCAP_LOOKBACK, autoCapSeek.progress.coerceAtLeast(50))
+                        putInt(PREF_KEY_CURRENT_WORD_LOOKBACK, currentWordSeek.progress.coerceAtLeast(10))
+                        putString(PREF_KEY_AUTO_PUNCTUATION_CHARS, autoPunctuationInput.text.toString())
+                        putString(PREF_KEY_AUTOCAP_DELIMITERS, autoCapInput.text.toString())
+                        putBoolean(PREF_KEY_PASTE_ADD_SPACE, pasteCheck.isChecked)
+                    }
+                    initPxCache()
+                    openBehaviorDialog()
+                }
+                .setNegativeButton(getString(R.string.btn_cancel)) { _, _ ->
+                    prefs.edit {
+                        putLong(PREF_KEY_DOUBLE_SPACE_WINDOW, initialDoubleSpaceWindow)
+                        putInt(PREF_KEY_DOUBLE_SPACE_LOOKBACK, initialDoubleSpaceLookback)
+                        putInt(PREF_KEY_DELETE_WORD_LOOKBACK, initialDeleteWordLookback)
+                        putInt(PREF_KEY_AUTOCAP_LOOKBACK, initialAutoCapLookback)
+                        putInt(PREF_KEY_CURRENT_WORD_LOOKBACK, initialCurrentWordLookback)
+                        putString(PREF_KEY_AUTO_PUNCTUATION_CHARS, initialAutoPunctuation)
+                        putString(PREF_KEY_AUTOCAP_DELIMITERS, initialAutoCapDelims)
+                        putBoolean(PREF_KEY_PASTE_ADD_SPACE, initialPasteSpace)
+                    }
+                    initPxCache()
+                    openBehaviorDialog()
+                }
+                .setOnCancelListener {
+                    prefs.edit {
+                        putLong(PREF_KEY_DOUBLE_SPACE_WINDOW, initialDoubleSpaceWindow)
+                        putInt(PREF_KEY_DOUBLE_SPACE_LOOKBACK, initialDoubleSpaceLookback)
+                        putInt(PREF_KEY_DELETE_WORD_LOOKBACK, initialDeleteWordLookback)
+                        putInt(PREF_KEY_AUTOCAP_LOOKBACK, initialAutoCapLookback)
+                        putInt(PREF_KEY_CURRENT_WORD_LOOKBACK, initialCurrentWordLookback)
+                        putString(PREF_KEY_AUTO_PUNCTUATION_CHARS, initialAutoPunctuation)
+                        putString(PREF_KEY_AUTOCAP_DELIMITERS, initialAutoCapDelims)
+                        putBoolean(PREF_KEY_PASTE_ADD_SPACE, initialPasteSpace)
+                    }
+                    initPxCache()
+                    openBehaviorDialog()
+                }
+                .create()
+
+            dialog.window?.apply {
+                setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+                attributes?.token = windowToken
+                addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            }
+            dialog.show()
+        }
+    }
+
+    private fun openLimitsDialog() {
+        val context = this
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px10 * 2, px10 * 2, px10 * 2, px10 * 2)
+        }
+
+        val prefs = getPrefs()
+        val initialSuggestions = prefs.getInt(PREF_KEY_MAX_SUGGESTIONS, 3)
+        val initialClipboard = prefs.getInt(PREF_KEY_MAX_CLIPBOARD_ITEMS, DEFAULT_MAX_ITEMS_IN_CLIPBOARD)
+
+        val suggestionLabel = TextView(context).apply {
+            text = getString(R.string.label_max_suggestions_fmt, initialSuggestions)
+        }
+        val suggestionSeek = SeekBar(context).apply {
+            max = 10
+            progress = initialSuggestions.coerceIn(1, 10)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val value = progress.coerceAtLeast(1)
+                    suggestionLabel.text = getString(R.string.label_max_suggestions_fmt, value)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        val clipboardLabel = TextView(context).apply {
+            text = getString(R.string.label_max_clipboard_items_fmt, initialClipboard)
+        }
+        val clipboardSeek = SeekBar(context).apply {
+            max = 30
+            progress = initialClipboard.coerceIn(1, 30)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val value = progress.coerceAtLeast(1)
+                    clipboardLabel.text = getString(R.string.label_max_clipboard_items_fmt, value)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        layout.addView(suggestionLabel)
+        layout.addView(suggestionSeek)
+        layout.addView(clipboardLabel)
+        layout.addView(clipboardSeek)
+
+        val windowToken = window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
+        uiHandler.post {
+            val dialog = AlertDialog.Builder(this)
+                .setTitle(getString(R.string.dialog_limits_title))
+                .setView(layout)
+                .setPositiveButton(getString(R.string.btn_ok)) { _, _ ->
+                    prefs.edit {
+                        putInt(PREF_KEY_MAX_SUGGESTIONS, suggestionSeek.progress.coerceAtLeast(1))
+                        putInt(PREF_KEY_MAX_CLIPBOARD_ITEMS, clipboardSeek.progress.coerceAtLeast(1))
+                    }
+                    initPxCache()
+                    rebuildOnUiThread()
+                    openBehaviorDialog()
+                }
+                .setNegativeButton(getString(R.string.btn_cancel)) { _, _ ->
+                    prefs.edit {
+                        putInt(PREF_KEY_MAX_SUGGESTIONS, initialSuggestions)
+                        putInt(PREF_KEY_MAX_CLIPBOARD_ITEMS, initialClipboard)
+                    }
+                    initPxCache()
+                    rebuildOnUiThread()
+                    openBehaviorDialog()
+                }
+                .setOnCancelListener {
+                    prefs.edit {
+                        putInt(PREF_KEY_MAX_SUGGESTIONS, initialSuggestions)
+                        putInt(PREF_KEY_MAX_CLIPBOARD_ITEMS, initialClipboard)
+                    }
+                    initPxCache()
+                    rebuildOnUiThread()
+                    openBehaviorDialog()
+                }
+                .create()
+
             dialog.window?.apply {
                 setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
                 attributes?.token = windowToken
@@ -1686,12 +2503,9 @@ class CustomKeyboard :
         }
     }
 
-
-
-
     private fun extractCurrentWord(): String? {
         val inputConnection = currentInputConnection ?: return null
-        val beforeCursor = inputConnection.getTextBeforeCursor(50, 0) ?: return null
+        val beforeCursor = inputConnection.getTextBeforeCursor(currentWordLookbackChars, 0) ?: return null
         if (beforeCursor.isEmpty()) return ""
 
         var i = beforeCursor.length - 1
@@ -1703,41 +2517,243 @@ class CustomKeyboard :
         return beforeCursor.substring(start)
     }
 
+    private fun normalizeWord(raw: String): String {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) return ""
+        val builder = StringBuilder(trimmed.length)
+        for (ch in trimmed) {
+            if (ch.isLetter()) {
+                builder.append(ch.lowercaseChar())
+            }
+        }
+        return builder.toString()
+    }
+
+    private fun extractNormalizedWords(text: String): List<String> {
+        if (text.isBlank()) return emptyList()
+        val parts = text.split(Regex("\\s+"))
+        val out = ArrayList<String>(parts.size)
+        for (part in parts) {
+            val word = normalizeWord(part)
+            if (word.isNotEmpty()) {
+                out.add(word)
+            }
+        }
+        return out
+    }
+
+    private fun getLearnableWord(raw: String): String? {
+        if (isPrivateMode) return null
+        val normalized = normalizeWord(raw)
+        if (normalized.length < 3) return null
+        if (suggestionEngine.contains(normalized) || userDictionary.contains(normalized)) {
+            return normalized
+        }
+
+        val updatedCount = (pendingWordCounts[normalized] ?: 0) + 1
+        pendingWordCounts[normalized] = updatedCount
+        if (pendingWordCounts.size > maxPendingWordCache) {
+            val iterator = pendingWordCounts.keys.iterator()
+            var removed = 0
+            while (iterator.hasNext() && removed < 50) {
+                iterator.next()
+                iterator.remove()
+                removed += 1
+            }
+        }
+
+        if (updatedCount < pendingWordPromotionThreshold) return null
+        pendingWordCounts.remove(normalized)
+        if (userDictionary.add(normalized)) {
+            saveUserDictionary()
+            cachedEnSnapshot = null
+            cachedEsSnapshot = null
+            cachedBothSnapshot = null
+            val mode = currentAutocompleteMode ?: AutocompleteMode.EN
+            currentAutocompleteMode = null
+            applyAutocompleteMode(mode, false)
+        }
+        return normalized
+    }
+
+    private fun learnFromCommittedText(text: String) {
+        if (isPrivateMode) return
+        val words = extractNormalizedWords(text)
+        if (words.isEmpty()) return
+        var prev = lastCommittedWordLower
+        for (word in words) {
+            val learned = getLearnableWord(word)
+            if (learned == null) {
+                prev = null
+                continue
+            }
+            if (!prev.isNullOrEmpty()) {
+                bigramModel.add(prev, learned)
+            }
+            prev = learned
+        }
+        lastCommittedWordLower = prev
+    }
+
+    private fun recordCommittedWord(word: String) {
+        val learned = getLearnableWord(word)
+        if (learned == null) {
+            lastCommittedWordLower = null
+            return
+        }
+        val prev = lastCommittedWordLower
+        if (!prev.isNullOrEmpty()) {
+            bigramModel.add(prev, learned)
+        }
+        lastCommittedWordLower = learned
+    }
+
+    private fun shouldShowNextWordSuggestions(): Boolean {
+        val inputConnection = currentInputConnection ?: return false
+        val before = inputConnection.getTextBeforeCursor(1, 0)?.toString().orEmpty()
+        if (before.isEmpty()) return false
+        return before.last().isWhitespace()
+    }
+
+    private fun loadBigramModelFromAssets(vararg fileNames: String) {
+        serviceScope.launch {
+            withContext(Dispatchers.IO) {
+                fileNames.forEach { fileName ->
+                    try {
+                        assets.open(fileName).bufferedReader().useLines { lines ->
+                            for (line in lines) {
+                                val trimmed = line.trim()
+                                if (trimmed.isEmpty()) continue
+                                val parts = trimmed.split(Regex("\\s+"))
+                                if (parts.size < 2) continue
+                                val prev = normalizeWord(parts[0])
+                                val next = normalizeWord(parts[1])
+                                if (prev.isEmpty() || next.isEmpty()) continue
+                                val count = parts.getOrNull(2)?.toIntOrNull() ?: 1
+                                bigramModel.add(prev, next, count)
+                            }
+                        }
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+        }
+    }
+
     private fun updateSuggestions() {
-        if (!areSuggestionsEnabled) {
+        if (!areSuggestionsEnabled || !themeManager.isAutoCorrectionEnabled) {
             suggestionsJob?.cancel()
+            pendingSuggestionPrefix = null
+            pendingSuggestionCurrentWord = null
+            pendingNextWordBase = null
+            pendingNextWordMode = false
+            suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
             renderSuggestions(emptyList(), capitalizeFirst = false)
             return
         }
 
         val currentWord = extractCurrentWord()
         if (currentWord.isNullOrEmpty()) {
+            val baseWord = lastCommittedWordLower
+            if (!baseWord.isNullOrEmpty() && shouldShowNextWordSuggestions()) {
+                pendingNextWordMode = true
+                pendingNextWordBase = baseWord
+                pendingSuggestionCapitalize = shouldAutoCapitalizeNextChar()
+                scheduleSuggestionUpdate()
+                return
+            }
+
             suggestionsJob?.cancel()
+            pendingSuggestionPrefix = null
+            pendingSuggestionCurrentWord = null
+            pendingNextWordBase = null
+            pendingNextWordMode = false
+            suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
             renderSuggestions(emptyList(), capitalizeFirst = false)
             return
         }
 
         val capitalizeFirst = currentWord.firstOrNull()?.isUpperCase() == true
         val prefix = currentWord.lowercase()
+        pendingNextWordMode = false
+        pendingSuggestionPrefix = prefix
+        pendingSuggestionCurrentWord = currentWord
+        pendingSuggestionCapitalize = capitalizeFirst
+        scheduleSuggestionUpdate()
+    }
 
+    private fun scheduleSuggestionUpdate() {
+        if (suggestionUpdateRunnable == null) {
+            suggestionUpdateRunnable = Runnable { runSuggestionUpdate() }
+        }
+        suggestionUpdateRunnable?.let {
+            uiHandler.removeCallbacks(it)
+            val now = SystemClock.elapsedRealtime()
+            val sinceLast = now - lastSuggestionComputeAtMs
+            val minDelay = if (sinceLast >= suggestionMinIntervalMs) 0L else suggestionMinIntervalMs - sinceLast
+            uiHandler.postDelayed(it, maxOf(suggestionDebounceMs, minDelay))
+        }
+    }
+
+    private fun runSuggestionUpdate() {
+        lastSuggestionComputeAtMs = SystemClock.elapsedRealtime()
         val requestId = ++suggestionsRequestId
         suggestionsJob?.cancel()
+
+        val nextWordMode = pendingNextWordMode
+        val nextWordBase = pendingNextWordBase
+        val prefix = pendingSuggestionPrefix
+        val currentWord = pendingSuggestionCurrentWord
+        val capitalizeFirst = pendingSuggestionCapitalize
+
+        if (nextWordMode) {
+            if (nextWordBase.isNullOrEmpty()) {
+                renderSuggestions(emptyList(), capitalizeFirst = false)
+                return
+            }
+            suggestionsJob =
+                serviceScope.launch {
+                    val matches = withContext(Dispatchers.Default) {
+                        bigramModel.suggestNext(nextWordBase, maxSuggestions)
+                    }
+                    if (requestId != suggestionsRequestId) return@launch
+
+                    uiHandler.post {
+                        renderSuggestions(matches, capitalizeFirst)
+                    }
+                }
+            return
+        }
+
+        if (prefix.isNullOrEmpty()) {
+            renderSuggestions(emptyList(), capitalizeFirst = false)
+            return
+        }
+
         suggestionsJob =
             serviceScope.launch {
-                val matches = withContext(Dispatchers.Default) { suggestionEngine.suggest(prefix) }
+                val matches = withContext(Dispatchers.Default) {
+                    val ctx = coroutineContext
+                    suggestionEngine.suggest(prefix) { !ctx.isActive || requestId != suggestionsRequestId }
+                }
                 if (requestId != suggestionsRequestId) return@launch
 
-                
-                
-                
-                val filteredMatches = matches
-                    .filterNot { it.equals(currentWord, ignoreCase = true) }
-                    .distinctBy { it.lowercase() }
-                    .take(MAX_SUGGESTIONS)
+                val filteredMatches = ArrayList<String>(maxSuggestions)
+                val seen = HashSet<String>(maxSuggestions * 2)
+                val currentLower = currentWord?.lowercase()
+                for (match in matches) {
+                    if (currentLower != null && match.equals(currentLower, ignoreCase = true)) {
+                        continue
+                    }
+                    val lower = match.lowercase()
+                    if (!seen.add(lower)) continue
+                    filteredMatches.add(match)
+                    if (filteredMatches.size >= maxSuggestions) break
+                }
 
-                renderSuggestions(filteredMatches, capitalizeFirst)
-                updateSelectionActions()
-                updateCapsVisualsOnUiThread()
+                uiHandler.post {
+                    renderSuggestions(filteredMatches, capitalizeFirst)
+                }
             }
     }
 
@@ -1751,10 +2767,12 @@ class CustomKeyboard :
 
         suggestionSlotsCapitalizeFirst = capitalizeFirst
 
-        for (i in 0 until MAX_SUGGESTIONS) {
+        for (i in 0 until maxSuggestions) {
             val button = layoutManager.suggestionButtons.getOrNull(i) ?: continue
             val suggestion = suggestions.getOrNull(i)
-            layoutManager.suggestionSlotValues[i] = suggestion
+            if (layoutManager.suggestionSlotValues.size > i) {
+                layoutManager.suggestionSlotValues[i] = suggestion
+            }
 
             if (suggestion.isNullOrEmpty()) {
                 button.visibility = View.INVISIBLE
@@ -1798,36 +2816,6 @@ class CustomKeyboard :
     private val keyClickListener: View.OnClickListener =
         View.OnClickListener { v ->
             val key = v.tag as? String ?: return@OnClickListener
-
-            if (vibrationDurationMs > 0) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val amplitude = when (key.lowercase()) {
-                        "enter", "backspace", "space" -> 60 
-                        else -> 30 
-                    }
-                    vibrator?.vibrate(
-                        VibrationEffect.createOneShot(
-                            vibrationDurationMs.toLong(),
-                            amplitude
-                        )
-                    )
-                } else {
-                    @Suppress("DEPRECATION")
-                    vibrator?.vibrate(vibrationDurationMs.toLong())
-                }
-            } else if (vibrationDurationMs < 0) {
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            }
-
-            if (shouldPlayKeyClickSound()) {
-                if (keyClickSoundId != 0) {
-                    soundPool?.play(keyClickSoundId, 1f, 1f, 1, 0, 1f)
-                } else {
-                    val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                    am.playSoundEffect(AudioManager.FX_KEY_CLICK)
-                }
-            }
-
             if (key != "backspace") {
                 backspaceTapCount = 0
                 lastBackspaceTapTimeMs = 0L
@@ -1843,6 +2831,47 @@ class CustomKeyboard :
                 "tab" -> commitText("\t")
                 "space" -> commitKeyWithCaps(" ")
                 else -> commitKeyWithCaps(key)
+            }
+
+            soundHapticJob?.cancel()
+            soundHapticJob = serviceScope.launch(Dispatchers.Default) {
+                if (themeManager.isVibrationEnabled) {
+                    if (vibrationPattern != null) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            vibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, vibrationPatternRepeat))
+                        } else {
+                            @Suppress("DEPRECATION")
+                            vibrator?.vibrate(vibrationPattern, vibrationPatternRepeat)
+                        }
+                    } else if (vibrationDurationMs > 0) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            val amplitude = if (vibrationAmplitude >= 0) vibrationAmplitude else when (key.lowercase()) {
+                                "enter", "backspace", "space" -> 60
+                                else -> 30
+                            }
+                            vibrator?.vibrate(
+                                VibrationEffect.createOneShot(
+                                    vibrationDurationMs.toLong(),
+                                    amplitude
+                                )
+                            )
+                        } else {
+                            @Suppress("DEPRECATION")
+                            vibrator?.vibrate(vibrationDurationMs.toLong())
+                        }
+                    } else if (vibrationDurationMs < 0) {
+                        uiHandler.post { v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
+                    }
+                }
+
+                if (shouldPlayKeyClickSound()) {
+                    if (keyClickSoundId != 0) {
+                        soundPool?.play(keyClickSoundId, soundVolume, soundVolume, 1, 0, soundRate)
+                    } else {
+                        val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                        am.playSoundEffect(AudioManager.FX_KEY_CLICK)
+                    }
+                }
             }
         }
 
@@ -1874,12 +2903,16 @@ class CustomKeyboard :
             }
         }
 
-        val withinWindow = now - lastBackspaceTapTimeMs <= BACKSPACE_MULTI_TAP_WINDOW_MS
+        val withinWindow = now - lastBackspaceTapTimeMs <= backspaceMultiTapWindowMs
         backspaceTapCount = if (withinWindow) (backspaceTapCount + 1) else 1
         lastBackspaceTapTimeMs = now
 
-        if (backspaceTapCount >= 3) {
-            deleteWordFromInputConnection()
+        if (backspaceTapCount >= backspaceMultiTapCount) {
+            if (themeManager.isDeleteWordEnabled && themeManager.isBackspaceTripleTapEnabled) {
+                deleteWordFromInputConnection()
+            } else {
+                deleteFromInputConnection()
+            }
         } else {
             deleteFromInputConnection()
         }
@@ -1903,21 +2936,44 @@ class CustomKeyboard :
         themeManager.customBgColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_BG_COLOR, Color.BLACK)
         themeManager.customKeyColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_KEY_COLOR, Color.DKGRAY)
         themeManager.customAccentColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_ACCENT_COLOR, Color.BLUE)
+        themeManager.customTextColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_TEXT_COLOR, Color.WHITE)
+        themeManager.customCapsNeutralColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_CAPS_NEUTRAL_COLOR, 0)
+        themeManager.customCapsMediumColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_CAPS_MEDIUM_COLOR, 0)
+        themeManager.customCapsStrongColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_CAPS_STRONG_COLOR, 0)
+        themeManager.customCapsStrongTextColor = prefs.getInt(KeyboardThemeManager.PREF_KEY_CUSTOM_CAPS_STRONG_TEXT_COLOR, Color.WHITE)
 
         px1 = keyGapPx
-        px4 = dpToPx(4)
-        px6 = dpToPx(6)
-        px8 = dpToPx(8)
-        px10 = dpToPx(10)
-        px36 = dpToPx(36)
+        px4 = dpToPx(prefs.getInt(PREF_KEY_SPACING_4_DP, 4))
+        px6 = dpToPx(prefs.getInt(PREF_KEY_SPACING_6_DP, 6))
+        px8 = dpToPx(prefs.getInt(PREF_KEY_SPACING_8_DP, 8))
+        px10 = dpToPx(prefs.getInt(PREF_KEY_SPACING_10_DP, 10))
+        px36 = dpToPx(prefs.getInt(PREF_KEY_SPACING_36_DP, 36))
 
+        keyMinWidthPx = dpToPx(themeManager.keyMinWidthDp)
+        keyMinWideWidthPx = dpToPx(themeManager.keyMinWideWidthDp)
+        keyMinHeightPx = (dpToPx(themeManager.keyMinHeightDp) * keyboardHeightFactor).toInt()
+        keyRowHeightPx = (dpToPx(themeManager.keyRowHeightDp) * keyboardHeightFactor).toInt()
+        suggestionBarHeightPx = (dpToPx(themeManager.suggestionBarHeightDp) * keyboardHeightFactor).toInt()
+        selectionBarHeightPx = (dpToPx(themeManager.selectionBarHeightDp) * keyboardHeightFactor).toInt()
+        clipboardBarHeightPx = (dpToPx(themeManager.clipboardBarHeightDp) * keyboardHeightFactor).toInt()
 
-        px44 = (dpToPx(44) * keyboardHeightFactor).toInt()
+        px44 = keyMinHeightPx
         px52 = (dpToPx(52) * keyboardHeightFactor).toInt()
-        px56 = (dpToPx(56) * keyboardHeightFactor).toInt()
-        px64 = dpToPx(64)
+        px56 = keyRowHeightPx
+        px64 = keyMinWideWidthPx
 
-        keyTextSizePx = dpToPx(15).toFloat() * keyboardHeightFactor
+        keyTextSizePx = spToPx(themeManager.keyTextSizeSp) * keyboardHeightFactor
+        suggestionTextSizePx = spToPx(themeManager.suggestionTextSizeSp) * keyboardHeightFactor
+        selectionTextSizePx = spToPx(themeManager.selectionTextSizeSp) * keyboardHeightFactor
+        clipboardTextSizePx = spToPx(themeManager.clipboardTextSizeSp) * keyboardHeightFactor
+        keyPreviewTextSizePx = spToPx(themeManager.keyPreviewTextSizeSp) * keyboardHeightFactor
+        accentTextSizePx = spToPx(themeManager.accentTextSizeSp) * keyboardHeightFactor
+        hintTextSizeFactor = themeManager.hintTextSizeFactor
+        keyPaddingHorizontalPx = dpToPx(themeManager.keyPaddingHorizontalDp)
+        keyPaddingVerticalPx = dpToPx(themeManager.keyPaddingVerticalDp)
+        keyPreviewPaddingPx = dpToPx(themeManager.keyPreviewPaddingDp)
+        keyPreviewBorderWidthPx = dpToPx(themeManager.keyPreviewBorderWidthDp)
+        keyElevationPx = dpToPx(themeManager.keyElevationDp).toFloat()
 
         val swipeThresholdDp = prefs.getInt(PREF_KEY_SWIPE_THRESHOLD, 6)
         spaceSwipeStartThresholdPx = dpToPx(swipeThresholdDp).toFloat()
@@ -1931,16 +2987,99 @@ class CustomKeyboard :
         val bsSwipeThresholdDp = prefs.getInt(PREF_KEY_BACKSPACE_SWIPE_THRESHOLD, 36)
         backspaceSwipeThresholdPx = dpToPx(bsSwipeThresholdDp).toFloat()
 
-        backspaceInitialIntervalMs = prefs.getLong(PREF_KEY_BACKSPACE_INITIAL_INTERVAL, BACKSPACE_INITIAL_INTERVAL_MS)
-        backspaceAccelerationMs = prefs.getLong(PREF_KEY_BACKSPACE_ACCELERATION, BACKSPACE_ACCELERATION_STEP_MS)
-        backspaceMinIntervalMs = prefs.getLong(PREF_KEY_BACKSPACE_MIN_INTERVAL, BACKSPACE_MIN_INTERVAL_MS)
+        val touchSlopDp = prefs.getInt(PREF_KEY_TOUCH_SLOP_DP, 10)
+        touchSlopPx = dpToPx(touchSlopDp).toFloat()
+        val accentSwipeDp = prefs.getInt(PREF_KEY_ACCENT_SWIPE_THRESHOLD_DP, 20)
+        accentSwipeThresholdPx = dpToPx(accentSwipeDp).toFloat()
+        val edgeThresholdDp = prefs.getInt(PREF_KEY_EDGE_SWIPE_THRESHOLD_DP, 36)
+        spaceSwipeEdgeThresholdPx = dpToPx(edgeThresholdDp).toFloat()
+        edgeRepeatIntervalMs = prefs.getLong(PREF_KEY_EDGE_REPEAT_INTERVAL, 150L)
+
+        backspaceInitialIntervalMs = prefs.getLong(PREF_KEY_BACKSPACE_INITIAL_INTERVAL, 260L)
+        backspaceAccelerationMs = prefs.getLong(PREF_KEY_BACKSPACE_ACCELERATION, 30L)
+        backspaceMinIntervalMs = prefs.getLong(PREF_KEY_BACKSPACE_MIN_INTERVAL, 70L)
         backspaceIntervalMs = backspaceInitialIntervalMs
+
+        doubleTapThresholdMs = prefs.getLong(PREF_KEY_DOUBLE_TAP_THRESHOLD, 350L)
+        backspaceMultiTapWindowMs = prefs.getLong(PREF_KEY_BACKSPACE_MULTI_TAP_WINDOW, 450L)
+        backspaceMultiTapCount = prefs.getInt(PREF_KEY_BACKSPACE_MULTI_TAP_COUNT, 3)
+        doubleSpaceWindowMs = prefs.getLong(PREF_KEY_DOUBLE_SPACE_WINDOW, 800L)
+        doubleSpaceLookbackChars = prefs.getInt(PREF_KEY_DOUBLE_SPACE_LOOKBACK, 6)
+        deleteWordLookbackChars = prefs.getInt(PREF_KEY_DELETE_WORD_LOOKBACK, 120)
+        autoCapLookbackChars = prefs.getInt(PREF_KEY_AUTOCAP_LOOKBACK, 200)
+        currentWordLookbackChars = prefs.getInt(PREF_KEY_CURRENT_WORD_LOOKBACK, 50)
+        autoPunctuationChars = prefs.getString(PREF_KEY_AUTO_PUNCTUATION_CHARS, ".,;:?!)") ?: ".,;:?!)"
+        autoCapSentenceDelimiters = prefs.getString(PREF_KEY_AUTOCAP_DELIMITERS, ".:;?!\n") ?: ".:;?!\n"
+        pasteAddsTrailingSpace = prefs.getBoolean(PREF_KEY_PASTE_ADD_SPACE, true)
+        autoCorrectThresholdShort = prefs.getFloat(PREF_KEY_AUTOCORRECT_THRESHOLD_SHORT, 0.75f)
+            .toDouble()
+            .coerceIn(0.0, 1.0)
+        autoCorrectThresholdMedium = prefs.getFloat(PREF_KEY_AUTOCORRECT_THRESHOLD_MEDIUM, 0.70f)
+            .toDouble()
+            .coerceIn(0.0, 1.0)
+        autoCorrectThresholdLong = prefs.getFloat(PREF_KEY_AUTOCORRECT_THRESHOLD_LONG, 0.65f)
+            .toDouble()
+            .coerceIn(0.0, 1.0)
+
+        maxSuggestions = prefs.getInt(PREF_KEY_MAX_SUGGESTIONS, 3).coerceAtLeast(1)
+        maxClipboardItems = prefs.getInt(PREF_KEY_MAX_CLIPBOARD_ITEMS, DEFAULT_MAX_ITEMS_IN_CLIPBOARD).coerceAtLeast(1)
+        suggestionEngine.updateMaxSuggestions(maxSuggestions)
+        updateMaxClipboardItems(maxClipboardItems)
+        ClipboardRepository.setClipboardItems(ClipboardRepository.clipboardItems.value, maxClipboardItems)
+
+        soundEnabled = themeManager.isSoundEnabled
+        soundVolume = prefs.getFloat(PREF_KEY_SOUND_VOLUME, 1f)
+        soundRate = prefs.getFloat(PREF_KEY_SOUND_RATE, 1f)
+        vibrationAmplitude = prefs.getInt(PREF_KEY_VIBRATION_AMPLITUDE, -1)
+        val patternStr = prefs.getString(PREF_KEY_VIBRATION_PATTERN, null)
+        vibrationPattern = parseVibrationPattern(patternStr)
+        vibrationPatternRepeat = prefs.getInt(PREF_KEY_VIBRATION_PATTERN_REPEAT, -1)
+
+        inputProcessor.updateConfig(
+            InputBehaviorConfig(
+                doubleSpaceWindowMs = doubleSpaceWindowMs,
+                doubleSpaceLookbackChars = doubleSpaceLookbackChars,
+                deleteWordLookbackChars = deleteWordLookbackChars,
+                autoPunctuationChars = autoPunctuationChars,
+                pasteAddsTrailingSpace = pasteAddsTrailingSpace,
+                doubleSpaceEnabled = themeManager.isDoubleSpaceEnabled,
+                autoSpaceEnabled = themeManager.isAutoSpaceEnabled,
+                deleteWordEnabled = themeManager.isDeleteWordEnabled,
+            )
+        )
 
         layoutManager.updatePxValues(
             px1, px4, px6, px8, px10, px36,
             px44, px52, px56, px64,
-            keyTextSizePx, keyGapPx
+            keyTextSizePx, keyGapPx,
+            keyMinWidthPx,
+            keyMinHeightPx,
+            keyMinWideWidthPx,
+            keyRowHeightPx,
+            suggestionBarHeightPx,
+            selectionBarHeightPx,
+            clipboardBarHeightPx,
+            suggestionTextSizePx,
+            selectionTextSizePx,
+            clipboardTextSizePx,
+            keyPreviewTextSizePx,
+            accentTextSizePx,
+            hintTextSizeFactor,
+            keyPaddingHorizontalPx,
+            keyPaddingVerticalPx,
+            keyPreviewPaddingPx,
+            keyPreviewBorderWidthPx,
+            keyElevationPx,
         )
+        layoutManager.updateKeyWeightOverrides(loadKeyWeightOverrides())
+        updateTopRowMapOverrides()
+    }
+
+    private fun parseVibrationPattern(raw: String?): LongArray? {
+        if (raw.isNullOrBlank()) return null
+        val parts = raw.split(",", ";", " ", "\n").mapNotNull { it.trim().toLongOrNull() }
+        if (parts.isEmpty()) return null
+        return parts.toLongArray()
     }
 
     private fun applySuggestion(suggestion: String, capitalizeFirst: Boolean) {
@@ -1961,24 +3100,24 @@ class CustomKeyboard :
             ic.commitText("$textToCommit ", 1)
         }
 
+        recordCommittedWord(textToCommit)
+        inputProcessor.clearAutoCorrectionState()
+
         updateSuggestions()
         updateSelectionActions()
         invalidateCapsCache()
         updateCapsVisualsOnUiThread()
     }
 
-
-
     private fun shouldAutoCapitalizeNextChar(): Boolean {
         val inputConnection = currentInputConnection ?: return lastAutoCapitalizeNext
-        val beforeCursor = inputConnection.getTextBeforeCursor(200, 0)
+        val beforeCursor = inputConnection.getTextBeforeCursor(autoCapLookbackChars, 0)
             ?: return true.also { lastAutoCapitalizeNext = true }
         val trimmed = beforeCursor.trimEnd()
         if (trimmed.isEmpty()) return true.also { lastAutoCapitalizeNext = true }
 
         val lastChar = trimmed.last()
-        val result =
-            lastChar == '.' || lastChar == ':' || lastChar == ';' || lastChar == '?' || lastChar == '!' || lastChar == '\n'
+        val result = autoCapSentenceDelimiters.contains(lastChar)
         lastAutoCapitalizeNext = result
         return result
     }
@@ -2025,54 +3164,171 @@ class CustomKeyboard :
             }
         }
 
-    private class SuggestionEngine(
-        private val maxSuggestions: Int,
-    ) {
-        private data class LevBuffers(
-            var prev: IntArray,
-            var curr: IntArray,
+    private class BigramModel {
+        private data class BigramKey(
+            val prev: String,
+            val next: String,
         )
 
-        private val levBuffersThreadLocal: ThreadLocal<LevBuffers> =
-            ThreadLocal.withInitial {
-                LevBuffers(IntArray(128), IntArray(128))
+        private val lock = Any()
+        private val maxTotalBigrams = 20_000
+        private val maxBigramsPerPrefix = 64
+        private val maxPrefixes = 2_000
+        private val maxTokenLength = 30
+
+        private val data: ConcurrentHashMap<String, LinkedHashMap<String, Int>> = ConcurrentHashMap()
+        private val globalLru: LinkedHashMap<BigramKey, Int> = LinkedHashMap(16, 0.75f, true)
+        private val prefixLru: LinkedHashMap<String, Unit> = LinkedHashMap(16, 0.75f, true)
+
+        fun add(prev: String, next: String, count: Int = 1) {
+            if (prev.isBlank() || next.isBlank()) return
+            if (count <= 0) return
+            if (prev.length > maxTokenLength || next.length > maxTokenLength) return
+
+            synchronized(lock) {
+                val inner = data.getOrPut(prev) { LinkedHashMap(16, 0.75f, true) }
+                prefixLru[prev] = Unit
+                val current = inner[next] ?: 0
+                val newValue = current + count
+                inner[next] = newValue
+                globalLru[BigramKey(prev, next)] = newValue
+
+                if (inner.size > maxBigramsPerPrefix) {
+                    val iterator = inner.entries.iterator()
+                    if (iterator.hasNext()) {
+                        val eldest = iterator.next()
+                        iterator.remove()
+                        globalLru.remove(BigramKey(prev, eldest.key))
+                    }
+                }
+
+                while (globalLru.size > maxTotalBigrams) {
+                    val iterator = globalLru.entries.iterator()
+                    if (!iterator.hasNext()) break
+                    val eldest = iterator.next()
+                    iterator.remove()
+
+                    val prevKey = eldest.key.prev
+                    val nextKey = eldest.key.next
+                    val innerMap = data[prevKey]
+                    if (innerMap != null) {
+                        innerMap.remove(nextKey)
+                        if (innerMap.isEmpty()) {
+                            data.remove(prevKey)
+                            prefixLru.remove(prevKey)
+                        }
+                    }
+                }
+
+                if (prefixLru.size > maxPrefixes) {
+                    val iterator = prefixLru.entries.iterator()
+                    if (iterator.hasNext()) {
+                        val eldest = iterator.next()
+                        iterator.remove()
+                        val removedPrev = eldest.key
+                        data.remove(removedPrev)
+                        val globalIterator = globalLru.entries.iterator()
+                        while (globalIterator.hasNext()) {
+                            if (globalIterator.next().key.prev == removedPrev) {
+                                globalIterator.remove()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        fun suggestNext(prev: String, limit: Int): List<String> {
+            if (prev.isBlank()) return emptyList()
+            val safeLimit = limit.coerceAtLeast(1)
+
+            val snapshot: List<Map.Entry<String, Int>> = synchronized(lock) {
+                val map = data[prev] ?: return emptyList()
+                map.entries.map { it.toMutableEntry() }
             }
 
+            return snapshot
+                .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+                .take(safeLimit)
+                .map { it.key }
+        }
+
+        private fun <K, V> Map.Entry<K, V>.toMutableEntry(): Map.Entry<K, V> {
+            val key = this.key
+            val value = this.value
+            return object : Map.Entry<K, V> {
+                override val key: K = key
+                override val value: V = value
+            }
+        }
+
+        fun clear() {
+            synchronized(lock) {
+                data.clear()
+                globalLru.clear()
+                prefixLru.clear()
+            }
+        }
+    }
+
+    private class SuggestionEngine(
+        private var maxSuggestions: Int,
+    ) {
+        private companion object {
+            private const val ALPHABET_SIZE = 26
+            private const val ASCII_A = 'a'.code
+            private const val MAX_WORDS_SNAPSHOT = 150_000
+            private const val MAX_NODES_SNAPSHOT = 1_500_000
+            private const val MAX_TOKEN_LENGTH = 40
+            private const val MAX_SUGGEST_QUEUE = 20_000
+        }
+
+        private data class TrieNode(
+            val childrenBasic: IntArray = IntArray(ALPHABET_SIZE) { -1 },
+            var childrenExtra: HashMap<Char, Int>? = null,
+            var isTerminal: Boolean = false,
+            var original: String? = null,
+            var frequency: Int = 0,
+        )
+
         data class Snapshot(
-            val lowerSorted: Array<String>,
-            val originalSorted: Array<String>,
-            val indicesByFirstChar: Map<Char, IntArray>,
+            val nodes: List<TrieNode>,
+            val maxWordLength: Int,
         )
 
         @Volatile
-        private var snapshot: Snapshot = Snapshot(emptyArray(), emptyArray(), emptyMap())
-
-        private var lastPrefix: String = ""
-        private var lastStart: Int = 0
-        private var lastEnd: Int = 0
+        private var snapshot: Snapshot = Snapshot(listOf(TrieNode()), 0)
 
         fun applySnapshot(newSnapshot: Snapshot) {
             snapshot = newSnapshot
-            lastPrefix = ""
-            lastStart = 0
-            lastEnd = newSnapshot.lowerSorted.size
+        }
+
+        fun clear() {
+            snapshot = Snapshot(listOf(TrieNode()), 0)
         }
 
         fun buildSnapshot(words: Sequence<String>): Snapshot {
             val iterator = words.iterator()
-            if (!iterator.hasNext()) return Snapshot(emptyArray(), emptyArray(), emptyMap())
+            if (!iterator.hasNext()) return Snapshot(listOf(TrieNode()), 0)
 
-            data class WordItem(val lower: String, val original: String)
-
-            val items = ArrayList<WordItem>(8192)
-            do {
+            val nodes = ArrayList<TrieNode>(1024)
+            nodes.add(TrieNode())
+            var nodeCount = 1
+            var wordCount = 0
+            var maxWordLength = 0
+            while (iterator.hasNext()) {
                 val word = iterator.next()
                 val normalized = word.trim()
                 if (normalized.isEmpty()) {
                     continue
                 }
 
-                val lower = normalized.lowercase()
+                val (token, freq) = parseWordWithFrequency(normalized)
+                if (token.isEmpty() || token.length > MAX_TOKEN_LENGTH) {
+                    continue
+                }
+
+                val lower = token.lowercase()
                 val firstNonLetterIndex = lower.indexOfFirst { !it.isLetter() }
                 val usableLower = if (firstNonLetterIndex == -1) lower else lower.substring(
                     0,
@@ -2082,191 +3338,491 @@ class CustomKeyboard :
                     continue
                 }
 
-                items.add(WordItem(lower = usableLower, original = normalized))
-            } while (iterator.hasNext())
+                if (usableLower.length > maxWordLength) {
+                    maxWordLength = usableLower.length
+                }
 
-            items.sortWith(compareBy<WordItem> { it.lower }.thenBy { it.original })
-            val lowerSorted = Array(items.size) { idx -> items[idx].lower }
-            val originalSorted = Array(items.size) { idx -> items[idx].original }
+                var nodeIndex = 0
+                for (c in usableLower) {
+                    val childIndex = getChildIndex(nodes[nodeIndex], c)
+                    if (childIndex >= 0) {
+                        nodeIndex = childIndex
+                    } else {
+                        if (nodeCount >= MAX_NODES_SNAPSHOT) {
+                            return Snapshot(nodes = nodes, maxWordLength = maxWordLength)
+                        }
+                        val newNode = TrieNode()
+                        val newIndex = nodes.size
+                        nodes.add(newNode)
+                        nodeCount += 1
+                        setChildIndex(nodes[nodeIndex], c, newIndex)
+                        nodeIndex = newIndex
+                    }
+                }
+                val node = nodes[nodeIndex]
+                node.isTerminal = true
+                if (freq > node.frequency || node.original == null) {
+                    node.frequency = freq
+                    node.original = token
+                } else if (freq == node.frequency && node.original != null && token < node.original!!) {
+                    node.original = token
+                }
 
-            val temp = HashMap<Char, MutableList<Int>>()
-            for (i in lowerSorted.indices) {
-                val w = lowerSorted[i]
-                if (w.isEmpty()) continue
-                val c = w[0]
-                val list = temp.getOrPut(c) { mutableListOf() }
-                list.add(i)
+                wordCount += 1
+                if (wordCount >= MAX_WORDS_SNAPSHOT) {
+                    break
+                }
             }
-            val indicesByFirstChar = temp.mapValues { (_, list) -> list.toIntArray() }
 
-            return Snapshot(
-                lowerSorted = lowerSorted,
-                originalSorted = originalSorted,
-                indicesByFirstChar = indicesByFirstChar,
-            )
+            return Snapshot(nodes = nodes, maxWordLength = maxWordLength)
         }
 
         fun contains(wordLower: String): Boolean {
             if (wordLower.isEmpty()) return false
             val current = snapshot
-            val lowers = current.lowerSorted
-            if (lowers.isEmpty()) return false
-
-            val idx = lowerBound(lowers, wordLower, 0, lowers.size)
-            return idx in lowers.indices && lowers[idx] == wordLower
+            var nodeIndex = 0
+            for (c in wordLower) {
+                val nextIndex = getChildIndex(current.nodes[nodeIndex], c)
+                if (nextIndex < 0) return false
+                nodeIndex = nextIndex
+            }
+            return current.nodes[nodeIndex].isTerminal
         }
 
         fun bestFuzzyMatch(wordLower: String, similarityThreshold: Double): String? {
             if (wordLower.isEmpty()) return null
             val current = snapshot
-            val lowers = current.lowerSorted
-            val originals = current.originalSorted
-            if (lowers.isEmpty()) return null
+            val nodes = current.nodes
+            val maxWordLength = current.maxWordLength
+            if (maxWordLength == 0) return null
 
-            val first = wordLower[0]
-            val indices = current.indicesByFirstChar[first] ?: return null
             val len = wordLower.length
-            val minLen = (len - 2).coerceAtLeast(1)
-            val maxLen = len + 2
+            val maxDistance = maxDistanceForLength(len, similarityThreshold)
+            val rowBuffers = Array(maxWordLength + 1) { IntArray(len + 1) }
+            val firstRow = rowBuffers[0]
+            for (i in 0..len) {
+                firstRow[i] = i
+            }
 
-            val maxDistance = ((1.0 - similarityThreshold) * maxLen).toInt()
-
-            var bestIdx = -1
             var bestScore = similarityThreshold
+            var bestDistance = Int.MAX_VALUE
+            var bestPrefix = -1
+            var bestOriginal: String? = null
 
-            for (idx in indices) {
-                val candidateLower = lowers[idx]
-                val cl = candidateLower.length
-                if (cl < minLen || cl > maxLen) continue
+            fun computeScore(distance: Int, candidateLen: Int, prefixLen: Int): Double {
+                val denom = maxOf(len, candidateLen)
+                val baseScore = (denom - distance).toDouble() / denom.toDouble()
+                val prefixBonus = (prefixLen.toDouble() / denom.toDouble()) * 0.12
+                val lengthPenalty = (abs(len - candidateLen).toDouble() / denom.toDouble()) * 0.08
+                val isPrefixShape =
+                    (candidateLen <= len && prefixLen == candidateLen) ||
+                        (candidateLen >= len && prefixLen >= len)
+                val shapeBonus = if (isPrefixShape) 0.06 else 0.0
+                val isLikelySubstitution = distance == 1 && candidateLen == len
+                val substitutionBonus = if (isLikelySubstitution) 0.04 else 0.0
+                return baseScore + prefixBonus + shapeBonus + substitutionBonus - lengthPenalty
+            }
 
-                val dist = levenshteinDistanceWithCutoff(wordLower, candidateLower, maxDistance)
-                if (dist > maxDistance) continue
+            fun dfs(nodeIndex: Int, depth: Int, prevRow: IntArray, prefixLen: Int) {
+                val node = nodes[nodeIndex]
+                if (node.isTerminal) {
+                    val dist = prevRow[len]
+                    if (dist <= maxDistance) {
+                        val score = computeScore(dist, depth, prefixLen)
+                        if (score > bestScore || (score == bestScore && (dist < bestDistance || prefixLen > bestPrefix))) {
+                            bestScore = score
+                            bestDistance = dist
+                            bestPrefix = prefixLen
+                            bestOriginal = node.original
+                            if (score >= 0.985) {
+                                return
+                            }
+                        }
+                    }
+                }
 
-                val denom = maxOf(len, cl)
-                val score = (denom - dist).toDouble() / denom.toDouble()
-                if (score >= bestScore) {
-                    bestScore = score
-                    bestIdx = idx
-                    if (score >= 0.95) break
+                if (depth >= maxWordLength) return
+
+                val nextDepth = depth + 1
+                if (nextDepth > len + maxDistance) return
+
+                val currRow = rowBuffers[nextDepth]
+                forEachChild(node) { char, childIndex ->
+                    currRow[0] = nextDepth
+                    var rowMin = currRow[0]
+                    for (i in 1..len) {
+                        val cost = if (wordLower[i - 1] == char) 0 else 1
+                        val deletion = prevRow[i] + 1
+                        val insertion = currRow[i - 1] + 1
+                        val substitution = prevRow[i - 1] + cost
+                        val value = minOf(deletion, insertion, substitution)
+                        currRow[i] = value
+                        if (value < rowMin) rowMin = value
+                    }
+
+                    if (rowMin <= maxDistance) {
+                        val nextPrefixLen = if (prefixLen == depth && depth < len && wordLower[depth] == char) {
+                            prefixLen + 1
+                        } else {
+                            prefixLen
+                        }
+                        dfs(childIndex, nextDepth, currRow, nextPrefixLen)
+                    }
                 }
             }
 
-            return if (bestIdx >= 0) originals[bestIdx] else null
+            dfs(0, 0, firstRow, 0)
+            return bestOriginal
         }
 
-        private fun levenshteinDistanceWithCutoff(a: String, b: String, maxDistance: Int): Int {
-            val la = a.length
-            val lb = b.length
-
-            val lengthDiff = abs(la - lb)
-            if (lengthDiff > maxDistance) return maxDistance + 1
-
-            if (la == 0) return lb
-            if (lb == 0) return la
-
-            val needed = lb + 1
-            val buffers = levBuffersThreadLocal.get()
-            if (buffers.prev.size < needed) {
-
-                buffers.prev = IntArray(needed)
-                buffers.curr = IntArray(needed)
-            }
-
-            var prev = buffers.prev
-            var curr = buffers.curr
-
-            for (j in 0..lb) {
-                prev[j] = j
-            }
-
-            for (i in 1..la) {
-                curr[0] = i
-                var rowMin = curr[0]
-                val ca = a[i - 1]
-
-                for (j in 1..lb) {
-                    val cb = b[j - 1]
-                    val cost = if (ca == cb) 0 else 1
-
-                    val deletion = prev[j] + 1
-                    val insertion = curr[j - 1] + 1
-                    val substitution = prev[j - 1] + cost
-                    val value = minOf(deletion, insertion, substitution)
-
-                    curr[j] = value
-                    if (value < rowMin) rowMin = value
-                }
-
-                if (rowMin > maxDistance) return maxDistance + 1
-
-                val tmp = prev
-                prev = curr
-                curr = tmp
-            }
-
-            return prev[lb]
-        }
-
-        fun suggest(prefixLower: String): List<String> {
-            if (prefixLower.isEmpty()) {
-                lastPrefix = ""
-                return emptyList()
-            }
-
+        fun search(prefixLower: String): List<String> {
+            if (prefixLower.isEmpty()) return emptyList()
             val current = snapshot
-            val lowers = current.lowerSorted
-            val originals = current.originalSorted
-            if (lowers.isEmpty()) return emptyList()
-
-            val searchPrefix = prefixLower.lowercase()
-            val rangeStart: Int
-            val rangeEnd: Int
-
-            if (lastPrefix.isNotEmpty() && searchPrefix.startsWith(lastPrefix) && lastStart <= lastEnd) {
-                rangeStart = lowerBound(lowers, searchPrefix, lastStart, lastEnd)
-                rangeEnd = upperBoundByPrefix(lowers, searchPrefix, rangeStart, lastEnd)
-            } else {
-                rangeStart = lowerBound(lowers, searchPrefix, 0, lowers.size)
-                rangeEnd = upperBoundByPrefix(lowers, searchPrefix, rangeStart, lowers.size)
+            val nodes = current.nodes
+            var nodeIndex = 0
+            for (c in prefixLower) {
+                val nextIndex = getChildIndex(nodes[nodeIndex], c)
+                if (nextIndex < 0) return emptyList()
+                nodeIndex = nextIndex
             }
 
-            lastPrefix = searchPrefix
-            lastStart = rangeStart
-            lastEnd = rangeEnd
+            val results = ArrayList<String>()
+            fun dfsSearch(currentIndex: Int) {
+                val node = nodes[currentIndex]
+                if (node.isTerminal) {
+                    node.original?.let { results.add(it) }
+                }
+                forEachChild(node) { _, childIndex ->
+                    dfsSearch(childIndex)
+                }
+            }
 
-            if (rangeStart >= rangeEnd) return emptyList()
+            dfsSearch(nodeIndex)
+            return results
+        }
+
+        fun suggest(prefixLower: String, shouldCancel: () -> Boolean = { false }): List<String> {
+            if (prefixLower.isEmpty()) return emptyList()
+
+            val exact = suggestExact(prefixLower, shouldCancel)
+            if (exact.size >= maxSuggestions) return exact
+
+            val outSet = LinkedHashSet<String>(maxSuggestions)
+            exact.forEach { outSet.add(it) }
+
+            val remaining = (maxSuggestions - outSet.size).coerceAtLeast(0)
+            if (remaining > 0) {
+                val fuzzy = fuzzySuggest(prefixLower, remaining, shouldCancel, outSet)
+                fuzzy.forEach { outSet.add(it) }
+            }
+
+            return ArrayList(outSet)
+        }
+
+        private fun suggestExact(prefixLower: String, shouldCancel: () -> Boolean): List<String> {
+            val current = snapshot
+            val nodes = current.nodes
+            var nodeIndex = 0
+            for (c in prefixLower) {
+                val nextIndex = getChildIndex(nodes[nodeIndex], c)
+                if (nextIndex < 0) return emptyList()
+                nodeIndex = nextIndex
+            }
+
+            data class SuggestState(
+                val nodeIndex: Int,
+                val wordLower: String,
+                val depth: Int,
+            )
+
+            val comparator = compareByDescending<SuggestState> { nodes[it.nodeIndex].frequency }
+                .thenBy { it.depth }
+                .thenBy { it.wordLower }
+            val queue = java.util.PriorityQueue(comparator)
+            queue.add(SuggestState(nodeIndex, prefixLower, prefixLower.length))
+
+            val tryOffer: (Int, Char, SuggestState) -> Unit = { childIndex, key, state ->
+                if (queue.size < MAX_SUGGEST_QUEUE) {
+                    queue.add(
+                        SuggestState(
+                            childIndex,
+                            state.wordLower + key,
+                            state.depth + 1
+                        )
+                    )
+                }
+            }
 
             val out = ArrayList<String>(maxSuggestions)
-            var i = rangeStart
-            while (i < rangeEnd && out.size < maxSuggestions) {
-                out.add(originals[i])
-                i++
+            while (queue.isNotEmpty() && out.size < maxSuggestions) {
+                if (shouldCancel()) return out
+                val state = queue.poll()
+                val node = nodes[state.nodeIndex]
+                if (node.isTerminal) {
+                    node.original?.let { out.add(it) }
+                    if (out.size >= maxSuggestions) break
+                }
+
+                val extras = node.childrenExtra
+                if (extras.isNullOrEmpty()) {
+                    for (i in 0 until ALPHABET_SIZE) {
+                        val child = node.childrenBasic[i]
+                        if (child < 0) continue
+                        val key = (ASCII_A + i).toChar()
+                        tryOffer(child, key, state)
+                    }
+                } else {
+                    val extraKeys = ArrayList<Char>(extras.size)
+                    extras.keys.forEach { extraKeys.add(it) }
+                    extraKeys.sort()
+
+                    var extraIndex = 0
+                    for (i in 0 until ALPHABET_SIZE) {
+                        val basicChar = (ASCII_A + i).toChar()
+                        while (extraIndex < extraKeys.size && extraKeys[extraIndex] < basicChar) {
+                            val key = extraKeys[extraIndex]
+                            val child = getChildIndex(node, key)
+                            if (child >= 0) {
+                                tryOffer(child, key, state)
+                            }
+                            extraIndex += 1
+                        }
+
+                        val child = node.childrenBasic[i]
+                        if (child >= 0) {
+                            tryOffer(child, basicChar, state)
+                        }
+                    }
+
+                    while (extraIndex < extraKeys.size) {
+                        val key = extraKeys[extraIndex]
+                        val child = getChildIndex(node, key)
+                        if (child >= 0) {
+                            tryOffer(child, key, state)
+                        }
+                        extraIndex += 1
+                    }
+                }
             }
+
             return out
         }
 
-        private fun lowerBound(arr: Array<String>, target: String, from: Int, to: Int): Int {
-            var low = from
-            var high = to
-            while (low < high) {
-                val mid = (low + high) ushr 1
-                if (arr[mid] < target) {
-                    low = mid + 1
-                } else {
-                    high = mid
+        private data class FuzzyCandidate(
+            val word: String,
+            val score: Double,
+            val distance: Int,
+            val frequency: Int,
+            val prefixLen: Int,
+        )
+
+        private fun fuzzySuggest(
+            inputLower: String,
+            maxNeeded: Int,
+            shouldCancel: () -> Boolean,
+            exclude: Set<String>,
+        ): List<String> {
+            if (inputLower.isEmpty() || maxNeeded <= 0) return emptyList()
+            val current = snapshot
+            val nodes = current.nodes
+            val maxWordLength = current.maxWordLength
+            if (maxWordLength == 0) return emptyList()
+
+            val len = inputLower.length
+            val similarityThreshold = fuzzySimilarityThreshold(len)
+            val maxDistance = maxDistanceForLength(len, similarityThreshold)
+            val rowBuffers = Array(maxWordLength + 1) { IntArray(len + 1) }
+            val firstRow = rowBuffers[0]
+            for (i in 0..len) {
+                firstRow[i] = i
+            }
+
+            val maxQueue = (maxNeeded * 8 + 12).coerceAtMost(MAX_SUGGEST_QUEUE)
+            val bestByWord = HashMap<String, FuzzyCandidate>(maxQueue)
+            val heap = java.util.PriorityQueue<FuzzyCandidate>(compareBy<FuzzyCandidate> { it.score }
+                .thenByDescending { it.distance }
+                .thenBy { it.word })
+
+            fun scoreCandidate(distance: Int, candidateLen: Int, prefixLen: Int, frequency: Int): Double {
+                val denom = maxOf(len, candidateLen)
+                val baseScore = (denom - distance).toDouble() / denom.toDouble()
+                val prefixBonus = (prefixLen.toDouble() / denom.toDouble()) * 0.12
+                val lengthPenalty = (abs(len - candidateLen).toDouble() / denom.toDouble()) * 0.12
+                val isPrefixShape =
+                    (candidateLen <= len && prefixLen == candidateLen) ||
+                        (candidateLen >= len && prefixLen >= len)
+                val shapeBonus = if (isPrefixShape) 0.06 else 0.0
+                val freqBonus = kotlin.math.ln((frequency + 1).toDouble())
+                    .div(12.0)
+                    .coerceAtMost(0.08)
+                return baseScore + prefixBonus + shapeBonus - lengthPenalty + freqBonus
+            }
+
+            fun offerCandidate(candidate: FuzzyCandidate) {
+                val existing = bestByWord[candidate.word]
+                if (existing != null && existing.score >= candidate.score) return
+                if (existing != null) {
+                    heap.remove(existing)
+                }
+                bestByWord[candidate.word] = candidate
+                heap.add(candidate)
+                if (heap.size > maxQueue) {
+                    val removed = heap.poll()
+                    if (removed != null && bestByWord[removed.word] == removed) {
+                        bestByWord.remove(removed.word)
+                    }
                 }
             }
-            return low
+
+            fun dfs(nodeIndex: Int, depth: Int, prevRow: IntArray, prefixLen: Int) {
+                if (shouldCancel()) return
+                val node = nodes[nodeIndex]
+                if (node.isTerminal) {
+                    val dist = prevRow[len]
+                    if (dist <= maxDistance) {
+                        val original = node.original
+                        if (!original.isNullOrEmpty() && !exclude.contains(original)) {
+                            val score = scoreCandidate(dist, depth, prefixLen, node.frequency)
+                            offerCandidate(
+                                FuzzyCandidate(
+                                    word = original,
+                                    score = score,
+                                    distance = dist,
+                                    frequency = node.frequency,
+                                    prefixLen = prefixLen,
+                                )
+                            )
+                        }
+                    }
+                }
+
+                if (depth >= maxWordLength) return
+                val nextDepth = depth + 1
+                if (nextDepth > len + maxDistance) return
+
+                val currRow = rowBuffers[nextDepth]
+                forEachChild(node) { char, childIndex ->
+                    currRow[0] = nextDepth
+                    var rowMin = currRow[0]
+                    for (i in 1..len) {
+                        val cost = if (inputLower[i - 1] == char) 0 else 1
+                        val deletion = prevRow[i] + 1
+                        val insertion = currRow[i - 1] + 1
+                        val substitution = prevRow[i - 1] + cost
+                        val value = minOf(deletion, insertion, substitution)
+                        currRow[i] = value
+                        if (value < rowMin) rowMin = value
+                    }
+
+                    if (rowMin <= maxDistance) {
+                        val nextPrefixLen = if (prefixLen == depth && depth < len && inputLower[depth] == char) {
+                            prefixLen + 1
+                        } else {
+                            prefixLen
+                        }
+                        dfs(childIndex, nextDepth, currRow, nextPrefixLen)
+                    }
+                }
+            }
+
+            dfs(0, 0, firstRow, 0)
+
+            if (bestByWord.isEmpty()) return emptyList()
+            val highScoreThreshold = fuzzyHighScoreThreshold(len)
+            val candidates = bestByWord.values.toList().sortedWith(
+                compareByDescending<FuzzyCandidate> { it.score >= highScoreThreshold }
+                    .thenByDescending { it.score }
+                    .thenBy { it.distance }
+                    .thenByDescending { it.frequency }
+                    .thenBy { it.word }
+            )
+
+            return candidates.take(maxNeeded).map { it.word }
         }
 
-        private fun upperBoundByPrefix(
-            arr: Array<String>,
-            prefix: String,
-            from: Int,
-            to: Int
-        ): Int {
-            val upperKey = prefix + "\uffff"
-            return lowerBound(arr, upperKey, from, to)
+        private fun getChildIndex(node: TrieNode, ch: Char): Int {
+            val lower = ch.lowercaseChar()
+            val idx = lower.code - ASCII_A
+            if (idx in 0 until ALPHABET_SIZE) {
+                return node.childrenBasic[idx]
+            }
+            return node.childrenExtra?.get(lower) ?: -1
+        }
+
+        private fun setChildIndex(node: TrieNode, ch: Char, index: Int) {
+            val lower = ch.lowercaseChar()
+            val idx = lower.code - ASCII_A
+            if (idx in 0 until ALPHABET_SIZE) {
+                node.childrenBasic[idx] = index
+                return
+            }
+            val map = node.childrenExtra ?: HashMap<Char, Int>(4).also { node.childrenExtra = it }
+            map[lower] = index
+        }
+
+        private inline fun forEachChild(node: TrieNode, action: (Char, Int) -> Unit) {
+            for (i in 0 until ALPHABET_SIZE) {
+                val childIndex = node.childrenBasic[i]
+                if (childIndex >= 0) {
+                    action((ASCII_A + i).toChar(), childIndex)
+                }
+            }
+            node.childrenExtra?.forEach { (char, index) -> action(char, index) }
+        }
+
+        private fun parseWordWithFrequency(raw: String): Pair<String, Int> {
+            val trimmed = raw.trim()
+            if (trimmed.isEmpty()) return "" to 0
+
+            var end = trimmed.length - 1
+            while (end >= 0 && trimmed[end].isWhitespace()) end -= 1
+            if (end <= 0) return trimmed to 1
+
+            var start = end
+            while (start >= 0 && !trimmed[start].isWhitespace()) start -= 1
+
+            if (start <= 0) return trimmed to 1
+
+            val freqToken = trimmed.substring(start + 1, end + 1)
+            val freq = freqToken.toIntOrNull()
+            if (freq != null) {
+                val word = trimmed.substring(0, start).trim()
+                return if (word.isEmpty()) trimmed to 1 else word to freq.coerceAtLeast(1)
+            }
+
+            return trimmed to 1
+        }
+
+        fun updateMaxSuggestions(newMax: Int) {
+            maxSuggestions = newMax.coerceAtLeast(1)
+        }
+
+        private fun maxDistanceForLength(len: Int, similarityThreshold: Double): Int {
+            val base = ((1.0 - similarityThreshold) * len).toInt().coerceAtLeast(1)
+            val cap = when {
+                len <= 3 -> 1
+                len <= 6 -> 2
+                else -> (len / 3).coerceAtLeast(2)
+            }
+            return base.coerceAtMost(cap)
+        }
+
+        private fun fuzzySimilarityThreshold(len: Int): Double {
+            return when {
+                len <= 3 -> 0.66
+                len <= 5 -> 0.70
+                len <= 8 -> 0.74
+                else -> 0.78
+            }
+        }
+
+        private fun fuzzyHighScoreThreshold(len: Int): Double {
+            return when {
+                len <= 3 -> 0.74
+                len <= 5 -> 0.78
+                len <= 8 -> 0.82
+                else -> 0.86
+            }
         }
     }
 
@@ -2277,6 +3833,14 @@ class CustomKeyboard :
         inputConnection.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, KeyEvent.META_SHIFT_ON))
         inputConnection.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, KeyEvent.META_SHIFT_ON))
         inputConnection.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT, 0, 0))
+    }
+
+    private fun getAutoCorrectThreshold(wordLength: Int): Double {
+        return when {
+            wordLength <= 2 -> autoCorrectThresholdShort
+            wordLength <= 4 -> autoCorrectThresholdMedium
+            else -> autoCorrectThresholdLong
+        }.coerceIn(0.0, 1.0)
     }
 
     private inner class SpaceTouchListener : View.OnTouchListener {
@@ -2316,7 +3880,7 @@ class CustomKeyboard :
                      } else {
                          sendDpadKey(edgeRepeatKeyCode)
                      }
-                     edgeRepeatHandler.postDelayed(this, 150)
+                     edgeRepeatHandler.postDelayed(this, edgeRepeatIntervalMs)
                  }
             }
         }
@@ -2351,6 +3915,14 @@ class CustomKeyboard :
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (isLongPressTriggered) return true
+                    if (!themeManager.isGestureTypingEnabled) {
+                        val totalDx = event.x - startX
+                        val totalDy = event.y - startY
+                        if (abs(totalDx) > touchSlopPx || abs(totalDy) > touchSlopPx) {
+                            uiHandler.removeCallbacks(longPressRunnable)
+                        }
+                        return true
+                    }
                     val dx = event.x - lastX
                     val dy = event.y - lastY
                     lastX = event.x
@@ -2389,7 +3961,7 @@ class CustomKeyboard :
                     
                         val rawX = event.rawX
                         val rawY = event.rawY
-                        val edgeThreshold = px36.toFloat()
+                        val edgeThreshold = spaceSwipeEdgeThresholdPx
                         var newEdgeKey = 0
                     
                         if (rawX < edgeThreshold) newEdgeKey = KeyEvent.KEYCODE_DPAD_LEFT
@@ -2492,18 +4064,29 @@ class CustomKeyboard :
                     
                     val totalDx = event.x - startX
                     val totalDy = event.y - startY
+
+                    if (!themeManager.isGestureTypingEnabled || !themeManager.isBackspaceSwipeEnabled) {
+                        if (abs(totalDx) > touchSlopPx || abs(totalDy) > touchSlopPx) {
+                            uiHandler.removeCallbacks(longPressRunnable)
+                        }
+                        return true
+                    }
                     
                     if (totalDx < -backspaceSwipeThresholdPx && abs(totalDx) > abs(totalDy)) {
                         isSwipeTriggered = true
                         uiHandler.removeCallbacks(longPressRunnable)
-                        deleteWordFromInputConnection()
+                        if (themeManager.isDeleteWordEnabled && themeManager.isBackspaceSwipeEnabled) {
+                            deleteWordFromInputConnection()
+                        } else {
+                            deleteFromInputConnection()
+                        }
                         v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         
                         uiHandler.postDelayed(swipeRepeatRunnable, longPressDelayMs)
                         return true
                     }
                     
-                    if (abs(totalDx) > px10 || abs(totalDy) > px10) {
+                    if (abs(totalDx) > touchSlopPx || abs(totalDy) > touchSlopPx) {
                          uiHandler.removeCallbacks(longPressRunnable)
                     }
                     return true
@@ -2609,6 +4192,8 @@ class CustomKeyboard :
         private var isSwipeTriggered = false
         private var currentView: View? = null
         private var isAccentSelectionMode = false
+        private var hasExceededSlop = false
+        private var downTimeMs: Long = 0L
         
         private val longPressRunnable = Runnable {
             isLongPressTriggered = true
@@ -2635,6 +4220,8 @@ class CustomKeyboard :
                     isLongPressTriggered = false
                     isSwipeTriggered = false
                     isAccentSelectionMode = false
+                    hasExceededSlop = false
+                    downTimeMs = event.eventTime
                     v.isPressed = true
                     
                     if (label.length == 1 && !isSwipeTriggered) {
@@ -2654,14 +4241,14 @@ class CustomKeyboard :
                     val totalDx = event.x - startX
                     val totalDy = event.y - startY
 
-                    if (!isSwipeTriggered && totalDy < -px10 * 2) {
+                    if (!isSwipeTriggered && totalDy < -accentSwipeThresholdPx) {
                         val hints = topRowMap[lower]
                         if (hints != null && hints.isNotEmpty()) {
                             var selectedIndex = 0
                             if (hints.size > 1) {
-                                if (totalDx < -px10 * 2) {
+                                if (totalDx < -accentSwipeThresholdPx) {
                                     selectedIndex = 1
-                                } else if (totalDx > px10 * 2) {
+                                } else if (totalDx > accentSwipeThresholdPx) {
                                     selectedIndex = if (hints.size > 2) 2 else 0
                                 }
                             }
@@ -2679,7 +4266,8 @@ class CustomKeyboard :
                         }
                     }
                     
-                    if (!isSwipeTriggered && (abs(totalDx) > px10 || abs(totalDy) > px10)) {
+                    if (!hasExceededSlop && (abs(totalDx) > touchSlopPx || abs(totalDy) > touchSlopPx)) {
+                        hasExceededSlop = true
                         uiHandler.removeCallbacks(longPressRunnable)
                         layoutManager.dismissKeyPreview()
                     }
@@ -2699,13 +4287,6 @@ class CustomKeyboard :
                     
                     if (isLongPressTriggered) return true
                     if (isSwipeTriggered) return true
-                    
-                    val totalDx = event.x - startX
-                    val totalDy = event.y - startY
-                    if (abs(totalDx) > px10 || abs(totalDy) > px10) {
-                        return true
-                    }
-
                     v.performClick()
                     return true
                 }
@@ -2739,7 +4320,7 @@ class CustomKeyboard :
     }
 
     companion object {
-        val topRowMap = mapOf(
+        val defaultTopRowMap = mapOf(
             "q" to listOf("1"), "w" to listOf("2"), "e" to listOf("3", "é", "è", "ë", "ê"), "r" to listOf("4"), "t" to listOf("5"),
             "y" to listOf("6", "ý", "ÿ"), "u" to listOf("7", "ú", "ù", "ü", "û"), "i" to listOf("8", "í", "ì", "ï", "î"), "o" to listOf("9", "ó", "ò", "ö", "ô", "õ", "ø"), "p" to listOf("0"), 
             "a" to listOf("@", "!", "á", "à", "ä", "â", "ã", "å"), "s" to listOf("#", "ß"), "d" to listOf("$"),
@@ -2747,17 +4328,9 @@ class CustomKeyboard :
             "z" to listOf("~", "ž", "ź", "ż"), "x" to listOf("`"),
             "c" to listOf("^", "ç"), "v" to listOf("%"), "b" to listOf("€"), "n" to listOf("£", "ñ"), "m" to listOf("¥"),
         )
+        var topRowMap: Map<String, List<String>> = defaultTopRowMap
         private val uiHandler = Handler(Looper.getMainLooper())
         
-        private const val BACKSPACE_INITIAL_INTERVAL_MS = 260L
-        private const val BACKSPACE_MIN_INTERVAL_MS = 70L
-        private const val BACKSPACE_ACCELERATION_STEP_MS = 30L
-        private const val BACKSPACE_MULTI_TAP_WINDOW_MS = 450L
-        private const val DOUBLE_TAP_THRESHOLD_MS = 350L
-        private const val MAX_SUGGESTIONS = 3
-        private const val SUGGESTIONS_BAR_HEIGHT_DP = 56
-        private const val CLIPBOARD_BAR_HEIGHT_DP = 56
-        private const val SELECTION_ACTIONS_BAR_HEIGHT_DP = 56
         private const val PREF_KEY_AUTOCOMPLETE_MODE = "autocomplete_mode"
         private const val PREF_KEY_LAYOUT_STYLE = "layout_style"
         private const val PREF_KEY_KEYBOARD_HEIGHT_FACTOR = "keyboard_height_factor"
@@ -2771,9 +4344,47 @@ class CustomKeyboard :
         private const val PREF_KEY_BACKSPACE_INITIAL_INTERVAL = "backspace_initial_interval"
         private const val PREF_KEY_BACKSPACE_ACCELERATION = "backspace_acceleration"
         private const val PREF_KEY_BACKSPACE_MIN_INTERVAL = "backspace_min_interval"
+        private const val PREF_KEY_DOUBLE_TAP_THRESHOLD = "double_tap_threshold"
+        private const val PREF_KEY_BACKSPACE_MULTI_TAP_WINDOW = "backspace_multi_tap_window"
+        private const val PREF_KEY_BACKSPACE_MULTI_TAP_COUNT = "backspace_multi_tap_count"
+        private const val PREF_KEY_DOUBLE_SPACE_WINDOW = "double_space_window"
+        private const val PREF_KEY_DOUBLE_SPACE_LOOKBACK = "double_space_lookback"
+        private const val PREF_KEY_DELETE_WORD_LOOKBACK = "delete_word_lookback"
+        private const val PREF_KEY_AUTOCAP_LOOKBACK = "autocap_lookback"
+        private const val PREF_KEY_CURRENT_WORD_LOOKBACK = "current_word_lookback"
+        private const val PREF_KEY_AUTO_PUNCTUATION_CHARS = "auto_punctuation_chars"
+        private const val PREF_KEY_AUTOCAP_DELIMITERS = "autocap_delimiters"
+        private const val PREF_KEY_PASTE_ADD_SPACE = "paste_add_space"
+        private const val PREF_KEY_AUTOCORRECT_THRESHOLD_SHORT = "autocorrect_threshold_short"
+        private const val PREF_KEY_AUTOCORRECT_THRESHOLD_MEDIUM = "autocorrect_threshold_medium"
+        private const val PREF_KEY_AUTOCORRECT_THRESHOLD_LONG = "autocorrect_threshold_long"
+        private const val PREF_KEY_SOUND_VOLUME = "sound_volume"
+        private const val PREF_KEY_SOUND_RATE = "sound_rate"
+        private const val PREF_KEY_VIBRATION_PATTERN = "vibration_pattern"
+        private const val PREF_KEY_VIBRATION_PATTERN_REPEAT = "vibration_pattern_repeat"
+        private const val PREF_KEY_VIBRATION_AMPLITUDE = "vibration_amplitude"
+        private const val PREF_KEY_MAX_SUGGESTIONS = "max_suggestions"
+        private const val PREF_KEY_MAX_CLIPBOARD_ITEMS = "max_clipboard_items"
+        private const val PREF_KEY_LAYOUT_LETTERS = "layout_letters"
+        private const val PREF_KEY_LAYOUT_SYMBOLS = "layout_symbols"
+        private const val PREF_KEY_LAYOUT_SPECIAL = "layout_special"
+        private const val PREF_KEY_KEY_WEIGHTS = "key_weights"
+        private const val PREF_KEY_TOP_ROW_MAP = "top_row_map"
+        private const val PREF_KEY_TOUCH_SLOP_DP = "touch_slop_dp"
+        private const val PREF_KEY_ACCENT_SWIPE_THRESHOLD_DP = "accent_swipe_threshold_dp"
+        private const val PREF_KEY_EDGE_SWIPE_THRESHOLD_DP = "edge_swipe_threshold_dp"
+        private const val PREF_KEY_EDGE_REPEAT_INTERVAL = "edge_repeat_interval"
+        private const val PREF_KEY_SPACING_4_DP = "spacing_4_dp"
+        private const val PREF_KEY_SPACING_6_DP = "spacing_6_dp"
+        private const val PREF_KEY_SPACING_8_DP = "spacing_8_dp"
+        private const val PREF_KEY_SPACING_10_DP = "spacing_10_dp"
+        private const val PREF_KEY_SPACING_36_DP = "spacing_36_dp"
         private const val PREF_KEY_USER_DICTIONARY = "user_dictionary"
+        private const val MAX_DICTIONARY_WORDS = 150_000
         private const val AUTOCOMPLETE_FILE_EN = "autocomplete_en.txt"
         private const val AUTOCOMPLETE_FILE_ES = "autocomplete_es.txt"
+        private const val BIGRAM_FILE_EN = "bigrams_en.txt"
+        private const val BIGRAM_FILE_ES = "bigrams_es.txt"
         
         private var lastClipboardModuleSignature: String = ""
         
@@ -2812,22 +4423,26 @@ class CustomKeyboard :
                 listOf("abc", "space", "×", "§", "¶", "°", "enter"),
             )
             
-        private const val MAX_ITEMS_IN_CLIPBOARD = 10
+        private const val DEFAULT_MAX_ITEMS_IN_CLIPBOARD = 10
+        private var maxClipboardItemsOverride: Int = DEFAULT_MAX_ITEMS_IN_CLIPBOARD
 
         fun setClipboardSuggestionsFromModule(items: List<String>) {
             val cleaned =
                 items
                     .map { it.trim() }
                     .filter { it.isNotEmpty() }
-                    .take(MAX_ITEMS_IN_CLIPBOARD)
+                    .take(maxClipboardItemsOverride)
             val signature = cleaned.joinToString("|")
             if (cleaned.isNotEmpty() && signature != lastClipboardModuleSignature) {
-                ClipboardRepository.setClipboardItems(cleaned)
+                ClipboardRepository.setClipboardItems(cleaned, maxClipboardItemsOverride)
                 lastClipboardModuleSignature = signature
                 val params = Arguments.createMap().apply { putBoolean("show", true) }
                 BackgroundServiceModule.sendEvent("showClipboard", params)
             }
         }
 
+        fun updateMaxClipboardItems(maxItems: Int) {
+            maxClipboardItemsOverride = maxItems.coerceAtLeast(1)
+        }
     }
 }

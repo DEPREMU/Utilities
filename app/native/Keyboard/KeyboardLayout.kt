@@ -60,8 +60,8 @@ class KeyboardLayout(
     var accentPopupView: LinearLayout? = null
     var activeAccentView: TextView? = null
 
-    val suggestionButtons: Array<Button?> = arrayOfNulls(3)
-    val suggestionSlotValues: Array<String?> = arrayOfNulls(3)
+    val suggestionButtons: MutableList<Button?> = mutableListOf()
+    val suggestionSlotValues: MutableList<String?> = mutableListOf()
 
     data class KeyButtonRef(
         val raw: String,
@@ -84,11 +84,49 @@ class KeyboardLayout(
     var px64: Int = 0
     var keyTextSizePx: Float = 0f
     var keyGapPx: Int = 0
+    var keyMinWidthPx: Int = 0
+    var keyMinHeightPx: Int = 0
+    var keyMinWideWidthPx: Int = 0
+    var keyRowHeightPx: Int = 0
+    var suggestionBarHeightPx: Int = 0
+    var selectionBarHeightPx: Int = 0
+    var clipboardBarHeightPx: Int = 0
+    var suggestionTextSizePx: Float = 0f
+    var selectionTextSizePx: Float = 0f
+    var clipboardTextSizePx: Float = 0f
+    var keyPreviewTextSizePx: Float = 0f
+    var accentTextSizePx: Float = 0f
+    var hintTextSizeFactor: Float = 0f
+    var keyPaddingHorizontalPx: Int = 0
+    var keyPaddingVerticalPx: Int = 0
+    var keyPreviewPaddingPx: Int = 0
+    var keyPreviewBorderWidthPx: Int = 0
+    var keyElevationPx: Float = 0f
+
+    var keyWeightOverrides: Map<String, Float> = emptyMap()
 
     fun updatePxValues(
         px1: Int, px4: Int, px6: Int, px8: Int, px10: Int, px36: Int,
         px44: Int, px52: Int, px56: Int, px64: Int,
-        keyTextSizePx: Float, keyGapPx: Int
+        keyTextSizePx: Float, keyGapPx: Int,
+        keyMinWidthPx: Int,
+        keyMinHeightPx: Int,
+        keyMinWideWidthPx: Int,
+        keyRowHeightPx: Int,
+        suggestionBarHeightPx: Int,
+        selectionBarHeightPx: Int,
+        clipboardBarHeightPx: Int,
+        suggestionTextSizePx: Float,
+        selectionTextSizePx: Float,
+        clipboardTextSizePx: Float,
+        keyPreviewTextSizePx: Float,
+        accentTextSizePx: Float,
+        hintTextSizeFactor: Float,
+        keyPaddingHorizontalPx: Int,
+        keyPaddingVerticalPx: Int,
+        keyPreviewPaddingPx: Int,
+        keyPreviewBorderWidthPx: Int,
+        keyElevationPx: Float,
     ) {
         this.px1 = px1
         this.px4 = px4
@@ -102,6 +140,28 @@ class KeyboardLayout(
         this.px64 = px64
         this.keyTextSizePx = keyTextSizePx
         this.keyGapPx = keyGapPx
+        this.keyMinWidthPx = keyMinWidthPx
+        this.keyMinHeightPx = keyMinHeightPx
+        this.keyMinWideWidthPx = keyMinWideWidthPx
+        this.keyRowHeightPx = keyRowHeightPx
+        this.suggestionBarHeightPx = suggestionBarHeightPx
+        this.selectionBarHeightPx = selectionBarHeightPx
+        this.clipboardBarHeightPx = clipboardBarHeightPx
+        this.suggestionTextSizePx = suggestionTextSizePx
+        this.selectionTextSizePx = selectionTextSizePx
+        this.clipboardTextSizePx = clipboardTextSizePx
+        this.keyPreviewTextSizePx = keyPreviewTextSizePx
+        this.accentTextSizePx = accentTextSizePx
+        this.hintTextSizeFactor = hintTextSizeFactor
+        this.keyPaddingHorizontalPx = keyPaddingHorizontalPx
+        this.keyPaddingVerticalPx = keyPaddingVerticalPx
+        this.keyPreviewPaddingPx = keyPreviewPaddingPx
+        this.keyPreviewBorderWidthPx = keyPreviewBorderWidthPx
+        this.keyElevationPx = keyElevationPx
+    }
+
+    fun updateKeyWeightOverrides(overrides: Map<String, Float>) {
+        keyWeightOverrides = overrides
     }
 
     fun createRootLayout(): LinearLayout {
@@ -167,7 +227,6 @@ class KeyboardLayout(
         keyboardModesContainer?.addView(specialKeyboardContainer)
 
         updateKeyboardModeContainers(lettersLayout, symbolsLayout, specialLayout, capsVisualMode)
-        ensureSuggestionButtons()
     }
 
     private fun createKeyboardContainer(): LinearLayout {
@@ -235,6 +294,22 @@ class KeyboardLayout(
                 if (button != null) {
                     val oldTag = button.tag as? String
                     val normalized = keyLabel.trim()
+                    val hints = CustomKeyboard.topRowMap[normalized.lowercase()]
+
+                    if (!hints.isNullOrEmpty() && keyView !is FrameLayout) {
+                        container.removeAllViews()
+                        buildKeyboardRows(container, layout, capsVisualMode, trackCapsKeys)
+                        return
+                    }
+                    if (keyView is FrameLayout && !hints.isNullOrEmpty()) {
+                        val hintView = keyView.getChildAt(1) as? TextView
+                        if (hintView != null) {
+                            hintView.text = hints.take(4).joinToString(" ")
+                            themeManager.applyTypography(hintView, keyTextSizePx * hintTextSizeFactor)
+                            hintView.setTextColor(themeManager.paletteTextColor)
+                            hintView.alpha = 0.6f
+                        }
+                    }
                     
                     if (oldTag != normalized) {
                         val oldLower = oldTag?.lowercase()
@@ -285,6 +360,7 @@ class KeyboardLayout(
             
         button.text = displayText
         button.tag = normalized
+        themeManager.applyTypography(button, keyTextSizePx)
         button.contentDescription = when (lower) {
              "backspace" -> context.getString(R.string.key_backspace)
              "enter" -> context.getString(R.string.key_enter)
@@ -343,7 +419,7 @@ class KeyboardLayout(
             layoutParams =
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    px56,
+                    suggestionBarHeightPx,
                 )
             visibility = View.GONE
             setPadding(px4, px4, px4, px8)
@@ -356,7 +432,7 @@ class KeyboardLayout(
             layoutParams =
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    px56,
+                    selectionBarHeightPx,
                 )
             visibility = View.GONE
             setPadding(px4, px6, px4, px4)
@@ -381,7 +457,7 @@ class KeyboardLayout(
                 layoutParams =
                     LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        px56,
+                        clipboardBarHeightPx,
                     )
                 isHorizontalScrollBarEnabled = false
                 addView(inner)
@@ -426,18 +502,19 @@ class KeyboardLayout(
                         if (displayText.length == 1 && displayText[0].isLetter()) displayText else displayText
                     }
                 }
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, keyTextSizePx)
-            minHeight = px52
-            minWidth = px36
-            setPadding(px10, px10, px10, px10)
+            themeManager.applyTypography(this, keyTextSizePx)
+            minHeight = keyMinHeightPx
+            minWidth = keyMinWidthPx
+            setPadding(keyPaddingHorizontalPx, keyPaddingVerticalPx, keyPaddingHorizontalPx, keyPaddingVerticalPx)
             isSingleLine = true
             ellipsize = TextUtils.TruncateAt.END
             maxLines = 1
             textAlignment = View.TEXT_ALIGNMENT_CENTER
             themeManager.applyButtonBackground(this, themeManager.paletteKeyBackgroundColor)
             setTextColor(themeManager.paletteTextColor)
+            elevation = keyElevationPx
             if (lower == "abc" || lower == "{&=") {
-                minWidth = px64
+                minWidth = keyMinWideWidthPx
                 ellipsize = null
             }
             tag = normalized
@@ -473,10 +550,10 @@ class KeyboardLayout(
 
             val hintView = TextView(context).apply {
                 text = hints.take(4).joinToString(" ")
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, keyTextSizePx * 0.6f)
+                themeManager.applyTypography(this, keyTextSizePx * hintTextSizeFactor)
                 setTextColor(themeManager.paletteTextColor)
                 alpha = 0.6f
-                elevation = 10f
+                elevation = keyElevationPx
                 layoutParams = FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -498,7 +575,7 @@ class KeyboardLayout(
     private fun createLayoutParams(weight: Float): LinearLayout.LayoutParams {
         return LinearLayout.LayoutParams(
             0,
-            px56,
+            keyRowHeightPx,
             weight.coerceAtLeast(1f),
         ).apply {
             val m = keyGapPx
@@ -507,7 +584,10 @@ class KeyboardLayout(
     }
 
     fun keyWeight(label: String): Float {
-        return when (label.trim().lowercase()) {
+        val normalized = label.trim().lowercase()
+        val override = keyWeightOverrides[normalized]
+        if (override != null) return override
+        return when (normalized) {
             "backspace" -> 1.3f
             "enter" -> 1.2f
             "caps" -> 1.1f
@@ -541,17 +621,19 @@ class KeyboardLayout(
         button.setTextColor(textColor)
     }
 
-    fun ensureSuggestionButtons() {
+    fun ensureSuggestionButtons(maxSuggestions: Int) {
         val container = suggestionsContainer ?: return
         container.removeAllViews()
+        suggestionButtons.clear()
+        suggestionSlotValues.clear()
 
-        for (i in 0 until 3) {
+        for (i in 0 until maxSuggestions) {
             val btn =
                 Button(context).apply {
                     layoutParams =
                         LinearLayout.LayoutParams(
                             0,
-                            px44,
+                            keyMinHeightPx,
                             1f,
                         ).apply {
                             val margin = px1
@@ -559,8 +641,8 @@ class KeyboardLayout(
                         }
                     isAllCaps = false
                     text = ""
-                    textSize = 14f
-                    minHeight = px44
+                    themeManager.applyTypography(this, suggestionTextSizePx)
+                        minHeight = keyMinHeightPx
                     themeManager.applyButtonBackground(this, themeManager.paletteKeyBackgroundColor)
                     setTextColor(themeManager.paletteTextColor)
                     tag = i
@@ -568,8 +650,8 @@ class KeyboardLayout(
                     visibility = View.INVISIBLE
                 }
 
-            suggestionButtons[i] = btn
-            suggestionSlotValues[i] = null
+            suggestionButtons.add(btn)
+            suggestionSlotValues.add(null)
             container.addView(btn)
         }
     }
@@ -586,7 +668,7 @@ class KeyboardLayout(
         if (selectedText.isNullOrEmpty()) {
             container.visibility = View.GONE
             container.removeAllViews()
-            if (areSuggestionsEnabled && suggestionButtons.any { it?.visibility == View.VISIBLE }) {
+              if (areSuggestionsEnabled && suggestionButtons.any { it?.visibility == View.VISIBLE }) {
                  suggestions?.visibility = View.VISIBLE
             }
             return
@@ -601,7 +683,7 @@ class KeyboardLayout(
                 layoutParams =
                     LinearLayout.LayoutParams(
                         0,
-                        px44,
+                        keyMinHeightPx,
                         1f,
                     ).apply {
                         val margin = px1
@@ -609,8 +691,8 @@ class KeyboardLayout(
                     }
                 text = copyLabel
                 isAllCaps = false
-                textSize = 14f
-                minHeight = px44
+                themeManager.applyTypography(this, selectionTextSizePx)
+                    minHeight = keyMinHeightPx
                 themeManager.applyButtonBackground(this, themeManager.paletteKeyBackgroundColor)
                 setTextColor(themeManager.paletteTextColor)
                 setOnClickListener(listenerProvider.getCopyClickListener())
@@ -621,7 +703,7 @@ class KeyboardLayout(
                 layoutParams =
                     LinearLayout.LayoutParams(
                         0,
-                        px44,
+                        keyMinHeightPx,
                         1f,
                     ).apply {
                         val margin = px1
@@ -629,8 +711,8 @@ class KeyboardLayout(
                     }
                 text = cutLabel
                 isAllCaps = false
-                textSize = 14f
-                minHeight = px44
+                themeManager.applyTypography(this, selectionTextSizePx)
+                    minHeight = keyMinHeightPx
                 themeManager.applyButtonBackground(this, themeManager.paletteKeyBackgroundColor)
                 setTextColor(themeManager.paletteTextColor)
                 setOnClickListener(listenerProvider.getCutClickListener())
@@ -660,7 +742,7 @@ class KeyboardLayout(
                     layoutParams =
                         LinearLayout.LayoutParams(
                             0,
-                            px44,
+                            keyMinHeightPx,
                             1f,
                         ).apply {
                             val margin = px1
@@ -668,8 +750,8 @@ class KeyboardLayout(
                         }
                     isAllCaps = false
                     text = label
-                    textSize = 14f
-                    minHeight = px44
+                    themeManager.applyTypography(this, clipboardTextSizePx)
+                    minHeight = keyMinHeightPx
                     isSingleLine = true
                     ellipsize = TextUtils.TruncateAt.END
                     maxLines = 1
@@ -693,12 +775,15 @@ class KeyboardLayout(
                 themeManager.applyButtonBackground(ref.button, themeManager.paletteKeyBackgroundColor)
                 ref.button.setTextColor(themeManager.paletteTextColor)
             }
+            themeManager.applyTypography(ref.button, keyTextSizePx)
+            ref.button.elevation = keyElevationPx
         }
 
         suggestionButtons.forEach { btn ->
             if (btn != null) {
                 themeManager.applyButtonBackground(btn, themeManager.paletteKeyBackgroundColor)
                 btn.setTextColor(themeManager.paletteTextColor)
+                themeManager.applyTypography(btn, suggestionTextSizePx)
             }
         }
 
@@ -709,6 +794,7 @@ class KeyboardLayout(
                 if (child is Button) {
                     themeManager.applyButtonBackground(child, themeManager.paletteKeyBackgroundColor)
                     child.setTextColor(themeManager.paletteTextColor)
+                    themeManager.applyTypography(child, selectionTextSizePx)
                 }
             }
         }
@@ -720,6 +806,7 @@ class KeyboardLayout(
                 if (child is Button) {
                     themeManager.applyButtonBackground(child, themeManager.paletteKeyBackgroundColor)
                     child.setTextColor(themeManager.paletteTextColor)
+                    themeManager.applyTypography(child, clipboardTextSizePx)
                 }
             }
         }
@@ -748,15 +835,15 @@ class KeyboardLayout(
         if (keyPreviewPopup == null) {
             popupTextView = TextView(context).apply {
                 setTextColor(themeManager.paletteTextColor)
-                textSize = 30f 
+                themeManager.applyTypography(this, keyPreviewTextSizePx)
                 gravity = Gravity.CENTER
                 setBackgroundColor(themeManager.paletteKeyBackgroundColor)
-                setPadding(px10, px10, px10, px10)
+                setPadding(keyPreviewPaddingPx, keyPreviewPaddingPx, keyPreviewPaddingPx, keyPreviewPaddingPx)
                 
                 background = GradientDrawable().apply {
                     setColor(themeManager.paletteKeyBackgroundColor)
                     cornerRadius = themeManager.cornerRadiusPx.toFloat()
-                    setStroke(dpToPx(1), themeManager.paletteAccentColor)
+                    setStroke(keyPreviewBorderWidthPx, themeManager.paletteAccentColor)
                 }
             }
             
@@ -764,13 +851,14 @@ class KeyboardLayout(
                 isTouchable = false
                 isFocusable = false
                 inputMethodMode = PopupWindow.INPUT_METHOD_NOT_NEEDED
-                elevation = 10f
+                elevation = keyElevationPx
             }
         }
 
         popupTextView?.apply {
             text = label
             setTextColor(themeManager.paletteTextColor)
+            themeManager.applyTypography(this, keyPreviewTextSizePx)
             (background as? GradientDrawable)?.setColor(themeManager.paletteKeyBackgroundColor)
             measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
         }
@@ -789,6 +877,12 @@ class KeyboardLayout(
         } else {
             keyPreviewPopup?.showAtLocation(key, Gravity.NO_GRAVITY, finalX, finalY)
         }
+
+        popupTextView?.animate()
+            ?.alpha(1f)
+            ?.setDuration(themeManager.animationDurationMs)
+            ?.setInterpolator(themeManager.getInterpolator())
+            ?.start()
     }
 
     fun dismissKeyPreview() {
@@ -800,7 +894,7 @@ class KeyboardLayout(
             accentPopupView = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 background = themeManager.createKeyBackgroundStateList(themeManager.paletteKeyBackgroundColor)
-                setPadding(px10, px10, px10, px10)
+                setPadding(keyPreviewPaddingPx, keyPreviewPaddingPx, keyPreviewPaddingPx, keyPreviewPaddingPx)
             }
             
             val scrollView = HorizontalScrollView(context).apply {
@@ -812,7 +906,7 @@ class KeyboardLayout(
             accentPopup = PopupWindow(scrollView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                 isTouchable = false
                 isOutsideTouchable = false
-                elevation = px10.toFloat()
+                elevation = keyElevationPx
             }
         }
 
@@ -820,11 +914,11 @@ class KeyboardLayout(
         accents.forEach { accent ->
             val tv = TextView(context).apply {
                 text = if (capsMode != CustomKeyboard.CapsMode.OFF) accent.uppercase() else accent
-                textSize = 22f
+                themeManager.applyTypography(this, accentTextSizePx)
                 setTextColor(themeManager.paletteTextColor)
                 gravity = Gravity.CENTER
-                setPadding(px10, px10, px10, px10)
-                minWidth = px44
+                setPadding(keyPaddingHorizontalPx, keyPaddingVerticalPx, keyPaddingHorizontalPx, keyPaddingVerticalPx)
+                minWidth = keyMinWidthPx
                 tag = accent
             }
             accentPopupView?.addView(tv)
@@ -858,6 +952,13 @@ class KeyboardLayout(
 
         accentPopup?.showAtLocation(key, Gravity.NO_GRAVITY, finalX, finalY)
         activeAccentView = null
+
+        accentPopupView?.alpha = 0f
+        accentPopupView?.animate()
+            ?.alpha(1f)
+            ?.setDuration(themeManager.animationDurationMs)
+            ?.setInterpolator(themeManager.getInterpolator())
+            ?.start()
     }
 
     fun dismissAccentPopup() {
