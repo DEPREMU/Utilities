@@ -1,11 +1,14 @@
 #!/bin/bash
 
+# ==========================================
+# Robust Server Setup Script (v3)
+# ==========================================
+
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
-SCRIPTS_PATH="$HOME/Utilities/server/config-oracle"
 
 STATE_FILE="$HOME/.setup_state.env"
 APT_HAS_RUN=false
@@ -22,19 +25,15 @@ ensure_apt_update() {
 }
 
 # --- 1. RESUME CHECK LOGIC ---
-# We check if the state file exists. If it does, we are resuming after a reboot.
-
 if [ -f "$STATE_FILE" ]; then
     echo -e "${GREEN}=== RESUMING SCRIPT AFTER REBOOT ===${NC}"
     source "$STATE_FILE"
-    RESUMED=true
     
-    # CLEANUP: Remove the auto-run line from .bashrc immediately to prevent loops
+    # CLEANUP: Remove the auto-run line from .bashrc immediately
     sed -i '/# SETUP_AUTO_RESUME/d' "$HOME/.bashrc"
     
     echo "State loaded. Token: [HIDDEN], VM Mode: $IS_VM"
 else
-    RESUMED=false
     # --- Configuration Prompts ---
     echo "--------------------------------------------------"
     echo "Please enter your NordVPN Token."
@@ -49,7 +48,6 @@ else
 fi
 
 # --- 2. Basic Setup & Dependencies ---
-
 ensure_apt_update
 echo -e "${YELLOW}Checking system packages...${NC}"
 sudo apt upgrade -y
@@ -82,6 +80,8 @@ if [[ "$IS_VM" =~ ^[Yy]$ ]]; then
     if ! command -v pm2 &> /dev/null; then
         echo -e "${YELLOW}VM detected. Installing PM2...${NC}"
         npm install -g pm2
+    else
+        echo -e "${GREEN}PM2 already installed.${NC}"
     fi
 fi
 
@@ -102,6 +102,9 @@ else
     git checkout mainVersion
 fi
 
+echo -e "${YELLOW}Installing project dependencies...${NC}"
+yarn install
+
 # --- 5. NordVPN Configuration (With Reboot Logic) ---
 
 if [[ -z "$NORD_TOKEN" ]]; then
@@ -112,11 +115,11 @@ else
     if ! command -v nordvpn &> /dev/null; then
         echo -e "${YELLOW}NordVPN not found. Installing...${NC}"
         ensure_apt_update
+        # Using the standard install script as requested in your snippet
         sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh)
     fi
 
     # B. Group Membership & Reboot Logic
-    # We check if the current user is effectively in the group
     if ! groups $USER | grep -q 'nordvpn'; then
         echo -e "${RED}User is NOT in nordvpn group. Configuring permissions...${NC}"
         sudo usermod -aG nordvpn $USER
@@ -129,35 +132,29 @@ else
         echo "NORD_TOKEN=\"$NORD_TOKEN\"" > "$STATE_FILE"
         echo "IS_VM=\"$IS_VM\"" >> "$STATE_FILE"
         
-        # 2. Add auto-run to .bashrc so it runs immediately on login
-        # We use realpath to ensure we find the script again
-        SCRIPT_PATH=$SCRIPTS_PATH/init.sh
+        # 2. Add auto-run to .bashrc using the CURRENT script path
+        SCRIPT_PATH=$(realpath "$0")
         echo "bash $SCRIPT_PATH # SETUP_AUTO_RESUME" >> "$HOME/.bashrc"
         
         echo -e "${GREEN}Rebooting now. Please log back in to finish setup.${NC}"
         sleep 3
         sudo reboot
-        exit 0 # Stop script here
+        exit 0
     fi
 
-    # C. Configuration (Only runs if user is in group)
+    # C. Configuration
     echo -e "${YELLOW}Configuring NordVPN (User is in group)...${NC}"
-    
-    # Attempt login
     nordvpn login --token "$NORD_TOKEN"
-    
-    # Configure whitelist
     nordvpn allowlist add port 22
     nordvpn allowlist add port 80
     nordvpn allowlist add port 443
-    
     nordvpn set tpl on
     nordvpn set autoconnect enabled Mexico
     nordvpn set technology nordlynx
 fi
 
 # --- 6. Database Initialization ---
-DB_SCRIPT="$SCRIPTS_PATH/init-db.sh"
+DB_SCRIPT="$HOME/Utilities/server/config-oracle/init-db.sh"
 if [ -f "$DB_SCRIPT" ]; then
     chmod +x "$DB_SCRIPT"
     "$DB_SCRIPT"
@@ -166,7 +163,6 @@ else
     exit 1
 fi
 
-
 ensure_apt_update
 
 # --- 7. VM Specific Logic (SSL, Nginx, Firewall) ---
@@ -174,35 +170,42 @@ ensure_apt_update
 if [[ "$IS_VM" =~ ^[Yy]$ ]]; then
     echo -e "\n${YELLOW}=== VM CONFIGURATION ===${NC}"
     
-    # --- SSL Setup ---
-    mkdir -p "$HOME/ssl"
-    
-    # Only ask for upload if files are missing
-    if [[ ! -f "$HOME/ssl/private.key" || ! -f "$HOME/ssl/fullchain.pem" ]]; then
-        echo "Please upload 'private.key' and 'fullchain.pem' to ~/ssl"
-        read -p "Press [Enter] once uploaded..."
-    fi
-
-    sudo mkdir -p /etc/ssl/domain
-    if [[ -f "$HOME/ssl/private.key" ]]; then
-        sudo cp ~/ssl/private.key /etc/ssl/domain/
-        sudo cp ~/ssl/fullchain.pem /etc/ssl/domain/fullchain.pem
-        rm -rf ~/ssl
-        sudo chmod 600 /etc/ssl/domain/private.key
-    fi
-    
-    # --- Nginx Setup ---
-    sudo apt install nginx -y
-    sudo systemctl enable nginx
-    sudo systemctl start nginx
-
-    # If detecting resume, we might miss the DOMAIN variable if not saved.
-    # We'll just ask for it again if it's empty, or save it in state file in future versions.
-    # For now, asking is safer.
+    # --- New Logic: Ask to configure Nginx ---
     echo ""
-    read -p "Enter the Domain Name (e.g., example.com): " DOMAIN
+    read -p "Do you want to configure Nginx and SSL now? (y/n): " SETUP_NGINX
 
-    sudo bash -c "cat > /etc/nginx/sites-available/$DOMAIN" <<EOF
+    if [[ "$SETUP_NGINX" =~ ^[Yy]$ ]]; then
+        
+        read -p "Enter the Domain Name (Leave empty to SKIP Nginx setup): " DOMAIN
+
+        if [[ -z "$DOMAIN" ]]; then
+            echo -e "${YELLOW}No domain provided. Skipping Nginx, SSL, and Firewall configuration.${NC}"
+        else
+            # === START NGINX SETUP ===
+            
+            # 1. SSL Setup
+            mkdir -p "$HOME/ssl"
+            if [[ ! -f "$HOME/ssl/private.key" || ! -f "$HOME/ssl/fullchain.pem" ]]; then
+                echo "Please upload 'private.key' and 'fullchain.pem' to ~/ssl"
+                read -p "Press [Enter] once uploaded..."
+            fi
+
+            sudo mkdir -p /etc/ssl/domain
+            if [[ -f "$HOME/ssl/private.key" ]]; then
+                sudo cp ~/ssl/private.key /etc/ssl/domain/
+                sudo cp ~/ssl/fullchain.pem /etc/ssl/domain/fullchain.pem
+                rm -rf ~/ssl
+                sudo chmod 600 /etc/ssl/domain/private.key
+            fi
+            
+            # 2. Nginx Install & Config
+            echo -e "${YELLOW}Installing Nginx...${NC}"
+            sudo apt install nginx -y
+            sudo systemctl enable nginx
+            sudo systemctl start nginx
+
+            echo -e "${YELLOW}Configuring Nginx for $DOMAIN...${NC}"
+            sudo bash -c "cat > /etc/nginx/sites-available/$DOMAIN" <<EOF
 server {
     listen 443 ssl;
     server_name $DOMAIN;
@@ -226,30 +229,42 @@ server {
     return 301 https://\$host\$request_uri;
 }
 EOF
-    sudo ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/
-    sudo nginx -t
-    sudo systemctl reload nginx
+            sudo ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/
+            sudo nginx -t
+            sudo systemctl reload nginx
 
-    # --- FIREWALL (CRITICAL: Allow SSH First) ---
-    echo -e "${YELLOW}Configuring Firewall...${NC}"
-    sudo ufw allow ssh
-    sudo ufw allow 22/tcp
-    sudo ufw allow 80/tcp
-    sudo ufw allow 443/tcp
-    echo "y" | sudo ufw enable
+            # 3. Firewall (Only configured if Nginx is set up)
+            echo -e "${YELLOW}Configuring Firewall...${NC}"
+            sudo ufw allow ssh
+            sudo ufw allow 22/tcp
+            sudo ufw allow 80/tcp
+            sudo ufw allow 443/tcp
+            echo "y" | sudo ufw enable
+            
+            # === END NGINX SETUP ===
+        fi
+    else
+        echo -e "${YELLOW}Skipping Nginx/SSL configuration by user request.${NC}"
+    fi
     
-    # --- Start Server ---
+    # --- Start Server (Always runs for VM) ---
     START_SCRIPT="$HOME/Utilities/server/config-oracle/start.sh"
     if [ -f "$START_SCRIPT" ]; then
-        chmod +x "$START_SCRIPT"
-        pm2 start "$START_SCRIPT" --name Utilities
-        pm2 save
-        pm2 startup | tail -n 1
+        if pm2 describe Utilities >/dev/null 2>&1; then
+            echo -e "${YELLOW}PM2 process 'Utilities' already running.${NC}"
+        else
+            echo -e "${YELLOW}Starting PM2...${NC}"
+            chmod +x "$START_SCRIPT"
+            pm2 start "$START_SCRIPT" --name Utilities
+            pm2 save
+            pm2 startup
+        fi
+    else
+        echo -e "${RED}Start script not found at $START_SCRIPT${NC}"
     fi
 fi
 
 # --- 8. Final Cleanup ---
-# Remove the state file so the next run starts fresh
 rm -f "$STATE_FILE"
 
 echo ""

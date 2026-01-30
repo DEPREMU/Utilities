@@ -505,6 +505,7 @@ export const enApp: typeLanguages = {
     notifications: "Notifications",
     settings: "Settings",
     share: "Share",
+    unlimited: "Unlimited",
     showSelected: "Show Selected",
     backMessage: "Do you want to go back to the home screen?",
     logout: "Logout",
@@ -551,6 +552,7 @@ export const enApp: typeLanguages = {
     empty: "Empty",
     folders: "Folders",
     items: "Items",
+    deleteAll: "Delete All",
   },
   vault: {
     selectedItems: "{{count}} selected items",
@@ -690,5 +692,10 @@ export const enApp: typeLanguages = {
     currentPaperSize: "Current Paper Size: {{size}}",
     selectCurrentPaperSize: "Select Paper Size, current: {{size}}",
     selectImagesToConvert: "Select Images to Convert to PDF",
+    maxPdfSizeInMB: "Max PDF Size in MB ({{size}} MB)",
+    customWidth: "Custom Width: {{width}} px",
+    customHeight: "Custom Height: {{height}} px",
+    customSize: "Custom Size",
+    getSizeFromImageFiles: "Get size from each image.",
   },
 };

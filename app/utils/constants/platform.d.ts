@@ -15,4 +15,11 @@ export type DeleteDirectoryPickerFolder = () => void;
 
 export declare const deleteDirectoryPickerFolder: DeleteDirectoryPickerFolder;
 
+/**
+ * @platform `native`
+ */
+export type DeleteDirectoryImageManipulatorFolder = () => void;
+
+export declare const deleteDirectoryImageManipulatorFolder: DeleteDirectoryImageManipulatorFolder;
+
 export declare const PDF: typeof PDF;

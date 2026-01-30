@@ -49,6 +49,7 @@ export const useStylesPDF = () => {
           width: (width - getResponsiveValue(60, 90, 120)) / 3,
           height: (width - getResponsiveValue(60, 90, 120)) / 3,
           borderRadius: 10,
+          zIndex: 10 as const,
         },
         divider: {
           marginVertical: getResponsiveValue(10, 15, 20),
@@ -56,6 +57,24 @@ export const useStylesPDF = () => {
         textInput: {
           marginHorizontal: getResponsiveValue(20, 30, 40),
           marginBottom: getResponsiveValue(15, 20, 25),
+        },
+        deletingItem: {
+          opacity: 0.5,
+          backgroundColor: colors.error,
+          borderWidth: 2,
+          borderColor: colors.error,
+        },
+        buttonsContainer: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          width: "100%",
+          paddingHorizontal: getResponsiveValue(20, 30, 40),
+          marginTop: getResponsiveValue(10, 15, 20),
+        },
+        button: {
+          flex: 1,
+          marginHorizontal: getResponsiveValue(10, 20, 30),
+          marginBottom: getResponsiveValue(5, 10, 15),
         },
       }),
     [colors, getCommonStyles, getResponsiveValue, width],

@@ -21,5 +21,18 @@ export const deleteDirectoryPickerFolder = () => {
   }, 1000);
 };
 
+export const deleteDirectoryImageManipulatorFolder = () => {
+  setTimeoutPolyfill(() => {
+    try {
+      new ExpoFileSystem.Directory(
+        ExpoFileSystem.Paths.cache,
+        "ImageManipulator",
+      ).delete();
+    } catch {
+      // Ignore errors
+    }
+  }, 1000);
+};
+
 import PDF from "react-native-pdf";
 export { PDF };

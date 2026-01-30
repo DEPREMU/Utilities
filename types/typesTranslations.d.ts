@@ -563,6 +563,8 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       easy: string;
       medium: string;
       hard: string;
+      unlimited: string;
+      deleteAll: string;
       loading: string;
       openWith: string;
       folders: string;
@@ -591,9 +593,14 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       lover: string;
       viewer: string;
       converter: string;
+      customSize: string;
+      customWidth: `${string}{{width}}${string}`;
       convertToPdf: string;
+      customHeight: `${string}{{height}}${string}`;
+      maxPdfSizeInMB: `${string}{{size}}${string}`;
       currentPaperSize: `${string}{{size}}${string}`;
       selectImagesToConvert: string;
+      getSizeFromImageFiles: string;
       selectCurrentPaperSize: `${string}{{size}}${string}`;
     };
   };

@@ -3,7 +3,7 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.7.0";
+const version = "1.8.0";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
@@ -18,8 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     version,
     orientation: "default",
     icon: "./assets/icon.png",
-    userInterfaceStyle: "dark",
-    newArchEnabled: true,
+    userInterfaceStyle: "automatic",
     platforms: ["android", "web"],
     extra: {
       version,
@@ -40,7 +39,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#000000",
       },
-      jsEngine: "hermes",
       package: "com.utilities.depremu",
       permissions: [
         "INTERNET",
@@ -51,6 +49,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "FOREGROUND_SERVICE",
         "SYSTEM_ALERT_WINDOW",
         "ACCESS_NETWORK_STATE",
+        "SCHEDULE_EXACT_ALARM",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",

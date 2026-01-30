@@ -13,27 +13,32 @@ import {
   logger,
   memoDeep,
   REPLACERS,
-  URI_EXTENSION,
   deleteDirectoryPickerFolder,
+  deleteDirectoryImageManipulatorFolder,
 } from "@utils";
+import {
+  Menu,
+  Text,
+  Button,
+  Divider,
+  TextInput,
+  ProgressBar,
+  ActivityIndicator,
+} from "react-native-paper";
 import Sortable from "react-native-sortables";
-import { cloneDeep } from "lodash";
-import { createPdf } from "react-native-pdf-from-image";
+import * as PdfDoc from "pdf-lib";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesPDF } from "@styles/screens/PDF/useStylesPDF";
 import * as ExpoFileSystem from "expo-file-system";
+import { cloneDeep, isNaN } from "lodash";
 import * as DirectoryPicker from "expo-document-picker";
-import { Button, Divider, Menu, Text, TextInput } from "react-native-paper";
-
-import React, { useCallback, useRef, useState } from "react";
+import { ImageManipulator } from "expo-image-manipulator";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useAnimatedRef } from "react-native-reanimated";
+import React, { useRef, useState, useCallback, useMemo } from "react";
 
-type PaperSizes = Exclude<
-  Parameters<typeof createPdf>[0]["paperSize"],
-  undefined
->;
+type PaperSizes = keyof typeof PdfDoc.PageSizes | "CUSTOM" | "GET_FROM_IMAGE";
 
 type PickedImage = {
   uri: string;
@@ -41,15 +46,9 @@ type PickedImage = {
 };
 
 const PAPER_SIZES: PaperSizes[] = [
-  ...Array.from({ length: 10 }, (_, i) => `A${i}` as PaperSizes),
-  ...Array.from({ length: 5 }, (_, i) => `B${i}` as PaperSizes),
-  ...Array.from({ length: 10 }, (_, i) => `C${i}` as PaperSizes),
-  "Letter",
-  "Legal",
-  "Tabloid",
-  "Ledger",
-  "Executive",
-  "Folio",
+  ...(Object.keys(PdfDoc.PageSizes) as PaperSizes[]),
+  "CUSTOM",
+  "GET_FROM_IMAGE",
 ];
 
 const ACTIONS_MENU = [
@@ -70,27 +69,41 @@ const PDFConverter: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesPDF();
 
-  const [sizePdf, setSizePdf] = useState<PaperSizes>("A4");
+  const [sizePdf, setSizePdf] = useState<PaperSizes>("GET_FROM_IMAGE");
+  const [progress, setProgress] = useState<number>(0);
+  const [maxSizePdf, setMaxSizePdf] = useState<number>(-1);
+  const [customSize, setCustomSize] = useState({ width: 612, height: 792 });
 
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
   const [images, setImages] = useState<PickedImage[]>([]);
-  const [filename, setFilename] = useState(`PDF-${Date.now()}`);
-  const [actionsMenu, setActionsMenu] = useState(defaultActionsMenu);
-  const [isSelectingSize, setIsSelectingSize] = useState(false);
+  const [filename, setFilename] = useState<string>(`PDF-${Date.now()}`);
+  const [converting, setConverting] = useState<boolean>(false);
+  const [actionsMenu, setActionsMenu] =
+    useState<typeof defaultActionsMenu>(defaultActionsMenu);
+  const [isSelectingSize, setIsSelectingSize] = useState<boolean>(false);
 
   const scrollableRef = useAnimatedRef<Animated.ScrollView>();
 
-  const paperSizesRenderedRef = useRef(
-    PAPER_SIZES.map((size) => (
-      <Menu.Item
-        key={size}
-        title={size}
-        onPress={() => {
-          setSizePdf(size);
-          setIsSelectingSize(false);
-        }}
-      />
-    )),
+  const paperSizesRendered = useMemo(
+    () =>
+      PAPER_SIZES.map((size) => {
+        let title: string = size;
+        if (size === "CUSTOM") title = t("PDF.customSize");
+        else if (size === "GET_FROM_IMAGE")
+          title = t("PDF.getSizeFromImageFiles");
+
+        return (
+          <Menu.Item
+            key={size}
+            title={title}
+            onPress={() => {
+              setSizePdf(size);
+              setIsSelectingSize(false);
+            }}
+          />
+        );
+      }),
+    [t],
   );
 
   const handleChangeOrderRef = useRef((params: DragEndParams) => {
@@ -120,53 +133,117 @@ const PDFConverter: React.FC = () => {
 
     if (images.canceled) return;
 
-    setImages((prev) => {
-      const newImages = cloneDeep(prev);
+    setImages((prev) => [
+      ...prev,
+      ...images.assets.map((img) => ({ uri: img.uri, name: img.name })),
+    ]);
+  });
 
-      return newImages.concat(
-        images.assets.map((img) => ({ uri: img.uri, name: img.name })),
-      );
+  const deleteItemRef = useRef((item?: PickedImage) => {
+    if (!item) setImages([]);
+    else setImages((prev) => prev.filter((image) => image.uri !== item.uri));
+  });
+
+  const handleChangeMaxSizeRef = useRef((text: string) => {
+    setMaxSizePdf((prev) => {
+      const size = Number(text);
+      if (isNaN(size)) return text.slice(0, -1).length === 0 ? -1 : prev;
+      else return size;
     });
   });
 
-  const onLongPressImageRef = useRef(
-    (event: GestureResponderEvent, image: PickedImage) => {
-      const { pageX, pageY } = event.nativeEvent;
-      setActionsMenu({
-        image,
-        anchor: { x: pageX, y: pageY },
-        visible: true,
-        actionKey: "",
-      });
-    },
-  );
-
   const handlePressConvertToPdf = useCallback(async () => {
-    setImages((prev) => {
-      try {
-        if (prev.length === 0) return prev;
+    try {
+      if (!images.length) return;
+      setConverting(true);
 
-        const uris = prev.map((image) => image.uri);
-        const { filePath } = createPdf({
-          name: filename + ".pdf",
-          paperSize: sizePdf,
-          imagePaths: uris,
-        });
-        const file = new ExpoFileSystem.File(URI_EXTENSION + filePath);
+      const maxSizePdfInBytes = maxSizePdf * 1024 * 1024 + 1024 * 100;
+      let totalSize = images.reduce(
+        (acc, img) => acc + new ExpoFileSystem.File(img.uri).size,
+        0,
+      );
 
-        shareAsync(file.uri, { mimeType: "application/pdf" });
-        if (REPLACERS.isNative) deleteDirectoryPickerFolder();
-        return [];
-      } catch (error) {
-        logger.error(
-          "PDF",
-          "error converting to PDF",
-          (error as Error).message,
-        );
-        return prev;
+      const doc = await PdfDoc.PDFDocument.create();
+      let size: [number, number] = [0, 0];
+
+      if (sizePdf === "GET_FROM_IMAGE") {
+        // Handle by image
+      } else if (sizePdf === "CUSTOM") {
+        size = [customSize.width, customSize.height];
+      } else {
+        size = PdfDoc.PageSizes[sizePdf];
       }
-    });
-  }, [sizePdf, filename]);
+
+      const isLargerThanMaxSize = (multiply?: number) =>
+        maxSizePdf !== -1 && totalSize > maxSizePdfInBytes * (multiply ?? 1);
+
+      let i = 0;
+      const len = images.length;
+
+      for (const img of images) {
+        try {
+          setProgress(++i / len);
+
+          if (!img.uri) continue;
+          const image = new ExpoFileSystem.File(img.uri);
+
+          let compress = 1;
+          if (isLargerThanMaxSize(5)) compress = 0;
+          else if (isLargerThanMaxSize(4)) compress = 0.2;
+          else if (isLargerThanMaxSize(3)) compress = 0.4;
+          else if (isLargerThanMaxSize(2)) compress = 0.6;
+          else if (isLargerThanMaxSize()) compress = 0.8;
+
+          const manipulatedImage = ImageManipulator.manipulate(img.uri);
+          if (size[0] <= 0 || size[1] <= 0) {
+            const dimensions = await Image.getSize(img.uri);
+            size = [dimensions.width, dimensions.height];
+          }
+          manipulatedImage.resize({
+            width: size[0],
+            height: size[1],
+          });
+
+          const newImage = await manipulatedImage.renderAsync();
+          const savedImage = await newImage.saveAsync({
+            compress,
+          });
+          const uri = savedImage.uri;
+          const newFile = new ExpoFileSystem.File(uri);
+          totalSize = totalSize - newFile.size + image.size;
+
+          const newPage = doc.addPage(size);
+          const imagePdf = await doc.embedJpg(await newFile.bytes());
+          newPage.drawImage(imagePdf);
+        } catch (error) {
+          logger.error(
+            "PDF",
+            "error processing image for PDF",
+            (error as Error).message,
+          );
+        }
+      }
+
+      const pdfBytes = await doc.save();
+      const file = new ExpoFileSystem.File(
+        ExpoFileSystem.Paths.cache,
+        filename.endsWith(".pdf") ? filename : `${filename}.pdf`,
+      );
+      file.write(pdfBytes);
+      await shareAsync(file.uri, { mimeType: "application/pdf" });
+
+      if (REPLACERS.isNative) {
+        deleteDirectoryPickerFolder();
+        deleteDirectoryImageManipulatorFolder();
+      }
+      file.delete();
+    } catch (error) {
+      logger.error("PDF", "error converting to PDF", (error as Error).message);
+    } finally {
+      setProgress(0);
+      setConverting(false);
+    }
+  }, [sizePdf, filename, images, maxSizePdf, customSize]);
 
   const renderItem = useCallback<SortableGridRenderItem<PickedImage>>(
     ({ item }) => {
@@ -174,10 +251,30 @@ const PDFConverter: React.FC = () => {
         setImages((prev) => prev.filter((image) => image.uri !== item.uri));
       };
 
+      let presses = 0;
+      let time = Date.now();
+
       return (
         <Pressable
           style={styles.image}
-          onLongPress={(event) => onLongPressImageRef.current(event, item)}
+          onPress={(event) => {
+            if (Date.now() - time < 300) presses += 1;
+            else presses = 1;
+            time = Date.now();
+            if (presses === 2) {
+              presses = 0;
+              const { pageX, pageY } = event.nativeEvent;
+              setActionsMenu({
+                image: item,
+                anchor: {
+                  x: pageX,
+                  y: pageY,
+                },
+                visible: true,
+                actionKey: "delete",
+              });
+            }
+          }}
         >
           <Image
             source={{ uri: item.uri }}
@@ -201,7 +298,7 @@ const PDFConverter: React.FC = () => {
           onDismiss={() => setIsSelectingSize(false)}
         >
           <ScrollView style={styles.scrollView}>
-            {paperSizesRenderedRef.current}
+            {paperSizesRendered}
           </ScrollView>
         </Menu>
       )}
@@ -236,21 +333,65 @@ const PDFConverter: React.FC = () => {
         onPress={onPressSelectSizeRef.current}
         style={styles.menuAnchor}
       >
-        {t(`PDF.selectCurrentPaperSize`, { size: sizePdf })}
+        {t(`PDF.selectCurrentPaperSize`, {
+          size:
+            sizePdf === "CUSTOM"
+              ? t("PDF.customSize")
+              : sizePdf === "GET_FROM_IMAGE"
+                ? t("PDF.getSizeFromImageFiles")
+                : sizePdf,
+        })}
       </Button>
+
+      {sizePdf === "CUSTOM" && (
+        <>
+          <TextInput
+            value={String(customSize.width)}
+            style={styles.textInput}
+            label={t("PDF.customWidth", { width: String(customSize.width) })}
+            onChangeText={(text) =>
+              !isNaN(Number(text)) &&
+              setCustomSize((prev) => ({ ...prev, width: Number(text) }))
+            }
+            keyboardType="numeric"
+          />
+          <TextInput
+            value={String(customSize.height)}
+            style={styles.textInput}
+            label={t("PDF.customHeight", { height: String(customSize.height) })}
+            onChangeText={(text) =>
+              !isNaN(Number(text)) &&
+              setCustomSize((prev) => ({ ...prev, height: Number(text) }))
+            }
+            keyboardType="numeric"
+          />
+        </>
+      )}
 
       <Divider style={styles.divider} />
 
       <TextInput
         value={filename}
         style={styles.textInput}
-        label={t("common.fileName", { name: "" })}
+        label={t("common.fileName", { name: filename })}
         onChangeText={setFilename}
+      />
+
+      <TextInput
+        value={maxSizePdf === -1 ? "" : String(maxSizePdf)}
+        style={styles.textInput}
+        label={t("PDF.maxPdfSizeInMB", {
+          size: maxSizePdf === -1 ? t("common.unlimited") : String(maxSizePdf),
+        })}
+        onChangeText={handleChangeMaxSizeRef.current}
+        keyboardType="numeric"
       />
 
       <Button mode="contained" onPress={handlePressSelectImagesRef.current}>
         {t("PDF.selectImagesToConvert")}
       </Button>
+
+      {converting && <ProgressBar style={styles.divider} progress={progress} />}
 
       <Divider style={styles.divider} />
 
@@ -258,6 +399,7 @@ const PDFConverter: React.FC = () => {
         <Animated.ScrollView
           ref={scrollableRef}
           contentContainerStyle={styles.listContainer}
+          style={styles.list}
         >
           <Sortable.Grid
             autoScrollEnabled
@@ -273,9 +415,29 @@ const PDFConverter: React.FC = () => {
         </Animated.ScrollView>
       </GestureHandlerRootView>
 
-      <Button mode="contained" onPress={handlePressConvertToPdf}>
-        {t("PDF.convertToPdf")}
-      </Button>
+      <View style={styles.buttonsContainer}>
+        <Button
+          mode="outlined"
+          onPress={() => deleteItemRef.current()}
+          style={styles.button}
+          disabled={!images.length || converting}
+        >
+          {t("common.deleteAll")}
+        </Button>
+
+        <Button
+          mode="contained"
+          style={styles.button}
+          onPress={handlePressConvertToPdf}
+          disabled={!images.length || converting}
+        >
+          {!converting ? (
+            t("PDF.convertToPdf")
+          ) : (
+            <ActivityIndicator size="small" color="white" animating />
+          )}
+        </Button>
+      </View>
     </View>
   );
 };
