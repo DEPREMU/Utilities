@@ -304,6 +304,7 @@ const ipcDict: IpcDictHybrid = {
         } catch {
           return "unknown";
         }
+        saveStorageValue("VAULT_DIRECTORY", directory);
 
         return directory;
       } catch (error) {
@@ -495,6 +496,31 @@ const ipcDict: IpcDictHybrid = {
         );
       } catch (error) {
         // Ignore error
+      }
+    },
+  },
+  "get-existing-vault-folders": {
+    type: "handle",
+    func: async () => {
+      writeLog(`Received get-existing-vault-folders request`, "info");
+      const directory = await getStorageValue("VAULT_DIRECTORY");
+      if (!directory) return [];
+
+      try {
+        const folderNames = await fs.promises.readdir(directory, {
+          withFileTypes: true,
+        });
+        const existingFolders = folderNames
+          .filter((dirent) => dirent.isDirectory())
+          .map((dirent) => dirent.name);
+
+        return existingFolders;
+      } catch (error) {
+        writeLog(
+          `Error reading vault directories at ${directory}: ` + String(error),
+          "error",
+        );
+        return [];
       }
     },
   },

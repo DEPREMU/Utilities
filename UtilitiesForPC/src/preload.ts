@@ -386,6 +386,21 @@ const contextBridgeType: ContextBridgeType = {
         );
       }
     },
+    getExistingVaultFolders: async () => {
+      try {
+        const result = await sendMessage(
+          "invoke",
+          "get-existing-vault-folders",
+        );
+        return result;
+      } catch (error) {
+        sendLog(
+          `Error getting existing vault folders: ` + (error as Error).message,
+          "error",
+        );
+        return [];
+      }
+    },
   },
 };
 

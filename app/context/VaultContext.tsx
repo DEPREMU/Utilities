@@ -1,4 +1,5 @@
 import {
+  Falsy,
   PickedFile,
   FolderFiles,
   VaultSettings,
@@ -19,20 +20,20 @@ import {
   REPLACERS,
   getRandomId,
   encryptFile,
-  loadDataStorage,
-  saveDataStorage,
+  getFoldersVault,
   renameVaultItem,
   sanitizeFileName,
+  storageManagement,
   functionsToExecute,
   decryptFolderFiles,
   setTimeoutPolyfill,
   actionWithVaultItem,
   clearTimeoutPolyfill,
+  getDefaultVaultDirectory,
   getMimeTypeFromExtension,
   clearDecryptedFolderDirectory,
 } from "@utils";
 import Button from "@components/common/ButtonComponent";
-import { Falsy } from "react-native";
 import { useModal } from "./ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
 import { cloneDeep } from "lodash";
@@ -220,9 +221,9 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                   label={tTyped("common.confirm")}
                   handlePress={async () => {
                     closeModalRef.current();
-                    const prev = await loadDataStorage("VAULT_PASSWORD", {});
+                    const prev = storageManagement.get("VAULT_PASSWORD", {});
 
-                    saveDataStorage("VAULT_PASSWORD", {
+                    storageManagement.save("VAULT_PASSWORD", {
                       ...prev,
                       [folderName]: pass,
                     });
@@ -242,8 +243,8 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
 
-      let directory = await loadDataStorage("VAULT_DIRECTORY", "");
-      const password = await loadDataStorage("VAULT_PASSWORD", {});
+      let directory = storageManagement.get("VAULT_DIRECTORY", "");
+      const password = storageManagement.get("VAULT_PASSWORD", {});
       if (!directory) {
         await new Promise<void>((resolve) => {
           const handlePressSelectFolder = async (errorInDefault?: boolean) => {
@@ -267,13 +268,10 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                 handlePress={async () => {
                   directory = REPLACERS.isWeb
                     ? await windowModule.getSafeFolder()
-                    : new FileSystem.Directory(
-                        FileSystem.Paths.document.uri,
-                        ".vault",
-                      ).uri;
+                    : (await getDefaultVaultDirectory()).uri;
 
                   if (directory === "unknown") await handlePressSelectFolder();
-                  else {
+                  else  {
                     if (REPLACERS.isNative) {
                       try {
                         new FileSystem.Directory(directory).create({
@@ -305,7 +303,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
             }
           }
         }
-        await saveDataStorage("VAULT_DIRECTORY", directory);
+        storageManagement.save("VAULT_DIRECTORY", directory);
       }
       if (Object.keys(password).length === 0) {
         const success = await functionsRef.current.selectPassword();
@@ -354,7 +352,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         const folders = Object.keys(
-          await loadDataStorage("VAULT_PASSWORD", {
+          storageManagement.get("VAULT_PASSWORD", {
             [DEFAULT_VAULT_DATA.DEFAULT_FOLDER_NAME]: "",
           }),
         );
@@ -481,7 +479,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         statesRef.current.currentFolderId ||
         DEFAULT_VAULT_DATA.DEFAULT_FOLDER_NAME;
 
-      const passwords = await loadDataStorage(
+      const passwords = storageManagement.get(
         "VAULT_PASSWORD",
         {} as Record<string, string>,
       );
@@ -521,7 +519,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
           showAlert(tTyped("error"));
         }
       } else {
-        const directory = await loadDataStorage("VAULT_DIRECTORY", "");
+        const directory = storageManagement.get("VAULT_DIRECTORY", "");
 
         let successes = 0;
         const outputDir = new FileSystem.Directory(directory, folderId);
@@ -592,7 +590,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
       let password = "";
 
       if (!isLocked) {
-        const passwords = await loadDataStorage("VAULT_PASSWORD");
+        const passwords = storageManagement.get("VAULT_PASSWORD");
         if (passwords) {
           const correctPassword = passwords[folderId];
           password = correctPassword || "";
@@ -615,11 +613,11 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
             />,
             <Button
               label={tTyped("common.confirm")}
-              handlePress={async () => {
+              handlePress={() => {
                 if (verifying) return;
                 verifying = true;
 
-                const passwords = await loadDataStorage(
+                const passwords = storageManagement.get(
                   "VAULT_PASSWORD",
                   {} as Record<string, string>,
                 );
@@ -650,7 +648,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
           [folderId]: files,
         }));
       } else {
-        const directory = await loadDataStorage("VAULT_DIRECTORY", "");
+        const directory = storageManagement.get("VAULT_DIRECTORY", "");
         const folderPath = new FileSystem.Directory(directory, folderId);
         const files = await decryptFolderFiles(
           folderPath.uri,
@@ -807,7 +805,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
       if (REPLACERS.isWeb) {
         windowModule.renameFolderVault(folderId, newName);
       } else {
-        const directory = await loadDataStorage("VAULT_DIRECTORY", "");
+        const directory = storageManagement.get("VAULT_DIRECTORY", "");
         const oldFolderPath = new FileSystem.Directory(directory, folderId);
         try {
           oldFolderPath.rename(newName);
@@ -827,7 +825,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
       if (REPLACERS.isWeb) {
         windowModule.deleteFolderVault(folderId);
       } else {
-        const directory = await loadDataStorage("VAULT_DIRECTORY", "");
+        const directory = storageManagement.get("VAULT_DIRECTORY", "");
         const folderPath = new FileSystem.Directory(directory, folderId);
         try {
           folderPath.delete();
@@ -850,13 +848,22 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
       if (screenName !== "Vault") functionsRef.current.lock();
     };
 
-    loadDataStorage("VAULT_SETTINGS").then((loadedSettings) => {
+    const loadVaultSettings = async () => {
+      const loadedSettings = storageManagement.get("VAULT_SETTINGS");
       if (loadedSettings) setSettings(loadedSettings);
-      else saveDataStorage("VAULT_SETTINGS", getDefaultSettings());
-    });
-    loadDataStorage("VAULT_PASSWORD", {}).then((passwords) => {
-      const folderNames = Object.keys(passwords);
-      if (!folderNames.length) return;
+      else storageManagement.save("VAULT_SETTINGS", getDefaultSettings());
+      const passwords = storageManagement.get("VAULT_PASSWORD", {});
+
+      let folderNames = Object.keys(passwords);
+      if (!folderNames.length) {
+        if (REPLACERS.isWeb) {
+          folderNames = await windowModule.getExistingVaultFolders();
+        } else {
+          folderNames = await getFoldersVault();
+        }
+      }
+      if (!folderNames.length)
+        folderNames = [DEFAULT_VAULT_DATA.DEFAULT_FOLDER_NAME];
 
       setFolders(
         folderNames.reduce(
@@ -867,7 +874,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
           {} as VaultContextProps["folders"],
         ),
       );
-    });
+    };
 
     const removePreviousSession = async () => {
       setData(initializeVault(false));
@@ -875,6 +882,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
       else clearDecryptedFolderDirectory();
     };
 
+    loadVaultSettings();
     removePreviousSession();
     return () => {
       delete functionsToExecute.current["AppState-change"]["VaultContext"];

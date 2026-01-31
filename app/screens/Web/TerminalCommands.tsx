@@ -11,18 +11,19 @@ import { Command } from "@common";
 import { useModal } from "@context/ModalContext";
 import windowModule from "@/utils/modules/WindowModule";
 import { useLanguage } from "@context/LanguageContext";
-import { navigateReplace } from "@navigation/navigationRef";
 import useStylesTerminalCommands from "@styles/screens/Web/useStylesTerminalCommands";
+import { logger, storageManagement } from "@utils";
 import { FlatList, View, ScrollView } from "react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { loadDataStorage, logger, REPLACERS, saveDataStorage } from "@utils";
+import React, { useCallback, useRef, useState } from "react";
 
 const TerminalCommands: React.FC = () => {
   const { t } = useLanguage();
   const { styles, colors } = useStylesTerminalCommands();
   const { openModalRef, closeModalRef } = useModal();
 
-  const [commands, setCommands] = useState<Command[]>([]);
+  const [commands, setCommands] = useState<Command[]>(
+    storageManagement.get("TERMINAL_COMMANDS", []),
+  );
   const [newCommand, setNewCommand] = useState<Command>({
     when: "Start-up",
     command: "",
@@ -45,7 +46,7 @@ const TerminalCommands: React.FC = () => {
     setNewCommand({ when: "Start-up", command: "" });
     setCommands((prev) => {
       const updatedCommands = [...prev, newCommand];
-      saveDataStorage("TERMINAL_COMMANDS", updatedCommands);
+      storageManagement.save("TERMINAL_COMMANDS", updatedCommands);
       return updatedCommands;
     });
   }, [newCommand, closeModalRef]);
@@ -128,7 +129,7 @@ const TerminalCommands: React.FC = () => {
     async (index: number) => {
       const updatedCommands = commands.filter((_, i) => i !== index);
       setCommands(updatedCommands);
-      await saveDataStorage("TERMINAL_COMMANDS", updatedCommands);
+      storageManagement.save("TERMINAL_COMMANDS", updatedCommands);
     },
     [commands],
   );
@@ -186,20 +187,6 @@ const TerminalCommands: React.FC = () => {
       </View>
     );
   }, [styles, t, colors]);
-
-  useEffect(() => {
-    if (REPLACERS.isNative) {
-      navigateReplace("Home");
-      return;
-    }
-
-    const fetchCommands = async () => {
-      const storedCommands = await loadDataStorage("TERMINAL_COMMANDS");
-
-      setCommands(storedCommands || []);
-    };
-    fetchCommands();
-  }, []);
 
   return (
     <ScrollView style={styles.container}>

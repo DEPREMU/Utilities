@@ -9,7 +9,6 @@ import {
   logger,
   tTyped,
   REPLACERS,
-  loadDataStorage,
   setTimeoutPolyfill,
   setIntervalPolyfill,
   clearTimeoutPolyfill,
@@ -20,9 +19,8 @@ import {
   askDisplayOverOtherAppsPermission,
 } from "@utils";
 import BackgroundModule from "@/utils/modules/BackgroundModule";
-import { navigationRef } from "@navigation/navigationRef";
+import { navigateReplace, navigationRef } from "@navigation/navigationRef";
 import { reloadAppAsync } from "expo";
-import NativeFunctionsModule from "@/utils/modules/NativeFunctionsModule";
 import { functionsToExecute } from "@/utils/cross";
 import { AppState, DeviceEventEmitter } from "react-native";
 
@@ -187,6 +185,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
   useEffect(() => {
     if (!REPLACERS.isNative) return;
+    //? All the logic to start the BackgroundModule and listen to events from Native
 
     const initializeBackgroundModule = async () => {
       let attempt = 0;
@@ -200,11 +199,6 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
       if (!BackgroundModule.start) return reloadAppAsync();
 
-      loadDataStorage("DEVICE_ID").then(
-        (deviceId) =>
-          !deviceId &&
-          NativeFunctionsModule?.requestIgnoreBatteryOptimizations?.(),
-      );
       BackgroundModule?.start?.(
         tTyped("foregroundNotificationTitle"),
         tTyped("foregroundNotificationMessage"),
@@ -213,9 +207,21 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
     initializeBackgroundModule();
 
+    let timeoutId: number | null = null;
+
     functionsToExecute.current["AppState-change"]["setIsBackground"] = (
       newState,
-    ) => setIsBackground(newState !== "active");
+    ) => {
+      if (newState === "background") {
+        if (!timeoutId)
+          timeoutId = setTimeoutPolyfill(() => navigateReplace("Home"), 60000);
+      } else if (timeoutId) {
+        clearTimeoutPolyfill(timeoutId);
+        timeoutId = null;
+      }
+
+      setIsBackground(newState !== "active");
+    };
 
     const callbackNavigator = () => {
       const route = navigationRef.current?.getCurrentRoute();
@@ -248,6 +254,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       subscriptionIsAliveRN.remove();
       subscriptionStatePhone.remove();
       BackgroundModule.stop();
+      if (timeoutId) clearTimeoutPolyfill(timeoutId);
     };
   }, []);
 

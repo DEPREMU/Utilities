@@ -15,8 +15,8 @@ import {
   REPLACERS,
   fetchToServer,
   DATA_PLATFORM,
-  loadDataStorage,
   getFormattedDate,
+  storageManagement,
   getDefaultMinutes,
   setTimeoutPolyfill,
   notificationsManager,
@@ -199,41 +199,40 @@ const NotificationsScreen: React.FC = () => {
 
         if (interval <= 0) return updated;
 
-        loadDataStorage("DEVICE_ID").then(async (deviceId) => {
-          const taskId =
-            Date.now().toString() + Math.random().toString(36).substring(2, 8);
-          const values: RequestDatabaseUpdate["values"] = {
-            interval: interval > 0 ? interval * 60 * 1000 : -1,
-          };
-          const match: RequestDatabaseUpdate["match"] = {
-            userId: userData.userId,
-            reason: id,
-          };
-          addTaskQueueRef.current(
-            {
-              requiresInternet: true,
-              func: async () => {
-                fetchToServer(
-                  "/database/update",
-                  {
-                    match,
-                    deviceId,
-                    table: "UserNotificationsConfig",
-                    values,
-                    lang: language,
-                  },
-                  sessionToken,
-                );
-              },
+        const deviceId = storageManagement.get("DEVICE_ID");
+        const taskId =
+          Date.now().toString() + Math.random().toString(36).substring(2, 8);
+        const values: RequestDatabaseUpdate["values"] = {
+          interval: interval > 0 ? interval * 60 * 1000 : -1,
+        };
+        const match: RequestDatabaseUpdate["match"] = {
+          userId: userData.userId,
+          reason: id,
+        };
+        addTaskQueueRef.current(
+          {
+            requiresInternet: true,
+            func: async () => {
+              fetchToServer(
+                "/database/update",
+                {
+                  match,
+                  deviceId,
+                  table: "UserNotificationsConfig",
+                  values,
+                  lang: language,
+                },
+                sessionToken,
+              );
             },
-            {
-              id: taskId,
-              args: ["UserNotificationsConfig", values, match],
-              functionName: "updateFromDatabase",
-            },
-            taskId,
-          );
-        });
+          },
+          {
+            id: taskId,
+            args: ["UserNotificationsConfig", values, match],
+            functionName: "updateFromDatabase",
+          },
+          taskId,
+        );
 
         return updated;
       });

@@ -6,8 +6,8 @@ import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
 import { REPLACERS } from "../constants/constants";
 import { fetchToServer } from "./APIManagement";
-import { loadDataStorage } from "./storageManagement";
 import { getCurrentUserId } from "./auth";
+import { storageManagement } from "./storageManagement";
 
 type ReturnDeviceInfo = {
   deviceId: string;
@@ -19,7 +19,7 @@ const FILTER_BY_MESSAGE: string[] = [];
 const getCurrentDeviceInfo = wrapFunctionWithError(
   async () => {
     const [deviceId, deviceName] = await Promise.all([
-      loadDataStorage("DEVICE_ID"),
+      storageManagement.get("DEVICE_ID"),
       DeviceInfo.getDeviceName(),
     ]);
 

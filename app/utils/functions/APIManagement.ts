@@ -15,10 +15,9 @@ import {
   RoutesAPIWithItsMethod,
 } from "@types";
 import { logger } from "./debug";
-import { isFalsy } from "@utils";
 import { stringifyData } from "./appManagement";
+import { storageManagement } from "./storageManagement";
 import axios, { AxiosRequestConfig } from "axios";
-import { loadDataStorage, saveDataStorage } from "./storageManagement";
 
 /**
  * Generates an options object for a fetch request.
@@ -57,13 +56,11 @@ export const fetchOptions = <T = RequestBody>(body?: T, token?: string) => {
  * and the route is "users", the resulting URL will be:
  * "https://example.com/api/v1/users".
  */
-export const getRouteAPI = async (
-  route: RoutesAPI | UpdatesRoutes,
-): Promise<string> => {
+export const getRouteAPI = async (route: RoutesAPI | UpdatesRoutes) => {
   let isOk: boolean = false;
-  let apiUrl = await loadDataStorage("API_URL");
+  let apiUrl = storageManagement.get("API_URL");
 
-  if (isFalsy(apiUrl)) {
+  if (!apiUrl) {
     apiUrl = API_URL;
     try {
       const res = await axios.get<ResponseHealth>(apiUrl + "/health", {
@@ -74,19 +71,15 @@ export const getRouteAPI = async (
       logger.warn("Error fetching API URL health");
     }
 
-    if (isOk)
-      await Promise.all([
-        saveDataStorage("API_URL", API_URL),
-        saveDataStorage("WEBSOCKET_URL", URL_WEB_SOCKET),
-        saveDataStorage("CLIPBOARD_WEBSOCKET_URL", CLIPBOARD_WS_URL),
-      ]);
-    else {
+    if (isOk) {
+      storageManagement.save("API_URL", API_URL);
+      storageManagement.save("WEBSOCKET_URL", URL_WEB_SOCKET);
+      storageManagement.save("CLIPBOARD_WEBSOCKET_URL", CLIPBOARD_WS_URL);
+    } else {
       logger.warn("Falling back to server API URL and WebSocket URL");
       apiUrl = fallbackAPI_URL;
-      await Promise.all([
-        saveDataStorage("API_URL", fallbackAPI_URL),
-        saveDataStorage("WEBSOCKET_URL", fallbackURL_WEB_SOCKET),
-      ]);
+      storageManagement.save("API_URL", fallbackAPI_URL);
+      storageManagement.save("WEBSOCKET_URL", fallbackURL_WEB_SOCKET);
     }
   }
   if (apiUrl.endsWith("/")) apiUrl = apiUrl.slice(0, -1);
@@ -108,8 +101,8 @@ export const getRouteAPI = async (
  * and the filename is "/images/photo.jpg", the resulting URL will be:
  * "https://example.com/images/photo.jpg".
  */
-export const getRouteImage = async (filename: string): Promise<string> => {
-  const apiUrl = await loadDataStorage("API_URL", API_URL);
+export const getRouteImage = (filename: string): string => {
+  const apiUrl = storageManagement.get("API_URL", API_URL);
   return `${apiUrl.replace("/api", "")}${filename}`;
 };
 

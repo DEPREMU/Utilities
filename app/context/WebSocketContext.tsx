@@ -16,11 +16,10 @@ import {
   parseData,
   REPLACERS,
   getRandomId,
-  checkLanguage,
   fetchToServer,
   URL_WEB_SOCKET,
-  loadDataStorage,
   CLIPBOARD_WS_URL,
+  storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
 } from "@utils";
@@ -195,11 +194,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         logger.log("WebSocket connection opened successfully");
 
         try {
-          const [lang, hasAdmin, theme] = await Promise.all([
-            checkLanguage(),
-            loadDataStorage("HAS_ADMIN_ACCESS"),
-            loadDataStorage("THEME"),
-          ]);
+          const [lang, hasAdmin, theme] = [
+            storageManagement.get("LANGUAGE"),
+            storageManagement.get("HAS_ADMIN_ACCESS"),
+            storageManagement.get("THEME"),
+          ];
 
           sendMessageRef.current("main", {
             type: "init",
@@ -272,10 +271,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     );
 
     socket.onopen = async () => {
-      const [token, deviceId] = await Promise.all([
-        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
-        loadDataStorage("DEVICE_ID"),
-      ]);
+      const [token, deviceId] = [
+        storageManagement.get("USER_SESSION_TOKEN_STORAGE"),
+        storageManagement.get("DEVICE_ID"),
+      ];
 
       if (!token || !deviceId) {
         logger.error(
@@ -342,9 +341,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   createClipboardWebSocketRef.current = createClipboardWebSocket;
 
   useEffect(() => {
-    loadDataStorage("WEBSOCKET_URL", null).then((data) => setSocketURL(data));
-    loadDataStorage("CLIPBOARD_WEBSOCKET_URL", null).then((data) =>
-      setClipboardSocketURL(data),
+    setSocketURL(storageManagement.get("WEBSOCKET_URL", null));
+    setClipboardSocketURL(
+      storageManagement.get("CLIPBOARD_WEBSOCKET_URL", null),
     );
   }, []);
 
@@ -355,10 +354,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (lastItemCopiedRef.current) return;
 
     const initClipboardItems = async () => {
-      const [deviceId, sessionToken] = await Promise.all([
-        loadDataStorage("DEVICE_ID"),
-        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
-      ]);
+      const [deviceId, sessionToken] = [
+        storageManagement.get("DEVICE_ID"),
+        storageManagement.get("USER_SESSION_TOKEN_STORAGE"),
+      ];
 
       if (!sessionToken) return;
       lastItemCopiedRef.current = getRandomId();
@@ -562,10 +561,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
               : listItemsClipboardRef.current.filter(
                   (item) => item.content !== textToDelete,
                 );
-            const [lang, deviceId] = await Promise.all([
-              checkLanguage(),
-              loadDataStorage("DEVICE_ID"),
-            ]);
+            const [lang, deviceId] = [
+              storageManagement.get("LANGUAGE"),
+              storageManagement.get("DEVICE_ID"),
+            ];
             if (!sessionToken) return;
 
             const match = resolvedId

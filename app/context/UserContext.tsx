@@ -3,10 +3,10 @@ import {
   signOut,
   REPLACERS,
   isValidEmail,
-  loadDataStorage,
   signInWithEmail,
   signUpWithEmail,
   saveStorageData,
+  storageManagement,
   signOut as authSignOut,
   refreshSession as authRefreshSession,
   forgotPasswordWithEmail as authForgotPassword,
@@ -197,10 +197,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       };
 
       try {
-        const [rememberMe, sessionToken] = await Promise.all([
-          loadDataStorage("SESSION_EXPIRY"),
-          loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
-        ]);
+        const rememberMe = storageManagement.get("SESSION_EXPIRY");
+        const sessionToken = storageManagement.get(
+          "USER_SESSION_TOKEN_STORAGE",
+        );
 
         if (!rememberMe || !sessionToken)
           return handleNotLoggedIn("No rememberMe or token");

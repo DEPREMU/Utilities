@@ -11,7 +11,7 @@ import React, {
 import { useTranslation } from "react-i18next";
 import { i18n, REPLACERS } from "@utils";
 import { LanguagesSupported, typeT } from "@types";
-import { checkLanguage, saveDataStorage } from "@utils";
+import { checkLanguage, storageManagement } from "@utils";
 
 interface LanguageContextProps {
   language: LanguagesSupported;
@@ -48,11 +48,9 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
   );
 
   const changeLanguageRef = useRef(async (lang: LanguagesSupported) => {
-    await Promise.all([
-      saveDataStorage("LANGUAGE", lang),
-      i18n.changeLanguage(lang),
-    ]);
     setLanguage(lang);
+    storageManagement.save("LANGUAGE", lang);
+    await i18n.changeLanguage(lang);
   });
 
   useEffect(() => {

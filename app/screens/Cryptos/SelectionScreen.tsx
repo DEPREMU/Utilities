@@ -4,9 +4,7 @@ import {
   cleanFloat,
   fetchToServer,
   stringifyData,
-  loadDataStorage,
-  saveDataStorage,
-  removeDataStorage,
+  storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
   getCryptosFromDatabase,
@@ -49,7 +47,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     useState<SelectedCryptos>(selectedCryptos);
 
   const handleClearCacheRef = useRef(async () => {
-    await removeDataStorage("SELECTED_CRYPTOS");
+    storageManagement.remove("SELECTED_CRYPTOS");
     setShowSelected(false);
     setOwnedCryptos({});
   });
@@ -195,7 +193,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 
   useEffect(() => {
     const fetchOwnedCryptos = async () => {
-      const owned = await loadDataStorage("SELECTED_CRYPTOS", {});
+      const owned = storageManagement.get("SELECTED_CRYPTOS", {});
       const lengthOwned = Object.keys(owned).length;
       if (owned && lengthOwned < 25 && lengthOwned > 0)
         return setOwnedCryptos(owned);
@@ -260,7 +258,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           {
             requiresInternet: true,
             func: async () => {
-              const deviceId = await loadDataStorage("DEVICE_ID");
+              const deviceId = storageManagement.get("DEVICE_ID");
 
               fetchToServer(
                 "/database/update",
@@ -292,7 +290,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           {
             requiresInternet: true,
             func: async () => {
-              const deviceId = await loadDataStorage("DEVICE_ID");
+              const deviceId = storageManagement.get("DEVICE_ID");
 
               fetchToServer(
                 "/database/insert",
@@ -320,7 +318,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         .map((c) => c.uid as string);
 
       if (cryptosToDelete && cryptosToDelete.length > 0) {
-        const deviceId = await loadDataStorage("DEVICE_ID");
+        const deviceId = storageManagement.get("DEVICE_ID");
 
         cryptosToDelete.map((uid) =>
           addTaskQueueRef.current(
@@ -349,7 +347,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
       }
 
       setSelectedCryptos(ownedCryptos);
-      await saveDataStorage("SELECTED_CRYPTOS", ownedCryptos);
+      storageManagement.save("SELECTED_CRYPTOS", ownedCryptos);
     };
 
     save();

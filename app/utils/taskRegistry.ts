@@ -4,7 +4,7 @@ import {
   RequestDatabaseUpdate,
 } from "@types";
 import { TablesKeys, RequestDatabaseInsert } from "@types";
-import { logger, checkLanguage, fetchToServer, loadDataStorage } from "@utils";
+import { logger, fetchToServer, storageManagement } from "@utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TaskFunction = (...args: any[]) => Promise<void> | void;
@@ -21,11 +21,11 @@ const taskRegistry: TaskRegistry = {
     match: RequestDatabaseUpdate<T>["match"],
   ) => {
     try {
-      const [lang, token, deviceId] = await Promise.all([
-        checkLanguage(),
-        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
-        loadDataStorage("DEVICE_ID"),
-      ]);
+      const [lang, token, deviceId] = [
+        storageManagement.get("LANGUAGE"),
+        storageManagement.get("USER_SESSION_TOKEN_STORAGE"),
+        storageManagement.get("DEVICE_ID"),
+      ];
       if (!token) return;
 
       const body: RequestDatabaseUpdate<T> = {
@@ -47,11 +47,11 @@ const taskRegistry: TaskRegistry = {
     values: RequestDatabaseInsert<T>["values"],
   ) => {
     try {
-      const [lang, token, deviceId] = await Promise.all([
-        checkLanguage(),
-        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
-        loadDataStorage("DEVICE_ID"),
-      ]);
+      const [lang, token, deviceId] = [
+        storageManagement.get("LANGUAGE"),
+        storageManagement.get("USER_SESSION_TOKEN_STORAGE"),
+        storageManagement.get("DEVICE_ID"),
+      ];
       if (!token) return;
 
       const body: RequestDatabaseInsert<T> = {
@@ -72,11 +72,11 @@ const taskRegistry: TaskRegistry = {
     match: RequestDatabaseDelete<T>["match"],
   ) => {
     try {
-      const [lang, token, deviceId] = await Promise.all([
-        checkLanguage(),
-        loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
-        loadDataStorage("DEVICE_ID"),
-      ]);
+      const [lang, token, deviceId] = [
+        storageManagement.get("LANGUAGE"),
+        storageManagement.get("USER_SESSION_TOKEN_STORAGE"),
+        storageManagement.get("DEVICE_ID"),
+      ];
       if (!token) return;
 
       const body: RequestDatabaseDelete<T> = {

@@ -9,7 +9,7 @@ import { Theme } from "@types";
 import { useColors } from "@hooks/useColors";
 import { StatusBar } from "react-native";
 import { PaperProvider } from "react-native-paper";
-import { loadDataStorage, saveDataStorage } from "@utils";
+import { storageManagement } from "@utils";
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -26,13 +26,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [themeState, setThemeState] = useState<Theme>("auto");
 
   useEffect(() => {
-    loadDataStorage("THEME").then((data) => {
-      setThemeState(data || "auto");
-    });
+    const theme = storageManagement.get("THEME");
+    setThemeState(theme || "auto");
   }, []);
 
   useEffect(() => {
-    saveDataStorage("THEME", themeState);
+    storageManagement.save("THEME", themeState);
   }, [themeState]);
 
   const colors = useColors(themeState);

@@ -14,13 +14,14 @@ import { tTyped } from "../translates";
 import * as Updates from "expo-updates";
 import * as Sharing from "expo-sharing";
 import { REPLACERS } from "../constants";
+import { randomUUID } from "react-native-quick-crypto";
 import { Alert, Falsy } from "react-native";
 import _BackgroundTimer from "react-native-background-timer";
 import * as MediaLibrary from "expo-media-library";
 import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
-import { loadDataStorage } from "./storageManagement";
 import * as DocumentPicker from "expo-document-picker";
+import { storageManagement } from "./storageManagement";
 import { Directory, File, Paths } from "expo-file-system";
 import { ExpectedStorageTypes, wrapFunctionWithError } from "@common";
 
@@ -237,7 +238,7 @@ export const getCryptosFromDatabase = async (
   lang: LanguagesSupported,
   token: string,
 ): Promise<ExpectedStorageTypes["SELECTED_CRYPTOS"]> => {
-  const deviceId = await loadDataStorage("DEVICE_ID");
+  const deviceId = storageManagement.get("DEVICE_ID");
 
   const response = await fetchToServer(
     "/database/fetch",
@@ -408,6 +409,7 @@ export const getRandomId = (): string => {
   let id: string | null = null;
 
   if (REPLACERS.isWeb) id = v4();
+  else id = randomUUID();
 
   if (!id)
     id = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);

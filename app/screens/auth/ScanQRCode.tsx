@@ -2,8 +2,8 @@ import {
   logger,
   parseData,
   REPLACERS,
-  loadDataStorage,
   QR_LOGIN_WS_URL,
+  storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
 } from "@utils";
@@ -18,6 +18,7 @@ import useStylesScanQRCode from "@/styles/screens/auth/useStylesScanQRCode";
 import React, { useEffect, useRef, useState } from "react";
 import { BarcodeScanningResult, Camera, CameraView } from "expo-camera";
 import { LoginWithQRMobile, MessageWebSocketQRLogin } from "@types";
+import ReconnectingWebSocket from "@/utils/reconnecting-websocket";
 
 type PermissionCamera = "granted" | "denied" | null;
 
@@ -76,7 +77,7 @@ const ScanQRCode: React.FC = () => {
   useEffect(() => {
     if (!scannedData) return;
 
-    let ws: WebSocket | null = null;
+    let ws: ReconnectingWebSocket | null = null;
 
     const clearIdTimeout = () => {
       clearTimeoutPolyfill(idTimeoutRef);
@@ -87,14 +88,14 @@ const ScanQRCode: React.FC = () => {
         const parsedMessage: LoginWithQRMobile | null = parseData(scannedData);
         if (!parsedMessage || parsedMessage?.type !== "scanned") return;
 
-        const token = await loadDataStorage("USER_SESSION_TOKEN_STORAGE");
+        const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
         if (!token) {
           logger.error("No session token available for QR login");
           navigateReplace("Home");
           return;
         }
 
-        ws = new WebSocket(QR_LOGIN_WS_URL);
+        ws = new ReconnectingWebSocket(QR_LOGIN_WS_URL);
 
         const handleError = () => {
           setScannedData(null);

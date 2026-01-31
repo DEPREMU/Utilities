@@ -11,12 +11,13 @@ import {
   HasPasswordZIP,
   GetDecryptedFolderDirectory,
   ClearDecryptedFolderDirectory,
+  GetFoldersVault,
 } from "@types";
 import * as ZIP from "react-native-zip-archive";
 import * as FileSystem from "@dr.pogodin/react-native-fs";
 import * as ExpoFileSystem from "expo-file-system";
 import NativeFunctionsModule from "../modules/NativeFunctionsModule";
-import { logger, loadDataStorage, sanitizeFileName } from "../functions";
+import { logger, sanitizeFileName, storageManagement } from "../functions";
 import { FetchFileInfo, DecryptFolderFiles, ActionWithVaultItem } from "@types";
 
 type ProgressCallback = (percentage: number) => void;
@@ -256,7 +257,7 @@ export const actionWithVaultItem: ActionWithVaultItem = async (
   targetFolderId,
 ) => {
   try {
-    const directory = await loadDataStorage("VAULT_DIRECTORY", "");
+    const directory = storageManagement.get("VAULT_DIRECTORY", "");
 
     const targetDir = new ExpoFileSystem.Directory(directory, targetFolderId);
     try {
@@ -479,6 +480,57 @@ export const unzipFile: UnzipFile = async (
       "Error getting UNZIP file list:",
       error instanceof Error ? error.message : error,
     );
+    return [];
+  }
+};
+
+export const getDefaultVaultDirectory =
+  async (): Promise<ExpoFileSystem.Directory> => {
+    let directory = storageManagement.get("VAULT_DIRECTORY");
+    if (!directory) {
+      directory = new ExpoFileSystem.Directory(
+        ExpoFileSystem.Paths.document.uri,
+        ".vault",
+      ).uri;
+    }
+
+    const vaultDir = new ExpoFileSystem.Directory(directory);
+
+    try {
+      if (!vaultDir.exists)
+        vaultDir.create({
+          idempotent: true,
+          intermediates: true,
+        });
+    } catch {
+      // Ignore errors
+    }
+
+    return vaultDir;
+  };
+
+export const getFoldersVault: GetFoldersVault = async () => {
+  try {
+    const directory = storageManagement.get("VAULT_DIRECTORY");
+
+    const vaultDir = directory
+      ? new ExpoFileSystem.Directory(directory)
+      : await getDefaultVaultDirectory();
+
+    const items = vaultDir.list();
+
+    const folders = items
+      .filter((item) => {
+        try {
+          return new ExpoFileSystem.Directory(item.uri).exists;
+        } catch {
+          return false;
+        }
+      })
+      .map((folder) => new ExpoFileSystem.Directory(folder.uri).name);
+
+    return folders;
+  } catch {
     return [];
   }
 };

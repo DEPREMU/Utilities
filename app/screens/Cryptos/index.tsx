@@ -2,11 +2,13 @@ import DisplayScreen from "./DisplayScreen";
 import SelectionScreen from "./SelectionScreen";
 import { SelectedCryptos } from "@common";
 import GetBottomNavigation from "@components/common/GetBottomNavigation";
-import { loadDataStorage, logger } from "@utils";
-import React, { useRef, useMemo, useState, useEffect } from "react";
+import { storageManagement } from "@utils";
+import React, { useRef, useMemo, useState } from "react";
 
 const CryptosNavigator = () => {
-  const [selectedCryptos, setSelectedCryptos] = useState<SelectedCryptos>({});
+  const [selectedCryptos, setSelectedCryptos] = useState<SelectedCryptos>(
+    storageManagement.get("SELECTED_CRYPTOS", {}),
+  );
 
   const handleSetSelectedCryptosRef = useRef(
     (
@@ -42,26 +44,11 @@ const CryptosNavigator = () => {
             />
           ),
         },
-      )(),
+      ),
     [selectedCryptos],
   );
 
-  useEffect(() => {
-    const loadSelectedCryptos = async () => {
-      try {
-        const storedCryptos = await loadDataStorage("SELECTED_CRYPTOS");
-        if (storedCryptos) setSelectedCryptos(storedCryptos);
-      } catch (error) {
-        logger.error(
-          "Error loading selected cryptocurrencies from storage",
-          error,
-        );
-      }
-    };
-    loadSelectedCryptos();
-  }, []);
-
-  return <>{returnValue}</>;
+  return returnValue();
 };
 
 export default CryptosNavigator;

@@ -17,7 +17,7 @@ import {
   logger,
   REPLACERS,
   DATA_PLATFORM,
-  loadDataStorage,
+  storageManagement,
   isLocationEnabled,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
@@ -464,18 +464,16 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (!REPLACERS.isNative) return;
     if (!sessionToken || !userData?.userId) return;
 
-    const id = setTimeoutPolyfill(
-      () =>
-        loadDataStorage("DEVICE_ID").then((deviceId) => {
-          BackgroundModule?.setUserData(
-            sessionToken,
-            userData.userId,
-            language,
-            deviceId,
-          );
-        }),
-      5000,
-    );
+    const id = setTimeoutPolyfill(() => {
+      const deviceId = storageManagement.get("DEVICE_ID");
+
+      BackgroundModule?.setUserData(
+        sessionToken,
+        userData.userId,
+        language,
+        deviceId,
+      );
+    }, 5000);
 
     return () => clearTimeoutPolyfill(id);
   }, [sessionToken, userData?.userId, language]);

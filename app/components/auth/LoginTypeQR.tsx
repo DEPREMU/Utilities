@@ -1,8 +1,8 @@
 import {
   logger,
   parseData,
-  loadDataStorage,
   QR_LOGIN_WS_URL,
+  storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
 } from "@utils";
@@ -56,7 +56,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({
     };
 
     const initWS = async () => {
-      const deviceId = await loadDataStorage("DEVICE_ID");
+      const deviceId = storageManagement.get("DEVICE_ID");
 
       ws = new WebSocket(QR_LOGIN_WS_URL);
 

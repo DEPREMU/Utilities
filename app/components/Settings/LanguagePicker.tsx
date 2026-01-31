@@ -2,7 +2,7 @@ import {
   memoDeep,
   fetchToServer,
   languagesNames,
-  loadDataStorage,
+  storageManagement,
 } from "@utils";
 import { List } from "react-native-paper";
 import { useTheme } from "@context/ThemeContext";
@@ -30,7 +30,7 @@ const LanguagePicker: React.FC = () => {
             requiresInternet: true,
             func: async () => {
               if (!sessionToken) return navigateReplace("Login");
-              const deviceId = await loadDataStorage("DEVICE_ID");
+              const deviceId = storageManagement.get("DEVICE_ID");
 
               fetchToServer(
                 "/database/update",

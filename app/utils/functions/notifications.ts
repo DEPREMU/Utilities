@@ -16,7 +16,7 @@ import { cloneDeep } from "lodash";
 import * as notifications from "expo-notifications";
 import NotificationModule from "../modules/NotificationModule";
 import { navigateReplace } from "@navigation/navigationRef";
-import { loadDataStorage, saveDataStorage } from "./storageManagement";
+import { storageManagement } from "./storageManagement";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -55,7 +55,7 @@ export const isNotificationsAlreadyInitialized = (
  */
 export const initializeNotificationsStorage =
   async (): Promise<Notifications> => {
-    const notificationsData = await loadDataStorage("NOTIFICATIONS");
+    const notificationsData = storageManagement.get("NOTIFICATIONS");
 
     if (isNotificationsAlreadyInitialized(notificationsData))
       return notificationsData;
@@ -83,7 +83,7 @@ export const initializeNotificationsStorage =
     newNotifications.allNotifications.enabled =
       status === notifications.PermissionStatus.GRANTED;
 
-    saveDataStorage("NOTIFICATIONS", newNotifications);
+    storageManagement.save("NOTIFICATIONS", newNotifications);
     return newNotifications;
   };
 
@@ -289,7 +289,7 @@ class NotificationsManager {
       },
     };
 
-    await saveDataStorage("NOTIFICATIONS", this.notifications);
+    storageManagement.save("NOTIFICATIONS", this.notifications);
     if (callback) callback(this.notifications, this.notifications[reason]);
   };
 
@@ -308,7 +308,7 @@ class NotificationsManager {
       ...newData,
     };
 
-    await saveDataStorage("NOTIFICATIONS", this.notifications);
+    storageManagement.save("NOTIFICATIONS", this.notifications);
   };
 }
 

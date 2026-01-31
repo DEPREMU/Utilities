@@ -23,16 +23,17 @@ import {
   REPLACERS,
   areEqualValues,
   downloadBase64,
-  loadDataStorage,
-  saveDataStorage,
+  storageManagement,
   setTimeoutPolyfill,
   wrapFunctionWithError,
   ExpectedUnsecureStorageTypes,
+  functionsToExecute,
 } from "@utils";
 import { useModal } from "./ModalContext";
 import { useNotifications } from "./NotificationsContext";
 import { NotificationAction } from "@types";
 import { Directory, File, Paths } from "expo-file-system";
+import { navigateReplace } from "@/navigation/navigationRef";
 
 interface RecorderContextType {
   player: AudioPlayer;
@@ -97,16 +98,68 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     intervalUpdateRecord,
   );
 
+  const actionAudioRef: RecorderContextType["actionAudioRef"] = useRef(
+    async (uri, action) => {
+      switch (action) {
+        case "select":
+          setDataRecorder((prev) => ({ ...prev, lastUri: uri }));
+          break;
+        case "delete":
+          setDataRecorder((prev) => {
+            const updatedLastXUris = prev.lastXUris.filter(
+              (item) => item !== uri,
+            );
+            return {
+              ...prev,
+              lastXUris: updatedLastXUris,
+              lastUri: updatedLastXUris[updatedLastXUris.length - 1] || "",
+            };
+          });
+          wrapFunctionWithError(async () => {
+            new File(uri).delete();
+          });
+          break;
+        case "save":
+          {
+            const file = new File(uri);
+            const base64 = await file.base64();
+
+            const filename = `recording_${Date.now()}${file.extension || ".wav"}`;
+
+            await downloadBase64({
+              directory: "audios",
+              uri: base64,
+              fileName: filename,
+              typeFile: `audio/${(file.extension.replace(".", "") as "wav") || "wav"}`,
+            });
+          }
+          break;
+        default:
+          break;
+      }
+    },
+  );
+
+  const editDataRecorderRef: RecorderContextType["editDataRecorderRef"] =
+    useRef(async (key, value) => {
+      if (key === "shouldAutoStart") {
+        const permission = await AudioModule.requestRecordingPermissionsAsync();
+        if (!permission.granted) {
+          openSnackBarRef.current(tTyped("recorder.permissionDenied"));
+          return;
+        }
+      }
+      setDataRecorder((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
+    });
+
   const isStoppingRef = useRef<boolean>(false);
   const audioRecorderRef = useRef(audioRecorder);
   const recorderStateRef = useRef(recorderState);
   const startRecordingRef = useRef(() => {});
   recorderStateRef.current = recorderState;
-  useEffect(() => {
-    if (dataRecorder.isRecording) return;
-
-    audioRecorderRef.current = audioRecorder;
-  }, [audioRecorder, dataRecorder.isRecording]);
 
   const startRecording = useCallback(
     async () =>
@@ -229,48 +282,6 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     player.play();
   }, [player]);
 
-  const actionAudioRef: RecorderContextType["actionAudioRef"] = useRef(
-    async (uri, action) => {
-      switch (action) {
-        case "select":
-          setDataRecorder((prev) => ({ ...prev, lastUri: uri }));
-          break;
-        case "delete":
-          setDataRecorder((prev) => {
-            const updatedLastXUris = prev.lastXUris.filter(
-              (item) => item !== uri,
-            );
-            return {
-              ...prev,
-              lastXUris: updatedLastXUris,
-              lastUri: updatedLastXUris[updatedLastXUris.length - 1] || "",
-            };
-          });
-          wrapFunctionWithError(async () => {
-            new File(uri).delete();
-          });
-          break;
-        case "save":
-          {
-            const file = new File(uri);
-            const base64 = await file.base64();
-
-            const filename = `recording_${Date.now()}${file.extension || ".wav"}`;
-
-            await downloadBase64({
-              directory: "audios",
-              uri: base64,
-              fileName: filename,
-              typeFile: `audio/${(file.extension.replace(".", "") as "wav") || "wav"}`,
-            });
-          }
-          break;
-        default:
-          break;
-      }
-    },
-  );
-
   const handlePressRecord = useCallback(
     (pause?: boolean) => {
       if (dataRecorder.isRecording)
@@ -281,20 +292,11 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     [dataRecorder.isRecording, stopRecording, startRecording, pauseRecording],
   );
 
-  const editDataRecorderRef: RecorderContextType["editDataRecorderRef"] =
-    useRef(async (key, value) => {
-      if (key === "shouldAutoStart") {
-        const permission = await AudioModule.requestRecordingPermissionsAsync();
-        if (!permission.granted) {
-          openSnackBarRef.current(tTyped("recorder.permissionDenied"));
-          return;
-        }
-      }
-      setDataRecorder((prev) => ({
-        ...prev,
-        [key]: value,
-      }));
-    });
+  useEffect(() => {
+    if (dataRecorder.isRecording) return;
+
+    audioRecorderRef.current = audioRecorder;
+  }, [audioRecorder, dataRecorder.isRecording]);
 
   useEffect(() => {
     startRecordingRef.current = () => stopRecording().then(startRecording);
@@ -304,9 +306,9 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!firstTimeInit) return;
 
     const loadData = async () => {
-      const data = await loadDataStorage("RECORDER_DATA", null);
+      const data = storageManagement.get("RECORDER_DATA");
       if (!data) return;
-      const permission = await AudioModule.requestRecordingPermissionsAsync();
+      const permission = await AudioModule.getRecordingPermissionsAsync();
       if (!permission.granted)
         openSnackBarRef.current(tTyped("recorder.permissionDenied"));
       else
@@ -353,6 +355,26 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     loadData();
+
+    functionsToExecute.current["Screen-change"]["recorder"] = async (
+      newScreen,
+    ) => {
+      if (newScreen !== "Recorder") return;
+
+      const permission = await AudioModule.requestRecordingPermissionsAsync();
+      if (!permission.granted) {
+        openSnackBarRef.current(tTyped("recorder.permissionDenied"));
+        navigateReplace("Home");
+        return;
+      }
+
+      loadData();
+      delete functionsToExecute.current["Screen-change"]["recorder"];
+    };
+
+    return () => {
+      delete functionsToExecute.current["Screen-change"]["recorder"];
+    };
   }, [sendNotificationRef, openSnackBarRef]);
 
   useEffect(() => {
@@ -366,7 +388,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     if (areEqualValues(true, partialMain, partialPrev)) return;
     prevDataRecorder = dataRecorder;
 
-    saveDataStorage("RECORDER_DATA", dataRecorder);
+    storageManagement.save("RECORDER_DATA", dataRecorder);
   }, [dataRecorder]);
 
   useEffect(() => {

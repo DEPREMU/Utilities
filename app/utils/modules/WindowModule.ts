@@ -41,6 +41,7 @@ const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
     onError?.(new Error("Not implemented")) || "",
   deleteFolderVault: asyncVoidFunction,
   renameFolderVault: asyncVoidFunction,
+  getExistingVaultFolders: async () => [],
 };
 
 let windowModule: ContextBridgeType["UtilitiesForPC"] = defaultWindow;

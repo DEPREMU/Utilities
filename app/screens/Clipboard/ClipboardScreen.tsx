@@ -3,10 +3,9 @@ import {
   clearRefs,
   REPLACERS,
   fetchToServer,
-  loadDataStorage,
+  storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
-  checkLanguage,
 } from "@utils";
 import {
   View,
@@ -104,10 +103,10 @@ const ClipboardScreen: React.FC = () => {
       if (!dataRef.current.sessionToken)
         return logger.error("No session token available");
 
-      const [deviceId, language] = await Promise.all([
-        loadDataStorage("DEVICE_ID"),
-        checkLanguage(),
-      ]);
+      const [deviceId, language] = [
+        storageManagement.get("DEVICE_ID"),
+        storageManagement.get("LANGUAGE"),
+      ];
 
       const res = await fetchToServer(
         "/database/update",
@@ -145,10 +144,10 @@ const ClipboardScreen: React.FC = () => {
     const { userData, sessionToken } = dataRef.current;
     if (!sessionToken || !userData?.userId) return;
 
-    const [language, deviceId] = await Promise.all([
-      checkLanguage(),
-      loadDataStorage("DEVICE_ID"),
-    ]);
+    const [language, deviceId] = [
+      storageManagement.get("LANGUAGE"),
+      storageManagement.get("DEVICE_ID"),
+    ];
 
     isLoadingRef.current = true;
     setNoMoreData(false);
@@ -305,7 +304,7 @@ const ClipboardScreen: React.FC = () => {
   const handleDeleteRestoreAll = useCallback(async () => {
     if (!sessionToken) return logger.error("No session token available");
 
-    const deviceId = await loadDataStorage("DEVICE_ID");
+    const deviceId = storageManagement.get("DEVICE_ID");
 
     const newDeleted = !deletedRef.current;
     const oldDeleted = !!deletedRef.current;

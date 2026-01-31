@@ -15,8 +15,7 @@ import {
   logger,
   showAlert,
   getRandomId,
-  loadDataStorage,
-  saveDataStorage,
+  storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
   executeRegisteredTask,
@@ -137,7 +136,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   const idFunctionRefreshTokenQueueRef = useRef<string>(getRandomId());
 
   const persistPendingTasksRef = useRef(
-    async <T extends AvailableFunctions>(removeTaskWithId?: string) => {
+    <T extends AvailableFunctions>(removeTaskWithId?: string) => {
       try {
         const serializableTasks: SerializableTask<T>[] =
           executeWhenInternetRef.current
@@ -156,7 +155,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
               } as SerializableTask<T>;
             });
 
-        await saveDataStorage("PENDING_TASKS", serializableTasks);
+        storageManagement.save("PENDING_TASKS", serializableTasks);
       } catch (error) {
         logger.error("Error persisting tasks:", error);
       }
@@ -247,7 +246,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   useEffect(() => {
     const loadPersistedTasks = async () => {
       try {
-        const persistedTasks = await loadDataStorage("PENDING_TASKS");
+        const persistedTasks = storageManagement.get("PENDING_TASKS");
         if (!persistedTasks || persistedTasks.length === 0) return;
 
         const rebuiltTasks = persistedTasks.map((taskData) => ({
@@ -318,7 +317,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     );
     executeWhenInternetRef.current = [];
 
-    saveDataStorage("PENDING_TASKS", []);
+    storageManagement.save("PENDING_TASKS", []);
     processQueueRef.current();
   }, [hasInternet]);
 

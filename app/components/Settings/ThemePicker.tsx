@@ -5,10 +5,10 @@ import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import React, { useCallback, useMemo } from "react";
-import { fetchToServer, loadDataStorage, memoDeep } from "@utils";
+import { fetchToServer, storageManagement, memoDeep } from "@utils";
 
 const ThemePicker: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { addTaskQueueRef } = useBackgroundTask();
   const { userData, sessionToken } = useUserContext();
   const { themeState, setThemeState, colors } = useTheme();
@@ -21,12 +21,13 @@ const ThemePicker: React.FC = () => {
         requiresInternet: true,
         func: async () => {
           if (!userData?.userId || !sessionToken) return;
-          const deviceId = await loadDataStorage("DEVICE_ID");
+          const deviceId = storageManagement.get("DEVICE_ID");
+          const lang = storageManagement.get("LANGUAGE");
 
           await fetchToServer(
             "/database/update",
             {
-              lang: language,
+              lang,
               table: "UserConfig",
               deviceId,
               match: { userId: userData?.userId },
@@ -37,7 +38,7 @@ const ThemePicker: React.FC = () => {
         },
       });
     },
-    [setThemeState, userData, addTaskQueueRef, sessionToken, language],
+    [setThemeState, userData, addTaskQueueRef, sessionToken],
   );
 
   const renderAccordionItem = useMemo(() => {

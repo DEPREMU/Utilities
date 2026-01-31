@@ -9,9 +9,8 @@ import {
   getRouteAPI,
   fetchToServer,
   ADMIN_PASSWORD,
-  loadDataStorage,
-  saveDataStorage,
   getFormattedDate,
+  storageManagement,
   setTimeoutPolyfill,
   fetchAndApplyUpdate,
   isNewUpdateAvailable,
@@ -28,7 +27,7 @@ import { typeLanguagesKeys } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@styles/screens/useStylesSettingsScreen";
 import { ActivityIndicator, Text, TextInput } from "react-native-paper";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 
 type Section = {
   subtitle: typeLanguagesKeys;
@@ -59,18 +58,24 @@ const SettingsScreen: React.FC = () => {
   const { addTaskQueueRef } = useBackgroundTask();
   const { userData, sessionToken } = useUserContext();
 
-  const [apiURL, setApiURL] = useState<string | null>(null);
-  const [password, setPassword] = useState<string>("");
-  const [hasAdmin, setHasAdmin] = useState<boolean>(false);
-  const [socketURL, setSocketURLState] = useState<string | null>(null);
+  const [apiURL, setApiURL] = useState<string>(
+    storageManagement.get("API_URL", ""),
+  );
+  const [hasAdmin, setHasAdmin] = useState<boolean>(
+    storageManagement.get("HAS_ADMIN_ACCESS", false),
+  );
+  const [socketURL, setSocketURLState] = useState<string>(
+    storageManagement.get("WEBSOCKET_URL", ""),
+  );
   const [updatesData, setUpdatesData] = useState<UpdatesData>(
     getDefaultUpdatesData(),
   );
+  const [password, setPassword] = useState<string>("");
 
   const handleCheckForUpdatesRef = useRef(async () => {
     if (REPLACERS.isWeb) return;
 
-    saveDataStorage("LAST_UPDATE_CHECK", Date.now());
+    storageManagement.save("LAST_UPDATE_CHECK", Date.now());
     setUpdatesData({
       updateState: "NOT_VERIFIED",
       lastUpdateCheck: new Date(),
@@ -110,24 +115,16 @@ const SettingsScreen: React.FC = () => {
   });
 
   const handleCheckPasswordAdminSection = useCallback(async () => {
-    logger.log(
-      "Checking admin password:",
-      password,
-      "against:",
-      ADMIN_PASSWORD,
-    );
     if (!password || !ADMIN_PASSWORD) return;
     if (!userData?.userId || !sessionToken) return;
     if (password !== ADMIN_PASSWORD) return;
 
-    const [deviceId, url] = await Promise.all([
-      loadDataStorage("DEVICE_ID"),
-      getRouteAPI("/database/update"),
-    ]);
+    const deviceId = storageManagement.get("DEVICE_ID");
+    const url = await getRouteAPI("/database/update");
     if (!url) return;
 
     setHasAdmin(true);
-    saveDataStorage("HAS_ADMIN_ACCESS", true);
+    storageManagement.save("HAS_ADMIN_ACCESS", true);
 
     await fetchToServer(
       "/database/update",
@@ -154,7 +151,7 @@ const SettingsScreen: React.FC = () => {
           if (!userData?.userId) return;
           if (!sessionToken) return;
 
-          const deviceId = await loadDataStorage("DEVICE_ID");
+          const deviceId = storageManagement.get("DEVICE_ID");
 
           await fetchToServer(
             "/database/update",
@@ -167,7 +164,7 @@ const SettingsScreen: React.FC = () => {
             },
             sessionToken,
           );
-          await saveDataStorage("API_URL", apiURL);
+          storageManagement.save("API_URL", apiURL);
         },
       },
       {
@@ -192,7 +189,7 @@ const SettingsScreen: React.FC = () => {
           if (!userData?.userId) return;
           if (!sessionToken) return;
 
-          const deviceId = await loadDataStorage("DEVICE_ID");
+          const deviceId = storageManagement.get("DEVICE_ID");
 
           await fetchToServer(
             "/database/update",
@@ -205,7 +202,7 @@ const SettingsScreen: React.FC = () => {
             },
             sessionToken,
           );
-          await saveDataStorage("WEBSOCKET_URL", socketURL);
+          storageManagement.save("WEBSOCKET_URL", socketURL);
         },
       },
       {
@@ -279,23 +276,6 @@ const SettingsScreen: React.FC = () => {
     const updatesWebPageUrl = API_URL.replace("api", "updates/web-page");
     logger.log("Opening updates web page URL:", updatesWebPageUrl);
     openURL(updatesWebPageUrl);
-  }, []);
-
-  useEffect(() => {
-    loadDataStorage("HAS_ADMIN_ACCESS").then((data) => {
-      setHasAdmin(data || false);
-    });
-    loadDataStorage("WEBSOCKET_URL").then((data) => {
-      setSocketURLState(data || "");
-    });
-    loadDataStorage("API_URL").then((data) => {
-      setApiURL(data || "");
-    });
-    loadDataStorage("LAST_UPDATE_CHECK").then((data) => {
-      if (!data) return;
-
-      setUpdatesData(getDefaultUpdatesData());
-    });
   }, []);
 
   return (

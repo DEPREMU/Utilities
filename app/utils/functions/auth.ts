@@ -8,14 +8,10 @@ import {
   logger,
   checkLanguage,
   fetchToServer,
-  saveDataStorage,
-  loadDataStorage,
-  removeDataStorage,
-  cleanAllStorageData,
+  storageManagement,
 } from "../functions";
 import windowModule from "../modules/WindowModule";
 import { REPLACERS } from "../constants/constants";
-import { reloadAppAsync } from "expo";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
 import { wrapFunctionWithError } from "@common";
@@ -62,7 +58,9 @@ export const saveStorageData = async (
             "DEVICE_ID" | "TERMINAL_COMMANDS"
           >];
 
-          await saveDataStorage(keyTyped, valueTyped);
+          await new Promise<void>((r) => {
+            storageManagement.save(keyTyped, valueTyped, () => r());
+          });
         },
         true,
         (e) => e,
@@ -93,11 +91,9 @@ export const signInWithEmail = async (
   rememberMe: boolean = false,
 ): Promise<ResponseAuth<"login">> => {
   try {
-    const [lang, deviceId, notificationToken] = await Promise.all([
-      checkLanguage(),
-      loadDataStorage("DEVICE_ID"),
-      getDevicePushToken(),
-    ]);
+    const lang = storageManagement.get("LANGUAGE");
+    const deviceId = storageManagement.get("DEVICE_ID");
+    const notificationToken = await getDevicePushToken();
 
     const res = await fetchToServer("/auth/login", {
       lang,
@@ -196,12 +192,10 @@ export const forgotPasswordWithEmail = async (
  */
 export const signOut = async (): Promise<{ error?: string | null }> => {
   try {
-    const [deviceId, lang, token, notificationToken] = await Promise.all([
-      loadDataStorage("DEVICE_ID"),
-      checkLanguage(),
-      loadDataStorage("USER_SESSION_TOKEN_STORAGE"),
-      getDevicePushToken(),
-    ]);
+    const lang = storageManagement.get("LANGUAGE");
+    const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
+    const deviceId = storageManagement.get("DEVICE_ID");
+    const notificationToken = await getDevicePushToken();
 
     if (!token) return { error: "No session token found" };
 
@@ -239,8 +233,8 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
       "USER_SESSION_TOKEN_STORAGE",
     ];
 
-    await Promise.all(storedValues.map(removeDataStorage));
-    if (REPLACERS.isNative) removeDataStorage("TERMINAL_COMMANDS");
+    await Promise.all(storedValues.map((key) => storageManagement.remove(key)));
+    if (REPLACERS.isNative) storageManagement.remove("TERMINAL_COMMANDS");
 
     logger.log("User signed out successfully");
     navigateReplace("Login");
@@ -255,9 +249,9 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
 /**
  * Gets the current authenticated user
  */
-export const getCurrentUser = async (): Promise<ResponseAuth<"login">> => {
+export const getCurrentUser = (): ResponseAuth<"login"> => {
   try {
-    const userData = await loadDataStorage("USER_DATA");
+    const userData = storageManagement.get("USER_DATA");
 
     return {
       success: !!userData,
@@ -277,19 +271,9 @@ export const refreshSession = async (
   token: string,
 ): Promise<ResponseAuth<"login">> => {
   try {
-    const [lang, deviceId, notificationToken] = await Promise.all([
-      checkLanguage(),
-      loadDataStorage("DEVICE_ID"),
-      getDevicePushToken(),
-    ]);
-
-    if (!deviceId) {
-      cleanAllStorageData();
-      logger.error("No device ID found");
-      if (REPLACERS.isNative) await reloadAppAsync();
-      else window?.location?.reload();
-      return { success: false, error: "No device ID found" };
-    }
+    const lang = storageManagement.get("LANGUAGE");
+    const deviceId = storageManagement.get("DEVICE_ID");
+    const notificationToken = await getDevicePushToken();
 
     let res: ResponseFetch<"/auth/refreshSession"> | null = null;
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -348,8 +332,8 @@ export const refreshSession = async (
       return { success: false, error: errorMsg };
     }
 
-    saveDataStorage("USER_DATA", data.user);
-    saveDataStorage("USER_SESSION_TOKEN_STORAGE", data.token);
+    storageManagement.save("USER_DATA", data.user);
+    storageManagement.save("USER_SESSION_TOKEN_STORAGE", data.token);
     logger.log("Session refreshed successfully");
     return {
       ...data,
@@ -376,7 +360,7 @@ export const getUserData = async (
   error?: string | null;
 }> => {
   try {
-    const userData = await loadDataStorage("USER_DATA");
+    const userData = storageManagement.get("USER_DATA");
     if (userData && userData?.userId === userId)
       return { userData, error: null };
 

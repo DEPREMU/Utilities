@@ -6,8 +6,7 @@ import {
   clearRefs,
   capitalize,
   fetchToServer,
-  saveDataStorage,
-  loadDataStorage,
+  storageManagement,
   setIntervalPolyfill,
   notificationsManager,
   clearIntervalPolyfill,
@@ -122,7 +121,7 @@ const Streamers: React.FC = () => {
       closeModalRef.current();
       if (!userData?.userId || isFalsy(id) || !sessionToken) return;
 
-      const deviceId = await loadDataStorage("DEVICE_ID");
+      const deviceId = storageManagement.get("DEVICE_ID");
 
       const res = await fetchToServer(
         "/database/delete",
@@ -256,7 +255,7 @@ const Streamers: React.FC = () => {
 
       if (!userData?.userId || !sessionToken) return;
 
-      const deviceId = await loadDataStorage("DEVICE_ID");
+      const deviceId = storageManagement.get("DEVICE_ID");
 
       await fetchToServer(
         "/database/update",
@@ -300,7 +299,7 @@ const Streamers: React.FC = () => {
       try {
         if (!userData?.userId || !sessionToken) return;
 
-        const deviceId = await loadDataStorage("DEVICE_ID");
+        const deviceId = storageManagement.get("DEVICE_ID");
 
         const res = await fetchToServer(
           "/database/fetch",
@@ -368,7 +367,7 @@ const Streamers: React.FC = () => {
           );
 
         setStreamers(newData ? newData : allStreamers);
-        saveDataStorage("STREAMERS", allStreamers);
+        storageManagement.save("STREAMERS", allStreamers);
       } catch (error) {
         logger.error(error);
       }

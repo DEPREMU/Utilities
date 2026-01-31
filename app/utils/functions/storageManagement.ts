@@ -19,7 +19,8 @@ import { DATA_PLATFORM } from "../constants/";
 import * as Localization from "expo-localization";
 import { reloadAppAsync } from "expo";
 import { LanguagesSupported } from "@types";
-import { parseData, stringifyData } from "./appManagement";
+import { getRandomId, parseData, stringifyData } from "./appManagement";
+import NativeFunctionsModule from "../modules/NativeFunctionsModule";
 
 type SaveDataStorage = {
   <T extends ALL_KEYS_STORAGE_TYPE>(
@@ -69,28 +70,7 @@ type RemoveDataStorage = {
   ): Promise<R>;
 };
 
-/**
- * Saves data to storage based on the platform and key type.
- *
- * On native platforms (iOS/Android), uses SecureStore for secure keys and AsyncStorage for regular keys.
- * On web platforms, uses localStorage for development or Electron's storage API for production builds.
- *
- * @param key - The storage key under which to save the data
- * @param value - The value to be stored (will be stringified automatically)
- * @param args - Optional error callback function that receives (error: Error, errorMessage: string)
- *
- * @remarks
- * - Secure keys are automatically detected using `isSecureKey()`
- * - The `_deviceId` key cannot be saved on web platforms as it's managed by Electron
- * - In non-Electron web builds (development mode), falls back to localStorage
- * - Data is automatically stringified before storage using `stringifyData()`
- * - All errors are wrapped and handled by `wrapFunctionWithError()`
- *
- * @throws {Error} When attempting to save `_deviceId` on web platform
- * @throws {Error} When not running in an Electron build and not in development mode
- * @throws {Error} When Electron storage operation fails
- */
-export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
+const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
   async (
     keyStorage: Parameters<SaveDataStorage>[0],
     value: Parameters<SaveDataStorage>[1],
@@ -150,28 +130,7 @@ export const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
   },
 );
 
-/**
- * Loads data from storage based on the platform and key type.
- *
- * @template T - The expected type of the returned data
- * @param {string} key - The storage key to retrieve data from. Can be a secure key or regular key.
- * @param {...any} args - Optional arguments:
- *   - A callback function `(value: parsedValue | null, err?: Error, errMsg?: string) => T` to handle the retrieved value
- *   - A fallback value to return if no data is found
- *
- * @returns {Promise<T | unknown>} The parsed data from storage, the result of the callback function,
- *   the fallback value, or null if an error occurs
- *
- * @throws {Error} Throws an error if running on web platform in production mode without Electron
- *
- * @remarks
- * - On native platforms (iOS/Android), uses AsyncStorage or SecureStore depending on the key type
- * - If the key is "DEVICE_ID" and no value is found, triggers an app reload
- * - On web platform, uses Electron's storage API in production or localStorage in development
- * - All retrieved values are parsed using the `parseData` function before being returned
- * - Errors are wrapped and handled by `wrapFunctionWithError`, with custom error handling logic
- */
-export const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
+const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
   async (
     keyStorage: Parameters<LoadDataStorage>[0],
     ...args: Parameters<LoadDataStorage>[1][]
@@ -218,27 +177,7 @@ export const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
   },
 );
 
-/**
- * Removes data from storage based on the platform and storage type.
- *
- * This function handles data removal across different platforms (native/web) and storage mechanisms
- * (SecureStore, AsyncStorage, localStorage, Electron storage). It includes validation to prevent
- * removal of protected keys and provides error handling through callbacks.
- *
- * @param key - The storage key to remove. Cannot be "DEVICE_ID" as it's protected from removal.
- * @param args - Optional error callback function that receives (error: Error, errorMessage: string) parameters.
- *
- * @remarks
- * - On native platforms, uses SecureStore for secure keys or AsyncStorage for regular keys
- * - On web platforms, uses localStorage (dev mode) or Electron's storage mechanism (production)
- * - The "DEVICE_ID" key is protected and cannot be removed
- * - The "TERMINAL_COMMANDS" key cannot be removed on web platforms
- * - Wrapped with error handling that logs errors or calls the provided error callback
- *
- * @throws {Error} When attempting to remove "DEVICE_ID" key
- * @throws {Error} When running on web in production mode without Electron build
- */
-export const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
+const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
   async (
     keyStorage: Parameters<RemoveDataStorage>[0],
     ...args: Parameters<RemoveDataStorage>[1][]
@@ -287,22 +226,7 @@ export const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
   },
 );
 
-/**
- * Cleans all storage data from the application while preserving the device ID.
- *
- * This function handles storage cleanup differently based on the platform:
- * - **Web (Electron)**: Clears localStorage and removes all items from electron storage except `_deviceId`
- * - **Native (iOS/Android)**: Removes all secure store items except `_deviceId` and clears AsyncStorage
- *
- * @remarks
- * - On web platforms, the function only executes if running in an Electron environment
- * - The `_deviceId` key is explicitly preserved across all platforms
- * - Individual key deletion errors are silently ignored to ensure the cleanup process continues
- * - Any top-level errors are logged via `logError`
- *
- * @returns A promise that resolves when all storage cleanup operations are complete
- */
-export const cleanAllStorageData = wrapFunctionWithError(
+const cleanAllStorageData = wrapFunctionWithError(
   async () => {
     if (REPLACERS.isWeb) {
       if (!DATA_PLATFORM.isElectron) return;
@@ -407,3 +331,184 @@ export const checkLanguage = async (): Promise<LanguagesSupported> => {
   await saveDataStorage("LANGUAGE", "en");
   return "en";
 };
+
+class StorageManagement {
+  public static instance: StorageManagement;
+
+  public isLoaded = false;
+
+  #data = {} as ExpectedStorageTypes<"BOTH">;
+  #loadData = async () => {
+    try {
+      const data: Record<string, unknown> = {};
+      const deviceId = await loadDataStorage("DEVICE_ID");
+      if (!deviceId) {
+        NativeFunctionsModule.requestIgnoreBatteryOptimizations?.();
+        await saveDataStorage("DEVICE_ID", getRandomId());
+      }
+
+      await Promise.all(
+        ALL_KEYS_STORAGE_KEYS.map(
+          wrapFunctionWithError(
+            async (keyStorage) => {
+              const value =
+                await loadDataStorage<typeof keyStorage>(keyStorage);
+              if (keyStorage === "DEVICE_ID" && !value)
+                reloadAppAsync("No device ID found.");
+
+              data[keyStorage] = value;
+            },
+            true,
+            async (_, errMsg, key) => {
+              logger.error("STORAGE", `loadDataStorage("${key}") => ` + errMsg);
+              data[key] = null;
+            },
+          ),
+        ),
+      );
+      this.#data = data as ExpectedStorageTypes<"BOTH">;
+      this.isLoaded = true;
+    } catch (e) {
+      logger.error("STORAGE", "Failed to load storage data.", e);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      reloadAppAsync("Failed to load storage data.");
+    }
+  };
+
+  /**
+   * Loads data from storage based on the platform and key type.
+   *
+   * @template T - The expected type of the returned data
+   * @param {string} key - The storage key to retrieve data from. Can be a secure key or regular key.
+   * @param {...any} args - Optional arguments:
+   *   - A fallback value to return if no data is found
+   *
+   * @returns {Promise<T | unknown>} The parsed data from storage, the result of the callback function,
+   *   the fallback value, or null if an error occurs
+   *
+   * @throws {Error} Throws an error if running on web platform in production mode without Electron
+   */
+  public get = <
+    T extends ALL_KEYS_STORAGE_TYPE,
+    U extends ExpectedStorageTypes<"BOTH">[T],
+    R = Exclude<ExpectedStorageTypes<"BOTH">[T], null | undefined>,
+  >(
+    key: T,
+    fallbackValue?: U,
+  ): U | R => {
+    return (this.#data[key] || fallbackValue) as U;
+  };
+
+  /**
+   * Saves data to storage based on the platform and key type.
+   *
+   * On native platforms (iOS/Android), uses SecureStore for secure keys and AsyncStorage for regular keys.
+   * On web platforms, uses localStorage for development or Electron's storage API for production builds.
+   *
+   * @param key - The storage key under which to save the data
+   * @param value - The value to be stored (will be stringified automatically)
+   * @param args - Optional error callback function that receives (value: ExpectedStorageTypes<"BOTH">[T], error: Error, errorMessage: string)
+   *
+   * @remarks
+   * - Secure keys are automatically detected using `isSecureKey()`
+   * - In non-Electron web builds (development mode), falls back to localStorage
+   * - Data is automatically stringified before storage using `stringifyData()`
+   * - All errors are wrapped and handled by `wrapFunctionWithError()`
+   *
+   * @throws {Error} When attempting to save any protected key
+   * @throws {Error} When not running in an Electron build and not in development mode
+   * @throws {Error} When Electron storage operation fails
+   */
+  public save = <T extends ALL_KEYS_STORAGE_TYPE>(
+    key: T,
+    value: ExpectedStorageTypes<"BOTH">[T],
+    callback?: (
+      value: ExpectedStorageTypes<"BOTH">[T],
+      err?: Error,
+      errMsg?: string,
+    ) => void,
+  ): void => {
+    saveDataStorage(key, value, (err, errMsg) => {
+      if (!errMsg || !err) {
+        this.#data[key] = value;
+        return;
+      }
+      callback?.(this.#data[key], err, errMsg);
+      logger.error(`STORAGE`, `saveDataStorage("${key}") => ` + errMsg);
+    });
+  };
+
+  /**
+   * Removes data from storage based on the platform and storage type.
+   *
+   * This function handles data removal across different platforms (native/web) and storage mechanisms
+   * (SecureStore, AsyncStorage, localStorage, Electron storage). It includes validation to prevent
+   * removal of protected keys and provides error handling through callbacks.
+   *
+   * @param key - The storage key to remove. Cannot be any protected key.
+   * @param args - Optional error callback function that receives (error: Error) parameters.
+   *
+   * @remarks
+   * - On native platforms, uses SecureStore for secure keys or AsyncStorage for regular keys
+   * - On web platforms, uses localStorage (dev mode) or Electron's storage mechanism (production)
+   * - Wrapped with error handling that logs errors or calls the provided error callback
+   *
+   * @throws {Error} When attempting to remove any protected key
+   * @throws {Error} When running on web in production mode without Electron build
+   */
+  public remove = <T extends ALL_KEYS_STORAGE_TYPE>(
+    key: T,
+    callback?: (err: Error | null) => void,
+  ): void => {
+    if (DO_NOT_DELETE_OR_SAVE.includes(key))
+      throw new Error(`Cannot remove protected key: "${key}"`);
+
+    removeDataStorage(key, (err, errMsg) => {
+      if (!errMsg || !err) {
+        this.#data[key as "USER_DATA"] = null;
+        return;
+      }
+      callback?.(err);
+      logger.error(`STORAGE`, `removeDataStorage("${key}") => ` + errMsg);
+    });
+  };
+
+  /**
+   * Cleans all storage data from the application while preserving the device ID.
+   *
+   * This function handles storage cleanup differently based on the platform:
+   * - **Web (Electron)**: Clears localStorage and removes all items from electron storage except `_deviceId`
+   * - **Native (iOS/Android)**: Removes all secure store items except `_deviceId` and clears AsyncStorage
+   *
+   * @remarks
+   * - On web platforms, the function only executes if running in an Electron environment
+   * - Some protected keys are explicitly preserved across all platforms
+   * - Individual key deletion errors are silently ignored to ensure the cleanup process continues
+   * - Any top-level errors are logged via `logError`
+   *
+   * @returns A promise that resolves when all storage cleanup operations are complete
+   */
+  public cleanAll = () => {
+    cleanAllStorageData();
+  };
+
+  /**
+   * Reloads all data from storage into the internal state.
+   *
+   * This method re-fetches all stored data and updates the internal `#data` property
+   * to reflect the current state of the storage. It is useful for synchronizing
+   * the in-memory representation with the persistent storage.
+   *
+   * @returns A promise that resolves when the data has been reloaded.
+   */
+  public reloadData = async (): Promise<void> => {
+    this.isLoaded = false;
+    await this.#loadData();
+  };
+
+  constructor() {
+    this.#loadData();
+  }
+}
+
+export const storageManagement = new StorageManagement();

@@ -208,6 +208,11 @@ export type ChannelsIpcRenderer<
     functionArgs: [oldFolderId: string, newFolderId: string];
     typeIpc: "invoke";
   };
+  "get-existing-vault-folders": {
+    functionReturn: Promise<string[]>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
 };
 
 type NotificationElectron = {
@@ -298,6 +303,7 @@ export type ContextBridgeType = {
     renameFolderVault: (
       ...args: ChannelsIpcRenderer["rename-folder"]["functionArgs"]
     ) => ChannelsIpcRenderer["rename-folder"]["functionReturn"];
+    getExistingVaultFolders: () => ChannelsIpcRenderer["get-existing-vault-folders"]["functionReturn"];
   };
 };
 

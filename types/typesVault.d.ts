@@ -95,3 +95,11 @@ export type ZipFile = (
 ) => Promise<string>;
 
 export declare const zipFile: ZipFile;
+
+export type GetFoldersVault = () => Promise<string[]>;
+
+export declare const getFoldersVault: GetFoldersVault;
+
+export type getDefaultVaultDirectory = () => Promise<ExpoFileSystem.Directory>;
+
+export declare const getDefaultVaultDirectory: getDefaultVaultDirectory;
