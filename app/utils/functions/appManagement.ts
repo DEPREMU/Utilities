@@ -7,21 +7,19 @@ import {
 } from "@types";
 import axios from "axios";
 import React from "react";
-import { v4 } from "uuid";
 import isEqual from "react-fast-compare";
 import { logger } from "./debug";
 import { tTyped } from "../translates";
 import * as Updates from "expo-updates";
 import * as Sharing from "expo-sharing";
-import { REPLACERS } from "../constants";
-import { randomUUID } from "react-native-quick-crypto";
+import { REPLACERS } from "../TOP_LEVEL";
 import { Alert, Falsy } from "react-native";
 import _BackgroundTimer from "react-native-background-timer";
 import * as MediaLibrary from "expo-media-library";
 import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
 import * as DocumentPicker from "expo-document-picker";
-import { storageManagement } from "./storageManagement";
+import { storageManagement, stringifyData } from "./storageManagement";
 import { Directory, File, Paths } from "expo-file-system";
 import { ExpectedStorageTypes, wrapFunctionWithError } from "@common";
 
@@ -44,126 +42,6 @@ export const getFormattedDate = (
     };
 
   return new Intl.DateTimeFormat(locale, options).format(date);
-};
-
-const functionFallback = (functionName: string) => () =>
-  logger.log(
-    `Function created after parsed data, original function name: "${functionName}"`,
-  );
-const symbolFallback = (symbolName: string) =>
-  Symbol(
-    `Symbol created after parsed data, original symbol name: "${symbolName}"`,
-  );
-
-const getCorrectParsed = <T = object | null>(obj: object | null): T => {
-  if (!obj) return null as T;
-  if (Array.isArray(obj))
-    return obj.map((value) => {
-      if (value === "<<Function>>") return functionFallback(value);
-      if (value === "<<Symbol>>") return symbolFallback(value);
-      if (typeof value === "object") return getCorrectParsed<T>(value);
-      return value;
-    }) as T;
-  else
-    return Object.fromEntries(
-      Object.entries(obj).map(([key, value]) => {
-        if (value === "<<Function>>") return [key, functionFallback(key)];
-        if (value === "<<Symbol>>") return [key, symbolFallback(key)];
-        if (typeof value === "object") return [key, getCorrectParsed(value)];
-        return [key, value];
-      }),
-    ) as T;
-};
-
-export const parseData = <T = object | null>(
-  value: string | null,
-): T | null => {
-  let parsed: T;
-  try {
-    if (!value) return value as T;
-
-    if (value.includes("<<Symbol>>") || value.includes("<<Function>>")) {
-      const parsedValue = JSON.parse(value);
-
-      return getCorrectParsed<T>(parsedValue);
-    } else parsed = JSON.parse(value || "null") as T;
-  } catch {
-    parsed = value as T;
-  }
-  return parsed;
-};
-
-/**
- * Gets a valid representation of a value for logging or debugging purposes.
- *
- * @param value - The value to process.
- * @returns A valid representation of the value.
- */
-const getValidValue = (value: unknown): unknown => {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === "symbol") return "<<Symbol>>";
-  if (typeof value === "function") return "<<Function>>";
-  if (typeof value === "object" && value !== null) {
-    if (Array.isArray(value)) return sortArray(value);
-    return sortObject(value);
-  }
-
-  return value;
-};
-
-/**
- * Sorts an array by getting valid representations of its elements.
- *
- * @param arr - The array to sort.
- * @returns The sorted array.
- */
-export const sortArray = (arr: unknown[]): unknown[] => {
-  if (!Array.isArray(arr)) return arr;
-  return arr.map(getValidValue).sort();
-};
-
-/**
- * Sorts an object by getting valid representations of its values.
- *
- * @param obj - The object to sort.
- * @returns The sorted object.
- */
-export const sortObject = (obj: object): { [key: string]: unknown } => {
-  if (typeof obj !== "object" || obj === null) return obj;
-  const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b));
-
-  const sortedEntries = Object.fromEntries(
-    keys.map((key) => {
-      const valueKey = getValidValue(obj[key as keyof typeof obj]);
-
-      return [key, valueKey];
-    }),
-  );
-  return sortedEntries;
-};
-
-/**
- * Stringifies a value.
- *
- * @param value - The value to stringify.
- * @returns The stringified representation of the value.
- */
-export const stringifyData = (value: unknown): string => {
-  if (typeof value === "string") return value;
-  try {
-    if (value instanceof Date) return getValidValue(value) as string;
-    if (value && typeof value === "object") {
-      if (Array.isArray(value)) return JSON.stringify(sortArray(value));
-
-      return JSON.stringify(sortObject(value));
-    }
-    if (!value) return String(value);
-
-    return JSON.stringify(value);
-  } catch (error) {
-    logger.error("Error stringifying data:", error, value);
-    return "notValid";
-  }
 };
 
 /**
@@ -394,27 +272,6 @@ export const hasInternetConnection = async (): Promise<boolean> => {
   } catch {
     return false;
   }
-};
-
-/**
- * Generates a random unique identifier string.
- *
- * On web platforms, uses UUID v4 generation via the `v4()` function.
- * On other platforms, generates an ID by combining the current timestamp
- * (converted to base36) with a random number (converted to base36).
- *
- * @returns A unique identifier string.
- */
-export const getRandomId = (): string => {
-  let id: string | null = null;
-
-  if (REPLACERS.isWeb) id = v4();
-  else id = randomUUID();
-
-  if (!id)
-    id = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
-
-  return id;
 };
 
 /**

@@ -102,6 +102,12 @@ const buttons: ButtonType[] = [
     noNeedsSession: true,
     noNeedsInternet: true,
   },
+  {
+    label: "QR.title",
+    screen: "QR",
+    noNeedsSession: true,
+    noNeedsInternet: true,
+  },
   ...(REPLACERS.isNative ? buttonsNative : buttonsWeb),
   ...(REPLACERS.isDev ? buttonsDev : []),
 ];
@@ -113,7 +119,7 @@ const HomeScreen: React.FC = () => {
   const { userData, dataRef, isLoggedIn, loggingIn } = useUserContext();
 
   const handleLoginInWebRef = useRef(() => {
-    if (REPLACERS.isWeb) return;
+    if (REPLACERS.isNative) return;
 
     navigateReplace("ScanQRCode");
   });

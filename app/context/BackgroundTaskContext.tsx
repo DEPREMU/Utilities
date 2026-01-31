@@ -14,7 +14,7 @@ import React, {
 import {
   logger,
   showAlert,
-  getRandomId,
+  getRandomUUID,
   storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
@@ -133,7 +133,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);
   const executeWhenInternetRef = useRef<BackgroundTaskWithMeta[]>([]);
-  const idFunctionRefreshTokenQueueRef = useRef<string>(getRandomId());
+  const idFunctionRefreshTokenQueueRef = useRef<string>(getRandomUUID());
 
   const persistPendingTasksRef = useRef(
     <T extends AvailableFunctions>(removeTaskWithId?: string) => {

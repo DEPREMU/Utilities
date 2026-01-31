@@ -1,4 +1,4 @@
-import { REPLACERS } from "../constants";
+import { REPLACERS } from "../TOP_LEVEL";
 import { ContextBridgeType } from "@types";
 
 const voidFunction = () => {};
@@ -56,5 +56,6 @@ const assignWindowModule = () => {
 };
 
 if (REPLACERS.isWeb) assignWindowModule();
+
 
 export default windowModule;

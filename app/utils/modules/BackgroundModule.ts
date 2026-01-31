@@ -1,5 +1,5 @@
 import { logger } from "../functions";
-import { REPLACERS } from "../constants/constants";
+import { REPLACERS } from "../TOP_LEVEL";
 import type { TurboModule } from "react-native";
 import { LanguagesSupported } from "@types";
 import { TurboModuleRegistry } from "react-native";

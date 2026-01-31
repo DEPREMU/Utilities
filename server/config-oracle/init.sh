@@ -189,6 +189,13 @@ if [[ "$IS_VM" =~ ^[Yy]$ ]]; then
                 echo "Please upload 'private.key' and 'fullchain.pem' to ~/ssl"
                 read -p "Press [Enter] once uploaded..."
             fi
+            DEFAULT_CONFIG="proxy_pass http://localhost:3000; \
+proxy_set_header Host \$host; \
+proxy_set_header X-Real-IP \$remote_addr; \
+proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
+proxy_set_header X-Forwarded-Proto \$scheme; \
+proxy_set_header Upgrade \$http_upgrade; \
+proxy_set_header Connection \"upgrade\";"
 
             sudo mkdir -p /etc/ssl/domain
             if [[ -f "$HOME/ssl/private.key" ]]; then
@@ -209,18 +216,21 @@ if [[ "$IS_VM" =~ ^[Yy]$ ]]; then
 server {
     listen 443 ssl;
     server_name $DOMAIN;
+
     ssl_certificate /etc/ssl/domain/fullchain.pem;
     ssl_certificate_key /etc/ssl/domain/private.key;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
+    location = / {
+        return 302 /updates/web-page;
+    }
+    location /updates {
+        client_max_body_size 500M;
+        $DEFAULT_CONFIG
+    }
     location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Forwarded-For \$remote_addr;
-        proxy_set_header X-Forwarded-Proto https;
+        client_max_body_size 50M;
+        $DEFAULT_CONFIG
     }
 }
 server {

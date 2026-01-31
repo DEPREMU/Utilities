@@ -3,8 +3,8 @@ import type {
   NotificationAction,
   ReasonNotification,
 } from "@types";
-import { logger } from "../functions";
-import { REPLACERS } from "../constants";
+import { logger } from "../functions/debug";
+import { REPLACERS } from "../TOP_LEVEL";
 import type { TurboModule } from "react-native";
 import { TurboModuleRegistry } from "react-native";
 

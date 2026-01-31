@@ -18,8 +18,8 @@ import {
   logger,
   showAlert,
   REPLACERS,
-  getRandomId,
   encryptFile,
+  getRandomUUID,
   getFoldersVault,
   renameVaultItem,
   sanitizeFileName,
@@ -119,7 +119,7 @@ const getDefaultSettings = (): VaultSettings => ({
 });
 
 const initializeVault = (isUnlocked?: boolean): VaultData => ({
-  sessionId: getRandomId(),
+  sessionId: getRandomUUID(),
   isUnlocked: !!isUnlocked,
   initializedAt: new Date().toISOString(),
 });

@@ -9,6 +9,9 @@ if (language.indexOf("_") !== -1) {
   language = language.split("_")[0];
 }
 
+const UPDATES_SERVER_URL =
+  "https://utilities.depremu.com/updates/is-update-available";
+
 const translations = {
   en: {
     "download-latest-version": "Download Latest Version",
@@ -34,7 +37,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     await Promise.all(
       ["windows", "linux", "android"].map(async (platform) => {
         try {
-          const res = await fetch("{{UPDATES_SERVER_URL}}", {
+          const res = await fetch(UPDATES_SERVER_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -54,24 +57,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 
           const handlePress = async (downloadUrl) => {
             window.open(downloadUrl, "_blank");
-            try {
-              const res = await fetch("{{UPDATES_SERVER_URL}}/log-download", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  platformOS: platform,
-                  currentVersion: "0.0.0",
-                  buildType: platform === "android" ? platform : "electron",
-                }),
-              });
-              const data = await res.json();
-              button.onclick = () => handlePress(data.downloadUrl);
-            } catch (error) {
-              console.error("Error logging download:", error);
-              button.remove();
-            }
           };
 
           button.addEventListener("click", () => handlePress(data.downloadUrl));

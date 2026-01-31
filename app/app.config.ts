@@ -3,7 +3,7 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.8.0";
+const version = "1.8.1";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {

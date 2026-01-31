@@ -4,9 +4,7 @@ import { wrapFunctionWithError } from "@common";
 import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
-import { REPLACERS } from "../constants/constants";
-import { fetchToServer } from "./APIManagement";
-import { getCurrentUserId } from "./auth";
+import { REPLACERS } from "../TOP_LEVEL";
 import { storageManagement } from "./storageManagement";
 
 type ReturnDeviceInfo = {
@@ -32,8 +30,7 @@ const getCurrentDeviceInfo = wrapFunctionWithError(
     } as ReturnDeviceInfo;
   },
   true,
-  (_, errMsg) => {
-    error?.("Error getting device info:", errMsg);
+  () => {
     return {
       deviceId: "Platform: " + Platform.OS,
       deviceName: "Unknown Device",
@@ -78,6 +75,10 @@ const log = async (...args: unknown[]): Promise<void> => {
           typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
         )
         .join(" ");
+      const [fetchToServer, getCurrentUserId] = await Promise.all([
+        import("./APIManagement").then((mod) => mod.fetchToServer),
+        import("./auth").then((mod) => mod.getCurrentUserId),
+      ]);
 
       const [userId, deviceInfo] = await Promise.all([
         getCurrentUserId(),
@@ -109,8 +110,8 @@ const log = async (...args: unknown[]): Promise<void> => {
  *
  * @example
  * ```typescript
- * awaitlogger.logWarn("User validation failed", { userId: 123, error: "Invalid email" });
- * awaitlogger.logWarn("API rate limit exceeded");
+ * logger.logWarn("User validation failed", { userId: 123, error: "Invalid email" });
+ * logger.logWarn("API rate limit exceeded");
  * ```
  */
 const warn = async (...args: unknown[]): Promise<void> => {
@@ -134,6 +135,10 @@ const warn = async (...args: unknown[]): Promise<void> => {
           typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
         )
         .join(" ");
+      const [fetchToServer, getCurrentUserId] = await Promise.all([
+        import("./APIManagement").then((mod) => mod.fetchToServer),
+        import("./auth").then((mod) => mod.getCurrentUserId),
+      ]);
 
       const [userId, deviceInfo] = await Promise.all([
         getCurrentUserId(),
@@ -190,6 +195,10 @@ const error = async (...args: unknown[]): Promise<void> => {
           typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
         )
         .join(" ");
+      const [fetchToServer, getCurrentUserId] = await Promise.all([
+        import("./APIManagement").then((mod) => mod.fetchToServer),
+        import("./auth").then((mod) => mod.getCurrentUserId),
+      ]);
 
       const [userId, deviceInfo] = await Promise.all([
         getCurrentUserId(),

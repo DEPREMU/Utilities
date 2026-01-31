@@ -47,12 +47,9 @@ const useStylesAuthScreens = () => {
     },
     input: {
       width: "100%",
-      backgroundColor: background,
       borderRadius: 12,
       fontSize: 16,
       paddingHorizontal: 16,
-      paddingVertical: 12,
-      color: text,
     },
     showPasswordButton: {
       position: "absolute",

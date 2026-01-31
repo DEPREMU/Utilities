@@ -4,7 +4,7 @@ import {
   RequestDatabaseUpdate,
 } from "@types";
 import { TablesKeys, RequestDatabaseInsert } from "@types";
-import { logger, fetchToServer, storageManagement } from "@utils";
+import { logger, fetchToServer, storageManagement } from "./functions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TaskFunction = (...args: any[]) => Promise<void> | void;

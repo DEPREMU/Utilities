@@ -1,8 +1,8 @@
-import { colors } from "@utils";
+import { colors } from "@/utils/TOP_LEVEL";
 import { useMemo } from "react";
 import { useColorScheme } from "react-native";
-import { MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 import { DarkTheme, DefaultTheme } from "@react-navigation/native";
+import { MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 
 /**
  * Hook to get the current color theme based on the device's color scheme

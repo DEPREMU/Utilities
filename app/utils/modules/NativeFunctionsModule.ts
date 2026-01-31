@@ -1,5 +1,4 @@
-import { logger } from "../functions";
-import { REPLACERS } from "../constants";
+import { REPLACERS } from "../TOP_LEVEL";
 import type { TurboModule } from "react-native";
 import { DeviceEventEmitter, TurboModuleRegistry } from "react-native";
 
@@ -93,12 +92,10 @@ if (REPLACERS.isNative) {
   });
 }
 
-if (
-  REPLACERS.isDev &&
-  REPLACERS.isNative &&
-  !NativeFunctionsModule
-) {
-  logger.error("NativeFunctionsModule is not available.");
+if (REPLACERS.isDev && REPLACERS.isNative && !NativeFunctionsModule) {
+  import("../functions/debug").then(({ logger }) => {
+    logger?.error("NativeFunctionsModule is not available.");
+  });
 }
 
 export default NativeFunctionsModule;

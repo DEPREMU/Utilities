@@ -7,6 +7,7 @@ import InfoIP from "@screens/Connectivity/IP";
 import Translator from "@screens/translator/Translator";
 import HomeScreen from "@screens/HomeScreen";
 import ScanQRCode from "@screens/auth/ScanQRCode";
+import QRNavigator from "@screens/QR";
 import LoginScreen from "@screens/auth/LoginScreen";
 import Minesweeper from "@screens/Games/Minesweeper";
 import * as Linking from "expo-linking";
@@ -54,7 +55,7 @@ const ComponentToHome: React.FC = () => {
   return null;
 };
 
-const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "PDF" : "Home";
+const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "QR" : "Home";
 
 /**
  * Centralized configuration object for all app screens.
@@ -94,6 +95,9 @@ const screens: Screens = {
     component: REPLACERS.isWeb ? TerminalCommands : ComponentToHome,
   },
   PDF: { component: PDFNavigator as React.FC },
+  QR: {
+    component: QRNavigator,
+  },
 };
 
 const allScreens = Object.entries(screens).map(
@@ -127,9 +131,7 @@ const AppNavigator: React.FC = () => {
       });
       const removeNotifications = setupNotificationHandlers();
 
-      Linking.getInitialURL().then((url) => {
-        handleNavigate(url);
-      });
+      Linking.getInitialURL().then(handleNavigate);
 
       return () => {
         sub.remove();

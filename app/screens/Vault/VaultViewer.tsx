@@ -7,13 +7,13 @@ import {
   GestureResponderEvent,
 } from "react-native";
 import Modal from "./components/Modal";
-import ActionsMenu from "./components/ActionsMenu";
 import { useVault } from "@context/VaultContext";
 import { REPLACERS } from "@utils";
 import { FolderFiles } from "@types";
 import { useLanguage } from "@context/LanguageContext";
 import { VaultScreenProps } from ".";
 import React, { useCallback, useRef } from "react";
+import ActionsMenu, { defaultMenuState } from "./components/ActionsMenu";
 import { List, Menu, Text, Button, Divider } from "react-native-paper";
 
 export type ModalData = {
@@ -36,13 +36,6 @@ const defaultModalData: ModalData = {
   type: "none",
   show: false,
   item: {} as FolderFiles[number],
-};
-
-export const defaultMenuState: Menu = {
-  x: 0,
-  y: 0,
-  item: null,
-  visible: false,
 };
 
 const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {

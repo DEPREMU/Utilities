@@ -1,6 +1,6 @@
 import express from "express";
 import { showError } from "../functions/logger.ts";
-import handleSendWebPage from "./web-page/handleSendWebPage.ts";
+import handleSendWebPage from "./handleSendWebPage.ts";
 import { handleDownload } from "./tempDownloadUrl.ts";
 import { handleUploadUpdate } from "./uploadUpdate.ts";
 import { Route, UpdatesRoutes } from "@types";

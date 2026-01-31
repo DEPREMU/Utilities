@@ -1,4 +1,9 @@
 import {
+  ModalData,
+  DataVaultViewer,
+  Menu as MenuType,
+} from "../VaultViewer";
+import {
   List,
   Menu,
   Text,
@@ -13,12 +18,6 @@ import { ScrollView, View } from "react-native";
 import useStylesVaultScreen from "@styles/screens/useStylesVaultScreen";
 import React, { useCallback, useRef } from "react";
 import { FolderFiles, memoDeep, PickedFile, tTyped } from "@utils";
-import {
-  ModalData,
-  DataVaultViewer,
-  defaultMenuState,
-  Menu as MenuType,
-} from "../VaultViewer";
 
 type ActionFolder = {
   icon: string;
@@ -35,6 +34,13 @@ type Action = {
     | "moveToFolder"
     | "selectFromLastToHere";
   icon: string;
+};
+
+export const defaultMenuState: MenuType = {
+  x: 0,
+  y: 0,
+  item: null,
+  visible: false,
 };
 
 const ACTIONS_MENU: Action[] = [

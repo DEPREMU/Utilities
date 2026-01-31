@@ -1,12 +1,19 @@
 import { View } from "react-native";
-import * as RNFS from "@dr.pogodin/react-native-fs";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesPDF } from "@styles/screens/PDF/useStylesPDF";
 import * as ExpoFileSystem from "expo-file-system";
 import { Button, Divider } from "react-native-paper";
 import * as DocumentPicker from "expo-document-picker";
 import React, { useCallback, useEffect, useState } from "react";
-import { logger, memoDeep, sanitizeFileName, URI_EXTENSION, PDF } from "@utils";
+import {
+  PDF,
+  logger,
+  memoDeep,
+  RNFSModule,
+  URI_EXTENSION,
+  sanitizeFileName,
+  REPLACERS,
+} from "@utils";
 
 type ViewerProps = {
   uri?: string;
@@ -38,17 +45,18 @@ const Viewer: React.FC<ViewerProps> = ({ uri }) => {
   }, [uriState]);
 
   useEffect(() => {
+    if (REPLACERS.isWeb) return;
     if (!uri || (!uri.startsWith("file://") && !uri.startsWith("content://")))
       return;
 
     const encodedUri = encodeURI(uri);
 
     const filename = uri.split("/").pop() || "document.pdf";
-    const outputPath = `${RNFS.CachesDirectoryPath}/${sanitizeFileName(filename)}`;
+    const outputPath = `${RNFSModule.CachesDirectoryPath}/${sanitizeFileName(filename)}`;
 
-    RNFS.copyFile(encodedUri, outputPath)
+    RNFSModule.copyFile(encodedUri, outputPath)
       .then(async () => {
-        if (await RNFS.exists(outputPath)) {
+        if (await RNFSModule.exists(outputPath)) {
           const cacheFilePath = URI_EXTENSION + outputPath;
 
           setUriState(cacheFilePath);
@@ -60,7 +68,7 @@ const Viewer: React.FC<ViewerProps> = ({ uri }) => {
 
     return () => {
       try {
-        RNFS.unlink(outputPath);
+        RNFSModule.unlink(outputPath);
       } catch {
         // Ignore errors
       }

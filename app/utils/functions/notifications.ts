@@ -1,14 +1,11 @@
-import {
-  REPLACERS,
-  reasonNotification,
-  objByReasonNotification,
-} from "../constants";
+import { REPLACERS } from "../TOP_LEVEL";
 import {
   ChannelsId,
   Notifications,
   ScreensAvailable,
   ReasonNotification,
 } from "@types";
+
 import { Falsy } from "react-native";
 import { logger } from "./debug";
 import { tTyped } from "../translates";
@@ -17,6 +14,7 @@ import * as notifications from "expo-notifications";
 import NotificationModule from "../modules/NotificationModule";
 import { navigateReplace } from "@navigation/navigationRef";
 import { storageManagement } from "./storageManagement";
+import { reasonNotification, objByReasonNotification } from "@common";
 
 export interface NotificationData {
   screen?: ScreensAvailable;

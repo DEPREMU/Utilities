@@ -2,7 +2,6 @@ import i18n from "i18next";
 import { typeT } from "@types";
 import { enApp, esApp } from "@common";
 import { initReactI18next } from "react-i18next";
-import { logger, checkLanguage } from "../functions";
 
 i18n.use(initReactI18next).init({
   lng: "en",
@@ -17,6 +16,8 @@ i18n.use(initReactI18next).init({
 });
 
 const configureLanguage = async () => {
+  const { checkLanguage, logger } = await import("../functions");
+
   try {
     const lng = await checkLanguage();
 

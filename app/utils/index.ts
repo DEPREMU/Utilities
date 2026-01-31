@@ -1,3 +1,6 @@
+import "./TOP_LEVEL";
+
+export * from "./TOP_LEVEL";
 export * from "@common";
 export * from "./cross";
 export * from "./functions";

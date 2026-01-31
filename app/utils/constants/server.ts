@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { API_URL_BASE, REPLACERS, WS_URL_BASE } from "./constants";
+import { API_URL_BASE, REPLACERS, WS_URL_BASE } from "../TOP_LEVEL";
 
 export const fallbackAPI_URL: string = API_URL_BASE;
 export const fallbackURL_WEB_SOCKET: string = WS_URL_BASE;

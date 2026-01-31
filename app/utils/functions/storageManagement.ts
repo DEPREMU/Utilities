@@ -10,17 +10,14 @@ import {
   DO_NOT_DELETE_OR_SAVE,
   SECURE_KEYS_STORAGE_TYPE,
 } from "@common";
-import { logger } from "./debug";
 import windowModule from "../modules/WindowModule";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { REPLACERS } from "../constants";
+import { REPLACERS } from "../TOP_LEVEL";
 import * as SecureStore from "expo-secure-store";
-import { DATA_PLATFORM } from "../constants/";
 import * as Localization from "expo-localization";
 import { reloadAppAsync } from "expo";
-import { LanguagesSupported } from "@types";
-import { getRandomId, parseData, stringifyData } from "./appManagement";
 import NativeFunctionsModule from "../modules/NativeFunctionsModule";
+import { LanguagesSupported } from "@types";
 
 type SaveDataStorage = {
   <T extends ALL_KEYS_STORAGE_TYPE>(
@@ -70,6 +67,131 @@ type RemoveDataStorage = {
   ): Promise<R>;
 };
 
+/**
+ * Gets a valid representation of a value for logging or debugging purposes.
+ *
+ * @param value - The value to process.
+ * @returns A valid representation of the value.
+ */
+const getValidValue = (value: unknown): unknown => {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "symbol") return "<<Symbol>>";
+  if (typeof value === "function") return "<<Function>>";
+  if (typeof value === "object" && value !== null) {
+    if (Array.isArray(value)) return sortArray(value);
+    return sortObject(value);
+  }
+
+  return value;
+};
+
+/**
+ * Sorts an array by getting valid representations of its elements.
+ *
+ * @param arr - The array to sort.
+ * @returns The sorted array.
+ */
+export const sortArray = (arr: unknown[]): unknown[] => {
+  if (!Array.isArray(arr)) return arr;
+  return arr.map(getValidValue).sort();
+};
+
+/**
+ * Sorts an object by getting valid representations of its values.
+ *
+ * @param obj - The object to sort.
+ * @returns The sorted object.
+ */
+export const sortObject = (obj: object): { [key: string]: unknown } => {
+  if (typeof obj !== "object" || obj === null) return obj;
+  const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b));
+
+  const sortedEntries = Object.fromEntries(
+    keys.map((key) => {
+      const valueKey = getValidValue(obj[key as keyof typeof obj]);
+
+      return [key, valueKey];
+    }),
+  );
+  return sortedEntries;
+};
+
+/**
+ * Stringifies a value.
+ *
+ * @param value - The value to stringify.
+ * @returns The stringified representation of the value.
+ */
+export const stringifyData = (value: unknown): string => {
+  if (typeof value === "string") return value;
+  try {
+    if (value instanceof Date) return getValidValue(value) as string;
+    if (value && typeof value === "object") {
+      if (Array.isArray(value)) return JSON.stringify(sortArray(value));
+
+      return JSON.stringify(sortObject(value));
+    }
+    if (!value) return String(value);
+
+    return JSON.stringify(value);
+  } catch (error) {
+    import("./debug").then(({ logger }) => {
+      logger.error("Error stringifying data:", error, value);
+    });
+    return "notValid";
+  }
+};
+
+const functionFallback = (functionName: string) => () =>
+  import("./debug").then(({ logger }) => {
+    logger.log(
+      `Function created after parsed data, original function name: "${functionName}"`,
+    );
+  });
+
+const symbolFallback = (symbolName: string) =>
+  Symbol(
+    `Symbol created after parsed data, original symbol name: "${symbolName}"`,
+  );
+
+const getCorrectParsed = <T = object | null>(obj: object | null): T => {
+  if (!obj) return null as T;
+  if (Array.isArray(obj))
+    return obj.map((value) => {
+      if (value === "<<Function>>") return functionFallback(value);
+      if (value === "<<Symbol>>") return symbolFallback(value);
+      if (typeof value === "object") return getCorrectParsed<T>(value);
+      return value;
+    }) as T;
+  else
+    return Object.fromEntries(
+      Object.entries(obj).map(([key, value]) => {
+        if (value === "<<Function>>") return [key, functionFallback(key)];
+        if (value === "<<Symbol>>") return [key, symbolFallback(key)];
+        if (typeof value === "object") return [key, getCorrectParsed(value)];
+        return [key, value];
+      }),
+    ) as T;
+};
+
+export const parseData = <T = object | null>(
+  value: string | null,
+): T | null => {
+  let parsed: T;
+  try {
+    if (!value) return value as T;
+
+    if (value.includes("<<Symbol>>") || value.includes("<<Function>>")) {
+      const parsedValue = JSON.parse(value);
+
+      return getCorrectParsed<T>(parsedValue);
+    } else parsed = JSON.parse(value || "null") as T;
+  } catch {
+    parsed = value as T;
+  }
+  return parsed;
+};
+
 const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
   async (
     keyStorage: Parameters<SaveDataStorage>[0],
@@ -101,6 +223,7 @@ const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
         "Cannot save device ID on web, this is managed automatically in electron";
       return returnType(new Error(errMsg), errMsg);
     }
+    const { DATA_PLATFORM } = await import("../cross");
 
     if (!DATA_PLATFORM.isElectron && !REPLACERS.isDev)
       throw new Error("Not an Electron build");
@@ -126,7 +249,9 @@ const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
     const errCallback = args?.[1]; // [value, errCallback]
     if (typeof errCallback === "function") return errCallback(err, errMsg);
 
-    logger.error(`saveDataStorage("${keyStorage}") => ${errMsg}`);
+    import("./debug").then(({ logger }) => {
+      logger.error(`saveDataStorage("${keyStorage}") => ${errMsg}`);
+    });
   },
 );
 
@@ -155,6 +280,7 @@ const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
       return returnValue(parsed);
     }
 
+    const { DATA_PLATFORM } = await import("../cross");
     let value: string | null = null;
 
     if (!DATA_PLATFORM.isElectron && !REPLACERS.isDev)
@@ -169,9 +295,11 @@ const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
   (err, errMsg, keyStorage, ...args: unknown[]) => {
     const arg = args?.[0]; // [fallbackValue | func]
     if (typeof arg === "function") return arg(null, err, errMsg);
-    if (keyStorage === "DEVICE_ID") reloadAppAsync();
+    if (keyStorage === "DEVICE_ID" && !REPLACERS.isDev) reloadAppAsync();
 
-    logger.error(`loadDataStorage("${keyStorage}") => ${errMsg}`);
+    import("./debug").then(({ logger }) => {
+      logger.error(`loadDataStorage("${keyStorage}") => ${errMsg}`);
+    });
     if (typeof arg !== "undefined") return arg;
     return null;
   },
@@ -208,6 +336,8 @@ const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
       return returnType();
     }
 
+    const { DATA_PLATFORM } = await import("../cross");
+
     if (!DATA_PLATFORM.isElectron && !REPLACERS.isDev)
       throw new Error("Not an Electron build");
     else if (!DATA_PLATFORM.isElectron) localStorage.removeItem(key);
@@ -222,13 +352,16 @@ const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
     const errCallback = args?.[0];
     if (typeof errCallback === "function") return errCallback(err, errMsg);
 
-    logger.error(`removeDataStorage("${keyStorage}") => ${errMsg}`);
+    import("./debug").then(({ logger }) => {
+      logger.error(`removeDataStorage("${keyStorage}") => ${errMsg}`);
+    });
   },
 );
 
 const cleanAllStorageData = wrapFunctionWithError(
   async () => {
     if (REPLACERS.isWeb) {
+      const { DATA_PLATFORM } = await import("../cross");
       if (!DATA_PLATFORM.isElectron) return;
 
       localStorage.clear();
@@ -257,7 +390,9 @@ const cleanAllStorageData = wrapFunctionWithError(
   },
   true,
   async (_, errMsg) => {
-    logger.error(`cleanAllStorageData() => ${errMsg}`);
+    import("./debug").then(({ logger }) => {
+      logger.error(`cleanAllStorageData() => ${errMsg}`);
+    });
   },
 );
 
@@ -306,7 +441,9 @@ export const getLanguageFromDevice = wrapFunctionWithError(
   },
   true,
   async (_, errMsg) => {
-    logger.error(`.utils/functions/getLanguageFromDevice() => ${errMsg}`);
+    import("./debug").then(({ logger }) => {
+      logger.error(`.utils/functions/getLanguageFromDevice() => ${errMsg}`);
+    });
     return "en" as LanguagesSupported;
   },
 );
@@ -344,7 +481,8 @@ class StorageManagement {
       const deviceId = await loadDataStorage("DEVICE_ID");
       if (!deviceId) {
         NativeFunctionsModule.requestIgnoreBatteryOptimizations?.();
-        await saveDataStorage("DEVICE_ID", getRandomId());
+        const { getRandomUUID } = await import("../cross");
+        await saveDataStorage("DEVICE_ID", getRandomUUID());
       }
 
       await Promise.all(
@@ -353,14 +491,19 @@ class StorageManagement {
             async (keyStorage) => {
               const value =
                 await loadDataStorage<typeof keyStorage>(keyStorage);
-              if (keyStorage === "DEVICE_ID" && !value)
+              if (keyStorage === "DEVICE_ID" && !value && !REPLACERS.isDev)
                 reloadAppAsync("No device ID found.");
 
               data[keyStorage] = value;
             },
             true,
             async (_, errMsg, key) => {
-              logger.error("STORAGE", `loadDataStorage("${key}") => ` + errMsg);
+              import("./debug").then(({ logger }) => {
+                logger.error(
+                  "STORAGE",
+                  `#loadData() => loadDataStorage("${key}") => ` + errMsg,
+                );
+              });
               data[key] = null;
             },
           ),
@@ -369,9 +512,11 @@ class StorageManagement {
       this.#data = data as ExpectedStorageTypes<"BOTH">;
       this.isLoaded = true;
     } catch (e) {
-      logger.error("STORAGE", "Failed to load storage data.", e);
+      import("./debug").then(({ logger }) => {
+        logger.error("STORAGE", "Failed to load storage data.", e);
+      });
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      reloadAppAsync("Failed to load storage data.");
+      if (!REPLACERS.isDev) reloadAppAsync("Failed to load storage data.");
     }
   };
 
@@ -434,7 +579,9 @@ class StorageManagement {
         return;
       }
       callback?.(this.#data[key], err, errMsg);
-      logger.error(`STORAGE`, `saveDataStorage("${key}") => ` + errMsg);
+      import("./debug").then(({ logger }) => {
+        logger.error(`STORAGE`, `saveDataStorage("${key}") => ` + errMsg);
+      });
     });
   };
 
@@ -469,7 +616,9 @@ class StorageManagement {
         return;
       }
       callback?.(err);
-      logger.error(`STORAGE`, `removeDataStorage("${key}") => ` + errMsg);
+      import("./debug").then(({ logger }) => {
+        logger.error(`STORAGE`, `removeDataStorage("${key}") => ` + errMsg);
+      });
     });
   };
 

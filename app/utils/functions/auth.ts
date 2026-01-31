@@ -1,22 +1,22 @@
 import {
+  checkLanguage,
+  storageManagement,
+} from "../functions/storageManagement";
+import {
   KeyStorageValues,
-  ALL_KEYS_STORAGE_TYPE,
   ExpectedStorageTypes,
+  wrapFunctionWithError,
+  ALL_KEYS_STORAGE_TYPE,
   DO_NOT_DELETE_OR_SAVE,
 } from "@common";
-import {
-  logger,
-  checkLanguage,
-  fetchToServer,
-  storageManagement,
-} from "../functions";
+import { logger } from "./debug";
 import windowModule from "../modules/WindowModule";
-import { REPLACERS } from "../constants/constants";
+import { REPLACERS } from "../TOP_LEVEL";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
-import { wrapFunctionWithError } from "@common";
 import { isFalsy, setTimeoutPolyfill } from "../functions/appManagement";
 import { UserData, ResponseAuth, ResponseFetch } from "@types";
+import { fetchToServer } from "../functions/APIManagement";
 
 /**
  * Retrieves the Expo push token for the device.
@@ -192,55 +192,30 @@ export const forgotPasswordWithEmail = async (
  */
 export const signOut = async (): Promise<{ error?: string | null }> => {
   try {
-    const lang = storageManagement.get("LANGUAGE");
-    const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
-    const deviceId = storageManagement.get("DEVICE_ID");
-    const notificationToken = await getDevicePushToken();
-
-    if (!token) return { error: "No session token found" };
-
-    const res = await fetchToServer(
-      "/auth/signOut",
-      {
-        lang,
-        deviceId,
-        notificationToken,
-      },
-      token,
-    );
-
-    const data = res.data;
-    if (!res.ok || !data) {
-      const message = res.errorText || "Unknown error";
-      logger.error("Error signing out:", message);
-      return { error: message };
-    }
-
-    if (data.error) {
-      logger.error("Error signing out:", data.error);
-      return { error: data.error };
-    }
-
     const storedValues: ALL_KEYS_STORAGE_TYPE[] = [
-      "API_URL",
       "USER_DATA",
       "STREAMERS",
-      "WEBSOCKET_URL",
-      "NOTIFICATIONS",
+      "PENDING_TASKS",
       "SESSION_EXPIRY",
       "HAS_ADMIN_ACCESS",
       "SELECTED_CRYPTOS",
       "USER_SESSION_TOKEN_STORAGE",
     ];
 
-    await Promise.all(storedValues.map((key) => storageManagement.remove(key)));
+    await Promise.all(
+      storedValues.map((key) => {
+        return new Promise<void>((r) => {
+          storageManagement.remove(key as ALL_KEYS_STORAGE_TYPE, () => r());
+        });
+      }),
+    );
     if (REPLACERS.isNative) storageManagement.remove("TERMINAL_COMMANDS");
 
-    logger.log("User signed out successfully");
+    logger.log("AUTH_SIGN_OUT", "User signed out successfully");
     navigateReplace("Login");
-    return { error: null };
+    return {};
   } catch (error) {
-    const errorMsg = `Unexpected error during sign out: ${error}`;
+    const errorMsg = `AUTH_SIGN_OUT Unexpected error during sign out: ${(error as Error).message}`;
     logger.error(errorMsg);
     return { error: errorMsg };
   }

@@ -30,7 +30,7 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
   handleShowPassword,
 }) => {
   const { t } = useLanguage();
-  const { styles, text, secondary } = useStylesAuthScreens();
+  const { styles } = useStylesAuthScreens();
 
   const [validations, setValidations] = useState<
     Record<"isEmailValid" | "isPasswordValid", boolean>
@@ -113,9 +113,6 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
         <TextInput
           style={styles.input}
           label={t("auth.emailPlaceholder")}
-          placeholderTextColor={text}
-          underlineColor={secondary}
-          activeUnderlineColor={secondary}
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -140,9 +137,6 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
         <TextInput
           style={styles.input}
           label={t("auth.passwordPlaceholder")}
-          underlineColor={secondary}
-          activeUnderlineColor={secondary}
-          placeholderTextColor={text}
           secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
@@ -152,6 +146,12 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
               Keyboard?.emit("keyboardDidShow");
           }}
           onBlur={handlerBlurInputPassword}
+          right={
+            <TextInput.Icon
+              icon={showPassword ? "eye-off" : "eye"}
+              onPress={handleShowPassword}
+            />
+          }
         />
         <ButtonComponent
           replaceStyles={{

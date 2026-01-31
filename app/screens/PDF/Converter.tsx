@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import {
   logger,
+  PDFDoc,
   memoDeep,
   REPLACERS,
   deleteDirectoryPickerFolder,
@@ -26,7 +27,6 @@ import {
   ActivityIndicator,
 } from "react-native-paper";
 import Sortable from "react-native-sortables";
-import * as PdfDoc from "pdf-lib";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesPDF } from "@styles/screens/PDF/useStylesPDF";
@@ -38,7 +38,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useAnimatedRef } from "react-native-reanimated";
 import React, { useRef, useState, useCallback, useMemo } from "react";
 
-type PaperSizes = keyof typeof PdfDoc.PageSizes | "CUSTOM" | "GET_FROM_IMAGE";
+type PaperSizes = keyof typeof PDFDoc.PageSizes | "CUSTOM" | "GET_FROM_IMAGE";
 
 type PickedImage = {
   uri: string;
@@ -46,7 +46,7 @@ type PickedImage = {
 };
 
 const PAPER_SIZES: PaperSizes[] = [
-  ...(Object.keys(PdfDoc.PageSizes) as PaperSizes[]),
+  ...(Object.keys(PDFDoc.PageSizes) as PaperSizes[]),
   "CUSTOM",
   "GET_FROM_IMAGE",
 ];
@@ -163,7 +163,7 @@ const PDFConverter: React.FC = () => {
         0,
       );
 
-      const doc = await PdfDoc.PDFDocument.create();
+      const doc = await PDFDoc.PDFDocument.create();
       let size: [number, number] = [0, 0];
 
       if (sizePdf === "GET_FROM_IMAGE") {
@@ -171,7 +171,7 @@ const PDFConverter: React.FC = () => {
       } else if (sizePdf === "CUSTOM") {
         size = [customSize.width, customSize.height];
       } else {
-        size = PdfDoc.PageSizes[sizePdf];
+        size = PDFDoc.PageSizes[sizePdf];
       }
 
       const isLargerThanMaxSize = (multiply?: number) =>

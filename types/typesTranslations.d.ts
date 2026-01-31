@@ -580,6 +580,24 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       confirmPassword: string;
       confirmPasswordMessage: string;
       share: string;
+      scanQR: string;
+      openMap: string;
+      createQR: string;
+      download: string;
+      openEmail: string;
+      callPhone: string;
+    };
+    colors: {
+      selectBg: string;
+      selectColor: string;
+      setDefaults: string;
+    };
+    QR: {
+      title: string;
+      writeData: string;
+      selectImage: string;
+      resetCamera: string;
+      scanFromImage: string;
     };
     IPQuery: {
       title: string;

@@ -1,5 +1,4 @@
 import { ScreensAvailable } from "@types";
-import { setTimeoutPolyfill } from "@utils";
 import { RootStackParamList } from "./AppNavigator";
 import { createNavigationContainerRef } from "@react-navigation/native";
 
@@ -21,7 +20,11 @@ export const navigateReplace = async (
   while (true) {
     attempts++;
     if (navigationRef.isReady() || attempts > 100) break;
-    await new Promise((resolve) => setTimeoutPolyfill(resolve, 50));
+    await new Promise((resolve) => {
+      import("@utils").then(({ setTimeoutPolyfill }) =>
+        setTimeoutPolyfill(resolve, 50),
+      );
+    });
   }
 
   navigationRef.reset({
@@ -35,7 +38,11 @@ export const getCurrentScreen = async (): Promise<ScreensAvailable> => {
   while (true) {
     if (navigationRef.isReady() || attempts > 100) break;
     attempts++;
-    await new Promise((resolve) => setTimeoutPolyfill(resolve, 50));
+    await new Promise((resolve) => {
+      import("@utils").then(({ setTimeoutPolyfill }) =>
+        setTimeoutPolyfill(resolve, 50),
+      );
+    });
   }
   return navigationRef.getCurrentRoute()?.name ?? "Home";
 };

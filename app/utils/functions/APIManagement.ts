@@ -15,7 +15,7 @@ import {
   RoutesAPIWithItsMethod,
 } from "@types";
 import { logger } from "./debug";
-import { stringifyData } from "./appManagement";
+import { stringifyData } from "./storageManagement";
 import { storageManagement } from "./storageManagement";
 import axios, { AxiosRequestConfig } from "axios";
 

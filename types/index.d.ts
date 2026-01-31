@@ -19,3 +19,17 @@ export type REPLACERS_TYPE =
   | "isNative"
   | "isPreview"
   | "isProduction";
+
+export type Colors =
+  | "primary"
+  | "secondary"
+  | "accent"
+  | "background"
+  | "text"
+  | "border"
+  | "error"
+  | "warning"
+  | "success"
+  | "info"
+  | "overlay"
+  | "shadow";

@@ -1,5 +1,5 @@
 import { tTyped } from "../translates";
-import { REPLACERS } from "../constants";
+import { REPLACERS } from "../TOP_LEVEL";
 import * as Location from "expo-location";
 import { Alert, AppState } from "react-native";
 import NativeFunctionsModule from "../modules/NativeFunctionsModule";

@@ -16,3 +16,5 @@ export const functionsToExecute: {
     "Screen-change": {},
   },
 };
+
+export * from "./platform";

@@ -1,5 +1,5 @@
 import { logger } from "../functions/debug";
-import { REPLACERS } from "../constants/constants";
+import { REPLACERS } from "../TOP_LEVEL";
 import { ClipboardItem } from "@types";
 import { NativeModules } from "react-native";
 

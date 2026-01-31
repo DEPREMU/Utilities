@@ -1,4 +1,5 @@
 export type ScreensAvailable =
+  | "QR"
   | "PDF"
   | "Home"
   | "Test"

@@ -15,7 +15,7 @@ import {
   logger,
   parseData,
   REPLACERS,
-  getRandomId,
+  getRandomUUID,
   fetchToServer,
   URL_WEB_SOCKET,
   CLIPBOARD_WS_URL,
@@ -360,7 +360,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       ];
 
       if (!sessionToken) return;
-      lastItemCopiedRef.current = getRandomId();
+      lastItemCopiedRef.current = getRandomUUID();
 
       const res = await fetchToServer(
         "/database/fetch",
@@ -431,7 +431,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         if (!content || lastItemCopiedRef.current === content) return;
         if (!statesRef.current.hasInternet)
           addToItemsClipboard(
-            { id: getRandomId(), content },
+            { id: getRandomUUID(), content },
             listItemsClipboardNoInternetRef,
           );
         else
@@ -528,7 +528,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
                 });
               else
                 addToItemsClipboard(
-                  { id: getRandomId(), content },
+                  { id: getRandomUUID(), content },
                   listItemsClipboardNoInternetRef,
                 );
             }

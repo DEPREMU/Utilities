@@ -11,15 +11,16 @@ import routerAPI from "./routes/index.ts";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 import routerUpdates from "./updates/index.ts";
-import { host, port } from "./config.ts";
 import { runAllTests } from "./testingRoutes/index.ts";
 import { handleInitDB } from "./database/postgres.ts";
 import { WebSocketPathname } from "@types";
 import { showError, showInfo } from "./functions/logger.ts";
+import { host, port, serverPath } from "./config.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
 import { initWebSocketLoginQRCode } from "./websocket/WebSocketQRLogin.ts";
 import { validateServerEnv, getEnvValue } from "./env.ts";
 import { initWebSocket, initWebSocketClipboard } from "./websocket/index.ts";
+import path from "path";
 
 const app = express();
 
@@ -34,7 +35,7 @@ try {
 const sourceProtocol = getEnvValue("USE_HTTPS") ? "https" : "http";
 const sourceProtocolWs = getEnvValue("USE_HTTPS") ? "wss" : "ws";
 
-if (!getEnvValue("__DEV__"))
+if (!getEnvValue("__DEV__")) {
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -52,17 +53,29 @@ if (!getEnvValue("__DEV__"))
       crossOriginEmbedderPolicy: false,
     }),
   );
-app.use(
-  rateLimit({
-    windowMs: 5 * 60 * 1000,
-    limit: !getEnvValue("__DEV__") ? 200 : Infinity,
-  }),
-);
+  app.set("trust proxy", 1);
+}
 app.use(cors());
 app.use(compression({ threshold: 0 }));
-app.use(express.json({ limit: "50mb" }));
-app.use("/api", routerAPI);
-app.use("/updates", routerUpdates);
+app.use(
+  "/api",
+  express.json({ limit: "50mb" }),
+  rateLimit({
+    windowMs: 1 * 60 * 1000,
+    limit: !getEnvValue("__DEV__") ? 200 : Infinity,
+  }),
+  routerAPI,
+);
+app.use(
+  "/updates",
+  express.json(),
+  express.static(path.join(serverPath, "updates", "web-page")),
+  rateLimit({
+    windowMs: 10 * 60 * 1000,
+    limit: !getEnvValue("__DEV__") ? 200 : Infinity,
+  }),
+  routerUpdates,
+);
 
 const server = http.createServer(app);
 const generalWss = initWebSocket();
