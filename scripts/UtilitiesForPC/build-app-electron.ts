@@ -399,6 +399,7 @@ const buildApp = async () => {
             stdio: "inherit",
           },
         );
+        execSync("sudo ufw allow 5353/udp && sudo ufw reload");
 
         const runAppCommand = `/opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`;
 

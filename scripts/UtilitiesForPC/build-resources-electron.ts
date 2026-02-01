@@ -57,6 +57,7 @@ build({
     "node-7z",
     "7zip-bin",
     "electron",
+    "bonjour-service",
     "electron-edge-js",
   ],
   entryPoints: [path.join(UTILITIES_FOR_PC_PATH, "src", "main", "index.ts")],

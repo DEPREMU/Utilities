@@ -208,7 +208,7 @@ const uploadAndroidAssets = async () => {
   const BUILD_PROFILE = ARGS["profile"] || "production";
 
   execSync(
-    `npx eas update --channel ${BUILD_PROFILE} --platform android --clear-cache`,
+    ` eas update --channel ${BUILD_PROFILE} --platform android --clear-cache`,
     {
       stdio: "inherit",
       cwd: APP_PATH,

@@ -3,7 +3,7 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.8.1";
+const version = "1.8.3";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
@@ -45,8 +45,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "WAKE_LOCK",
         "RECORD_AUDIO",
         "NOTIFICATIONS",
+        "ACCESS_WIFI_STATE",
         "POST_NOTIFICATIONS",
         "FOREGROUND_SERVICE",
+        "NEARBY_WIFI_DEVICES",
         "SYSTEM_ALERT_WINDOW",
         "ACCESS_NETWORK_STATE",
         "SCHEDULE_EXACT_ALARM",
@@ -54,6 +56,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "WRITE_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",
         "ACCESS_BACKGROUND_LOCATION",
+        "CHANGE_WIFI_MULTICAST_STATE",
         "FOREGROUND_SERVICE_DATA_SYNC",
         "FOREGROUND_SERVICE_MICROPHONE",
         "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",

@@ -119,7 +119,7 @@ const HomeScreen: React.FC = () => {
   const { userData, dataRef, isLoggedIn, loggingIn } = useUserContext();
 
   const handleLoginInWebRef = useRef(() => {
-    if (REPLACERS.isNative) return;
+    if (!REPLACERS.isNative) return;
 
     navigateReplace("ScanQRCode");
   });

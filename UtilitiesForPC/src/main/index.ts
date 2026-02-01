@@ -52,7 +52,7 @@ if (!dataApp.getValue("isWindows") && app.isPackaged) {
     );
   } catch (error) {
     writeLog(
-      "Some system dependencies may be missing. Install them with: ",
+      "Some system dependencies may be missing.",
       "warn",
     );
   }
@@ -285,12 +285,13 @@ const createTray = (): void => {
     }
 
     const tray = new Tray(trayIcon);
-    const mainWindow = dataApp.getValue("mainWindow");
 
     const contextMenu = Menu.buildFromTemplate([
       {
         label: t("show"),
         click: () => {
+          const mainWindow = dataApp.getValue("mainWindow");
+
           mainWindow?.show();
           mainWindow?.focus();
         },
@@ -308,6 +309,8 @@ const createTray = (): void => {
     tray.setContextMenu(contextMenu);
 
     tray.on("click", () => {
+      const mainWindow = dataApp.getValue("mainWindow");
+
       if (!mainWindow?.isVisible()) {
         mainWindow?.show();
         mainWindow?.focus();

@@ -1,9 +1,10 @@
 import { Server } from "http";
+import type { Bonjour } from "bonjour-service";
 import { Advertisement } from "dnssd";
+import { ClipboardItem } from "./screens";
 import { LanguagesSupported } from "./typesTranslations";
 import { ReasonNotification } from "./typesNotifications";
 import { ExpectedStorageTypes } from "./API";
-import { ClipboardItem } from "./screens";
 
 export type ElectronStoreType = {
   get: <T extends keyof ExpectedStorageTypes<"BOTH">>(
@@ -17,7 +18,7 @@ export type ElectronStoreType = {
 };
 
 export type DataAppElectron = {
-  ad: Advertisement | null;
+  ad: Bonjour | null;
   PORT: 3005;
   tray: Electron.Tray | null;
   lanIP: string;

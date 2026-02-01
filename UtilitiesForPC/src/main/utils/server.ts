@@ -1,10 +1,10 @@
 import cors from "cors";
-import DNSSD from "dnssd";
 import express from "express";
 import { app } from "electron";
 import dataApp from "./variables";
 import machineId from "node-machine-id";
 import { Server } from "http";
+import { Bonjour, ServiceConfig } from "bonjour-service";
 import { writeLog } from "./logger";
 import { exec, execSync } from "child_process";
 import { AdvertisementTXT } from "@types";
@@ -106,13 +106,14 @@ export const handleShutdown = async () => {
 };
 
 export const cleanAdAndServer = (): void => {
-  const ad: DNSSD.Advertisement | null = dataApp.getValue("ad");
+  const ad: Bonjour | null = dataApp.getValue("ad");
   const server: Server | null = dataApp.getValue("server");
 
   if (ad) {
     writeLog("Stopping mDNS advertisement...", "info");
     try {
-      ad.stop?.();
+      ad.unpublishAll();
+      ad.destroy();
     } catch (e) {
       writeLog(`Error stopping ad (ignoring): ${e}`, "warn");
     }
@@ -274,16 +275,21 @@ export const initServer = (): void => {
           deviceId: deviceId,
         };
 
-        const ad = new DNSSD.Advertisement(
-          DNSSD.tcp("http"),
-          dataApp.getValue("PORT"),
-          {
-            name: lanIP.replace(/\./g, "-"),
-            txt,
-          },
-        );
-        ad.start();
+        const serviceConfig: ServiceConfig = {
+          txt,
+          type: "http",
+          port: dataApp.getValue("PORT"),
+          name: lanIP.replace(/\./g, "-"),
+          protocol: "tcp",
+          disableIPv6: true,
+        };
+
+        const ad = new Bonjour(serviceConfig);
+        const service = ad.publish(serviceConfig);
+
         dataApp.setValue("ad", ad);
+
+        if (!service?.published) initServer();
       } catch (error) {
         writeLog(`Error setting up mDNS: ${error}`, "error");
       }

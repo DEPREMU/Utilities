@@ -63,7 +63,6 @@ const useStylesComputerControl = () => {
           right: getResponsiveValue(20, 30, 40),
           backgroundColor: colors.primary,
           borderRadius: 28,
-          paddingHorizontal: getResponsiveValue(16, 20, 24),
         },
         listIconPower: {
           color: colors.error,

@@ -215,7 +215,7 @@ const ScanQR = () => {
           </Button>
         </View>
       )}
-      {REPLACERS.isWeb && scanningType === "image" && (
+      {!REPLACERS.isWeb && scanningType === "image" && (
         <View style={styles.container}>
           <Button mode="contained" onPress={handlePressSelectImageRef.current}>
             {t("QR.selectImage")}

@@ -252,7 +252,10 @@ export const checkUrlStatus = async (
     res?.data?.destroy?.();
     return res.status >= 200 && res.status < 400;
   } catch (error) {
-    logger.error(`Error checking URL status for ${url}:`, error);
+    logger.error(
+      `Error checking URL status for ${url}:`,
+      error instanceof Error ? error.message : error,
+    );
     return false;
   }
 };

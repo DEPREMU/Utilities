@@ -51,6 +51,7 @@ export const saveStorageData = async (
       wrapFunctionWithError(
         async ([keyStorage, value]) => {
           const keyTyped = keyStorage as ALL_KEYS_STORAGE_TYPE;
+          if (!value) return;
           if (DO_NOT_DELETE_OR_SAVE.includes(keyTyped)) return;
 
           const valueTyped = value as ExpectedStorageTypes<"BOTH">[Exclude<

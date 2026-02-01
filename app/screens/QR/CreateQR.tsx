@@ -70,16 +70,16 @@ const CreateQR = () => {
   const onColorChangeRef = useRef((colors: ColorFormatsObject) => {
     "worklet";
 
-    if (selecting === "color") {
+    if (selectingShared.value === "color") {
       colorShared.value = colors.hex;
-    } else if (selecting === "bgColor") {
+    } else if (selectingShared.value === "bgColor") {
       bgColorShared.value = colors.hex;
     }
   });
 
   const onColorPickRef = useRef((colors: ColorFormatsObject) => {
-    if (selecting === "color") setColor(colors.hex);
-    else if (selecting === "bgColor") setBgColor(colors.hex);
+    if (selectingShared.value === "color") setColor(colors.hex);
+    else if (selectingShared.value === "bgColor") setBgColor(colors.hex);
   });
 
   const downloadQRCodeRef = useRef(async () => {

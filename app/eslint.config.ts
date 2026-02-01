@@ -47,6 +47,7 @@ export default defineConfig([
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
+        tsconfigRootDir: __dirname,
         ecmaFeatures: {
           jsx: true,
         },

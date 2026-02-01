@@ -1,4 +1,4 @@
-import type PDF from "react-native-pdf";
+import type RNPDF from "react-native-pdf";
 import type * as RNFS from "@dr.pogodin/react-native-fs";
 import type PDFDocType from "pdf-lib";
 import type { PdfCreateOptions, PdfCreateResult, PdfImageInput } from "@types";
@@ -25,7 +25,7 @@ export type DeleteDirectoryImageManipulatorFolder = () => void;
 
 export declare const deleteDirectoryImageManipulatorFolder: DeleteDirectoryImageManipulatorFolder;
 
-export declare const PDF: typeof PDF;
+export declare const PDF: typeof RNPDF;
 
 export type GetRandomUUID = () => string;
 

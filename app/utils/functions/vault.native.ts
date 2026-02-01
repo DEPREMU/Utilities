@@ -9,15 +9,17 @@ import {
   UnzipFile,
   FolderFiles,
   HasPasswordZIP,
+  GetFoldersVault,
   GetDecryptedFolderDirectory,
   ClearDecryptedFolderDirectory,
-  GetFoldersVault,
 } from "@types";
 import * as ZIP from "react-native-zip-archive";
+import { logger } from "../functions/debug";
 import * as FileSystem from "@dr.pogodin/react-native-fs";
 import * as ExpoFileSystem from "expo-file-system";
+import { sanitizeFileName } from "../functions/appManagement";
+import { storageManagement } from "../functions/storageManagement";
 import NativeFunctionsModule from "../modules/NativeFunctionsModule";
-import { logger, sanitizeFileName, storageManagement } from "../functions";
 import { FetchFileInfo, DecryptFolderFiles, ActionWithVaultItem } from "@types";
 
 type ProgressCallback = (percentage: number) => void;

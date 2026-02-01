@@ -229,9 +229,7 @@ export const removeStorageValue = async (
 
 const initDeviceId = async (): Promise<void> => {
   try {
-    console.log("Initializing device ID...");
     const deviceId = await getStorageValue("DEVICE_ID");
-    console.log("Current stored device ID:", deviceId);
     const machineId = dataApp.getValue("machineId");
     const hashedId = crypto
       .createHash("sha256")
@@ -241,12 +239,7 @@ const initDeviceId = async (): Promise<void> => {
     if (deviceId === hashedId) return;
 
     dataApp.setValue("deviceId", hashedId);
-    console.log("Storing new device ID:", hashedId);
     await saveStorageValue("DEVICE_ID", hashedId);
-    console.log(
-      "Device ID stored successfully.",
-      (await getStorageValue("DEVICE_ID")) === hashedId,
-    );
   } catch (error) {
     console.error("Error initializing device ID:", error);
   }

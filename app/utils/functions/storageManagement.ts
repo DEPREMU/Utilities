@@ -28,7 +28,7 @@ type SaveDataStorage = {
   <T extends ALL_KEYS_STORAGE_TYPE, U>(
     key: T,
     value: ExpectedStorageTypes<"BOTH">[T],
-    errCallback: (err?: Error, errMsg?: string) => U,
+    callback: (err?: Error, errMsg?: string) => U,
   ): Promise<U>;
 };
 
@@ -63,7 +63,7 @@ type RemoveDataStorage = {
 
   <T extends ALL_KEYS_STORAGE_TYPE, R = unknown>(
     key: T,
-    errCallback: (err?: Error, errMsg?: string) => R,
+    callback: (err?: Error, errMsg?: string) => R,
   ): Promise<R>;
 };
 
@@ -201,12 +201,11 @@ const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
     const key = ALL_KEYS_STORAGE[keyStorage];
 
     const returnType = (err?: Error, errMsg?: string) => {
-      const errCallback = args?.[0];
+      const callback = args?.[0];
 
-      if (typeof errCallback !== "function") return;
-      if (!err) return;
+      if (typeof callback !== "function") return;
 
-      return errCallback(err, errMsg) as void;
+      return callback(err, errMsg) as void;
     };
 
     const stringifiedValue = stringifyData(value);
@@ -246,8 +245,8 @@ const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
   (err, errMsg, keyStorage, ...args: unknown[]) => {
     if (keyStorage === "DEVICE_ID") throw new Error(errMsg);
 
-    const errCallback = args?.[1]; // [value, errCallback]
-    if (typeof errCallback === "function") return errCallback(err, errMsg);
+    const callback = args?.[1]; // [value, callback]
+    if (typeof callback === "function") return callback(err, errMsg);
 
     import("./debug").then(({ logger }) => {
       logger.error(`saveDataStorage("${keyStorage}") => ${errMsg}`);
@@ -315,7 +314,6 @@ const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
     const returnType = (err?: Error, errMsg?: string) => {
       const callback = args?.[0];
       if (typeof callback !== "function") return;
-      if (!err) return;
 
       return callback(err, errMsg) as void;
     };
@@ -544,6 +542,7 @@ class StorageManagement {
     key: T,
     fallbackValue?: U,
   ): U | R => {
+    if (fallbackValue === undefined) return this.#data[key] as R;
     return (this.#data[key] || fallbackValue) as U;
   };
 
@@ -577,11 +576,13 @@ class StorageManagement {
     ) => void,
   ): void => {
     saveDataStorage(key, value, (err, errMsg) => {
+      callback?.(value, err, errMsg);
+
       if (!errMsg || !err) {
         this.#data[key] = value;
         return;
       }
-      callback?.(this.#data[key], err, errMsg);
+
       import("./debug").then(({ logger }) => {
         logger.error(`STORAGE`, `saveDataStorage("${key}") => ` + errMsg);
       });
@@ -614,11 +615,12 @@ class StorageManagement {
       throw new Error(`Cannot remove protected key: "${key}"`);
 
     removeDataStorage(key, (err, errMsg) => {
+      callback?.(err ?? null);
+
       if (!errMsg || !err) {
         this.#data[key as "USER_DATA"] = null;
         return;
       }
-      callback?.(err);
       import("./debug").then(({ logger }) => {
         logger.error(`STORAGE`, `removeDataStorage("${key}") => ` + errMsg);
       });

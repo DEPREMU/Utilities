@@ -2,22 +2,24 @@ import {
   logger,
   tTyped,
   checkUrlStatus,
+  functionsToExecute,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
-  wrapFunctionWithError,
 } from "@utils";
 import axios from "axios";
-import { View } from "react-native";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
+import { navigateReplace } from "@/navigation/navigationRef";
 import { AdvertisementTXT } from "@types";
 import Zeroconf, { Service } from "react-native-zeroconf";
 import useStylesComputerControl from "@styles/screens/ComputerControl/useStylesComputerControl";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Card, List, Text, FAB } from "react-native-paper";
+// eslint-disable-next-line react-native/split-platform-components
+import { View, PermissionsAndroid, Platform, Permission } from "react-native";
 
-type ServiceAdvertisementTXT = Service & { txt: AdvertisementTXT };
 type Device = ServiceAdvertisementTXT & { url: string; deviceId: string };
+type ServiceAdvertisementTXT = Service & { txt: AdvertisementTXT };
 
 const getUrl = (host: string, port: number): string => {
   return `http://${host}:${port}/status`;
@@ -31,16 +33,34 @@ const tryUrls = async (
     getUrl(service.txt.lanIP, service.port),
     ...service.addresses.map((addr) => getUrl(addr, service.port)),
   ]
-    .filter(Boolean)
+    .filter((url) => !!url?.match(/^http:\/\/\d+\.\d+\.\d+\.\d+:\d+\/status$/))
     .filter((v, i, a) => a.indexOf(v) === i);
 
+  let resolved = false;
+
   return await new Promise((resolve: (value: string | null) => void) => {
+    const id = setTimeoutPolyfill(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    }, 5000);
+
     candidates.forEach(async (url) => {
       try {
-        if (await checkUrlStatus(url, "get", 2000))
-          resolve(url.replace("/status", ""));
+        if (await checkUrlStatus(url, "get", 2000)) {
+          if (!resolved) {
+            resolved = true;
+            clearTimeoutPolyfill(id);
+            resolve(url.replace("/status", ""));
+          }
+        }
       } catch (error) {
-        logger.error(`Error while fetching ${url}:`, error);
+        logger.error(
+          "COMPUTER CONTROL",
+          `Error while fetching ${url}:`,
+          (error as Error).message,
+        );
       }
     });
   });
@@ -52,80 +72,84 @@ const ComputerControl: React.FC = () => {
   const { openSnackBarRef } = useModal();
 
   const [devices, setDevices] = useState<Device[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [scanning, setScanning] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [scanning, setScanning] = useState<boolean>(false);
 
-  const timeOutRef = useRef<number | null>(null);
+  const scanningRef = useRef(scanning);
+  scanningRef.current = scanning;
+
+  const devicesRef = useRef<Device[]>([]);
+  devicesRef.current = devices;
+
+  const zeroconfRef = useRef(new Zeroconf());
+
+  const rescanTimeoutRef = useRef<number | null>(null);
+  const rescanPauseTimeoutRef = useRef<number | null>(null);
+
+  const clearRescanTimersRef = useRef(() => {
+    clearTimeoutPolyfill(rescanTimeoutRef);
+    clearTimeoutPolyfill(rescanPauseTimeoutRef);
+  });
+
+  const handleStopRef = useRef(async () => {
+    logger.log("COMPUTER CONTROL", "Scan stopped");
+    setLoading(false);
+    setScanning(false);
+  });
+
+  const refreshExistingDevicesRef = useRef(async () => {
+    const currentDevices = devicesRef.current;
+    if (currentDevices.length === 0) return;
+
+    const results = await Promise.all(
+      currentDevices.map(async (device) => {
+        const newUrl = await tryUrls(device);
+        return { deviceId: device.deviceId, newUrl, device };
+      }),
+    );
+
+    const updatesById = new Map(
+      results.map((result) => [result.deviceId, result]),
+    );
+    const previousIds = new Set(currentDevices.map((d) => d.deviceId));
+
+    setDevices((prev) => {
+      return prev
+        .map((device) => {
+          if (!previousIds.has(device.deviceId)) return device;
+
+          const result = updatesById.get(device.deviceId);
+          if (!result?.newUrl) return null;
+
+          if (result.newUrl === device.url) return device;
+
+          return { ...device, url: result.newUrl };
+        })
+        .filter((device): device is Device => !!device);
+    });
+  });
 
   const scanNetworkRef = useRef(() => {
-    const zeroconf = new Zeroconf();
+    if (scanningRef.current) return;
 
-    const handleResolved = async (_: Service) => {
-      const service = _ as ServiceAdvertisementTXT;
-      if (!service.txt?.deviceId) return;
+    refreshExistingDevicesRef.current();
+    setLoading(true);
+    setScanning(true);
 
-      const validUrl = await tryUrls(service);
-      if (!validUrl) {
-        logger.error(
-          "Could not find a valid service for",
-          new Error("Could not find a valid service."),
-        );
-        return;
-      }
+    zeroconfRef.current.scan("http", "tcp", "local.", "DNSSD");
+  });
 
-      setDevices((prev) => {
-        if (
-          prev.find((d) => {
-            return (
-              d.name.match(/\d+\.\d+\.\d+\.\d+/)?.[0] ===
-              service.name.match(/\d+\.\d+\.\d+\.\d+/)?.[0]
-            );
-          })
-        )
-          return prev;
-        setLoading(false);
-        return [
-          ...prev,
-          {
-            ...service,
-            name: service.name.split(" ")[0],
-            url: validUrl,
-            deviceId: service.txt.deviceId,
-          },
-        ];
-      });
-    };
+  const startRescanCycleRef = useRef(() => {
+    clearRescanTimersRef.current();
 
-    const handleStop = wrapFunctionWithError(async () => {
-      clearTimeoutPolyfill(timeOutRef);
-      logger.log("Scan stopped");
-      setLoading(false);
-      setScanning(false);
-      zeroconf.removeDeviceListeners();
-    }, true);
+    scanNetworkRef.current();
 
-    const id = setTimeoutPolyfill(() => {
-      setDevices([]);
-      setLoading(true);
-      setScanning(true);
-
-      zeroconf.on("resolved", handleResolved);
-      zeroconf.on("error", (err) => {
-        logger.error("Zeroconf error:", err);
-        zeroconf.stop();
-      });
-      zeroconf.on("stop", handleStop);
-
-      zeroconf.scan("http", "tcp", "local.");
-
-      clearTimeoutPolyfill(timeOutRef);
-      timeOutRef.current = setTimeoutPolyfill(handleStop, 30000);
-    }, 500);
-
-    return () => {
-      handleStop();
-      clearTimeoutPolyfill(id);
-    };
+    rescanTimeoutRef.current = setTimeoutPolyfill(() => {
+      zeroconfRef.current.stop("DNSSD");
+      rescanPauseTimeoutRef.current = setTimeoutPolyfill(() => {
+        startRescanCycleRef.current();
+      }, 1000);
+    }, 10000);
   });
 
   const executeCommandOnDevice = useRef(
@@ -158,13 +182,127 @@ const ComputerControl: React.FC = () => {
     },
   );
 
-  useEffect(() => () => clearTimeoutPolyfill(timeOutRef), []);
-
   useEffect(() => {
-    if (!scanning) return;
+    const requestPermissions = async (): Promise<boolean> => {
+      try {
+        const permissionsToRequest: Permission[] = [];
 
-    return scanNetworkRef.current();
-  }, [scanning]);
+        if (Number(Platform.Version) >= 33) {
+          permissionsToRequest.push(
+            PermissionsAndroid.PERMISSIONS.NEARBY_WIFI_DEVICES,
+          );
+        }
+
+        permissionsToRequest.push(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+        );
+
+        const granted =
+          await PermissionsAndroid.requestMultiple(permissionsToRequest);
+
+        const locationGranted =
+          granted[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] ===
+            PermissionsAndroid.RESULTS.GRANTED &&
+          granted[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] ===
+            PermissionsAndroid.RESULTS.GRANTED;
+
+        const nearbyGranted =
+          Number(Platform.Version) >= 33
+            ? granted[PermissionsAndroid.PERMISSIONS.NEARBY_WIFI_DEVICES] ===
+              PermissionsAndroid.RESULTS.GRANTED
+            : true;
+
+        const isGranted = locationGranted && nearbyGranted;
+
+        if (!isGranted) {
+          logger.error(
+            "COMPUTER CONTROL",
+            "Location permissions not granted, cannot scan for devices",
+          );
+          openSnackBarRef.current(tTyped("locationPermissionMessage"), 3000);
+        }
+
+        return isGranted;
+      } catch (err) {
+        logger.error(
+          "COMPUTER CONTROL",
+          "Error while requesting permissions",
+          err instanceof Error ? err.message : err,
+        );
+        return false;
+      }
+    };
+    requestPermissions().then((granted) => {
+      if (granted) {
+        startRescanCycleRef.current();
+      } else {
+        navigateReplace("Home");
+      }
+    });
+
+    const handleResolved = async (_: Service) => {
+      const service = _ as ServiceAdvertisementTXT;
+      if (!service.txt?.deviceId) return;
+
+      const validUrl = await tryUrls(service);
+      if (!validUrl) {
+        logger.error("Could not find a valid service for", service.name);
+        return;
+      }
+
+      setDevices((prev) => {
+        const existing = prev.find((d) => d.deviceId === service.txt.deviceId);
+        if (existing) {
+          if (existing.url === validUrl) return prev;
+
+          return prev.map((device) =>
+            device.deviceId === service.txt.deviceId
+              ? { ...device, url: validUrl }
+              : device,
+          );
+        }
+
+        setLoading(false);
+        return [
+          ...prev,
+          {
+            ...service,
+            name: service.name.split(" ")[0],
+            url: validUrl,
+            deviceId: service.txt.deviceId,
+          },
+        ];
+      });
+    };
+
+    zeroconfRef.current.on("stop", handleStopRef.current);
+    zeroconfRef.current.on("resolved", handleResolved);
+    zeroconfRef.current.on("error", (err) => {
+      logger.error("COMPUTER CONTROL", "Zeroconf error:", err);
+      zeroconfRef.current.stop("DNSSD");
+    });
+
+    functionsToExecute.current["AppState-change"]["ComputerControl"] = (
+      state,
+    ) => {
+      if (state === "active" && !scanningRef.current) {
+        startRescanCycleRef.current();
+      } else if (state !== "active" && scanningRef.current) {
+        clearRescanTimersRef.current();
+        zeroconfRef.current.stop("DNSSD");
+      }
+    };
+
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      clearRescanTimersRef.current();
+      delete functionsToExecute.current["AppState-change"]["ComputerControl"];
+      zeroconfRef.current.stop("DNSSD");
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      zeroconfRef.current.removeDeviceListeners();
+    };;
+  }, [openSnackBarRef]);
 
   return (
     <View style={styles.container}>
@@ -174,7 +312,7 @@ const ComputerControl: React.FC = () => {
 
       {scanning && loading && devices.length === 0 && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator animating={true} size="large" />
+          <ActivityIndicator animating size="large" />
           <Text style={styles.loadingText}>{t("searchingDevices")}</Text>
         </View>
       )}
@@ -233,10 +371,10 @@ const ComputerControl: React.FC = () => {
 
       <FAB
         icon={scanning ? "refresh" : "magnify"}
-        label={t(scanning ? "scanning" : "search")}
-        onPress={() => !scanning && setScanning(true)}
         style={styles.fab}
+        label={t(scanning ? "scanning" : "search")}
         loading={scanning}
+        onPress={scanNetworkRef.current}
       />
     </View>
   );
