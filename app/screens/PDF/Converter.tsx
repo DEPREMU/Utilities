@@ -13,9 +13,8 @@ import {
   logger,
   PDFDoc,
   memoDeep,
+  createPdfFromImages,
   REPLACERS,
-  deleteDirectoryPickerFolder,
-  deleteDirectoryImageManipulatorFolder,
 } from "@utils";
 import {
   Menu,
@@ -30,10 +29,8 @@ import Sortable from "react-native-sortables";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesPDF } from "@styles/screens/PDF/useStylesPDF";
-import * as ExpoFileSystem from "expo-file-system";
 import { cloneDeep, isNaN } from "lodash";
 import * as DirectoryPicker from "expo-document-picker";
-import { ImageManipulator } from "expo-image-manipulator";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useAnimatedRef } from "react-native-reanimated";
 import React, { useRef, useState, useCallback, useMemo } from "react";
@@ -156,87 +153,33 @@ const PDFConverter: React.FC = () => {
     try {
       if (!images.length) return;
       setConverting(true);
-
-      const maxSizePdfInBytes = maxSizePdf * 1024 * 1024 + 1024 * 100;
-      let totalSize = images.reduce(
-        (acc, img) => acc + new ExpoFileSystem.File(img.uri).size,
-        0,
+      const result = await createPdfFromImages(
+        images,
+        {
+          sizePdf,
+          customSize,
+          maxSizePdf,
+          filename,
+        },
+        (value) => setProgress(value),
       );
 
-      const doc = await PDFDoc.PDFDocument.create();
-      let size: [number, number] = [0, 0];
+      if (!result) return;
 
-      if (sizePdf === "GET_FROM_IMAGE") {
-        // Handle by image
-      } else if (sizePdf === "CUSTOM") {
-        size = [customSize.width, customSize.height];
+      if (REPLACERS.isWeb) {
+        const link = document.createElement("a");
+        link.href = result.uri;
+        link.download = result.fileName;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          document.body.removeChild(link);
+          result.cleanup();
+        }, 60 * 1000);
       } else {
-        size = PDFDoc.PageSizes[sizePdf];
+        await shareAsync(result.uri, { mimeType: "application/pdf" });
+        await result.cleanup();
       }
-
-      const isLargerThanMaxSize = (multiply?: number) =>
-        maxSizePdf !== -1 && totalSize > maxSizePdfInBytes * (multiply ?? 1);
-
-      let i = 0;
-      const len = images.length;
-
-      for (const img of images) {
-        try {
-          setProgress(++i / len);
-
-          if (!img.uri) continue;
-          const image = new ExpoFileSystem.File(img.uri);
-
-          let compress = 1;
-          if (isLargerThanMaxSize(5)) compress = 0;
-          else if (isLargerThanMaxSize(4)) compress = 0.2;
-          else if (isLargerThanMaxSize(3)) compress = 0.4;
-          else if (isLargerThanMaxSize(2)) compress = 0.6;
-          else if (isLargerThanMaxSize()) compress = 0.8;
-
-          const manipulatedImage = ImageManipulator.manipulate(img.uri);
-          if (size[0] <= 0 || size[1] <= 0) {
-            const dimensions = await Image.getSize(img.uri);
-            size = [dimensions.width, dimensions.height];
-          }
-          manipulatedImage.resize({
-            width: size[0],
-            height: size[1],
-          });
-
-          const newImage = await manipulatedImage.renderAsync();
-          const savedImage = await newImage.saveAsync({
-            compress,
-          });
-          const uri = savedImage.uri;
-          const newFile = new ExpoFileSystem.File(uri);
-          totalSize = totalSize - newFile.size + image.size;
-
-          const newPage = doc.addPage(size);
-          const imagePdf = await doc.embedJpg(await newFile.bytes());
-          newPage.drawImage(imagePdf);
-        } catch (error) {
-          logger.error(
-            "PDF",
-            "error processing image for PDF",
-            (error as Error).message,
-          );
-        }
-      }
-
-      const pdfBytes = await doc.save();
-      const file = new ExpoFileSystem.File(
-        ExpoFileSystem.Paths.cache,
-        filename.endsWith(".pdf") ? filename : `${filename}.pdf`,
-      );
-      file.write(pdfBytes);
-      await shareAsync(file.uri, { mimeType: "application/pdf" });
-
-      if (REPLACERS.isNative) {
-        deleteDirectoryPickerFolder();
-        deleteDirectoryImageManipulatorFolder();
-      }
-      file.delete();
     } catch (error) {
       logger.error("PDF", "error converting to PDF", (error as Error).message);
     } finally {

@@ -12,11 +12,11 @@ import {
 import { logger } from "./debug";
 import windowModule from "../modules/WindowModule";
 import { REPLACERS } from "../TOP_LEVEL";
+import { fetchToServer } from "../functions/APIManagement";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@navigation/navigationRef";
 import { isFalsy, setTimeoutPolyfill } from "../functions/appManagement";
 import { UserData, ResponseAuth, ResponseFetch } from "@types";
-import { fetchToServer } from "../functions/APIManagement";
 
 /**
  * Retrieves the Expo push token for the device.

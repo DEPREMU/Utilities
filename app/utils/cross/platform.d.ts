@@ -1,6 +1,7 @@
 import type PDF from "react-native-pdf";
 import type * as RNFS from "@dr.pogodin/react-native-fs";
 import type PDFDocType from "pdf-lib";
+import type { PdfCreateOptions, PdfCreateResult, PdfImageInput } from "@types";
 
 export type PlatformData = {
   version: string;
@@ -32,4 +33,28 @@ export declare const getRandomUUID: GetRandomUUID;
 
 export declare const PDFDoc: typeof PDFDocType;
 
+export type CreatePdfFromImages = (
+  images: PdfImageInput[],
+  options: PdfCreateOptions,
+  onProgress?: (progress: number) => void,
+) => Promise<
+  (PdfCreateResult & { cleanup: () => Promise<void> | void }) | null
+>;
+
+export declare const createPdfFromImages: CreatePdfFromImages;
+
 export declare const RNFSModule: typeof RNFS;
+
+type PdfCreateResultWithCleanup = PdfCreateResult & {
+  cleanup?: () => Promise<void> | void;
+};
+
+export type CreatePdfFromImages = (
+  images: PdfImageInput[],
+  options: PdfCreateOptions,
+  onProgress?: (progress: number) => void,
+) => Promise<PdfCreateResultWithCleanup | null>;
+
+export declare const createPDFFromImages: CreatePdfFromImages;
+
+export declare const ready: () => Promise<void>;

@@ -7,11 +7,11 @@ import { ClipboardItem } from "./screens";
 
 export type ElectronStoreType = {
   get: <T extends keyof ExpectedStorageTypes<"BOTH">>(
-    key: T
+    key: T,
   ) => string | undefined;
   set: <T extends keyof ExpectedStorageTypes<"BOTH">>(
     key: T,
-    value: string
+    value: string,
   ) => void;
   delete: <T extends keyof ExpectedStorageTypes<"BOTH">>(key: T) => void;
 };
@@ -57,4 +57,31 @@ type NotificationsSaved = Record<ReasonNotification, (() => void) | null>;
 export type ExpectedNativeWebData = {
   hasBattery: boolean | "unknown";
   version: string;
+};
+
+export type PdfPaperSize = "CUSTOM" | "GET_FROM_IMAGE" | string;
+
+export type PdfImageInput = {
+  uri: string;
+  name: string;
+};
+
+export type PdfCreateOptions = {
+  sizePdf: PdfPaperSize;
+  customSize: {
+    width: number;
+    height: number;
+  };
+  maxSizePdf: number;
+  filename: string;
+};
+
+export type PdfCreateRequest = {
+  images: PdfImageInput[];
+  options: PdfCreateOptions;
+};
+
+export type PdfCreateResult = {
+  uri: string;
+  fileName: string;
 };

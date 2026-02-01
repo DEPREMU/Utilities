@@ -19,7 +19,7 @@ export const SCRIPTS_PATH = path.resolve(UTILITIES_PATH, "scripts");
 export const ANDROID_PATH = path.resolve(APP_PATH, "android");
 export const UTILITIES_FOR_PC_PATH = path.resolve(
   UTILITIES_PATH,
-  "UtilitiesForPC"
+  "UtilitiesForPC",
 );
 
 export const APP_CONFIG = APP_CONFIG_FUNC({
@@ -31,15 +31,15 @@ export const APP_CONFIG = APP_CONFIG_FUNC({
 
 export const gitignore = fs.readFileSync(
   path.resolve(UTILITIES_PATH, ".gitignore"),
-  "utf-8"
+  "utf-8",
 );
 
 export const PACKAGE_JSON_UtilitiesForPC = JSON.parse(
-  fs.readFileSync(path.resolve(UTILITIES_FOR_PC_PATH, "package.json"), "utf-8")
+  fs.readFileSync(path.resolve(UTILITIES_FOR_PC_PATH, "package.json"), "utf-8"),
 ) as typeof PACKAGE_JSON_UTILITIES_FOR_PC;
 
 export const PACKAGE_JSON_App = JSON.parse(
-  fs.readFileSync(path.resolve(APP_PATH, "package.json"), "utf-8")
+  fs.readFileSync(path.resolve(APP_PATH, "package.json"), "utf-8"),
 ) as typeof PACKAGE_JSON_APP;
 
 export const versionExpo = APP_CONFIG.version as string;
@@ -65,20 +65,25 @@ export const getRouteUpdates = (route: Types.UpdatesRoutes): string => {
   return `${URL_UPDATES}${route}`;
 };
 
-export const ask = async (question: string, timeout = 5000): Promise<string> => {
+export const ask = async (
+  question: string,
+  timeout = 5000,
+): Promise<string> => {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
 
   return await new Promise<string>((resolve) => {
-    const id = setTimeout(() => {
-      rl?.close?.();
-      resolve("");
-    }, timeout);
+    let id: number;
+    if (timeout > 0)
+      id = setTimeout(() => {
+        rl?.close?.();
+        resolve("");
+      }, timeout);
     rl.question(question, (answer) => {
       rl.close();
-      clearTimeout(id);
+      if (timeout > 0) clearTimeout(id);
       resolve(answer);
     });
   });
@@ -99,7 +104,7 @@ export const deleteAndroidFromGitIgnore = (restore = false) => {
 
   fs.writeFileSync(
     path.resolve(UTILITIES_PATH, ".gitignore"),
-    lines.join("\n")
+    lines.join("\n"),
   );
 };
 
@@ -108,13 +113,13 @@ export const getSumVersion = (version: string): number => {
     .split(".")
     .reduce(
       (sum, part, index) => sum + parseInt(part) * Math.pow(1000, 2 - index),
-      0
+      0,
     );
 };
 
 export const isNewVersion = (
   current: string,
-  serverVersion: string
+  serverVersion: string,
 ): boolean => {
   return getSumVersion(serverVersion) < getSumVersion(current);
 };

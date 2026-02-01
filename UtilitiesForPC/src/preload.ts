@@ -5,7 +5,12 @@ import {
   ChannelsIpcRenderer,
 } from "@types";
 import { ALL_KEYS_STORAGE_TYPE } from "@common";
-import { IpcRenderer, Clipboard, ContextBridge } from "electron";
+import {
+  IpcRenderer,
+  Clipboard,
+  ContextBridge,
+  IpcRendererEvent,
+} from "electron";
 
 const { clipboard, contextBridge, ipcRenderer } = require("electron") as {
   clipboard: Clipboard;
@@ -152,6 +157,23 @@ const contextBridgeType: ContextBridgeType = {
           "error",
         );
         return error instanceof Error ? error.message : String(error);
+      }
+    },
+    createPdf: async (request, onProgress) => {
+      const progressListener = (_event: IpcRendererEvent, progress: number) => {
+        onProgress?.(progress);
+      };
+
+      ipcRenderer.on("create-pdf-progress", progressListener);
+
+      try {
+        const result = await sendMessage("invoke", "create-pdf", request);
+        return result;
+      } catch (error) {
+        sendLog(`Error creating PDF: ` + (error as Error).message, "error");
+        return null;
+      } finally {
+        ipcRenderer.removeListener("create-pdf-progress", progressListener);
       }
     },
     getClipboardHistory: async () => {

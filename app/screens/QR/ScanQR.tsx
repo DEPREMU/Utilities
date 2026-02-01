@@ -1,21 +1,28 @@
 import {
+  logger,
+  tTyped,
+  openURL,
+  REPLACERS,
+  wrapFunctionWithError,
+} from "@utils";
+import {
   Point,
   Camera,
   CameraView,
   scanFromURLAsync,
   BarcodeScanningResult,
 } from "expo-camera";
+import { useModal } from "@context/ModalContext";
+import windowModule from "@/utils/modules/WindowModule";
 import { Image, View } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesQR } from "@styles/screens/QR/useStylesQR";
 import AnimatedDrawLine from "@components/common/AnimatedLine";
 import * as ExpoClipboard from "expo-clipboard";
-import { logger, openURL, REPLACERS } from "@utils";
 import * as DocumentPicker from "expo-document-picker";
 import { navigateReplace } from "@/navigation/navigationRef";
 import { Button, Divider, Text } from "react-native-paper";
 import React, { useEffect, useRef, useState } from "react";
-import windowModule from "@/utils/modules/WindowModule";
 
 type Corner = Point & {
   x2: number;
@@ -27,6 +34,7 @@ type ScanningType = "camera" | "image";
 const ScanQR = () => {
   const { t } = useLanguage();
   const { styles, colors } = useStylesQR();
+  const { openSnackBarRef } = useModal();
 
   const [corners, setCorners] = useState<
     [Corner, Corner, Corner, Corner] | null
@@ -35,7 +43,9 @@ const ScanQR = () => {
   const [result, setResult] = useState<BarcodeScanningResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [uriFile, setUriFile] = useState<string | null>(null);
-  const [scanningType, setScanningType] = useState<ScanningType>("image");
+  const [scanningType, setScanningType] = useState<ScanningType>(
+    REPLACERS.isWeb ? "camera" : "image",
+  );
 
   const cameraRef = React.useRef<CameraView>(null);
 
@@ -115,6 +125,7 @@ const ScanQR = () => {
   });
 
   const handlePressSelectImageRef = useRef(async () => {
+    if (REPLACERS.isWeb) return;
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: "image/*",
@@ -139,13 +150,20 @@ const ScanQR = () => {
   useEffect(() => {
     if (scanningType !== "camera") return;
 
-    const prepare = async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      if (status === "granted") setLoading(false);
-      else navigateReplace("QR");
-    };
-    prepare();
-  }, [scanningType]);
+    wrapFunctionWithError(
+      async () => {
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        if (status === "granted") setLoading(false);
+        else {
+          openSnackBarRef.current(tTyped("noCameraPermission"));
+          navigateReplace("QR");
+        }
+      },
+      async (_, errMsg) => {
+        logger.error("SCAN_QR", "Error requesting camera permissions", errMsg);
+      },
+    );
+  }, [scanningType, openSnackBarRef]);
 
   return (
     <View style={styles.container}>
@@ -157,13 +175,15 @@ const ScanQR = () => {
         >
           {t("scanQRCode")}
         </Button>
-        <Button
-          mode="contained"
-          onPress={() => setScanningType("image")}
-          style={styles.button}
-        >
-          {t("QR.scanFromImage")}
-        </Button>
+        {!REPLACERS.isWeb && (
+          <Button
+            mode="contained"
+            onPress={() => setScanningType("image")}
+            style={styles.button}
+          >
+            {t("QR.scanFromImage")}
+          </Button>
+        )}
       </View>
 
       {scanningType === "camera" && !loading && (
@@ -195,7 +215,7 @@ const ScanQR = () => {
           </Button>
         </View>
       )}
-      {scanningType === "image" && (
+      {REPLACERS.isWeb && scanningType === "image" && (
         <View style={styles.container}>
           <Button mode="contained" onPress={handlePressSelectImageRef.current}>
             {t("QR.selectImage")}

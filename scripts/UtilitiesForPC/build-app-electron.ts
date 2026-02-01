@@ -39,7 +39,7 @@ const isWindows = os.platform() === "win32";
 const dataBuild = {
   distElectron: path.join(
     UTILITIES_FOR_PC_PATH,
-    PACKAGE_JSON_UtilitiesForPC.build.directories.output
+    PACKAGE_JSON_UtilitiesForPC.build.directories.output,
   ),
   appName: PACKAGE_JSON_UtilitiesForPC.name,
   productName: PACKAGE_JSON_UtilitiesForPC.build.productName,
@@ -113,7 +113,7 @@ const installWine = async (): Promise<void> => {
   try {
     execSync(
       "sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install -y wine64 wine32",
-      { stdio: "inherit" }
+      { stdio: "inherit" },
     );
     console.log(t("wineInstalledSuccessfully"));
   } catch (error) {
@@ -213,14 +213,14 @@ ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
   try {
     const tempWrapper = path.join(
       os.tmpdir(),
-      `utilities-for-pc-root-${Date.now()}.sh`
+      `utilities-for-pc-root-${Date.now()}.sh`,
     );
     fs.writeFileSync(tempWrapper, wrapperScriptContent);
     execSync(`sudo mv ${tempWrapper} ${wrapperScriptPath}`);
     execSync(`sudo chmod +x ${wrapperScriptPath}`);
 
     execSync(
-      `sudo sh -c 'echo "${sudoersEntry}" > /etc/sudoers.d/${fileSudoers}'`
+      `sudo sh -c 'echo "${sudoersEntry}" > /etc/sudoers.d/${fileSudoers}'`,
     );
     execSync(`sudo chmod 0440 /etc/sudoers.d/${fileSudoers}`);
   } catch (error) {
@@ -290,7 +290,7 @@ const buildApp = async () => {
       try {
         execSync(
           "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
-          { stdio: "inherit" }
+          { stdio: "inherit" },
         );
       } catch (error) {
         console.log(t("someDependenciesInstalled"));
@@ -355,7 +355,7 @@ const buildApp = async () => {
       try {
         execSync(
           "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
-          { stdio: "inherit" }
+          { stdio: "inherit" },
         );
       } catch (error) {
         console.log(t("someDependenciesInstalled"));
@@ -387,24 +387,24 @@ const buildApp = async () => {
 
       const installAnswer = ARGS.yes
         ? "y"
-        : await ask(t("installDebPackagePrompt"));
+        : await ask(t("installDebPackagePrompt"), -1);
       if (installAnswer.toLowerCase() === "y") {
         execSync(
           `sudo dpkg -i ${path.join(
             dataBuild.distElectron,
-            packageName
+            packageName,
           )} && sudo apt-get install -f -y; sudo apt autoremove -y`,
           {
             cwd: UTILITIES_FOR_PC_PATH,
             stdio: "inherit",
-          }
+          },
         );
 
         const runAppCommand = `/opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`;
 
         await addAutostartLinux();
 
-        const answer = await ask(t("pleaseRestartComputer"));
+        const answer = await ask(t("pleaseRestartComputer"), 10000);
         if (answer.toLowerCase() === "y") {
           console.log(t("restartNow"));
           execSync("sudo reboot", { stdio: "inherit" });
@@ -412,7 +412,7 @@ const buildApp = async () => {
           console.log(t("restartingComputer"));
         }
 
-        const answer2 = await ask(t("openAppNow"));
+        const answer2 = await ask(t("openAppNow"), 60000);
         if (answer2.toLowerCase() === "y") {
           execSync(`${runAppCommand}`, {
             cwd: UTILITIES_FOR_PC_PATH,
@@ -426,7 +426,7 @@ const buildApp = async () => {
   console.log(
     `\n${t("appPackagedSuccessMessage")} ${
       isWindows ? t("appPackagedSuccessMessage") : ""
-    }`
+    }`,
   );
 };
 

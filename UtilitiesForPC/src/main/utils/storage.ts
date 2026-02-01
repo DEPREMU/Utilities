@@ -20,15 +20,12 @@ import { URI_EXTENSION } from "@common";
 import { app, safeStorage } from "electron";
 import { ElectronStoreType, FileInfo, FolderFiles, PickedFile } from "@types";
 
-const initFileStorage = (): void => {
-  try {
-    const dir = path.join(app.getPath("userData"), "secure-storage");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  } catch (err) {
-    console.error("Error initializing secure storage:", err);
-  }
-};
-initFileStorage();
+try {
+  const dir = path.join(app.getPath("userData"), "secure-storage");
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+} catch (err) {
+  console.error("Error initializing secure storage:", err);
+}
 
 const store = new Store({
   name: "secure-storage",
@@ -60,14 +57,22 @@ const encryptFallback = (text: string): string => {
   const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
   let encrypted = cipher.update(text, "utf8", "hex");
   encrypted += cipher.final("hex");
-  return iv.toString("hex") + ":" + encrypted;
+  return `fb:${iv.toString("hex")}:${encrypted}`;
 };
 
 const decryptFallback = (text: string): string | null => {
   try {
     const textParts = text.split(":");
-    const iv = Buffer.from(textParts.shift()!, "hex");
-    const encryptedText = textParts.join(":");
+    if (textParts.length < 2) return null;
+
+    const isPrefixed = text.startsWith("fb:");
+    const ivHex = isPrefixed ? textParts[1] : textParts[0];
+    const encryptedText = isPrefixed
+      ? textParts.slice(2).join(":")
+      : textParts.slice(1).join(":");
+
+    if (ivHex.length !== 32 || encryptedText.length === 0) return null;
+    const iv = Buffer.from(ivHex, "hex");
     const key = getMachineKey();
     const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
     let decrypted = decipher.update(encryptedText, "hex", "utf8");
@@ -79,12 +84,25 @@ const decryptFallback = (text: string): string | null => {
   }
 };
 
+const decryptSafeStorage = (text: string): string | null => {
+  try {
+    if (!text.startsWith("ss:")) return null;
+    const base64Payload = text.slice(3);
+    if (!base64Payload) return null;
+    const buffer = Buffer.from(base64Payload, "base64");
+    return safeStorage.decryptString(buffer);
+  } catch (error) {
+    console.error("Error decrypting safeStorage:", error);
+    return null;
+  }
+};
+
 const verifyCommandStructure = (str: string): string | null => {
   try {
     const parsed = JSON.parse(str);
     return Array.isArray(parsed)
       ? JSON.stringify(
-          parsed.filter((item: Command) => "command" in item && "when" in item)
+          parsed.filter((item: Command) => "command" in item && "when" in item),
         )
       : null;
   } catch (error) {
@@ -93,7 +111,7 @@ const verifyCommandStructure = (str: string): string | null => {
 };
 
 export const getStorageValue = async (
-  key: ALL_KEYS_STORAGE_TYPE
+  key: ALL_KEYS_STORAGE_TYPE,
 ): Promise<string | null> => {
   try {
     const keyValue = ALL_KEYS_STORAGE[key];
@@ -103,46 +121,55 @@ export const getStorageValue = async (
     const storedValue = store.get(keyValue as any) as string;
     if (!storedValue) return null;
 
+    const tryVerifyCommands = (value: string): string | null => {
+      if (key !== "TERMINAL_COMMANDS") return value;
+      const verified = verifyCommandStructure(value);
+      return verified ?? null;
+    };
+
+    if (storedValue.startsWith("ss:")) {
+      if (!safeStorage.isEncryptionAvailable()) {
+        writeLog(
+          `Encryption not available for key ${String(key)}(${keyValue})`,
+          "error",
+        );
+        return null;
+      }
+      const decrypted = decryptSafeStorage(storedValue);
+      if (!decrypted) return null;
+      return tryVerifyCommands(decrypted);
+    }
+
+    if (storedValue.startsWith("fb:")) {
+      const fallbackDecrypted = decryptFallback(storedValue);
+      if (!fallbackDecrypted) return null;
+      return tryVerifyCommands(fallbackDecrypted);
+    }
+
     if (safeStorage.isEncryptionAvailable()) {
       try {
         const buffer = Buffer.from(storedValue, "base64");
         const decrypted = safeStorage.decryptString(buffer);
-
-        if (key === "TERMINAL_COMMANDS") {
-          const verified = verifyCommandStructure(decrypted);
-          if (verified) return verified;
-        }
-
-        return decrypted;
+        return tryVerifyCommands(decrypted);
       } catch (e) {
         const fallbackDecrypted = decryptFallback(storedValue);
-        if (fallbackDecrypted) {
-          return fallbackDecrypted;
-        }
-
+        if (fallbackDecrypted) return tryVerifyCommands(fallbackDecrypted);
         writeLog(
           `Error decrypting key ${String(key)}(${keyValue}): ${e}`,
-          "error"
+          "error",
         );
         return null;
       }
-    } else {
-      const fallbackDecrypted = decryptFallback(storedValue);
-      if (fallbackDecrypted) {
-        if (key === "TERMINAL_COMMANDS") {
-          const verified = verifyCommandStructure(fallbackDecrypted);
-          if (verified) return verified;
-        }
-
-        return fallbackDecrypted;
-      }
-
-      writeLog(
-        `Encryption not available and fallback failed for key ${String(key)}(${keyValue})`,
-        "error"
-      );
-      return null;
     }
+
+    const fallbackDecrypted = decryptFallback(storedValue);
+    if (fallbackDecrypted) return tryVerifyCommands(fallbackDecrypted);
+
+    writeLog(
+      `Encryption not available and fallback failed for key ${String(key)}(${keyValue})`,
+      "error",
+    );
+    return null;
   } catch (error) {
     const err = typeof error === "string" ? error : JSON.stringify(error);
     writeLog(`Error reading key ${String(key)}: ` + err, "error");
@@ -153,7 +180,7 @@ export const getStorageValue = async (
 
 export const saveStorageValue = async <T extends ALL_KEYS_STORAGE_TYPE>(
   key: T,
-  value: string
+  value: string,
 ): Promise<boolean> => {
   try {
     const keyValue = ALL_KEYS_STORAGE[key];
@@ -163,7 +190,7 @@ export const saveStorageValue = async <T extends ALL_KEYS_STORAGE_TYPE>(
       if (safeStorage.isEncryptionAvailable()) {
         try {
           const encrypted = safeStorage.encryptString(jsonValue);
-          store.set(keyValue, encrypted.toString("base64"));
+          store.set(keyValue, `ss:${encrypted.toString("base64")}`);
         } catch (e) {
           const fallbackEncrypted = encryptFallback(jsonValue);
           store.set(keyValue, fallbackEncrypted);
@@ -185,11 +212,11 @@ export const saveStorageValue = async <T extends ALL_KEYS_STORAGE_TYPE>(
 };
 
 export const removeStorageValue = async (
-  key: ALL_KEYS_STORAGE_TYPE
+  key: ALL_KEYS_STORAGE_TYPE,
 ): Promise<boolean> => {
   try {
     const keyValue = ALL_KEYS_STORAGE[key];
-    if (!isSecureKey(key)) store.delete(keyValue);
+    store.delete(keyValue);
 
     return true;
   } catch (error) {
@@ -202,7 +229,9 @@ export const removeStorageValue = async (
 
 const initDeviceId = async (): Promise<void> => {
   try {
+    console.log("Initializing device ID...");
     const deviceId = await getStorageValue("DEVICE_ID");
+    console.log("Current stored device ID:", deviceId);
     const machineId = dataApp.getValue("machineId");
     const hashedId = crypto
       .createHash("sha256")
@@ -212,7 +241,12 @@ const initDeviceId = async (): Promise<void> => {
     if (deviceId === hashedId) return;
 
     dataApp.setValue("deviceId", hashedId);
+    console.log("Storing new device ID:", hashedId);
     await saveStorageValue("DEVICE_ID", hashedId);
+    console.log(
+      "Device ID stored successfully.",
+      (await getStorageValue("DEVICE_ID")) === hashedId,
+    );
   } catch (error) {
     console.error("Error initializing device ID:", error);
   }
@@ -237,19 +271,19 @@ export const executeTerminalCommands = async (when: Command["when"]) => {
                 if (error) {
                   writeLog(
                     `Command execution error for "${cmd.command}" for ${when}: ${error.message}`,
-                    "error"
+                    "error",
                   );
                 }
                 if (stderr) {
                   writeLog(
                     `Command execution stderr for "${cmd.command}" for ${when}: ${stderr}`,
-                    "error"
+                    "error",
                   );
                 }
                 if (stdout) {
                   writeLog(
                     `Command execution stdout for "${cmd.command}" for ${when}: ${stdout}`,
-                    "info"
+                    "info",
                   );
                 }
 
@@ -259,19 +293,19 @@ export const executeTerminalCommands = async (when: Command["when"]) => {
               writeLog(
                 `Error executing command "${cmd.command}" for ${when}: ` +
                   (typeof error === "string" ? error : JSON.stringify(error)),
-                "error"
+                "error",
               );
             } finally {
               resolve(1);
             }
           });
-        })
+        }),
     );
   } catch (error) {
     writeLog(
       `Error executing terminal commands for ${when}: ` +
         (typeof error === "string" ? error : JSON.stringify(error)),
-      "error"
+      "error",
     );
   }
 };
@@ -280,7 +314,7 @@ let filesInTemp: Set<string> = new Set();
 
 export const copyFileToTemp = async (
   base64: string,
-  fileName: string
+  fileName: string,
 ): Promise<FileInfo | null> => {
   try {
     console.log("Copying file to temp:", fileName, base64.slice(0, 30) + "...");
@@ -317,7 +351,7 @@ export const copyFileToTemp = async (
   } catch (error) {
     writeLog(
       `Error copying file to temp: ` + String((error as Error)?.message),
-      "error"
+      "error",
     );
     return null;
   }
@@ -333,25 +367,25 @@ export const clearTempFiles = async (): Promise<void> => {
               if (err) {
                 writeLog(
                   `Error deleting temp file ${filePath}: ` + String(err),
-                  "error"
+                  "error",
                 );
               }
               resolve();
             });
-          })
-      )
+          }),
+      ),
     );
     filesInTemp.clear();
   } catch (error) {
     writeLog(
       `Error clearing temp files: ` + String((error as Error)?.message),
-      "error"
+      "error",
     );
   }
 };
 
 export const removeFileWithUri = async (
-  uri: string
+  uri: string,
 ): Promise<{ success: boolean }> => {
   try {
     const filePath = uri.replace(URI_EXTENSION, "");
@@ -370,7 +404,7 @@ export const removeFileWithUri = async (
     writeLog(
       `Error removing file with URI ${uri}: ` +
         String((error as Error)?.message),
-      "error"
+      "error",
     );
     return { success: false };
   }
@@ -386,7 +420,7 @@ export const encryptFile = wrapFunctionWithError(
   async (
     inputPath: string,
     outputPath: string,
-    password: string
+    password: string,
   ): Promise<boolean> => {
     const salt = crypto.randomBytes(16);
     const iv = crypto.randomBytes(12);
@@ -420,14 +454,14 @@ export const encryptFile = wrapFunctionWithError(
   (_, errMsg, inputPath) => {
     writeLog(`Error encrypting file "${inputPath}": ${errMsg}`, "error");
     return false;
-  }
+  },
 );
 
 export const decryptFile = wrapFunctionWithError(
   async (
     inputPath: string,
     outputPath: string,
-    password: string
+    password: string,
   ): Promise<boolean> => {
     const headerBuffer = Buffer.alloc(44);
     const fd = await fs.promises.open(inputPath, "r");
@@ -456,13 +490,13 @@ export const decryptFile = wrapFunctionWithError(
   (_, errMsg, inputPath) => {
     writeLog(`Error decrypting file "${inputPath}": ${errMsg}`, "error");
     return false;
-  }
+  },
 );
 
 export const encryptFiles = async (
   files: PickedFile[],
   password: string,
-  folderId: string
+  folderId: string,
 ): Promise<{ success: boolean; errFiles?: PickedFile[] }> => {
   try {
     let errorFiles: PickedFile[] = [];
@@ -484,12 +518,12 @@ export const encryptFiles = async (
         }
         const outputPath = path.join(
           outputDir,
-          file.name + EXTENSION_ENCRYPTED
+          file.name + EXTENSION_ENCRYPTED,
         );
 
         const success = await encryptFile(inputPath, outputPath, password);
         if (!success) errorFiles.push(file);
-      })
+      }),
     );
 
     return {
@@ -505,7 +539,7 @@ export const encryptFiles = async (
 };
 
 export const getTempFolderPathForDecryptedFiles = async (
-  folderId: string
+  folderId: string,
 ): Promise<[string, string]> => {
   const directory = (await getStorageValue("VAULT_DIRECTORY")) as string;
   const folderPath = path.join(directory, folderId);
@@ -517,7 +551,7 @@ export const getTempFolderPathForDecryptedFiles = async (
 
 export const decryptFiles = async (
   folderId: string,
-  password: string
+  password: string,
 ): Promise<FolderFiles> => {
   try {
     const [tempFolder, folderPath] =
@@ -550,7 +584,7 @@ export const decryptFiles = async (
           const stats = await fs.promises.stat(outputPath);
 
           const mimeType = getMimeTypeFromExtension(
-            path.extname(originalName).slice(1)
+            path.extname(originalName).slice(1),
           );
 
           const info: FolderFiles[number] = {
@@ -561,7 +595,7 @@ export const decryptFiles = async (
             originalUri: URI_EXTENSION + filePath,
           };
           return info;
-        })
+        }),
     );
 
     return decryptedFiles.filter((f): f is FolderFiles[number] => !!f);
@@ -569,7 +603,7 @@ export const decryptFiles = async (
     writeLog(
       `Error loading encrypted files from folder ${folderId}: ` +
         String((error as Error)?.message),
-      "error"
+      "error",
     );
     return [];
   }
@@ -578,7 +612,7 @@ export const decryptFiles = async (
 export const actionWithVaultItem = async (
   action: "copy" | "move",
   item: FolderFiles[number],
-  targetFolderId: string
+  targetFolderId: string,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     const directory = (await getStorageValue("VAULT_DIRECTORY")) as string;
@@ -609,7 +643,7 @@ export const actionWithVaultItem = async (
       error instanceof Error ? error.message : "Unknown error occurred.";
     writeLog(
       `Error performing ${action} on vault item ${item.name}: ${errMsg}`,
-      "error"
+      "error",
     );
     return { success: false, error: errMsg };
   }
@@ -617,7 +651,7 @@ export const actionWithVaultItem = async (
 
 export const renameVaultItem = async (
   item: FolderFiles[number],
-  newName: string
+  newName: string,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     const sourcePath = item.originalUri.replace(URI_EXTENSION, "");
@@ -632,14 +666,14 @@ export const renameVaultItem = async (
       error instanceof Error ? error.message : "Unknown error occurred.";
     writeLog(
       `Error renaming vault item ${item.name} to ${newName}: ${errMsg}`,
-      "error"
+      "error",
     );
     return { success: false, error: errMsg };
   }
 };
 
 export const getFileInfo = async (
-  filePath: string
+  filePath: string,
 ): Promise<FileInfo | null> => {
   try {
     const stats = await fs.promises.stat(filePath);
@@ -662,7 +696,7 @@ export const getFileInfo = async (
     writeLog(
       `Error getting file info for ${filePath}: ` +
         String((error as Error)?.message),
-      "error"
+      "error",
     );
     return null;
   }
@@ -677,7 +711,7 @@ export const clearDecryptedFolderDirectory = async (): Promise<void> => {
     writeLog(
       `Error clearing decrypted folder directory: ` +
         String((error as Error)?.message || error),
-      "error"
+      "error",
     );
   }
 };

@@ -17,6 +17,7 @@ import {
   removeStorageValue,
   actionWithVaultItem,
 } from "./storage";
+import { createPDFWithImages } from "./pdf";
 import fs from "fs";
 import path from "path";
 import dataApp from "./variables";
@@ -130,6 +131,27 @@ const ipcDict: IpcDictHybrid = {
       });
 
       return result;
+    },
+  },
+  "create-pdf": {
+    type: "handle",
+    func: async (event, request) => {
+      try {
+        writeLog(
+          `Received create-pdf request with ${request?.images?.length || 0} images`,
+          "info",
+        );
+        const result = await createPDFWithImages(request, (progress) => {
+          event.sender.send("create-pdf-progress", progress);
+        });
+        return result;
+      } catch (error) {
+        writeLog(
+          `Error creating PDF: ` + String((error as Error)?.message),
+          "error",
+        );
+        return null;
+      }
     },
   },
   "turn-off-computer": {

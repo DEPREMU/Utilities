@@ -24,11 +24,13 @@
     "electron-store": "^11.0.2",
     "node-7z": "^3.0.0",
     "node-machine-id": "^1.1.12",
+    "pdfkit": "^0.17.2",
     "sharp": "^0.32.5",
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
     "@types/archiver": "^6.0.3",
+    "@types/pdfkit": "^0.17.4",
     "@types/unzipper": "^0.10.11",
     "electron": "39.2.7",
     "electron-builder": "^26.0.12"

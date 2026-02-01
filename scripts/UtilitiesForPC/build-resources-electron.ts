@@ -53,6 +53,7 @@ build({
   external: [
     "dnssd",
     "sharp",
+    "pdfkit",
     "node-7z",
     "7zip-bin",
     "electron",

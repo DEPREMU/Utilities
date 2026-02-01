@@ -5,6 +5,7 @@ const voidFunction = () => {};
 const falseFunction = async () => false;
 const successFunction = async () => ({ success: true });
 const asyncVoidFunction = async () => {};
+const nullFunction = async () => null;
 
 const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
   notifyLoginStatus: voidFunction,
@@ -20,6 +21,7 @@ const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
   sendNotification: () => {},
   getNativeData: async () => "unknown",
   executeCommand: async () => "",
+  createPdf: nullFunction,
   getClipboardHistory: async () => [],
   setClipboardHistory: asyncVoidFunction,
   hideClipboardWindow: voidFunction,
@@ -44,18 +46,8 @@ const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
   getExistingVaultFolders: async () => [],
 };
 
-let windowModule: ContextBridgeType["UtilitiesForPC"] = defaultWindow;
-
-const assignWindowModule = () => {
-  const windowType: ContextBridgeType =
-    (window as unknown as ContextBridgeType) || null;
-  if (!windowType) return;
-  if (!windowType.UtilitiesForPC) return;
-
-  windowModule = windowType.UtilitiesForPC;
-};
-
-if (REPLACERS.isWeb) assignWindowModule();
-
+const windowModule: ContextBridgeType["UtilitiesForPC"] = !REPLACERS.isWeb
+  ? defaultWindow
+  : (window as unknown as ContextBridgeType).UtilitiesForPC || defaultWindow;
 
 export default windowModule;

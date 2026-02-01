@@ -112,6 +112,8 @@ export const hasPushNotifications = async (): Promise<boolean> => {
  * Sets up notification handlers for when notifications are received and tapped
  */
 export const setupNotificationHandlers = () => {
+  if (REPLACERS.isWeb) return () => {};
+  
   notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowList: true,

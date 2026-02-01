@@ -32,11 +32,11 @@ import { exec, execSync } from "child_process";
 if (!dataApp.getValue("isWindows") && app.isPackaged) {
   const sevenZipPath = path.join(
     __dirname,
-    "node_modules/7zip-bin/linux/x64/7za"
+    "node_modules/7zip-bin/linux/x64/7za",
   );
 
   try {
-    fs.chmodSync(sevenZipPath, 0o755);
+    if (fs.existsSync(sevenZipPath)) fs.chmodSync(sevenZipPath, 0o755);
   } catch (err) {
     console.error("Could not change permissions for 7za", err);
   }
@@ -48,12 +48,12 @@ if (!dataApp.getValue("isWindows") && app.isPackaged) {
         if (e) {
           writeLog("Some system dependencies may be missing: " + e, "warn");
         }
-      }
+      },
     );
   } catch (error) {
     writeLog(
       "Some system dependencies may be missing. Install them with: ",
-      "warn"
+      "warn",
     );
   }
 }
@@ -72,7 +72,7 @@ const setupAutostart = () => {
         (error) => {
           if (error) writeLog("Error creating task:" + error, "error");
           else writeLog("Scheduled task created successfully.", "info");
-        }
+        },
       );
     } else {
       const sudo = (cmd: string) => {
@@ -96,11 +96,11 @@ const setupAutostart = () => {
         const autoStartDir = path.join(configDir, "autostart");
         const startUpFile = path.join(
           configDir,
-          "utilities-for-pc-autostart.sh"
+          "utilities-for-pc-autostart.sh",
         );
         const desktopFilePath = path.join(
           autoStartDir,
-          "utilities-for-pc.desktop"
+          "utilities-for-pc.desktop",
         );
         const wrapperScriptPath = `/opt/UtilitiesForPC/utilities-for-pc-root.sh`;
 
@@ -175,7 +175,7 @@ StartupNotify=false
 
         const tempWrapper = path.join(
           os.tmpdir(),
-          `utilities-for-pc-root-${Date.now()}.sh`
+          `utilities-for-pc-root-${Date.now()}.sh`,
         );
         fs.writeFileSync(tempWrapper, wrapperScriptContent);
 
@@ -214,14 +214,19 @@ const getAssetsPath = (...segments: string[]): string => {
       "app.asar",
       "dist",
       "assets",
-      ...segments
+      ...segments,
     );
   } else {
     return path.join(path.dirname(__dirname), "dist", "assets", ...segments);
   }
 };
 
-const createWindow = async (): Promise<void> => {
+let creatingMainWindow = false;
+
+const createWindow = (): void => {
+  if (creatingMainWindow || dataApp.getValue("mainWindow")) return;
+  creatingMainWindow = true;
+
   const mainWindow = new BrowserWindow({
     width: 1000,
     height: 800,
@@ -257,10 +262,11 @@ const createWindow = async (): Promise<void> => {
 
   mainWindow.once(
     "ready-to-show",
-    () => !app.isPackaged && mainWindow.webContents.openDevTools()
+    () => !app.isPackaged && mainWindow.webContents.openDevTools(),
   );
 
   dataApp.setValue("mainWindow", mainWindow);
+  creatingMainWindow = false;
 };
 
 const createTray = (): void => {
@@ -268,7 +274,7 @@ const createTray = (): void => {
     console.log("Creating tray...");
 
     const trayIconPath = getAssetsPath(
-      dataApp.getValue("isWindows") ? "tray-icon.ico" : "tray-icon.png"
+      dataApp.getValue("isWindows") ? "tray-icon.ico" : "tray-icon.png",
     );
 
     const trayIcon = nativeImage.createFromPath(trayIconPath);
@@ -332,7 +338,7 @@ app.whenReady().then(async () => {
 app.on("window-all-closed", handleShutdown);
 
 app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length > 0) return;
+  if (BrowserWindow.getAllWindows().length) return;
   createWindow();
 });
 

@@ -477,11 +477,15 @@ class StorageManagement {
   #data = {} as ExpectedStorageTypes<"BOTH">;
   #loadData = async () => {
     try {
+      const { ready, getRandomUUID } = await import("../cross");
+      await ready();
+
       const data: Record<string, unknown> = {};
       const deviceId = await loadDataStorage("DEVICE_ID");
       if (!deviceId) {
-        NativeFunctionsModule.requestIgnoreBatteryOptimizations?.();
-        const { getRandomUUID } = await import("../cross");
+        if (REPLACERS.isNative)
+          NativeFunctionsModule.requestIgnoreBatteryOptimizations?.();
+
         await saveDataStorage("DEVICE_ID", getRandomUUID());
       }
 
@@ -514,9 +518,8 @@ class StorageManagement {
     } catch (e) {
       import("./debug").then(({ logger }) => {
         logger.error("STORAGE", "Failed to load storage data.", e);
+        if (!REPLACERS.isDev) reloadAppAsync("Failed to load storage data.");
       });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (!REPLACERS.isDev) reloadAppAsync("Failed to load storage data.");
     }
   };
 

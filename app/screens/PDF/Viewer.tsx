@@ -46,6 +46,7 @@ const Viewer: React.FC<ViewerProps> = ({ uri }) => {
 
   useEffect(() => {
     if (REPLACERS.isWeb) return;
+
     if (!uri || (!uri.startsWith("file://") && !uri.startsWith("content://")))
       return;
 
@@ -83,7 +84,7 @@ const Viewer: React.FC<ViewerProps> = ({ uri }) => {
 
       <Divider style={styles.divider} />
 
-      {uriState && (
+      {!!uriState && (
         <PDF
           enableAntialiasing
           enableDoubleTapZoom

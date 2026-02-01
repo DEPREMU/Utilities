@@ -5,7 +5,11 @@ import type {
 import { FolderFiles } from "./typesVault";
 import { ClipboardItem } from "./screens";
 import { LanguagesSupported } from "./typesTranslations";
-import { ExpectedNativeWebData } from "./typesUtilitiesForPC";
+import {
+  ExpectedNativeWebData,
+  PdfCreateRequest,
+  PdfCreateResult,
+} from "./typesUtilitiesForPC";
 
 import type {
   ProgressEvent,
@@ -90,6 +94,14 @@ export type ChannelsIpcRenderer<
   "execute-command": {
     functionReturn: Promise<string>;
     functionArgs: [command: string];
+    typeIpc: "invoke";
+  };
+  "create-pdf": {
+    functionReturn: Promise<PdfCreateResult | null>;
+    functionArgs: [
+      request: PdfCreateRequest,
+      onProgress?: (progress: number) => void,
+    ];
     typeIpc: "invoke";
   };
   "get-clipboard-history": {
@@ -256,6 +268,9 @@ export type ContextBridgeType = {
     executeCommand: (
       ...args: ChannelsIpcRenderer["execute-command"]["functionArgs"]
     ) => ChannelsIpcRenderer["execute-command"]["functionReturn"];
+    createPdf: (
+      ...args: ChannelsIpcRenderer["create-pdf"]["functionArgs"]
+    ) => ChannelsIpcRenderer["create-pdf"]["functionReturn"];
     getClipboardHistory: (
       ...args: ChannelsIpcRenderer["get-clipboard-history"]["functionArgs"]
     ) => ChannelsIpcRenderer["get-clipboard-history"]["functionReturn"];
