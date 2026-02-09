@@ -55,10 +55,10 @@
     "service": "<receiver \n  android:name=\".NotificationActionReceiver\" \n  android:enabled=\"true\" \n  android:exported=\"false\" />"
   },
   {
-    "name": "RestartServiceReceiver.kt",
+    "name": "ServiceReceiver.kt",
     "initPath": "native/",
     "finalPath": "android/app/src/main/java/",
-    "service": "<receiver \n  android:name=\".RestartServiceReceiver\" \n  android:enabled=\"true\" \n  android:exported=\"true\" >\n  <intent-filter>\n    <action android:name=\"android.intent.action.BOOT_COMPLETED\" />\n    <action android:name=\"android.intent.action.QUICKBOOT_POWERON\" />\n    <action android:name=\"com.htc.intent.action.QUICKBOOT_POWERON\" />\n    <action android:name=\"android.intent.action.ACTION_POWER_CONNECTED\" />\n    <action android:name=\"android.intent.action.ACTION_POWER_DISCONNECTED\" />\n    <action android:name=\"android.intent.action.MY_PACKAGE_REPLACED\" />\n  </intent-filter>\n</receiver>"
+    "service": "<receiver \n  android:name=\".ServiceReceiver\" \n  android:enabled=\"true\" \n  android:exported=\"true\" >\n  <intent-filter>\n    <action android:name=\"android.intent.action.BOOT_COMPLETED\" />\n    <action android:name=\"android.intent.action.QUICKBOOT_POWERON\" />\n    <action android:name=\"com.htc.intent.action.QUICKBOOT_POWERON\" />\n    <action android:name=\"android.intent.action.ACTION_POWER_CONNECTED\" />\n    <action android:name=\"android.intent.action.ACTION_POWER_DISCONNECTED\" />\n    <action android:name=\"android.intent.action.MY_PACKAGE_REPLACED\" />\n  </intent-filter>\n</receiver>"
   },
   {
     "name": "NativeFunctionsPackage.kt",

@@ -56,7 +56,7 @@ class MyForegroundService : Service() {
     private lateinit var clipboardMonitor: ClipboardMonitor
     private lateinit var preferences: ForegroundPreferences
     private var config: ForegroundConfig = ForegroundConfig()
-    private var screenReceiver: RestartServiceReceiver? = null
+    private var screenReceiver: ServiceReceiver? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -130,7 +130,7 @@ class MyForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun registerScreenReceiver() {
-        screenReceiver = RestartServiceReceiver()
+        screenReceiver = ServiceReceiver()
         val screenFilter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
@@ -198,7 +198,7 @@ class MyForegroundService : Service() {
 
     private fun restartReactNativeApp() {
         try {
-            val broadcastIntent = Intent(this, RestartServiceReceiver::class.java)
+            val broadcastIntent = Intent(this, ServiceReceiver::class.java)
             broadcastIntent.action = "ACTION_RESTART_APP"
             sendBroadcast(broadcastIntent)
             Log.d("MyForegroundService", "Sent broadcast to restart app")

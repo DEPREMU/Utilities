@@ -9,33 +9,33 @@ import android.util.Log
 import android.os.Handler
 import android.os.Looper
 
-class RestartServiceReceiver : BroadcastReceiver() {
+class ServiceReceiver : BroadcastReceiver() {
     override fun onReceive(
         context: Context,
         intent: Intent,
     ) {
         val action = intent.action
-        Log.d("RestartServiceReceiver", "Received action: $action")
+        Log.d("ServiceReceiver", "Received action: $action")
 
         val isResumeEvent = action == Intent.ACTION_SCREEN_ON
         val isSuspendEvent = action == Intent.ACTION_SCREEN_OFF
 
         if (isResumeEvent) {
-            Log.d("RestartServiceReceiver", "Screen ON event, sending resume event to React Native")
+            Log.d("ServiceReceiver", "Screen ON event, sending resume event to React Native")
             BackgroundServiceModule.sendEvent("onUpdateSuspendResume", "resumed")
         }
 
         if (isSuspendEvent) {
-            Log.d("RestartServiceReceiver", "Screen OFF event, sending suspend event to React Native")
+            Log.d("ServiceReceiver", "Screen OFF event, sending suspend event to React Native")
             BackgroundServiceModule.sendEvent("onUpdateSuspendResume", "suspended")
             return
         }
 
         checkReactAliveAsync(context, 5000L) { isAlive ->
             if (isAlive) {
-                Log.d("RestartServiceReceiver", "React Native is alive, no need to restart activity")
+                Log.d("ServiceReceiver", "React Native is alive, no need to restart activity")
             } else {
-                Log.d("RestartServiceReceiver", "React Native not alive, restarting main activity")
+                Log.d("ServiceReceiver", "React Native not alive, restarting main activity")
                 restartMainActivity(context)
             }
         }
@@ -60,29 +60,29 @@ class RestartServiceReceiver : BroadcastReceiver() {
         val savedConfig = preferences.load()
 
         if (!savedConfig.wasConfigured) {
-            Log.d("RestartServiceReceiver", "Service not yet configured, skipping auto-start")
+            Log.d("ServiceReceiver", "Service not yet configured, skipping auto-start")
             return
         }
 
         try {
             MyForegroundService.start(context, savedConfig)
-            Log.d("RestartServiceReceiver", "Foreground service auto-started from receiver")
+            Log.d("ServiceReceiver", "Foreground service auto-started from receiver")
         } catch (e: Exception) {
-            Log.e("RestartServiceReceiver", "Error auto-starting foreground service: ${e.message}")
+            Log.e("ServiceReceiver", "Error auto-starting foreground service: ${e.message}")
         }
     }
 
     private fun restartMainActivity(context: Context) {
         try {
             if (Build.VERSION.SDK_INT >= 29 && !Settings.canDrawOverlays(context)) {
-                Log.w("RestartServiceReceiver", "Could not start activity automatically: Missing overlay permission.")
+                Log.w("ServiceReceiver", "Could not start activity automatically: Missing overlay permission.")
                 return
             }
 
             var launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
 
             if (launchIntent == null) {
-                Log.w("RestartServiceReceiver", "LaunchIntent is null, trying alternatives to resolve main activity")
+                Log.w("ServiceReceiver", "LaunchIntent is null, trying alternatives to resolve main activity")
 
                 try {
                     val mainIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(context.packageName)
@@ -90,10 +90,10 @@ class RestartServiceReceiver : BroadcastReceiver() {
                     if (resolveList != null && resolveList.isNotEmpty()) {
                         val activityName = resolveList[0].activityInfo.name
                         launchIntent = Intent(Intent.ACTION_MAIN).setClassName(context.packageName, activityName)
-                        Log.d("RestartServiceReceiver", "Resolved main activity via package-manager: $activityName")
+                        Log.d("ServiceReceiver", "Resolved main activity via package-manager: $activityName")
                     }
                 } catch (e: Exception) {
-                    Log.w("RestartServiceReceiver", "Error querying launcher activities: ${e.message}")
+                    Log.w("ServiceReceiver", "Error querying launcher activities: ${e.message}")
                 }
 
                 if (launchIntent == null) {
@@ -107,11 +107,11 @@ class RestartServiceReceiver : BroadcastReceiver() {
                         try {
                             val mainActivityClass = Class.forName(candidate)
                             launchIntent = Intent(context, mainActivityClass)
-                            Log.d("RestartServiceReceiver", "Resolved main activity via reflection: $candidate")
+                            Log.d("ServiceReceiver", "Resolved main activity via reflection: $candidate")
                             break
                         } catch (e: ClassNotFoundException) {
                         } catch (e: Exception) {
-                            Log.w("RestartServiceReceiver", "Error trying candidate $candidate: ${e.message}")
+                            Log.w("ServiceReceiver", "Error trying candidate $candidate: ${e.message}")
                         }
                     }
                 }
@@ -125,12 +125,12 @@ class RestartServiceReceiver : BroadcastReceiver() {
                 )
                 launchIntent.putExtra("launchedFromService", true)
                 context.startActivity(launchIntent)
-                Log.d("RestartServiceReceiver", "Activity restarted from receiver to reload JS")
+                Log.d("ServiceReceiver", "Activity restarted from receiver to reload JS")
             } else {
-                Log.e("RestartServiceReceiver", "Failed to obtain or create launch intent")
+                Log.e("ServiceReceiver", "Failed to obtain or create launch intent")
             }
         } catch (e: Exception) {
-            Log.e("RestartServiceReceiver", "Error starting activity: ${e.message}")
+            Log.e("ServiceReceiver", "Error starting activity: ${e.message}")
         }
     }
 }
