@@ -13,7 +13,7 @@ import {
 const args = process.argv.slice(2);
 
 export type TYPE_ARGS = {
-  platform?: "linux" | "windows" | "both";
+  platform?: "linux" | "windows";
   profile?: string;
   "skip-build-android"?: boolean;
   "skip-build-electron"?: boolean;
@@ -35,47 +35,47 @@ const showHelp = () => {
 
   if (isBuildUploadAndroid || isAppBuildDev) {
     options.push(
-      `  -sba, --skip-build-android   Skip the Android build process and only upload the existing APK`
+      `  -sba, --skip-build-android   Skip the Android build process and only upload the existing APK`,
     );
   }
   if (isBuildAndroid || isBuildUploadAndroid) {
     options.push(
       `  -f, --profile=<profile>      Specify the build profile (development, preview, production)`,
-      `  -spa, --skip-prebuild-android   Skip the Android prebuild process`
+      `  -spa, --skip-prebuild-android   Skip the Android prebuild process`,
     );
   }
   if (isUploadElectron || isBuildAppElectron) {
     options.push(
-      `  -p, --platform=<platform>    Specify the platform to build for (windows, linux, both)
-  -sbe, --skip-build-electron   Skip the Electron app build process and only export the web version`
+      `  -p, --platform=<platform>    Specify the platform to build for (windows or linux)
+  -sbe, --skip-build-electron   Skip the Electron app build process and only export the web version`,
     );
   }
   if (isAppStart) {
     options.push(
       `  --lan                        Run with --lan flag`,
-      `  --dev                        Run with -d flag (development mode)`
+      `  --dev                        Run with -d flag (development mode)`,
     );
   }
   if (isAppLint) {
     options.push(
       `  --fix                        Run eslint with --fix`,
-      `  --check                      Run eslint with --max-warnings 0`
+      `  --check                      Run eslint with --max-warnings 0`,
     );
   }
   if (isUpdate) {
     options.push(
-      `  -pua, --platform-update-assets=<platform>   Specify the platform assets to update (android, web, both)
-  -f, --profile=<profile>      Specify the profile for the update (development, preview, production)`
+      `  -pua, --platform-update-assets=<platform>   Specify the platform assets to update (android, web, both). Default is both.
+  -f, --profile=<profile>      Specify the profile for the update (development, preview, production)`,
     );
   }
   if (isBuildAppElectron) {
     options.push(
-      `  -f, --profile=<profile>      Specify the profile for the update (development, preview, production)`
+      `  -f, --profile=<profile>      Specify the profile for the update (development, preview, production)`,
     );
   }
   if (isBuildResourcesElectron) {
     options.push(
-      `  --isWindows                  Specify if the build is for Windows (true/false)`
+      `  --isWindows                  Specify if the build is for Windows (true/false)`,
     );
   }
 
@@ -161,33 +161,34 @@ export const ARGS = args.reduce((acc, arg, index) => {
     case "platform":
     case "p":
       if (["linux", "windows", "both"].includes(value as string)) {
-        acc.platform = value as "linux" | "windows" | "both";
+        acc.platform = value as TYPE_ARGS["platform"];
       } else {
         throw new Error(
-          `Invalid platform: ${value}. Valid platforms: linux, windows, both`
+          `Invalid platform: ${value}. Valid platforms: linux, windows, both`,
         );
       }
       break;
     case "profile":
     case "f":
       if (["development", "preview", "production"].includes(value as string)) {
-        acc.profile = value as string;
+        acc.profile = value as TYPE_ARGS["profile"];
       } else {
         throw new Error(
-          `Invalid profile: ${value}. Valid profiles: development, preview, production`
+          `Invalid profile: ${value}. Valid profiles: development, preview, production`,
         );
       }
       break;
     case "action":
-      acc.action = value as string;
+      acc.action = value as TYPE_ARGS["action"];
       break;
     case "platform-update-assets":
     case "pua":
       if (["android", "web", "both"].includes(value as string)) {
-        acc["platform-update-assets"] = value as "android" | "web" | "both";
+        acc["platform-update-assets"] =
+          value as TYPE_ARGS["platform-update-assets"];
       } else {
         throw new Error(
-          `Invalid platform for update assets: ${value}. Valid options: android, web, both`
+          `Invalid platform for update assets: ${value}. Valid options: android, web, both`,
         );
       }
       break;
@@ -196,7 +197,7 @@ export const ARGS = args.reduce((acc, arg, index) => {
         acc.isWindows = value === "true";
       } else {
         throw new Error(
-          `Invalid value for isWindows: ${value}. Valid options: true, false`
+          `Invalid value for isWindows: ${value}. Valid options: true, false`,
         );
       }
     default:

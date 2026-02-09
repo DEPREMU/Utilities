@@ -1,4 +1,4 @@
-import { PowerState } from "react-native-device-info/src/internal/types";
+import type { PowerState } from "react-native-device-info/src/internal/types";
 
 export type DeviceInformation = {
   deviceId: string;

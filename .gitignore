@@ -51,5 +51,6 @@ implementation-md/
 test.*
 uploads/
 *.dbjson
+.temp/
 
 android/

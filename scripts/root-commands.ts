@@ -39,7 +39,7 @@ const run = () => {
       installAll();
       break;
     case "app":
-      execSync("npx expo start -c", { cwd: APP_PATH, stdio: "inherit", env });
+      execSync("yarn expo start -c", { cwd: APP_PATH, stdio: "inherit", env });
       break;
     case "server":
       execSync("yarn run start", {
@@ -74,7 +74,7 @@ const run = () => {
         BUILD_PROFILE: env.BUILD_PROFILE || "production",
       };
       execSync(
-        `npx expo export -c -p web ${envWeb.BUILD_PROFILE === "production" ? "" : "--dev --no-minify"}`,
+        `yarn expo export -c -p web ${envWeb.BUILD_PROFILE === "production" ? "" : "--dev --no-minify"}`,
         {
           env: envWeb,
           cwd: APP_PATH,

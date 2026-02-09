@@ -1,6 +1,5 @@
 import { Server } from "http";
 import type { Bonjour } from "bonjour-service";
-import { Advertisement } from "dnssd";
 import { ClipboardItem } from "./screens";
 import { LanguagesSupported } from "./typesTranslations";
 import { ReasonNotification } from "./typesNotifications";

@@ -13,9 +13,16 @@ import { execSync } from "child_process";
 const dataBuild = {
   distElectron: path.join(
     UTILITIES_FOR_PC_PATH,
-    PACKAGE_JSON_UtilitiesForPC.build.directories.output
+    PACKAGE_JSON_UtilitiesForPC.build.directories.output,
   ),
 } as const;
+
+const removeDirSafe = (dirPath: string) => {
+  try {
+    if (fs.existsSync(dirPath))
+      fs.rmSync(dirPath, { recursive: true, force: true });
+  } catch {}
+};
 
 const exportWebApp = () => {
   if (!fs.existsSync(APP_PATH))
@@ -36,14 +43,13 @@ const exportWebApp = () => {
   console.log(t("webAppBuiltSuccessfully"));
 
   console.log(t("cleaningUpOldBuildDirectories"));
-  ["dist", dataBuild.distElectron, "release", "build"].forEach((dir) => {
-    try {
-      const fullPath = path.resolve(UTILITIES_FOR_PC_PATH, dir);
-      if (fs.existsSync(fullPath))
-        fs.rmSync(fullPath, { recursive: true, force: true });
-      else if (fs.existsSync(dir))
-        fs.rmSync(dir, { recursive: true, force: true });
-    } catch {}
+  [
+    path.resolve(UTILITIES_FOR_PC_PATH, "dist"),
+    dataBuild.distElectron,
+    path.resolve(UTILITIES_FOR_PC_PATH, "release"),
+    path.resolve(UTILITIES_FOR_PC_PATH, "build"),
+  ].forEach((dir) => {
+    removeDirSafe(dir);
   });
   console.log(t("oldBuildDirectoriesCleaned"));
 
@@ -60,7 +66,7 @@ const exportWebApp = () => {
   ["ico", "png"].forEach((ext) => {
     fs.copyFileSync(
       path.resolve(UTILITIES_FOR_PC_PATH, "assets", `tray-icon.${ext}`),
-      path.resolve(assetsPath, `tray-icon.${ext}`)
+      path.resolve(assetsPath, `tray-icon.${ext}`),
     );
   });
   console.log(t("assetsCopied"));

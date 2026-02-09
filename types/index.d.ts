@@ -1,6 +1,7 @@
 export * from "./API";
 export * from "./env";
 export * from "./screens";
+export * from "./typesVault";
 export * from "./database/index";
 export * from "./typesStorage";
 export * from "./typesWebSocket";
@@ -10,8 +11,6 @@ export * from "./typesTranslations";
 export * from "./typesNotifications";
 export * from "./typesNativeModules";
 export * from "./typesUtilitiesForPC";
-export * from "./typesVault";
-export * from "../app/node_modules/react-native";
 
 export type REPLACERS_TYPE =
   | "isDev"

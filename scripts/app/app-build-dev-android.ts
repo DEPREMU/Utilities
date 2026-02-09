@@ -4,6 +4,7 @@ import {
   APP_PATH,
   UTILITIES_PATH,
   handleExitFromScript,
+  PLATFORM,
 } from "../config.ts";
 import {
   pathAppConfig,
@@ -28,10 +29,37 @@ replaceAppConfig(
 
 let expo: ReturnType<typeof spawn>;
 
+const spawnCommand = (
+  command: string,
+  argsList: string[],
+  options: Parameters<typeof spawn>[2] = {},
+): ReturnType<typeof spawn> => {
+  return spawn(command, argsList, {
+    ...options,
+    shell: PLATFORM.isWindows,
+    stdio: "inherit",
+  });
+};
+
+const killProcessTree = (child?: ReturnType<typeof spawn> | null): void => {
+  if (!child || child.killed || child.exitCode !== null) return;
+
+  if (PLATFORM.isWindows && child.pid) {
+    spawn("taskkill", ["/PID", `${child.pid}`, "/T", "/F"], {
+      stdio: "ignore",
+    });
+    return;
+  }
+
+  child.kill("SIGINT");
+};
+
 handleExitFromScript(() => {
   console.log("Finished app-build-dev-android script.");
   fs.writeFileSync(pathAppConfig, contentAppConfig);
-  expo?.kill();
+  killProcessTree(expo);
+
+  if (PLATFORM.isWindows) return;
   console.log("Cleaning up java processes...");
   spawn("pkill", ["-f", "java"]);
 });
@@ -51,23 +79,24 @@ const run = () => {
   });
 
   console.log("Running android build...");
-  expo = spawn(
-    "taskset",
-    ["-c", "0-5", "npx", "expo", "run:android", "--no-build-cache"],
+  expo = spawnCommand(
+    PLATFORM.isWindows ? "yarn" : "taskset",
+    PLATFORM.isWindows
+      ? ["expo", "run:android", "--no-build-cache"]
+      : ["-c", "0-5", "yarn", "expo", "run:android", "--no-build-cache"],
     {
       cwd: APP_PATH,
       env: localEnv,
-      stdio: "inherit",
     },
   );
 };
 
 const runExpo = () => {
   console.log("Running expo...");
-  expo = spawn("npx", ["expo", "start", "--dev-client", "--clear"], {
+
+  expo = spawnCommand("expo", ["start", "--clear", "--dev-client"], {
     cwd: APP_PATH,
     env: localEnv,
-    stdio: "inherit",
   });
 };
 

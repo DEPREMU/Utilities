@@ -301,7 +301,7 @@ const ComputerControl: React.FC = () => {
       zeroconfRef.current.stop("DNSSD");
       // eslint-disable-next-line react-hooks/exhaustive-deps
       zeroconfRef.current.removeDeviceListeners();
-    };;
+    };
   }, [openSnackBarRef]);
 
   return (

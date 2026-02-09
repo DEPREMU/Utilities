@@ -5,9 +5,12 @@ import { Chalk } from "chalk";
 const chalk = new Chalk({ level: 1 });
 
 const withGoogleServices = (config) => {
+  if (process.env.EAS_BUILD !== "true") return config;
+  if (process.env.BUILD_PLATFORM !== "android") return config;
+
   console.log(chalk.blue("Plugin handleCreateFiles.js is being executed..."));
 
-  if (process.env.EAS_BUILD === "true" && process.env.GOOGLE_SERVICES_JSON) {
+  if (process.env.GOOGLE_SERVICES_JSON) {
     try {
       console.log(
         chalk.blue(
@@ -57,7 +60,7 @@ const withGoogleServices = (config) => {
       console.error(chalk.red("Error creating google-services.json:"), error);
       throw error;
     }
-  } else if (process.env.EAS_BUILD === "true") {
+  } else {
     console.error(
       chalk.red(
         "GOOGLE_SERVICES_JSON environment variable not found in EAS Build",

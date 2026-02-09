@@ -2,13 +2,13 @@ import type {
   RequestChangeImageFormat,
   ResponseChangeImageFormat,
 } from "@types";
-import { sendResponse } from "./fetch.ts";
-import type { Request, Response } from "express";
-import { t, supportedFormatsImages } from "../both/index.ts";
 import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import sharp from "sharp";
+import { sendResponse } from "./fetch.ts";
+import type { Request, Response } from "express";
+import { t, supportedFormatsImages } from "../both/index.ts";
 
 export const readImage = (imagePath: string): Buffer => {
   if (!fs || !path) return Buffer.from([]);
@@ -23,7 +23,7 @@ export const readImage = (imagePath: string): Buffer => {
 
 const changeFormat = async (
   inputBuffer: Buffer,
-  format: RequestChangeImageFormat["format"]
+  format: RequestChangeImageFormat["format"],
 ): Promise<{
   buffer: Buffer;
   format: RequestChangeImageFormat["format"];
@@ -87,7 +87,7 @@ const isImageBuffer = async (buffer: Buffer): Promise<boolean> => {
 
 export const handleChangeImageFormat = async (
   req: Request<unknown, unknown, RequestChangeImageFormat>,
-  res: Response<ResponseChangeImageFormat>
+  res: Response<ResponseChangeImageFormat>,
 ) => {
   const lang = req?.body?.lang || "en";
   try {
@@ -98,7 +98,7 @@ export const handleChangeImageFormat = async (
         res,
         "BAD_REQUEST",
         { error: t("images.invalidImageFormat", lang), success: false },
-        "/images/changeImageFormat"
+        "/images/changeImageFormat",
       );
 
     if (!imageBufferInString)
@@ -106,12 +106,12 @@ export const handleChangeImageFormat = async (
         res,
         "BAD_REQUEST",
         { error: t("images.invalidImageBuffer", lang), success: false },
-        "/images/changeImageFormat"
+        "/images/changeImageFormat",
       );
 
     const base64Data = imageBufferInString.replace(
       /^data:image\/\w+;base64,/,
-      ""
+      "",
     );
     const imageBuffer = Buffer.from(base64Data, "base64");
 
@@ -120,7 +120,7 @@ export const handleChangeImageFormat = async (
         res,
         "BAD_REQUEST",
         { error: t("images.invalidImageBuffer", lang), success: false },
-        "/images/changeImageFormat"
+        "/images/changeImageFormat",
       );
     }
 
@@ -133,7 +133,7 @@ export const handleChangeImageFormat = async (
       res,
       "SUCCESS",
       { success: true, imageUri: dataUri, newFormat: convertedRes.format },
-      "/images/changeImageFormat"
+      "/images/changeImageFormat",
     );
   } catch (error) {
     console.error(chalk?.red("Error changing image format:"), error);
@@ -141,7 +141,7 @@ export const handleChangeImageFormat = async (
       res,
       "INTERNAL_SERVER_ERROR",
       { success: false, error: t("images.formatChangeError", lang) },
-      "/images/changeImageFormat"
+      "/images/changeImageFormat",
     );
   }
 };

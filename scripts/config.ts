@@ -22,6 +22,11 @@ export const UTILITIES_FOR_PC_PATH = path.resolve(
   "UtilitiesForPC",
 );
 
+export const PLATFORM = {
+  isLinux: process.platform === "linux",
+  isWindows: process.platform === "win32",
+};
+
 export const APP_CONFIG = APP_CONFIG_FUNC({
   config: {},
   packageJsonPath: path.resolve(APP_PATH, "package.json"),
@@ -124,12 +129,24 @@ export const isNewVersion = (
   return getSumVersion(serverVersion) < getSumVersion(current);
 };
 
-export const handleExitFromScript = (fun: () => void) => {
-  process.on("exit", fun);
-  process.on("SIGINT", fun);
-  process.on("SIGTERM", fun);
-  process.on("uncaughtException", fun);
-  process.on("unhandledRejection", fun);
+export const handleExitFromScript = (fun: (err?: Error) => void) => {
+  const wrappedFun = (err?: Error) => {
+    if (err && !(err instanceof Error)) err = undefined;
+
+    try {
+      fun(err);
+    } catch (error) {
+      console.error("Error in exit handler", error);
+    } finally {
+      process.exit(err ? 1 : 0);
+    }
+  };
+
+  process.on("exit", wrappedFun);
+  process.on("SIGINT", wrappedFun);
+  process.on("SIGTERM", wrappedFun);
+  process.on("uncaughtException", wrappedFun);
+  process.on("unhandledRejection", wrappedFun);
 };
 
 export * from "./arguments.ts";

@@ -23,6 +23,7 @@ export type TranslationsKeys =
   | "wineNotWorking"
   | "wineDescription"
   | "autoStartEnabled"
+  | "pressEnterToExit"
   | "wineNotInstalled"
   | "jsAndFontsInlined"
   | "enablingAutoStart"
@@ -69,6 +70,7 @@ export type TranslationsKeys =
   | "cleaningUpOldBuildDirectories"
   | "buildingLinuxPackageFromWindows"
   | "linuxBuildFromWindowsRequiresWSL"
+  | "failedToFindAFolderRequiredForBuild"
   | "buildingWindowsFromLinuxRequiresWine";
 
 export type Translations = Record<
@@ -81,7 +83,15 @@ export type Translations = Record<
 
 export const translations: Translations = {
   en: {
+    pressEnterToExit: {
+      color: "yellow",
+      message: "\nPress Enter to exit...",
+    },
     buildingApp: { color: "yellow", message: "Building Electron app..." },
+    failedToFindAFolderRequiredForBuild: {
+      color: "red",
+      message: "Failed to find a folder required for the build: ",
+    },
     appBuildCommandExecuted: {
       color: "green",
       message: "Electron app build command executed.",
@@ -325,6 +335,15 @@ export const translations: Translations = {
     },
   },
   es: {
+    pressEnterToExit: {
+      color: "yellow",
+      message: "\nPresione Enter para salir...",
+    },
+    failedToFindAFolderRequiredForBuild: {
+      color: "red",
+      message:
+        "No se pudo encontrar una carpeta requerida para la construcción: ",
+    },
     buildingApp: {
       color: "yellow",
       message: "Construyendo la aplicación Electron...",

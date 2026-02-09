@@ -9,11 +9,8 @@
  * Platform-specific builds:
  * - Linux → Linux: Native build
  * - Windows → Windows: Native build
- * - Linux → Windows: Requires Wine (install: sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install wine64 wine32)
- * - Windows → Linux: Requires WSL with dpkg-dev installed
  *
  * @example
- * yarn run build-app --platform=both  # Build for both platforms (requires Wine on Linux)
  * yarn run build-app --platform=linux  # Build only for Linux
  * yarn run build-app --platform=windows  # Build only for Windows
  */
@@ -21,7 +18,10 @@
 import {
   ask,
   ARGS,
+  getArgs,
+  PLATFORM,
   UTILITIES_PATH,
+  handleExitFromScript,
   UTILITIES_FOR_PC_PATH,
   PACKAGE_JSON_UtilitiesForPC,
 } from "../config.ts";
@@ -31,95 +31,32 @@ import path from "path";
 import { t } from "./translations.ts";
 import { execSync } from "child_process";
 
-type BuildPlatform = "linux" | "windows" | "both";
+type BuildPlatform = "linux" | "windows";
 
-const isLinux = os.platform() === "linux";
-const isWindows = os.platform() === "win32";
+const removeDirSafe = (dirPath: string) => {
+  try {
+    if (fs.existsSync(dirPath))
+      fs.rmSync(dirPath, { recursive: true, force: true });
+  } catch {}
+};
+
+const TEMP_FOLDER = path.join(
+  UTILITIES_PATH,
+  "..",
+  ".temp-utilities-for-pc-build",
+);
 
 const dataBuild = {
   distElectron: path.join(
-    UTILITIES_FOR_PC_PATH,
+    TEMP_FOLDER,
     PACKAGE_JSON_UtilitiesForPC.build.directories.output,
   ),
   appName: PACKAGE_JSON_UtilitiesForPC.name,
   productName: PACKAGE_JSON_UtilitiesForPC.build.productName,
 } as const;
 
-const electronRuntimeVersion =
-  PACKAGE_JSON_UtilitiesForPC.devDependencies?.electron;
-
-if (!electronRuntimeVersion)
-  throw new Error("Electron runtime version is not defined");
-
-const sharpVersion = PACKAGE_JSON_UtilitiesForPC.dependencies?.sharp;
-
-if (!sharpVersion) throw new Error("Sharp version is not defined");
-
-const getCleanVersion = (version: string) => version.replace(/^[~^]/, "");
-
-const ensureSharpForWindows = () => {
-  if (isWindows) return;
-
-  console.log(`Preparing sharp vendor for Windows platform...`);
-
-  try {
-    execSync(`npm install --no-save sharp@${getCleanVersion(sharpVersion)}`, {
-      cwd: UTILITIES_FOR_PC_PATH,
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        npm_config_platform: "win32",
-        npm_config_arch: "x64",
-        npm_config_target: electronRuntimeVersion,
-        npm_config_runtime: "electron",
-      },
-    });
-  } catch (error) {
-    console.error(`Failed to install sharp for Windows platform:`, error);
-    throw error;
-  }
-};
-
-/**
- * Checks if Wine is installed on Linux (required for Windows builds from Linux)
- */
-const checkWineInstalled = (): boolean => {
-  if (!isLinux) return true;
-
-  try {
-    execSync("wine --version", { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Installs Wine on Linux for cross-platform Windows builds
- */
-const installWine = async (): Promise<void> => {
-  console.log(t("wineRequired"));
-  console.log(t("wineDescription"));
-
-  const answer = ARGS.yes ? "y" : await ask(t("installWinePrompt"));
-
-  if (answer.toLowerCase() !== "y") {
-    console.log(t("skipWineInstallation"));
-    console.log(t("installWineManually"));
-    throw new Error(t("wineNotInstalled"));
-  }
-
-  console.log(t("installingWine"));
-  try {
-    execSync(
-      "sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install -y wine64 wine32",
-      { stdio: "inherit" },
-    );
-    console.log(t("wineInstalledSuccessfully"));
-  } catch (error) {
-    throw new Error(t("failedToInstallWine"));
-  }
-};
+removeDirSafe(TEMP_FOLDER);
+fs.mkdirSync(TEMP_FOLDER, { recursive: true });
 
 const addAutostartLinux = async () => {
   const answer0 = ARGS.yes ? "y" : await ask(t("enableAutoStartQuestion"));
@@ -238,213 +175,173 @@ ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
 };
 
 const buildApp = async () => {
-  let buildPlatform: BuildPlatform = "both";
-
-  const platformArg = ARGS.platform;
-  if (platformArg) buildPlatform = platformArg;
-  else buildPlatform = isWindows ? "windows" : "linux";
+  const buildPlatform: BuildPlatform = PLATFORM.isWindows ? "windows" : "linux";
 
   console.log(t("elevatingPermissions"));
 
-  const compileSource = (forWindows: boolean) => {
-    console.log(t("buildingApp") + ` (isWindows=${forWindows})`);
-    execSync(`yarn run build-resources-electron --isWindows=${forWindows}`, {
+  console.log(t("buildingApp") + ` (isWindows=${PLATFORM.isWindows})`);
+  execSync(
+    `yarn run build-resources-electron --isWindows=${PLATFORM.isWindows}`,
+    {
       cwd: UTILITIES_PATH,
       stdio: "inherit",
-    });
-    console.log(t("appBuildCommandExecuted"));
-  };
+    },
+  );
+  const PATHS = [
+    path.join(UTILITIES_FOR_PC_PATH, "dist"),
+    path.join(UTILITIES_FOR_PC_PATH, "build"),
+    path.join(UTILITIES_FOR_PC_PATH, "assets"),
+    path.join(UTILITIES_FOR_PC_PATH, "package.json"),
+  ];
+  PATHS.forEach((dir) => {
+    if (!fs.existsSync(dir))
+      throw new Error(t("failedToFindAFolderRequiredForBuild") + dir);
 
-  if (buildPlatform === "both") {
-    console.log(t("buildingBothPlatforms"));
-
-    if (isLinux && !checkWineInstalled()) await installWine();
-
-    console.log(t("buildingWindowsExecutable"));
-    compileSource(true);
-    ensureSharpForWindows();
-    try {
-      execSync("npx electron-builder --win", {
-        cwd: UTILITIES_FOR_PC_PATH,
-        stdio: "inherit",
+    if (
+      dir.endsWith("build") ||
+      dir.endsWith("assets") ||
+      dir.endsWith("package.json")
+    )
+      fs.cpSync(dir, path.join(TEMP_FOLDER, path.basename(dir)), {
+        recursive: !path.basename(dir).includes("."),
       });
-      execSync("yarn install", {
-        cwd: UTILITIES_PATH,
-        stdio: "inherit",
-      });
-      console.log(t("windowsBuildCompleted"));
-    } catch (error) {
-      console.error(t("buildFailed"));
-      if (isLinux) {
-        console.error(t("wineNotWorking"));
-        console.error(t("wineInstallCommand"));
-      }
-      throw error;
-    }
+    else fs.renameSync(dir, path.join(TEMP_FOLDER, path.basename(dir)));
+  });
 
-    console.log(t("buildingLinuxPackage"));
-    compileSource(false);
+  console.log(t("appBuildCommandExecuted"));
 
-    if (isLinux) {
-      console.log(t("installingLinuxDependencies"));
-      try {
-        execSync(
-          "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
-          { stdio: "inherit" },
-        );
-      } catch (error) {
-        console.log(t("someDependenciesInstalled"));
-      }
-    }
+  execSync("yarn install", {
+    cwd: TEMP_FOLDER,
+    stdio: "inherit",
+  });
 
-    try {
-      execSync("npx electron-builder --linux deb", {
-        cwd: UTILITIES_FOR_PC_PATH,
-        stdio: "inherit",
-      });
-      console.log(t("appPackagedSuccessfully"));
-    } catch (error) {
-      throw error;
-    }
-  } else if (buildPlatform === "windows") {
+  if (buildPlatform === "windows") {
     console.log(t("buildingWindowsExecutable"));
 
-    if (isLinux) {
-      const hasWine = checkWineInstalled();
-      if (!hasWine) {
-        console.log(t("buildingWindowsFromLinuxRequiresWine"));
-        await installWine();
-      }
-    }
-
-    compileSource(true);
-    ensureSharpForWindows();
-
     try {
-      execSync("npx electron-builder --win", {
-        cwd: UTILITIES_FOR_PC_PATH,
+      execSync("yarn electron-builder --win", {
+        cwd: TEMP_FOLDER,
         stdio: "inherit",
       });
-      execSync("yarn install", {
-        cwd: UTILITIES_PATH,
-        stdio: "inherit",
-      });
+
       console.log(t("windowsBuildCompleted"));
     } catch (error) {
-      if (isLinux) {
-        console.error(t("windowsBuildFailed"));
-        console.error(t("wineRequiredForWindows"));
-      }
       throw error;
     }
   } else if (buildPlatform === "linux") {
-    if (isWindows) {
-      console.log(t("buildingLinuxPackageFromWindows"));
-    }
-
-    execSync("yarn install", {
-      cwd: UTILITIES_PATH,
-      stdio: "inherit",
-    });
     console.log(t("buildingLinuxPackage"));
 
-    compileSource(false);
-
-    if (isLinux) {
-      console.log(t("installingLinuxDependencies"));
-      try {
-        execSync(
-          "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
-          { stdio: "inherit" },
-        );
-      } catch (error) {
-        console.log(t("someDependenciesInstalled"));
-      }
+    console.log(t("installingLinuxDependencies"));
+    try {
+      execSync(
+        "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
+        { stdio: "inherit" },
+      );
+    } catch (error) {
+      console.log(t("someDependenciesInstalled"));
     }
 
     try {
-      execSync("npx electron-builder --linux deb", {
-        cwd: UTILITIES_FOR_PC_PATH,
+      execSync("yarn electron-builder --linux deb", {
+        cwd: TEMP_FOLDER,
         stdio: "inherit",
       });
       console.log("\n" + t("appPackagedSuccessfully"));
     } catch (error) {
-      if (isWindows) {
-        console.error(t("linuxBuildFromWindowsRequiresWSL"));
-        console.error(t("installWSLInstructions"));
-      }
       throw error;
     }
+  }
 
-    if (isLinux) {
-      const dir = execSync(`ls`, {
-        cwd: dataBuild.distElectron,
-      })
-        .toString()
-        .split("\n");
-      const packageName = dir.find((file) => file.endsWith(".deb"));
-      if (!packageName) throw new Error(t("FailedToFindSnapPackage"));
+  const extension = PLATFORM.isWindows ? ".exe" : ".deb";
 
-      const installAnswer = ARGS.yes
-        ? "y"
-        : await ask(t("installDebPackagePrompt"), -1);
-      if (installAnswer.toLowerCase() === "y") {
-        execSync(
-          `sudo dpkg -i ${path.join(
-            dataBuild.distElectron,
-            packageName,
-          )} && sudo apt-get install -f -y; sudo apt autoremove -y`,
-          {
-            cwd: UTILITIES_FOR_PC_PATH,
-            stdio: "inherit",
-          },
-        );
-        execSync("sudo ufw allow 5353/udp && sudo ufw reload");
+  const pathDist = path.join(UTILITIES_FOR_PC_PATH, "dist-electron");
+  const destinationPath = path.join(
+    pathDist,
+    `${dataBuild.appName}${extension}`,
+  );
 
-        const runAppCommand = `/opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`;
+  if (!fs.existsSync(pathDist)) fs.mkdirSync(pathDist, { recursive: true });
 
-        await addAutostartLinux();
+  const dir = fs.readdirSync(dataBuild.distElectron);
+  const appPackage = dir.find((file) => file.endsWith(extension));
+  if (!appPackage) throw new Error(t("buildFailed"));
 
-        const answer = await ask(t("pleaseRestartComputer"), 10000);
-        if (answer.toLowerCase() === "y") {
-          console.log(t("restartNow"));
-          execSync("sudo reboot", { stdio: "inherit" });
-        } else {
-          console.log(t("restartingComputer"));
-        }
+  fs.renameSync(path.join(dataBuild.distElectron, appPackage), destinationPath);
 
-        const answer2 = await ask(t("openAppNow"), 60000);
-        if (answer2.toLowerCase() === "y") {
-          execSync(`${runAppCommand}`, {
-            cwd: UTILITIES_FOR_PC_PATH,
-            stdio: "inherit",
-          });
-        }
-      }
+  const installAnswer = ARGS.yes
+    ? "y"
+    : await ask(t("installDebPackagePrompt"), -1);
+  if (installAnswer.toLowerCase() === "y") {
+    execSync(
+      `sudo dpkg -i ${destinationPath} && sudo apt-get install -f -y; sudo apt autoremove -y`,
+      { stdio: "inherit" },
+    );
+    execSync("sudo ufw allow 5353/udp && sudo ufw reload");
+
+    const runAppCommand = `/opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`;
+
+    await addAutostartLinux();
+
+    const answer = await ask(t("pleaseRestartComputer"), 10000);
+    if (answer.toLowerCase() === "y") {
+      console.log(t("restartNow"));
+      execSync("sudo reboot", { stdio: "inherit" });
+    } else {
+      console.log(t("restartingComputer"));
+    }
+
+    const answer2 = await ask(t("openAppNow"), 60000);
+    if (answer2.toLowerCase() === "y") {
+      execSync(`${runAppCommand}`, {
+        cwd: UTILITIES_FOR_PC_PATH,
+        stdio: "inherit",
+      });
     }
   }
 
   console.log(
     `\n${t("appPackagedSuccessMessage")} ${
-      isWindows ? t("appPackagedSuccessMessage") : ""
+      PLATFORM.isWindows ? t("appPackagedSuccessMessage") : ""
     }`,
   );
 };
 
 const run = async () => {
-  try {
-    execSync("rm -rf ~/.cache/electron ~/.cache/electron-builder");
-  } catch {}
+  if (PLATFORM.isWindows) {
+    const isElevated = () => {
+      try {
+        execSync("net session", { stdio: "ignore" });
+        return true;
+      } catch {
+        return false;
+      }
+    };
 
-  try {
-    execSync("yarn run build-web-app-electron", {
-      cwd: UTILITIES_PATH,
-      stdio: "inherit",
-    });
-    console.log(t("webAppBuiltSuccessfully"));
+    if (!isElevated()) {
+      const args = getArgs();
+      const command = `cd ${UTILITIES_PATH}; yarn run build-app-electron ${args}; pause`;
 
-    await buildApp();
-  } catch (error) {}
+      execSync(
+        `powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process PowerShell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command ${command}'"`,
+        { stdio: "inherit" },
+      );
+      process.exit(0);
+    }
+  }
+
+  execSync("yarn run build-web-app-electron", {
+    cwd: UTILITIES_PATH,
+    stdio: "inherit",
+  });
+  console.log(t("webAppBuiltSuccessfully"));
+
+  await buildApp();
 };
+
+handleExitFromScript(async (err) => {
+  if (err) console.error("An error occurred:", err.message);
+  await ask(t("pressEnterToExit"), -1);
+  removeDirSafe(TEMP_FOLDER);
+});
 
 run();

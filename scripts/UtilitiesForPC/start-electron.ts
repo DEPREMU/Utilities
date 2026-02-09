@@ -1,14 +1,19 @@
 import {
+  spawn,
+  execSync,
+  type ChildProcess,
+  type SpawnOptionsWithoutStdio,
+} from "child_process";
+import {
   env,
   ARGS,
   getArgs,
   APP_PATH,
-  handleExitFromScript,
+  PLATFORM,
   UTILITIES_FOR_PC_PATH,
 } from "../config.ts";
 import axios from "axios";
 import * as readline from "readline";
-import { spawn, execSync, type ChildProcess } from "child_process";
 
 ARGS.profile = "development";
 const args = getArgs();
@@ -23,6 +28,18 @@ const state: ProcessState = {
   expo: null,
   electron: null,
   isRestarting: false,
+};
+
+const spawnCommand = (
+  command: string,
+  argsList: string[],
+  options: SpawnOptionsWithoutStdio,
+): ChildProcess => {
+  return spawn(command, argsList, {
+    ...options,
+    shell: PLATFORM.isWindows,
+    stdio: "inherit",
+  });
 };
 
 const runBuildCommand = (command: string): void => {
@@ -64,6 +81,14 @@ const killProcess = (
 
     console.log(`\x1b[33m[Manager]\x1b[0m Stopping ${name}...`);
 
+    if (PLATFORM.isWindows && process.pid) {
+      const killer = spawn("taskkill", ["/PID", `${process.pid}`, "/T", "/F"], {
+        stdio: "ignore",
+      });
+      killer.once("close", () => resolve());
+      return;
+    }
+
     const closeListener = () => resolve();
 
     process.once("close", closeListener);
@@ -90,13 +115,12 @@ const startElectron = async (): Promise<ChildProcess> => {
     ...process.env,
   };
 
-  const child = spawn(
-    "npx",
-    ["electron", ".", "--expose-gc", "--no-sandbox", "--ozone-platform=x11"],
+  const child = spawnCommand(
+    "electron",
+    [".", "--expose-gc", "--no-sandbox", "--ozone-platform=x11"],
     {
       cwd: UTILITIES_FOR_PC_PATH,
       env: electronEnv,
-      stdio: "inherit",
       killSignal: "SIGKILL",
     },
   );
@@ -120,11 +144,9 @@ const startExpo = (): ChildProcess => {
     BUILD_PROFILE: "development",
   };
 
-  return spawn("npx", ["expo", "start", "-c"], {
+  return spawnCommand("yarn", ["expo", "start", "-c"], {
     env: expoEnv,
     cwd: APP_PATH,
-    stdio: "inherit",
-    killSignal: "SIGINT",
   });
 };
 
@@ -184,6 +206,6 @@ const run = async () => {
   });
 };
 
-handleExitFromScript(performExit);
+// handleExitFromScript(performExit);
 
 run();

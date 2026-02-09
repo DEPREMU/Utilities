@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node ./build.ts && node ./build/index.cjs",
-    "start-dev": "npx nodemon -e ts,json --exec \"sleep 5; node ./build.ts; node ./build/index.cjs\"",
-    "format-all": "npx prettier --write \"**/*.{ts,json}\" --ignore-path ../.gitignore",
+    "start-dev": "yarn nodemon -e ts,json --exec \"sleep 5; node ./build.ts; node ./build/index.cjs\"",
+    "format-all": "yarn prettier --write \"**/*.{ts,json}\" --ignore-path ../.gitignore",
     "before-commit": "yarn run lint:fix && yarn run type-check",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
@@ -18,20 +18,20 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "bcryptjs": "^3.0.2",
+    "bcryptjs": "^3.0.3",
     "busboy": "^1.6.0",
     "compression": "^1.8.1",
     "crypto": "^1.0.1",
     "express-rate-limit": "^8.2.1",
-    "firebase-admin": "^13.5.0",
+    "firebase-admin": "^13.6.1",
     "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.13.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.18.0",
     "pidusage": "^4.0.1",
-    "pino": "^10.1.0",
+    "pino": "^10.3.0",
     "pino-pretty": "^13.1.3",
     "qrcode": "^1.5.4",
-    "ws": "^8.18.3"
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

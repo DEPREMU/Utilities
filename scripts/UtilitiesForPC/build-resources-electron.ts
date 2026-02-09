@@ -50,8 +50,7 @@ build({
   ...baseConfig,
   outfile: path.join(UTILITIES_FOR_PC_PATH, "build", "index.cjs"),
   platform: "node",
-  external: [
-    "dnssd",
+  external: [ 
     "sharp",
     "pdfkit",
     "node-7z",

@@ -323,7 +323,7 @@ const runPrebuild = () => {
 
   try {
     console.log(chalk.blue("Running prebuild script..."));
-    const output = execSync("npx expo prebuild --platform android --clean", {
+    const output = execSync("yarn expo prebuild --platform android --clean", {
       cwd: APP_PATH,
       env,
     })?.toString();

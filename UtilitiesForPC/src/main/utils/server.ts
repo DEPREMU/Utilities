@@ -284,12 +284,12 @@ export const initServer = (): void => {
           disableIPv6: true,
         };
 
-        const ad = new Bonjour(serviceConfig);
+        const ad = new Bonjour({ type: "udp4" });
         const service = ad.publish(serviceConfig);
 
         dataApp.setValue("ad", ad);
 
-        if (!service?.published) initServer();
+        if (!service?.published && !service?.activated) initServer();
       } catch (error) {
         writeLog(`Error setting up mDNS: ${error}`, "error");
       }

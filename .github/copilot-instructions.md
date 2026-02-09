@@ -177,7 +177,7 @@ Custom native modules in `app/native/modules/`:
 
 **Prebuild process** (`scripts/app/app-prebuild.ts`) auto-registers these in `MainApplication.kt`.
 
-Run `yarn run app-prebuild-android` before `npx expo run:android`.
+Run `yarn run app-prebuild-android` before `yarn expo run:android`.
 
 ## Common Patterns
 
