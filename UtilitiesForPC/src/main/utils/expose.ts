@@ -243,13 +243,7 @@ const ipcDict: IpcDictHybrid = {
       if (!clipboardWindow || clipboardWindow.isDestroyed())
         return createWindowClipboard();
 
-      clipboardWindow.webContents.send(
-        "clipboard-items-updated",
-        itemsCleaned.map((content, index) => ({
-          id: index.toString(),
-          content,
-        })),
-      );
+      clipboardWindow.webContents.send("clipboard-items-updated", itemsCleaned);
     },
   },
   "hide-clipboard-window": {

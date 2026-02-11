@@ -10,6 +10,7 @@ import dotenv from "dotenv";
 import { app } from "electron";
 import dataApp from "./variables";
 import { writeLog } from "./logger";
+import { getJSPath } from "@utils";
 import { handleShutdown } from "./server";
 import type { UpdatesRoutes } from "./../../../../types";
 import { execFileSync, execSync, spawn } from "child_process";
@@ -25,33 +26,6 @@ if (!urlUpdates) {
 
 const getURLUpdates = (route: UpdatesRoutes): string => {
   return `${urlUpdates}${route}`;
-};
-
-export const getHtmlPath = (): string => {
-  if (app.isPackaged)
-    return path.join(process.resourcesPath, "dist", "index.html");
-  else return path.join(path.dirname(__dirname), "dist", "index.html");
-};
-
-export const getJSPath = (): string => {
-  const pathWeb = path.join(
-    app.isPackaged ? process.resourcesPath : path.dirname(__dirname),
-    "dist",
-    "_expo",
-    "static",
-    "js",
-    "web"
-  );
-
-  if (!fs.existsSync(pathWeb))
-    throw new Error(`JS path does not exist: ${pathWeb}`);
-
-  const dirFiles = fs.readdirSync(pathWeb);
-  const jsFile = dirFiles.find((file) => file.endsWith(".js"));
-
-  if (!jsFile) throw new Error(`JS file not found in directory ${pathWeb}`);
-
-  return path.join(pathWeb, jsFile);
 };
 
 export const deleteDownloadedUpdate = () => {
@@ -70,15 +44,15 @@ export const deleteDownloadedUpdate = () => {
         execSync(
           `powershell -NoProfile -Command "Remove-Item -LiteralPath '${downloadFilePath.replace(
             /'/g,
-            "''"
+            "''",
           )}' -Force"`,
-          { stdio: "ignore" }
+          { stdio: "ignore" },
         );
       else execSync(`rm -f "${downloadFilePath.replace(/"/g, '\\"')}"`);
     } catch (error) {
       writeLog(
         "Error deleting downloaded update file: " + String(error),
-        "error"
+        "error",
       );
     }
   }
@@ -101,19 +75,19 @@ const openInstallerOrInstall = async (filePath: string) => {
         } catch (e) {
           writeLog(
             "Error spawning installer on Windows: " + String(e),
-            "error"
+            "error",
           );
         } finally {
           resolve();
         }
-      }, 5000)
+      }, 5000),
     );
   } else {
     try {
       const cmd = `sudo dpkg -i "${filePath}" && sudo apt-get install -f -y && ${path.join(
         dataApp.getValue("userHome"),
         ".config",
-        "utilities-for-pc-autostart.sh"
+        "utilities-for-pc-autostart.sh",
       )}`;
 
       writeLog(`Executing Linux install command: ${cmd}`, "info");
@@ -136,7 +110,7 @@ export const downloadNewUpdate = async (downloadUrl: string) => {
       const downloadFilePath = dataApp.getValue("downloadFilePath");
       writeLog(
         `Starting download from ${downloadUrl} to ${downloadFilePath}`,
-        "info"
+        "info",
       );
 
       const response: any = await axios.get(downloadUrl, {
@@ -196,12 +170,12 @@ export const updateWebJS = async (downloadUrl: string): Promise<void> => {
         execSync(
           `powershell -NoProfile -Command "Set-Content -LiteralPath '${jsPath.replace(
             /'/g,
-            "''"
+            "''",
           )}' -"`,
           {
             input: newFileJS,
             stdio: ["pipe", "ignore", "ignore"],
-          }
+          },
         );
 
         writeLog("Error writing HTML on Windows: " + String(error), "error");
@@ -223,7 +197,7 @@ export const updateWebJS = async (downloadUrl: string): Promise<void> => {
 
 export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
   const currentVersion = dataApp.getValue(
-    buildType === "electron" ? "currentElectronVersion" : "currentWebVersion"
+    buildType === "electron" ? "currentElectronVersion" : "currentWebVersion",
   );
 
   try {
@@ -242,12 +216,12 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
       } catch (error) {
         writeLog(
           `No internet connection detected. Retry attempt ${attempts + 1}/5`,
-          "warn"
+          "warn",
         );
         if (attempts === 4) {
           writeLog(
             "No internet connection detected after 5 attempts.",
-            "error"
+            "error",
           );
           throw new Error("No internet connection.");
         }

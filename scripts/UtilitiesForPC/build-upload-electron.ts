@@ -11,6 +11,7 @@ import {
   versionElectron,
   getRouteUpdates,
   UTILITIES_FOR_PC_PATH,
+  PLATFORM,
 } from "../config.ts";
 import fs from "fs";
 import path from "path";
@@ -43,7 +44,7 @@ const isNewVersionPlatform = async (platformOS: PlatformsOS) => {
     const isNew = isNewVersion(versionElectron, result.latestVersion);
     if (!isNew) {
       console.log(
-        `No new ${platformOS} version available. Current: ${versionElectron}, Latest: ${result.latestVersion}`
+        `No new ${platformOS} version available. Current: ${versionElectron}, Latest: ${result.latestVersion}`,
       );
     }
 
@@ -51,7 +52,7 @@ const isNewVersionPlatform = async (platformOS: PlatformsOS) => {
   } catch (error) {
     console.error(
       "Error checking for new version:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
   return true;
@@ -65,7 +66,7 @@ const uploadElectronBuilds = async () => {
 
     if (!fs.existsSync(distElectronPath)) {
       throw new Error(
-        `Electron dist directory not found at ${distElectronPath}`
+        `Electron dist directory not found at ${distElectronPath}`,
       );
     }
 
@@ -95,7 +96,7 @@ const uploadElectronBuilds = async () => {
 
     if (availablePlatforms.length === 0) {
       throw new Error(
-        "No Electron build files found (.deb or .exe) in dist-electron/"
+        "No Electron build files found (.deb or .exe) in dist-electron/",
       );
     }
 
@@ -103,7 +104,7 @@ const uploadElectronBuilds = async () => {
       `Found ${availablePlatforms.length} build(s):`,
       availablePlatforms
         .map((p) => `${p.platformOS} (${path.basename(p.file)})`)
-        .join(", ")
+        .join(", "),
     );
 
     const uploadPromises = availablePlatforms.map(
@@ -127,7 +128,7 @@ const uploadElectronBuilds = async () => {
 
           console.log(
             `Uploading ${platformOS} build: ${path.basename(file)}...`,
-            data
+            data,
           );
 
           const formData = new FormData();
@@ -152,7 +153,7 @@ const uploadElectronBuilds = async () => {
               maxContentLength: Infinity,
               maxBodyLength: Infinity,
               timeout: 10 * 60 * 1000,
-            }
+            },
           );
 
           console.log(`Upload successful for ${platformOS}:`, response.data);
@@ -170,7 +171,7 @@ const uploadElectronBuilds = async () => {
             error: error instanceof Error ? error.message : String(error),
           };
         }
-      }
+      },
     );
 
     const results = await Promise.all(uploadPromises);
@@ -186,7 +187,7 @@ const uploadElectronBuilds = async () => {
     });
 
     console.log(
-      `\nTotal: ${successCount}/${results.length} successful uploads`
+      `\nTotal: ${successCount}/${results.length} successful uploads`,
     );
 
     if (successCount === 0) {
@@ -197,7 +198,7 @@ const uploadElectronBuilds = async () => {
   } catch (error) {
     console.error(
       "Fatal error during Electron upload:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     process.exit(1);
   }
@@ -208,32 +209,11 @@ const buildElectronApp = () => {
 
   if (!fs.existsSync(UTILITIES_FOR_PC_PATH)) {
     throw new Error(
-      `UtilitiesForPC directory not found at ${UTILITIES_FOR_PC_PATH}`
+      `UtilitiesForPC directory not found at ${UTILITIES_FOR_PC_PATH}`,
     );
   }
 
-  let platform = ARGS.platform || "both";
-
-  if (platform === "both") {
-    if (isNewVersionLinux && !isNewVersionWindows) {
-      console.log(
-        `Building only for Linux as Windows is up to date for version ${versionElectron}.`
-      );
-      platform = "linux";
-    }
-    if (isNewVersionWindows && !isNewVersionLinux) {
-      console.log(
-        `Building only for Windows as Linux is up to date for version ${versionElectron}.`
-      );
-      platform = "windows";
-    }
-    if (!isNewVersionLinux && !isNewVersionWindows) {
-      console.log(
-        "No new updates available for either platform. Skipping build."
-      );
-      process.exit(0);
-    }
-  }
+  let platform = PLATFORM.isWindows ? "windows" : "linux";
 
   console.log(`Building Electron app for platform: ${platform}`);
 
@@ -247,7 +227,7 @@ const buildElectronApp = () => {
       cwd: UTILITIES_PATH,
       stdio: "inherit",
       killSignal: "SIGINT",
-    }
+    },
   );
 
   console.log("Electron app build completed!");
@@ -255,9 +235,42 @@ const buildElectronApp = () => {
 
 console.log("=== Electron Build and Upload Process ===\n");
 
+if (PLATFORM.isWindows) {
+  const isElevated = () => {
+    try {
+      execSync("net session", { stdio: "ignore" });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  if (!isElevated()) {
+    const args = getArgs();
+    const command = `cd ${UTILITIES_PATH}; yarn run build-upload-electron ${args}; pause`;
+
+    execSync(
+      `powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process PowerShell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command ${command}'"`,
+      { stdio: "inherit" },
+    );
+    process.exit(0);
+  }
+}
+
 const run = async () => {
-  isNewVersionLinux = await isNewVersionPlatform("linux");
-  isNewVersionWindows = await isNewVersionPlatform("windows");
+  if (PLATFORM.isWindows) {
+    isNewVersionWindows = await isNewVersionPlatform("windows");
+  } else {
+    isNewVersionLinux = await isNewVersionPlatform("linux");
+  }
+
+  if (!isNewVersionLinux && !isNewVersionWindows) {
+    console.log(
+      "No new version available for either platform. Exiting without uploading.",
+    );
+    return;
+  }
+
   if (!ARGS["skip-build-electron"]) buildElectronApp();
   uploadElectronBuilds().catch((error) => {
     console.error("Process failed:", error);

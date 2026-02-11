@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import dataApp from "./variables";
 import { execSync } from "child_process";
 import { handleShutdown } from "./server";
@@ -37,7 +39,7 @@ const elevatePrivileges = (): void => {
       writeLog(
         "Failed to elevate privileges (or user cancelled): " +
           JSON.stringify(error),
-        "error"
+        "error",
       );
       console.error("Error elevating privileges:", error);
     }
@@ -45,6 +47,52 @@ const elevatePrivileges = (): void => {
     app.quit();
     process.exit(0);
   }
+};
+
+const ASSETS = app.isPackaged
+  ? path.join(process.resourcesPath, "assets")
+  : path.join(path.dirname(__dirname), "assets");
+
+const BUILD = app.isPackaged
+  ? path.join(process.resourcesPath, "app.asar", "build")
+  : path.join(path.dirname(__dirname), "build");
+
+const DIST = app.isPackaged
+  ? path.join(process.resourcesPath, "dist")
+  : path.join(path.dirname(__dirname), "dist");
+
+export const PATHS = {
+  DIST,
+  BUILD,
+  ASSETS,
+} as const;
+
+export const getPath = (
+  key: keyof typeof PATHS,
+  ...segments: string[]
+): string => {
+  return path.join(PATHS[key], ...segments);
+};
+
+export const getJSPath = (): string => {
+  const pathWeb = path.join(
+    app.isPackaged ? process.resourcesPath : path.dirname(__dirname),
+    "dist",
+    "_expo",
+    "static",
+    "js",
+    "web",
+  );
+
+  if (!fs.existsSync(pathWeb))
+    throw new Error(`JS path does not exist: ${pathWeb}`);
+
+  const dirFiles = fs.readdirSync(pathWeb);
+  const jsFile = dirFiles.find((file) => file.endsWith(".js"));
+
+  if (!jsFile) throw new Error(`JS file not found in directory ${pathWeb}`);
+
+  return path.join(pathWeb, jsFile);
 };
 
 export const askPath = async (): Promise<string | null> => {

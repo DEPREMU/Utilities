@@ -1,4 +1,4 @@
-import path from "path";
+import { getPath } from "@utils";
 import dataApp from "./variables";
 import { app, BrowserWindow, globalShortcut } from "electron";
 
@@ -30,11 +30,7 @@ export const createWindowClipboard = (showOnCreate: boolean = false): void => {
       window.hide();
     });
 
-    const htmlPath = path.join(
-      app.isPackaged ? process.resourcesPath : path.join(__dirname, ".."),
-      "assets",
-      "index-clipboard.html"
-    );
+    const htmlPath = getPath("ASSETS", "index-clipboard.html");
 
     window.loadFile(htmlPath).catch((err) => {
       console.error("Error loading clipboard file:", err);
@@ -67,12 +63,12 @@ export const registerClipboardShortcuts = (): void => {
     shortcuts.forEach((shortcut) => {
       const registered = globalShortcut.register(
         shortcut.accelerator,
-        shortcut.action
+        shortcut.action,
       );
 
       if (!registered)
         console.error(
-          `Failed to register clipboard shortcut: ${shortcut.accelerator}`
+          `Failed to register clipboard shortcut: ${shortcut.accelerator}`,
         );
       else
         console.log(`Registered clipboard shortcut: ${shortcut.accelerator}`);

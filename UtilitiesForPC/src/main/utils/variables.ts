@@ -30,11 +30,11 @@ class DataAppClass {
     key: T,
     value:
       | DataAppElectron[T]
-      | ((prevValue: DataAppElectron[T]) => DataAppElectron[T])
+      | ((prevValue: DataAppElectron[T]) => DataAppElectron[T]),
   ) => {
     if (typeof value === "function") {
       const func = value as (
-        prevValue: DataAppElectron[T]
+        prevValue: DataAppElectron[T],
       ) => DataAppElectron[T];
       this.dataApp[key] = func(this.dataApp[key]);
       return;
@@ -50,7 +50,7 @@ class DataAppClass {
    * @returns {DataAppElectron[T]} The value associated with the specified key, typed according to the DataAppElectron interface
    */
   public getValue = <T extends keyof DataAppElectron>(
-    key: T
+    key: T,
   ): DataAppElectron[T] => {
     return this.dataApp[key];
   };
@@ -86,7 +86,7 @@ const getDownloadsPath = (): string => {
     writeLog(
       "Error reading user-dirs.dirs, using default Downloads path" +
         (e instanceof Error ? `: ${e.message}` : String(e)),
-      "warn"
+      "warn",
     );
   }
 
@@ -109,7 +109,7 @@ let dataAppDefault: DataAppElectron = {
   logPath: path.join(process.resourcesPath, "..", "log-utilities-for-pc.txt"),
   deviceId: "",
   preloadPath: app.isPackaged
-    ? path.join(process.resourcesPath, "preload.cjs")
+    ? path.join(process.resourcesPath, "app.asar", "build", "preload.cjs")
     : path.join(path.dirname(__dirname), "build", "preload.cjs"),
   language: "en",
   isWindows,

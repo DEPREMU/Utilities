@@ -3,11 +3,6 @@ import {
   registerClipboardShortcuts,
 } from "./utils/clipboard";
 import {
-  getHtmlPath,
-  verifyNewUpdate,
-  deleteDownloadedUpdate,
-} from "./utils/updates";
-import {
   app,
   Tray,
   Menu,
@@ -17,6 +12,7 @@ import {
 } from "electron";
 import dataApp, {
   t,
+  getPath,
   writeLog,
   initServer,
   getLanguage,
@@ -28,6 +24,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { exec, execSync } from "child_process";
+import { verifyNewUpdate, deleteDownloadedUpdate } from "./utils/updates";
 
 if (!dataApp.getValue("isWindows") && app.isPackaged) {
   const sevenZipPath = path.join(
@@ -51,10 +48,7 @@ if (!dataApp.getValue("isWindows") && app.isPackaged) {
       },
     );
   } catch (error) {
-    writeLog(
-      "Some system dependencies may be missing.",
-      "warn",
-    );
+    writeLog("Some system dependencies may be missing.", "warn");
   }
 }
 
@@ -207,20 +201,6 @@ ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
 
 if (app.isPackaged) setupAutostart();
 
-const getAssetsPath = (...segments: string[]): string => {
-  if (app.isPackaged) {
-    return path.join(
-      process.resourcesPath,
-      "app.asar",
-      "dist",
-      "assets",
-      ...segments,
-    );
-  } else {
-    return path.join(path.dirname(__dirname), "dist", "assets", ...segments);
-  }
-};
-
 let creatingMainWindow = false;
 
 const createWindow = (): void => {
@@ -242,7 +222,7 @@ const createWindow = (): void => {
   });
 
   if (app.isPackaged) {
-    const htmlPath = getHtmlPath();
+    const htmlPath = getPath("DIST", "index.html");
 
     mainWindow.loadFile(htmlPath).catch((err) => {
       console.error("Error loading file:", err);
@@ -273,7 +253,8 @@ const createTray = (): void => {
   try {
     console.log("Creating tray...");
 
-    const trayIconPath = getAssetsPath(
+    const trayIconPath = getPath(
+      "ASSETS",
       dataApp.getValue("isWindows") ? "tray-icon.ico" : "tray-icon.png",
     );
 

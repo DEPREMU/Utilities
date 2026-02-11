@@ -1,6 +1,6 @@
 {
   "name": "utilities-for-pc",
-  "version": "1.4.1",
+  "version": "1.5.1",
   "description": "A collection of useful utilities for PC users.",
   "main": "build/index.cjs",
   "scripts": {
@@ -41,16 +41,7 @@
       "**/node_modules/sharp/**"
     ],
     "files": [
-      "build/**/*",
-      "dist/**/*",
-      "assets/**/*",
-      "package.json"
-    ],
-    "extraFiles": [
-      {
-        "from": "build/preload.cjs",
-        "to": "resources/preload.cjs"
-      }
+      "build/**/*"
     ],
     "extraResources": [
       {
@@ -62,14 +53,13 @@
         "to": "assets"
       }
     ],
+    "icon": "assets/tray-icon",
     "win": {
       "target": "nsis",
-      "icon": "assets/tray-icon.ico",
       "requestedExecutionLevel": "requireAdministrator"
     },
     "linux": {
       "target": "deb",
-      "icon": "assets/tray-icon.png",
       "category": "Utility"
     },
     "nsis": {

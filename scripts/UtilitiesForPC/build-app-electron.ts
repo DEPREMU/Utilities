@@ -264,9 +264,16 @@ const buildApp = async () => {
 
   const dir = fs.readdirSync(dataBuild.distElectron);
   const appPackage = dir.find((file) => file.endsWith(extension));
-  if (!appPackage) throw new Error(t("buildFailed"));
 
-  fs.renameSync(path.join(dataBuild.distElectron, appPackage), destinationPath);
+  const sourcePath = path.join(dataBuild.distElectron, appPackage || "error");
+  if (!fs.existsSync(sourcePath)) throw new Error(t("buildFailed"));
+
+  if (fs.existsSync(destinationPath))
+    fs.rmSync(destinationPath, { force: true });
+
+  fs.renameSync(sourcePath, destinationPath);
+
+  if (PLATFORM.isWindows) return;
 
   const installAnswer = ARGS.yes
     ? "y"
@@ -340,7 +347,7 @@ const run = async () => {
 
 handleExitFromScript(async (err) => {
   if (err) console.error("An error occurred:", err.message);
-  await ask(t("pressEnterToExit"), -1);
+  if (!ARGS.yes) await ask(t("pressEnterToExit"), -1);
   removeDirSafe(TEMP_FOLDER);
 });
 
