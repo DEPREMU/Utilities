@@ -26,7 +26,6 @@ const config: ConfigFunction = (api) => {
     ]),
   );
 
-  
   const logReplacer = "(()=>{})";
   const logger = {
     log: logReplacer,
@@ -55,17 +54,19 @@ const config: ConfigFunction = (api) => {
         {
           extensions: [".ts", ".tsx", ".json"],
           alias: {
-            "@": "./",
-            "@assets": "./assets",
-            "@utils": "./utils/index.ts",
-            "@components": "./components",
-            "@screens": "./screens",
-            "@hooks": "./hooks",
-            "@navigation": "./navigation",
-            "@context": "./context",
-            "@styles": "./styles",
+            "@": "./src",
+            "@refs": "./src/app/refs",
+            "@utils": "./src/utils",
+            "@hooks": "./src/hooks",
             "@types": "../types/index.d.ts",
+            "@assets": "./src/assets",
+            "@styles": "./src/styles",
             "@common": "../common/both",
+            "@context": "./src/context",
+            "@screens": "./src/features",
+            "@modules": "./src/utils/modules",
+            "@components": "./src/components",
+            "@navigation": "./src/navigation",
           },
         },
       ],

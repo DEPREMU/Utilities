@@ -4,8 +4,8 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    "**/types/*",
     "../common/both/index.ts",
-    "../types/screens/vault.d.ts",
     "../common/both/notifications.ts"
   ],
   "compilerOptions": {
@@ -13,18 +13,18 @@
     "baseUrl": ".",
     "allowImportingTsExtensions": true,
     "paths": {
-      "@/*": ["*"],
-      "@utils": ["utils/"],
+      "@/*": ["src/*"],
+      "@refs": ["src/app/refs/"],
+      "@utils": ["src/utils/"],
       "@types": ["../types/index.d.ts"],
       "@common": ["../common/both/"],
-      "@hooks/*": ["hooks/*"],
-      "@assets/*": ["assets/*"],
-      "@styles/*": ["styles/*"],
-      "@screens/*": ["screens/*"],
-      "@context/*": ["context/*"],
-      "@constants/*": ["constants/*"],
-      "@navigation/*": ["navigation/*"],
-      "@components/*": ["components/*"]
+      "@modules": ["src/utils/modules/"],
+      "@hooks/*": ["src/hooks/*"],
+      "@assets/*": ["src/assets/*"],
+      "@screens/*": ["src/features/*"],
+      "@context/*": ["src/context/*"],
+      "@components/*": ["src/components/*"],
+      "@navigation/*": ["src/app/navigation/*"]
     }
   }
 }

@@ -3,12 +3,12 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.8.3";
+const version = "1.8.3-dev";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
-    name: "Utilities",
+    name: "Utilities Dev",
     slug: "Utilities",
     updates: {
       url: "https://u.expo.dev/7dd2c093-0c91-4638-a5b9-828d458e8be0",
@@ -17,7 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     runtimeVersion: version.split(".").slice(0, 2).join("."),
     version,
     orientation: "default",
-    icon: "./assets/icon.png",
+    icon: "./src/assets/icon.png",
     userInterfaceStyle: "automatic",
     platforms: ["android", "web"],
     extra: {
@@ -30,16 +30,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
     },
     splash: {
-      image: "./assets/icon.png",
+      image: "./src/assets/icon.png",
       resizeMode: "contain",
       backgroundColor: "#ffffff",
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
+        foregroundImage: "./src/assets/adaptive-icon.png",
         backgroundColor: "#000000",
       },
-      package: "com.utilities.depremu",
+      package: "com.utilities.depremu.dev",
       permissions: [
         "INTERNET",
         "WAKE_LOCK",
@@ -89,7 +89,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ],
     ],
     web: {
-      favicon: "./assets/favicon.png",
+      favicon: "./src/assets/favicon.png",
     },
   };
 };
