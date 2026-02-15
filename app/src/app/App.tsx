@@ -80,9 +80,8 @@ const App = () => {
 
   useEffect(() => {
     const initializeApp = async () => {
-      while (!storageManagement.isLoaded) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
+      await storageManagement.waitUntilLoaded();
+      storageManagement.save("HAS_UI", true);
       setIsLoading(false);
     };
     initializeApp();

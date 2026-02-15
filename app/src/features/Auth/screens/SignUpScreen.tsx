@@ -8,14 +8,20 @@ import { useUserContext } from "@/context/UserContext";
 import { navigateReplace } from "@/app/refs/navigationRef";
 import useStylesAuthScreens from "@/features/Auth/styles/useStylesAuthScreens";
 import { ActivityIndicator } from "react-native-paper";
-import { logger, isValidEmail, isValidPassword, tTyped } from "@utils";
+import {
+  logger,
+  isValidEmail,
+  isValidPassword,
+  tTyped,
+  sessionManager,
+} from "@utils";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const SignUpScreen: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesAuthScreens();
+  const { isLoggedIn } = useUserContext();
   const { openSnackBarRef } = useModal();
-  const { dataRef, isLoggedIn } = useUserContext();
 
   const [email, setEmail] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +45,7 @@ const SignUpScreen: React.FC = () => {
 
     signingUpRef.current = true;
 
-    dataRef.current.signUp(email, password, (success, error) => {
+    sessionManager.signUp(email, password, (success, error) => {
       if (!success) {
         setError(error || "Sign up failed");
         signingUpRef.current = false;
@@ -55,7 +61,7 @@ const SignUpScreen: React.FC = () => {
         },
       );
     });
-  }, [email, password, openSnackBarRef, dataRef]);
+  }, [email, password, openSnackBarRef]);
 
   useEffect(() => {
     if (isLoggedIn) navigateReplace("Home");

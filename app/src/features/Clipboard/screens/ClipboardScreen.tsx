@@ -3,6 +3,7 @@ import {
   clearRefs,
   REPLACERS,
   fetchToServer,
+  sessionManager,
   storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
@@ -18,8 +19,7 @@ import Button from "@/common/components/Button/screens";
 import { Tables } from "@types";
 import * as Clipboard from "expo-clipboard";
 import { useLanguage } from "@context/LanguageContext";
-import { useUserContext } from "@context/UserContext";
-import RenderClipboardItem from "@/features/Clipboard/components/RenderClipboardItem";
+import RenderClipboardItem from "@screens/Clipboard/components/RenderClipboardItem";
 import { useStylesClipboardScreen } from "@screens/Clipboard/styles";
 import { FAB, Searchbar, Switch, Text } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -48,7 +48,6 @@ const limitLoadMore = REPLACERS.isWeb ? 20 : 15;
 const ClipboardScreen: React.FC = () => {
   const { t, language } = useLanguage();
   const { styles, colors } = useStylesClipboardScreen();
-  const { sessionToken, dataRef } = useUserContext();
 
   const [deleted, setDeleted] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -100,8 +99,10 @@ const ClipboardScreen: React.FC = () => {
   const changeClipboardItemDeletedRef = useRef(
     async (id: string, deleted: boolean) => {
       if (!id) return logger.error("No ID provided for deletion");
-      if (!dataRef.current.sessionToken)
-        return logger.error("No session token available");
+
+      const { sessionToken } = sessionManager.getSessionData();
+
+      if (!sessionToken) return logger.error("No session token available");
 
       const [deviceId, language] = [
         storageManagement.get("DEVICE_ID"),
@@ -117,7 +118,7 @@ const ClipboardScreen: React.FC = () => {
           table: "ClipboardSync",
           values: { deleted },
         },
-        dataRef.current.sessionToken,
+        sessionToken,
       );
 
       const { error } = res.data || { error: res.errorText || "Unknown error" };
@@ -141,7 +142,7 @@ const ClipboardScreen: React.FC = () => {
     )
       return;
 
-    const { userData, sessionToken } = dataRef.current;
+    const { userData, sessionToken } = sessionManager.getSessionData();
     if (!sessionToken || !userData?.userId) return;
 
     const [language, deviceId] = [
@@ -302,6 +303,7 @@ const ClipboardScreen: React.FC = () => {
   });
 
   const handleDeleteRestoreAll = useCallback(async () => {
+    const { sessionToken } = sessionManager.getSessionData();
     if (!sessionToken) return logger.error("No session token available");
 
     const deviceId = storageManagement.get("DEVICE_ID");
@@ -332,7 +334,7 @@ const ClipboardScreen: React.FC = () => {
     setDeleted(newDeleted);
     setDefaultStates.current?.();
     deletedRef.current = newDeleted;
-  }, [sessionToken, language, searchText]);
+  }, [language, searchText]);
 
   const renderItems = useCallback(
     ({ item }: { item: Tables["ClipboardSync"] }) => (

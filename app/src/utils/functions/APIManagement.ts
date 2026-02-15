@@ -16,7 +16,7 @@ import {
 } from "@types";
 import { logger } from "./debug";
 import axios, { AxiosRequestConfig } from "axios";
-import { stringifyData, storageManagement } from "../services";
+import { stringifyData, storageManagement } from "../services/storage";
 
 /**
  * Generates an options object for a fetch request.

@@ -1,45 +1,47 @@
+import {
+  memoDeep,
+  fetchToServer,
+  sessionManager,
+  storageManagement,
+} from "@utils";
 import { List } from "react-native-paper";
 import { Theme } from "@types";
 import { useTheme } from "@/context/ThemeContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { useUserContext } from "@/context/UserContext";
 import { useBackgroundTask } from "@/context/BackgroundTaskContext";
-import React, { useCallback, useMemo } from "react";
-import { fetchToServer, storageManagement, memoDeep } from "@utils";
+import React, { useMemo, useRef } from "react";
 
 const ThemePicker: React.FC = () => {
   const { t } = useLanguage();
   const { addTaskQueueRef } = useBackgroundTask();
-  const { userData, sessionToken } = useUserContext();
   const { themeState, setThemeState, colors } = useTheme();
 
-  const changeTheme = useCallback(
-    (newTheme: Theme) => {
-      setThemeState(newTheme);
-      if (!userData?.userId || !sessionToken) return;
-      addTaskQueueRef.current({
-        requiresInternet: true,
-        func: async () => {
-          if (!userData?.userId || !sessionToken) return;
-          const deviceId = storageManagement.get("DEVICE_ID");
-          const lang = storageManagement.get("LANGUAGE");
+  const changeThemeRef = useRef((newTheme: Theme) => {
+    const { sessionToken, userData } = sessionManager.getSessionData();
 
-          await fetchToServer(
-            "/database/update",
-            {
-              lang,
-              table: "UserConfig",
-              deviceId,
-              match: { userId: userData?.userId },
-              values: { theme: newTheme },
-            },
-            sessionToken,
-          );
-        },
-      });
-    },
-    [setThemeState, userData, addTaskQueueRef, sessionToken],
-  );
+    setThemeState(newTheme);
+    if (!userData?.userId || !sessionToken) return;
+    addTaskQueueRef.current({
+      requiresInternet: true,
+      func: async () => {
+        if (!userData?.userId || !sessionToken) return;
+        const deviceId = storageManagement.get("DEVICE_ID");
+        const lang = storageManagement.get("LANGUAGE");
+
+        await fetchToServer(
+          "/database/update",
+          {
+            lang,
+            table: "UserConfig",
+            deviceId,
+            match: { userId: userData?.userId },
+            values: { theme: newTheme },
+          },
+          sessionToken,
+        );
+      },
+    });
+  });
 
   const renderAccordionItem = useMemo(() => {
     return ["auto", "light", "dark"].map((key) => (
@@ -53,10 +55,10 @@ const ThemePicker: React.FC = () => {
             icon={themeState === key ? "radiobox-marked" : "radiobox-blank"}
           />
         )}
-        onPress={() => changeTheme(key as Theme)}
+        onPress={() => changeThemeRef.current(key as Theme)}
       />
     ));
-  }, [themeState, colors, t, changeTheme]);
+  }, [themeState, colors, t]);
 
   return (
     <List.Accordion

@@ -4,22 +4,22 @@ import {
   cleanFloat,
   fetchToServer,
   stringifyData,
+  sessionManager,
   storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
   getCryptosFromDatabase,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
-import CryptoItem from "@/features/Cryptos/components/CryptoItem";
+import CryptoItem from "@screens/Cryptos/components/CryptoItem";
 import { TablesKeys } from "@types";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@/common/components/SkeletonLoading";
 import { View, FlatList } from "react-native";
-import { useUserContext } from "@/context/UserContext";
 import { Text, TextInput } from "react-native-paper";
-import useStylesCryptoItem from "@/features/Cryptos/styles/useStylesCryptoItem";
-import { useBackgroundTask } from "@/context/BackgroundTaskContext";
-import useStylesSelectionScreen from "@/features/Cryptos/styles/useStylesSelectionScreen";
+import useStylesCryptoItem from "@screens/Cryptos/styles/useStylesCryptoItem";
+import { useBackgroundTask } from "@context/BackgroundTaskContext";
+import useStylesSelectionScreen from "@screens/Cryptos/styles/useStylesSelectionScreen";
 import { SelectedCryptos, PriceBinanceAPI } from "@common";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 
@@ -32,10 +32,9 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
   setSelectedCryptos,
   selectedCryptos,
 }) => {
+  const { t } = useLanguage();
   const { styles } = useStylesSelectionScreen();
-  const { t, language } = useLanguage();
   const { addTaskQueueRef } = useBackgroundTask();
-  const { userData, sessionToken } = useUserContext();
   const { styles: stylesCryptoItem } = useStylesCryptoItem();
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -87,6 +86,9 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
   const handleCheckBoxChange = useCallback(
     (cryptoId: string) => {
       if (!ownedCryptos) return;
+
+      const { userData } = sessionManager.getSessionData();
+
       const isSelected = ownedCryptos[cryptoId];
       if (isSelected) {
         setOwnedCryptos((prevOwned) => {
@@ -109,11 +111,12 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         }));
       }
     },
-    [currency, ownedCryptos, cryptos, userData],
+    [currency, ownedCryptos, cryptos],
   );
 
   const handleTextInputAmount = useCallback(
     async (text: string, id: string) => {
+      const { userData } = sessionManager.getSessionData();
       if (!userData?.userId) return;
 
       const userId = userData?.userId;
@@ -133,7 +136,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
         return newOwned;
       });
     },
-    [cryptos, currency, userData],
+    [cryptos, currency],
   );
 
   const renderItem = useCallback(
@@ -193,6 +196,9 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 
   useEffect(() => {
     const fetchOwnedCryptos = async () => {
+      const { userData, sessionToken } = sessionManager.getSessionData();
+      const language = storageManagement.get("LANGUAGE");
+
       const owned = storageManagement.get("SELECTED_CRYPTOS", {});
       const lengthOwned = Object.keys(owned).length;
       if (owned && lengthOwned < 25 && lengthOwned > 0)
@@ -204,7 +210,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     };
 
     fetchOwnedCryptos();
-  }, [userData?.userId, sessionToken, language]);
+  }, []);
 
   useEffect(() => {
     const id = setTimeoutPolyfill(() => {
@@ -232,6 +238,9 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
 
   useEffect(() => {
     const save = async () => {
+      const language = storageManagement.get("LANGUAGE");
+      const { userData, sessionToken } = sessionManager.getSessionData();
+
       const userId = userData?.userId;
       if (!userId || !sessionToken) return;
       const cryptosFromDatabase = await getCryptosFromDatabase(
@@ -351,14 +360,7 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     };
 
     save();
-  }, [
-    userData?.userId,
-    language,
-    sessionToken,
-    ownedCryptos,
-    addTaskQueueRef,
-    setSelectedCryptos,
-  ]);
+  }, [ownedCryptos, addTaskQueueRef, setSelectedCryptos]);
 
   useEffect(() => {
     if (!cryptos) return;

@@ -25,6 +25,7 @@ import {
   SelectedCryptos,
   ExpectedStorageTypes,
   objByReasonNotification,
+  reasonNotification,
 } from "@common";
 import chalk from "chalk";
 import bcrypt from "bcryptjs";
@@ -148,6 +149,7 @@ export const getStorageData = async (
     if (rememberMe) date = getDateWithDaysAhead(15).getTime();
 
     const storageData: ExpectedStorageTypes<"BOTH"> = {
+      HAS_UI: true,
       SESSION_EXPIRY: date,
       SELECTED_CRYPTOS: cryptosToSave,
       LAST_UPDATE_CHECK: Date.now(),
@@ -208,29 +210,14 @@ export const initializeTables = async (
         hasAdmin: false,
         ...commonValues,
       }),
-      insertIntoTable("UserNotificationsConfig", [
-        {
+      insertIntoTable(
+        "UserNotificationsConfig",
+        reasonNotification.map((reason) => ({
           ...commonValuesNotifications,
-          reason: "allNotifications",
-        },
-        {
-          ...commonValuesNotifications,
-          reason: "cryptos",
-          interval: 600000,
-        },
-        {
-          ...commonValuesNotifications,
-          reason: "batteryAlerts",
-        },
-        {
-          ...commonValuesNotifications,
-          reason: "locationEnabled",
-        },
-        {
-          ...commonValuesNotifications,
-          reason: "noInternetConnection",
-        },
-      ]),
+          reason,
+          ...(reason === "cryptos" ? { interval: 600000 } : {}),
+        })),
+      ),
     ]);
 
     const userConfigError = userConfig.error;

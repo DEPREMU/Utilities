@@ -20,7 +20,7 @@ import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
 import * as DocumentPicker from "expo-document-picker";
 import { Directory, File, Paths } from "expo-file-system";
-import { storageManagement, stringifyData } from "../services";
+import { storageManagement, stringifyData } from "../services/storage";
 import { ExpectedStorageTypes, wrapFunctionWithError } from "@common";
 
 const URL_GOOGLE_204 = "https://www.google.com/generate_204";
@@ -275,6 +275,25 @@ export const hasInternetConnection = async (): Promise<boolean> => {
   } catch {
     return false;
   }
+};
+
+/**
+ * Waits for an active internet connection by repeatedly checking connectivity with a specified number of retries and interval.
+ * The function attempts to verify the internet connection by calling `hasInternetConnection` at regular intervals until a connection is established or the maximum number of retries is reached.
+ *
+ * @param retries - The maximum number of attempts to check for an internet connection before giving up.
+ * @param interval - The time in milliseconds to wait between each connectivity check. Default is 2000ms (2 seconds).
+ * @returns A promise that resolves to `true` if an internet connection is established within the given retries, or `false` if all attempts fail.
+ */
+export const waitForInternet = async (
+  retries: number,
+  interval: number = 2000,
+): Promise<boolean> => {
+  for (let i = 0; i < retries; i++) {
+    if (await hasInternetConnection()) return true;
+    await new Promise((resolve) => setTimeoutPolyfill(resolve, interval));
+  }
+  return false;
 };
 
 /**

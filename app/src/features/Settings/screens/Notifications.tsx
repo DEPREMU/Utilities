@@ -22,6 +22,7 @@ import {
   notificationsManager,
   clearTimeoutPolyfill,
   askLocationPermission,
+  sessionManager,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import { useLanguage } from "@/context/LanguageContext";
@@ -41,11 +42,11 @@ type NotificationsData = {
 }[];
 
 const NotificationsScreen: React.FC = () => {
+  const { t } = useLanguage();
   const { styles } = useStylesNotifications();
-  const { t, language } = useLanguage();
+  const { isLoggedIn } = useUserContext();
   const { sendMessageRef } = useWebSocket();
   const { addTaskQueueRef } = useBackgroundTask();
-  const { userData, sessionToken, isLoggedIn } = useUserContext();
 
   const [minutes, setMinutes] = useState<typeMinutes>();
   const [notifications, setNotifications] = useState<Notifications | null>(
@@ -144,28 +145,7 @@ const NotificationsScreen: React.FC = () => {
     },
   );
 
-  const notificationData: NotificationsData = useMemo(() => {
-    return Object.keys(notifications || notificationsManager.getNotifications())
-      .reduce(
-        (acc, reason) => {
-          const reasonKey = reason as ReasonNotification;
-          acc.push({
-            id: reasonKey,
-            data:
-              notifications?.[reasonKey] ||
-              notificationsManager.getNotification(reasonKey),
-          });
-          return acc;
-        },
-        [] as {
-          id: ReasonNotification;
-          data: Notifications[ReasonNotification];
-        }[],
-      )
-      .sort((a, b) => a.id.localeCompare(b.id));
-  }, [notifications]);
-
-  const handleChangeNotification = useCallback(
+  const handleChangeNotificationRef = useRef(
     async (reason: ReasonNotification) => {
       if (reason === "cryptos") return navigateReplace("Login");
       if (reason === "locationEnabled" && !(await askLocationPermission()))
@@ -180,11 +160,12 @@ const NotificationsScreen: React.FC = () => {
         (notifications) => setNotifications(notifications),
       );
     },
-    [],
   );
 
-  const handleChangeNotificationInterval = useCallback(
+  const handleChangeNotificationIntervalRef = useRef(
     async (id: ReasonNotification, value: string) => {
+      const { sessionToken, userData } = sessionManager.getSessionData();
+
       if (!sessionToken) return navigateReplace("Login");
       if (!userData?.userId) return;
 
@@ -220,7 +201,7 @@ const NotificationsScreen: React.FC = () => {
                   deviceId,
                   table: "UserNotificationsConfig",
                   values,
-                  lang: language,
+                  lang: storageManagement.get("LANGUAGE"),
                 },
                 sessionToken,
               );
@@ -237,8 +218,28 @@ const NotificationsScreen: React.FC = () => {
         return updated;
       });
     },
-    [userData?.userId, sessionToken, language, addTaskQueueRef],
   );
+
+  const notificationData: NotificationsData = useMemo(() => {
+    return Object.keys(notifications || notificationsManager.getNotifications())
+      .reduce(
+        (acc, reason) => {
+          const reasonKey = reason as ReasonNotification;
+          acc.push({
+            id: reasonKey,
+            data:
+              notifications?.[reasonKey] ||
+              notificationsManager.getNotification(reasonKey),
+          });
+          return acc;
+        },
+        [] as {
+          id: ReasonNotification;
+          data: Notifications[ReasonNotification];
+        }[],
+      )
+      .sort((a, b) => a.id.localeCompare(b.id));
+  }, [notifications]);
 
   const renderNotificationItem = useCallback(
     ({ item }: { item: NotificationsData[number] }) => {
@@ -285,7 +286,7 @@ const NotificationsScreen: React.FC = () => {
       return (
         <View style={styles.containerNotificationItem} key={item.id}>
           <Button
-            handlePress={() => handleChangeNotification(item.id)}
+            handlePress={() => handleChangeNotificationRef.current(item.id)}
             replaceStyles={{ button: styles.notificationItem, textButton: {} }}
             disabled={item.id === "cryptos" && !isLoggedIn}
           >
@@ -293,14 +294,14 @@ const NotificationsScreen: React.FC = () => {
             <Switch
               value={item.data.enabled}
               disabled={item.id === "cryptos" && !isLoggedIn}
-              onChange={() => handleChangeNotification(item.id)}
+              onChange={() => handleChangeNotificationRef.current(item.id)}
             />
           </Button>
           {item.data.enabled && minutesItem > -1 && (
             <TextInput
               value={minutesItem?.toString()}
               onChangeText={(text) =>
-                handleChangeNotificationInterval(item.id, text)
+                handleChangeNotificationIntervalRef.current(item.id, text)
               }
               keyboardType="numeric"
               label={t("settings.notificationInterval")}
@@ -516,14 +517,7 @@ const NotificationsScreen: React.FC = () => {
         </View>
       );
     },
-    [
-      t,
-      styles,
-      minutes,
-      isLoggedIn,
-      handleChangeNotification,
-      handleChangeNotificationInterval,
-    ],
+    [t, styles, minutes, isLoggedIn],
   );
 
   useEffect(() => {
@@ -545,6 +539,8 @@ const NotificationsScreen: React.FC = () => {
 
   useEffect(() => {
     const saveIntervals = async () => {
+      const { userData } = sessionManager.getSessionData();
+
       if (!notifications || !userData?.userId) return;
       notificationsManager.editNotifications((prev) => {
         return Object.fromEntries(
@@ -568,7 +564,7 @@ const NotificationsScreen: React.FC = () => {
     const id = setTimeoutPolyfill(saveIntervals, 1000);
 
     return () => clearTimeoutPolyfill(id);
-  }, [minutes, notifications, sendMessageRef, userData?.userId]);
+  }, [minutes, notifications, sendMessageRef]);
 
   return (
     <View style={styles.container}>

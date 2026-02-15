@@ -1,13 +1,12 @@
 import {
   logger,
   fetchToServer,
+  sessionManager,
   storageManagement,
   setTimeoutPolyfill,
 } from "@utils";
 import DownDetector from "./DownDetector";
 import AddNewWebPage from "./AddNewWebPage";
-import { useLanguage } from "@/context/LanguageContext";
-import { useUserContext } from "@/context/UserContext";
 import GetBottomNavigation from "@/common/components/BottomNavigator/components/GetBottomNavigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Tables, TablesKeys, DownDetector as DownDetectorType } from "@types";
@@ -25,9 +24,6 @@ const skeletonData: Tables[typeof tableName][] = Array.from({ length: 5 }).map(
 );
 
 const DownDetectorNavigator: React.FC = () => {
-  const { language } = useLanguage();
-  const { userData, sessionToken, dataRef } = useUserContext();
-
   const [downDetectorData, setDownDetectorData] = useState<
     Tables[typeof tableName][] | null
   >(skeletonData);
@@ -43,7 +39,7 @@ const DownDetectorNavigator: React.FC = () => {
   const deleteDownDetectorItemRef = useRef(async (id: string) => {
     if (!id) return logger.error("No ID provided for deletion");
 
-    const { sessionToken } = dataRef.current;
+    const { sessionToken } = sessionManager.getSessionData();
 
     if (!sessionToken) return logger.error("No session token available");
 
@@ -91,7 +87,7 @@ const DownDetectorNavigator: React.FC = () => {
         ...(prevData?.filter((item) => item.id !== id) || []),
       ];
 
-      const { sessionToken } = dataRef.current;
+      const { sessionToken } = sessionManager.getSessionData();
       if (sessionToken) {
         const [deviceId, language] = [
           storageManagement.get("DEVICE_ID"),
@@ -129,6 +125,7 @@ const DownDetectorNavigator: React.FC = () => {
   });
 
   useEffect(() => {
+    const { sessionToken, userData } = sessionManager.getSessionData();
     if (!userData?.userId) return;
 
     const fetchDownDetectorDataFromDatabase = async () => {
@@ -140,7 +137,7 @@ const DownDetectorNavigator: React.FC = () => {
         const res = await fetchToServer(
           "/database/fetch",
           {
-            lang: language,
+            lang: storageManagement.get("LANGUAGE"),
             table: tableName,
             match: { userId: userData?.userId },
             deviceId,
@@ -171,7 +168,7 @@ const DownDetectorNavigator: React.FC = () => {
     };
 
     fetchDownDetectorDataFromDatabase();
-  }, [userData?.userId, sessionToken, language]);
+  }, []);
 
   const returnValue = useMemo(
     () =>

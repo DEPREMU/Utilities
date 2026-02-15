@@ -18,7 +18,7 @@ import { logger } from "../functions/debug";
 import * as FileSystem from "@dr.pogodin/react-native-fs";
 import * as ExpoFileSystem from "expo-file-system";
 import { sanitizeFileName } from "../functions/appManagement";
-import { storageManagement } from "../services";
+import { storageManagement } from "../services/storage";
 import { NativeFunctionsModule } from "@modules";
 import { FetchFileInfo, DecryptFolderFiles, ActionWithVaultItem } from "@types";
 

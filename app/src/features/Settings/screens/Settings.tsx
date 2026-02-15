@@ -9,6 +9,7 @@ import {
   getRouteAPI,
   fetchToServer,
   ADMIN_PASSWORD,
+  sessionManager,
   getFormattedDate,
   storageManagement,
   setTimeoutPolyfill,
@@ -16,16 +17,15 @@ import {
   isNewUpdateAvailable,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
-import ThemePicker from "@/features/Settings/components/ThemePicker";
+import ThemePicker from "@screens/Settings/components/ThemePicker";
 import { cloneDeep } from "lodash";
-import LanguagePicker from "@/features/Settings/components/LanguagePicker";
-import { useLanguage } from "@/context/LanguageContext";
-import { useWebSocket } from "@/context/WebSocketContext";
-import { useUserContext } from "@/context/UserContext";
+import LanguagePicker from "@screens/Settings/components/LanguagePicker";
+import { useLanguage } from "@context/LanguageContext";
+import { useWebSocket } from "@context/WebSocketContext";
 import { ScrollView, View } from "react-native";
 import { typeLanguagesKeys } from "@types";
-import { useBackgroundTask } from "@/context/BackgroundTaskContext";
-import useStylesSettingsScreen from "@/features/Settings/styles/useStylesSettingsScreen";
+import { useBackgroundTask } from "@context/BackgroundTaskContext";
+import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
 import { ActivityIndicator, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useRef, useState } from "react";
 
@@ -52,11 +52,10 @@ const getDefaultUpdatesData = (): UpdatesData => ({
 });
 
 const SettingsScreen: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { setSocketURL } = useWebSocket();
   const { styles, colors } = useStylesSettingsScreen();
   const { addTaskQueueRef } = useBackgroundTask();
-  const { userData, sessionToken } = useUserContext();
 
   const [apiURL, setApiURL] = useState<string>(
     storageManagement.get("API_URL", ""),
@@ -116,6 +115,9 @@ const SettingsScreen: React.FC = () => {
 
   const handleCheckPasswordAdminSection = useCallback(async () => {
     if (!password || !ADMIN_PASSWORD) return;
+
+    const { userData, sessionToken } = sessionManager.getSessionData();
+
     if (!userData?.userId || !sessionToken) return;
     if (password !== ADMIN_PASSWORD) return;
 
@@ -129,7 +131,7 @@ const SettingsScreen: React.FC = () => {
     await fetchToServer(
       "/database/update",
       {
-        lang: language,
+        lang: storageManagement.get("LANGUAGE"),
         match: { userId: userData?.userId },
         table: "UserConfig",
         values: { hasAdmin: true },
@@ -137,9 +139,11 @@ const SettingsScreen: React.FC = () => {
       },
       sessionToken,
     );
-  }, [password, userData?.userId, sessionToken, language]);
+  }, [password]);
 
   const saveApiURL = useCallback(async () => {
+    const { userData, sessionToken } = sessionManager.getSessionData();
+
     if (!apiURL || !userData?.userId) return;
     const id =
       Date.now().toString() + Math.random().toString(36).substring(2, 8);
@@ -157,7 +161,7 @@ const SettingsScreen: React.FC = () => {
             "/database/update",
             {
               deviceId,
-              lang: language,
+              lang: storageManagement.get("LANGUAGE"),
               match: { userId: userData.userId },
               table: "UserConfig",
               values: { API_URL: apiURL },
@@ -174,9 +178,11 @@ const SettingsScreen: React.FC = () => {
       },
       id,
     );
-  }, [apiURL, addTaskQueueRef, userData?.userId, sessionToken, language]);
+  }, [apiURL, addTaskQueueRef]);
 
   const saveSocketURL = useCallback(async () => {
+    const { userData, sessionToken } = sessionManager.getSessionData();
+
     if (!socketURL || !userData?.userId) return;
     const id =
       Date.now().toString() + Math.random().toString(36).substring(2, 8);
@@ -194,7 +200,7 @@ const SettingsScreen: React.FC = () => {
           await fetchToServer(
             "/database/update",
             {
-              lang: language,
+              lang: storageManagement.get("LANGUAGE"),
               match: { userId: userData.userId },
               table: "UserConfig",
               deviceId,
@@ -216,14 +222,7 @@ const SettingsScreen: React.FC = () => {
       },
       id,
     );
-  }, [
-    language,
-    socketURL,
-    userData?.userId,
-    setSocketURL,
-    sessionToken,
-    addTaskQueueRef,
-  ]);
+  }, [socketURL, setSocketURL, addTaskQueueRef]);
 
   const renderSectionsAdmin = useCallback(() => {
     const sections: Section[] = [

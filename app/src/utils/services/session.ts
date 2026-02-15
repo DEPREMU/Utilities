@@ -5,16 +5,71 @@ import {
   ALL_KEYS_STORAGE_TYPE,
   DO_NOT_DELETE_OR_SAVE,
 } from "@common";
-import { logger } from "./debug";
+import { logger } from "../functions/debug";
+import { UserData } from "@types";
 import { REPLACERS } from "../TOP_LEVEL";
 import { windowModule } from "@modules";
 import { checkLanguage } from "../translates";
 import { fetchToServer } from "../functions/APIManagement";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@refs";
-import { storageManagement } from "../services/storage";
-import { isFalsy, setTimeoutPolyfill } from "../functions/appManagement";
-import { UserData, ResponseAuth, ResponseFetch } from "@types";
+import { storageManagement } from "./storage";
+import { ResponseAuth, ResponseFetch } from "@types";
+
+type SessionData = {
+  userData: Omit<UserData, "password"> | null;
+  rememberMe: boolean;
+  isLoggedIn: boolean;
+  sessionToken: string | null;
+};
+
+type EventSession =
+  | "error"
+  | "login"
+  | "logout"
+  | "sessionRefreshed"
+  | "refreshingSession";
+
+type ListenersSession = {
+  [event in EventSession]?: Record<
+    string,
+    (...args: ArgsListener<event>) => void
+  >;
+};
+
+type ArgsListener<T extends EventSession> = T extends
+  | "error"
+  | "login"
+  | "sessionRefreshed"
+  ? [error?: string]
+  : T extends "logout" | "refreshingSession"
+    ? []
+    : never;
+
+type AddEventListener = <T extends EventSession>(
+  event: T,
+  callback: (...args: ArgsListener<T>) => void,
+) => () => void;
+
+type EmitEvent = <T extends EventSession>(
+  event: T,
+  ...args: ArgsListener<T>
+) => void;
+
+type RemoveAllListeners = (event?: EventSession) => void;
+
+type Login = (
+  email: string,
+  password: string,
+  rememberMe?: boolean,
+  callback?: (error?: string) => void,
+) => Promise<void>;
+
+type SignUp = (
+  email: string,
+  password: string,
+  callback?: (success: boolean, error?: string) => void,
+) => Promise<void>;
 
 /**
  * Retrieves the Expo push token for the device.
@@ -105,7 +160,7 @@ export const signInWithEmail = async (
 
     const dataInsert = res.data;
 
-    if (!dataInsert || isFalsy(dataInsert?.user)) {
+    if (!dataInsert || !dataInsert?.user) {
       const errorMsg = "No session or user data received from Database";
       logger.error(errorMsg);
       return { success: false, error: errorMsg };
@@ -245,6 +300,8 @@ export const refreshSession = async (
   token: string,
 ): Promise<ResponseAuth<"login">> => {
   try {
+    const { setTimeoutPolyfill } = await import("../functions");
+
     const lang = storageManagement.get("LANGUAGE");
     const deviceId = storageManagement.get("DEVICE_ID");
     const notificationToken = await getDevicePushToken();
@@ -355,6 +412,174 @@ export const getUserData = async (
  * @returns The user's id if the user is authenticated, otherwise null.
  */
 export const getCurrentUserId = async (): Promise<string | null> => {
-  const { user } = await getCurrentUser();
+  const { user } = getCurrentUser();
   return user?.userId || null;
 };
+
+class SessionManager {
+  #i = 0;
+  #intervalId: number | null = null;
+  #data: SessionData = {
+    userData: null,
+    rememberMe: false,
+    isLoggedIn: false,
+    sessionToken: null,
+  };
+
+  private _listeners: ListenersSession = {};
+
+  private _emitEvent: EmitEvent = (event, ...args) => {
+    const listeners = this._listeners[event];
+    if (!listeners) return;
+
+    Object.values(listeners).forEach((callback) => callback?.(...args));
+  };
+
+  public addEventListener: AddEventListener = (event, callback) => {
+    if (!REPLACERS.isProduction) {
+      if (this.#i > 100) {
+        const count = Object.values(this._listeners).reduce(
+          (acc, listeners) => acc + Object.keys(listeners || {}).length,
+          0,
+        );
+        if (count > 100) {
+          logger.warn(
+            "SESSION_MANAGER",
+            "Too many session listeners, you may have a memory leak, to suppress this warning set REPLACERS.isDev = false.",
+          );
+        }
+      }
+    }
+
+    if (!this._listeners[event]) this._listeners[event] = {};
+    const id = `${this.#i++}`;
+    this._listeners[event][id] = callback;
+    return () => {
+      delete this._listeners[event]?.[id];
+    };
+  };
+
+  public removeAllListeners: RemoveAllListeners = (event?: EventSession) => {
+    if (event) delete this._listeners[event];
+    else this._listeners = {};
+  };
+
+  public refreshSession = async () => {
+    const { waitForInternet } = await import("@utils");
+    const hasInternet = await waitForInternet(5);
+    if (!hasInternet) {
+      logger.error(
+        "SESSION_MANAGER",
+        "No internet connection, cannot refresh session",
+      );
+      return;
+    }
+
+    const rememberMe = storageManagement.get("SESSION_EXPIRY");
+    const sessionToken = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
+
+    const handleNotLoggedIn = (reason?: string) => {
+      if (reason) logger.log("Not logged in:", reason);
+      this.#data.isLoggedIn = false;
+      this._emitEvent("logout");
+      if (REPLACERS.isWeb) windowModule.notifyLoginStatus?.(false);
+    };
+
+    if (!rememberMe || !sessionToken)
+      return handleNotLoggedIn("No rememberMe or token");
+
+    if (rememberMe < Date.now()) {
+      await signOut();
+      return handleNotLoggedIn(`Session expired due to expiry ${rememberMe}`);
+    }
+
+    const { user, token, error } = await refreshSession(sessionToken);
+
+    if (error) return handleNotLoggedIn(error);
+
+    if (!user || !token) {
+      await signOut();
+      return handleNotLoggedIn("No user or token returned");
+    }
+
+    this.#data = {
+      userData: user,
+      rememberMe: this.#data.rememberMe,
+      isLoggedIn: true,
+      sessionToken: token,
+    };
+    this._emitEvent("login");
+  };
+
+  public login: Login = async (
+    email,
+    password,
+    rememberMe = false,
+    callback,
+  ) => {
+    this.#data.rememberMe = !!rememberMe;
+    const { user, token, error } = await signInWithEmail(
+      email,
+      password,
+      rememberMe,
+    );
+    if (error || !user || !token) {
+      const errorMsg =
+        "SESSION_MANAGER " + error
+          ? `Login error: ${error}`
+          : "No user or token returned";
+      logger.error("Login error:", errorMsg);
+      this._emitEvent("login", errorMsg);
+      callback?.(errorMsg);
+      return;
+    }
+
+    this.#data = {
+      userData: user,
+      rememberMe: this.#data.rememberMe,
+      isLoggedIn: true,
+      sessionToken: token,
+    };
+    this._emitEvent("login");
+    callback?.();
+  };
+
+  public logout = async () => {
+    await signOut();
+    this.#data = {
+      ...this.#data,
+      userData: null,
+      isLoggedIn: false,
+      sessionToken: null,
+    };
+    this._emitEvent("logout");
+  };
+
+  public signUp: SignUp = async (email, password, callback) => {
+    const { success, error } = await signUpWithEmail(email, password);
+    if (!success) {
+      const errorMsg =
+        "SESSION_MANAGER " + error
+          ? `Sign up error: ${error}`
+          : "Unknown sign up error";
+      logger.error(errorMsg);
+    }
+    callback?.(success, error);
+  };
+
+  public getSessionData = () => this.#data;
+
+  public init = async () => {
+    await this.refreshSession();
+    const { setIntervalPolyfill, clearIntervalPolyfill } =
+      await import("../functions");
+
+    if (this.#intervalId) clearIntervalPolyfill(this.#intervalId);
+    this.#intervalId = setIntervalPolyfill(
+      () => this.refreshSession(),
+      15 * 60 * 1000, //!
+    );
+  };
+}
+
+export const sessionManager = new SessionManager();

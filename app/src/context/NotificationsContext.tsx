@@ -1,15 +1,14 @@
 import {
+  windowModule,
+  NotificationModule,
+  NativeFunctionsModule,
+} from "@modules";
+import {
   Notification,
   EventNativeModule,
   ReasonNotification,
   NotificationAction,
 } from "@types";
-import {
-  windowModule,
-  BackgroundModule,
-  NotificationModule,
-  NativeFunctionsModule,
-} from "@modules";
 import React, {
   useRef,
   useMemo,
@@ -23,7 +22,6 @@ import {
   logger,
   REPLACERS,
   DATA_PLATFORM,
-  storageManagement,
   isLocationEnabled,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
@@ -62,11 +60,11 @@ interface NotificationsProviderProps {
 export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   children,
 }) => {
+  const { t } = useLanguage();
   const { statesRef } = useBackground();
+  const { isLoggedIn } = useUserContext();
   const { deviceInfo } = useDeviceInformation();
-  const { t, language } = useLanguage();
   const { openSnackBarRef } = useModal();
-  const { sessionToken, userData, isLoggedIn } = useUserContext();
   const { hasInternet, initIntervalTimeoutsRef, deleteIntervalTimeoutRef } =
     useBackground();
 
@@ -461,24 +459,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       deleteIntervalTimeoutRef.current("locationEnabled");
     };
   }, [initIntervalTimeoutsRef, deleteIntervalTimeoutRef]);
-
-  useEffect(() => {
-    if (!REPLACERS.isNative) return;
-    if (!sessionToken || !userData?.userId) return;
-
-    const id = setTimeoutPolyfill(() => {
-      const deviceId = storageManagement.get("DEVICE_ID");
-
-      BackgroundModule?.setUserData(
-        sessionToken,
-        userData.userId,
-        language,
-        deviceId,
-      );
-    }, 5000);
-
-    return () => clearTimeoutPolyfill(id);
-  }, [sessionToken, userData?.userId, language]);
 
   const value: NotificationsContextType = useMemo(
     () => ({

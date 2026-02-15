@@ -4,6 +4,13 @@ import {
   AvailableFunctions,
   FunctionsArguments,
 } from "@types";
+import {
+  logger,
+  showAlert,
+  storageManagement,
+  executeRegisteredTask,
+  hasInternetConnection,
+} from "@utils";
 import React, {
   useRef,
   useMemo,
@@ -11,16 +18,6 @@ import React, {
   useContext,
   createContext,
 } from "react";
-import {
-  logger,
-  showAlert,
-  getRandomUUID,
-  storageManagement,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-  executeRegisteredTask,
-  hasInternetConnection,
-} from "@utils";
 import { BackHandler } from "react-native";
 import { useLanguage } from "./LanguageContext";
 import { useBackground } from "./BackgroundContext";
@@ -126,14 +123,12 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   children,
 }) => {
   const { t } = useLanguage();
+  const { isLoggedIn } = useUserContext();
   const { hasInternet, statesRef } = useBackground();
-  const { initIntervalTimeoutsRef } = useBackground();
-  const { isLoggedIn, dataRef, setLoggingIn, setIsLoggedIn } = useUserContext();
 
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);
   const executeWhenInternetRef = useRef<BackgroundTaskWithMeta[]>([]);
-  const idFunctionRefreshTokenQueueRef = useRef<string>(getRandomUUID());
 
   const persistPendingTasksRef = useRef(
     <T extends AvailableFunctions>(removeTaskWithId?: string) => {
@@ -169,7 +164,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
     while (taskQueueRef.current.length > 0) {
       const task = taskQueueRef.current.shift();
-      if (!task) continue;
+      if (!task || typeof task.func !== "function") continue;
 
       try {
         if (task.requiresInternet) {
@@ -181,7 +176,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
         }
         await task.func();
       } catch (err) {
-        logger.error("Error in background task:", err);
+        logger.error("Error in background task:", task, "\n", err);
       }
     }
 
@@ -320,39 +315,6 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     storageManagement.save("PENDING_TASKS", []);
     processQueueRef.current();
   }, [hasInternet]);
-
-  useEffect(() => {
-    const handleRefreshSessionWithInternet = () => {
-      const id = idFunctionRefreshTokenQueueRef.current;
-
-      addTaskQueueRef.current(
-        {
-          func: () => {
-            dataRef.current.refreshToken();
-          },
-          requiresInternet: true,
-        },
-        {
-          id,
-          functionName: "refreshSession",
-          args: [],
-        },
-        id,
-      );
-    };
-
-    initIntervalTimeoutsRef.current("refreshSession", {
-      fn: handleRefreshSessionWithInternet,
-      interval: 8 * 60 * 60 * 1000,
-      type: "interval",
-      workWithInternet: true,
-      shouldRestartAuto: true,
-      shouldStopWhenSuspend: false,
-    });
-
-    const id = setTimeoutPolyfill(handleRefreshSessionWithInternet, 2000);
-    return () => clearTimeoutPolyfill(id);
-  }, [setLoggingIn, setIsLoggedIn, dataRef, initIntervalTimeoutsRef]);
 
   const value: BackgroundTaskContextType = useMemo(
     () => ({

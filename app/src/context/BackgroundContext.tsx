@@ -37,7 +37,7 @@ type dataTimeControl = {
 };
 
 type TimeControls = Record<
-  "refreshSession" | "clipboardWeb" | "deviceInfo" | "locationEnabled",
+  "clipboardWeb" | "deviceInfo" | "locationEnabled",
   dataTimeControl | null
 >;
 
@@ -89,7 +89,6 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
   const timeControlsRef = React.useRef<TimeControls>({
     deviceInfo: null,
     clipboardWeb: null,
-    refreshSession: null,
     locationEnabled: null,
   });
 

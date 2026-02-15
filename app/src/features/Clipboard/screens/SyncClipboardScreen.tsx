@@ -2,22 +2,22 @@ import Button from "@/common/components/Button/screens";
 import { Text } from "react-native-paper";
 import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
-import { useUserContext } from "@context/UserContext";
 import { View, TextInput } from "react-native";
 import { useStylesSyncClipboard } from "@screens/Clipboard/styles";
 import React, { useCallback, useState } from "react";
-import { fetchToServer, storageManagement } from "@utils";
+import { fetchToServer, sessionManager, storageManagement } from "@utils";
 
 const SyncClipboardScreen: React.FC = () => {
   const { styles } = useStylesSyncClipboard();
   const { t, language } = useLanguage();
   const { openSnackBarRef } = useModal();
-  const { userData, sessionToken } = useUserContext();
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAddToDatabase = useCallback(async () => {
+    const { userData, sessionToken } = sessionManager.getSessionData();
+
     if (!userData?.userId)
       return openSnackBarRef.current(t("youAreNotLoggedIn"));
 
@@ -58,7 +58,7 @@ const SyncClipboardScreen: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [inputText, openSnackBarRef, t, userData?.userId, sessionToken, language]);
+  }, [inputText, openSnackBarRef, t, language]);
 
   return (
     <View style={styles.container}>

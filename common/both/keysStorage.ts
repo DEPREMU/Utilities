@@ -35,6 +35,7 @@ export type PriceBinanceAPI = {
 export type SelectedCryptos = Record<string, Cryptos>;
 
 export type ExpectedSecureStorageTypes = {
+  HAS_UI: boolean | null;
   DEVICE_ID: string;
   USER_DATA: Omit<UserData, "password"> | null;
   STREAMERS: (Streamer & { isLive: boolean })[] | null;
@@ -83,6 +84,7 @@ export const SECURE_KEYS_STORAGE: Record<
   keyof ExpectedSecureStorageTypes,
   string
 > = {
+  HAS_UI: "_hasUI",
   USER_DATA: "_userData",
   DEVICE_ID: "_deviceId",
   STREAMERS: "_streamers",

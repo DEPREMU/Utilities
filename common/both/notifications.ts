@@ -14,43 +14,30 @@ export const intervalValues: Record<ReasonNotification, number> = {
 };
 
 export const getDefaultMinutes = (reason: ReasonNotification): number => {
-  return intervalValues?.[reason] ?? -1;
-};
-
-const objReasonNotification: Record<ReasonNotification, null> = {
-  cryptos: null,
-  streamers: null,
-  downDetector: null,
-  batteryAlerts: null,
-  timeToDownload: null,
-  locationEnabled: null,
-  allNotifications: null,
-  recorderNotification: null,
-  noInternetConnection: null,
-  loggedInStatusChannel: null,
+  return intervalValues[reason] ?? -1;
 };
 
 export const objByReasonNotification: Notifications["allNotifications"] = {
-  behavior: {
-    bypassDoNotDisturb: false,
-    onlyDuringSpecificHours: {
-      enabled: false,
-      startHour: 0,
-      endHour: 0,
-    },
-    onlyWhenAppInBackground: false,
-    onlyWhenNotInDoNotDisturb: false,
-    onlyWhenConnectedToPower: false,
-    onlyWhenScreenOff: false,
-  },
   enabled: false,
   interval: -1,
   paused: {
     isPaused: false,
     timePaused: 0,
   },
+  behavior: {
+    bypassDoNotDisturb: false,
+    onlyWhenScreenOff: false,
+    onlyWhenAppInBackground: false,
+    onlyWhenConnectedToPower: false,
+    onlyWhenNotInDoNotDisturb: false,
+    onlyDuringSpecificHours: {
+      enabled: false,
+      endHour: 0,
+      startHour: 0,
+    },
+  },
 };
 
 export const reasonNotification: ReasonNotification[] = Object.keys(
-  objReasonNotification,
+  intervalValues,
 ) as ReasonNotification[];

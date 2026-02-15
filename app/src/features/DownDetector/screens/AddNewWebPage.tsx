@@ -1,13 +1,12 @@
 import Button from "@/common/components/Button/screens";
 import { View } from "react-native";
 import { Tables } from "@types";
-import { useModal } from "@/context/ModalContext";
-import { useLanguage } from "@/context/LanguageContext";
-import { useUserContext } from "@/context/UserContext";
-import useStylesAddNewWebPage from "@/features/DownDetector/styles/useStylesAddNewWebPage";
+import { useModal } from "@context/ModalContext";
+import { useLanguage } from "@context/LanguageContext";
+import useStylesAddNewWebPage from "@screens/DownDetector/styles/useStylesAddNewWebPage";
 import { Switch, Text, TextInput } from "react-native-paper";
-import { fetchToServer, storageManagement } from "@utils";
 import React, { useCallback, useRef, useState } from "react";
+import { fetchToServer, sessionManager, storageManagement } from "@utils";
 
 interface AddNewWebPageScreenProps {
   addNewItem: (item: Tables["DownDetector"]) => void;
@@ -22,7 +21,6 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
   const { styles } = useStylesAddNewWebPage();
   const { t, language } = useLanguage();
   const { openSnackBarRef } = useModal();
-  const { userData, sessionToken } = useUserContext();
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +31,8 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
   });
 
   const handleAddToDatabase = useCallback(async () => {
+    const { sessionToken, userData } = sessionManager.getSessionData();
+
     if (!userData?.userId)
       return openSnackBarRef.current(t("youAreNotLoggedIn"));
 
@@ -79,16 +79,7 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [
-    t,
-    language,
-    inputText,
-    addNewItem,
-    sessionToken,
-    openSnackBarRef,
-    sendNotification,
-    userData?.userId,
-  ]);
+  }, [t, language, inputText, addNewItem, openSnackBarRef, sendNotification]);
 
   return (
     <View style={styles.container}>

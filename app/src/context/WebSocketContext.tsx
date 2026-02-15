@@ -28,6 +28,7 @@ import {
   storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
+  sessionManager,
 } from "@utils";
 import { useModal } from "./ModalContext";
 import { useLanguage } from "./LanguageContext";
@@ -37,7 +38,6 @@ import * as ExpoClipboard from "expo-clipboard";
 import { useNotifications } from "./NotificationsContext";
 import { DeviceEventEmitter } from "react-native";
 import { windowModule, keyboardModule, BackgroundModule } from "@modules";
-
 
 type WebSockets = "clipboard" | "main";
 
@@ -109,10 +109,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
 }) => {
   const { language } = useLanguage();
+  const { isLoggedIn } = useUserContext();
   const { openSnackBarRef } = useModal();
   const { sendNotificationRef } = useNotifications();
   const { statePhone, statesRef, hasInternet } = useBackground();
-  const { userData, isLoggedIn, sessionToken } = useUserContext();
   const { isBackground, initIntervalTimeoutsRef, deleteIntervalTimeoutRef } =
     useBackground();
 
@@ -167,6 +167,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
   const createMainWebSocket = useCallback(
     (url: string) => {
+      const { userData } = sessionManager.getSessionData();
+
       if (!userData?.userId) return;
       if (!shouldConnectRef.current.main) return;
 
@@ -255,10 +257,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
       socketRef.current = newSocket;
     },
-    [openSnackBarRef, userData?.name, userData?.userId, sendNotificationRef],
+    [openSnackBarRef, sendNotificationRef],
   );
 
   const createClipboardWebSocket = useCallback(async () => {
+    const { userData } = sessionManager.getSessionData();
+
     if (!userData?.userId) return;
     if (!shouldConnectRef.current.clipboard) return;
 
@@ -335,7 +339,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     };
 
     clipboardSocketRef.current = socket;
-  }, [clipboardSocketURL, userData?.userId]);
+  }, [clipboardSocketURL]);
   createMainWebSocketRef.current = createMainWebSocket;
   createClipboardWebSocketRef.current = createClipboardWebSocket;
 
@@ -347,6 +351,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, []);
 
   useEffect(() => {
+    const { userData } = sessionManager.getSessionData();
     if (!isLoggedIn || !userData?.userId) return;
     createClipboardWebSocketRef.current?.();
 
@@ -390,7 +395,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     const id = setTimeoutPolyfill(initClipboardItems, 1500);
 
     return () => clearTimeoutPolyfill(id);
-  }, [userData?.userId, isLoggedIn, language]);
+  }, [isLoggedIn, language]);
 
   useEffect(() => {
     if (!isBackground) {
@@ -455,7 +460,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     return () => deleteIntervalTimeoutRef.current("clipboardWeb");
   }, [
-    userData?.userId,
     statesRef,
     isLoggedIn,
     initIntervalTimeoutsRef,
@@ -485,6 +489,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, [statePhone]);
 
   useEffect(() => {
+    const { userData } = sessionManager.getSessionData();
     if (!isLoggedIn || !userData?.userId) return;
     if (!shouldConnectRef.current.clipboard) return;
 
@@ -506,10 +511,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       clipboardSocketRef.current = null;
       createClipboardWebSocketRef.current?.();
     }
-  }, [clipboardSocketURL, isLoggedIn, userData?.userId]);
+  }, [clipboardSocketURL, isLoggedIn]);
 
   useEffect(() => {
     if (REPLACERS.isWeb) return;
+    const { sessionToken } = sessionManager.getSessionData();
 
     const listenerClipboard = DeviceEventEmitter.addListener(
       "ClipboardEvent",
@@ -593,10 +599,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     );
 
     return () => listenerClipboard.remove();
-  }, [statesRef, sessionToken]);
+  }, [statesRef]);
 
   useEffect(() => {
     if (!shouldConnectRef.current.main && isBackground) return;
+
+    const { userData } = sessionManager.getSessionData();
     if (!isLoggedIn || !userData?.userId) return;
 
     const targetURL = socketURL || URL_WEB_SOCKET;
@@ -621,7 +629,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (typeof currentSocket.reconnect === "function") {
       currentSocket.reconnect();
     }
-  }, [socketURL, isLoggedIn, userData?.userId, isBackground]);
+  }, [socketURL, isLoggedIn, isBackground]);
 
   useEffect(() => {
     if (socketRef.current?.readyState !== WebSocket.OPEN) return;

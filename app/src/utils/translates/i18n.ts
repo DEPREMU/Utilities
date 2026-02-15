@@ -7,7 +7,7 @@ import {
 import i18n from "i18next";
 import * as Localization from "expo-localization";
 import { initReactI18next } from "react-i18next";
-import { storageManagement } from "../services";
+import { storageManagement } from "../services/storage";
 import { LanguagesSupported, typeT } from "@types";
 
 i18n.use(initReactI18next).init({

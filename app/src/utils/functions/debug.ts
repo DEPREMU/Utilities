@@ -3,7 +3,7 @@ import Chalk from "chalk";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
 import { REPLACERS } from "../TOP_LEVEL";
-import { storageManagement } from "../services";
+import { storageManagement } from "../services/storage";
 import { wrapFunctionWithError } from "@common";
 
 type ReturnDeviceInfo = {
@@ -74,10 +74,9 @@ const log = async (...args: unknown[]): Promise<void> => {
           typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
         )
         .join(" ");
-      const [fetchToServer, getCurrentUserId] = await Promise.all([
-        import("./APIManagement").then((mod) => mod.fetchToServer),
-        import("./auth").then((mod) => mod.getCurrentUserId),
-      ]);
+      const [fetchToServer, getCurrentUserId] = await import("@utils").then(
+        (mod) => [mod.fetchToServer, mod.getCurrentUserId] as const,
+      );
 
       const [userId, deviceInfo] = await Promise.all([
         getCurrentUserId(),
@@ -134,10 +133,9 @@ const warn = async (...args: unknown[]): Promise<void> => {
           typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
         )
         .join(" ");
-      const [fetchToServer, getCurrentUserId] = await Promise.all([
-        import("./APIManagement").then((mod) => mod.fetchToServer),
-        import("./auth").then((mod) => mod.getCurrentUserId),
-      ]);
+      const [fetchToServer, getCurrentUserId] = await import("@utils").then(
+        (mod) => [mod.fetchToServer, mod.getCurrentUserId] as const,
+      );
 
       const [userId, deviceInfo] = await Promise.all([
         getCurrentUserId(),
@@ -194,10 +192,9 @@ const error = async (...args: unknown[]): Promise<void> => {
           typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
         )
         .join(" ");
-      const [fetchToServer, getCurrentUserId] = await Promise.all([
-        import("./APIManagement").then((mod) => mod.fetchToServer),
-        import("./auth").then((mod) => mod.getCurrentUserId),
-      ]);
+      const [fetchToServer, getCurrentUserId] = await import("@utils").then(
+        (mod) => [mod.fetchToServer, mod.getCurrentUserId] as const,
+      );
 
       const [userId, deviceInfo] = await Promise.all([
         getCurrentUserId(),

@@ -393,7 +393,30 @@ const cleanAllStorageData = wrapFunctionWithError(
 class StorageManagement {
   public static instance: StorageManagement;
 
-  public isLoaded = false;
+  private isLoaded = false;
+
+  /**
+   * Waits until the storage data is fully loaded and ready for access.
+   *
+   * This method returns a promise that resolves when the storage data has been loaded
+   * and the `isLoaded` property is set to true. It periodically checks the loading status
+   * every 50 milliseconds until the data is ready.
+   *
+   * @returns A promise that resolves when the storage data is loaded and ready for use.
+   */
+  public waitUntilLoaded = async (): Promise<void> => {
+    if (this.isLoaded) return;
+
+    const { setTimeoutPolyfill } = await import("../functions");
+
+    await new Promise((resolve) => {
+      const checkLoaded = () => {
+        if (this.isLoaded) resolve(0);
+        else setTimeoutPolyfill(checkLoaded, 50);
+      };
+      checkLoaded();
+    });
+  };
 
   #data = {} as ExpectedStorageTypes<"BOTH">;
   #loadData = async () => {
@@ -409,6 +432,7 @@ class StorageManagement {
 
         await saveDataStorage("DEVICE_ID", getRandomUUID());
       }
+      await saveDataStorage("HAS_UI", false);
 
       await Promise.all(
         ALL_KEYS_STORAGE_KEYS.map(

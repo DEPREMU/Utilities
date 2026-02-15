@@ -7,7 +7,7 @@ import { navigateReplace } from "@/app/refs/navigationRef";
 import { ScrollView, View } from "react-native";
 import { useStylesHomeScreen } from "@/features/Home/styles/useStylesHomeScreen";
 import React, { useRef, useMemo } from "react";
-import { DATA_PLATFORM, REPLACERS } from "@utils";
+import { DATA_PLATFORM, REPLACERS, sessionManager } from "@utils";
 import { ScreensAvailable, typeLanguagesKeys } from "@types";
 
 type ButtonType = {
@@ -116,7 +116,7 @@ const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
   const { hasInternet } = useBackground();
   const { styles, background } = useStylesHomeScreen();
-  const { userData, dataRef, isLoggedIn, loggingIn } = useUserContext();
+  const { isLoggedIn, loggingIn } = useUserContext();
 
   const handleLoginInWebRef = useRef(() => {
     if (!REPLACERS.isNative) return;
@@ -175,7 +175,7 @@ const HomeScreen: React.FC = () => {
         <View style={styles.headerButtonsContainer}>
           <Button
             label={t("common.logout")}
-            handlePress={dataRef.current.logout}
+            handlePress={sessionManager.logout}
           />
           {REPLACERS.isNative && (
             <Button
@@ -200,7 +200,9 @@ const HomeScreen: React.FC = () => {
       )}
 
       <Text style={styles.title}>
-        {t("welcomeUser", { user: userData?.name || t("user") })}
+        {t("welcomeUser", {
+          user: sessionManager.getSessionData().userData?.name || t("user"),
+        })}
       </Text>
       <ScrollView
         style={styles.scrollViewContainer}

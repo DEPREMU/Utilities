@@ -10,13 +10,14 @@ import {
   setIntervalPolyfill,
   notificationsManager,
   clearIntervalPolyfill,
+  sessionManager,
+  tTyped,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import { Streamer } from "@types";
 import { useModal } from "@/context/ModalContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useBackground } from "@/context/BackgroundContext";
-import { useUserContext } from "@/context/UserContext";
 import { View, ScrollView } from "react-native";
 import { useStylesStreamers } from "@/features/SocialMedia/styles/useStylesStreamers";
 import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
@@ -28,15 +29,166 @@ const Streamers: React.FC = () => {
   const { styles } = useStylesStreamers();
   const { statesRef } = useBackground();
   const { t, language } = useLanguage();
-  const { userData, sessionToken } = useUserContext();
   const { openModalRef, closeModalRef } = useModal();
 
   const [streamer, setStreamer] = useState<string>("");
   const [streamers, setStreamers] = useState<StreamerWithIsLive[]>([]);
   const streamersLoaded = useRef<boolean | null>(false);
 
+  const deleteStreamerRef = useRef(async (id: string) => {
+    const { userData, sessionToken } = sessionManager.getSessionData();
+
+    closeModalRef.current();
+    if (!userData?.userId || isFalsy(id) || !sessionToken) return;
+
+    const deviceId = storageManagement.get("DEVICE_ID");
+
+    const res = await fetchToServer(
+      "/database/delete",
+      {
+        lang: language,
+        table: "Streamers",
+        match: { id, userId: userData?.userId },
+        deviceId,
+      },
+      sessionToken,
+    );
+    const { error } = res.data || { error: res.errorText || "Unknown error" };
+
+    if (error) {
+      logger.error(error);
+      openModalRef.current(
+        tTyped("error"),
+        tTyped("errorDeletingStreamer", { error }),
+        <Button
+          label={tTyped("common.close")}
+          handlePress={closeModalRef.current}
+        />,
+      );
+      return;
+    }
+
+    setStreamers((prev) => {
+      const streamerExists = prev.find((streamer) => streamer.id === id);
+      if (streamerExists)
+        fetchToServer(
+          "/database/delete",
+          {
+            lang: language,
+            table: "UserNotificationsConfig",
+            deviceId,
+            match: {
+              userId: userData?.userId,
+              reason: "streamers",
+              streamer: streamerExists.name,
+            },
+          },
+          sessionToken,
+        );
+
+      return prev.filter((streamer) => streamer.id !== id);
+    });
+
+    notificationsManager.editNotification("streamers", (prev) => {
+      const streamerExists = prev.streamersList.find(
+        (streamer) => streamer.name === id,
+      );
+
+      if (!streamerExists) return prev;
+
+      const newStreamersList = prev.streamersList.filter(
+        (streamer) => streamer.name !== streamerExists?.name,
+      );
+      return {
+        ...prev,
+        streamersList: newStreamersList,
+      };
+    });
+  });
+
+  const askDeleteStreamerRef = useRef((streamer: Streamer) => {
+    if (!statesRef.current.hasInternet) return;
+
+    const streamerName = capitalize(streamer.name || streamer.id || "");
+    openModalRef.current(
+      t("askDeleteStreamer"),
+      t("askDeleteStreamerBody", { name: streamerName }),
+      <>
+        <Button
+          label={tTyped("yes")}
+          handlePress={deleteStreamerRef.current}
+          argsFuncHandlePress={[streamer.id || ""]}
+        />
+        <Button label={tTyped("no")} handlePress={closeModalRef.current} />
+      </>,
+    );
+  });
+
+  const handleOpenURLStreamerRef = useRef((url: string) => {
+    if (isFalsy(url)) return;
+    closeModalRef.current();
+    openURL(url);
+  });
+
+  const openURLStreamerRef = useRef((name: string) => {
+    if (isFalsy(name)) return;
+    const url = `https://www.twitch.tv/${name?.toLowerCase()}`;
+    openModalRef.current(
+      t("openURL"),
+      t("askOpenURL", { url }),
+      <>
+        <Button
+          label={tTyped("yes")}
+          handlePress={handleOpenURLStreamerRef.current}
+          argsFuncHandlePress={[url]}
+        />
+        <Button label={tTyped("no")} handlePress={closeModalRef.current} />
+      </>,
+    );
+  });
+
+  const toggleNotificationsRef = useRef(
+    async (streamerName: string, newBool: boolean) => {
+      if (!streamerName || !statesRef.current.hasInternet) return;
+
+      notificationsManager.editNotification("streamers", (prev) => {
+        return {
+          ...prev,
+          streamersList: prev.streamersList.map((streamer) =>
+            streamer.name === streamerName
+              ? { ...streamer, enabled: newBool }
+              : streamer,
+          ),
+        };
+      });
+
+      const { userData, sessionToken } = sessionManager.getSessionData();
+      if (!userData?.userId || !sessionToken) return;
+
+      const deviceId = storageManagement.get("DEVICE_ID");
+
+      await fetchToServer(
+        "/database/update",
+        {
+          lang: language,
+          table: "UserNotificationsConfig",
+          deviceId,
+          match: {
+            userId: userData?.userId,
+            reason: "streamers",
+            streamer: streamerName,
+          },
+          values: { enabled: newBool },
+        },
+        sessionToken,
+      );
+    },
+  );
+
   const addingStreamer = useCallback(async () => {
     if (isFalsy(streamer)) return;
+
+    const { userData } = sessionManager.getSessionData();
     if (isFalsy(userData?.userId)) return;
 
     if (
@@ -94,7 +246,7 @@ const Streamers: React.FC = () => {
     }
 
     setStreamer("");
-  }, [t, streamer, streamers, openModalRef, closeModalRef, userData?.userId]);
+  }, [t, streamer, streamers, openModalRef, closeModalRef]);
 
   const askAddStreamer = useCallback(async () => {
     if (!statesRef.current.hasInternet) return;
@@ -116,166 +268,6 @@ const Streamers: React.FC = () => {
     );
   }, [closeModalRef, openModalRef, streamer, t, statesRef, addingStreamer]);
 
-  const deleteStreamer = useCallback(
-    async (id: string) => {
-      closeModalRef.current();
-      if (!userData?.userId || isFalsy(id) || !sessionToken) return;
-
-      const deviceId = storageManagement.get("DEVICE_ID");
-
-      const res = await fetchToServer(
-        "/database/delete",
-        {
-          lang: language,
-          table: "Streamers",
-          match: { id, userId: userData?.userId },
-          deviceId,
-        },
-        sessionToken,
-      );
-      const { error } = res.data || { error: res.errorText || "Unknown error" };
-
-      if (error) {
-        logger.error(error);
-        openModalRef.current(
-          t("error"),
-          t("errorDeletingStreamer", { error }),
-          <Button
-            label={t("common.close")}
-            handlePress={closeModalRef.current}
-          />,
-        );
-        return;
-      }
-
-      setStreamers((prev) => {
-        const streamerExists = prev.find((streamer) => streamer.id === id);
-        if (streamerExists)
-          fetchToServer(
-            "/database/delete",
-            {
-              lang: language,
-              table: "UserNotificationsConfig",
-              deviceId,
-              match: {
-                userId: userData?.userId,
-                reason: "streamers",
-                streamer: streamerExists.name,
-              },
-            },
-            sessionToken,
-          );
-
-        return prev.filter((streamer) => streamer.id !== id);
-      });
-
-      notificationsManager.editNotification("streamers", (prev) => {
-        const streamerExists = prev.streamersList.find(
-          (streamer) => streamer.name === id,
-        );
-
-        if (!streamerExists) return prev;
-
-        const newStreamersList = prev.streamersList.filter(
-          (streamer) => streamer.name !== streamerExists?.name,
-        );
-        return {
-          ...prev,
-          streamersList: newStreamersList,
-        };
-      });
-    },
-    [t, language, openModalRef, sessionToken, closeModalRef, userData?.userId],
-  );
-
-  const askDeleteStreamer = useCallback(
-    (streamer: Streamer) => {
-      if (!statesRef.current.hasInternet) return;
-
-      const streamerName = capitalize(streamer.name || streamer.id || "");
-      openModalRef.current(
-        t("askDeleteStreamer"),
-        t("askDeleteStreamerBody", { name: streamerName }),
-        <>
-          <Button
-            label={t("yes")}
-            handlePress={deleteStreamer}
-            argsFuncHandlePress={[streamer.id || ""]}
-          />
-          <Button label={t("no")} handlePress={closeModalRef.current} />
-        </>,
-      );
-    },
-    [closeModalRef, openModalRef, t, deleteStreamer, statesRef],
-  );
-
-  const handleOpenURLStreamer = useCallback(
-    (url: string) => {
-      if (isFalsy(url)) return;
-      closeModalRef.current();
-      openURL(url);
-    },
-    [closeModalRef],
-  );
-
-  const openURLStreamer = useCallback(
-    (name: string) => {
-      if (isFalsy(name)) return;
-      const url = `https://www.twitch.tv/${name?.toLowerCase()}`;
-      openModalRef.current(
-        t("openURL"),
-        t("askOpenURL", { url }),
-        <>
-          <Button
-            label={t("yes")}
-            handlePress={handleOpenURLStreamer}
-            argsFuncHandlePress={[url]}
-          />
-          <Button label={t("no")} handlePress={closeModalRef.current} />
-        </>,
-      );
-    },
-    [t, openModalRef, closeModalRef, handleOpenURLStreamer],
-  );
-
-  const toggleNotifications = useCallback(
-    async (streamerName: string, newBool: boolean) => {
-      if (!streamerName || !statesRef.current.hasInternet) return;
-
-      notificationsManager.editNotification("streamers", (prev) => {
-        return {
-          ...prev,
-          streamersList: prev.streamersList.map((streamer) =>
-            streamer.name === streamerName
-              ? { ...streamer, enabled: newBool }
-              : streamer,
-          ),
-        };
-      });
-
-      if (!userData?.userId || !sessionToken) return;
-
-      const deviceId = storageManagement.get("DEVICE_ID");
-
-      await fetchToServer(
-        "/database/update",
-        {
-          lang: language,
-          table: "UserNotificationsConfig",
-          deviceId,
-          match: {
-            userId: userData?.userId,
-            reason: "streamers",
-            streamer: streamerName,
-          },
-          values: { enabled: newBool },
-        },
-        sessionToken,
-      );
-    },
-    [userData?.userId, statesRef, language, sessionToken],
-  );
-
   useEffect(() => {
     streamersLoaded.current = streamers.length > 0;
 
@@ -283,12 +275,14 @@ const Streamers: React.FC = () => {
   }, [streamers]);
 
   useEffect(() => {
+    const { userData, sessionToken } = sessionManager.getSessionData();
+
     if (!userData?.userId || !statesRef.current.hasInternet) {
       openModalRef.current(
-        t("error"),
-        t("youAreNotLoggedIn"),
+        tTyped("error"),
+        tTyped("youAreNotLoggedIn"),
         <Button
-          label={t("common.close")}
+          label={tTyped("common.close")}
           handlePress={closeModalRef.current}
         />,
       );
@@ -304,7 +298,7 @@ const Streamers: React.FC = () => {
         const res = await fetchToServer(
           "/database/fetch",
           {
-            lang: language,
+            lang: storageManagement.get("LANGUAGE"),
             table: "Streamers",
             match: { userId: userData?.userId },
             deviceId,
@@ -318,10 +312,10 @@ const Streamers: React.FC = () => {
         if (error) {
           logger.error(error);
           openModalRef.current(
-            t("error"),
-            t("errorLoadingStreamers"),
+            tTyped("error"),
+            tTyped("errorLoadingStreamers"),
             <Button
-              label={t("common.close")}
+              label={tTyped("common.close")}
               handlePress={closeModalRef.current}
             />,
           );
@@ -337,10 +331,10 @@ const Streamers: React.FC = () => {
         if (data && data.length === 0) return;
         if (!data) {
           openModalRef.current(
-            t("error"),
-            t("errorLoadingStreamers"),
+            tTyped("error"),
+            tTyped("errorLoadingStreamers"),
             <Button
-              label={t("common.close")}
+              label={tTyped("common.close")}
               handlePress={closeModalRef.current}
             />,
           );
@@ -377,15 +371,7 @@ const Streamers: React.FC = () => {
     const id = setIntervalPolyfill(loadStreamers, 15000);
 
     return () => clearIntervalPolyfill(id);
-  }, [
-    t,
-    userData?.userId,
-    language,
-    statesRef,
-    openModalRef,
-    sessionToken,
-    closeModalRef,
-  ]);
+  }, [statesRef, openModalRef, closeModalRef]);
 
   return (
     <View style={styles.container}>
@@ -453,7 +439,7 @@ const Streamers: React.FC = () => {
                     <Button
                       label={t("openURL")}
                       argsFuncHandlePress={[streamer.name]}
-                      handlePress={openURLStreamer}
+                      handlePress={openURLStreamerRef.current}
                       touchableOpacity
                       replaceStyles={{
                         button: styles.buttonVisit,
@@ -464,7 +450,7 @@ const Streamers: React.FC = () => {
                     <Button
                       label={t("delete")}
                       argsFuncHandlePress={[streamer]}
-                      handlePress={askDeleteStreamer}
+                      handlePress={askDeleteStreamerRef.current}
                       touchableOpacity
                       replaceStyles={{
                         button: styles.buttonDelete,
@@ -480,9 +466,12 @@ const Streamers: React.FC = () => {
                 </Text>
                 <Switch
                   value={notificationsEnabled}
-                  onValueChange={(value) =>
-                    toggleNotifications(streamer.name as string, value)
-                  }
+                  onValueChange={(value) => {
+                    toggleNotificationsRef.current(
+                      streamer.name as string,
+                      value,
+                    );
+                  }}
                 />
               </View>
             </Card>
