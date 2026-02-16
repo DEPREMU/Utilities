@@ -7,6 +7,7 @@ import React, {
   useContext,
   createContext,
 } from "react";
+import { modalRef } from "@refs";
 import ModalComponent from "@/common/components/ModalComponent";
 import SnackBarComponent from "@/common/components/SnackBarComponent";
 import { SnackbarProps } from "react-native-paper";
@@ -21,23 +22,7 @@ export type StylesModal =
   | "modal"
   | "messageText";
 
-export type OpenModal = (
-  title: string,
-  body: ReactNode | string,
-  buttons: ReactNode,
-  onDismiss?: () => void,
-) => void;
-
-export type OpenSnackBar = (
-  label: string,
-  duration?: number,
-  action?: SnackbarProps["action"],
-) => void;
-
 interface ModalContextProps {
-  openModalRef: React.RefObject<OpenModal>;
-  closeModalRef: React.RefObject<() => void>;
-  openSnackBarRef: React.RefObject<OpenSnackBar>;
   setCustomStyles: React.Dispatch<
     React.SetStateAction<Record<StylesModal, object> | undefined>
   >;
@@ -97,51 +82,6 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   const onDismissRef = useRef<() => void>(() => {});
   const clearIdTimeout = useRef(() => clearTimeoutPolyfill(idTimeout));
 
-  const openModalRef = useRef<OpenModal>(
-    (modalTitle, modalBody, modalButtons, onDismiss) => {
-      setIsOpen((prev) => {
-        if (prev) return prev;
-
-        clearIdTimeout.current();
-
-        onDismissRef.current =
-          typeof onDismiss === "function" ? onDismiss : () => {};
-
-        setTitle(modalTitle);
-        setBody(modalBody);
-        setButtons(modalButtons);
-        return true;
-      });
-    },
-  );
-
-  const closeModalRef = useRef<() => void>(() => {
-    clearIdTimeout.current();
-
-    setIsOpen(false);
-    idTimeout.current = setTimeoutPolyfill(() => {
-      setTitle("");
-      setBody(null);
-      setButtons(null);
-    }, 1000);
-  });
-
-  const openSnackBarRef = useRef<OpenSnackBar>(
-    (label: string, duration?: number, action?: SnackbarProps["action"]) => {
-      setSnackbar((prev) => {
-        if (!duration || duration <= 0) duration = 5000;
-
-        const id = Math.random().toString(36).substring(2, 15);
-
-        const timeout = setTimeoutPolyfill(() => {
-          setSnackbar((prev) => prev.filter((snackbar) => snackbar.id !== id));
-        }, duration);
-
-        return [...prev, { label, duration: duration, action, id, timeout }];
-      });
-    },
-  );
-
   /**
    * Dismisses a snackbar with the specified id.
    *
@@ -157,6 +97,49 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   });
 
   useEffect(() => {
+    modalRef.openModal = (modalTitle, modalBody, modalButtons, onDismiss) => {
+      setIsOpen((prev) => {
+        if (prev) return prev;
+
+        clearIdTimeout.current();
+
+        onDismissRef.current =
+          typeof onDismiss === "function" ? onDismiss : () => {};
+
+        setTitle(modalTitle);
+        setBody(modalBody);
+        setButtons(modalButtons);
+        return true;
+      });
+    };
+
+    modalRef.closeModal = () => {
+      clearIdTimeout.current();
+
+      setIsOpen(false);
+      idTimeout.current = setTimeoutPolyfill(() => {
+        setTitle("");
+        setBody(null);
+        setButtons(null);
+      }, 1000);
+    };
+
+    modalRef.openSnackBar = (label, duration?, action?) => {
+      setSnackbar((prev) => {
+        if (!duration || duration <= 0) duration = 5000;
+
+        const id = Math.random().toString(36).substring(2, 15);
+
+        const timeout = setTimeoutPolyfill(() => {
+          setSnackbar((prev) => prev.filter((snackbar) => snackbar.id !== id));
+        }, duration);
+
+        return [...prev, { label, duration: duration, action, id, timeout }];
+      });
+    };
+  }, []);
+
+  useEffect(() => {
     if (isOpen) return;
 
     onDismissRef.current();
@@ -165,9 +148,6 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
 
   const value: ModalContextProps = useMemo(
     () => ({
-      openModalRef,
-      closeModalRef,
-      openSnackBarRef,
       setCustomStyles,
     }),
     [],
@@ -190,7 +170,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
         body={body}
         title={title}
         isOpen={isOpen}
-        onClose={closeModalRef.current}
+        onClose={modalRef.closeModal as () => void}
         buttons={buttons}
         hideModal={hideModal}
         setHideModal={setHideModal}

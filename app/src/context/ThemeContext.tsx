@@ -9,7 +9,7 @@ import { Theme } from "@types";
 import { useColors } from "@/hooks/useColors";
 import { StatusBar } from "react-native";
 import { PaperProvider } from "react-native-paper";
-import { storageManagement } from "@utils";
+import { storageManagement } from "@/utils/services/storage";
 
 interface ThemeProviderProps {
   children: React.ReactNode;

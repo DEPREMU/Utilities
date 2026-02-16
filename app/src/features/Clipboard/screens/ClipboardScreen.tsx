@@ -340,7 +340,7 @@ const ClipboardScreen: React.FC = () => {
     ({ item }: { item: Tables["ClipboardSync"] }) => (
       <RenderClipboardItem
         item={item}
-        title={t("clipboardTitle")}
+        title={t("common.content")}
         copyLabel={t("copy")}
         deleteItem={changeClipboardItemDeletedRef.current}
         copyContent={copyClipboardContentRef.current}

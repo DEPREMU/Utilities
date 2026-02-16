@@ -18,13 +18,13 @@ import {
   logger,
   showAlert,
   REPLACERS,
+  deviceInfo,
   encryptFile,
   getRandomUUID,
   getFoldersVault,
   renameVaultItem,
   sanitizeFileName,
   storageManagement,
-  functionsToExecute,
   decryptFolderFiles,
   setTimeoutPolyfill,
   actionWithVaultItem,
@@ -34,7 +34,6 @@ import {
   clearDecryptedFolderDirectory,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
-import { useModal } from "./ModalContext";
 import { cloneDeep } from "lodash";
 import { TextInput } from "react-native-paper";
 import * as ExpoAuth from "expo-local-authentication";
@@ -42,7 +41,7 @@ import { ModalData } from "@screens/Vault/screens/VaultViewer";
 import * as FileSystem from "expo-file-system";
 import { windowModule } from "@modules";
 import * as DocumentPicker from "expo-document-picker";
-import { navigateReplace } from "@/app/refs/navigationRef";
+import { modalRef, navigateReplace } from "@refs";
 
 type VaultData = {
   sessionId: string;
@@ -134,8 +133,6 @@ const VaultContext = createContext<VaultContextProps | undefined>(undefined);
 export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { openModalRef, closeModalRef } = useModal();
-
   const [files, setFiles] = useState<VaultContextProps["files"]>([]);
   const [folders, setFolders] = useState<VaultContextProps["folders"]>({});
   const [settings, setSettings] =
@@ -182,7 +179,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         let pass = "";
         const folderName = functionsRef.current.getCurrentFolderId();
 
-        openModalRef.current(
+        modalRef.openModal?.(
           tTyped("vault.settings.setAuthPasswordMessage", {
             folderName,
           }),
@@ -211,8 +208,8 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                 resolve(false);
               }
 
-              closeModalRef.current();
-              openModalRef.current(
+              modalRef.closeModal?.();
+              modalRef.openModal?.(
                 tTyped("common.confirmPassword"),
                 tTyped("vault.settings.confirmPasswordMessage", {
                   folderName,
@@ -220,7 +217,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                 <Button
                   label={tTyped("common.confirm")}
                   handlePress={async () => {
-                    closeModalRef.current();
+                    modalRef.closeModal?.();
                     const prev = storageManagement.get("VAULT_PASSWORD", {});
 
                     storageManagement.save("VAULT_PASSWORD", {
@@ -251,11 +248,11 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
             if (errorInDefault)
               showAlert(tTyped("error"), tTyped("vault.noDefaultFolder"));
             directory = await windowModule.pickFolder();
-            closeModalRef.current();
+            modalRef.closeModal?.();
             resolve();
           };
 
-          openModalRef.current(
+          modalRef.openModal?.(
             tTyped("common.selectFolder"),
             tTyped("vault.selectFolderMessage"),
             <>
@@ -283,7 +280,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                       }
                     }
                     resolve();
-                    closeModalRef.current();
+                    modalRef.closeModal?.();
                   }
                 }}
               />
@@ -309,11 +306,11 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         const success = await functionsRef.current.selectPassword();
         if (!success) {
           const onPressDismiss = () => {
-            closeModalRef.current();
+            modalRef.closeModal?.();
             navigateReplace("Home");
           };
 
-          openModalRef.current(
+          modalRef.openModal?.(
             tTyped("error"),
             tTyped("vault.noPasswordAssigned", {
               folderName:
@@ -499,7 +496,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         );
 
         if (errFiles && errFiles.length > 0) {
-          openModalRef.current(
+          modalRef.openModal?.(
             tTyped("error"),
             tTyped("vault.encryptFilesErrorMessage", {
               count: String(errFiles.length),
@@ -507,7 +504,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
             }),
             <Button
               label={tTyped("labels.continue")}
-              handlePress={closeModalRef.current}
+              handlePress={() => modalRef.closeModal?.()}
             />,
           );
         }
@@ -603,7 +600,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
           let success = false;
           let verifying = false;
 
-          openModalRef.current(
+          modalRef.openModal?.(
             tTyped("vault.unlock"),
             <TextInput
               secureTextEntry
@@ -632,7 +629,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                   success = true;
                   resolve(pass);
                 }
-                closeModalRef.current();
+                modalRef.closeModal?.();
               }}
             />,
             () => resolve(verifying && success ? pass : ""),
@@ -837,16 +834,19 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
   });
 
   useEffect(() => {
-    functionsToExecute.current["AppState-change"]["VaultContext"] = (
-      newState,
-    ) => {
-      if (newState !== "active") functionsRef.current.lock();
-    };
-    functionsToExecute.current["Screen-change"]["VaultContext"] = (
-      screenName,
-    ) => {
-      if (screenName !== "Vault") functionsRef.current.lock();
-    };
+    const removeListenerAppState = deviceInfo.addEventListener(
+      "appState-change",
+      (newState) => {
+        if (newState !== "active") functionsRef.current.lock();
+      },
+    );
+
+    const removeListenerScreen = deviceInfo.addEventListener(
+      "screenChange",
+      (screenName) => {
+        if (screenName !== "Vault") functionsRef.current.lock();
+      },
+    );
 
     const loadVaultSettings = async () => {
       const loadedSettings = storageManagement.get("VAULT_SETTINGS");
@@ -885,8 +885,8 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
     loadVaultSettings();
     removePreviousSession();
     return () => {
-      delete functionsToExecute.current["AppState-change"]["VaultContext"];
-      delete functionsToExecute.current["Screen-change"]["VaultContext"];
+      removeListenerScreen();
+      removeListenerAppState();
 
       clearTimeoutPolyfill(idTimeoutRef);
     };

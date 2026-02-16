@@ -12,11 +12,11 @@ object ClipboardRepository {
     private val _clipboardItems = MutableStateFlow<List<String>>(emptyList())
     val clipboardItems: StateFlow<List<String>> = _clipboardItems
     
-    fun setClipboardItems(items: List<String>, maxItems: Int) {
-        _clipboardItems.value = items.take(maxItems)
+    fun setClipboardItems(items: List<String>) {
+        _clipboardItems.value = items
     }
 
-    suspend fun loadSystemClipboard(context: Context, maxItems: Int): List<String> {
+    suspend fun loadSystemClipboard(context: Context): List<String> {
         return withContext(Dispatchers.IO) {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                 ?: return@withContext emptyList()
@@ -28,7 +28,6 @@ object ClipboardRepository {
                 if (!text.isNullOrEmpty()) {
                     collected.add(text)
                 }
-                if (collected.size >= maxItems) break
             }
             collected
         }

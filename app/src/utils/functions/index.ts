@@ -4,4 +4,3 @@ export * from "./screens";
 export * from "./background";
 export * from "./APIManagement";
 export * from "./appManagement";
-export * from "./notifications";

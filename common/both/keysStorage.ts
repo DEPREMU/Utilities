@@ -34,9 +34,16 @@ export type PriceBinanceAPI = {
 
 export type SelectedCryptos = Record<string, Cryptos>;
 
+export type ClipboardStorage = {
+  enabled: boolean;
+  maxCharsInItem: number;
+  maxClipboardItems: number;
+};
+
 export type ExpectedSecureStorageTypes = {
   HAS_UI: boolean | null;
   DEVICE_ID: string;
+  CLIPBOARD: ClipboardStorage;
   USER_DATA: Omit<UserData, "password"> | null;
   STREAMERS: (Streamer & { isLive: boolean })[] | null;
   SESSION_EXPIRY: number | -1;
@@ -87,6 +94,7 @@ export const SECURE_KEYS_STORAGE: Record<
   HAS_UI: "_hasUI",
   USER_DATA: "_userData",
   DEVICE_ID: "_deviceId",
+  CLIPBOARD: "_clipboard",
   STREAMERS: "_streamers",
   SESSION_EXPIRY: "_sessionExpiry",
   VAULT_PASSWORD: "_vaultPassword",

@@ -1,6 +1,6 @@
 import Button from "@/common/components/Button/screens";
 import { Text } from "react-native-paper";
-import { useModal } from "@context/ModalContext";
+import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { View, TextInput } from "react-native";
 import { useStylesSyncClipboard } from "@screens/Clipboard/styles";
@@ -8,9 +8,8 @@ import React, { useCallback, useState } from "react";
 import { fetchToServer, sessionManager, storageManagement } from "@utils";
 
 const SyncClipboardScreen: React.FC = () => {
+  const { t } = useLanguage();
   const { styles } = useStylesSyncClipboard();
-  const { t, language } = useLanguage();
-  const { openSnackBarRef } = useModal();
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -19,11 +18,11 @@ const SyncClipboardScreen: React.FC = () => {
     const { userData, sessionToken } = sessionManager.getSessionData();
 
     if (!userData?.userId)
-      return openSnackBarRef.current(t("youAreNotLoggedIn"));
+      return modalRef.openSnackBar?.(t("youAreNotLoggedIn"));
 
     if (!inputText.trim())
-      return openSnackBarRef.current(t("pleaseEnterSomeText"));
-    if (!sessionToken) return openSnackBarRef.current(t("youAreNotLoggedIn"));
+      return modalRef.openSnackBar?.(t("pleaseEnterSomeText"));
+    if (!sessionToken) return modalRef.openSnackBar?.(t("youAreNotLoggedIn"));
 
     setIsLoading(true);
     try {
@@ -32,7 +31,7 @@ const SyncClipboardScreen: React.FC = () => {
       const res = await fetchToServer(
         "/database/insert",
         {
-          lang: language,
+          lang: storageManagement.get("LANGUAGE"),
           table: "ClipboardSync",
           deviceId,
           values: {
@@ -48,17 +47,17 @@ const SyncClipboardScreen: React.FC = () => {
         error: res.errorText || "Unknown error",
       };
 
-      if (error) openSnackBarRef.current(t("errorOccurred", { error }));
+      if (error) modalRef.openSnackBar?.(t("errorOccurred", { error }));
       else {
-        openSnackBarRef.current(t("textAddedToDatabase"));
+        modalRef.openSnackBar?.(t("textAddedToDatabase"));
         setInputText("");
       }
     } catch {
-      openSnackBarRef.current(t("failedToAddTextToDatabase"));
+      modalRef.openSnackBar?.(t("failedToAddTextToDatabase"));
     } finally {
       setIsLoading(false);
     }
-  }, [inputText, openSnackBarRef, t, language]);
+  }, [inputText, t]);
 
   return (
     <View style={styles.container}>

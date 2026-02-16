@@ -1,18 +1,17 @@
 import {
   logger,
   tTyped,
+  deviceInfo,
   checkUrlStatus,
-  functionsToExecute,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
 } from "@utils";
 import axios from "axios";
-import { useModal } from "@/context/ModalContext";
-import { useLanguage } from "@/context/LanguageContext";
-import { navigateReplace } from "@/app/refs/navigationRef";
+import { useLanguage } from "@context/LanguageContext";
 import { AdvertisementTXT } from "@types";
 import Zeroconf, { Service } from "react-native-zeroconf";
-import useStylesComputerControl from "@/features/Phone/ComputesControl/styles/useStylesComputerControl";
+import useStylesComputerControl from "@screens/Phone/ComputesControl/styles/useStylesComputerControl";
+import { modalRef, navigateReplace } from "@refs";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Card, List, Text, FAB } from "react-native-paper";
 // eslint-disable-next-line react-native/split-platform-components
@@ -69,7 +68,6 @@ const tryUrls = async (
 const ComputerControl: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesComputerControl();
-  const { openSnackBarRef } = useModal();
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -172,7 +170,7 @@ const ComputerControl: React.FC = () => {
       let translate: "turnOff" | "restart" = "restart";
       if (command === "turn-off-computer") translate = "turnOff";
 
-      openSnackBarRef.current(
+      modalRef.openSnackBar?.(
         tTyped(
           success ? `${translate}CommandSent` : `${translate}CommandFailed`,
         ),
@@ -220,7 +218,7 @@ const ComputerControl: React.FC = () => {
             "COMPUTER CONTROL",
             "Location permissions not granted, cannot scan for devices",
           );
-          openSnackBarRef.current(tTyped("locationPermissionMessage"), 3000);
+          modalRef.openSnackBar?.(tTyped("locationPermissionMessage"), 3000);
         }
 
         return isGranted;
@@ -283,26 +281,27 @@ const ComputerControl: React.FC = () => {
       zeroconfRef.current.stop("DNSSD");
     });
 
-    functionsToExecute.current["AppState-change"]["ComputerControl"] = (
-      state,
-    ) => {
-      if (state === "active" && !scanningRef.current) {
-        startRescanCycleRef.current();
-      } else if (state !== "active" && scanningRef.current) {
-        clearRescanTimersRef.current();
-        zeroconfRef.current.stop("DNSSD");
-      }
-    };
+    const removeListener = deviceInfo.addEventListener(
+      "appState-change",
+      (newState) => {
+        if (newState === "active" && !scanningRef.current) {
+          startRescanCycleRef.current();
+        } else if (newState !== "active" && scanningRef.current) {
+          clearRescanTimersRef.current();
+          zeroconfRef.current.stop("DNSSD");
+        }
+      },
+    );
 
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
       clearRescanTimersRef.current();
-      delete functionsToExecute.current["AppState-change"]["ComputerControl"];
+      removeListener();
       zeroconfRef.current.stop("DNSSD");
       // eslint-disable-next-line react-hooks/exhaustive-deps
       zeroconfRef.current.removeDeviceListeners();
     };
-  }, [openSnackBarRef]);
+  }, []);
 
   return (
     <View style={styles.container}>

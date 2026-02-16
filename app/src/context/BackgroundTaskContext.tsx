@@ -4,13 +4,6 @@ import {
   AvailableFunctions,
   FunctionsArguments,
 } from "@types";
-import {
-  logger,
-  showAlert,
-  storageManagement,
-  executeRegisteredTask,
-  hasInternetConnection,
-} from "@utils";
 import React, {
   useRef,
   useMemo,
@@ -18,9 +11,16 @@ import React, {
   useContext,
   createContext,
 } from "react";
+import {
+  logger,
+  showAlert,
+  deviceInfo,
+  storageManagement,
+  executeRegisteredTask,
+  hasInternetConnection,
+} from "@utils";
 import { BackHandler } from "react-native";
 import { useLanguage } from "./LanguageContext";
-import { useBackground } from "./BackgroundContext";
 import { useUserContext } from "./UserContext";
 import { getCurrentScreen, navigateReplace } from "@/app/refs/navigationRef";
 
@@ -124,7 +124,6 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 }) => {
   const { t } = useLanguage();
   const { isLoggedIn } = useUserContext();
-  const { hasInternet, statesRef } = useBackground();
 
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);
@@ -189,7 +188,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       meta?: MetaInfoFunctions<T>,
       removeTaskWithId?: string,
     ) => {
-      if (statesRef.current.hasInternet || !task.requiresInternet) {
+      if (deviceInfo.hasInternet || !task.requiresInternet) {
         taskQueueRef.current.push(task);
         processQueueRef.current();
         return;
@@ -304,17 +303,24 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   }, [isLoggedIn, t]);
 
   useEffect(() => {
-    if (!hasInternet) return;
-    if (executeWhenInternetRef.current.length === 0) return;
+    const removeListener = deviceInfo.addEventListener(
+      "hasInternet-change",
+      (hasInternet) => {
+        if (executeWhenInternetRef.current.length === 0) return;
+        if (!hasInternet) return;
 
-    taskQueueRef.current.push(
-      ...executeWhenInternetRef.current.map((t) => t.task),
+        taskQueueRef.current.push(
+          ...executeWhenInternetRef.current.map((t) => t.task),
+        );
+        executeWhenInternetRef.current = [];
+
+        storageManagement.save("PENDING_TASKS", []);
+        processQueueRef.current();
+      },
     );
-    executeWhenInternetRef.current = [];
 
-    storageManagement.save("PENDING_TASKS", []);
-    processQueueRef.current();
-  }, [hasInternet]);
+    return () => removeListener();
+  }, []);
 
   const value: BackgroundTaskContextType = useMemo(
     () => ({

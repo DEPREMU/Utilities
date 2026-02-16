@@ -2,7 +2,7 @@ import {
   ModalData,
   DataVaultViewer,
   Menu as MenuType,
-} from "../screens/VaultViewer";
+} from "@screens/Vault/screens/VaultViewer";
 import {
   List,
   Menu,
@@ -11,11 +11,11 @@ import {
   Divider,
   TextInput,
 } from "react-native-paper";
-import { useModal } from "@/context/ModalContext";
-import { useVault } from "@/context/VaultContext";
+import { modalRef } from "@refs";
+import { useVault } from "@context/VaultContext";
 import { cloneDeep } from "lodash";
 import { ScrollView, View } from "react-native";
-import useStylesVaultScreen from "@/features/Vault/styles/useStylesVaultScreen";
+import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
 import React, { useCallback, useRef } from "react";
 import { FolderFiles, memoDeep, PickedFile, tTyped } from "@utils";
 
@@ -102,7 +102,6 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   setRenderModal,
   useStylesVaultScreen: { styles },
 }) => {
-  const { closeModalRef, openModalRef } = useModal();
   const { statesRef, functionsRef, setFilesSelected, folders } = useVault();
 
   const renameRef = useRef(async (currentName: string) => {
@@ -110,11 +109,11 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
 
     return await new Promise<string | null>((r) => {
       const onDismiss = () => {
-        closeModalRef.current();
+        modalRef.closeModal?.();
         r(null);
       };
 
-      openModalRef.current(
+      modalRef.openModal?.(
         tTyped("vault.menu.rename"),
         <View style={styles.modalScrollView}>
           <Text style={styles.modalText}>
@@ -136,8 +135,8 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
           <Button
             mode="contained"
             onPress={() => {
-              closeModalRef.current();
-              openModalRef.current(
+              modalRef.closeModal?.();
+              modalRef.openModal?.(
                 tTyped("vault.modal.renameConfirmTitle"),
                 <View style={styles.modalScrollView}>
                   <Text style={styles.modalText}>
@@ -181,20 +180,20 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
 
       switch (action) {
         case "delete": {
-          openModalRef.current(
+          modalRef.openModal?.(
             tTyped("vault.modal.deleteTitle"),
             tTyped("vault.modal.deleteFolderMessage", {
               folderName: folderId,
             }),
             <>
-              <Button mode="outlined" onPress={() => closeModalRef.current()}>
+              <Button mode="outlined" onPress={() => modalRef.closeModal?.()}>
                 {tTyped("labels.cancel")}
               </Button>
               <Button
                 mode="contained"
                 onPress={() => {
                   functionsRef.current.deleteFolder(folderId);
-                  closeModalRef.current();
+                  modalRef.closeModal?.();
                 }}
               >
                 {tTyped("common.delete")}
@@ -217,14 +216,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
           break;
       }
     },
-    [
-      setMenu,
-      statesRef,
-      openModalRef,
-      functionsRef,
-      closeModalRef,
-      onDismissModal,
-    ],
+    [setMenu, statesRef, functionsRef, onDismissModal],
   );
 
   const handlePressByAction = useCallback(
@@ -235,7 +227,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
       onDismissModal();
 
       const onDismiss = () => {
-        closeModalRef.current();
+        modalRef.closeModal?.();
       };
 
       switch (action) {
@@ -243,18 +235,18 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
           setRenderModal({ show: true, item, type: "info" });
           break;
         case "delete": {
-          openModalRef.current(
+          modalRef.openModal?.(
             tTyped("vault.modal.deleteTitle"),
             tTyped("vault.modal.deleteMessage", { name: item.name }),
             <>
-              <Button mode="outlined" onPress={() => closeModalRef.current()}>
+              <Button mode="outlined" onPress={() => modalRef.closeModal?.()}>
                 {tTyped("labels.cancel")}
               </Button>
               <Button
                 mode="contained"
                 onPress={() => {
                   functionsRef.current.deleteFile(item);
-                  closeModalRef.current();
+                  modalRef.closeModal?.();
                 }}
               >
                 {tTyped("common.delete")}
@@ -276,7 +268,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
         case "copyToFolder": {
           const currentFolderId = functionsRef.current.getCurrentFolderId();
 
-          openModalRef.current(
+          modalRef.openModal?.(
             tTyped(`vault.menu.${action}`),
             <ScrollView style={styles.modalScrollView}>
               {Object.entries(statesRef.current.folders).map(
@@ -298,7 +290,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                           item,
                           folderName,
                         );
-                        closeModalRef.current();
+                        modalRef.closeModal?.();
                       }}
                     />
                   );
@@ -366,9 +358,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
       styles,
       setMenu,
       statesRef,
-      openModalRef,
       functionsRef,
-      closeModalRef,
       onDismissModal,
       setRenderModal,
       setFilesSelected,

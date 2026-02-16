@@ -21,19 +21,18 @@ import {
   tTyped,
   logger,
   REPLACERS,
+  deviceInfo,
   areEqualValues,
   downloadBase64,
   storageManagement,
   setTimeoutPolyfill,
+  notificationsManager,
   wrapFunctionWithError,
   ExpectedUnsecureStorageTypes,
-  functionsToExecute,
 } from "@utils";
-import { useModal } from "./ModalContext";
-import { useNotifications } from "./NotificationsContext";
 import { NotificationAction } from "@types";
 import { Directory, File, Paths } from "expo-file-system";
-import { navigateReplace } from "@/app/refs/navigationRef";
+import { modalRef, navigateReplace } from "@refs";
 
 interface RecorderContextType {
   player: AudioPlayer;
@@ -74,9 +73,6 @@ let prevDataRecorder: DataRecorder | null = null;
 export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { openSnackBarRef } = useModal();
-  const { sendNotificationRef } = useNotifications();
-
   const [dataRecorder, setDataRecorder] = useState<DataRecorder>({
     lastUri: "",
     quality: "high",
@@ -145,7 +141,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
       if (key === "shouldAutoStart") {
         const permission = await AudioModule.requestRecordingPermissionsAsync();
         if (!permission.granted) {
-          openSnackBarRef.current(tTyped("recorder.permissionDenied"));
+          modalRef.openSnackBar?.(tTyped("recorder.permissionDenied"));
           return;
         }
       }
@@ -184,16 +180,12 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
         },
         async (_, errorMsg) => {
           logger.error("RECORDER", "Error starting recording:", errorMsg);
-          openSnackBarRef.current(
+          modalRef.openSnackBar?.(
             tTyped("recorder.failedToInitialize", { message: errorMsg }),
           );
         },
       ),
-    [
-      openSnackBarRef,
-      dataRecorder.intervalOfSaves,
-      dataRecorder.infiniteRecord,
-    ],
+    [dataRecorder.intervalOfSaves, dataRecorder.infiniteRecord],
   );
 
   const stopRecording = useCallback(async () => {
@@ -247,10 +239,10 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
           secondsRecorded: 0,
         };
       });
-      openSnackBarRef.current(tTyped("recorder.saved", { uri }), 5000);
+      modalRef.openSnackBar?.(tTyped("recorder.saved", { uri }), 5000);
       setStatusMessage(tTyped("recorder.stopped"));
     } catch (error) {
-      openSnackBarRef.current(
+      modalRef.openSnackBar?.(
         tTyped("recorder.failedToStop", {
           message: (error as Error).message,
         }),
@@ -259,7 +251,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       isStoppingRef.current = false;
     }
-  }, [openSnackBarRef, dataRecorder.isRecording]);
+  }, [dataRecorder.isRecording]);
 
   const pauseRecording = useCallback(async () => {
     if (!dataRecorder.isRecording) return;
@@ -310,7 +302,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!data) return;
       const permission = await AudioModule.getRecordingPermissionsAsync();
       if (!permission.granted)
-        openSnackBarRef.current(tTyped("recorder.permissionDenied"));
+        modalRef.openSnackBar?.(tTyped("recorder.permissionDenied"));
       else
         await AudioModule.setAudioModeAsync({
           shouldPlayInBackground: true,
@@ -327,7 +319,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
             startRecordingRef.current();
           }, 1000);
 
-          sendNotificationRef.current?.({
+          notificationsManager.sendNotification({
             channelId: "recorderNotification",
             title: tTyped("recorder.autoStartedTitle"),
             message: tTyped("recorder.autoStartedNotification"),
@@ -337,7 +329,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
             actions,
           });
         } else if (data.shouldAutoStart && !permission.granted) {
-          sendNotificationRef.current?.({
+          notificationsManager.sendNotification({
             channelId: "recorderNotification",
             title: tTyped("recorder.autoStartedFailedTitle"),
             message: tTyped("recorder.autoStartedFailedNotification"),
@@ -356,26 +348,25 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
 
     loadData();
 
-    functionsToExecute.current["Screen-change"]["recorder"] = async (
-      newScreen,
-    ) => {
-      if (newScreen !== "Recorder") return;
+    const removeListener = deviceInfo.addEventListener(
+      "screenChange",
+      async (prev, newScreen) => {
+        if (newScreen !== "Recorder") return;
 
-      const permission = await AudioModule.requestRecordingPermissionsAsync();
-      if (!permission.granted) {
-        openSnackBarRef.current(tTyped("recorder.permissionDenied"));
-        navigateReplace("Home");
-        return;
-      }
+        const permission = await AudioModule.requestRecordingPermissionsAsync();
+        if (!permission.granted) {
+          modalRef.openSnackBar?.(tTyped("recorder.permissionDenied"));
+          navigateReplace("Home");
+          return;
+        }
 
-      loadData();
-      delete functionsToExecute.current["Screen-change"]["recorder"];
-    };
+        loadData();
+        removeListener();
+      },
+    );
 
-    return () => {
-      delete functionsToExecute.current["Screen-change"]["recorder"];
-    };
-  }, [sendNotificationRef, openSnackBarRef]);
+    return () => removeListener();
+  }, []);
 
   useEffect(() => {
     const partialMain: Partial<DataRecorder> = { ...dataRecorder };

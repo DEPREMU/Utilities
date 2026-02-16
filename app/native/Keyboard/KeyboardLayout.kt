@@ -460,6 +460,7 @@ class KeyboardLayout(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         clipboardBarHeightPx,
                     )
+                isFillViewport = false
                 isHorizontalScrollBarEnabled = false
                 addView(inner)
                 visibility = View.GONE
@@ -724,28 +725,26 @@ class KeyboardLayout(
         container.addView(cutButton)
     }
 
-    fun renderClipboardSuggestions(items: List<String>, maxItems: Int) {
+    fun renderClipboardSuggestions(items: List<String>) {
         val container = clipboardContainer ?: return
 
-        val displayItems = items.take(maxItems)
         container.removeAllViews()
 
-        if (displayItems.isEmpty()) {
+        if (items.isEmpty()) {
             clipboardScroll?.visibility = View.GONE
             return
         }
 
         clipboardScroll?.visibility = View.VISIBLE
 
-        displayItems.forEach { item ->
+        items.forEach { item ->
             val label = if (item.length > 10) item.take(10) + "..." else item
             val button =
                 Button(context).apply {
                     layoutParams =
                         LinearLayout.LayoutParams(
-                            0,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
                             keyMinHeightPx,
-                            1f,
                         ).apply {
                             val margin = px1
                             setMargins(margin, margin, margin, margin)
@@ -754,6 +753,7 @@ class KeyboardLayout(
                     text = label
                     themeManager.applyTypography(this, clipboardTextSizePx)
                     minHeight = keyMinHeightPx
+                    minWidth = keyMinWideWidthPx
                     isSingleLine = true
                     ellipsize = TextUtils.TruncateAt.END
                     maxLines = 1

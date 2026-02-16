@@ -149,8 +149,6 @@ export const enApp: typeLanguages = {
   undo: "Undo",
   successForgotPasswordMessage:
     "A password reset email has been sent. If you don't see it, check your spam folder.",
-  clipboard: "Clipboard",
-  clipboardTitle: "Content",
   remove: "Remove",
   copy: "Copy",
   languageTarget: "Target Language",
@@ -403,6 +401,7 @@ export const enApp: typeLanguages = {
     notificationDetailsNoStreamers: "No streamers configured",
   },
   labels: {
+    clipboard: "Clipboard",
     fileSavedSuccessMessage:
       "File {{filename}} saved successfully in {{filePath}}",
     fileSavedSuccessTitle: "File Saved Successfully",
@@ -555,6 +554,7 @@ export const enApp: typeLanguages = {
     deleteAll: "Delete All",
     download: "Download",
     createQR: "Create QR Code",
+    content: "Content",
     scanQR: "Scan QR Code",
     openEmail: "Open Email",
     callPhone: "Call Phone",
@@ -715,5 +715,13 @@ export const enApp: typeLanguages = {
     customHeight: "Custom Height: {{height}} px",
     customSize: "Custom Size",
     getSizeFromImageFiles: "Get size from each image.",
+  },
+  clipboard: {
+    settings: {
+      title: "Clipboard Settings",
+      enabled: "Clipboard Sync Enabled",
+      maxItems: "Max items to save in memory",
+      maxCharsInItem: "Max characters per content",
+    },
   },
 };

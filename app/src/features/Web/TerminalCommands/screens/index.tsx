@@ -8,9 +8,9 @@ import {
 } from "react-native-paper";
 import Button from "@/common/components/Button/screens";
 import { Command } from "@common";
-import { useModal } from "@/context/ModalContext";
-import { windowModule } from "@modules";
+import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
+import { windowModule } from "@modules";
 import { logger, storageManagement } from "@utils";
 import { useStylesTerminalCommands } from "@screens/Web/TerminalCommands/styles";
 import { FlatList, View, ScrollView } from "react-native";
@@ -19,7 +19,6 @@ import React, { useCallback, useRef, useState } from "react";
 const TerminalCommands: React.FC = () => {
   const { t } = useLanguage();
   const { styles, colors } = useStylesTerminalCommands();
-  const { openModalRef, closeModalRef } = useModal();
 
   const [commands, setCommands] = useState<Command[]>(
     storageManagement.get("TERMINAL_COMMANDS", []),
@@ -42,23 +41,23 @@ const TerminalCommands: React.FC = () => {
   });
 
   const handleAddCommand = useCallback(async () => {
-    closeModalRef.current();
+    modalRef.closeModal?.();
     setNewCommand({ when: "Start-up", command: "" });
     setCommands((prev) => {
       const updatedCommands = [...prev, newCommand];
       storageManagement.save("TERMINAL_COMMANDS", updatedCommands);
       return updatedCommands;
     });
-  }, [newCommand, closeModalRef]);
+  }, [newCommand]);
 
   const handleExecuteCommand = useCallback(
     async (command: string) => {
       setExecuting(true);
-      closeModalRef.current();
+      modalRef.closeModal?.();
       try {
         const result = await windowModule.executeCommand(command);
         setExecuting(false);
-        openModalRef.current(
+        modalRef.openModal?.(
           t("commandExecuted"),
           t("commandOutput") + ":\n" + (result || t("noOutput")),
           <Button
@@ -74,11 +73,11 @@ const TerminalCommands: React.FC = () => {
         logger.error("Error executing command:", error);
         const message = error instanceof Error ? error.message : String(error);
 
-        openModalRef.current(
+        modalRef.openModal?.(
           t("error"),
           t("commandExecutionFailed") + ":\n" + message,
           <Button
-            handlePress={closeModalRef.current}
+            handlePress={() => modalRef.closeModal?.()}
             label={t("common.close")}
             replaceStyles={{
               button: styles.executeButton,
@@ -88,17 +87,17 @@ const TerminalCommands: React.FC = () => {
         );
       }
     },
-    [openModalRef, closeModalRef, styles, t, handleAddCommand],
+    [styles, t, handleAddCommand],
   );
 
   const handleAskAddCommand = useCallback(async () => {
     if (!newCommand.command.trim()) return;
-    openModalRef.current(
+    modalRef.openModal?.(
       t("askExecuteCommand"),
       t("confirmExecuteCommand"),
       <>
         <Button
-          handlePress={closeModalRef.current}
+          handlePress={() => modalRef.closeModal?.()}
           label={t("labels.cancel")}
           replaceStyles={{
             button: styles.cancelButton,
@@ -116,14 +115,7 @@ const TerminalCommands: React.FC = () => {
         />
       </>,
     );
-  }, [
-    t,
-    styles,
-    newCommand,
-    openModalRef,
-    closeModalRef,
-    handleExecuteCommand,
-  ]);
+  }, [t, styles, newCommand, handleExecuteCommand]);
 
   const handleDeleteCommand = useCallback(
     async (index: number) => {
@@ -173,10 +165,10 @@ const TerminalCommands: React.FC = () => {
           <Card.Content>
             <View style={styles.iconContainer}>
               <IconButton
+                size={40}
                 icon="console"
                 iconColor={colors.background}
                 containerColor={colors.primary}
-                size={40}
               />
             </View>
             <Text variant="titleMedium" style={styles.emptyText}>

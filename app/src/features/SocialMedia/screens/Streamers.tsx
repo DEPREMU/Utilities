@@ -3,23 +3,23 @@ import {
   logger,
   isFalsy,
   openURL,
+  tTyped,
   clearRefs,
   capitalize,
+  deviceInfo,
   fetchToServer,
+  sessionManager,
   storageManagement,
   setIntervalPolyfill,
   notificationsManager,
   clearIntervalPolyfill,
-  sessionManager,
-  tTyped,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
+import { modalRef } from "@refs";
 import { Streamer } from "@types";
-import { useModal } from "@/context/ModalContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { useBackground } from "@/context/BackgroundContext";
 import { View, ScrollView } from "react-native";
-import { useStylesStreamers } from "@/features/SocialMedia/styles/useStylesStreamers";
+import { useStylesStreamers } from "@screens/SocialMedia/styles/useStylesStreamers";
 import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -27,9 +27,7 @@ type StreamerWithIsLive = Streamer & { isLive: boolean };
 
 const Streamers: React.FC = () => {
   const { styles } = useStylesStreamers();
-  const { statesRef } = useBackground();
   const { t, language } = useLanguage();
-  const { openModalRef, closeModalRef } = useModal();
 
   const [streamer, setStreamer] = useState<string>("");
   const [streamers, setStreamers] = useState<StreamerWithIsLive[]>([]);
@@ -38,7 +36,7 @@ const Streamers: React.FC = () => {
   const deleteStreamerRef = useRef(async (id: string) => {
     const { userData, sessionToken } = sessionManager.getSessionData();
 
-    closeModalRef.current();
+    modalRef.closeModal?.();
     if (!userData?.userId || isFalsy(id) || !sessionToken) return;
 
     const deviceId = storageManagement.get("DEVICE_ID");
@@ -57,12 +55,12 @@ const Streamers: React.FC = () => {
 
     if (error) {
       logger.error(error);
-      openModalRef.current(
+      modalRef.openModal?.(
         tTyped("error"),
         tTyped("errorDeletingStreamer", { error }),
         <Button
           label={tTyped("common.close")}
-          handlePress={closeModalRef.current}
+          handlePress={() => modalRef.closeModal?.()}
         />,
       );
       return;
@@ -107,10 +105,10 @@ const Streamers: React.FC = () => {
   });
 
   const askDeleteStreamerRef = useRef((streamer: Streamer) => {
-    if (!statesRef.current.hasInternet) return;
+    if (!deviceInfo.hasInternet) return;
 
     const streamerName = capitalize(streamer.name || streamer.id || "");
-    openModalRef.current(
+    modalRef.openModal?.(
       t("askDeleteStreamer"),
       t("askDeleteStreamerBody", { name: streamerName }),
       <>
@@ -119,21 +117,24 @@ const Streamers: React.FC = () => {
           handlePress={deleteStreamerRef.current}
           argsFuncHandlePress={[streamer.id || ""]}
         />
-        <Button label={tTyped("no")} handlePress={closeModalRef.current} />
+        <Button
+          label={tTyped("no")}
+          handlePress={() => modalRef.closeModal?.()}
+        />
       </>,
     );
   });
 
   const handleOpenURLStreamerRef = useRef((url: string) => {
     if (isFalsy(url)) return;
-    closeModalRef.current();
+    modalRef.closeModal?.();
     openURL(url);
   });
 
   const openURLStreamerRef = useRef((name: string) => {
     if (isFalsy(name)) return;
     const url = `https://www.twitch.tv/${name?.toLowerCase()}`;
-    openModalRef.current(
+    modalRef.openModal?.(
       t("openURL"),
       t("askOpenURL", { url }),
       <>
@@ -142,14 +143,17 @@ const Streamers: React.FC = () => {
           handlePress={handleOpenURLStreamerRef.current}
           argsFuncHandlePress={[url]}
         />
-        <Button label={tTyped("no")} handlePress={closeModalRef.current} />
+        <Button
+          label={tTyped("no")}
+          handlePress={() => modalRef.closeModal?.()}
+        />
       </>,
     );
   });
 
   const toggleNotificationsRef = useRef(
     async (streamerName: string, newBool: boolean) => {
-      if (!streamerName || !statesRef.current.hasInternet) return;
+      if (!streamerName || !deviceInfo.hasInternet) return;
 
       notificationsManager.editNotification("streamers", (prev) => {
         return {
@@ -198,12 +202,12 @@ const Streamers: React.FC = () => {
           streamer.replace(/\s/g, "").toLowerCase(),
       )
     ) {
-      openModalRef.current(
+      modalRef.openModal?.(
         t("error"),
         t("streamerAlreadyAdded", { name: streamer }),
         <Button
           label={t("common.close")}
-          handlePress={closeModalRef.current}
+          handlePress={() => modalRef.closeModal?.()}
         />,
       );
       return;
@@ -246,13 +250,13 @@ const Streamers: React.FC = () => {
     }
 
     setStreamer("");
-  }, [t, streamer, streamers, openModalRef, closeModalRef]);
+  }, [t, streamer, streamers]);
 
   const askAddStreamer = useCallback(async () => {
-    if (!statesRef.current.hasInternet) return;
+    if (!deviceInfo.hasInternet) return;
 
     const streamerName = capitalize(streamer);
-    openModalRef.current(
+    modalRef.openModal?.(
       t("askAddStreamerTitle"),
       t("askAddStreamerBody", { name: streamerName }),
       <>
@@ -260,13 +264,13 @@ const Streamers: React.FC = () => {
           label={t("yes")}
           handlePress={() => {
             addingStreamer();
-            closeModalRef.current();
+            modalRef.closeModal?.();
           }}
         />
-        <Button label={t("no")} handlePress={closeModalRef.current} />
+        <Button label={t("no")} handlePress={() => modalRef.closeModal?.()} />
       </>,
     );
-  }, [closeModalRef, openModalRef, streamer, t, statesRef, addingStreamer]);
+  }, [streamer, t, addingStreamer]);
 
   useEffect(() => {
     streamersLoaded.current = streamers.length > 0;
@@ -277,13 +281,13 @@ const Streamers: React.FC = () => {
   useEffect(() => {
     const { userData, sessionToken } = sessionManager.getSessionData();
 
-    if (!userData?.userId || !statesRef.current.hasInternet) {
-      openModalRef.current(
+    if (!userData?.userId || !deviceInfo.hasInternet) {
+      modalRef.openModal?.(
         tTyped("error"),
         tTyped("youAreNotLoggedIn"),
         <Button
           label={tTyped("common.close")}
-          handlePress={closeModalRef.current}
+          handlePress={() => modalRef.closeModal?.()}
         />,
       );
       return;
@@ -311,12 +315,12 @@ const Streamers: React.FC = () => {
 
         if (error) {
           logger.error(error);
-          openModalRef.current(
+          modalRef.openModal?.(
             tTyped("error"),
             tTyped("errorLoadingStreamers"),
             <Button
               label={tTyped("common.close")}
-              handlePress={closeModalRef.current}
+              handlePress={() => modalRef.closeModal?.()}
             />,
           );
           return;
@@ -330,12 +334,12 @@ const Streamers: React.FC = () => {
 
         if (data && data.length === 0) return;
         if (!data) {
-          openModalRef.current(
+          modalRef.openModal?.(
             tTyped("error"),
             tTyped("errorLoadingStreamers"),
             <Button
               label={tTyped("common.close")}
-              handlePress={closeModalRef.current}
+              handlePress={() => modalRef.closeModal?.()}
             />,
           );
           return;
@@ -348,7 +352,7 @@ const Streamers: React.FC = () => {
         );
 
         let newData: StreamerWithIsLive[] | null = null;
-        if (statesRef.current.hasInternet)
+        if (deviceInfo.hasInternet)
           newData = await Promise.all(
             allStreamers.map(async (streamer: StreamerWithIsLive) => {
               const res = await fetchToServer("/getIsLiveStreamer", {
@@ -371,7 +375,7 @@ const Streamers: React.FC = () => {
     const id = setIntervalPolyfill(loadStreamers, 15000);
 
     return () => clearIntervalPolyfill(id);
-  }, [statesRef, openModalRef, closeModalRef]);
+  }, []);
 
   return (
     <View style={styles.container}>

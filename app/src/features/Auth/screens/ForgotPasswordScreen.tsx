@@ -4,23 +4,20 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { useModal } from "@/context/ModalContext";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
 import ButtonComponent from "@/common/components/Button/screens";
-import { useUserContext } from "@/context/UserContext";
+import { useUserContext } from "@context/UserContext";
 import { View, Keyboard } from "react-native";
-import { navigateReplace } from "@refs";
-import useStylesAuthScreens from "@/features/Auth/styles/useStylesAuthScreens";
-import { logger, REPLACERS } from "@utils";
+import useStylesAuthScreens from "@screens/Auth/styles/useStylesAuthScreens";
+import { modalRef, navigateReplace } from "@refs";
 import React, { useCallback, useState } from "react";
-import { isValidEmail as isValidEmailFunc } from "@utils";
 import { ActivityIndicator, Text, TextInput } from "react-native-paper";
+import { isValidEmail as isValidEmailFunc, logger, REPLACERS } from "@utils";
 
 const ForgotPasswordScreen: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesAuthScreens();
   const { dataRef } = useUserContext();
-  const { openSnackBarRef } = useModal();
 
   const [email, setEmail] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +50,7 @@ const ForgotPasswordScreen: React.FC = () => {
 
       setSendingEmail(false);
       setEmailSent(true);
-      openSnackBarRef.current(t("successForgotPasswordMessage"), 8000, {
+      modalRef.openSnackBar?.(t("successForgotPasswordMessage"), 8000, {
         label: t("common.close"),
       });
     });

@@ -1,14 +1,19 @@
 import Button from "@/common/components/Button/screens";
 import { List, Text } from "react-native-paper";
-import { useLanguage } from "@/context/LanguageContext";
-import { useBackground } from "@/context/BackgroundContext";
-import { useUserContext } from "@/context/UserContext";
-import { navigateReplace } from "@/app/refs/navigationRef";
+import { useLanguage } from "@context/LanguageContext";
+import { useUserContext } from "@context/UserContext";
+import { navigateReplace } from "@refs";
 import { ScrollView, View } from "react-native";
-import { useStylesHomeScreen } from "@/features/Home/styles/useStylesHomeScreen";
-import React, { useRef, useMemo } from "react";
-import { DATA_PLATFORM, REPLACERS, sessionManager } from "@utils";
+import { useStylesHomeScreen } from "@screens/Home/styles/useStylesHomeScreen";
 import { ScreensAvailable, typeLanguagesKeys } from "@types";
+import React, { useRef, useMemo, useState, useEffect } from "react";
+import {
+  DATA_PLATFORM,
+  deviceInfo,
+  hasInternetConnection,
+  REPLACERS,
+  sessionManager,
+} from "@utils";
 
 type ButtonType = {
   label: typeLanguagesKeys;
@@ -65,7 +70,7 @@ const buttons: ButtonType[] = [
     noNeedsInternet: false,
     noNeedsSession: true,
   },
-  { label: "clipboard", screen: "Clipboard" },
+  { label: "labels.clipboard", screen: "Clipboard" },
   { label: "translator", screen: "Translator" },
   { label: "socialMedia", screen: "SocialMedia" },
   {
@@ -114,9 +119,10 @@ const buttons: ButtonType[] = [
 
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { hasInternet } = useBackground();
   const { styles, background } = useStylesHomeScreen();
   const { isLoggedIn, loggingIn } = useUserContext();
+
+  const [hasInternet, setHasInternet] = useState(false);
 
   const handleLoginInWebRef = useRef(() => {
     if (!REPLACERS.isNative) return;
@@ -168,6 +174,16 @@ const HomeScreen: React.FC = () => {
     background,
     isLoggedIn,
   ]);
+
+  useEffect(() => {
+    const removeListener = deviceInfo.addEventListener(
+      "hasInternet-change",
+      (newState) => setHasInternet(newState),
+    );
+    hasInternetConnection().then(setHasInternet);
+
+    return () => removeListener();
+  }, []);
 
   return (
     <View style={styles.container}>

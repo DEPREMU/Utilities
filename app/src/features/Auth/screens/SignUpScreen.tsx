@@ -1,27 +1,25 @@
-import { View } from "react-native";
-import { Text } from "react-native-paper";
-import { useModal } from "@/context/ModalContext";
-import ButtonComponent from "@/common/components/Button/screens";
-import { useLanguage } from "@/context/LanguageContext";
-import EmailAndPassword from "@/features/Auth/components/EmailAndPassword";
-import { useUserContext } from "@/context/UserContext";
-import { navigateReplace } from "@/app/refs/navigationRef";
-import useStylesAuthScreens from "@/features/Auth/styles/useStylesAuthScreens";
-import { ActivityIndicator } from "react-native-paper";
 import {
+  tTyped,
   logger,
   isValidEmail,
-  isValidPassword,
-  tTyped,
   sessionManager,
+  isValidPassword,
 } from "@utils";
+import { View } from "react-native";
+import { Text } from "react-native-paper";
+import ButtonComponent from "@/common/components/Button/screens";
+import { useLanguage } from "@context/LanguageContext";
+import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
+import { useUserContext } from "@/context/UserContext";
+import useStylesAuthScreens from "@screens/Auth/styles/useStylesAuthScreens";
+import { ActivityIndicator } from "react-native-paper";
+import { modalRef, navigateReplace } from "@refs";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const SignUpScreen: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesAuthScreens();
   const { isLoggedIn } = useUserContext();
-  const { openSnackBarRef } = useModal();
 
   const [email, setEmail] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +51,7 @@ const SignUpScreen: React.FC = () => {
       }
 
       signingUpRef.current = false;
-      openSnackBarRef.current(
+      modalRef.openSnackBar?.(
         `${tTyped("auth.successSignUpMessage")}\n${tTyped("auth.verifyEmail")}`,
         8000,
         {
@@ -61,7 +59,7 @@ const SignUpScreen: React.FC = () => {
         },
       );
     });
-  }, [email, password, openSnackBarRef]);
+  }, [email, password]);
 
   useEffect(() => {
     if (isLoggedIn) navigateReplace("Home");

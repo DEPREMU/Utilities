@@ -142,7 +142,6 @@ class CustomKeyboard :
     private var autoCapSentenceDelimiters: String = ".:;?!\n"
     private var pasteAddsTrailingSpace: Boolean = true
     private var maxSuggestions: Int = 3
-    private var maxClipboardItems: Int = 10
     private var autoCorrectThresholdShort: Double = 0.75
     private var autoCorrectThresholdMedium: Double = 0.70
     private var autoCorrectThresholdLong: Double = 0.65
@@ -858,18 +857,18 @@ class CustomKeyboard :
         }
 
         serviceScope.launch {
-            val loaded = ClipboardRepository.loadSystemClipboard(this@CustomKeyboard, maxClipboardItems)
-            ClipboardRepository.setClipboardItems(loaded, maxClipboardItems)
+            val loaded = ClipboardRepository.loadSystemClipboard(this@CustomKeyboard)
+            ClipboardRepository.setClipboardItems(loaded)
             renderClipboardSuggestions()
         }
     }
 
     private fun renderClipboardSuggestions() {
         if (!themeManager.isClipboardSuggestionsEnabled) {
-            layoutManager.renderClipboardSuggestions(emptyList(), 0)
+            layoutManager.renderClipboardSuggestions(emptyList())
             return
         }
-        layoutManager.renderClipboardSuggestions(ClipboardRepository.clipboardItems.value, maxClipboardItems)
+        layoutManager.renderClipboardSuggestions(ClipboardRepository.clipboardItems.value)
     }
 
     private fun pasteClipboardItem(item: String) {
@@ -900,7 +899,7 @@ class CustomKeyboard :
                     }
                     .setNeutralButton(deleteLabel) { dialogInterface, _ ->
                         val updated = ClipboardRepository.clipboardItems.value.filter { it != text }
-                        ClipboardRepository.setClipboardItems(updated, maxClipboardItems)
+                        ClipboardRepository.setClipboardItems(updated)
                         renderClipboardSuggestions()
                         sendClipboardEvent("delete", text)
                         dialogInterface.dismiss()
@@ -2257,7 +2256,6 @@ class CustomKeyboard :
 
         val prefs = getPrefs()
         val initialSuggestions = prefs.getInt(PREF_KEY_MAX_SUGGESTIONS, 3)
-        val initialClipboard = prefs.getInt(PREF_KEY_MAX_CLIPBOARD_ITEMS, DEFAULT_MAX_ITEMS_IN_CLIPBOARD)
 
         val suggestionLabel = TextView(context).apply {
             text = getString(R.string.label_max_suggestions_fmt, initialSuggestions)
@@ -2275,26 +2273,8 @@ class CustomKeyboard :
             })
         }
 
-        val clipboardLabel = TextView(context).apply {
-            text = getString(R.string.label_max_clipboard_items_fmt, initialClipboard)
-        }
-        val clipboardSeek = SeekBar(context).apply {
-            max = 30
-            progress = initialClipboard.coerceIn(1, 30)
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    val value = progress.coerceAtLeast(1)
-                    clipboardLabel.text = getString(R.string.label_max_clipboard_items_fmt, value)
-                }
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            })
-        }
-
         layout.addView(suggestionLabel)
         layout.addView(suggestionSeek)
-        layout.addView(clipboardLabel)
-        layout.addView(clipboardSeek)
 
         val windowToken = window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
         uiHandler.post {
@@ -2304,7 +2284,6 @@ class CustomKeyboard :
                 .setPositiveButton(getString(R.string.btn_ok)) { _, _ ->
                     prefs.edit {
                         putInt(PREF_KEY_MAX_SUGGESTIONS, suggestionSeek.progress.coerceAtLeast(1))
-                        putInt(PREF_KEY_MAX_CLIPBOARD_ITEMS, clipboardSeek.progress.coerceAtLeast(1))
                     }
                     initPxCache()
                     rebuildOnUiThread()
@@ -2313,7 +2292,6 @@ class CustomKeyboard :
                 .setNegativeButton(getString(R.string.btn_cancel)) { _, _ ->
                     prefs.edit {
                         putInt(PREF_KEY_MAX_SUGGESTIONS, initialSuggestions)
-                        putInt(PREF_KEY_MAX_CLIPBOARD_ITEMS, initialClipboard)
                     }
                     initPxCache()
                     rebuildOnUiThread()
@@ -2322,7 +2300,6 @@ class CustomKeyboard :
                 .setOnCancelListener {
                     prefs.edit {
                         putInt(PREF_KEY_MAX_SUGGESTIONS, initialSuggestions)
-                        putInt(PREF_KEY_MAX_CLIPBOARD_ITEMS, initialClipboard)
                     }
                     initPxCache()
                     rebuildOnUiThread()
@@ -3041,10 +3018,8 @@ class CustomKeyboard :
             .coerceIn(0.0, 1.0)
 
         maxSuggestions = prefs.getInt(PREF_KEY_MAX_SUGGESTIONS, 3).coerceAtLeast(1)
-        maxClipboardItems = prefs.getInt(PREF_KEY_MAX_CLIPBOARD_ITEMS, DEFAULT_MAX_ITEMS_IN_CLIPBOARD).coerceAtLeast(1)
         suggestionEngine.updateMaxSuggestions(maxSuggestions)
-        updateMaxClipboardItems(maxClipboardItems)
-        ClipboardRepository.setClipboardItems(ClipboardRepository.clipboardItems.value, maxClipboardItems)
+        ClipboardRepository.setClipboardItems(ClipboardRepository.clipboardItems.value)
 
         soundHaptics.soundEnabled = themeManager.isSoundEnabled
         soundHaptics.soundVolume = prefs.getFloat(PREF_KEY_SOUND_VOLUME, 1f)
@@ -3721,7 +3696,6 @@ class CustomKeyboard :
         private const val PREF_KEY_VIBRATION_PATTERN_REPEAT = "vibration_pattern_repeat"
         private const val PREF_KEY_VIBRATION_AMPLITUDE = "vibration_amplitude"
         private const val PREF_KEY_MAX_SUGGESTIONS = "max_suggestions"
-        private const val PREF_KEY_MAX_CLIPBOARD_ITEMS = "max_clipboard_items"
         private const val PREF_KEY_LAYOUT_LETTERS = "layout_letters"
         private const val PREF_KEY_LAYOUT_SYMBOLS = "layout_symbols"
         private const val PREF_KEY_LAYOUT_SPECIAL = "layout_special"
@@ -3780,26 +3754,18 @@ class CustomKeyboard :
                 listOf("abc", "space", "×", "§", "¶", "°", "enter"),
             )
             
-        private const val DEFAULT_MAX_ITEMS_IN_CLIPBOARD = 10
-        private var maxClipboardItemsOverride: Int = DEFAULT_MAX_ITEMS_IN_CLIPBOARD
-
         fun setClipboardSuggestionsFromModule(items: List<String>) {
             val cleaned =
                 items
                     .map { it.trim() }
                     .filter { it.isNotEmpty() }
-                    .take(maxClipboardItemsOverride)
             val signature = cleaned.joinToString("|")
             if (cleaned.isNotEmpty() && signature != lastClipboardModuleSignature) {
-                ClipboardRepository.setClipboardItems(cleaned, maxClipboardItemsOverride)
+                ClipboardRepository.setClipboardItems(cleaned)
                 lastClipboardModuleSignature = signature
                 val params = Arguments.createMap().apply { putString("type", "show") }
                 BackgroundServiceModule.sendEvent("ClipboardEvent", params)
             }
-        }
-
-        fun updateMaxClipboardItems(maxItems: Int) {
-            maxClipboardItemsOverride = maxItems.coerceAtLeast(1)
         }
     }
 }

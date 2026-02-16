@@ -22,9 +22,9 @@ import axios from "axios";
 import { t } from "i18next";
 import Button from "@/common/components/Button/screens";
 import { Text } from "react-native-paper";
-import { useModal } from "@/context/ModalContext";
-import { useLanguage } from "@/context/LanguageContext";
-import useStylesChangeImageFormat from "@/features/Images/styles/useStylesChangeImageFormat";
+import { modalRef } from "@refs";
+import { useLanguage } from "@context/LanguageContext";
+import useStylesChangeImageFormat from "@screens/Images/styles/useStylesChangeImageFormat";
 import { Image, ScrollView, View } from "react-native";
 import { useCallback, useRef, useState } from "react";
 
@@ -65,7 +65,6 @@ const getDataChangeImageFormat = wrapFunctionWithError(
 const ChangeImageFormat = () => {
   const { t } = useLanguage();
   const { styles } = useStylesChangeImageFormat();
-  const { openSnackBarRef } = useModal();
 
   const [images, setImages] = useState<
     Exclude<ReturnSelectImage, { canceled: true }>
@@ -92,7 +91,7 @@ const ChangeImageFormat = () => {
         });
 
         logger.log("Image saved:", image.name);
-        openSnackBarRef.current(tTyped("images.downloadImageSuccessMessage"));
+        modalRef.openSnackBar?.(tTyped("images.downloadImageSuccessMessage"));
       } catch (error) {
         logger.error("Failed to download image:", error);
       }
@@ -138,11 +137,11 @@ const ChangeImageFormat = () => {
       }
 
       if (!data?.imageUri) {
-        openSnackBarRef.current(t("images.errorWhileConvertingImageMessage"));
+        modalRef.openSnackBar?.(t("images.errorWhileConvertingImageMessage"));
         return;
       }
       if (data?.newFormat === image.type) {
-        openSnackBarRef.current(t("images.errorWhileConvertingImageMessage"));
+        modalRef.openSnackBar?.(t("images.errorWhileConvertingImageMessage"));
         return;
       }
 
@@ -154,7 +153,7 @@ const ChangeImageFormat = () => {
         },
       ]);
     },
-    [t, openSnackBarRef, images],
+    [t, images],
   );
 
   const renderImages = useCallback(() => {

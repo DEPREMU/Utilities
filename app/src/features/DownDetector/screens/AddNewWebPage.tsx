@@ -1,7 +1,7 @@
 import Button from "@/common/components/Button/screens";
 import { View } from "react-native";
 import { Tables } from "@types";
-import { useModal } from "@context/ModalContext";
+import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesAddNewWebPage from "@screens/DownDetector/styles/useStylesAddNewWebPage";
 import { Switch, Text, TextInput } from "react-native-paper";
@@ -20,7 +20,6 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
 }) => {
   const { styles } = useStylesAddNewWebPage();
   const { t, language } = useLanguage();
-  const { openSnackBarRef } = useModal();
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -34,14 +33,14 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
     const { sessionToken, userData } = sessionManager.getSessionData();
 
     if (!userData?.userId)
-      return openSnackBarRef.current(t("youAreNotLoggedIn"));
+      return modalRef.openSnackBar?.(t("youAreNotLoggedIn"));
 
     if (!inputText.trim())
-      return openSnackBarRef.current(t("pleaseEnterWebPageURL"));
+      return modalRef.openSnackBar?.(t("pleaseEnterWebPageURL"));
     if (!inputText.trim().startsWith("http"))
-      return openSnackBarRef.current(t("webPageMustStartWithHTTP"));
+      return modalRef.openSnackBar?.(t("webPageMustStartWithHTTP"));
 
-    if (!sessionToken) return openSnackBarRef.current(t("youAreNotLoggedIn"));
+    if (!sessionToken) return modalRef.openSnackBar?.(t("youAreNotLoggedIn"));
 
     setIsLoading(true);
     try {
@@ -66,20 +65,20 @@ const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
         error: res.errorText || "Unknown error",
       };
 
-      if (error) openSnackBarRef.current(t("errorOccurred", { error }));
+      if (error) modalRef.openSnackBar?.(t("errorOccurred", { error }));
       else {
-        openSnackBarRef.current(t("webPageAddedSuccessfully"));
+        modalRef.openSnackBar?.(t("webPageAddedSuccessfully"));
         setInputText("");
         if (!data) return;
         if (Array.isArray(data)) data.forEach((item) => addNewItem(item));
         else addNewItem(data);
       }
     } catch {
-      openSnackBarRef.current(t("failedToAddTextToDatabase"));
+      modalRef.openSnackBar?.(t("failedToAddTextToDatabase"));
     } finally {
       setIsLoading(false);
     }
-  }, [t, language, inputText, addNewItem, openSnackBarRef, sendNotification]);
+  }, [t, language, inputText, addNewItem, sendNotification]);
 
   return (
     <View style={styles.container}>

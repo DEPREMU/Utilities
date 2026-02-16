@@ -3,7 +3,6 @@ import { REPLACERS } from "../TOP_LEVEL";
 import * as Location from "expo-location";
 import { Alert, AppState } from "react-native";
 import { setTimeoutPolyfill } from "./appManagement";
-import { notificationsManager } from "./notifications";
 import { NativeFunctionsModule } from "@modules";
 
 /**
@@ -41,6 +40,9 @@ export const isLocationEnabled = async (): Promise<boolean> => {
  */
 export const askLocationPermission = async (): Promise<boolean> => {
   if (REPLACERS.isWeb) return false;
+
+  const { notificationsManager, storageManagement } = await import("@utils");
+  if (!storageManagement.get("HAS_UI")) return false;
 
   let { status } = await Location.getForegroundPermissionsAsync();
 

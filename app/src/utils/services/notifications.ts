@@ -1,24 +1,39 @@
 import {
+  windowModule,
+  NotificationModule,
+  NativeFunctionsModule,
+} from "@modules";
+import {
   ChannelsId,
+  Notification,
   Notifications,
   ScreensAvailable,
   ReasonNotification,
 } from "@types";
-import { Falsy } from "react-native";
-import { logger } from "./debug";
+import { logger, setTimeoutPolyfill } from "../functions";
 import { tTyped } from "../translates";
 import { cloneDeep } from "lodash";
 import { REPLACERS } from "../TOP_LEVEL";
+import * as DeviceInfo from "react-native-device-info";
 import * as notifications from "expo-notifications";
-import { navigateReplace } from "@/app/refs/navigationRef";
+import { AppState, Falsy } from "react-native";
 import { storageManagement } from "../services/storage";
-import { NotificationModule } from "@modules";
+import { navigateReplace, modalRef } from "@refs";
 import { reasonNotification, objByReasonNotification } from "@common";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
   [key: string]: unknown;
 }
+
+export type SendNotification = (
+  notification: Omit<Notification, "id" | "timestamp">,
+) => Promise<string | void>;
+
+export type RemoveNotification = (
+  id: number,
+  reasonNotification: ReasonNotification,
+) => void;
 
 /**
  * Checks if the notifications data is already declared.
@@ -246,22 +261,36 @@ export const configureNotificationChannel = async () => {
 };
 
 class NotificationsManager {
+  #ready = false;
+  #notifications: Notifications = null as unknown as Notifications;
+
   constructor() {
     initializeNotificationsStorage().then((data) => {
-      this.notifications = data;
+      this.#notifications = data;
+      this.#ready = true;
     });
   }
 
-  private notifications: Notifications = null as unknown as Notifications;
+  public waitToReady = async (): Promise<void> => {
+    if (this.#ready) return;
+
+    await new Promise((resolve) => {
+      const checkReady = () => {
+        if (this.#ready) resolve(undefined);
+        else setTimeoutPolyfill(checkReady, 100);
+      };
+      checkReady();
+    });
+  };
 
   public getNotifications = (): Notifications => {
-    return this.notifications;
+    return this.#notifications;
   };
 
   public getNotification = <T extends ReasonNotification>(
     reason: T,
   ): Notifications[T] => {
-    const notificationsData = this.notifications;
+    const notificationsData = this.#notifications;
     return notificationsData[reason];
   };
 
@@ -275,12 +304,12 @@ class NotificationsManager {
       notification: Notifications[T],
     ) => void,
   ): Promise<void> => {
-    const notificationsData = this.notifications;
+    const notificationsData = this.#notifications;
 
     const prevData = notificationsData[reason];
     const newData = typeof data === "function" ? data(prevData) : { ...data };
 
-    this.notifications = {
+    this.#notifications = {
       ...notificationsData,
       [reason]: {
         ...prevData,
@@ -288,8 +317,8 @@ class NotificationsManager {
       },
     };
 
-    storageManagement.save("NOTIFICATIONS", this.notifications);
-    if (callback) callback(this.notifications, this.notifications[reason]);
+    storageManagement.save("NOTIFICATIONS", this.#notifications);
+    if (callback) callback(this.#notifications, this.#notifications[reason]);
   };
 
   public editNotifications = async (
@@ -297,17 +326,148 @@ class NotificationsManager {
       | Partial<Notifications>
       | ((prev: Notifications) => Partial<Notifications>),
   ): Promise<void> => {
-    const notificationsData = this.notifications;
+    const notificationsData = this.#notifications;
 
     const newData =
       typeof data === "function" ? data(notificationsData) : { ...data };
 
-    this.notifications = {
+    this.#notifications = {
       ...notificationsData,
       ...newData,
     };
 
-    storageManagement.save("NOTIFICATIONS", this.notifications);
+    storageManagement.save("NOTIFICATIONS", this.#notifications);
+  };
+
+  public removeNotification: RemoveNotification = async (
+    id,
+    reasonNotification,
+  ) => {
+    if (REPLACERS.isWeb) return;
+
+    NotificationModule.cancelNotification(id, reasonNotification);
+  };
+
+  public sendNotification: SendNotification = async (notification) => {
+    try {
+      const localNotification = this.getNotification(
+        notification.reasonNotification,
+      );
+
+      if (!localNotification?.enabled) return;
+
+      if (
+        notification.reasonNotification !== "streamers" &&
+        localNotification?.paused
+      ) {
+        const timePaused = localNotification?.paused.timePaused || 0;
+        if (Date.now() < timePaused) return;
+
+        this.editNotification(notification.reasonNotification, (prev) => {
+          return {
+            ...prev,
+            paused: {
+              isPaused: false,
+              timePaused: -1,
+            },
+          };
+        });
+      }
+
+      if (AppState.currentState !== "active") {
+        if (
+          storageManagement.get("HAS_UI") &&
+          !localNotification.behavior.onlyWhenScreenOff &&
+          !localNotification.behavior.onlyWhenAppInBackground
+        )
+          modalRef.openSnackBar?.(
+            [notification.title, notification.message].join("\n"),
+            8000,
+          );
+
+        return;
+      }
+
+      if (localNotification.behavior.onlyDuringSpecificHours.enabled) {
+        const currentHour = new Date().getHours();
+        const { startHour, endHour } =
+          localNotification.behavior.onlyDuringSpecificHours;
+
+        if (currentHour < startHour || currentHour >= endHour) return;
+      }
+
+      if (REPLACERS.isWeb) {
+        windowModule.sendNotification({
+          body: notification.message,
+          title: notification.title,
+          actions: notification.actions?.map((action) => ({
+            type: "button",
+            text: action.title,
+          })),
+          closeButtonText: tTyped("common.close"),
+          reasonNotification: notification.reasonNotification,
+        });
+
+        return;
+      } else {
+        try {
+          const isDND = await NativeFunctionsModule.isDoNotDisturbEnabled();
+          const { deviceInfo } = await import("@utils");
+
+          if (
+            localNotification.behavior.onlyWhenScreenOff &&
+            deviceInfo.statePhone !== "resumed"
+          )
+            return;
+
+          if (localNotification.behavior.onlyWhenConnectedToPower) {
+            const isCharging = await DeviceInfo.isBatteryCharging();
+            if (!isCharging) return;
+          }
+
+          if (localNotification.behavior.onlyWhenNotInDoNotDisturb && isDND)
+            return;
+
+          if (localNotification.behavior.bypassDoNotDisturb && isDND)
+            await NativeFunctionsModule.disableDoNotDisturb();
+
+          const notificationId = Math.floor(Math.random() * 1000000);
+
+          await NotificationModule.sendNotification(
+            notificationId,
+            notification.title,
+            notification.message,
+            notification.channelId,
+            notification.reasonNotification,
+            true,
+            notification.data || {},
+            notification.actions || null,
+          );
+
+          if (isDND && localNotification.behavior.bypassDoNotDisturb)
+            await NativeFunctionsModule.enableDoNotDisturb();
+
+          return String(notificationId);
+        } catch (error) {
+          logger.error("Error sending native notification", error);
+        }
+      }
+
+      return await notifications.scheduleNotificationAsync({
+        content: {
+          title: notification.title,
+          body: notification.message,
+          data: { type: notification.type, ...notification.data },
+        },
+        trigger: notification.trigger || null,
+      });
+    } catch (error) {
+      logger.error(
+        "NOTIFICATIONS",
+        "Error checking paused notifications",
+        error,
+      );
+    }
   };
 }
 

@@ -1,15 +1,14 @@
 import React from "react";
-import { UserProvider } from "@/context/UserContext";
-import { ThemeProvider } from "./ThemeContext";
-import { VaultProvider } from "./VaultContext";
-import { ModalProvider } from "@/context/ModalContext";
-import { LayoutProvider } from "@/context/LayoutContext";
-import { RecorderProvider } from "./RecorderContext";
-import { LanguageProvider } from "@/context/LanguageContext";
+import { UserProvider } from "@context/UserContext";
+import { ThemeProvider } from "@context/ThemeContext";
+import { VaultProvider } from "@context/VaultContext";
+import { ModalProvider } from "@context/ModalContext";
+import { LayoutProvider } from "@context/LayoutContext";
+import { RecorderProvider } from "@context/RecorderContext";
+import { LanguageProvider } from "@context/LanguageContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { WebSocketProvider } from "./WebSocketContext";
-import { BackgroundProvider } from "./BackgroundContext";
-import { NotificationsProvider } from "./NotificationsContext";
+import { WebSocketProvider } from "@context/WebSocketContext";
+import { BackgroundProvider } from "@context/BackgroundContext";
 import { DeviceInformationProvider } from "./DeviceInformationContext";
 import { initializeNotificationsStorage, REPLACERS } from "@utils";
 
@@ -28,17 +27,15 @@ const AppProviders: React.FC<AppProvidersProps> = ({ children }) => (
             <UserProvider>
               <LanguageProvider>
                 <ModalProvider>
-                  <NotificationsProvider>
-                    <WebSocketProvider>
-                      <VaultProvider>
-                        {REPLACERS.isWeb ? (
-                          children
-                        ) : (
-                          <RecorderProvider>{children}</RecorderProvider>
-                        )}
-                      </VaultProvider>
-                    </WebSocketProvider>
-                  </NotificationsProvider>
+                  <WebSocketProvider>
+                    <VaultProvider>
+                      {REPLACERS.isWeb ? (
+                        children
+                      ) : (
+                        <RecorderProvider>{children}</RecorderProvider>
+                      )}
+                    </VaultProvider>
+                  </WebSocketProvider>
                 </ModalProvider>
               </LanguageProvider>
             </UserProvider>

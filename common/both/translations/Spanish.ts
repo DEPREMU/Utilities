@@ -138,8 +138,6 @@ export const esApp: typeLanguages = {
   undo: "Deshacer",
   successForgotPasswordMessage:
     "Se ha enviado un correo electrónico para restablecer la contraseña. Si no lo ves, revisa tu carpeta de spam.",
-  clipboard: "Portapapeles",
-  clipboardTitle: "Contenido",
   remove: "Eliminar",
   copy: "Copiar",
   languageTarget: "Idioma de destino",
@@ -312,6 +310,7 @@ export const esApp: typeLanguages = {
   millis: "milisegundos",
   recorderNotification: "Notificación de grabadora",
   labels: {
+    clipboard: "Portapapeles",
     deselect: "Deseleccionar",
     fileInfo: "Información del archivo",
     fileNotSavedErrorMessage:
@@ -584,6 +583,7 @@ export const esApp: typeLanguages = {
     download: "Descargar",
     openEmail: "Abrir correo electrónico",
     openMap: "Abrir mapa",
+    content: "Contenido",
   },
   colors: {
     selectBg: "Seleccionar color de fondo",
@@ -725,5 +725,13 @@ export const esApp: typeLanguages = {
     },
     unsupportedPlatformAlert: "Plataforma no compatible",
     selectedItems: "{{count}} elementos seleccionados",
+  },
+  clipboard: {
+    settings: {
+      title: "Configuración del Portapapeles",
+      enabled: "Habilitar el Sincronizado del Portapapeles",
+      maxItems: "Maxima Cantidad de Elementos por Guardar en Memoria",
+      maxCharsInItem: "Maxima Cantidad de Caracteres por Elemento",
+    },
   },
 };

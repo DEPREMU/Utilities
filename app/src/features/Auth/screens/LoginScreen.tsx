@@ -1,20 +1,18 @@
 import { View } from "react-native";
 import LoginTypeQR from "@screens/Auth/components/LoginTypeQR";
-import { useModal } from "@context/ModalContext";
 import { useLanguage } from "@context/LanguageContext";
 import ButtonComponent from "@/common/components/Button/screens";
 import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
 import stylesLoginScreen from "@screens/Auth/styles/useStylesAuthScreens";
 import { useUserContext } from "@context/UserContext";
-import { navigateReplace } from "@refs";
-import { logger, tTyped, REPLACERS, sessionManager } from "@utils";
+import { modalRef, navigateReplace } from "@refs";
 import { Text, ActivityIndicator, Switch } from "react-native-paper";
+import { logger, tTyped, REPLACERS, sessionManager } from "@utils";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const LoginScreen: React.FC = () => {
   const { t } = useLanguage();
   const { isLoggedIn } = useUserContext();
-  const { openSnackBarRef } = useModal();
   const { styles, text, primary } = stylesLoginScreen();
 
   const [email, setEmail] = useState<string>("");
@@ -57,11 +55,11 @@ const LoginScreen: React.FC = () => {
 
       setLoggingIn(false);
 
-      openSnackBarRef.current(tTyped("auth.successLoginMessage"), 3000, {
+      modalRef.openSnackBar?.(tTyped("auth.successLoginMessage"), 3000, {
         label: tTyped("common.close"),
       });
     });
-  }, [email, password, openSnackBarRef, loggingIn, rememberMe]);
+  }, [email, password, loggingIn, rememberMe]);
 
   useEffect(() => {
     if (isLoggedIn) navigateReplace("Home");

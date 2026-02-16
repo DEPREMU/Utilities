@@ -7,8 +7,8 @@ import {
   ProgressBar,
 } from "react-native-paper";
 import { View } from "react-native";
+import { modalRef } from "@refs";
 import { useVault } from "@context/VaultContext";
-import { useModal } from "@context/ModalContext";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import { windowModule } from "@modules";
@@ -20,7 +20,6 @@ const CompressionScreen: React.FC<VaultScreenProps> = ({
   useStylesVaultScreen,
 }) => {
   const { t } = useLanguage();
-  const { openModalRef, closeModalRef } = useModal();
   const { functionsRef, statesRef, filesSelected } = useVault();
   const { styles } = useStylesVaultScreen;
 
@@ -50,7 +49,7 @@ const CompressionScreen: React.FC<VaultScreenProps> = ({
     const password = await new Promise<string>((resolve) => {
       let pass = "";
 
-      openModalRef.current(
+      modalRef.openModal?.(
         tTyped("auth.passwordPlaceholder"),
         <View style={styles.modalContainer}>
           <Text style={styles.modalText}>
@@ -70,7 +69,7 @@ const CompressionScreen: React.FC<VaultScreenProps> = ({
             mode="contained"
             onPress={() => {
               resolve(pass);
-              closeModalRef.current();
+              modalRef.closeModal?.();
             }}
           >
             {t("common.confirm")}
@@ -79,7 +78,7 @@ const CompressionScreen: React.FC<VaultScreenProps> = ({
             mode="text"
             onPress={() => {
               resolve("");
-              closeModalRef.current();
+              modalRef.closeModal?.();
             }}
           >
             {t("labels.cancel")}
@@ -125,18 +124,18 @@ const CompressionScreen: React.FC<VaultScreenProps> = ({
     }
 
     setProgress(1);
-    openModalRef.current(
+    modalRef.openModal?.(
       tTyped("common.success"),
       <View style={styles.modalContainer}>
         <Text style={styles.modalText}>
           {tTyped("vault.modal.compressionSuccessMessage", { path: pathZip })}
         </Text>
       </View>,
-      <Button mode="contained" onPress={closeModalRef.current}>
+      <Button mode="contained" onPress={() => modalRef.closeModal?.()}>
         {t("labels.continue")}
       </Button>,
     );
-  }, [closeModalRef, functionsRef, openModalRef, statesRef, styles, t]);
+  }, [functionsRef, statesRef, styles, t]);
 
   const files: FolderFiles = useMemo(() => {
     const isSelecting = filesSelected.selecting;

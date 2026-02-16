@@ -6,15 +6,17 @@ import {
   DO_NOT_DELETE_OR_SAVE,
 } from "@common";
 import { logger } from "../functions/debug";
-import { UserData } from "@types";
 import { REPLACERS } from "../TOP_LEVEL";
-import { windowModule } from "@modules";
-import { checkLanguage } from "../translates";
 import { fetchToServer } from "../functions/APIManagement";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@refs";
 import { storageManagement } from "./storage";
+import { setTimeoutPolyfill } from "../functions";
+import { notificationsManager } from "./notifications";
+import { checkLanguage, tTyped } from "../translates";
 import { ResponseAuth, ResponseFetch } from "@types";
+import { NotificationAction, UserData } from "@types";
+import { NativeFunctionsModule, windowModule } from "@modules";
 
 type SessionData = {
   userData: Omit<UserData, "password"> | null;
@@ -426,6 +428,35 @@ class SessionManager {
     sessionToken: null,
   };
 
+  private notLoggedIn = () => {
+    setTimeoutPolyfill(async () => {
+      const actions: NotificationAction[] = [
+        { actionId: "dismiss", title: tTyped("dismiss"), icon: "delete" },
+        { actionId: "stop", title: tTyped("stop"), icon: "stop" },
+      ];
+      if (
+        REPLACERS.isNative &&
+        (await NativeFunctionsModule.checkOverlayPermission())
+      ) {
+        actions.push({
+          actionId: "pause",
+          title: tTyped("pause"),
+          icon: "pause",
+        });
+      }
+
+      notificationsManager.sendNotification({
+        type: "info",
+        title: tTyped("youAreNotLoggedIn"),
+        actions,
+        message: tTyped("youAreNotLoggedInMessage"),
+        channelId: "loggedInStatusChannel",
+        reasonNotification: "loggedInStatusChannel",
+        overrideNotification: false,
+      });
+    }, 30000);
+  };
+
   private _listeners: ListenersSession = {};
 
   private _emitEvent: EmitEvent = (event, ...args) => {
@@ -480,8 +511,9 @@ class SessionManager {
 
     const handleNotLoggedIn = (reason?: string) => {
       if (reason) logger.log("Not logged in:", reason);
-      this.#data.isLoggedIn = false;
+      this.notLoggedIn();
       this._emitEvent("logout");
+      this.#data.isLoggedIn = false;
       if (REPLACERS.isWeb) windowModule.notifyLoginStatus?.(false);
     };
 

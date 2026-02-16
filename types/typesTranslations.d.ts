@@ -94,8 +94,6 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     youArePlaying: string;
     successForgotPasswordMessage: string;
     undo: string;
-    clipboard: string;
-    clipboardTitle: string;
     remove: string;
     copy: string;
     languageTarget: string;
@@ -271,6 +269,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       mode: string;
       fileInfo: string;
       deselect: string;
+      clipboard: string;
     };
     recorder: {
       infiniteRecord: string;
@@ -529,6 +528,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       notificationDetailsNoStreamers: string;
     };
     common: {
+      content: string;
       notifications: string;
       settings: string;
       confirm: string;
@@ -620,6 +620,14 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       selectImagesToConvert: string;
       getSizeFromImageFiles: string;
       selectCurrentPaperSize: `${string}{{size}}${string}`;
+    };
+    clipboard: {
+      settings: {
+        title: string;
+        enabled: string;
+        maxItems: string;
+        maxCharsInItem: string;
+      };
     };
   };
 

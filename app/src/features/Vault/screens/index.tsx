@@ -2,18 +2,17 @@ import Button from "@/common/components/Button/screens";
 import { View } from "react-native";
 import { Route } from "@/common/components/BottomNavigator/components/GetBottomNavigation";
 import VaultViewer from "@screens/Vault/screens/VaultViewer";
-import { useVault } from "@/context/VaultContext";
+import { useVault } from "@context/VaultContext";
 import ImportScreen from "@screens/Vault/screens/ImportScreen";
 import BackupScreen from "@screens/Vault/screens/BackupScreen";
 import SettingsScreen from "@screens/Vault/screens/SettingsScreen";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
 import CompressionScreen from "@screens/Vault/screens/CompressionScreen";
-import { navigateReplace } from "@/app/refs/navigationRef";
-import useStylesVaultScreen from "@/features/Vault/styles/useStylesVaultScreen";
-import { functionsToExecute } from "@/utils/cross";
+import { navigateReplace } from "@refs";
+import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
 import useStylesBottomNavigator from "@/common/components/BottomNavigator/styles/useStylesBottomNavigator";
 import { BottomNavigation, Text } from "react-native-paper";
-import { DATA_PLATFORM, memoDeep, tTyped, REPLACERS } from "@utils";
+import { DATA_PLATFORM, memoDeep, tTyped, REPLACERS, deviceInfo } from "@utils";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 
 const routes: Route[] = [
@@ -92,16 +91,16 @@ const VaultNavigator = () => {
   useEffect(() => {
     functionsRef.current.unlock(callbackUnlockRef.current);
 
-    functionsToExecute.current["AppState-change"]["vaultLockUnlock"] = (
-      nextAppState,
-    ) => {
-      if (nextAppState !== "active")
-        functionsRef.current.lock(() => setIndex(-1));
-      else functionsRef.current.unlock(callbackUnlockRef.current);
-    };
+    const removeListener = deviceInfo.addEventListener(
+      "isBackground-change",
+      (isBackground) => {
+        if (isBackground) functionsRef.current.lock(() => setIndex(-1));
+        else functionsRef.current.unlock(callbackUnlockRef.current);
+      },
+    );
 
     return () => {
-      delete functionsToExecute.current["AppState-change"]["vaultLockUnlock"];
+      removeListener();
       // eslint-disable-next-line react-hooks/exhaustive-deps
       functionsRef.current.lock();
     };

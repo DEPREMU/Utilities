@@ -10,12 +10,11 @@ import {
 import Button from "@/common/components/Button/screens";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
-import { useModal } from "@/context/ModalContext";
-import { useLanguage } from "@/context/LanguageContext";
-import { useUserContext } from "@/context/UserContext";
-import { navigateReplace } from "@/app/refs/navigationRef";
+import { useLanguage } from "@context/LanguageContext";
+import { useUserContext } from "@context/UserContext";
 import useStylesScanQRCode from "@screens/Auth/styles/useStylesScanQRCode";
 import ReconnectingWebSocket from "@/utils/reconnecting-websocket";
+import { modalRef, navigateReplace } from "@refs";
 import React, { useEffect, useRef, useState } from "react";
 import { BarcodeScanningResult, Camera, CameraView } from "expo-camera";
 import { LoginWithQRMobile, MessageWebSocketQRLogin } from "@types";
@@ -26,7 +25,6 @@ const ScanQRCode: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesScanQRCode();
   const { isLoggedIn } = useUserContext();
-  const { openModalRef, closeModalRef } = useModal();
 
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<PermissionCamera>(null);
@@ -55,18 +53,18 @@ const ScanQRCode: React.FC = () => {
   useEffect(() => {
     if (hasPermission !== "denied") return;
 
-    openModalRef.current(
+    modalRef.openModal?.(
       t("noCameraPermission"),
       t("needsCameraPermission"),
       <Button
         label={t("accept")}
         handlePress={() => {
-          closeModalRef.current();
+          modalRef.closeModal?.();
           navigateReplace("Home");
         }}
       />,
     );
-  }, [hasPermission, t, openModalRef, closeModalRef]);
+  }, [hasPermission, t]);
 
   useEffect(() => {
     if (isLoggedIn && REPLACERS.isNative) return;
@@ -100,13 +98,13 @@ const ScanQRCode: React.FC = () => {
         const handleError = () => {
           setScannedData(null);
           clearIdTimeout();
-          openModalRef.current(
+          modalRef.openModal?.(
             t("qrLoginErrorTitle"),
             t("qrLoginErrorMessage"),
             <Button
               label={t("accept")}
               handlePress={() => {
-                closeModalRef.current();
+                modalRef.closeModal?.();
                 navigateReplace("Home");
               }}
             />,
@@ -142,13 +140,13 @@ const ScanQRCode: React.FC = () => {
             switch (message.status) {
               case "authenticated-web":
                 clearIdTimeout();
-                openModalRef.current(
+                modalRef.openModal?.(
                   t("qrLoginSuccessTitle"),
                   t("qrLoginSuccessMessage"),
                   <Button
                     label={t("accept")}
                     handlePress={() => {
-                      closeModalRef.current();
+                      modalRef.closeModal?.();
                       navigateReplace("Home");
                     }}
                   />,
@@ -186,7 +184,7 @@ const ScanQRCode: React.FC = () => {
       ws.close();
       ws = null;
     };
-  }, [scannedData, t, openModalRef, closeModalRef]);
+  }, [scannedData, t]);
 
   return (
     <View style={styles.container}>

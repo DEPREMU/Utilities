@@ -80,11 +80,8 @@ class MyForegroundService : Service() {
 
         if (config.clipboard.enabled) {
             clipboardMonitor.start(config.clipboard) { text ->
-                val prefs = getSharedPreferences(KeyboardThemeManager.PREFS_NAME, MODE_PRIVATE)
-                val maxItems = prefs.getInt("max_clipboard_items", 10).coerceAtLeast(1)
                 ClipboardRepository.setClipboardItems(
                     listOf(text) + ClipboardRepository.clipboardItems.value.filter { it != text },
-                    maxItems,
                 )
                 BackgroundServiceModule.sendEvent(
                     "ClipboardEvent",

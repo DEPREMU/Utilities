@@ -12,16 +12,15 @@ import {
   scanFromURLAsync,
   BarcodeScanningResult,
 } from "expo-camera";
-import { useModal } from "@/context/ModalContext";
 import { Image, View } from "react-native";
-import { useLanguage } from "@/context/LanguageContext";
-import { useStylesQR } from "@/features/QR/styles/useStylesQR";
+import { useLanguage } from "@context/LanguageContext";
+import { useStylesQR } from "@screens/QR/styles/useStylesQR";
 import { windowModule } from "@modules";
 import AnimatedDrawLine from "@/common/components/AnimatedLine";
 import * as ExpoClipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
-import { navigateReplace } from "@refs";
 import { Button, Divider, Text } from "react-native-paper";
+import { modalRef, navigateReplace } from "@refs";
 import React, { useEffect, useRef, useState } from "react";
 
 type Corner = Point & {
@@ -34,7 +33,6 @@ type ScanningType = "camera" | "image";
 const ScanQR = () => {
   const { t } = useLanguage();
   const { styles, colors } = useStylesQR();
-  const { openSnackBarRef } = useModal();
 
   const [corners, setCorners] = useState<
     [Corner, Corner, Corner, Corner] | null
@@ -155,7 +153,7 @@ const ScanQR = () => {
         const { status } = await Camera.requestCameraPermissionsAsync();
         if (status === "granted") setLoading(false);
         else {
-          openSnackBarRef.current(tTyped("noCameraPermission"));
+          modalRef.openSnackBar?.(tTyped("noCameraPermission"));
           navigateReplace("QR");
         }
       },
@@ -163,7 +161,7 @@ const ScanQR = () => {
         logger.error("SCAN_QR", "Error requesting camera permissions", errMsg);
       },
     );
-  }, [scanningType, openSnackBarRef]);
+  }, [scanningType]);
 
   return (
     <View style={styles.container}>

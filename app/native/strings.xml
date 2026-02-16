@@ -134,7 +134,6 @@
   <string name="hint_autocap_delimiters">Auto cap delimiters</string>
   <string name="label_paste_add_space">Paste adds trailing space</string>
   <string name="label_max_suggestions_fmt">Max Suggestions: %d</string>
-  <string name="label_max_clipboard_items_fmt">Max Clipboard Items: %d</string>
   <string name="hint_font_family">Font Family</string>
   <string name="label_font_style_fmt">Font Style: %d</string>
   <string name="label_key_text_size_fmt">Key Text: %dsp</string>
@@ -327,7 +326,6 @@
   <string name="hint_autocap_delimiters">Delimitadores de auto mayúsculas</string>
   <string name="label_paste_add_space">Pegar agrega espacio al final</string>
   <string name="label_max_suggestions_fmt">Máx. sugerencias: %d</string>
-  <string name="label_max_clipboard_items_fmt">Máx. elementos de portapapeles: %d</string>
   <string name="hint_font_family">Familia de fuente</string>
   <string name="label_font_style_fmt">Estilo de fuente: %d</string>
   <string name="label_key_text_size_fmt">Texto de tecla: %dsp</string>
