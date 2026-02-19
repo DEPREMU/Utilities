@@ -348,6 +348,11 @@ export const esApp: typeLanguages = {
     cryptocurrenciesTracked: "Criptomonedas rastreadas",
   },
   recorder: {
+    lossless: "Sin pérdida",
+    losslessDescription:
+      "Grabación sin pérdida de calidad (archivo más grande)",
+    medium: "Medio",
+    mediumDescription: "Grabación de calidad media (archivo de tamaño medio)",
     infiniteRecord: "Grabación infinita",
     permissionDenied: "Permiso de grabación denegado",
     saved: "Grabación guardada en {{uri}}",

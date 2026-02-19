@@ -92,10 +92,24 @@ if (REPLACERS.isNative) {
   });
 }
 
-if (REPLACERS.isDev && REPLACERS.isNative && !NativeFunctionsModule) {
-  import("@utils").then(({ logger }) => {
-    logger?.error("NativeFunctionsModule is not available.");
+if (REPLACERS.isDev && REPLACERS.isNative)
+  import("@utils").then(({ logger, setTimeoutPolyfill }) => {
+    setTimeoutPolyfill(() => {
+      if (
+        !NativeFunctionsModule ||
+        !Object.keys(NativeFunctionsModule).length
+      ) {
+        logger.error(
+          "NativeFunctionsModule is not available.",
+          NativeFunctionsModule,
+        );
+      } else {
+        logger.log(
+          "NativeFunctionsModule is available.",
+          Object.keys(NativeFunctionsModule),
+        );
+      }
+    }, 2000);
   });
-}
 
 export { NativeFunctionsModule };

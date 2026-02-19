@@ -5,8 +5,8 @@ import { Chalk } from "chalk";
 const chalk = new Chalk({ level: 1 });
 
 const withGoogleServices = (config) => {
-  if (process.env.EAS_BUILD !== "true") return config;
-  if (process.env.BUILD_PLATFORM !== "android") return config;
+  if (process.env.EAS_BUILD !== "1") return config;
+  if (process.env.PLATFORM !== "android") return config;
 
   console.log(chalk.blue("Plugin handleCreateFiles.js is being executed..."));
 

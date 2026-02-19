@@ -283,8 +283,12 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       currentQuality: `${string}{{quality}}${string}`;
       low: string;
       lowDescription: string;
+      medium: string;
+      mediumDescription: string;
       high: string;
       highDescription: string;
+      lossless: string;
+      losslessDescription: string;
       audioQuality: string;
       stopRecording: string;
       startRecording: string;

@@ -40,8 +40,12 @@ interface UserProviderProps {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [loggingIn, setLoggingIn] = useState<boolean>(true);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [loggingIn, setLoggingIn] = useState<boolean>(
+    sessionManager.getSessionData().isLoggingIn,
+  );
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
+    sessionManager.getSessionData().isLoggedIn,
+  );
 
   const dataRef = useRef<DataRef>({
     isLoggedIn,
@@ -91,7 +95,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const init = async () => {
       sessionManager.addEventListener("sessionRefreshed", (err) => {
         setLoggingIn(false);
-        if (err) return;
+        if (err) {
+          setIsLoggedIn(false);
+          return;
+        }
 
         const language = storageManagement.get("LANGUAGE");
         const deviceId = storageManagement.get("DEVICE_ID");
@@ -103,6 +110,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           language,
           deviceId,
         );
+        setIsLoggedIn(true);
       });
       sessionManager.addEventListener("logout", () => setIsLoggedIn(false));
       sessionManager.addEventListener("refreshingSession", () => {

@@ -15,12 +15,6 @@ import { replaceAppConfig } from "./editAppConfig.ts";
 
 let expo: ReturnType<typeof spawn> | null = null;
 
-replaceAppConfig(
-  (prev) => prev.replace(/-dev/g, ""),
-  (prev) => prev.replace(/ Dev/g, ""),
-  (prev) => prev.replace(/\.dev/g, ""),
-);
-
 const build = async () => {
   let profile = ARGS.profile ?? (ARGS.yes ? "production" : undefined);
 
@@ -42,6 +36,30 @@ const build = async () => {
   }
   env.BUILD_PROFILE = profile;
 
+  const isPreview =
+    ARGS.profile === "preview" || env.BUILD_PROFILE === "preview";
+
+  replaceAppConfig(
+    (prev) => {
+      prev = prev.replace(/\-dev|\-prev/g, "");
+
+      if (isPreview) return prev.concat("-prev");
+      return prev;
+    },
+    (prev) => {
+      prev = prev.replace(/\sDev|\sPreview/g, "");
+
+      if (isPreview) return prev.concat(" Preview");
+      return prev;
+    },
+    (prev) => {
+      prev = prev.replace(/\.dev|\.preview/g, "");
+
+      if (isPreview) return prev.concat(".preview");
+      return prev;
+    },
+  );
+
   if (!ARGS["skip-prebuild-android"]) {
     fs.rmSync(ANDROID_PATH, { recursive: true, force: true });
 
@@ -55,7 +73,6 @@ const build = async () => {
   if (!fs.existsSync(ANDROID_PATH))
     throw new Error("Android directory does not exist.");
 
-  env.EAS_BUILD = "true";
   const buildPath = path.join(APP_PATH, "builds", `android-${profile}.apk`);
 
   expo = spawn(

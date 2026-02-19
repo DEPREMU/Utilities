@@ -55,7 +55,9 @@ const ComponentToHome: React.FC = () => {
   return null;
 };
 
-const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "QR" : "Home";
+const initialRouteName: ScreensAvailable = REPLACERS.isDev
+  ? "Recorder"
+  : "Home";
 
 /**
  * Centralized configuration object for all app screens.

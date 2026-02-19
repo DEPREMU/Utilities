@@ -41,6 +41,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       package: "com.utilities.depremu",
       permissions: [
+        "CAMERA",
         "INTERNET",
         "WAKE_LOCK",
         "RECORD_AUDIO",
@@ -73,6 +74,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-localization",
       "expo-notifications",
       "react-native-quick-crypto",
+      [
+        "react-native-audio-api",
+        {
+          androidFSTypes: ["microphone", "mediaPlayback"],
+          androidPermissions: [],
+          androidForegroundService: true,
+        },
+      ],
       [
         "react-native-permissions",
         {

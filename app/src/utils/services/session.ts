@@ -22,6 +22,7 @@ type SessionData = {
   userData: Omit<UserData, "password"> | null;
   rememberMe: boolean;
   isLoggedIn: boolean;
+  isLoggingIn: boolean;
   sessionToken: string | null;
 };
 
@@ -423,8 +424,9 @@ class SessionManager {
   #intervalId: number | null = null;
   #data: SessionData = {
     userData: null,
-    rememberMe: false,
     isLoggedIn: false,
+    rememberMe: false,
+    isLoggingIn: false,
     sessionToken: null,
   };
 
@@ -496,51 +498,63 @@ class SessionManager {
   };
 
   public refreshSession = async () => {
-    const { waitForInternet } = await import("@utils");
-    const hasInternet = await waitForInternet(5);
-    if (!hasInternet) {
+    try {
+      this.#data.isLoggingIn = true;
+      const { waitForInternet } = await import("@utils");
+      const hasInternet = await waitForInternet(5);
+      if (!hasInternet) {
+        logger.error(
+          "SESSION_MANAGER",
+          "No internet connection, cannot refresh session",
+        );
+        return;
+      }
+
+      const rememberMe = storageManagement.get("SESSION_EXPIRY");
+      const sessionToken = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
+
+      const handleNotLoggedIn = (reason?: string) => {
+        if (reason) logger.log("Not logged in:", reason);
+        this.notLoggedIn();
+        this._emitEvent("logout");
+        this.#data.isLoggedIn = false;
+        if (REPLACERS.isWeb) windowModule.notifyLoginStatus?.(false);
+      };
+
+      if (!rememberMe || !sessionToken)
+        return handleNotLoggedIn("No rememberMe or token");
+
+      if (rememberMe < Date.now()) {
+        await signOut();
+        return handleNotLoggedIn(`Session expired due to expiry ${rememberMe}`);
+      }
+
+      const { user, token, error } = await refreshSession(sessionToken);
+
+      if (error) return handleNotLoggedIn(error);
+
+      if (!user || !token) {
+        await signOut();
+        return handleNotLoggedIn("No user or token returned");
+      }
+
+      this.#data = {
+        ...this.#data,
+        userData: user,
+        rememberMe: this.#data.rememberMe,
+        isLoggedIn: true,
+        sessionToken: token,
+      };
+      this._emitEvent("login");
+    } catch (error) {
       logger.error(
         "SESSION_MANAGER",
-        "No internet connection, cannot refresh session",
+        "Unexpected error refreshing session:",
+        error instanceof Error ? error.message : error,
       );
-      return;
+    } finally {
+      this.#data.isLoggingIn = false;
     }
-
-    const rememberMe = storageManagement.get("SESSION_EXPIRY");
-    const sessionToken = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
-
-    const handleNotLoggedIn = (reason?: string) => {
-      if (reason) logger.log("Not logged in:", reason);
-      this.notLoggedIn();
-      this._emitEvent("logout");
-      this.#data.isLoggedIn = false;
-      if (REPLACERS.isWeb) windowModule.notifyLoginStatus?.(false);
-    };
-
-    if (!rememberMe || !sessionToken)
-      return handleNotLoggedIn("No rememberMe or token");
-
-    if (rememberMe < Date.now()) {
-      await signOut();
-      return handleNotLoggedIn(`Session expired due to expiry ${rememberMe}`);
-    }
-
-    const { user, token, error } = await refreshSession(sessionToken);
-
-    if (error) return handleNotLoggedIn(error);
-
-    if (!user || !token) {
-      await signOut();
-      return handleNotLoggedIn("No user or token returned");
-    }
-
-    this.#data = {
-      userData: user,
-      rememberMe: this.#data.rememberMe,
-      isLoggedIn: true,
-      sessionToken: token,
-    };
-    this._emitEvent("login");
   };
 
   public login: Login = async (
@@ -549,31 +563,40 @@ class SessionManager {
     rememberMe = false,
     callback,
   ) => {
+    this.#data.isLoggingIn = true;
     this.#data.rememberMe = !!rememberMe;
-    const { user, token, error } = await signInWithEmail(
-      email,
-      password,
-      rememberMe,
-    );
-    if (error || !user || !token) {
-      const errorMsg =
-        "SESSION_MANAGER " + error
-          ? `Login error: ${error}`
-          : "No user or token returned";
-      logger.error("Login error:", errorMsg);
-      this._emitEvent("login", errorMsg);
-      callback?.(errorMsg);
-      return;
-    }
+    try {
+      const { user, token, error } = await signInWithEmail(
+        email,
+        password,
+        rememberMe,
+      );
+      if (error || !user || !token) {
+        const errorMsg =
+          "SESSION_MANAGER " + error
+            ? `Login error: ${error}`
+            : "No user or token returned";
+        logger.error("Login error:", errorMsg);
+        this._emitEvent("login", errorMsg);
+        callback?.(errorMsg);
+        return;
+      }
 
-    this.#data = {
-      userData: user,
-      rememberMe: this.#data.rememberMe,
-      isLoggedIn: true,
-      sessionToken: token,
-    };
-    this._emitEvent("login");
-    callback?.();
+      this.#data = {
+        ...this.#data,
+        userData: user,
+        rememberMe: this.#data.rememberMe,
+        isLoggedIn: true,
+        sessionToken: token,
+      };
+      this._emitEvent("login");
+      callback?.();
+    } catch (error) {
+      callback?.(error instanceof Error ? error.message : String(error));
+      logger.error("Unexpected login error:", error);
+    } finally {
+      this.#data.isLoggingIn = false;
+    }
   };
 
   public logout = async () => {

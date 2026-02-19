@@ -316,6 +316,14 @@ class DeviceInfo {
             {
               if (event.reasonNotification === "streamers") break;
 
+              if (event.reasonNotification === "recorderNotification") {
+                const { recorderManager } = await import("./recorder");
+                await recorderManager.stopRecording({
+                  keepService: true,
+                  silent: true,
+                });
+              }
+
               notificationsManager.editNotification(
                 event.reasonNotification,
                 (prev) => ({

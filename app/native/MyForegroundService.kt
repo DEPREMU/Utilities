@@ -195,8 +195,10 @@ class MyForegroundService : Service() {
 
     private fun restartReactNativeApp() {
         try {
-            val broadcastIntent = Intent(this, ServiceReceiver::class.java)
-            broadcastIntent.action = "ACTION_RESTART_APP"
+            val broadcastIntent = Intent(this, ServiceReceiver::class.java).apply {
+                action = "ACTION_RESTART_APP"
+                setPackage(packageName)
+            }
             sendBroadcast(broadcastIntent)
             Log.d("MyForegroundService", "Sent broadcast to restart app")
         } catch (e: Exception) {

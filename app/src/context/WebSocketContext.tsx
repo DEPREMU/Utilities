@@ -201,29 +201,38 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     clipboardManager.init();
 
-    return () => {
-      clipboardManager.cleanup();
-    };
+    return () => clipboardManager.cleanup();
   }, [isLoggedIn]);
 
   useEffect(() => {
-    if (!deviceInfo.isBackground) {
-      logger.log("App became active");
-      shouldConnectRef.current.main = true;
-      return;
-    }
+    const removeListener = deviceInfo.addEventListener(
+      "isBackground-change",
+      (isBackground) => {
+        if (isBackground) {
+          shouldConnectRef.current.main = false;
 
-    shouldConnectRef.current.main = false;
+          const currentSocket = socketRef.current;
+          currentSocket?.close();
+          socketRef.current = null;
+        } else {
+          shouldConnectRef.current.main = true;
 
-    const currentSocket = socketRef.current;
-    currentSocket?.close();
-    socketRef.current = null;
+          setSocketURL((prev) => {
+            createMainWebSocketRef.current?.(prev || URL_WEB_SOCKET);
+
+            return prev;
+          });
+        }
+      },
+    );
+
+    return () => removeListener();
   }, []);
 
   useEffect(() => {
     if (!shouldConnectRef.current.main && deviceInfo.isBackground) return;
 
-    const { userData } = sessionManager.getSessionData();
+    const { userData, isLoggedIn } = sessionManager.getSessionData();
     if (!isLoggedIn || !userData?.userId) return;
 
     const targetURL = socketURL || URL_WEB_SOCKET;
@@ -248,7 +257,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (typeof currentSocket.reconnect === "function") {
       currentSocket.reconnect();
     }
-  }, [socketURL, isLoggedIn]);
+  }, [socketURL]);
 
   useEffect(() => {
     if (socketRef.current?.readyState !== WebSocket.OPEN) return;

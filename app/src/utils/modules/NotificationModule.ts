@@ -43,13 +43,21 @@ const NotificationModule = REPLACERS.isNative
   ? TurboModuleRegistry.getEnforcing<Spec>("NotificationModule")
   : defaultNotificationModule;
 
-if (
-  REPLACERS.isDev &&
-  (!NotificationModule || Object.keys(NotificationModule).length === 0)
-) {
-  import("@utils").then(({ logger }) => {
-    logger.error("NotificationModule is not available.");
+if (REPLACERS.isDev && REPLACERS.isNative)
+  import("@utils").then(({ logger, setTimeoutPolyfill }) => {
+    setTimeoutPolyfill(() => {
+      if (!NotificationModule || !Object.keys(NotificationModule).length) {
+        logger.error(
+          "NotificationModule is not available.",
+          NotificationModule,
+        );
+      } else {
+        logger.log(
+          "NotificationModule is available.",
+          Object.keys(NotificationModule),
+        );
+      }
+    }, 2000);
   });
-}
 
 export { NotificationModule };

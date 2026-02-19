@@ -68,7 +68,7 @@ export type ExpectedUnsecureStorageTypes = {
   VAULT_SETTINGS: VaultSettings | null;
   RECORDER_DATA: {
     lastUri: string;
-    quality: "low" | "high";
+    quality: "low" | "medium" | "high" | "lossless";
     maxXUris: number;
     lastXUris: string[];
     isRecording: boolean;

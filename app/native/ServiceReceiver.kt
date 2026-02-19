@@ -4,31 +4,31 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.os.SystemClock
 import android.util.Log
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import com.facebook.react.ReactApplication
+import com.facebook.react.ReactInstanceManager
+import com.facebook.react.bridge.ReactContext
 
 class ServiceReceiver : BroadcastReceiver() {
     companion object {
         private const val ACTION_RESTART_APP = "ACTION_RESTART_APP"
-        private const val INITIAL_LIVENESS_TIMEOUT_MS = 3000L
-        private const val RETRY_LIVENESS_TIMEOUT_MS = 2500L
-        private const val RETRY_DELAY_MS = 1200L
-        private const val MAX_LIVENESS_RETRIES = 8
-        private const val RN_BOOT_GRACE_MS = 20000L
+        private const val EVENT_QUERY_TIMEOUT_MS = 2000L
+        private const val EVENT_QUERY_MAX_ATTEMPTS = 5
+        private const val RECREATE_WATCHDOG_TIMEOUT_MS = 20000L
 
         @Volatile
         private var isRecreatingContext = false
 
         @Volatile
-        private var recreateStartedAtMs: Long = 0L
+        private var pendingReactInitListener: ReactInstanceManager.ReactInstanceEventListener? = null
 
-        @Volatile
-        private var livenessProbeToken: Long = 0L
+        private val recreateLock = Any()
     }
+
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onReceive(
         context: Context,
@@ -37,18 +37,13 @@ class ServiceReceiver : BroadcastReceiver() {
         val action = intent.action
         Log.d("ServiceReceiver", "Received action: $action")
 
-        if (action == ACTION_RESTART_APP) {
-            Log.d("ServiceReceiver", "ACTION_RESTART_APP received, ensuring React bridge is available")
-            ensureReactBridgeAvailable(context)
-            return
-        }
-
         val isResumeEvent = action == Intent.ACTION_SCREEN_ON
         val isSuspendEvent = action == Intent.ACTION_SCREEN_OFF
 
         if (isResumeEvent) {
             Log.d("ServiceReceiver", "Screen ON event, sending resume event to React Native")
             BackgroundServiceModule.sendEvent("onUpdateSuspendResume", "resumed")
+            return
         }
 
         if (isSuspendEvent) {
@@ -57,49 +52,48 @@ class ServiceReceiver : BroadcastReceiver() {
             return
         }
 
-        ensureReactBridgeAvailable(context)
+        if (action == ACTION_RESTART_APP) {
+            Log.d("ServiceReceiver", "ACTION_RESTART_APP received, ensuring React bridge is available")
+        }
+
+        val pendingResult = goAsync()
+        ensureReactBridgeAvailable(context, pendingResult)
     }
 
     private fun checkReactAliveAsync(timeoutMs: Long, callback: (Boolean) -> Unit) {
         BackgroundServiceModule.isReactAlive.set(false)
-
         BackgroundServiceModule.sendEvent("queryAppState", "asking")
 
-        Handler(Looper.getMainLooper()).postDelayed({
+        mainHandler.postDelayed({
             callback(BackgroundServiceModule.isReactAlive.get())
         }, timeoutMs)
     }
 
-    private fun startForegroundServiceWithSavedConfig(context: Context) {
-        val preferences = ForegroundPreferences(context)
-        val savedConfig = preferences.load()
-
-        if (!savedConfig.wasConfigured) {
-            Log.d("ServiceReceiver", "Service not yet configured, skipping auto-start")
-            return
-        }
-
-        try {
-            MyForegroundService.start(context, savedConfig)
-            Log.d("ServiceReceiver", "Foreground service auto-started from receiver")
-        } catch (e: Exception) {
-            Log.e("ServiceReceiver", "Error auto-starting foreground service: ${e.message}")
-        }
-    }
-
-    private fun ensureReactBridgeAvailable(context: Context) {
+    private fun ensureReactBridgeAvailable(context: Context, pendingResult: PendingResult) {
         if (hasActiveReactContext(context)) {
             Log.d("ServiceReceiver", "React context already active, skipping recreation")
+            pendingResult.finish()
             return
         }
 
-        if (isRecreatingContext) {
-            Log.d("ServiceReceiver", "React context recreation already in progress, waiting for liveness")
-            waitForReactLivenessOrFallback(context, 0)
-            return
+        synchronized(recreateLock) {
+            if (isRecreatingContext) {
+                Log.d("ServiceReceiver", "React context recreation already in progress")
+                pendingResult.finish()
+                return
+            }
         }
 
-        recreateReactContextInBackgroundOrLaunchActivity(context)
+        probeReactLivenessWithRetries(context, 1, "pre-recreation") { isAlive ->
+            if (isAlive) {
+                Log.d("ServiceReceiver", "React runtime responded during pre-recreation probe, exiting")
+                pendingResult.finish()
+                return@probeReactLivenessWithRetries
+            }
+
+            Log.w("ServiceReceiver", "React runtime did not respond to probes, recreating context safely")
+            recreateReactContextSafely(context, pendingResult)
+        }
     }
 
     private fun hasActiveReactContext(context: Context): Boolean {
@@ -107,87 +101,144 @@ class ServiceReceiver : BroadcastReceiver() {
             val app = context.applicationContext as? ReactApplication ?: return false
             val manager = app.reactNativeHost.reactInstanceManager
             val current = manager.currentReactContext
-            current != null && current.hasActiveReactInstance()
+            current != null &&
+                current.hasActiveCatalystInstance() &&
+                !isContextDestroyed(current)
         } catch (_: Exception) {
             false
         }
     }
 
-    private fun recreateReactContextInBackgroundOrLaunchActivity(context: Context) {
-        try {
-            val app = context.applicationContext as? ReactApplication
-            if (app == null) {
-                Log.e("ServiceReceiver", "Application is not ReactApplication, cannot recreate React context")
-                launchMainActivity(context)
-                return
-            }
-
-            val reactInstanceManager = app.reactNativeHost.reactInstanceManager
-
-            Handler(Looper.getMainLooper()).post {
-                try {
-                    val activeContext = reactInstanceManager.currentReactContext
-                    if (activeContext != null && activeContext.hasActiveReactInstance()) {
-                        Log.d("ServiceReceiver", "React context is already active")
-                        return@post
-                    }
-
-                    isRecreatingContext = true
-                    recreateStartedAtMs = SystemClock.elapsedRealtime()
-                    reactInstanceManager.createReactContextInBackground()
-                    Log.d("ServiceReceiver", "Requested createReactContextInBackground successfully")
-                    waitForReactLivenessOrFallback(context, 0)
-                } catch (error: Exception) {
-                    Log.e("ServiceReceiver", "Error creating React context in background: ${error.message}")
-                    isRecreatingContext = false
-                    launchMainActivity(context)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("ServiceReceiver", "Error preparing React context recreation: ${e.message}")
-            isRecreatingContext = false
+    private fun recreateReactContextSafely(context: Context, pendingResult: PendingResult) {
+        val app = context.applicationContext as? ReactApplication
+        if (app == null) {
+            Log.e("ServiceReceiver", "Application is not ReactApplication, cannot recreate React context")
             launchMainActivity(context)
-        }
-    }
-
-    private fun waitForReactLivenessOrFallback(context: Context, attempt: Int) {
-        val token = ++livenessProbeToken
-        val timeout = if (attempt == 0) INITIAL_LIVENESS_TIMEOUT_MS else RETRY_LIVENESS_TIMEOUT_MS
-
-        if (hasActiveReactContext(context)) {
-            Log.d("ServiceReceiver", "React context became active without additional probing")
-            isRecreatingContext = false
+            pendingResult.finish()
             return
         }
 
-        checkReactAliveAsync(timeout) { eventAlive ->
-            if (token != livenessProbeToken) return@checkReactAliveAsync
+        val manager = app.reactNativeHost.reactInstanceManager
 
+        synchronized(recreateLock) {
+            if (isRecreatingContext) {
+                Log.d("ServiceReceiver", "Recreation already in progress")
+                pendingResult.finish()
+                return
+            }
+
+            if (hasActiveReactContext(context)) {
+                Log.d("ServiceReceiver", "React already active, skipping recreation")
+                pendingResult.finish()
+                return
+            }
+
+            isRecreatingContext = true
+        }
+
+        mainHandler.post {
+            try {
+                if (hasActiveReactContext(context)) {
+                    Log.d("ServiceReceiver", "React became active before recreation started")
+                    completeRecreationState(manager)
+                    pendingResult.finish()
+                    return@post
+                }
+
+                val listener = object : ReactInstanceManager.ReactInstanceEventListener {
+                    override fun onReactContextInitialized(newContext: ReactContext) {
+                        Log.d("ServiceReceiver", "New React context initialized")
+                        completeRecreationState(manager)
+                        pendingResult.finish()
+                    }
+                }
+
+                synchronized(recreateLock) {
+                    pendingReactInitListener?.let { previousListener ->
+                        manager.removeReactInstanceEventListener(previousListener)
+                    }
+                    pendingReactInitListener = listener
+                }
+
+                manager.addReactInstanceEventListener(listener)
+
+                manager.currentReactContext?.let {
+                    Log.w("ServiceReceiver", "Destroying old React context before recreation")
+                    manager.destroy()
+                }
+
+                manager.createReactContextInBackground()
+                Log.d("ServiceReceiver", "Requested React context recreation")
+
+                mainHandler.postDelayed({
+                    if (!isRecreatingContext) {
+                        return@postDelayed
+                    }
+
+                    Log.e("ServiceReceiver", "React context recreation timed out, launching fallback")
+                    completeRecreationState(manager)
+                    launchMainActivity(context)
+                    pendingResult.finish()
+                }, RECREATE_WATCHDOG_TIMEOUT_MS)
+            } catch (error: Exception) {
+                Log.e("ServiceReceiver", "Error recreating React context: ${error.message}")
+                completeRecreationState(manager)
+                launchMainActivity(context)
+                pendingResult.finish()
+            }
+        }
+    }
+
+    private fun probeReactLivenessWithRetries(
+        context: Context,
+        attempt: Int,
+        phase: String,
+        callback: (Boolean) -> Unit,
+    ) {
+        if (hasActiveReactContext(context)) {
+            Log.d("ServiceReceiver", "[$phase] React context already active, probe completed")
+            callback(true)
+            return
+        }
+
+        checkReactAliveAsync(EVENT_QUERY_TIMEOUT_MS) { eventAlive ->
             val alive = eventAlive || hasActiveReactContext(context)
             if (alive) {
-                Log.d("ServiceReceiver", "React runtime confirmed alive")
-                isRecreatingContext = false
+                Log.d("ServiceReceiver", "[$phase] React runtime responded on event probe attempt=$attempt")
+                callback(true)
                 return@checkReactAliveAsync
             }
 
-            val elapsed = SystemClock.elapsedRealtime() - recreateStartedAtMs
-            val withinGrace = elapsed < RN_BOOT_GRACE_MS
-            val canRetry = attempt < MAX_LIVENESS_RETRIES
-
-            if (withinGrace || canRetry) {
-                Log.w(
-                    "ServiceReceiver",
-                    "React runtime not alive yet (attempt=${attempt + 1}, elapsed=${elapsed}ms), retrying before fallback",
-                )
-                Handler(Looper.getMainLooper()).postDelayed({
-                    waitForReactLivenessOrFallback(context, attempt + 1)
-                }, RETRY_DELAY_MS)
+            if (attempt >= EVENT_QUERY_MAX_ATTEMPTS) {
+                Log.w("ServiceReceiver", "[$phase] React runtime did not respond after $EVENT_QUERY_MAX_ATTEMPTS attempts")
+                callback(false)
                 return@checkReactAliveAsync
             }
 
-            Log.w("ServiceReceiver", "React runtime not alive after grace period, launching MainActivity fallback")
+            Log.w(
+                "ServiceReceiver",
+                "[$phase] React runtime did not respond to event probe (attempt=$attempt/$EVENT_QUERY_MAX_ATTEMPTS), retrying",
+            )
+            probeReactLivenessWithRetries(context, attempt + 1, phase, callback)
+        }
+    }
+
+    private fun completeRecreationState(manager: ReactInstanceManager) {
+        synchronized(recreateLock) {
+            pendingReactInitListener?.let { listener ->
+                manager.removeReactInstanceEventListener(listener)
+            }
+            pendingReactInitListener = null
             isRecreatingContext = false
-            launchMainActivity(context)
+        }
+    }
+
+    private fun isContextDestroyed(reactContext: ReactContext): Boolean {
+        return try {
+            val method = reactContext.javaClass.getMethod("isDestroyed")
+            (method.invoke(reactContext) as? Boolean) == true
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -206,8 +257,8 @@ class ServiceReceiver : BroadcastReceiver() {
 
             launchIntent.addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP,
             )
             launchIntent.putExtra("launchedFromService", true)
             context.startActivity(launchIntent)

@@ -26,14 +26,15 @@ const keyboardModule: Spec = REPLACERS.isNative
   ? TurboModuleRegistry.getEnforcing<Spec>("KeyboardModule")
   : defaultKeyboardModule;
 
-if (
-  REPLACERS.isDev &&
-  REPLACERS.isNative &&
-  (!keyboardModule || Object.keys(keyboardModule).length === 0)
-) {
-  import("@utils").then(({ logger }) => {
-    logger.error("KeyboardModule is not available.");
+if (REPLACERS.isDev && REPLACERS.isNative)
+  import("@utils").then(({ logger, setTimeoutPolyfill }) => {
+    setTimeoutPolyfill(() => {
+      if (!keyboardModule || !Object.keys(keyboardModule).length) {
+        logger.error("KeyboardModule is not available.", keyboardModule);
+      } else {
+        logger.log("KeyboardModule is available.", Object.keys(keyboardModule));
+      }
+    }, 2000);
   });
-}
 
 export { keyboardModule };

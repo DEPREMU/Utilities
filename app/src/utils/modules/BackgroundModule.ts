@@ -36,13 +36,21 @@ const BackgroundModule = REPLACERS.isNative
   ? TurboModuleRegistry.getEnforcing<Spec>("BackgroundServiceModule")
   : defaultBackgroundModule;
 
-if (
-  REPLACERS.isDev &&
-  (!BackgroundModule || Object.keys(BackgroundModule).length === 0)
-) {
-  import("@utils").then(({ logger }) => {
-    logger.error("BackgroundServiceModule is not available.");
+if (REPLACERS.isDev && REPLACERS.isNative)
+  import("@utils").then(({ logger, setTimeoutPolyfill }) => {
+    setTimeoutPolyfill(() => {
+      if (!BackgroundModule || !Object.keys(BackgroundModule).length) {
+        logger.error(
+          "BackgroundServiceModule is not available.",
+          BackgroundModule,
+        );
+      } else {
+        logger.log(
+          "BackgroundServiceModule is available.",
+          Object.keys(BackgroundModule),
+        );
+      }
+    }, 2000);
   });
-}
 
 export { BackgroundModule };

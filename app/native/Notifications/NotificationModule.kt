@@ -19,7 +19,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 import org.json.JSONObject
 
 class NotificationModule(
-    private val reactContext: ReactApplicationContext,
+    reactContext: ReactApplicationContext,
 ) : ReactContextBaseJavaModule(reactContext) {
     companion object {
         const val NAME = "NotificationModule"
@@ -50,6 +50,12 @@ class NotificationModule(
         channelName: String,
         importance: Int,
     ) {
+        val context = reactContextInstance
+        if (context == null) {
+            Log.e("NotificationModule", "ReactContext is null. Cannot create notification channel.")
+            return
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel =
                 NotificationChannel(
@@ -63,7 +69,7 @@ class NotificationModule(
                     }
 
             val notificationManager =
-                reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
             Log.d("NotificationModule", "Channel created: $channelId")
         }
@@ -107,6 +113,13 @@ class NotificationModule(
             cancelPreviousReasonNotification(reasonNotification)
         }
 
+        val context = reactContextInstance
+        if (context == null) {
+            Log.e("NotificationModule", "ReactContext is null. Cannot send notification.")
+            promise.reject("NOTIFICATION_ERROR", "React context unavailable")
+            return
+        }
+
         try {
             val finalNotificationId = if (overrideNotification) {
                 reasonNotificationJSON.optString(reasonNotification).toIntOrNull() ?: notificationId
@@ -115,7 +128,7 @@ class NotificationModule(
             }
 
             val notificationBuilder =
-                NotificationCompat.Builder(reactContext, channelId)
+                NotificationCompat.Builder(context, channelId)
                     .setContentTitle(title)
                     .setContentText(message)
                     .setSmallIcon(R.mipmap.ic_launcher)
@@ -126,10 +139,10 @@ class NotificationModule(
                     )
 
             val openAppIntent =
-                reactContext.packageManager.getLaunchIntentForPackage(reactContext.packageName)
+                context.packageManager.getLaunchIntentForPackage(context.packageName)
             val openAppPendingIntent =
                 PendingIntent.getActivity(
-                    reactContext,
+                    context,
                     finalNotificationId,
                     openAppIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -173,7 +186,7 @@ class NotificationModule(
                         Log.d("NotificationModule", "  iconResId: $iconResId")
 
                         val actionIntent =
-                            Intent(reactContext, NotificationActionReceiver::class.java).apply {
+                            Intent(context, NotificationActionReceiver::class.java).apply {
                                 putExtra("actionId", actionId)
                                 putExtra("notificationId", finalNotificationId)
                                 putExtra("title", title)
@@ -184,7 +197,7 @@ class NotificationModule(
 
                         val actionPendingIntent =
                             PendingIntent.getBroadcast(
-                                reactContext,
+                                context,
                                 finalNotificationId * 100 + i,
                                 actionIntent,
                                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -201,7 +214,7 @@ class NotificationModule(
             }
 
             val notificationManager =
-                reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             
             notificationManager.notify(finalNotificationId, notificationBuilder.build())
             reasonNotificationJSON.put(reasonNotification, finalNotificationId.toString())
@@ -217,9 +230,15 @@ class NotificationModule(
 
     @ReactMethod
     fun cancelNotification(notificationId: Int, reasonNotification: String) {
+        val context = reactContextInstance
+        if (context == null) {
+            Log.e("NotificationModule", "ReactContext is null. Cannot cancel notification.")
+            return
+        }
+
         try {
             val notificationManager =
-                reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.cancel(notificationId)
             reasonNotificationJSON.put(reasonNotification, "")
 
@@ -235,8 +254,14 @@ class NotificationModule(
 
     @ReactMethod
     fun cancelAllNotifications() {
+        val context = reactContextInstance
+        if (context == null) {
+            Log.e("NotificationModule", "ReactContext is null. Cannot cancel all notifications.")
+            return
+        }
+
         val notificationManager =
-            reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancelAll()
         Log.d("NotificationModule", "All notifications cancelled")
     }

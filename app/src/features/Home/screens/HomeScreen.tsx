@@ -122,7 +122,7 @@ const HomeScreen: React.FC = () => {
   const { styles, background } = useStylesHomeScreen();
   const { isLoggedIn, loggingIn } = useUserContext();
 
-  const [hasInternet, setHasInternet] = useState(false);
+  const [hasInternet, setHasInternet] = useState(deviceInfo.hasInternet);
 
   const handleLoginInWebRef = useRef(() => {
     if (!REPLACERS.isNative) return;

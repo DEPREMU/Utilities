@@ -16,7 +16,7 @@ import useStylesRecorderScreen from "@/features/Phone/Recorder/styles/useStylesR
 import Animated, { FadeInDown } from "react-native-reanimated";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 
-const qualities = ["low", "high"] as const;
+const qualities = ["low", "medium", "high", "lossless"] as const;
 const typesTime = ["millis", "seconds", "minutes", "hours"] as const;
 
 const convertToExpectedTime = (

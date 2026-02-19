@@ -64,6 +64,8 @@ const App = () => {
 
   const handleCheckForUpdatesRef = useRef(async () => {
     try {
+      if (APP_VERSION.includes("dev")) return; // Skip updates for testing builds
+
       await handleCheckForUpdatesNativelyRef.current();
       storageManagement.save("LAST_UPDATE_CHECK", Date.now());
 
@@ -97,6 +99,7 @@ const App = () => {
           ),
         500,
       );
+    else return;
 
     handleCheckForUpdatesRef.current();
     const id = setIntervalPolyfill(

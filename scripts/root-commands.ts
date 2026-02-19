@@ -25,6 +25,21 @@ const run = () => {
   console.log(`Running root action: ${action}`);
 
   switch (action) {
+    case "compile-check":
+      execSync("yarn run app-prebuild-android", {
+        cwd: UTILITIES_PATH,
+        stdio: "inherit",
+        env,
+      });
+      execSync(
+        "cd android && ./gradlew :app:compileDebugKotlin --no-daemon",
+        {
+          cwd: APP_PATH,
+          stdio: "inherit",
+          env,
+        },
+      );
+      break;
     case "clean":
       clean();
       break;

@@ -11,27 +11,20 @@ import {
   insertIntoTable,
 } from "../database/functions.ts";
 import {
-  Tables,
-  UserData,
-  Notifications,
-  ReasonNotification,
-  LanguagesSupported,
-} from "@types";
-import {
   t,
   sendResponse,
   isValidEmail,
   isValidPassword,
   SelectedCryptos,
-  ExpectedStorageTypes,
-  objByReasonNotification,
   reasonNotification,
+  ExpectedStorageTypes,
 } from "@common";
 import chalk from "chalk";
 import bcrypt from "bcryptjs";
 import { showError } from "../functions/logger.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { NextFunction, Request, Response } from "express";
+import { Tables, UserData, LanguagesSupported } from "@types";
 
 /**
  * Inserts a push token into the database for a specific user.
@@ -110,31 +103,11 @@ export const getStorageData = async (
 
     delete user["password"];
 
-    const streamers: Notifications["streamers"]["streamersList"] =
-      userNotificationsConfig
-        ?.filter((config) => config.reason === "streamers" && !!config.streamer)
-        .map((config) => ({
-          name: config.streamer as string,
-          enabled: config.enabled,
-        }));
-
     const cryptosToSave: SelectedCryptos =
       cryptos?.reduce((acc, crypto) => {
         acc[crypto.id + crypto.currency] = crypto;
         return acc;
       }, {} as SelectedCryptos) || {};
-
-    const userNotificationsConfigToSave: Notifications =
-      userNotificationsConfig.reduce((acc, config) => {
-        const reason = config.reason as ReasonNotification;
-        acc[reason] = {
-          ...objByReasonNotification,
-          ...acc[reason],
-          ...(reason === "streamers" && { streamersList: streamers }),
-        } as never;
-
-        return acc;
-      }, {} as Notifications);
 
     const userConfigToSave: Tables["UserConfig"] = {
       userId,
@@ -156,25 +129,25 @@ export const getStorageData = async (
       DOWN_DETECTOR_DATA: [],
       USER_SESSION_TOKEN_STORAGE: token,
       CLIPBOARD: null as never,
-      VAULT_SETTINGS: null,
+      PENDING_TASKS: null,
+      RECORDER_DATA: null,
+      NOTIFICATIONS: null as never,
       VAULT_PASSWORD: null,
+      VAULT_SETTINGS: null,
       VAULT_DIRECTORY: null,
       TERMINAL_COMMANDS: null,
       API_URL: userConfigToSave.API_URL || "",
       HAS_ADMIN_ACCESS: userConfigToSave.hasAdmin,
-      NOTIFICATIONS: userNotificationsConfigToSave,
       LANGUAGE: userConfigToSave.language,
       WEBSOCKET_URL: userConfigToSave.webSocketURL || "",
       CLIPBOARD_WEBSOCKET_URL:
         userConfigToSave.webSocketURL?.replace("/ws", "/clipboard") || "",
       THEME: userConfigToSave.theme || "auto",
-      PENDING_TASKS: null,
       STREAMERS: streamersUser
         ?.map((streamer) => ({ ...streamer, isLive: false }))
         .filter(Boolean),
       DEVICE_ID: "",
       USER_DATA: (user as Omit<UserData, "password">) || null,
-      RECORDER_DATA: null,
     };
 
     return storageData;

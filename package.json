@@ -26,6 +26,7 @@
     "i:s": "node scripts/root-commands.ts --action=i-s",
     "before-commit": "node scripts/root-commands.ts --action=before-commit",
     "build-web": "node scripts/root-commands.ts --action=build-web",
+    "app-compile-check": "node scripts/root-commands.ts --action=compile-check",
     "__APP__": "_______________________________________________",
     "app-prebuild-android": "node scripts/app/app-prebuild.ts",
     "app-build-dev-android": "node scripts/app/app-build-dev-android.ts",

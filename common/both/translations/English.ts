@@ -442,6 +442,10 @@ export const enApp: typeLanguages = {
       "Storage permission is required to save images to your device.",
   },
   recorder: {
+    medium: "Medium",
+    mediumDescription: "Medium quality recording (balanced file size and quality)",
+    lossless: "Lossless",
+    losslessDescription: "Lossless quality recording (largest file size)",
     infiniteRecord: "Infinite Record",
     autoStartedFailedNotification: "Failed to start recording automatically.",
     autoStartedFailedTitle: "Auto Recording Failed",

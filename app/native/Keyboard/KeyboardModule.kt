@@ -8,7 +8,7 @@ import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableType
 
 class KeyboardModule(
-    private val reactContext: ReactApplicationContext,
+    reactContext: ReactApplicationContext,
 ) : ReactContextBaseJavaModule(reactContext) {
     override fun getName(): String = "KeyboardModule"
 

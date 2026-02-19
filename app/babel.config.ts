@@ -4,8 +4,8 @@ import type { ConfigFunction } from "@babel/core";
 const config: ConfigFunction = (api) => {
   api.cache.never();
 
-  const platform = process?.env?.PLATFORM;
-  const BUILD_PROFILE = process?.env?.BUILD_PROFILE;
+  const platform = process.env?.PLATFORM;
+  const BUILD_PROFILE = process.env?.BUILD_PROFILE;
 
   if (!BUILD_PROFILE)
     throw new Error("BUILD_PROFILE environment variable is not set");

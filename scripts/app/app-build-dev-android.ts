@@ -22,9 +22,21 @@ const localEnv = {
 };
 
 replaceAppConfig(
-  (prev) => (prev.endsWith("-dev") ? prev : `${prev}-dev`),
-  (prev) => (prev.includes("Dev") ? prev : `${prev} Dev`),
-  (prev) => (prev.includes(".dev") ? prev : `${prev}.dev`),
+  (prev) => {
+    prev = prev.replace("-prev", "");
+
+    return prev.endsWith("-dev") ? prev : `${prev}-dev`;
+  },
+  (prev) => {
+    prev = prev.replace(" Prev", "");
+
+    return prev.includes("Dev") ? prev : `${prev} Dev`;
+  },
+  (prev) => {
+    prev = prev.replace(".preview", "");
+
+    return prev.includes(".dev") ? prev : `${prev}.dev`;
+  },
 );
 
 let expo: ReturnType<typeof spawn>;
