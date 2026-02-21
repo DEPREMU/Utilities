@@ -641,3 +641,7 @@ export const showAlert = (...args: Parameters<typeof Alert.alert>): void => {
 export const sanitizeFileName = (name: string) => {
   return name.replace(/[^a-zA-Z0-9.\-_]/g, " ").trim();
 };
+
+export const waitForTime = (ms: number) => {
+  return new Promise((resolve) => setTimeoutPolyfill(resolve, ms));
+};

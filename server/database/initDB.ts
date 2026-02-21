@@ -115,7 +115,7 @@ export const initDB = async () => {
       }
 
       dataJSON.prevVersionSQL = fileVersion;
-      !getEnvValue("__DEV__") &&
+      if (!getEnvValue("__DEV__"))
         fs.writeFileSync(
           fileDataPath,
           JSON.stringify(dataJSON, null, 2),

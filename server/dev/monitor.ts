@@ -37,7 +37,7 @@ const monitorDB = async () => {
 
       if (os.platform() === "win32") {
         const output = execSync(
-          // eslint-disable-next-line quotes
+           
           'tasklist /FI "IMAGENAME eq postgres.exe" /V',
         ).toString();
         const regex = new RegExp("postgres.exe\\s+(\\d+)", "g");

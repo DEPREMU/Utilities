@@ -16,7 +16,7 @@ const matchesExpectation = (actual: unknown, expected: unknown): boolean => {
 
     // Handle expect.any() matcher
     if (expectObj.__type === "any") {
-      const constructor = expectObj.constructor as Function;
+      const constructor = expectObj.constructor as () => unknown;
       if (constructor === String) return typeof actual === "string";
       if (constructor === Number) return typeof actual === "number";
       if (constructor === Boolean) return typeof actual === "boolean";

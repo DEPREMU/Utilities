@@ -6,6 +6,7 @@ import { wrapFunctionWithError } from "@common";
 import { deleteInTable, insertIntoTable } from "../database/functions.ts";
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user: { tokenDecoded: TokenJWT; token: string };
@@ -14,8 +15,8 @@ declare global {
 }
 
 type TokenJWT = {
-  userId: string;
   email: string;
+  userId: string;
   deviceId: string;
   notificationToken: string;
 };

@@ -140,6 +140,6 @@ handleInitDB().then(() => {
         `Clipboard WebSocket is running on ${sourceProtocolWs}://${host}:${port}/clipboard`,
       ),
     );
-    getEnvValue("__DEV__") && runAllTests(true);
+    if (getEnvValue("__DEV__")) runAllTests(true);
   });
 });

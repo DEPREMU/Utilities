@@ -6,10 +6,7 @@ import {
   setTimeoutPolyfill,
   setIntervalPolyfill,
   clearTimeoutPolyfill,
-  askLocationPermission,
   clearIntervalPolyfill,
-  askBatteryOptimizationPermission,
-  askDisplayOverOtherAppsPermission,
 } from "@utils";
 import { reloadAppAsync } from "expo";
 import { navigateReplace } from "@refs";
@@ -184,19 +181,6 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       removeAppStateListener();
       removeStatePhoneListener();
     };
-  }, []);
-
-  useEffect(() => {
-    if (!REPLACERS.isNative) return;
-
-    const askPermissions = async () => {
-      await askLocationPermission();
-      await askDisplayOverOtherAppsPermission();
-      await askBatteryOptimizationPermission();
-    };
-
-    const id = setTimeoutPolyfill(askPermissions, 2000);
-    return () => clearTimeoutPolyfill(id);
   }, []);
 
   const value: BackgroundContextType = useMemo(

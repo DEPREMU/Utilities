@@ -258,6 +258,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     appVersion: `${string}{{version}}${string}`;
     showAsMarkdown: string;
     labels: {
+      doNotAskAgain: string;
       fileSavedSuccessTitle: string;
       fileSavedSuccessMessage: `${string}{{filename}}${string}{{filePath}}${string}`;
       fileNotSavedErrorTitle: string;

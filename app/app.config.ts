@@ -3,12 +3,12 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.8.4";
+const version = "1.8.4-dev";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
-    name: "Utilities",
+    name: "Utilities Dev",
     slug: "Utilities",
     updates: {
       url: "https://u.expo.dev/7dd2c093-0c91-4638-a5b9-828d458e8be0",
@@ -39,7 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         foregroundImage: "./src/assets/adaptive-icon.png",
         backgroundColor: "#000000",
       },
-      package: "com.utilities.depremu",
+      package: "com.utilities.depremu.dev",
       permissions: [
         "CAMERA",
         "INTERNET",

@@ -18,7 +18,7 @@ const getLinkImageStreamer = async (streamer: string) => {
     const image = imageElement
       .split(" ")
       .find((e: string) => e.includes("content="))
-      // eslint-disable-next-line quotes
+       
       .split('"')[1];
 
     return image;

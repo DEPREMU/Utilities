@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import js from "@eslint/js";
 import globals from "globals";
 import tsconfig from "typescript-eslint";
@@ -9,35 +8,27 @@ import prettierConfig from "eslint-config-prettier";
 import { defineConfig } from "eslint/config";
 import pluginReactHooks from "eslint-plugin-react-hooks";
 import typescriptParser from "@typescript-eslint/parser";
-// @ts-expect-error Missing types
 import pluginReactNative from "eslint-plugin-react-native";
 
 export default defineConfig([
   {
     ignores: [
-      "node_modules/**",
-      "../node_modules/**",
-      "server/node_modules/**",
-      "server/dist/**",
-      "dist/**",
-      "build/**",
-      ".expo/**",
-      ".metro/**",
-      ".yarn/**",
-      "android/**",
-      "assets/**",
-      "images/**",
-      "coverage/**",
-      "*.config.js",
-      "babel.config.js",
-      "metro.config.js",
-      "app.config.js",
-      "*.generated.*",
-      "*.d.ts",
-      "*.log",
-      ".env*",
-      ".DS_Store",
-      "Thumbs.db",
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.expo/**",
+      "**/.metro/**",
+      "**/.yarn/**",
+      "**/android/**",
+      "**/assets/**",
+      "**/images/**",
+      "**/coverage/**",
+      "**/*.generated.*",
+      "**/*.d.ts",
+      "**/*.log",
+      "**/.env*",
+      "**/.DS_Store",
+      "**/Thumbs.db",
     ],
   },
   js.configs.recommended,
@@ -47,12 +38,12 @@ export default defineConfig([
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
-        tsconfigRootDir: __dirname,
         ecmaFeatures: {
           jsx: true,
         },
         ecmaVersion: 2020,
         sourceType: "module",
+        tsconfigRootDir: __dirname,
       },
       globals: {
         ...globals.browser,

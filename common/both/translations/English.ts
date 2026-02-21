@@ -401,6 +401,7 @@ export const enApp: typeLanguages = {
     notificationDetailsNoStreamers: "No streamers configured",
   },
   labels: {
+    doNotAskAgain: "Don't ask again",
     clipboard: "Clipboard",
     fileSavedSuccessMessage:
       "File {{filename}} saved successfully in {{filePath}}",
@@ -443,7 +444,8 @@ export const enApp: typeLanguages = {
   },
   recorder: {
     medium: "Medium",
-    mediumDescription: "Medium quality recording (balanced file size and quality)",
+    mediumDescription:
+      "Medium quality recording (balanced file size and quality)",
     lossless: "Lossless",
     losslessDescription: "Lossless quality recording (largest file size)",
     infiniteRecord: "Infinite Record",

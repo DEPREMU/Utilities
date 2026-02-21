@@ -15,14 +15,14 @@ import {
   REPLACERS,
   fetchToServer,
   DATA_PLATFORM,
+  sessionManager,
   getFormattedDate,
   storageManagement,
   getDefaultMinutes,
   setTimeoutPolyfill,
   notificationsManager,
   clearTimeoutPolyfill,
-  askLocationPermission,
-  sessionManager,
+  askForPermission,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import { useLanguage } from "@/context/LanguageContext";
@@ -147,9 +147,12 @@ const NotificationsScreen: React.FC = () => {
 
   const handleChangeNotificationRef = useRef(
     async (reason: ReasonNotification) => {
-      if (reason === "cryptos") return navigateReplace("Login");
-      if (reason === "locationEnabled" && !(await askLocationPermission()))
+      if (reason === "cryptos" && !sessionManager.getSessionData().isLoggedIn)
+        return navigateReplace("Login");
+      if (reason === "locationEnabled") {
+        await askForPermission("location");
         return;
+      }
 
       await notificationsManager.editNotification(
         reason,

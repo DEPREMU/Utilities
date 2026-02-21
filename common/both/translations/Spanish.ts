@@ -310,6 +310,7 @@ export const esApp: typeLanguages = {
   millis: "milisegundos",
   recorderNotification: "Notificación de grabadora",
   labels: {
+    doNotAskAgain: "No volver a preguntar",
     clipboard: "Portapapeles",
     deselect: "Deseleccionar",
     fileInfo: "Información del archivo",

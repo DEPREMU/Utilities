@@ -40,6 +40,23 @@ export type ClipboardStorage = {
   maxClipboardItems: number;
 };
 
+export const PERMISSIONS = [
+  "overlay",
+  "location",
+  "autoStart",
+  "batteryOptimization",
+] as const;
+
+export type Permission = (typeof PERMISSIONS)[number];
+
+export type DataPermission = {
+  enabled: boolean;
+  lastAsked: number | null;
+  doNotAskAgain: boolean;
+};
+
+export type PermissionsData = Record<Permission, DataPermission>;
+
 export type ExpectedSecureStorageTypes = {
   HAS_UI: boolean | null;
   DEVICE_ID: string;
@@ -52,6 +69,7 @@ export type ExpectedSecureStorageTypes = {
   SELECTED_CRYPTOS: SelectedCryptos | null;
   LAST_UPDATE_CHECK: number | null;
   TERMINAL_COMMANDS: Command[] | null;
+  PERMISSIONS_DATA: PermissionsData | null;
   DOWN_DETECTOR_DATA: DownDetector[] | null;
   USER_SESSION_TOKEN_STORAGE: string | null;
 };
@@ -100,6 +118,7 @@ export const SECURE_KEYS_STORAGE: Record<
   VAULT_PASSWORD: "_vaultPassword",
   VAULT_DIRECTORY: "_vaultDirectory",
   SELECTED_CRYPTOS: "_selectedCryptos",
+  PERMISSIONS_DATA: "_permissionsData",
   LAST_UPDATE_CHECK: "_lastUpdateCheck",
   TERMINAL_COMMANDS: "_terminalCommands",
   DOWN_DETECTOR_DATA: "_downDetectorData",

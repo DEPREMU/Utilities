@@ -1,5 +1,5 @@
+/* eslint-disable no-console */
 "use strict";
-/* eslint-disable no-undef */
 
 let language = navigator.language || navigator.userLanguage;
 if (language.indexOf("-") !== -1) {

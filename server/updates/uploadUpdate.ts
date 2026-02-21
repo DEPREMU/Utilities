@@ -1,4 +1,4 @@
-/* eslint-disable @stylistic/indent */
+ 
 import {
   UpdateInfo,
   PlatformsOS,

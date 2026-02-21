@@ -111,7 +111,7 @@ const executeRouteTests = async (route: RoutesAPI): Promise<TestResult[]> => {
       method,
       test.expectedResponse as Record<string, unknown>,
       test.shouldSucceed,
-      "authorization" in test ? test.authorization?.() : null,
+      "authorization" in test ? test.authorization?.() || null : null,
     );
 
     results.push(result);
@@ -145,9 +145,7 @@ export const runAllTests = async (
   const startTime = Date.now();
   const allResults: TestResult[] = [];
 
-  showInfo(
-    "╔════════════════════════════════════════════════════════════════",
-  );
+  showInfo("╔════════════════════════════════════════════════════════════════");
   showInfo("║ 🚀 Starting API Test Suite");
   showInfo(
     "╚════════════════════════════════════════════════════════════════\n",
@@ -182,15 +180,11 @@ export const runAllTests = async (
     "\n|================================================================",
   );
   showInfo("| Test Summary");
-  showInfo(
-    "|================================================================",
-  );
+  showInfo("|================================================================");
   showInfo(`| Total Tests:    ${summary.total}`);
   showInfo(`| Passed:         ${summary.passed}`);
   showInfo(`| Failed:         ${summary.failed}`);
-  showInfo(
-    `| Success Rate:   ${((passed / summary.total) * 100).toFixed(2)}%`,
-  );
+  showInfo(`| Success Rate:   ${((passed / summary.total) * 100).toFixed(2)}%`);
   showInfo(`| Total Duration: ${summary.duration}ms`);
   showInfo(
     "|================================================================\n",
@@ -224,13 +218,9 @@ export const runRouteTests = async (
 ): Promise<TestSummary> => {
   const startTime = Date.now();
 
-  showInfo(
-    "|================================================================",
-  );
+  showInfo("|================================================================");
   showInfo(`| 🚀 Testing Route: ${route}`);
-  showInfo(
-    "|================================================================",
-  );
+  showInfo("|================================================================");
 
   const results = await executeRouteTests(route);
 
@@ -255,16 +245,12 @@ export const runRouteTests = async (
     "\n|================================================================",
   );
   showInfo("| Route Test Summary");
-  showInfo(
-    "|================================================================",
-  );
+  showInfo("|================================================================");
   showInfo(`| Route:          ${route}`);
   showInfo(`| Total Tests:    ${summary.total}`);
   showInfo(`| Passed:         ${summary.passed}`);
   showInfo(`| Failed:         ${summary.failed}`);
-  showInfo(
-    `| Success Rate:   ${((passed / summary.total) * 100).toFixed(2)}%`,
-  );
+  showInfo(`| Success Rate:   ${((passed / summary.total) * 100).toFixed(2)}%`);
   showInfo(`| Duration:       ${summary.duration}ms`);
   showInfo(
     "|================================================================\n",

@@ -63,7 +63,7 @@ export const getStorageData = async (
   userId: string,
   rememberMe: boolean,
   token: string,
-): Promise<ExpectedStorageTypes<"BOTH"> | null> => {
+): Promise<Partial<ExpectedStorageTypes<"BOTH">> | null> => {
   if (!token) return null;
   if (!userId) return null;
 
@@ -82,20 +82,12 @@ export const getStorageData = async (
       fetchFromTable({ table: "UserNotificationsConfig", match: { userId } }),
     ]);
 
+    const cryptos = cryptosData.data;
     const userData = usersData.data?.[0];
-    let cryptos = cryptosData.data;
     const userConfig = userConfigData.data?.[0];
-    let streamersUser = streamersUserData.data;
+    const streamersUser = streamersUserData.data;
     const userNotificationsConfig = userNotificationsConfigData.data;
 
-    if (!Array.isArray(streamersUser)) {
-      if (!streamersUser) streamersUser = [];
-      else streamersUser = [streamersUser];
-    }
-    if (!Array.isArray(cryptos)) {
-      if (!cryptos) cryptos = [];
-      else cryptos = [cryptos];
-    }
     if (!Array.isArray(userNotificationsConfig)) return null;
     if (!userData) return null;
 
@@ -121,33 +113,28 @@ export const getStorageData = async (
     let date = -1;
     if (rememberMe) date = getDateWithDaysAhead(15).getTime();
 
-    const storageData: ExpectedStorageTypes<"BOTH"> = {
+    const storageData: Partial<ExpectedStorageTypes<"BOTH">> = {
       HAS_UI: true,
       SESSION_EXPIRY: date,
       SELECTED_CRYPTOS: cryptosToSave,
       LAST_UPDATE_CHECK: Date.now(),
-      DOWN_DETECTOR_DATA: [],
       USER_SESSION_TOKEN_STORAGE: token,
-      CLIPBOARD: null as never,
-      PENDING_TASKS: null,
-      RECORDER_DATA: null,
-      NOTIFICATIONS: null as never,
-      VAULT_PASSWORD: null,
-      VAULT_SETTINGS: null,
-      VAULT_DIRECTORY: null,
-      TERMINAL_COMMANDS: null,
-      API_URL: userConfigToSave.API_URL || "",
       HAS_ADMIN_ACCESS: userConfigToSave.hasAdmin,
       LANGUAGE: userConfigToSave.language,
-      WEBSOCKET_URL: userConfigToSave.webSocketURL || "",
-      CLIPBOARD_WEBSOCKET_URL:
-        userConfigToSave.webSocketURL?.replace("/ws", "/clipboard") || "",
       THEME: userConfigToSave.theme || "auto",
-      STREAMERS: streamersUser
-        ?.map((streamer) => ({ ...streamer, isLive: false }))
-        .filter(Boolean),
-      DEVICE_ID: "",
+      STREAMERS:
+        streamersUser
+          ?.map((streamer) => ({ ...streamer, isLive: false }))
+          .filter(Boolean) || null,
       USER_DATA: (user as Omit<UserData, "password">) || null,
+      ...(userConfigToSave.hasAdmin
+        ? {
+            API_URL: userConfigToSave.API_URL || "",
+            WEBSOCKET_URL: userConfigToSave.webSocketURL || "",
+            CLIPBOARD_WEBSOCKET_URL:
+              userConfigToSave.webSocketURL?.replace("/ws", "/clipboard") || "",
+          }
+        : {}),
     };
 
     return storageData;

@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/indent */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import chalk from "chalk";
 import { showError, showInfo } from "./logger";
@@ -13,7 +12,7 @@ type TypeOf = {
   symbol: symbol;
   object: object;
   boolean: boolean;
-  function: Function;
+  function: () => any;
   undefined: undefined;
 };
 

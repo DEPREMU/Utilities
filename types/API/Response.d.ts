@@ -65,7 +65,7 @@ export type ResponseAuth<T extends "login" | "signup"> = T extends "login"
       token?: string;
       error?: string;
       success: boolean;
-      storageValues?: ExpectedStorageTypes<"BOTH">;
+      storageValues?: Partial<ExpectedStorageTypes<"BOTH">>;
     }
   : {
       error?: string;

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @stylistic/indent */
+
 import { FetchAPI, RequestBody, RoutesAPI, TablesKeys } from "@types";
 
 export type AnyMatcher = {
@@ -68,7 +68,9 @@ export type TestCase<
 
   shouldSucceed: boolean;
   onSuccess?: (response: ResponseOf<T, U> | null) => Promise<void> | void;
-} & (T extends RoutesAPI<"middleware"> ? { authorization: () => string } : {});
+} & (T extends RoutesAPI<"middleware">
+  ? { authorization: () => string }
+  : { authorization?: never });
 
 /**
  * Represents a single test case for an API route
