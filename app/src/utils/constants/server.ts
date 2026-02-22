@@ -17,7 +17,9 @@ if (!WS_URL_BASE && REPLACERS.isDev) {
 
 const getLocalIP = () => {
   console.warn(
-    "\n\nGetting local IP address has been called, make sure you configure your local IP\n",
+    "\n--------------------------------------",
+    "\nGetting local IP address has been called, make sure you configure your local IP",
+    "\n--------------------------------------",
   );
 
   return "192.168.1.163:3000";

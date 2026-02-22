@@ -18,6 +18,7 @@ try {
 export const TABLE_MAP: Record<TablesKeys, string> = {
   Logs: "logs",
   Users: "users",
+  Notes: "notes",
   Cryptos: "cryptos",
   Streamers: "streamer",
   PushTokens: "push_tokens",

@@ -114,7 +114,6 @@ export const getStorageData = async (
     if (rememberMe) date = getDateWithDaysAhead(15).getTime();
 
     const storageData: Partial<ExpectedStorageTypes<"BOTH">> = {
-      HAS_UI: true,
       SESSION_EXPIRY: date,
       SELECTED_CRYPTOS: cryptosToSave,
       LAST_UPDATE_CHECK: Date.now(),

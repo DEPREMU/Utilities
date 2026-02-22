@@ -2,6 +2,7 @@ export * from "./API";
 export * from "./env";
 export * from "./screens";
 export * from "./typesVault";
+export * from "./typesNotes";
 export * from "./database/index";
 export * from "./typesStorage";
 export * from "./typesWebSocket";

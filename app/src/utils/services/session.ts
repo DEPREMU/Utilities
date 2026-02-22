@@ -422,12 +422,39 @@ export const getCurrentUserId = async (): Promise<string | null> => {
 class SessionManager {
   #i = 0;
   #intervalId: number | null = null;
+
+  #initialized = false;
+  #initPromise: Promise<void> | null = null;
+
   #data: SessionData = {
     userData: null,
     isLoggedIn: false,
     rememberMe: false,
     isLoggingIn: false,
     sessionToken: null,
+  };
+
+  private init = async () => {
+    if (this.#initialized) return;
+    if (this.#initPromise) return this.#initPromise;
+
+    const load = async () => {
+      await this.refreshSession();
+      const { setIntervalPolyfill, clearIntervalPolyfill } =
+        await import("../functions");
+
+      if (this.#intervalId) clearIntervalPolyfill(this.#intervalId);
+      this.#intervalId = setIntervalPolyfill(
+        () => this.refreshSession(),
+        15 * 60 * 1000,
+      );
+      this.#initialized = true;
+      this.#initPromise = null;
+    };
+
+    this.#initPromise = load();
+
+    return this.#initPromise;
   };
 
   private notLoggedIn = () => {
@@ -622,19 +649,19 @@ class SessionManager {
     callback?.(success, error);
   };
 
+  public waitUntilLoaded = async () => {
+    if (this.#initialized) return;
+    if (this.#initPromise) return this.#initPromise;
+
+    this.#initPromise = this.init();
+    return this.#initPromise;
+  };
+
   public getSessionData = () => this.#data;
 
-  public init = async () => {
-    await this.refreshSession();
-    const { setIntervalPolyfill, clearIntervalPolyfill } =
-      await import("../functions");
-
-    if (this.#intervalId) clearIntervalPolyfill(this.#intervalId);
-    this.#intervalId = setIntervalPolyfill(
-      () => this.refreshSession(),
-      15 * 60 * 1000, //!
-    );
-  };
+  constructor() {
+    this.init();
+  }
 }
 
 export const sessionManager = new SessionManager();

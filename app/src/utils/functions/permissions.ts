@@ -1,11 +1,10 @@
-import { tTyped } from "../translates";
+import { alerts } from "../services/alerts";
+import { AppState } from "react-native";
 import { REPLACERS } from "../TOP_LEVEL";
 import * as Location from "expo-location";
-import { Alert, AppState } from "react-native";
-import { typeLanguagesKeys } from "@types";
+import { Permission } from "@common";
 import { NativeFunctionsModule } from "@modules";
 import { initPermissionsData, permissionsData } from "@refs";
-import { Permission } from "@common";
 
 /**
  * Checks if location services are enabled on the device.
@@ -28,57 +27,6 @@ export const isLocationEnabled = async (): Promise<boolean> => {
   }
 };
 
-type AskPermission = <R>(
-  title: typeLanguagesKeys,
-  message: typeLanguagesKeys,
-  callback: (doNotAskAgain: boolean, success: boolean) => Promise<R>,
-) => Promise<Awaited<R>>;
-
-export const askPermission: AskPermission = async (
-  title,
-  message,
-  callback,
-) => {
-  const result = await new Promise<"accept" | "cancel" | "doNotAskAgain">(
-    (resolve) => {
-      const cancel = () => resolve("cancel");
-      const doNotAskAgain = () => resolve("doNotAskAgain");
-      const accept = () => resolve("accept");
-
-      Alert.alert(
-        tTyped(title),
-        tTyped(message),
-        [
-          {
-            text: tTyped("accept"),
-            onPress: accept,
-          },
-          {
-            text: tTyped("labels.cancel"),
-            style: "cancel",
-            onPress: cancel,
-          },
-          {
-            text: tTyped("labels.doNotAskAgain"),
-            style: "destructive",
-            onPress: doNotAskAgain,
-          },
-        ],
-        {
-          onDismiss: cancel,
-          cancelable: false,
-        },
-      );
-    },
-  );
-
-  const value = (await callback(
-    result === "doNotAskAgain",
-    result === "accept",
-  )) as Awaited<never>;
-  return value;
-};
-
 /**
  * Requests location permissions (both foreground and background) from the user.
  *
@@ -96,7 +44,7 @@ const askLocationPermission = async (): Promise<void> => {
 
   const { notificationsManager, storageManagement, waitForTime } =
     await import("@utils");
-  if (!storageManagement.get("HAS_UI")) return;
+  if (!storageManagement.hasUI) return;
   if (permissionsData.permissions.location.doNotAskAgain) return;
 
   let { status } = await Location.getForegroundPermissionsAsync();
@@ -111,7 +59,7 @@ const askLocationPermission = async (): Promise<void> => {
   if (permissionsData.hasOverlayPermission) NativeFunctionsModule.openApp?.();
   await waitForTime(500);
 
-  granted = await askPermission(
+  granted = !!(await alerts.showAlert(
     "locationPermission",
     "locationPermissionMessage",
     async (doNotAskAgain, accepted) => {
@@ -127,7 +75,8 @@ const askLocationPermission = async (): Promise<void> => {
 
       return accepted;
     },
-  );
+    { addDoNotAskAgain: true },
+  ));
 
   notificationsManager.editNotification("locationEnabled", (prev) => ({
     ...prev,
@@ -184,13 +133,14 @@ const askDisplayOverOtherAppsPermission = async (): Promise<void> => {
 
   const { logger } = await import("@utils");
 
-  const granted = await askPermission(
+  const granted = await alerts.showAlert(
     "overlayPermission",
     "overlayPermissionMessage",
     async (doNotAskAgain, accepted) => {
       permissionsData.permissions.overlay.doNotAskAgain = doNotAskAgain;
       return accepted;
     },
+    { addDoNotAskAgain: true },
   );
 
   if (!granted) return;
@@ -251,7 +201,7 @@ const askBatteryOptimizationPermission = async (): Promise<void> => {
   if (permissionsData.hasOverlayPermission) NativeFunctionsModule.openApp?.();
   await waitForTime(500);
 
-  const accepted = await askPermission(
+  const accepted = await alerts.showAlert(
     "batteryOptimizationPermission",
     "batteryOptimizationPermissionMessage",
     async (doNotAskAgain, accepted) => {
@@ -259,6 +209,7 @@ const askBatteryOptimizationPermission = async (): Promise<void> => {
         doNotAskAgain;
       return accepted;
     },
+    { addDoNotAskAgain: true },
   );
 
   if (!accepted) {
@@ -303,13 +254,14 @@ const askAutoStartPermission = async (): Promise<void> => {
 
   const { logger } = await import("@utils");
 
-  const accepted = await askPermission(
+  const accepted = await alerts.showAlert(
     "autoStartPermission",
     "autoStartPermissionMessage",
     async (doNotAskAgain, accepted) => {
       permissionsData.permissions.autoStart.doNotAskAgain = doNotAskAgain;
       return accepted;
     },
+    { addDoNotAskAgain: true },
   );
 
   if (!accepted) return;
@@ -340,7 +292,7 @@ export const askPermissions = async (): Promise<void> => {
   const { storageManagement } = await import("@utils");
   await storageManagement.waitUntilLoaded();
 
-  const hasUi = storageManagement.get("HAS_UI");
+  const hasUi = storageManagement.hasUI;
   if (!hasUi) return;
 
   if (!permissionsData.permissions.location.doNotAskAgain)
@@ -351,7 +303,10 @@ export const askPermissions = async (): Promise<void> => {
     await askBatteryOptimizationPermission();
   if (!permissionsData.permissions.autoStart.doNotAskAgain)
     await askAutoStartPermission();
+
+  storageManagement.save("PERMISSIONS_DATA", permissionsData.permissions);
 };
+askPermissions();
 
 export const askForPermission = async (
   permission: Permission,

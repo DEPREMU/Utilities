@@ -88,8 +88,47 @@ export type DownDetector = {
   sendNotification: boolean;
 };
 
+export type SourceNotes = {
+  id?: string;
+  uri: string;
+  type: "image" | "video" | "audio" | "other";
+  name?: string;
+  size?: number | null;
+  mimeType?: string | null;
+  durationMs?: number;
+  noteId?: string;
+};
+
+export type Notes = {
+  id?: string;
+  userId: string;
+  title?: string;
+  content: string;
+  folderId?: string | null;
+  isPinned?: boolean;
+  isHidden?: boolean;
+  richTextRuns?:
+    | {
+        start: number;
+        end: number;
+        style: {
+          color?: string;
+          fontSize?: number;
+          fontFamily?: string;
+          fontWeight?: "normal" | "bold";
+          fontStyle?: "normal" | "italic";
+          textDecorationLine?: "none" | "underline" | "line-through";
+        };
+      }[]
+    | null;
+  sources: SourceNotes[] | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Tables = {
   Logs: Logs;
+  Notes: Notes;
   Users: UserData;
   Cryptos: Cryptos;
   Streamers: Streamer;

@@ -4,17 +4,20 @@ import { fetchFromTable } from "../database/functions.ts";
 import { Tables, TablesKeys } from "@types";
 import { showError, showInfo } from "../functions/logger.ts";
 
-export const dataDatabase = {
-  Logs: [] as Tables["Logs"][],
-  Users: [] as Tables["Users"][],
-  Cryptos: [] as Tables["Cryptos"][],
-  Streamers: [] as Tables["Streamers"][],
-  PushTokens: [] as Tables["PushTokens"][],
-  UserConfig: [] as Tables["UserConfig"][],
-  DownDetector: [] as Tables["DownDetector"][],
-  UserSessions: [] as Tables["UserSessions"][],
-  ClipboardSync: [] as Tables["ClipboardSync"][],
-  UserNotificationsConfig: [] as Tables["UserNotificationsConfig"][],
+export const dataDatabase: {
+  [key in TablesKeys]: Tables[key][];
+} = {
+  Logs: [],
+  Notes: [],
+  Users: [],
+  Cryptos: [],
+  Streamers: [],
+  PushTokens: [],
+  UserConfig: [],
+  DownDetector: [],
+  UserSessions: [],
+  ClipboardSync: [],
+  UserNotificationsConfig: [],
 };
 
 const TablesNot: TablesKeys[] = [

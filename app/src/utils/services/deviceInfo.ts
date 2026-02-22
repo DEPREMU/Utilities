@@ -12,7 +12,6 @@ import {
 import {
   logger,
   isLocationEnabled,
-  setTimeoutPolyfill,
   setIntervalPolyfill,
   clearIntervalPolyfill,
 } from "../functions";
@@ -102,6 +101,10 @@ const verifyLocation = async () => {
 
 class DeviceInfo {
   #i = 0;
+
+  #initialized = false;
+  #initPromise: Promise<void> | null = null;
+
   #cleanup = () => {
     Object.values(this.#listeners).forEach((cleanup) => cleanup?.());
     this.#listeners = {};
@@ -175,7 +178,7 @@ class DeviceInfo {
     this.#listeners[event]?.();
     delete this.#listeners[event];
 
-    await notificationsManager.waitToReady();
+    await notificationsManager.waitUntilLoaded();
     const notification = notificationsManager.getNotification(
       "noInternetConnection",
     );
@@ -352,7 +355,7 @@ class DeviceInfo {
     this.#listeners[event]?.();
     delete this.#listeners[event];
 
-    await notificationsManager.waitToReady();
+    await notificationsManager.waitUntilLoaded();
     const notification =
       notificationsManager.getNotification("locationEnabled");
     if (!notification.enabled) return;
@@ -368,7 +371,7 @@ class DeviceInfo {
     delete this.#listeners[event];
     const reasonNotification: ReasonNotification = event;
 
-    await notificationsManager.waitToReady();
+    await notificationsManager.waitUntilLoaded();
     const notification =
       notificationsManager.getNotification(reasonNotification);
     if (!notification.enabled) return;
@@ -430,13 +433,12 @@ class DeviceInfo {
 
   private _initScreenChange = async () => {
     await storageManagement.waitUntilLoaded();
-    await new Promise((resolve) => setTimeoutPolyfill(resolve, 10000));
-    if (!storageManagement.get("HAS_UI")) return;
+    if (!storageManagement.hasUI) return;
 
     const event: EventKeys = "screenChange";
     let prevScreen: ScreensAvailable = "Home";
 
-    const subscription = navigationRef.current?.addListener("state", () => {
+    const remover = navigationRef.current?.addListener("state", () => {
       const route = navigationRef.current?.getCurrentRoute();
       const screen = route?.name || "Home";
       if (screen === prevScreen) return;
@@ -444,23 +446,47 @@ class DeviceInfo {
       this._emitEvent("screenChange", prevScreen, screen);
       prevScreen = screen;
     });
-    this.#listeners[event] = () => subscription?.();
+    this.#listeners[event] = () => remover?.();
+  };
+
+  public waitUntilLoaded = async () => {
+    if (this.#initialized) return;
+    if (this.#initPromise) return this.#initPromise;
+    return this._init();
+  };
+
+  private _init = async () => {
+    if (this.#initialized) return;
+    if (this.#initPromise) return this.#initPromise;
+
+    const init = async () => {
+      this.#cleanup();
+
+      this._initAppState();
+
+      if (REPLACERS.isNative) {
+        this._initStatePhone();
+        this._initQueryAppState();
+        this._initNotificationEvents();
+      }
+
+      await Promise.all([
+        this._initHasInternet(),
+        this._initScreenChange(),
+        this._initBatteryAlerts(),
+        this._initVerifyLocation(),
+      ]);
+      this.#initialized = true;
+      this.#initPromise = null;
+    };
+
+    this.#initPromise = init();
+
+    return this.#initPromise;
   };
 
   constructor() {
-    this.#cleanup();
-
-    this._initAppState();
-    this._initHasInternet();
-    this._initScreenChange();
-    this._initBatteryAlerts();
-    this._initVerifyLocation();
-
-    if (!REPLACERS.isNative) return;
-
-    this._initStatePhone();
-    this._initQueryAppState();
-    this._initNotificationEvents();
+    this._init();
   }
 }
 

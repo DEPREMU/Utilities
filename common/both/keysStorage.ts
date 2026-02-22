@@ -1,5 +1,6 @@
 import {
   Cryptos,
+  NotesSettings,
   Streamer,
   UserData,
   DownDetector,
@@ -58,7 +59,6 @@ export type DataPermission = {
 export type PermissionsData = Record<Permission, DataPermission>;
 
 export type ExpectedSecureStorageTypes = {
-  HAS_UI: boolean | null;
   DEVICE_ID: string;
   CLIPBOARD: ClipboardStorage;
   USER_DATA: Omit<UserData, "password"> | null;
@@ -72,6 +72,7 @@ export type ExpectedSecureStorageTypes = {
   PERMISSIONS_DATA: PermissionsData | null;
   DOWN_DETECTOR_DATA: DownDetector[] | null;
   USER_SESSION_TOKEN_STORAGE: string | null;
+  NOTES_PASSWORD: string | null;
 };
 
 export type ExpectedUnsecureStorageTypes = {
@@ -95,6 +96,7 @@ export type ExpectedUnsecureStorageTypes = {
     intervalOfSaves: number;
     shouldAutoStart: boolean;
   } | null;
+  NOTES_SETTINGS: NotesSettings | null;
 };
 
 export type ExpectedStorageTypes<
@@ -109,7 +111,6 @@ export const SECURE_KEYS_STORAGE: Record<
   keyof ExpectedSecureStorageTypes,
   string
 > = {
-  HAS_UI: "_hasUI",
   USER_DATA: "_userData",
   DEVICE_ID: "_deviceId",
   CLIPBOARD: "_clipboard",
@@ -123,6 +124,7 @@ export const SECURE_KEYS_STORAGE: Record<
   TERMINAL_COMMANDS: "_terminalCommands",
   DOWN_DETECTOR_DATA: "_downDetectorData",
   USER_SESSION_TOKEN_STORAGE: "_userSessionTokenStorage",
+  NOTES_PASSWORD: "_notesPassword",
 };
 
 export const SECURE_KEYS_STORAGE_KEYS = Object.keys(
@@ -146,6 +148,7 @@ export const UNSECURE_KEYS_STORAGE: Record<
   HAS_ADMIN_ACCESS: "@hasAdminAccess",
   CLIPBOARD_WEBSOCKET_URL: "@clipboardWebSocketURL",
   VAULT_SETTINGS: "@vaultSettings",
+  NOTES_SETTINGS: "@notesSettings",
 };
 
 export const UNSECURE_KEYS_STORAGE_KEYS = Object.keys(
@@ -174,6 +177,7 @@ export const DO_NOT_DELETE_OR_SAVE: ALL_KEYS_STORAGE_TYPE[] = [
   "VAULT_SETTINGS",
   "VAULT_PASSWORD",
   "VAULT_DIRECTORY",
+  "NOTES_PASSWORD",
 ] as const;
 
 /**

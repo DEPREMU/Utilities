@@ -11,9 +11,9 @@ import {
 } from "@common";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { REPLACERS } from "../TOP_LEVEL";
+import { windowModule } from "@modules";
 import * as SecureStore from "expo-secure-store";
 import { reloadAppAsync } from "expo";
-import { windowModule, NativeFunctionsModule } from "@modules";
 
 type SaveDataStorage = {
   <T extends ALL_KEYS_STORAGE_TYPE>(
@@ -393,7 +393,14 @@ const cleanAllStorageData = wrapFunctionWithError(
 class StorageManagement {
   public static instance: StorageManagement;
 
+  #hasUI: boolean = false;
+  #promise: Promise<void> | null = null;
+
   private isLoaded = false;
+
+  public get hasUI() {
+    return this.#hasUI;
+  }
 
   /**
    * Waits until the storage data is fully loaded and ready for access.
@@ -406,40 +413,50 @@ class StorageManagement {
    */
   public waitUntilLoaded = async (): Promise<void> => {
     if (this.isLoaded) return;
+    if (this.#promise) return this.#promise;
 
-    const { setTimeoutPolyfill } = await import("../functions");
+    const checkLoaded = async () => {
+      const { waitForTime } = await import("../functions");
 
-    await new Promise((resolve) => {
-      const checkLoaded = () => {
-        if (this.isLoaded) resolve(0);
-        else setTimeoutPolyfill(checkLoaded, 50);
-      };
-      checkLoaded();
-    });
+      while (!this.isLoaded) {
+        await waitForTime(50);
+      }
+
+      const startTime = Date.now();
+      const timeout = 10 * 1000;
+
+      while (!this.#hasUI) {
+        await waitForTime(50);
+        if (Date.now() - startTime > timeout) return;
+      }
+      await waitForTime(1000);
+    };
+
+    this.#promise = checkLoaded();
+
+    return this.#promise;
+  };
+
+  public setHasUI = async (): Promise<void> => {
+    this.#hasUI = true;
   };
 
   #data = {} as ExpectedStorageTypes<"BOTH">;
   #loadData = async () => {
+    const { ready, getRandomUUID, logger } = await import("@utils");
+
     try {
-      const { ready, getRandomUUID } = await import("../cross");
       await ready();
 
       const data: Record<string, unknown> = {};
       const deviceId = await loadDataStorage("DEVICE_ID");
-      if (!deviceId) {
-        if (REPLACERS.isNative)
-          NativeFunctionsModule.requestIgnoreBatteryOptimizations?.();
-
-        await saveDataStorage("DEVICE_ID", getRandomUUID());
-      }
-      await saveDataStorage("HAS_UI", false);
+      if (!deviceId) await saveDataStorage("DEVICE_ID", getRandomUUID());
 
       await Promise.all(
         ALL_KEYS_STORAGE_KEYS.map(
           wrapFunctionWithError(
             async (keyStorage) => {
-              const value =
-                await loadDataStorage<typeof keyStorage>(keyStorage);
+              const value = await loadDataStorage(keyStorage);
               if (keyStorage === "DEVICE_ID" && !value && !REPLACERS.isDev)
                 reloadAppAsync("No device ID found.");
 
@@ -447,12 +464,10 @@ class StorageManagement {
             },
             true,
             async (_, errMsg, key) => {
-              import("@utils").then(({ logger }) => {
-                logger.error(
-                  "STORAGE",
-                  `#loadData() => loadDataStorage("${key}") => ` + errMsg,
-                );
-              });
+              logger.error(
+                "STORAGE",
+                `#loadData() => loadDataStorage("${key}") => ` + errMsg,
+              );
               data[key] = null;
             },
           ),
@@ -461,10 +476,8 @@ class StorageManagement {
       this.#data = data as ExpectedStorageTypes<"BOTH">;
       this.isLoaded = true;
     } catch (e) {
-      import("@utils").then(({ logger }) => {
-        logger.error("STORAGE", "Failed to load storage data.", e);
-        if (!REPLACERS.isDev) reloadAppAsync("Failed to load storage data.");
-      });
+      logger.error("STORAGE", "Failed to load storage data.", e);
+      if (!REPLACERS.isDev) reloadAppAsync("Failed to load storage data.");
     }
   };
 

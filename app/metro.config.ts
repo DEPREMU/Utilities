@@ -13,4 +13,14 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, "node_modules"),
 ];
 
+//? expo-sqlite
+// config.resolver.assetExts.push("wasm");
+// config.server.enhanceMiddleware = (middleware: any) => {
+//   return (_0: any, res: any, _1: any) => {
+//     res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
+//     res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+//     middleware(_0, res, _1);
+//   };
+// };
+
 export default config;

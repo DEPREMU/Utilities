@@ -581,7 +581,7 @@ class RecorderManager {
     if (this.#initialized) return;
     if (this.#initPromise) return this.#initPromise;
 
-    this.#initPromise = (async () => {
+    const load = async () => {
       await storageManagement.waitUntilLoaded();
 
       this.syncDataFromStorage();
@@ -639,7 +639,9 @@ class RecorderManager {
       this.initPlayerInterval();
       this.#initialized = true;
       this.#initPromise = null;
-    })();
+    };
+
+    this.#initPromise = load();
 
     return this.#initPromise;
   };
@@ -911,6 +913,12 @@ class RecorderManager {
     this.#initialized = false;
     this.#initPromise = null;
     this.#isStopping = false;
+  };
+
+  public waitUntilLoaded = async () => {
+    if (this.#initialized) return;
+    if (this.#initPromise) return this.#initPromise;
+    return this.init();
   };
 
   constructor() {

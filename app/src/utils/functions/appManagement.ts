@@ -158,6 +158,8 @@ export const isNewUpdateAvailable = async (): Promise<boolean> => {
 
 export const fetchAndApplyUpdate = async (): Promise<void> => {
   try {
+    if (REPLACERS.isDev) return;
+
     const update = await Updates.fetchUpdateAsync();
 
     if (update.isNew) {

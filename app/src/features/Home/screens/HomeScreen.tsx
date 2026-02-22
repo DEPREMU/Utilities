@@ -35,6 +35,12 @@ const buttonsNative: ButtonType[] = [
     noNeedsInternet: true,
     noNeedsSession: true,
   },
+  {
+    label: "notes.title",
+    screen: "Notes",
+    noNeedsSession: true,
+    noNeedsInternet: true,
+  },
 ];
 
 const buttonsWeb: ButtonType[] = [
@@ -113,6 +119,7 @@ const buttons: ButtonType[] = [
     noNeedsSession: true,
     noNeedsInternet: true,
   },
+
   ...(REPLACERS.isNative ? buttonsNative : buttonsWeb),
   ...(REPLACERS.isDev ? buttonsDev : []),
 ];

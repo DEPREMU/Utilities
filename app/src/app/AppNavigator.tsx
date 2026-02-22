@@ -2,7 +2,7 @@ import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from "@react-navigation/native-stack";
-import Test from "@/features/test/ButtonTest";
+import Test from "@screens/test/ButtonTest";
 import InfoIP from "@screens/Network/screens/IP";
 import Translator from "@screens/Translator/screens/Translator";
 import HomeScreen from "@screens/Home/screens/HomeScreen";
@@ -12,10 +12,10 @@ import LoginScreen from "@screens/Auth/screens/LoginScreen";
 import Minesweeper from "@/features/Games/Minesweeper/screens/Minesweeper";
 import * as Linking from "expo-linking";
 import PDFNavigator from "@screens/PDF/screens";
-import { useTheme } from "@/context/ThemeContext";
+import { useTheme } from "@context/ThemeContext";
 import SignUpScreen from "@screens/Auth/screens/SignUpScreen";
+import GamesNavigator from "@screens/Games/screens";
 import VaultNavigator from "@screens/Vault/screens";
-import GamesNavigator from "@/features/Games/screens";
 import SettingsScreen from "@screens/Settings/screens";
 import MarkdownViewer from "@screens/Markdown/screens/MarkdownViewer";
 import ImagesNavigator from "@screens/Images/screens";
@@ -24,15 +24,16 @@ import CryptosNavigator from "@screens/Cryptos/screens";
 import TerminalCommands from "@screens/Web/TerminalCommands/screens";
 import RecorderNavigator from "@screens/Phone/Recorder/screens";
 import DeviceInformation from "@screens/DeviceInformation/screens";
+import NotesNavigatorMemo from "@screens/Notes/screens";
 import ClipboardNavigator from "@screens/Clipboard/screens";
 import CalculatorNavigator from "@screens/Calculator/screens";
 import React, { useEffect } from "react";
 import { ScreensAvailable } from "@types";
 import SocialMediaNavigator from "@screens/SocialMedia/screens";
-import ForgotPasswordScreen from "@/features/Auth/screens/ForgotPasswordScreen";
+import ForgotPasswordScreen from "@screens/Auth/screens/ForgotPasswordScreen";
 import DownDetectorNavigator from "@screens/DownDetector/screens";
 import { NavigationContainer } from "@react-navigation/native";
-import { BackgroundTaskProvider } from "@/context/BackgroundTaskContext";
+import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
 import { navigateReplace, navigationRef } from "@refs";
 import { REPLACERS, setupNotificationHandlers } from "@utils";
 
@@ -55,9 +56,7 @@ const ComponentToHome: React.FC = () => {
   return null;
 };
 
-const initialRouteName: ScreensAvailable = REPLACERS.isDev
-  ? "Recorder"
-  : "Home";
+const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "Notes" : "Home";
 
 /**
  * Centralized configuration object for all app screens.
@@ -99,6 +98,10 @@ const screens: Screens = {
   PDF: { component: PDFNavigator as React.FC },
   QR: {
     component: QRNavigator,
+  },
+  Notes: {
+    component: REPLACERS.isWeb ? ComponentToHome : NotesNavigatorMemo,
+    //? Temporary fix to prevent web crashes due to incompatible dependencies (expo-sqlite)..
   },
 };
 

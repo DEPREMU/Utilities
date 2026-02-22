@@ -72,6 +72,33 @@ const addStringToXML = async () => {
   fs.writeFileSync(path.join(stringsXMLPathEs, "strings.xml"), newEs);
 };
 
+const editPackagingOptions = async () => {
+  const buildGradlePath = getPath("android/app/build.gradle");
+  const buildGradleContent = fs.readFileSync(buildGradlePath, "utf8");
+
+  const match = buildGradleContent.match(/packagingOptions\s*{[^}]*}/g)?.[0];
+  if (!match) {
+    console.error(
+      chalk.red("Could not find packagingOptions block in build.gradle"),
+    );
+    return;
+  }
+
+  const newBlock = match.replace(
+    "{",
+    `{
+        pickFirst "lib/arm64-v8a/libcrypto.so"
+        pickFirst "lib/armeabi-v7a/libcrypto.so"
+        pickFirst "lib/x86/libcrypto.so"
+        pickFirst "lib/x86_64/libcrypto.so"\n`,
+  );
+
+  fs.writeFileSync(
+    buildGradlePath,
+    buildGradleContent.replace(match, newBlock),
+  );
+};
+
 const addDependencies = async () => {
   console.log(chalk.blue("Adding dependencies to build.gradle..."));
 
@@ -202,6 +229,7 @@ const createModules = async () => {
   await addPermissionsToManifest(modules.flatMap((m) => m.permissions || []));
   await editMainApplication();
   await addDependencies();
+  await editPackagingOptions();
   await addStringToXML();
   console.log(chalk.green("Prebuild process completed."));
 };

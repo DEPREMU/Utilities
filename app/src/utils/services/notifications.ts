@@ -10,7 +10,7 @@ import {
   ScreensAvailable,
   ReasonNotification,
 } from "@types";
-import { logger, setTimeoutPolyfill } from "../functions";
+import { logger } from "../functions";
 import { tTyped } from "../translates";
 import { cloneDeep } from "lodash";
 import { REPLACERS } from "../TOP_LEVEL";
@@ -261,26 +261,15 @@ export const configureNotificationChannel = async () => {
 };
 
 class NotificationsManager {
-  #ready = false;
+  #initialized = false;
+  #initPromise: Promise<void> | null = null;
+
   #notifications: Notifications = null as unknown as Notifications;
 
-  constructor() {
-    initializeNotificationsStorage().then((data) => {
-      this.#notifications = data;
-      this.#ready = true;
-    });
-  }
-
-  public waitToReady = async (): Promise<void> => {
-    if (this.#ready) return;
-
-    await new Promise((resolve) => {
-      const checkReady = () => {
-        if (this.#ready) resolve(undefined);
-        else setTimeoutPolyfill(checkReady, 100);
-      };
-      checkReady();
-    });
+  public waitUntilLoaded = async (): Promise<void> => {
+    if (this.#initialized) return;
+    if (this.#initPromise) return this.#initPromise;
+    return this.init();
   };
 
   public getNotifications = (): Notifications => {
@@ -376,7 +365,7 @@ class NotificationsManager {
 
       if (AppState.currentState !== "active") {
         if (
-          storageManagement.get("HAS_UI") &&
+          storageManagement.hasUI &&
           !localNotification.behavior.onlyWhenScreenOff &&
           !localNotification.behavior.onlyWhenAppInBackground
         )
@@ -469,6 +458,22 @@ class NotificationsManager {
       );
     }
   };
+
+  public init = async () => {
+    const load = async () => {
+      const notificationsData = await initializeNotificationsStorage();
+      this.#initialized = true;
+      this.#notifications = notificationsData;
+    };
+
+    this.#initPromise = load();
+
+    return this.#initPromise;
+  };
+
+  constructor() {
+    this.init();
+  }
 }
 
 export const notificationsManager = new NotificationsManager();

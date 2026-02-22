@@ -3,7 +3,7 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.8.4-dev";
+const version = "1.9.0-dev";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
@@ -16,7 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     experiments: { baseUrl: "." },
     runtimeVersion: version.split(".").slice(0, 2).join("."),
     version,
-    orientation: "default",
+    orientation: "portrait",
     icon: "./src/assets/icon.png",
     userInterfaceStyle: "automatic",
     platforms: ["android", "web"],
@@ -73,6 +73,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-secure-store",
       "expo-localization",
       "expo-notifications",
+      [
+        "expo-sqlite",
+        {
+          enableFTS: true,
+          useSQLCipher: true,
+        },
+      ],
       "react-native-quick-crypto",
       [
         "react-native-audio-api",

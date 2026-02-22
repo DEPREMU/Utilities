@@ -94,6 +94,9 @@ class ClipboardManager {
   #removeInternetListener: (() => void) | null = null;
   #removeStatePhoneListener: (() => void) | null = null;
 
+  #initialized = false;
+  #initPromise: Promise<void> | null = null;
+
   private _listeners: ListenersClipboard = {};
 
   private _emitEvent: EmitEvent = (event, ...args) => {
@@ -483,42 +486,69 @@ class ClipboardManager {
   };
 
   public init = async () => {
-    this.cleanup();
-    if (!sessionManager.getSessionData().isLoggedIn) return;
+    const load = async () => {
+      try {
+        if (this.#initialized) return;
+        if (this.#initPromise) return this.#initPromise;
 
-    this.#clipboardSocketURL = storageManagement.get(
-      "CLIPBOARD_WEBSOCKET_URL",
-      null,
-    );
+        await storageManagement.waitUntilLoaded();
+        this.#clipboardData = storageManagement.get("CLIPBOARD", {
+          enabled: false,
+          maxCharsInItem: -1,
+          maxClipboardItems: 10,
+        });
 
-    await this.createClipboardWebSocket();
+        this.cleanup();
+        if (!sessionManager.getSessionData().isLoggedIn) return;
 
-    this.initClipboardItems();
+        this.#clipboardSocketURL = storageManagement.get(
+          "CLIPBOARD_WEBSOCKET_URL",
+          null,
+        );
 
-    if (REPLACERS.isWeb) {
-      if (this.#intervalId) clearIntervalPolyfill(this.#intervalId);
+        await this.createClipboardWebSocket();
 
-      this.#intervalId = setIntervalPolyfill(() => {
-        this.handleIntervalClipboardWeb();
-      }, 500);
-    } else {
-      this.initClipboardNativeListener();
-    }
+        this.initClipboardItems();
 
-    this.initInternetListener();
+        if (REPLACERS.isWeb) {
+          if (this.#intervalId) clearIntervalPolyfill(this.#intervalId);
 
-    if (!REPLACERS.isNative) return;
-
-    this.#removeStatePhoneListener = deviceInfo.addEventListener(
-      "statePhone-change",
-      (statePhone) => {
-        if (statePhone !== "suspended") {
-          this.resume();
+          this.#intervalId = setIntervalPolyfill(() => {
+            this.handleIntervalClipboardWeb();
+          }, 500);
         } else {
-          this.suspend();
+          this.initClipboardNativeListener();
         }
-      },
-    );
+
+        this.initInternetListener();
+
+        if (!REPLACERS.isNative) return;
+
+        this.#removeStatePhoneListener = deviceInfo.addEventListener(
+          "statePhone-change",
+          (statePhone) => {
+            if (statePhone !== "suspended") {
+              this.resume();
+            } else {
+              this.suspend();
+            }
+          },
+        );
+      } catch (error) {
+        logger.error(
+          "CLIPBOARD",
+          "Error initializing ClipboardManager",
+          error instanceof Error ? error.message : String(error),
+        );
+      } finally {
+        this.#initialized = true;
+        this.#initPromise = null;
+      }
+    };
+
+    this.#initPromise = load();
+
+    return this.#initPromise;
   };
 
   public suspend = () => {
@@ -569,20 +599,18 @@ class ClipboardManager {
     this.removeAllListeners();
   };
 
+  public waitUntilLoaded = async () => {
+    if (this.#initialized) return;
+    if (this.#initPromise) return this.#initPromise;
+    return this.init();
+  };
+
   public getItems = () => this.#listItemsClipboard;
   public getLastItem = () => this.#lastItemCopied;
 
   constructor() {
-    const data = storageManagement.get("CLIPBOARD");
-    if (data) this.#clipboardData = data;
-    else {
-      this.#clipboardData = {
-        enabled: true,
-        maxCharsInItem: -1,
-        maxClipboardItems: REPLACERS.isWeb ? 30 : 15,
-      };
-      storageManagement.save("CLIPBOARD", this.#clipboardData);
-    }
+    this.#clipboardData = storageManagement.get("CLIPBOARD");
+    this.init();
   }
 }
 

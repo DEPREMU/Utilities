@@ -1,19 +1,23 @@
 import {
+  alerts,
   logger,
-  tTyped,
   openURL,
   REPLACERS,
+  deviceInfo,
   APP_VERSION,
   fetchToServer,
+  sessionManager,
+  recorderManager,
+  clipboardManager,
   storageManagement,
   setTimeoutPolyfill,
   fetchAndApplyUpdate,
   setIntervalPolyfill,
   isNewUpdateAvailable,
+  notificationsManager,
   clearIntervalPolyfill,
   configureNotificationChannel,
 } from "@utils";
-import { Alert } from "react-native";
 import AppNavigator from "./AppNavigator";
 import AppProviders from "@context/AppProviders";
 import { NativeFunctionsModule } from "@modules";
@@ -37,26 +41,15 @@ const App = () => {
 
       if (!result?.updateAvailable) return;
 
-      return new Promise<void>((resolve) => {
-        Alert.alert(
-          tTyped("updateAvailable"),
-          tTyped("updateAvailableMessage"),
-          [
-            {
-              text: tTyped("labels.cancel"),
-              style: "cancel",
-              onPress: () => resolve(),
-            },
-            {
-              text: tTyped("updateNow"),
-              onPress: () => {
-                openURL(result.downloadUrl);
-                resolve();
-              },
-            },
-          ],
-        );
-      });
+      return await alerts.showAlert(
+        "updateAvailable",
+        "updateAvailableMessage",
+        async (_, accepted) => {
+          if (!accepted) return;
+
+          openURL(result.downloadUrl);
+        },
+      );
     } catch (error) {
       logger.error("Error while updating the app", error);
     }
@@ -82,8 +75,15 @@ const App = () => {
 
   useEffect(() => {
     const initializeApp = async () => {
-      await storageManagement.waitUntilLoaded();
-      storageManagement.save("HAS_UI", true);
+      storageManagement.setHasUI();
+      await Promise.all([
+        deviceInfo.waitUntilLoaded(),
+        sessionManager.waitUntilLoaded(),
+        recorderManager.waitUntilLoaded(),
+        clipboardManager.waitUntilLoaded(),
+        storageManagement.waitUntilLoaded(),
+        notificationsManager.waitUntilLoaded(),
+      ]);
       setIsLoading(false);
     };
     initializeApp();
