@@ -65,6 +65,18 @@ const LoginScreen: React.FC = () => {
     if (isLoggedIn) navigateReplace("Home");
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    const removeListener = sessionManager.addEventListener("login", (err) => {
+      if (err) {
+        logger.error("AUTH", "Login event error:", err);
+        return;
+      }
+      navigateReplace("Home");
+    });
+
+    return () => removeListener();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>

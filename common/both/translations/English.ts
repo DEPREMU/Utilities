@@ -347,6 +347,8 @@ export const enApp: typeLanguages = {
   loggingInWithQRCode: "Logging in with QR Code...",
   loginWithEmail: "Login with Email",
   loginWithQR: "Login with QR Code",
+  loginWithQRExplanation:
+    "You can log in securely and conveniently by scanning a QR code with your mobile device. This method provides an alternative to traditional email and password login, allowing you to access your account quickly without the need to enter credentials manually.",
   needsCameraPermission: "This feature requires camera permission.",
   noCameraPermission: "No Camera Permission",
   qrLoginSuccessTitle: "QR Login Successful",

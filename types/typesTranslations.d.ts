@@ -249,6 +249,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     timeToDownloadFinishedMessage: `${string}{{time}}${string}`;
     scale: `${string}{{scale}}${string}`;
     small: string;
+    loginWithQRExplanation: string;
     scaleFactor: string;
     showAsPlainText: string;
     millis: string;

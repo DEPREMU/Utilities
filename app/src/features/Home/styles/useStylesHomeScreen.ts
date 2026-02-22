@@ -1,7 +1,6 @@
 import { useMemo } from "react";
-import { useTheme } from "@/context/ThemeContext";
-import { REPLACERS } from "@utils";
-import { useResponsiveLayout } from "@/context/LayoutContext";
+import { useTheme } from "@context/ThemeContext";
+import { useResponsiveLayout } from "@context/LayoutContext";
 import { DimensionValue, StyleSheet } from "react-native";
 
 export const useStylesHomeScreen = () => {
@@ -62,13 +61,6 @@ export const useStylesHomeScreen = () => {
           marginVertical: 10,
           letterSpacing: 0.5,
           width: "100%",
-        },
-        headerButtonsContainer: {
-          flexDirection: "row",
-          justifyContent: REPLACERS.isNative ? "space-between" : "center",
-          width: REPLACERS.isNative ? "90%" : "100%",
-          paddingHorizontal: 20,
-          marginBottom: 10,
         },
       }),
     [colors.background, getCommonStyles, getResponsiveValue, colors.text],

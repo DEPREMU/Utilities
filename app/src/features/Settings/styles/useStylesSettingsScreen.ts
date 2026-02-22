@@ -84,6 +84,13 @@ const useStylesSettingsScreen = () => {
           textAlign: "center",
           letterSpacing: 0.3,
         },
+        infoText: {
+          fontSize: getResponsiveFontSize(14),
+          color: colors.text,
+          textAlign: "center",
+          marginBottom: getResponsiveValue(12, 16, 20),
+          letterSpacing: 0.2,
+        },
         inputContainer: {
           marginBottom: getResponsiveValue(12, 16, 20),
         },

@@ -102,7 +102,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
         const language = storageManagement.get("LANGUAGE");
         const deviceId = storageManagement.get("DEVICE_ID");
-        const { sessionToken, userData } = sessionManager.getSessionData();
+        const { sessionToken, userData, isLoggedIn } =
+          sessionManager.getSessionData();
 
         BackgroundModule?.setUserData(
           sessionToken || "",
@@ -110,14 +111,17 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           language,
           deviceId,
         );
-        setIsLoggedIn(true);
+        setIsLoggedIn(isLoggedIn);
       });
       sessionManager.addEventListener("logout", () => setIsLoggedIn(false));
       sessionManager.addEventListener("refreshingSession", () => {
         setLoggingIn(true);
       });
+      sessionManager.addEventListener("login", (err) => {
+        if (err) return;
 
-      await sessionManager.init();
+        setIsLoggedIn(sessionManager.getSessionData().isLoggedIn);
+      });
     };
     init();
   }, []);

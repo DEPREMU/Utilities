@@ -36,10 +36,7 @@ type SendMessageFunc = (
   message: ClipboardWebSocketMessage<"sentByApp">,
 ) => Promise<void>;
 
-type ClipboardEventType =
-  | "items-updated"
-  | "connection-status"
-  | "last-item-change";
+type ClipboardEventType = "items-updated" | "connection-status";
 
 type ArgsListenersClipboard = {
   "items-updated": [items: ClipboardItem[]];
@@ -83,7 +80,6 @@ class ClipboardManager {
   #clipboardSocket: ReconnectingWebSocket | null = null;
   #clipboardSocketURL: string | null = null;
 
-  #lastItemCopied: string | null = null;
   #listItemsClipboard: ClipboardItem[] = [];
   #listItemsClipboardNoInternet: ClipboardItem[] = [];
 
@@ -107,6 +103,9 @@ class ClipboardManager {
   };
 
   public getClipboardData = () => this.#clipboardData;
+
+  public existsInClipboard = (content: string) =>
+    this.#listItemsClipboard.some((item) => item.content === content);
 
   public setClipboardData: SetClipboardData = (key, value) => {
     this.#clipboardData[key] = value;
@@ -279,15 +278,17 @@ class ClipboardManager {
         if (parsedMessage.type !== "new-clipboard-item")
           return this.sendMessage({ type: "pong" });
 
-        if (parsedMessage.content === this.#lastItemCopied) return;
+        if (
+          this.#listItemsClipboard.some(
+            (item) => item.content === parsedMessage.content,
+          )
+        )
+          return;
 
         this.addToItemsClipboard({
           id: parsedMessage.id,
           content: parsedMessage.content,
         });
-
-        this.#lastItemCopied = parsedMessage.content;
-        this._emitEvent("last-item-change", parsedMessage.content);
 
         if (REPLACERS.isNative)
           BackgroundModule?.setClipboardText?.(parsedMessage.content);
@@ -312,7 +313,6 @@ class ClipboardManager {
     ];
 
     if (!sessionToken) return;
-    this.#lastItemCopied = getRandomUUID();
 
     const res = await fetchToServer(
       "/database/fetch",
@@ -333,11 +333,29 @@ class ClipboardManager {
     if (!data) return;
 
     if (data.length === 0 || !data[0]?.content) return;
-    this.#lastItemCopied = data[0].content;
     this.addToItemsClipboard(
       data.map((item) => ({ id: item.id || "", content: item.content })),
     );
-    this._emitEvent("last-item-change", this.#lastItemCopied);
+  };
+
+  private handleInsertItem = (content: string) => {
+    if (!content || this.existsInClipboard(content)) return;
+
+    if (
+      !deviceInfo.hasInternet ||
+      !sessionManager.getSessionData().isLoggedIn
+    ) {
+      const newItem = { id: getRandomUUID(), content };
+      this.#listItemsClipboardNoInternet.push(newItem);
+      this.addToItemsClipboard(newItem);
+    } else {
+      const maxChars = this.#clipboardData.maxCharsInItem;
+
+      this.sendMessage({
+        type: "add-new-item",
+        content: maxChars > 0 ? content.slice(0, maxChars) : content,
+      });
+    }
   };
 
   private handleIntervalClipboardWeb = async () => {
@@ -357,19 +375,8 @@ class ClipboardManager {
       } catch {
         return;
       }
-      if (!content || this.#lastItemCopied === content) return;
-      if (!deviceInfo.hasInternet) {
-        const newItem = { id: getRandomUUID(), content };
-        this.#listItemsClipboardNoInternet.push(newItem);
-        this.addToItemsClipboard(newItem);
-      } else {
-        const maxChars = this.#clipboardData.maxCharsInItem;
 
-        this.sendMessage({
-          type: "add-new-item",
-          content: maxChars > 0 ? content.slice(0, maxChars) : content,
-        });
-      }
+      this.handleInsertItem(content);
     } catch (error) {
       logger.error("Error reading clipboard content", error);
     }
@@ -383,23 +390,7 @@ class ClipboardManager {
       async (event: EventClipboardNative) => {
         switch (event.type) {
           case "update":
-            {
-              const content = event?.text;
-              if (!content || this.#lastItemCopied === content) return;
-
-              if (deviceInfo.hasInternet) {
-                const maxChars = this.#clipboardData.maxCharsInItem;
-
-                this.sendMessage({
-                  type: "add-new-item",
-                  content: maxChars > 0 ? content.slice(0, maxChars) : content,
-                });
-              } else
-                this.addToItemsClipboard({
-                  id: getRandomUUID(),
-                  content,
-                });
-            }
+            this.handleInsertItem(event?.text);
             break;
           case "show":
             setTimeoutPolyfill(() => {
@@ -448,9 +439,9 @@ class ClipboardManager {
               "/database/delete",
               {
                 table: "ClipboardSync",
-                deviceId,
                 lang,
                 match,
+                deviceId,
               },
               sessionToken,
             );
@@ -467,6 +458,8 @@ class ClipboardManager {
   };
 
   private initInternetListener = () => {
+    if (this.#removeInternetListener) return;
+
     this.#removeInternetListener = deviceInfo.addEventListener(
       "hasInternet-change",
       (hasInternet) => {
@@ -493,13 +486,12 @@ class ClipboardManager {
 
         await storageManagement.waitUntilLoaded();
         this.#clipboardData = storageManagement.get("CLIPBOARD", {
-          enabled: false,
+          enabled: true,
           maxCharsInItem: -1,
           maxClipboardItems: 10,
         });
 
         this.cleanup();
-        if (!sessionManager.getSessionData().isLoggedIn) return;
 
         this.#clipboardSocketURL = storageManagement.get(
           "CLIPBOARD_WEBSOCKET_URL",
@@ -527,11 +519,8 @@ class ClipboardManager {
         this.#removeStatePhoneListener = deviceInfo.addEventListener(
           "statePhone-change",
           (statePhone) => {
-            if (statePhone !== "suspended") {
-              this.resume();
-            } else {
-              this.suspend();
-            }
+            if (statePhone !== "suspended") this.resume();
+            else this.suspend();
           },
         );
       } catch (error) {
@@ -606,7 +595,10 @@ class ClipboardManager {
   };
 
   public getItems = () => this.#listItemsClipboard;
-  public getLastItem = () => this.#lastItemCopied;
+  public getLastItem = () =>
+    this.#listItemsClipboard[0] ||
+    this.#listItemsClipboardNoInternet[0] ||
+    null;
 
   constructor() {
     this.#clipboardData = storageManagement.get("CLIPBOARD");

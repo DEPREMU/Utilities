@@ -510,6 +510,8 @@ export const esApp: typeLanguages = {
   loggingInWithQRCode: "Iniciando sesión con código QR...",
   loginWithEmail: "Iniciar sesión con correo electrónico",
   loginWithQR: "Iniciar sesión con código QR",
+  loginWithQRExplanation:
+    "Puedes iniciar sesión de manera segura y conveniente escaneando un código QR con tu dispositivo móvil. Este método ofrece una alternativa al inicio de sesión tradicional con correo electrónico y contraseña, permitiéndote acceder rápidamente a tu cuenta sin necesidad de ingresar credenciales manualmente.",
   needsCameraPermission: "Esta función requiere permiso de cámara.",
   noCameraPermission: "Sin permiso de cámara",
   qrLoginSuccessTitle: "Inicio de sesión con QR exitoso",

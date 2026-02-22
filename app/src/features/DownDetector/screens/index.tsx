@@ -1,5 +1,6 @@
 import {
   logger,
+  memoDeep,
   fetchToServer,
   sessionManager,
   storageManagement,
@@ -170,7 +171,7 @@ const DownDetectorNavigator: React.FC = () => {
     fetchDownDetectorDataFromDatabase();
   }, []);
 
-  const returnValue = useMemo(
+  const Navigator = useMemo(
     () =>
       GetBottomNavigation(
         [
@@ -179,32 +180,32 @@ const DownDetectorNavigator: React.FC = () => {
             title: "downDetector",
             focusedIcon: "cloud-alert",
           },
-          { key: "addNewWebPage", title: "addNewWebPage", focusedIcon: "sync" },
+          {
+            key: "addNewWebPage",
+            title: "addNewWebPage",
+            focusedIcon: "sync",
+          },
         ],
         {
           downDetector: () => (
             <DownDetector
               downDetectorData={downDetectorData}
-              deleteDownDetectorItem={(id) =>
-                deleteDownDetectorItemRef.current(id)
-              }
-              handleSendNotification={(id) =>
-                handleSendNotificationRef.current(id)
-              }
+              deleteDownDetectorItem={deleteDownDetectorItemRef.current}
+              handleSendNotification={handleSendNotificationRef.current}
             />
           ),
           addNewWebPage: () => (
             <AddNewWebPage
-              addNewItem={(item) => addNewItemRef.current(item)}
+              addNewItem={addNewItemRef.current}
               downDetectorData={downDetectorData}
             />
           ),
         },
-      )(),
+      ),
     [downDetectorData],
   );
 
-  return <>{returnValue}</>;
+  return <Navigator />;
 };
 
-export default DownDetectorNavigator;
+export default memoDeep(DownDetectorNavigator);

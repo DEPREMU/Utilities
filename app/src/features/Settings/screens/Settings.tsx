@@ -22,6 +22,8 @@ import { cloneDeep } from "lodash";
 import LanguagePicker from "@screens/Settings/components/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
+import { useUserContext } from "@context/UserContext";
+import { navigateReplace } from "@refs";
 import { ScrollView, View } from "react-native";
 import { typeLanguagesKeys } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
@@ -53,6 +55,7 @@ const getDefaultUpdatesData = (): UpdatesData => ({
 
 const SettingsScreen: React.FC = () => {
   const { t } = useLanguage();
+  const { isLoggedIn } = useUserContext();
   const { setSocketURL } = useWebSocket();
   const { styles, colors } = useStylesSettingsScreen();
   const { addTaskQueueRef } = useBackgroundTask();
@@ -338,6 +341,19 @@ const SettingsScreen: React.FC = () => {
               label={t("openUpdatesWebPage")}
             />
           </View>
+
+          {REPLACERS.isNative && isLoggedIn && (
+            <View style={styles.section}>
+              <Text style={styles.subtitle}>{t("loginWithQR")}</Text>
+
+              <Text style={styles.infoText}>{t("loginWithQRExplanation")}</Text>
+
+              <Button
+                label={t("loginWithQR")}
+                handlePress={() => navigateReplace("ScanQRCode")}
+              />
+            </View>
+          )}
 
           {!hasAdmin && (
             <View style={styles.section}>

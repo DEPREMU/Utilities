@@ -131,12 +131,6 @@ const HomeScreen: React.FC = () => {
 
   const [hasInternet, setHasInternet] = useState(deviceInfo.hasInternet);
 
-  const handleLoginInWebRef = useRef(() => {
-    if (!REPLACERS.isNative) return;
-
-    navigateReplace("ScanQRCode");
-  });
-
   const handleLoginPressRef = useRef(() => navigateReplace("Login"));
 
   const renderButtons = useMemo(() => {
@@ -195,18 +189,10 @@ const HomeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       {isLoggedIn && (
-        <View style={styles.headerButtonsContainer}>
-          <Button
-            label={t("common.logout")}
-            handlePress={sessionManager.logout}
-          />
-          {REPLACERS.isNative && (
-            <Button
-              label={t("loginWithQR")}
-              handlePress={handleLoginInWebRef.current}
-            />
-          )}
-        </View>
+        <Button
+          label={t("common.logout")}
+          handlePress={sessionManager.logout}
+        />
       )}
       {(!isLoggedIn || loggingIn) && (
         <Button

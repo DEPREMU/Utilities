@@ -9,7 +9,7 @@ import {
   clearIntervalPolyfill,
 } from "@utils";
 import { reloadAppAsync } from "expo";
-import { navigateReplace } from "@refs";
+import { getCurrentScreen, navigateReplace } from "@refs";
 import { BackgroundModule } from "@modules";
 import React, { useRef, useMemo, useEffect, createContext } from "react";
 
@@ -165,10 +165,11 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       (newState) => {
         if (newState === "background") {
           if (!timeoutId)
-            timeoutId = setTimeoutPolyfill(
-              () => navigateReplace("Home"),
-              60000,
-            );
+            timeoutId = setTimeoutPolyfill(async () => {
+              const current = await getCurrentScreen();
+
+              if (current !== "Home") navigateReplace("Home");
+            }, 60000);
         } else if (timeoutId) {
           clearTimeoutPolyfill(timeoutId);
           timeoutId = null;
