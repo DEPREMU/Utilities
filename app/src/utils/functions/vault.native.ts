@@ -21,11 +21,15 @@ import { sanitizeFileName } from "../functions/appManagement";
 import { storageManagement } from "../services/storage";
 import { NativeFunctionsModule } from "@modules";
 import { FetchFileInfo, DecryptFolderFiles, ActionWithVaultItem } from "@types";
+import { Directories } from "../cross";
 
 type ProgressCallback = (percentage: number) => void;
 
 export const getDecryptedFolderDirectory: GetDecryptedFolderDirectory = () => {
-  return new ExpoFileSystem.Directory(ExpoFileSystem.Paths.cache, "decrypted");
+  return new ExpoFileSystem.Directory(
+    ExpoFileSystem.Paths.cache,
+    Directories.DECRYPTED,
+  );
 };
 
 export const clearDecryptedFolderDirectory: ClearDecryptedFolderDirectory =
@@ -354,7 +358,7 @@ export const hasPasswordZIP: HasPasswordZIP = async (zipPath) => {
 export const zipFile: ZipFile = async (files, onProgress, password, onZip) => {
   const tempDir = new ExpoFileSystem.Directory(
     ExpoFileSystem.Paths.cache,
-    "temp_zip",
+    Directories.TEMP_ZIP,
   );
 
   try {
@@ -492,7 +496,7 @@ export const getDefaultVaultDirectory =
     if (!directory) {
       directory = new ExpoFileSystem.Directory(
         ExpoFileSystem.Paths.document.uri,
-        ".vault",
+        Directories.VAULT,
       ).uri;
     }
 

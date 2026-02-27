@@ -19,7 +19,7 @@ import axios from "axios";
 import FormData from "form-data";
 import { execSync } from "child_process";
 
-let isNewVersionWeb = {
+const isNewVersionWeb = {
   linux: false,
   windows: false,
 };
@@ -205,7 +205,7 @@ const uploadWeb = async (): Promise<boolean> => {
 };
 
 const uploadAndroidAssets = async () => {
-  const BUILD_PROFILE = ARGS["profile"] || "production";
+  const BUILD_PROFILE = ARGS["BUILD_PROFILE"] || "production";
 
   execSync(
     ` eas update --channel ${BUILD_PROFILE} --platform android --clear-cache`,

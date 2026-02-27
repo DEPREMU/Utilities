@@ -1,11 +1,6 @@
 import "../Notifications/index.ts";
 
 import {
-  decryptHandler,
-  encryptHandler,
-  handleGetRandomUUID,
-} from "./encryption.ts";
-import {
   handleUpdateToDatabase,
   handleInsertToDatabase,
   handleFetchFromDatabase,
@@ -24,6 +19,7 @@ import { translate } from "./translate.ts";
 import { handleAddLog } from "./debug.ts";
 import { Response, Request } from "express";
 import { handleDoQueryDatabase } from "../dev/handleDoQuery.ts";
+import { decryptHandler, encryptHandler } from "./encryption.ts";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
 import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
 import { ResponseHealth, Route, RoutesAPI, UpdatesRoutes } from "@types";
@@ -125,10 +121,6 @@ const routes: {
     method: "post",
     handler: handleDeleteFromDatabase,
     middlewares: [authMiddleware],
-  },
-  "/getRandomUUID": {
-    method: "get",
-    handler: handleGetRandomUUID,
   },
   "/doQueryDB": {
     method: "post",

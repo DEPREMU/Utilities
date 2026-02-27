@@ -6,6 +6,7 @@ import { randomUUID } from "react-native-quick-crypto";
 import * as ExpoFileSystem from "expo-file-system";
 import { ImageManipulator } from "expo-image-manipulator";
 import { CreatePdfFromImages, PlatformData } from "./platform";
+import { Directories } from "./Directories";
 
 export const ready = async () => {};
 
@@ -21,7 +22,7 @@ export const deleteDirectoryPickerFolder = () => {
       try {
         new ExpoFileSystem.Directory(
           ExpoFileSystem.Paths.cache,
-          "DirectoryPicker",
+          Directories.DIRECTORY_PICKER,
         ).delete();
       } catch {
         // Ignore errors
@@ -36,7 +37,7 @@ export const deleteDirectoryImageManipulatorFolder = () => {
       try {
         new ExpoFileSystem.Directory(
           ExpoFileSystem.Paths.cache,
-          "ImageManipulator",
+          Directories.IMAGE_MANIPULATOR,
         ).delete();
       } catch {
         // Ignore errors

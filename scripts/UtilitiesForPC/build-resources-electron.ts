@@ -14,7 +14,7 @@ let isWindows = os.platform() === "win32";
 
 if (typeof ARGS["isWindows"] === "boolean") {
   console.log(
-    `Building for platform ${ARGS["isWindows"] ? "Windows" : "Linux"} as specified in arguments.`
+    `Building for platform ${ARGS["isWindows"] ? "Windows" : "Linux"} as specified in arguments.`,
   );
   isWindows = ARGS["isWindows"];
 }
@@ -37,7 +37,7 @@ build({
       {
         filter: /\.ts|\.js$/,
         replace: /process\.env\.BUILD_PROFILE/g,
-        replacer: () => JSON.stringify(ARGS["profile"] || "production"),
+        replacer: () => JSON.stringify(ARGS["BUILD_PROFILE"] || "production"),
       },
     ]),
   ],
@@ -50,7 +50,7 @@ build({
   ...baseConfig,
   outfile: path.join(UTILITIES_FOR_PC_PATH, "build", "index.cjs"),
   platform: "node",
-  external: [ 
+  external: [
     "sharp",
     "pdfkit",
     "node-7z",

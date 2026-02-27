@@ -288,8 +288,8 @@ export type ContextBridgeType = {
       ...args: ChannelsIpcRenderer["copy-file-to-temp"]["functionArgs"]
     ) => ChannelsIpcRenderer["copy-file-to-temp"]["functionReturn"];
     removeFile: (
-      ...args: ChannelsIpcRenderer["remove-file-from-temp"]["functionArgs"]
-    ) => ChannelsIpcRenderer["remove-file-from-temp"]["functionReturn"];
+      ...args: ChannelsIpcRenderer["remove-file-with-uri"]["functionArgs"]
+    ) => ChannelsIpcRenderer["remove-file-with-uri"]["functionReturn"];
     getSafeFolder: () => ChannelsIpcRenderer["get-safe-folder"]["functionReturn"];
     pickFolder: () => ChannelsIpcRenderer["pick-folder"]["functionReturn"];
     encryptFiles: (

@@ -2,6 +2,7 @@ import {
   env,
   ask,
   ARGS,
+  getArgs,
   APP_PATH,
   ANDROID_PATH,
   UTILITIES_PATH,
@@ -11,12 +12,11 @@ import {
 import fs from "fs";
 import path from "path";
 import { execSync, spawn } from "child_process";
-import { replaceAppConfig } from "./editAppConfig.ts";
 
 let expo: ReturnType<typeof spawn> | null = null;
 
 const build = async () => {
-  let profile = ARGS.profile ?? (ARGS.yes ? "production" : undefined);
+  let profile = ARGS.BUILD_PROFILE ?? (ARGS.yes ? "production" : undefined);
 
   if (!profile) {
     const answer = (
@@ -36,34 +36,10 @@ const build = async () => {
   }
   env.BUILD_PROFILE = profile;
 
-  const isPreview =
-    ARGS.profile === "preview" || env.BUILD_PROFILE === "preview";
-
-  replaceAppConfig(
-    (prev) => {
-      prev = prev.replace(/\-dev|\-prev/g, "");
-
-      if (isPreview) return prev.concat("-prev");
-      return prev;
-    },
-    (prev) => {
-      prev = prev.replace(/\sDev|\sPreview/g, "");
-
-      if (isPreview) return prev.concat(" Preview");
-      return prev;
-    },
-    (prev) => {
-      prev = prev.replace(/\.dev|\.preview/g, "");
-
-      if (isPreview) return prev.concat(".preview");
-      return prev;
-    },
-  );
-
   if (!ARGS["skip-prebuild-android"]) {
     fs.rmSync(ANDROID_PATH, { recursive: true, force: true });
 
-    execSync("yarn run app-prebuild-android", {
+    execSync(`yarn run app-prebuild-android ${getArgs()}`, {
       env,
       stdio: "inherit",
       cwd: UTILITIES_PATH,
@@ -98,6 +74,7 @@ const build = async () => {
   );
 
   let timePassed = 0;
+  let notWritten = true;
 
   while (expo.exitCode === null) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -107,6 +84,10 @@ const build = async () => {
       console.log(
         `EAS Build is still running... ${timePassed} seconds passed.`,
       );
+    if (notWritten && timePassed >= 60 * 10) {
+      notWritten = false;
+      deleteAndroidFromGitIgnore(true);
+    }
   }
 
   expo.once("message", (msg) => {

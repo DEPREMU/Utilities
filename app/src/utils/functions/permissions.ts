@@ -6,6 +6,8 @@ import { Permission } from "@common";
 import { NativeFunctionsModule } from "@modules";
 import { initPermissionsData, permissionsData } from "@refs";
 
+const TAG = "PERMISSIONS";
+
 /**
  * Checks if location services are enabled on the device.
  *
@@ -27,6 +29,10 @@ export const isLocationEnabled = async (): Promise<boolean> => {
   }
 };
 
+type OptionsAskPermission = {
+  overrideDoNotAskAgain?: boolean;
+};
+
 /**
  * Requests location permissions (both foreground and background) from the user.
  *
@@ -39,20 +45,27 @@ export const isLocationEnabled = async (): Promise<boolean> => {
  *          location permissions are granted, `false` otherwise. Always returns
  *          `false` on web platform.
  */
-const askLocationPermission = async (): Promise<void> => {
+const askLocationPermission = async (
+  options?: OptionsAskPermission,
+): Promise<void> => {
   if (REPLACERS.isWeb) return;
 
   const { notificationsManager, storageManagement, waitForTime } =
     await import("@utils");
   if (!storageManagement.hasUI) return;
-  if (permissionsData.permissions.location.doNotAskAgain) return;
+  if (
+    permissionsData.permissions.location.doNotAskAgain &&
+    !options?.overrideDoNotAskAgain
+  )
+    return;
 
   let { status } = await Location.getForegroundPermissionsAsync();
 
-  let granted = status === "granted";
+  let granted = status === Location.PermissionStatus.GRANTED;
   if (granted) {
     ({ status } = await Location.getBackgroundPermissionsAsync());
-    granted = status === "granted";
+    granted = status === Location.PermissionStatus.GRANTED;
+    permissionsData.permissions.location.enabled = granted;
     if (granted) return;
   }
 
@@ -77,6 +90,7 @@ const askLocationPermission = async (): Promise<void> => {
     },
     { addDoNotAskAgain: true },
   ));
+  permissionsData.permissions.location.enabled = granted;
 
   notificationsManager.editNotification("locationEnabled", (prev) => ({
     ...prev,
@@ -94,11 +108,8 @@ export const waitForAppToBeActive = async (): Promise<void> => {
   const startTime = Date.now();
 
   while (step !== "done") {
-    if (Date.now() - startTime > 15000) {
-      logger.warn(
-        "PERMISSIONS",
-        "User did not return to the app within 15 seconds.",
-      );
+    if (Date.now() - startTime > 60000) {
+      logger.warn(TAG, "User did not return to the app within 60 seconds.");
       break;
     }
 
@@ -127,9 +138,16 @@ export const waitForAppToBeActive = async (): Promise<void> => {
  * @returns A promise that resolves to `true` if the overlay permission is granted,
  *          `false` otherwise. Always returns `false` on non-Android platforms.
  */
-const askDisplayOverOtherAppsPermission = async (): Promise<void> => {
+const askDisplayOverOtherAppsPermission = async (
+  options?: OptionsAskPermission,
+): Promise<void> => {
   if (REPLACERS.isWeb) return;
   if (permissionsData.hasOverlayPermission) return;
+  if (
+    permissionsData.permissions.overlay.doNotAskAgain &&
+    !options?.overrideDoNotAskAgain
+  )
+    return;
 
   const { logger } = await import("@utils");
 
@@ -147,16 +165,10 @@ const askDisplayOverOtherAppsPermission = async (): Promise<void> => {
 
   const state = await NativeFunctionsModule.requestOverlayPermission();
   if (state === "NOT_AVAILABLE") {
-    logger.warn(
-      "PERMISSIONS",
-      "Overlay permission is not available on this device",
-    );
+    logger.warn(TAG, "Overlay permission is not available on this device");
     return;
   } else if (state === "NOT_NEEDED") {
-    logger.log(
-      "PERMISSIONS",
-      "Overlay permission is not needed on this device",
-    );
+    logger.log(TAG, "Overlay permission is not needed on this device");
     return;
   } else if (state === "SETTINGS_OPENED") {
     await waitForAppToBeActive();
@@ -187,8 +199,15 @@ const askDisplayOverOtherAppsPermission = async (): Promise<void> => {
  * - Waits up to 5 seconds for the app to become active again after permission request
  * - If user cancels the alert, immediately rechecks current permission status
  */
-const askBatteryOptimizationPermission = async (): Promise<void> => {
+const askBatteryOptimizationPermission = async (
+  options?: OptionsAskPermission,
+): Promise<void> => {
   if (REPLACERS.isWeb) return;
+  if (
+    permissionsData.permissions.batteryOptimization.doNotAskAgain &&
+    !options?.overrideDoNotAskAgain
+  )
+    return;
 
   let hasPermission =
     await NativeFunctionsModule.isIgnoringBatteryOptimizations();
@@ -247,8 +266,15 @@ const askBatteryOptimizationPermission = async (): Promise<void> => {
  * - Falls back to generic app settings if manufacturer-specific settings fail
  * - Supports: Xiaomi, Redmi, Oppo, Vivo, Letv, Honor, Huawei, Asus, and generic devices
  */
-const askAutoStartPermission = async (): Promise<void> => {
+const askAutoStartPermission = async (
+  options?: OptionsAskPermission,
+): Promise<void> => {
   if (REPLACERS.isWeb) return;
+  if (
+    permissionsData.permissions.autoStart.doNotAskAgain &&
+    !options?.overrideDoNotAskAgain
+  )
+    return;
 
   if (permissionsData.hasOverlayPermission) NativeFunctionsModule?.openApp?.();
 
@@ -277,12 +303,47 @@ const askAutoStartPermission = async (): Promise<void> => {
     };
   } else {
     logger.warn(
-      "PERMISSIONS",
+      TAG,
       "Auto-start permission settings could not be opened for this device.",
       "State returned:",
       state,
     );
   }
+};
+
+const askDoNotDisturbPermission = async (): Promise<void> => {
+  if (REPLACERS.isWeb) return;
+  if (
+    permissionsData.permissions.doNotDisturb.doNotAskAgain ||
+    permissionsData.permissions.doNotDisturb.enabled
+  )
+    return;
+
+  let granted = await alerts.showAlert(
+    "doNotDisturbPermission",
+    "doNotDisturbPermissionMessage",
+    async (doNotAskAgain, accepted) => {
+      permissionsData.permissions.doNotDisturb.doNotAskAgain = doNotAskAgain;
+      return accepted;
+    },
+    { addDoNotAskAgain: true },
+  );
+
+  const { NativeFunctionsModule } = await import("@modules");
+
+  const state = await NativeFunctionsModule.requestDoNotDisturbPermission?.();
+  if (state === "SETTINGS_OPENED") {
+    await waitForAppToBeActive();
+    granted = await NativeFunctionsModule.checkDoNotDisturbPermission?.();
+  } else if (state === "ALREADY_GRANTED" || state === "NOT_NEEDED") {
+    granted = true;
+  }
+
+  permissionsData.permissions.doNotDisturb = {
+    ...permissionsData.permissions.doNotDisturb,
+    enabled: !!granted,
+    lastAsked: Date.now(),
+  };
 };
 
 export const askPermissions = async (): Promise<void> => {
@@ -303,6 +364,8 @@ export const askPermissions = async (): Promise<void> => {
     await askBatteryOptimizationPermission();
   if (!permissionsData.permissions.autoStart.doNotAskAgain)
     await askAutoStartPermission();
+  if (!permissionsData.permissions.doNotDisturb.doNotAskAgain)
+    await askDoNotDisturbPermission();
 
   storageManagement.save("PERMISSIONS_DATA", permissionsData.permissions);
 };
@@ -310,21 +373,34 @@ askPermissions();
 
 export const askForPermission = async (
   permission: Permission,
-): Promise<void> => {
+  options?: OptionsAskPermission,
+): Promise<boolean> => {
+  let granted = false;
+
   switch (permission) {
     case "location":
-      await askLocationPermission();
+      await askLocationPermission(options);
+      granted = permissionsData.permissions.location.enabled;
       break;
     case "overlay":
       await askDisplayOverOtherAppsPermission();
+      granted = permissionsData.hasOverlayPermission;
       break;
     case "batteryOptimization":
       await askBatteryOptimizationPermission();
+      granted = permissionsData.permissions.batteryOptimization.enabled;
       break;
     case "autoStart":
       await askAutoStartPermission();
+      granted = permissionsData.permissions.autoStart.enabled;
+      break;
+    case "doNotDisturb":
+      await askDoNotDisturbPermission();
+      granted = permissionsData.permissions.doNotDisturb.enabled;
       break;
     default:
       break;
   }
+
+  return granted;
 };

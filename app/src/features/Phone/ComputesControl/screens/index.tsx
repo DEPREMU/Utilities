@@ -5,6 +5,7 @@ import {
   checkUrlStatus,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
+  EventsDeviceInfo,
 } from "@utils";
 import axios from "axios";
 import { useLanguage } from "@context/LanguageContext";
@@ -282,7 +283,7 @@ const ComputerControl: React.FC = () => {
     });
 
     const removeListener = deviceInfo.addEventListener(
-      "appState-change",
+      EventsDeviceInfo.appStateChange,
       (newState) => {
         if (newState === "active" && !scanningRef.current) {
           startRescanCycleRef.current();

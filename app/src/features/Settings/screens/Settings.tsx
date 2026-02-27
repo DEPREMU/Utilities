@@ -15,6 +15,7 @@ import {
   setTimeoutPolyfill,
   fetchAndApplyUpdate,
   isNewUpdateAvailable,
+  deviceInfo,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import ThemePicker from "@screens/Settings/components/ThemePicker";
@@ -28,7 +29,7 @@ import { ScrollView, View } from "react-native";
 import { typeLanguagesKeys } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
-import { ActivityIndicator, Text, TextInput } from "react-native-paper";
+import { ActivityIndicator, Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useRef, useState } from "react";
 
 type Section = {
@@ -73,6 +74,9 @@ const SettingsScreen: React.FC = () => {
     getDefaultUpdatesData(),
   );
   const [password, setPassword] = useState<string>("");
+  const [fetchWithCellularData, setFetchWithCellularData] = useState<boolean>(
+    deviceInfo.fetchNetworkInfo.fetchWithCellularData,
+  );
 
   const handleCheckForUpdatesRef = useRef(async () => {
     if (REPLACERS.isWeb) return;
@@ -114,6 +118,20 @@ const SettingsScreen: React.FC = () => {
       ],
       { cancelable: false },
     );
+  });
+
+  const openUrlUpdatesWebPageRef = useRef(async () => {
+    const updatesWebPageUrl = API_URL.replace("api", "updates/web-page");
+    logger.log("Opening updates web page URL:", updatesWebPageUrl);
+    openURL(updatesWebPageUrl);
+  });
+
+  const toggleNetworkCellular = useRef(async () => {
+    const networkInfo = deviceInfo.fetchNetworkInfo;
+
+    deviceInfo.setFetchWithCellularData(!networkInfo.fetchWithCellularData);
+
+    setFetchWithCellularData(!networkInfo.fetchWithCellularData);
   });
 
   const handleCheckPasswordAdminSection = useCallback(async () => {
@@ -274,12 +292,6 @@ const SettingsScreen: React.FC = () => {
     ));
   }, [apiURL, socketURL, styles, t, saveApiURL, saveSocketURL]);
 
-  const openUrlUpdatesWebPage = useCallback(async () => {
-    const updatesWebPageUrl = API_URL.replace("api", "updates/web-page");
-    logger.log("Opening updates web page URL:", updatesWebPageUrl);
-    openURL(updatesWebPageUrl);
-  }, []);
-
   return (
     <View style={styles.container}>
       <View style={styles.contentWrapper}>
@@ -337,8 +349,24 @@ const SettingsScreen: React.FC = () => {
                 button: styles.button,
                 textButton: styles.buttonLabel,
               }}
-              handlePress={openUrlUpdatesWebPage}
+              handlePress={openUrlUpdatesWebPageRef.current}
               label={t("openUpdatesWebPage")}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.subtitle}>
+              {t("settings.toggleFetchCellularData")}
+            </Text>
+
+            <Text style={styles.infoText}>
+              {t("settings.toggleFetchCellularDataExplanation")}
+            </Text>
+
+            <Switch
+              color={colors.primary}
+              value={fetchWithCellularData}
+              onValueChange={toggleNetworkCellular.current}
             />
           </View>
 

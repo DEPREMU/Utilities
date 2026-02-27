@@ -473,6 +473,7 @@ class StorageManagement {
           ),
         ),
       );
+
       this.#data = data as ExpectedStorageTypes<"BOTH">;
       this.isLoaded = true;
     } catch (e) {

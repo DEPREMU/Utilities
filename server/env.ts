@@ -52,6 +52,7 @@ const env: Env = {
   DB_HOST: process.env.DB_HOST || "localhost",
   USE_HTTPS: process.env.USE_HTTPS || "false",
   JWT_SECRET: process.env.JWT_SECRET || "7rg398cg9savc93q87fvvca08fv",
+  BUILD_PROFILE: "",
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || "",
   VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || "",
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || "",

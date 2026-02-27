@@ -2,10 +2,8 @@ import chalk from "chalk";
 import crypto from "crypto";
 import { showError } from "../functions/logger.ts";
 import { getEnvValue } from "env.ts";
-import { sendResponse } from "@common";
-import type { Response } from "express";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
-import { RequestDecrypt, RequestEncrypt, ResponseGetRandomUUID } from "@types";
+import { RequestDecrypt, RequestEncrypt } from "@types";
 
 /**
  * The secret key used for encryption and decryption operations.
@@ -179,26 +177,3 @@ export const decryptHandler = getHandlerPost(
     }
   },
 );
-
-export const handleGetRandomUUID = async (
-  _: unknown,
-  res: Response<ResponseGetRandomUUID>,
-) => {
-  try {
-    const UUIDs = Array.from({ length: 2 }, () => crypto.randomUUID());
-    sendResponse(
-      res,
-      "SUCCESS",
-      { success: true, uuid: UUIDs.join("--") },
-      "/getRandomUUID",
-    );
-  } catch (error) {
-    showError(chalk.red("UUID generation error:"), error);
-    sendResponse(
-      res,
-      "INTERNAL_SERVER_ERROR",
-      { success: false, error: "UUID generation failed" },
-      "/getRandomUUID",
-    );
-  }
-};

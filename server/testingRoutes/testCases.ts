@@ -64,7 +64,7 @@ const storeInsertedCryptoUid = async (response: any) => {
 };
 
 const storeInsertedLogId = async (response: any) => {
-  const id = response?.data?.[0]?.id;
+  const id = response?.data;
   if (typeof id === "string" && id.length > 0) logIdNew = id;
 };
 
@@ -253,29 +253,6 @@ export const routeTests: {
       body: { dataToDecrypt: "invalid-encrypted-data" },
       expectedResponse: { error: expect.any(String) },
       shouldSucceed: false,
-    },
-  ],
-  "/getRandomUUID": [
-    {
-      route: "/getRandomUUID",
-      description: "Get UUID - should return valid UUID",
-      body: undefined,
-      expectedResponse: { uuid: expect.any(String) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/getRandomUUID",
-      description: "Get UUID - should not have error",
-      body: undefined,
-      expectedResponse: { error: undefined },
-      shouldSucceed: true,
-    },
-    {
-      route: "/getRandomUUID",
-      description: "Get UUID - multiple calls should return different UUIDs",
-      body: undefined,
-      expectedResponse: { uuid: expect.any(String) },
-      shouldSucceed: true,
     },
   ],
   "/doQueryDB": [

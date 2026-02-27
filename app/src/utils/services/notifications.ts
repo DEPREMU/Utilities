@@ -19,6 +19,7 @@ import * as notifications from "expo-notifications";
 import { AppState, Falsy } from "react-native";
 import { storageManagement } from "../services/storage";
 import { navigateReplace, modalRef } from "@refs";
+import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
 import { reasonNotification, objByReasonNotification } from "@common";
 
 export interface NotificationData {
@@ -57,7 +58,10 @@ export const isNotificationsAlreadyInitialized = (
   const countValuesExpected =
     Object.keys(objByReasonNotification).length * reasonNotification.length;
 
-  return countValuesKeys === countValuesExpected;
+  return (
+    countValuesKeys >= countValuesExpected &&
+    reasonNotification.every((reason) => keys.includes(reason))
+  );
 };
 
 /**
@@ -67,6 +71,7 @@ export const isNotificationsAlreadyInitialized = (
  */
 export const initializeNotificationsStorage =
   async (): Promise<Notifications> => {
+    await storageManagement.waitUntilLoaded();
     const notificationsData = storageManagement.get("NOTIFICATIONS");
 
     if (isNotificationsAlreadyInitialized(notificationsData))
@@ -260,6 +265,19 @@ export const configureNotificationChannel = async () => {
   );
 };
 
+export const getListenerNameDeviceInfo = (reason: ReasonNotification) => {
+  switch (reason) {
+    case "locationEnabled":
+      return EventsDeviceInfo.verifyLocation;
+    case "batteryAlerts":
+      return EventsDeviceInfo.batteryAlerts;
+    case "noInternetConnection":
+      return EventsDeviceInfo.hasInternetChange;
+    default:
+      return null;
+  }
+};
+
 class NotificationsManager {
   #initialized = false;
   #initPromise: Promise<void> | null = null;
@@ -273,17 +291,17 @@ class NotificationsManager {
   };
 
   public getNotifications = (): Notifications => {
-    return this.#notifications;
+    return cloneDeep(this.#notifications);
   };
 
   public getNotification = <T extends ReasonNotification>(
     reason: T,
   ): Notifications[T] => {
     const notificationsData = this.#notifications;
-    return notificationsData[reason];
+    return cloneDeep(notificationsData[reason]);
   };
 
-  public editNotification = async <T extends ReasonNotification>(
+  public editNotification = <T extends ReasonNotification>(
     reason: T,
     data:
       | Notifications[T]
@@ -292,11 +310,11 @@ class NotificationsManager {
       notifications: Notifications,
       notification: Notifications[T],
     ) => void,
-  ): Promise<void> => {
+  ): void => {
     const notificationsData = this.#notifications;
 
     const prevData = notificationsData[reason];
-    const newData = typeof data === "function" ? data(prevData) : { ...data };
+    const newData = typeof data === "function" ? data(prevData) : data;
 
     this.#notifications = {
       ...notificationsData,
@@ -307,7 +325,11 @@ class NotificationsManager {
     };
 
     storageManagement.save("NOTIFICATIONS", this.#notifications);
-    if (callback) callback(this.#notifications, this.#notifications[reason]);
+
+    if (callback) {
+      const clone = cloneDeep(this.#notifications);
+      callback(clone, clone[reason]);
+    }
   };
 
   public editNotifications = async (
@@ -318,7 +340,7 @@ class NotificationsManager {
     const notificationsData = this.#notifications;
 
     const newData =
-      typeof data === "function" ? data(notificationsData) : { ...data };
+      typeof data === "function" ? data(notificationsData) : cloneDeep(data);
 
     this.#notifications = {
       ...notificationsData,
@@ -339,17 +361,18 @@ class NotificationsManager {
 
   public sendNotification: SendNotification = async (notification) => {
     try {
+      await storageManagement.waitUntilLoaded();
       const localNotification = this.getNotification(
         notification.reasonNotification,
       );
 
-      if (!localNotification?.enabled) return;
+      if (!localNotification.enabled) return;
 
       if (
         notification.reasonNotification !== "streamers" &&
         localNotification?.paused
       ) {
-        const timePaused = localNotification?.paused.timePaused || 0;
+        const timePaused = localNotification.paused.timePaused || 0;
         if (Date.now() < timePaused) return;
 
         this.editNotification(notification.reasonNotification, (prev) => {
@@ -363,11 +386,15 @@ class NotificationsManager {
         });
       }
 
-      if (AppState.currentState !== "active") {
+      if (AppState.currentState === "active") {
         if (
           storageManagement.hasUI &&
           !localNotification.behavior.onlyWhenScreenOff &&
-          !localNotification.behavior.onlyWhenAppInBackground
+          !localNotification.behavior.onlyWhenAppInBackground &&
+          (REPLACERS.isNative
+            ? !localNotification.behavior.onlyWhenConnectedToPower ||
+              (await DeviceInfo.isBatteryCharging())
+            : true)
         )
           modalRef.openSnackBar?.(
             [notification.title, notification.message].join("\n"),
@@ -401,11 +428,13 @@ class NotificationsManager {
       } else {
         try {
           const isDND = await NativeFunctionsModule.isDoNotDisturbEnabled();
+
           const { deviceInfo } = await import("@utils");
+          await deviceInfo.waitUntilLoaded();
 
           if (
             localNotification.behavior.onlyWhenScreenOff &&
-            deviceInfo.statePhone !== "resumed"
+            deviceInfo.statePhone === "resumed"
           )
             return;
 
@@ -433,8 +462,10 @@ class NotificationsManager {
             notification.actions || null,
           );
 
-          if (isDND && localNotification.behavior.bypassDoNotDisturb)
-            await NativeFunctionsModule.enableDoNotDisturb();
+          if (isDND && localNotification.behavior.bypassDoNotDisturb) {
+            const { setTimeoutPolyfill } = await import("@utils");
+            setTimeoutPolyfill(NativeFunctionsModule.enableDoNotDisturb, 1500);
+          }
 
           return String(notificationId);
         } catch (error) {
@@ -469,6 +500,22 @@ class NotificationsManager {
     this.#initPromise = load();
 
     return this.#initPromise;
+  };
+
+  public toggleNotification = async <T extends ReasonNotification>(
+    reason: T,
+  ) => {
+    await deviceInfo.waitUntilLoaded();
+
+    const data = this.getNotification(reason);
+    data.enabled = !data.enabled;
+    this.editNotification(reason, data);
+
+    const event = getListenerNameDeviceInfo(reason);
+    if (!event) return;
+
+    if (data.enabled) await deviceInfo.initListener(event);
+    else deviceInfo.removeListener(event);
   };
 
   constructor() {

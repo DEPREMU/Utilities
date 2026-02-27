@@ -14,7 +14,7 @@ import {
   clearIntervalPolyfill,
 } from "../functions";
 import { REPLACERS } from "../TOP_LEVEL";
-import { deviceInfo } from "./deviceInfo";
+import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
 import { getRandomUUID } from "../cross";
 import { sessionManager } from "./session";
 import * as ExpoClipboard from "expo-clipboard";
@@ -461,7 +461,7 @@ class ClipboardManager {
     if (this.#removeInternetListener) return;
 
     this.#removeInternetListener = deviceInfo.addEventListener(
-      "hasInternet-change",
+      EventsDeviceInfo.hasInternetChange,
       (hasInternet) => {
         if (!hasInternet) return;
 
@@ -517,7 +517,7 @@ class ClipboardManager {
         if (!REPLACERS.isNative) return;
 
         this.#removeStatePhoneListener = deviceInfo.addEventListener(
-          "statePhone-change",
+          EventsDeviceInfo.statePhoneChange,
           (statePhone) => {
             if (statePhone !== "suspended") this.resume();
             else this.suspend();

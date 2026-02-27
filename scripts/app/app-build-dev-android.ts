@@ -2,15 +2,10 @@ import {
   env,
   ARGS,
   APP_PATH,
+  PLATFORM,
   UTILITIES_PATH,
   handleExitFromScript,
-  PLATFORM,
 } from "../config.ts";
-import {
-  pathAppConfig,
-  replaceAppConfig,
-  contentAppConfig,
-} from "./editAppConfig.ts";
 import fs from "fs";
 import path from "path";
 import { execSync, spawn } from "child_process";
@@ -20,24 +15,6 @@ const localEnv = {
   PLATFORM: "android",
   BUILD_PROFILE: "development",
 };
-
-replaceAppConfig(
-  (prev) => {
-    prev = prev.replace("-prev", "");
-
-    return prev.endsWith("-dev") ? prev : `${prev}-dev`;
-  },
-  (prev) => {
-    prev = prev.replace(" Prev", "");
-
-    return prev.includes("Dev") ? prev : `${prev} Dev`;
-  },
-  (prev) => {
-    prev = prev.replace(".preview", "");
-
-    return prev.includes(".dev") ? prev : `${prev}.dev`;
-  },
-);
 
 let expo: ReturnType<typeof spawn>;
 
@@ -68,7 +45,6 @@ const killProcessTree = (child?: ReturnType<typeof spawn> | null): void => {
 
 handleExitFromScript(() => {
   console.log("Finished app-build-dev-android script.");
-  fs.writeFileSync(pathAppConfig, contentAppConfig);
   killProcessTree(expo);
 
   if (PLATFORM.isWindows) return;
@@ -85,9 +61,9 @@ const run = () => {
 
   console.log("Running prebuild...");
   execSync("yarn run app-prebuild-android", {
+    env: localEnv,
     cwd: UTILITIES_PATH,
     stdio: "inherit",
-    env: localEnv,
   });
 
   console.log("Running android build...");

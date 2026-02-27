@@ -223,6 +223,9 @@ export const esApp: typeLanguages = {
   addTextToClipboard: "Agregar texto al portapapeles",
   enterYourTextHere: "Ingresa tu texto aquí",
   errorOccurred: "Ocurrió un error: {{error}}",
+  doNotDisturbPermission: "Permiso de No molestar",
+  doNotDisturbPermissionMessage:
+    "Para asegurarte de recibir las notificaciones sin interrupciones, por favor habilita el acceso a No molestar para esta aplicación en la configuración de tu dispositivo. Este permiso permite que la aplicación gestione las notificaciones de manera efectiva, asegurando que te mantengas informado mientras minimizas las interrupciones.",
   failedToAddTextToDatabase: "No se pudo agregar el texto a la base de datos",
   textAddedToDatabase: "Texto agregado a la base de datos",
   test: "Prueba",
@@ -242,6 +245,9 @@ export const esApp: typeLanguages = {
   playing: "Reproduciendo",
   paused: "En pausa",
   settings: {
+    toggleFetchCellularData: "Alternar uso de datos móviles",
+    toggleFetchCellularDataExplanation:
+      "Permitir que la aplicación utilice datos móviles. Habilitar esta opción puede resultar en un aumento del uso de datos, por lo que se recomienda habilitarla solo si deseas utilizar las app mientras estás en redes celulares.",
     allNotifications: "Todas las Notificaciones",
     webSocketURL: "URL del WebSocket",
     setWebSocketURL: "Configurar URL del WebSocket",
@@ -310,6 +316,7 @@ export const esApp: typeLanguages = {
   millis: "milisegundos",
   recorderNotification: "Notificación de grabadora",
   labels: {
+    toggle: "Alternar",
     doNotAskAgain: "No volver a preguntar",
     clipboard: "Portapapeles",
     deselect: "Deseleccionar",

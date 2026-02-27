@@ -4,6 +4,7 @@ import {
   fallbackAPI_URL,
   CLIPBOARD_WS_URL,
   fallbackURL_WEB_SOCKET,
+  fallbackCLIPBOARD_WS_URL,
 } from "../constants/server";
 import {
   RoutesAPI,
@@ -17,6 +18,8 @@ import {
 import { logger } from "./debug";
 import axios, { AxiosRequestConfig } from "axios";
 import { stringifyData, storageManagement } from "../services/storage";
+
+const TAG = "APIManagement";
 
 /**
  * Generates an options object for a fetch request.
@@ -57,17 +60,18 @@ export const fetchOptions = <T = RequestBody>(body?: T, token?: string) => {
  */
 export const getRouteAPI = async (route: RoutesAPI | UpdatesRoutes) => {
   let isOk: boolean = false;
+  await storageManagement.waitUntilLoaded();
   let apiUrl = storageManagement.get("API_URL");
 
   if (!apiUrl) {
     apiUrl = API_URL;
     try {
       const res = await axios.get<ResponseHealth>(apiUrl + "/health", {
-        timeout: 5000,
+        timeout: 2000,
       });
       isOk = res.data.status === "running";
     } catch {
-      logger.warn("Error fetching API URL health");
+      // Ignore
     }
 
     if (isOk) {
@@ -75,14 +79,18 @@ export const getRouteAPI = async (route: RoutesAPI | UpdatesRoutes) => {
       storageManagement.save("WEBSOCKET_URL", URL_WEB_SOCKET);
       storageManagement.save("CLIPBOARD_WEBSOCKET_URL", CLIPBOARD_WS_URL);
     } else {
-      logger.warn("Falling back to server API URL and WebSocket URL");
+      logger.warn(TAG, "Falling back to server API URL and WebSocket URL");
       apiUrl = fallbackAPI_URL;
       storageManagement.save("API_URL", fallbackAPI_URL);
       storageManagement.save("WEBSOCKET_URL", fallbackURL_WEB_SOCKET);
+      storageManagement.save(
+        "CLIPBOARD_WEBSOCKET_URL",
+        fallbackCLIPBOARD_WS_URL,
+      );
     }
   }
   if (apiUrl.endsWith("/")) apiUrl = apiUrl.slice(0, -1);
-  if (routes[route].type === "updates")
+  if (ROUTES[route].type === "updates")
     apiUrl = apiUrl.replace("api", "updates");
 
   return `${apiUrl}${route}`;
@@ -105,27 +113,31 @@ export const getRouteImage = (filename: string): string => {
   return `${apiUrl.replace("/api", "")}${filename}`;
 };
 
-const routes: RoutesAPIWithItsMethod = {
-  "/log": { method: "post", type: "api" },
+const POST_API = {
+  type: "api",
+  method: "post",
+} as const;
+
+const ROUTES: RoutesAPIWithItsMethod = {
+  "/log": POST_API,
   "/health": { method: "get", type: "api" },
-  "/cryptos": { method: "post", type: "api" },
-  "/cryptoPrice": { method: "post", type: "api" },
-  "/translate": { method: "post", type: "api" },
-  "/addStreamer": { method: "post", type: "api" },
-  "/getIsLiveStreamer": { method: "post", type: "api" },
-  "/auth/login": { method: "post", type: "api" },
-  "/auth/refreshSession": { method: "post", type: "api" },
-  "/auth/signOut": { method: "post", type: "api" },
-  "/auth/signup": { method: "post", type: "api" },
-  "/database/fetch": { method: "post", type: "api" },
-  "/database/insert": { method: "post", type: "api" },
+  "/cryptos": POST_API,
+  "/cryptoPrice": POST_API,
+  "/translate": POST_API,
+  "/addStreamer": POST_API,
+  "/getIsLiveStreamer": POST_API,
+  "/auth/login": POST_API,
+  "/auth/refreshSession": POST_API,
+  "/auth/signOut": POST_API,
+  "/auth/signup": POST_API,
+  "/database/fetch": POST_API,
+  "/database/insert": POST_API,
   "/database/update": { method: "put", type: "api" },
-  "/database/delete": { method: "post", type: "api" },
-  "/doQueryDB": { method: "post", type: "api" },
-  "/encrypt": { method: "post", type: "api" },
-  "/decrypt": { method: "post", type: "api" },
-  "/getRandomUUID": { method: "get", type: "api" },
-  "/images/changeImageFormat": { method: "post", type: "api" },
+  "/database/delete": POST_API,
+  "/doQueryDB": POST_API,
+  "/encrypt": POST_API,
+  "/decrypt": POST_API,
+  "/images/changeImageFormat": POST_API,
   "/upload-update": { method: "post", type: "updates" },
   "/is-update-available": { method: "post", type: "updates" },
   "/web-page": { method: "get", type: "updates" },
@@ -133,7 +145,14 @@ const routes: RoutesAPIWithItsMethod = {
     method: "get",
     type: "updates",
   },
-};
+} as const;
+
+export enum APIErrorWhy {
+  ServerError = "ServerError",
+  NetworkError = "NetworkError",
+  UnknownError = "UnknownError",
+  FetchWithCellularDataOff = "CellularDataOff",
+}
 
 type FetchToServer = <
   R extends RoutesAPI | UpdatesRoutes,
@@ -149,13 +168,34 @@ type FetchToServer = <
     : R extends RoutesAPI<"middleware">
       ? [body: B, token: string]
       : [body: B]
-) => Promise<ResponseFetch<R, B>>;
+) => Promise<
+  | ResponseFetch<R, B>
+  | {
+      ok: false;
+      why: APIErrorWhy;
+      data: null;
+      errorText: string;
+    }
+>;
 
 export const fetchToServer: FetchToServer = async (route, ...bodyAndToken) => {
   try {
+    const { deviceInfo } = await import("@utils");
+    await deviceInfo?.waitUntilLoaded();
+
+    const info = deviceInfo.fetchNetworkInfo;
+
+    if (info.isCellular && !info.fetchWithCellularData)
+      return {
+        ok: false,
+        why: APIErrorWhy.FetchWithCellularDataOff,
+        data: null,
+        errorText: "Fetching with cellular data is turned off in settings.",
+      };
+
     const apiRoute = await getRouteAPI(route);
 
-    const method = routes[route].method;
+    const method = ROUTES[route].method;
 
     const body = bodyAndToken?.[0];
     const token = bodyAndToken?.[1];

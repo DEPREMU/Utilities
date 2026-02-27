@@ -18,6 +18,7 @@ import {
   storageManagement,
   executeRegisteredTask,
   hasInternetConnection,
+  EventsDeviceInfo,
 } from "@utils";
 import { BackHandler } from "react-native";
 import { useLanguage } from "./LanguageContext";
@@ -304,7 +305,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
   useEffect(() => {
     const removeListener = deviceInfo.addEventListener(
-      "hasInternet-change",
+      EventsDeviceInfo.hasInternetChange,
       (hasInternet) => {
         if (executeWhenInternetRef.current.length === 0) return;
         if (!hasInternet) return;

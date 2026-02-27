@@ -315,6 +315,9 @@ export const enApp: typeLanguages = {
   computerControlTitle: "Computer Control",
   scanning: "Scanning",
   search: "Search",
+  doNotDisturbPermission: "Do Not Disturb Permission",
+  doNotDisturbPermissionMessage:
+    "To ensure that you receive notifications without interruptions, please enable Do Not Disturb access for this app in your device settings. This permission allows the app to manage notifications effectively, ensuring you stay informed while minimizing disruptions.",
   turnOffCommandSent: "Turn off command sent",
   turnOffCommandFailed: "Failed to send turn off command",
   restartCommandSent: "Restart command sent",
@@ -374,6 +377,9 @@ export const enApp: typeLanguages = {
     setWebSocketURL: "Set WebSocket URL",
     webSocketURL: "WebSocket URL",
     apiURL: "API URL",
+    toggleFetchCellularData: "Toggle Fetch with Cellular Data",
+    toggleFetchCellularDataExplanation:
+      "Allow the app to fetch data even when connected to cellular data. Enabling this option may result in increased data usage, so it's recommended to enable it only if you want to use the app while on cellular networks.",
     setApiURL: "Set API URL",
     allNotifications: "All Notifications",
     appTheme: "App Theme",
@@ -403,6 +409,7 @@ export const enApp: typeLanguages = {
     notificationDetailsNoStreamers: "No streamers configured",
   },
   labels: {
+    toggle: "Toggle",
     doNotAskAgain: "Don't ask again",
     clipboard: "Clipboard",
     fileSavedSuccessMessage:

@@ -3,18 +3,31 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 dotenv.config({ path: "../.env" });
 
-const version = "1.9.0";
+export default (
+  { config }: ConfigContext,
+  BUILD_PROFILE?: string,
+): ExpoConfig => {
+  if (!BUILD_PROFILE) BUILD_PROFILE = process.env.BUILD_PROFILE;
 
-export default ({ config }: ConfigContext): ExpoConfig => {
+  if (!BUILD_PROFILE)
+    throw new Error("BUILD_PROFILE environment variable is not set");
+
+  const isProduction = BUILD_PROFILE === "production";
+
+  const name = "Utilities" + (isProduction ? "" : ` (${BUILD_PROFILE})`);
+  const version = "1.9.1" + (isProduction ? "" : `-${BUILD_PROFILE}`);
+
   return {
     ...config,
-    name: "Utilities",
+    name,
     slug: "Utilities",
     updates: {
       url: "https://u.expo.dev/7dd2c093-0c91-4638-a5b9-828d458e8be0",
     },
     experiments: { baseUrl: "." },
-    runtimeVersion: version.split(".").slice(0, 2).join("."),
+    runtimeVersion: isProduction
+      ? version.split(".").slice(0, 2).join(".")
+      : BUILD_PROFILE + "-0.0.0",
     version,
     orientation: "portrait",
     icon: "./src/assets/icon.png",
@@ -39,7 +52,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         foregroundImage: "./src/assets/adaptive-icon.png",
         backgroundColor: "#000000",
       },
-      package: "com.utilities.depremu",
+      package:
+        "com.utilities.depremu" + (isProduction ? "" : `.${BUILD_PROFILE}`),
       permissions: [
         "CAMERA",
         "INTERNET",
@@ -57,6 +71,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "WRITE_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",
         "ACCESS_BACKGROUND_LOCATION",
+        "ACCESS_NOTIFICATION_POLICY",
         "CHANGE_WIFI_MULTICAST_STATE",
         "FOREGROUND_SERVICE_DATA_SYNC",
         "FOREGROUND_SERVICE_MICROPHONE",
@@ -73,6 +88,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-secure-store",
       "expo-localization",
       "expo-notifications",
+      "react-native-quick-crypto",
       [
         "expo-sqlite",
         {
@@ -80,7 +96,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           useSQLCipher: true,
         },
       ],
-      "react-native-quick-crypto",
       [
         "react-native-audio-api",
         {

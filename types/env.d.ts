@@ -4,6 +4,7 @@ export type Env = {
   DB_PASS: string;
   JWT_SECRET: string;
   ADMIN_EMAIL: string;
+  BUILD_PROFILE: "production" | "development" | string;
   VAPID_PRIVATE_KEY: string;
   DELETE_OLD_SESSIONS: string;
   DEEPL_TRANSLATOR_API: string;

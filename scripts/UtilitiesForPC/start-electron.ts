@@ -15,7 +15,7 @@ import {
 import axios from "axios";
 import * as readline from "readline";
 
-ARGS.profile = "development";
+ARGS.BUILD_PROFILE = "development";
 const args = getArgs();
 
 interface ProcessState {

@@ -15,6 +15,7 @@ import {
   AudioStatus,
   DataRecorder,
   recorderManager,
+  EventsDeviceInfo,
 } from "@utils";
 import { AudioModule } from "expo-audio";
 import { modalRef, navigateReplace } from "@refs";
@@ -132,7 +133,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const removeListener = deviceInfo.addEventListener(
-      "screenChange",
+      EventsDeviceInfo.screenChange,
       async (_, newScreen) => {
         if (newScreen !== "Recorder") return;
 

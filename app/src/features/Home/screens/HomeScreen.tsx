@@ -10,6 +10,7 @@ import React, { useRef, useMemo, useState, useEffect } from "react";
 import {
   DATA_PLATFORM,
   deviceInfo,
+  EventsDeviceInfo,
   hasInternetConnection,
   REPLACERS,
   sessionManager,
@@ -178,7 +179,7 @@ const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     const removeListener = deviceInfo.addEventListener(
-      "hasInternet-change",
+      EventsDeviceInfo.hasInternetChange,
       (newState) => setHasInternet(newState),
     );
     hasInternetConnection().then(setHasInternet);

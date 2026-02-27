@@ -21,6 +21,7 @@ import {
   storageManagement,
   setTimeoutPolyfill,
   notificationsManager,
+  EventsDeviceInfo,
 } from "@utils";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
@@ -206,7 +207,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
   useEffect(() => {
     const removeListener = deviceInfo.addEventListener(
-      "isBackground-change",
+      EventsDeviceInfo.isBackgroundChange,
       (isBackground) => {
         if (isBackground) {
           shouldConnectRef.current.main = false;

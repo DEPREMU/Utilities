@@ -350,7 +350,7 @@ const runPrebuild = () => {
     throw new Error("Missing google-services.json file");
 
   try {
-    console.log(chalk.blue("Running prebuild script..."));
+    console.log(chalk.blue("Running prebuild script..."), env.BUILD_PROFILE);
     const output = execSync("yarn expo prebuild --platform android --clean", {
       cwd: APP_PATH,
       env,

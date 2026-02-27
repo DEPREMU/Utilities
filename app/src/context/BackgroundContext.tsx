@@ -7,6 +7,7 @@ import {
   setIntervalPolyfill,
   clearTimeoutPolyfill,
   clearIntervalPolyfill,
+  EventsDeviceInfo,
 } from "@utils";
 import { reloadAppAsync } from "expo";
 import { getCurrentScreen, navigateReplace } from "@refs";
@@ -102,7 +103,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
   useEffect(() => {
     const remove = deviceInfo.addEventListener(
-      "hasInternet-change",
+      EventsDeviceInfo.hasInternetChange,
       (hasInternet) => {
         Object.entries(timeControlsRef.current).forEach(([key, data]) => {
           if (!data?.workWithInternet || !data.shouldRestartAuto) return;
@@ -145,7 +146,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
     let timeoutId: number | null = null;
 
     const removeStatePhoneListener = deviceInfo.addEventListener(
-      "statePhone-change",
+      EventsDeviceInfo.statePhoneChange,
       (statePhone) => {
         Object.entries(timeControlsRef.current).forEach(([key, data]) => {
           if (!data) return;
@@ -161,7 +162,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
     );
 
     const removeAppStateListener = deviceInfo.addEventListener(
-      "appState-change",
+      EventsDeviceInfo.appStateChange,
       (newState) => {
         if (newState === "background") {
           if (!timeoutId)

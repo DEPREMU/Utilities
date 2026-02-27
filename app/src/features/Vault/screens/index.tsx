@@ -12,7 +12,14 @@ import { navigateReplace } from "@refs";
 import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
 import useStylesBottomNavigator from "@/common/components/BottomNavigator/styles/useStylesBottomNavigator";
 import { BottomNavigation, Text } from "react-native-paper";
-import { DATA_PLATFORM, memoDeep, tTyped, REPLACERS, deviceInfo } from "@utils";
+import {
+  DATA_PLATFORM,
+  memoDeep,
+  tTyped,
+  REPLACERS,
+  deviceInfo,
+  EventsDeviceInfo,
+} from "@utils";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 
 const routes: Route[] = [
@@ -92,7 +99,7 @@ const VaultNavigator = () => {
     functionsRef.current.unlock(callbackUnlockRef.current);
 
     const removeListener = deviceInfo.addEventListener(
-      "isBackground-change",
+      EventsDeviceInfo.isBackgroundChange,
       (isBackground) => {
         if (isBackground) functionsRef.current.lock(() => setIndex(-1));
         else functionsRef.current.unlock(callbackUnlockRef.current);

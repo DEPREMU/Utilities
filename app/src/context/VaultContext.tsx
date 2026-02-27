@@ -32,6 +32,7 @@ import {
   getDefaultVaultDirectory,
   getMimeTypeFromExtension,
   clearDecryptedFolderDirectory,
+  EventsDeviceInfo,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import { cloneDeep } from "lodash";
@@ -835,14 +836,14 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const removeListenerAppState = deviceInfo.addEventListener(
-      "appState-change",
+      EventsDeviceInfo.appStateChange,
       (newState) => {
         if (newState !== "active") functionsRef.current.lock();
       },
     );
 
     const removeListenerScreen = deviceInfo.addEventListener(
-      "screenChange",
+      EventsDeviceInfo.screenChange,
       (screenName) => {
         if (screenName !== "Vault") functionsRef.current.lock();
       },

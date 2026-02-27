@@ -158,6 +158,8 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     dismiss: string;
     locationPermission: string;
     locationPermissionMessage: string;
+    doNotDisturbPermission: string;
+    doNotDisturbPermissionMessage: string;
     accept: string;
     InternetConnectionRestored: string;
     YouAreBackOnline: string;
@@ -259,6 +261,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     appVersion: `${string}{{version}}${string}`;
     showAsMarkdown: string;
     labels: {
+      toggle: string;
       doNotAskAgain: string;
       fileSavedSuccessTitle: string;
       fileSavedSuccessMessage: `${string}{{filename}}${string}{{filePath}}${string}`;
@@ -557,6 +560,8 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       setApiURL: string;
       language: string;
       setLanguage: string;
+      toggleFetchCellularData: string;
+      toggleFetchCellularDataExplanation: string;
       setNotifications: string;
       notificationInterval: string;
       allNotifications: string;

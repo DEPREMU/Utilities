@@ -1,6 +1,11 @@
+import NetInfo from "@react-native-community/netinfo";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { Colors, REPLACERS_TYPE } from "@types";
+
+NetInfo.configure({
+  useNativeReachability: true,
+});
 
 const isDev: boolean = process.env.BUILD_PROFILE === "development";
 const isWeb: boolean = Platform.OS === "web";

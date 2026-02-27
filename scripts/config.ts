@@ -27,12 +27,15 @@ export const PLATFORM = {
   isWindows: process.platform === "win32",
 };
 
-export const APP_CONFIG = APP_CONFIG_FUNC({
-  config: {},
-  packageJsonPath: path.resolve(APP_PATH, "package.json"),
-  projectRoot: APP_PATH,
-  staticConfigPath: path.resolve(APP_PATH, "app.config.ts"),
-});
+export const APP_CONFIG = APP_CONFIG_FUNC(
+  {
+    config: {},
+    packageJsonPath: path.resolve(APP_PATH, "package.json"),
+    projectRoot: APP_PATH,
+    staticConfigPath: path.resolve(APP_PATH, "app.config.ts"),
+  },
+  ARGS.BUILD_PROFILE ?? process.env.BUILD_PROFILE ?? "production",
+);
 
 export const gitignore = fs.readFileSync(
   path.resolve(UTILITIES_PATH, ".gitignore"),
@@ -59,7 +62,7 @@ export const env = {
   ...process.env,
   PLATFORM: ARGS.platform ?? "android",
   EAS_BUILD: false,
-  BUILD_PROFILE: ARGS.profile ?? "production",
+  BUILD_PROFILE: ARGS.BUILD_PROFILE ?? "production",
 } as unknown as Types.Env & NodeJS.ProcessEnv;
 
 export const URL_UPDATES = env.API_URL?.replace("api", "updates") as string;

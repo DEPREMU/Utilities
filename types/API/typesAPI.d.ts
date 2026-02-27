@@ -153,11 +153,6 @@ export type AuthSignOutFetch = {
   response: ResponseSignOut;
   middlewares: any[];
 };
-export type GetRandomUUIDFetch = {
-  url: "/getRandomUUID";
-  method: MethodsAvailableInAPI["get"];
-  response: ResponseGetRandomUUID;
-};
 export type DatabaseFetchFetch<T extends TablesKeys = TablesKeys> = {
   url: "/database/fetch";
   body: RequestDatabaseFetch<T>;
@@ -222,7 +217,6 @@ export type FetchAPI<T extends TablesKeys = TablesKeys> =
   | AddStreamerFetch
   | ChangeImageFormat
   | UploadUpdateFetch
-  | GetRandomUUIDFetch
   | DownloadUploadFetch
   | DatabaseFetchFetch<T>
   | DatabaseUpdateFetch<T>

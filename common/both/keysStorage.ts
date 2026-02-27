@@ -45,6 +45,7 @@ export const PERMISSIONS = [
   "overlay",
   "location",
   "autoStart",
+  "doNotDisturb",
   "batteryOptimization",
 ] as const;
 
@@ -56,6 +57,10 @@ export type DataPermission = {
   doNotAskAgain: boolean;
 };
 
+export type NetworkSettings = {
+  fetchWithCellularData: boolean;
+};
+
 export type PermissionsData = Record<Permission, DataPermission>;
 
 export type ExpectedSecureStorageTypes = {
@@ -64,15 +69,16 @@ export type ExpectedSecureStorageTypes = {
   USER_DATA: Omit<UserData, "password"> | null;
   STREAMERS: (Streamer & { isLive: boolean })[] | null;
   SESSION_EXPIRY: number | -1;
+  NOTES_PASSWORD: string | null;
   VAULT_PASSWORD: { [folder: string]: string } | null;
   VAULT_DIRECTORY: string | null;
   SELECTED_CRYPTOS: SelectedCryptos | null;
+  NETWORK_SETTINGS: NetworkSettings | null;
+  PERMISSIONS_DATA: PermissionsData | null;
   LAST_UPDATE_CHECK: number | null;
   TERMINAL_COMMANDS: Command[] | null;
-  PERMISSIONS_DATA: PermissionsData | null;
   DOWN_DETECTOR_DATA: DownDetector[] | null;
   USER_SESSION_TOKEN_STORAGE: string | null;
-  NOTES_PASSWORD: string | null;
 };
 
 export type ExpectedUnsecureStorageTypes = {
@@ -82,9 +88,10 @@ export type ExpectedUnsecureStorageTypes = {
   PENDING_TASKS: SerializableTask<AvailableFunctions>[] | null;
   WEBSOCKET_URL: string | null;
   NOTIFICATIONS: Notifications;
+  VAULT_SETTINGS: VaultSettings | null;
+  NOTES_SETTINGS: NotesSettings | null;
   HAS_ADMIN_ACCESS: boolean | null;
   CLIPBOARD_WEBSOCKET_URL: string | null;
-  VAULT_SETTINGS: VaultSettings | null;
   RECORDER_DATA: {
     lastUri: string;
     quality: "low" | "medium" | "high" | "lossless";
@@ -96,7 +103,6 @@ export type ExpectedUnsecureStorageTypes = {
     intervalOfSaves: number;
     shouldAutoStart: boolean;
   } | null;
-  NOTES_SETTINGS: NotesSettings | null;
 };
 
 export type ExpectedStorageTypes<
@@ -117,14 +123,15 @@ export const SECURE_KEYS_STORAGE: Record<
   STREAMERS: "_streamers",
   SESSION_EXPIRY: "_sessionExpiry",
   VAULT_PASSWORD: "_vaultPassword",
+  NOTES_PASSWORD: "_notesPassword",
   VAULT_DIRECTORY: "_vaultDirectory",
   SELECTED_CRYPTOS: "_selectedCryptos",
   PERMISSIONS_DATA: "_permissionsData",
+  NETWORK_SETTINGS: "_networkSettings",
   LAST_UPDATE_CHECK: "_lastUpdateCheck",
   TERMINAL_COMMANDS: "_terminalCommands",
   DOWN_DETECTOR_DATA: "_downDetectorData",
   USER_SESSION_TOKEN_STORAGE: "_userSessionTokenStorage",
-  NOTES_PASSWORD: "_notesPassword",
 };
 
 export const SECURE_KEYS_STORAGE_KEYS = Object.keys(
@@ -145,10 +152,10 @@ export const UNSECURE_KEYS_STORAGE: Record<
   WEBSOCKET_URL: "@webSocketURL",
   NOTIFICATIONS: "@notifications",
   RECORDER_DATA: "@recorderData",
-  HAS_ADMIN_ACCESS: "@hasAdminAccess",
-  CLIPBOARD_WEBSOCKET_URL: "@clipboardWebSocketURL",
   VAULT_SETTINGS: "@vaultSettings",
   NOTES_SETTINGS: "@notesSettings",
+  HAS_ADMIN_ACCESS: "@hasAdminAccess",
+  CLIPBOARD_WEBSOCKET_URL: "@clipboardWebSocketURL",
 };
 
 export const UNSECURE_KEYS_STORAGE_KEYS = Object.keys(
@@ -176,8 +183,9 @@ export const DO_NOT_DELETE_OR_SAVE: ALL_KEYS_STORAGE_TYPE[] = [
   "RECORDER_DATA",
   "VAULT_SETTINGS",
   "VAULT_PASSWORD",
-  "VAULT_DIRECTORY",
   "NOTES_PASSWORD",
+  "VAULT_DIRECTORY",
+  "NETWORK_SETTINGS",
 ] as const;
 
 /**

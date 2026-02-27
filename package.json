@@ -22,8 +22,6 @@
     "server": "node scripts/root-commands.ts --action=server",
     "server-dev": "node scripts/root-commands.ts --action=server-dev",
     "type-check": "node scripts/root-commands.ts --action=type-check",
-    "i:a": "node scripts/root-commands.ts --action=i-a",
-    "i:s": "node scripts/root-commands.ts --action=i-s",
     "before-commit": "node scripts/root-commands.ts --action=before-commit",
     "build-web": "node scripts/root-commands.ts --action=build-web",
     "app-compile-check": "node scripts/root-commands.ts --action=compile-check",

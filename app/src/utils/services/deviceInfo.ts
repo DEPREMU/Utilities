@@ -15,39 +15,63 @@ import {
   setIntervalPolyfill,
   clearIntervalPolyfill,
 } from "../functions";
+import * as NetInfo from "@react-native-community/netinfo";
 import { tTyped } from "../translates";
 import { REPLACERS } from "../TOP_LEVEL";
 import * as Location from "expo-location";
 import { DATA_PLATFORM } from "../cross";
 import * as DeviceInfoRN from "react-native-device-info";
 import { storageManagement } from "./storage";
-import { notificationsManager } from "./notifications";
+import { ExpectedSecureStorageTypes } from "@common";
 import { navigateReplace, navigationRef } from "@refs";
 import { AppState, AppStateStatus, DeviceEventEmitter } from "react-native";
 
 export type typeDataReceivedState = { state: "suspended" | "resumed" };
 
+export type NetworkInfo = {
+  type: NetInfo.NetInfoStateType;
+  isCellular: boolean;
+} & ExpectedSecureStorageTypes["NETWORK_SETTINGS"];
+
 export type typeDeviceInfo = {
   statePhone: typeDataReceivedState["state"];
   hasInternet: boolean;
   isBackground: boolean;
+  networkInfo: NetworkInfo;
 };
+
+export enum EventsDeviceInfo {
+  screenChange = "screen-change",
+  batteryAlerts = "batteryAlerts",
+  queryAppState = "queryAppState-change",
+  verifyLocation = "verifyLocation",
+  appStateChange = "appState-change",
+  statePhoneChange = "statePhone-change",
+  hasInternetChange = "hasInternet-change",
+  networkTypeChange = "networkType-change",
+  notificationAction = "notification-action",
+  isBackgroundChange = "isBackground-change",
+}
 
 type ArgsListenersDeviceInfo = {
-  screenChange: [prevScreen: ScreensAvailable, newScreen: ScreensAvailable];
-  queryAppState: [];
-  batteryAlerts: [];
-  verifyLocation: [];
-  "appState-change": [newState: AppStateStatus];
-  "statePhone-change": [newState: typeDataReceivedState["state"]];
-  "hasInternet-change": [newState: boolean];
-  "isBackground-change": [newState: boolean];
-  "notification-action": [action: EventNativeModule];
+  [EventsDeviceInfo.screenChange]: [
+    prevScreen: ScreensAvailable,
+    newScreen: ScreensAvailable,
+  ];
+  [EventsDeviceInfo.queryAppState]: [];
+  [EventsDeviceInfo.batteryAlerts]: [];
+  [EventsDeviceInfo.verifyLocation]: [];
+  [EventsDeviceInfo.appStateChange]: [newState: AppStateStatus];
+  [EventsDeviceInfo.statePhoneChange]: [
+    newState: typeDataReceivedState["state"],
+  ];
+  [EventsDeviceInfo.hasInternetChange]: [newState: boolean];
+  [EventsDeviceInfo.isBackgroundChange]: [newState: boolean];
+  [EventsDeviceInfo.notificationAction]: [action: EventNativeModule];
+  [EventsDeviceInfo.networkTypeChange]: [type: NetInfo.NetInfoStateType];
 };
 
-type EventKeys = keyof ArgsListenersDeviceInfo;
-
-type AddEventListener = <T extends keyof ListenersDeviceInfo>(
+type AddEventListener = <T extends EventsDeviceInfo>(
   event: T,
   callback: (...args: ArgsListenersDeviceInfo[T]) => void,
 ) => () => void;
@@ -58,7 +82,7 @@ type RemoveEventListener = <T extends keyof ListenersDeviceInfo>(
 ) => void;
 
 type ListenersDeviceInfo = {
-  [event in keyof ArgsListenersDeviceInfo]?: Record<
+  [event in EventsDeviceInfo]?: Record<
     string,
     (...args: ArgsListenersDeviceInfo[event]) => void
   >;
@@ -76,6 +100,8 @@ const verifyLocation = async () => {
 
   const locationEnabled = await isLocationEnabled();
   if (!locationEnabled) return;
+
+  const { notificationsManager } = await import("@utils");
 
   notificationsManager.sendNotification({
     title: tTyped("LocationServicesEnabled"),
@@ -112,9 +138,37 @@ class DeviceInfo {
 
   #listeners: Partial<Record<keyof ListenersDeviceInfo, () => void>> = {};
 
-  public statePhone: typeDataReceivedState["state"] = "resumed";
-  public hasInternet = true;
-  public isBackground = false;
+  #data: typeDeviceInfo = {
+    statePhone: "resumed",
+    hasInternet: true,
+    isBackground: false,
+    networkInfo: {
+      type: NetInfo.NetInfoStateType.unknown,
+      isCellular: false,
+      fetchWithCellularData: false,
+    },
+  };
+
+  public get hasInternet() {
+    return this.#data.hasInternet;
+  }
+
+  public get statePhone() {
+    return this.#data.statePhone;
+  }
+
+  public get isBackground() {
+    return this.#data.isBackground;
+  }
+
+  public get fetchNetworkInfo() {
+    return this.#data.networkInfo;
+  }
+
+  public setFetchWithCellularData(value?: boolean) {
+    this.#data.networkInfo.fetchWithCellularData =
+      value ?? !this.#data.networkInfo.fetchWithCellularData;
+  }
 
   public addEventListener: AddEventListener = (event, callback) => {
     const id = `${this.#i++}`;
@@ -155,28 +209,29 @@ class DeviceInfo {
   };
 
   private _initAppState = () => {
-    const event: EventKeys = "appState-change";
-
-    this.#listeners[event]?.();
-    delete this.#listeners[event];
+    const event = EventsDeviceInfo.appStateChange;
+    if (this.#listeners[event]) return;
 
     const appStateListener = AppState.addEventListener(
       "change",
       (nextState) => {
-        if (this.isBackground === (nextState !== "active")) return;
+        const newIsBackground = nextState !== "active";
 
-        this.isBackground = nextState !== "active";
-        this._emitEvent("isBackground-change", this.isBackground);
+        if (this.isBackground === newIsBackground) return;
+
+        this.#data.isBackground = newIsBackground;
+        this._emitEvent(EventsDeviceInfo.isBackgroundChange, this.isBackground);
       },
     );
     this.#listeners[event] = () => appStateListener.remove();
   };
 
   private _initHasInternet = async () => {
-    const event: EventKeys = "hasInternet-change";
+    const event = EventsDeviceInfo.hasInternetChange;
+    if (this.#listeners[event]) return;
 
-    this.#listeners[event]?.();
-    delete this.#listeners[event];
+    const { notificationsManager, hasInternetConnection } =
+      await import("@utils");
 
     await notificationsManager.waitUntilLoaded();
     const notification = notificationsManager.getNotification(
@@ -191,9 +246,11 @@ class DeviceInfo {
             "noInternetConnection",
           );
 
-        const { hasInternetConnection } = await import("@utils");
+        const info = this.fetchNetworkInfo;
 
-        const hasInternet = await hasInternetConnection();
+        const hasInternet =
+          (info.isCellular ? info.fetchWithCellularData : true) &&
+          (await hasInternetConnection());
         if (this.hasInternet === hasInternet) return;
 
         if (this.hasInternet && !hasInternet) {
@@ -216,8 +273,8 @@ class DeviceInfo {
           });
         }
 
-        this.hasInternet = hasInternet;
-        this._emitEvent("hasInternet-change", this.hasInternet);
+        this.#data.hasInternet = hasInternet;
+        this._emitEvent(event, this.hasInternet);
       },
       REPLACERS.isNative ? 8000 : 5000,
     );
@@ -230,18 +287,16 @@ class DeviceInfo {
   private _initStatePhone = () => {
     if (!REPLACERS.isNative) return;
 
-    const event: EventKeys = "statePhone-change";
-
-    this.#listeners[event]?.();
-    delete this.#listeners[event];
+    const event = EventsDeviceInfo.statePhoneChange;
+    if (this.#listeners[event]) return;
 
     const statePhoneListener = DeviceEventEmitter.addListener(
       "onUpdateSuspendResume",
       (data: typeDataReceivedState) => {
         if (data.state === this.statePhone) return;
 
-        this.statePhone = data.state || "resumed";
-        this._emitEvent("statePhone-change", this.statePhone);
+        this.#data.statePhone = data.state || "resumed";
+        this._emitEvent(event, this.statePhone);
       },
     );
     this.#listeners[event] = () => statePhoneListener.remove();
@@ -250,10 +305,8 @@ class DeviceInfo {
   private _initQueryAppState = () => {
     if (!REPLACERS.isNative) return;
 
-    const event: EventKeys = "queryAppState";
-
-    this.#listeners[event]?.();
-    delete this.#listeners[event];
+    const event = EventsDeviceInfo.queryAppState;
+    if (this.#listeners[event]) return;
 
     const queryAppStateListener = DeviceEventEmitter.addListener(
       "queryAppState",
@@ -267,6 +320,9 @@ class DeviceInfo {
 
   private _initNotificationEvents = () => {
     if (!REPLACERS.isNative) return;
+
+    const event = EventsDeviceInfo.notificationAction;
+    if (this.#listeners[event]) return;
 
     const subscription = DeviceEventEmitter.addListener(
       "onNotificationAction",
@@ -299,6 +355,9 @@ class DeviceInfo {
 
               if (event.reasonNotification === "streamers") break;
 
+              const { notificationsManager } = await import("@utils");
+              await notificationsManager.waitUntilLoaded();
+
               notificationsManager.editNotification(
                 event.reasonNotification,
                 (prev) => ({
@@ -327,6 +386,9 @@ class DeviceInfo {
                 });
               }
 
+              const { notificationsManager } = await import("@utils");
+              await notificationsManager.waitUntilLoaded();
+
               notificationsManager.editNotification(
                 event.reasonNotification,
                 (prev) => ({
@@ -346,15 +408,14 @@ class DeviceInfo {
       },
     );
 
-    this.#listeners["notification-action"] = () => subscription.remove();
+    this.#listeners[event] = () => subscription.remove();
   };
 
   private _initVerifyLocation = async () => {
-    const event: EventKeys = "verifyLocation";
+    const event = EventsDeviceInfo.verifyLocation;
+    if (this.#listeners[event]) return;
 
-    this.#listeners[event]?.();
-    delete this.#listeners[event];
-
+    const { notificationsManager } = await import("@utils");
     await notificationsManager.waitUntilLoaded();
     const notification =
       notificationsManager.getNotification("locationEnabled");
@@ -365,11 +426,12 @@ class DeviceInfo {
   };
 
   private _initBatteryAlerts = async () => {
-    const event: EventKeys = "batteryAlerts";
+    const event = EventsDeviceInfo.batteryAlerts;
+    if (this.#listeners[event]) return;
 
-    this.#listeners[event]?.();
-    delete this.#listeners[event];
     const reasonNotification: ReasonNotification = event;
+    const { notificationsManager } = await import("@utils");
+    await notificationsManager.waitUntilLoaded();
 
     await notificationsManager.waitUntilLoaded();
     const notification =
@@ -435,7 +497,9 @@ class DeviceInfo {
     await storageManagement.waitUntilLoaded();
     if (!storageManagement.hasUI) return;
 
-    const event: EventKeys = "screenChange";
+    const event = EventsDeviceInfo.screenChange;
+    if (this.#listeners[event]) return;
+
     let prevScreen: ScreensAvailable = "Home";
 
     const remover = navigationRef.current?.addListener("state", () => {
@@ -443,16 +507,50 @@ class DeviceInfo {
       const screen = route?.name || "Home";
       if (screen === prevScreen) return;
 
-      this._emitEvent("screenChange", prevScreen, screen);
+      this._emitEvent(event, prevScreen, screen);
       prevScreen = screen;
     });
     this.#listeners[event] = () => remover?.();
   };
 
-  public waitUntilLoaded = async () => {
-    if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
-    return this._init();
+  private _initNetworkTypeChange = async () => {
+    const event = EventsDeviceInfo.networkTypeChange;
+    if (this.#listeners[event]) return;
+
+    const subscription = NetInfo.addEventListener((state) => {
+      if (this.#data.networkInfo.type === state.type) return;
+
+      this.#data.networkInfo = {
+        ...this.#data.networkInfo,
+        type: state.type,
+        isCellular: state.type === NetInfo.NetInfoStateType.cellular,
+      };
+
+      this._emitEvent(event, state.type);
+    });
+
+    this.#listeners[event] = () => subscription();
+  };
+
+  private _initNetworkSettings = async () => {
+    const [data] = await Promise.all([
+      NetInfo.fetch(),
+      storageManagement.waitUntilLoaded(),
+    ]);
+
+    let info = storageManagement.get("NETWORK_SETTINGS");
+    if (!info) {
+      info = {
+        fetchWithCellularData: REPLACERS.isWeb,
+      };
+      storageManagement.save("NETWORK_SETTINGS", info);
+    }
+
+    this.#data.networkInfo = {
+      ...info,
+      type: data.type,
+      isCellular: data.type === NetInfo.NetInfoStateType.cellular,
+    };
   };
 
   private _init = async () => {
@@ -475,7 +573,10 @@ class DeviceInfo {
         this._initScreenChange(),
         this._initBatteryAlerts(),
         this._initVerifyLocation(),
+        this._initNetworkSettings(),
+        this._initNetworkTypeChange(),
       ]);
+
       this.#initialized = true;
       this.#initPromise = null;
     };
@@ -483,6 +584,50 @@ class DeviceInfo {
     this.#initPromise = init();
 
     return this.#initPromise;
+  };
+
+  public waitUntilLoaded = async () => {
+    if (this.#initialized) return;
+    if (this.#initPromise) return this.#initPromise;
+    return this._init();
+  };
+
+  public initListener = (event: EventsDeviceInfo) => {
+    const l: Record<EventsDeviceInfo, () => Promise<void> | void> = {
+      [EventsDeviceInfo.screenChange]: this._initScreenChange,
+      [EventsDeviceInfo.batteryAlerts]: this._initBatteryAlerts,
+      [EventsDeviceInfo.queryAppState]: this._initQueryAppState,
+      [EventsDeviceInfo.appStateChange]: this._initAppState,
+      [EventsDeviceInfo.verifyLocation]: this._initVerifyLocation,
+      [EventsDeviceInfo.statePhoneChange]: this._initStatePhone,
+      [EventsDeviceInfo.hasInternetChange]: this._initHasInternet,
+      [EventsDeviceInfo.networkTypeChange]: this._initNetworkTypeChange,
+      [EventsDeviceInfo.notificationAction]: this._initNotificationEvents,
+
+      [EventsDeviceInfo.isBackgroundChange]: () => {},
+    };
+
+    const initFunction = l[event];
+    if (initFunction) return initFunction();
+  };
+
+  public removeListener = (event: EventsDeviceInfo) => {
+    if (!this.#listeners[event]) return;
+
+    switch (event) {
+      case EventsDeviceInfo.screenChange:
+      case EventsDeviceInfo.batteryAlerts:
+      case EventsDeviceInfo.queryAppState:
+      case EventsDeviceInfo.appStateChange:
+      case EventsDeviceInfo.verifyLocation:
+      case EventsDeviceInfo.statePhoneChange:
+      case EventsDeviceInfo.hasInternetChange:
+      case EventsDeviceInfo.networkTypeChange:
+      case EventsDeviceInfo.notificationAction:
+        return this.#listeners[event]();
+      default:
+        break;
+    }
   };
 
   constructor() {

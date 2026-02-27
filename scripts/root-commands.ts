@@ -31,14 +31,11 @@ const run = () => {
         stdio: "inherit",
         env,
       });
-      execSync(
-        "cd android && ./gradlew :app:compileDebugKotlin --no-daemon",
-        {
-          cwd: APP_PATH,
-          stdio: "inherit",
-          env,
-        },
-      );
+      execSync("cd android && ./gradlew :app:compileDebugKotlin --no-daemon", {
+        cwd: APP_PATH,
+        stdio: "inherit",
+        env,
+      });
       break;
     case "clean":
       clean();
@@ -72,12 +69,6 @@ const run = () => {
       break;
     case "type-check":
       execSync("yarn run type-check", { cwd: APP_PATH, stdio: "inherit", env });
-      break;
-    case "i-a":
-      execSync("yarn install", { cwd: APP_PATH, stdio: "inherit", env });
-      break;
-    case "i-s":
-      execSync("yarn install", { cwd: SERVER_PATH, stdio: "inherit", env });
       break;
     case "before-commit":
       beforeCommit();
@@ -133,7 +124,7 @@ const clean = () => {
 
   console.log("Cleaning yarn cache in app...");
   try {
-    execSync("yarn cache clean", { cwd: APP_PATH, stdio: "inherit" });
+    execSync("yarn cache clean", { cwd: UTILITIES_PATH, stdio: "inherit" });
   } catch (e) {
     console.warn(
       "Failed to clean yarn cache in app, continuing...",

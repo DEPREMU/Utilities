@@ -5,6 +5,7 @@ import {
   isAppBuildDev,
   isBuildAndroid,
   isUploadElectron,
+  isAndroidPrebuild,
   isBuildAppElectron,
   isBuildUploadAndroid,
   isBuildResourcesElectron,
@@ -12,22 +13,40 @@ import {
 
 const args = process.argv.slice(2);
 
+export const Args: Record<keyof TYPE_ARGS, 0> = {
+  dev: 0,
+  fix: 0,
+  lan: 0,
+  web: 0,
+  yes: 0,
+  check: 0,
+  action: 0,
+  install: 0,
+  platform: 0,
+  isWindows: 0,
+  BUILD_PROFILE: 0,
+  "skip-build-android": 0,
+  "skip-build-electron": 0,
+  "skip-prebuild-android": 0,
+  "platform-update-assets": 0,
+};
+
 export type TYPE_ARGS = {
+  dev?: boolean;
+  fix?: boolean;
+  lan?: boolean;
+  web?: boolean;
+  yes?: boolean;
+  check?: boolean;
+  action?: string;
+  install?: boolean;
   platform?: "linux" | "windows";
-  profile?: string;
+  isWindows?: boolean;
+  BUILD_PROFILE?: "development" | "preview" | "production";
   "skip-build-android"?: boolean;
   "skip-build-electron"?: boolean;
   "skip-prebuild-android"?: boolean;
   "platform-update-assets"?: "android" | "web" | "both";
-  yes?: boolean;
-  lan?: boolean;
-  dev?: boolean;
-  fix?: boolean;
-  web?: boolean;
-  check?: boolean;
-  action?: string;
-  install?: boolean;
-  isWindows?: boolean;
 };
 
 const showHelp = () => {
@@ -68,7 +87,7 @@ const showHelp = () => {
   -f, --profile=<profile>      Specify the profile for the update (development, preview, production)`,
     );
   }
-  if (isBuildAppElectron) {
+  if (isBuildAppElectron || isAndroidPrebuild) {
     options.push(
       `  -f, --profile=<profile>      Specify the profile for the update (development, preview, production)`,
     );
@@ -171,7 +190,7 @@ export const ARGS = args.reduce((acc, arg, index) => {
     case "profile":
     case "f":
       if (["development", "preview", "production"].includes(value as string)) {
-        acc.profile = value as TYPE_ARGS["profile"];
+        acc.BUILD_PROFILE = value as TYPE_ARGS["BUILD_PROFILE"];
       } else {
         throw new Error(
           `Invalid profile: ${value}. Valid profiles: development, preview, production`,
@@ -200,6 +219,7 @@ export const ARGS = args.reduce((acc, arg, index) => {
           `Invalid value for isWindows: ${value}. Valid options: true, false`,
         );
       }
+      break;
     default:
       break;
   }
@@ -208,6 +228,18 @@ export const ARGS = args.reduce((acc, arg, index) => {
 
   return acc;
 }, {} as TYPE_ARGS);
+Object.keys(Args).forEach((key) => {
+  const refARGS = ARGS as Record<string, unknown>;
+  if (refARGS[key] !== undefined) return;
+  if (process.env[key] === undefined) return;
+
+  const value = process.env[key];
+  if (value === "true" || value === "false") {
+    refARGS[key] = value === "true";
+  } else {
+    refARGS[key] = value;
+  }
+});
 
 export const getArgs = () => {
   const argsList: string[] = [];

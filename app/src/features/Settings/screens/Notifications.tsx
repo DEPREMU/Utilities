@@ -68,7 +68,7 @@ const NotificationsScreen: React.FC = () => {
         | Partial<Notifications[ReasonNotification]>
         | Notifications[ReasonNotification],
     ) => {
-      await notificationsManager.editNotification(id, updater, (data) =>
+      notificationsManager.editNotification(id, updater, (data) =>
         setNotifications(data),
       );
     },
@@ -79,6 +79,13 @@ const NotificationsScreen: React.FC = () => {
       id: ReasonNotification,
       key: keyof Notifications["allNotifications"]["behavior"],
     ) => {
+      if (key === "bypassDoNotDisturb") {
+        const granted = await askForPermission("doNotDisturb", {
+          overrideDoNotAskAgain: true,
+        });
+        if (!granted) return;
+      }
+
       await updateNotificationSettingsRef.current(id, (prev) => ({
         ...prev,
         behavior: {
@@ -150,18 +157,14 @@ const NotificationsScreen: React.FC = () => {
       if (reason === "cryptos" && !sessionManager.getSessionData().isLoggedIn)
         return navigateReplace("Login");
       if (reason === "locationEnabled") {
-        await askForPermission("location");
-        return;
+        const granted = await askForPermission("location", {
+          overrideDoNotAskAgain: true,
+        });
+        if (!granted) return;
       }
 
-      await notificationsManager.editNotification(
-        reason,
-        (prev) => ({
-          ...prev,
-          enabled: !prev.enabled,
-        }),
-        (notifications) => setNotifications(notifications),
-      );
+      await notificationsManager.toggleNotification(reason);
+      setNotifications(notificationsManager.getNotifications());
     },
   );
 

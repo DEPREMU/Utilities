@@ -95,7 +95,7 @@ const executeRouteTests = async (route: RoutesAPI): Promise<TestResult[]> => {
 
   for (const test of tests) {
     const method =
-      test.route === "/health" || test.route === "/getRandomUUID"
+      test.route === "/health"
         ? "get"
         : test.route.includes("/database/update")
           ? "put"
