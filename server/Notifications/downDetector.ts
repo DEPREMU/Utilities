@@ -1,10 +1,10 @@
 import chalk from "chalk";
 import axios from "axios";
 import { showInfo } from "../functions/logger.ts";
-import { dataDatabase } from "./fetchData.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
 import { languagesSupported, t } from "@common";
 import { LanguagesSupported, ReasonNotification } from "@types";
+import { fetchFromTable } from "database/functions.ts";
 
 const isDown = async (url: string): Promise<boolean> => {
   if (!url || !url.startsWith("http")) return false;
@@ -21,9 +21,21 @@ const isDown = async (url: string): Promise<boolean> => {
 const handleCheckDownServers = async () => {
   showInfo("Running DownDetector check...");
 
-  const dataPushTokens = dataDatabase.PushTokens || [];
-  const dataUserConfig = dataDatabase.UserConfig || [];
-  const dataDownDetector = dataDatabase.DownDetector || [];
+  const [PushTokens, UserConfig, DownDetector] = await Promise.all([
+    fetchFromTable({
+      table: "PushTokens",
+    }),
+    fetchFromTable({
+      table: "UserConfig",
+    }),
+    fetchFromTable({
+      table: "DownDetector",
+    }),
+  ]);
+
+  const dataPushTokens = PushTokens.data || [];
+  const dataUserConfig = UserConfig.data || [];
+  const dataDownDetector = DownDetector.data || [];
 
   dataDownDetector.forEach((downDetector) => {
     if (

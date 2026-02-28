@@ -33,7 +33,7 @@ if (!fs.existsSync(fileDataPath)) {
   process.exit(1);
 }
 
-let intervalIdDeleteOldSessions: NodeJS.Timeout;
+let intervalIdDeleteOldSessions: number;
 
 export const initDB = async () => {
   const fileSQL = fs.readFileSync(fileSQLPath, "utf-8");

@@ -17,9 +17,9 @@
   },
   "include": ["./**/*.ts", "../common/index.ts"],
   "exclude": [
+    "config-vps",
     "node_modules",
-    "config-oracle",
-    "eslint.config.ts",
-    "build/index.cjs"
+    "build/index.cjs",
+    "eslint.config.ts"
   ]
 }

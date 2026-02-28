@@ -1,15 +1,12 @@
 import {
-  Streamer,
   ChannelsId,
   UserConfig,
-  PushTokens,
   ScreensAvailable,
   LanguagesSupported,
-  UserNotificationsConfig,
 } from "@types";
 import chalk from "chalk";
 import { t } from "@common";
-import { dataDatabase } from "./fetchData.ts";
+import { fetchFromTable } from "database/functions.ts";
 import { isLiveStreamer } from "../routes/socialMedia.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
 import { showError, showInfo } from "../functions/logger.ts";
@@ -20,16 +17,30 @@ const notificationsSent: Record<
 > = {};
 
 const handleSendNotificationsStreamers = async () => {
-  const pushTokens: PushTokens[] | null = dataDatabase.PushTokens || null;
-  const tableStreamers: Streamer[] | null = dataDatabase.Streamers || null;
+  const [PushTokens, Streamers, UserNotificationsConfig, UserConfig] =
+    await Promise.all([
+      fetchFromTable({
+        table: "PushTokens",
+      }),
+      fetchFromTable({
+        table: "Streamers",
+      }),
+      fetchFromTable({
+        table: "UserNotificationsConfig",
+      }),
+      fetchFromTable({
+        table: "UserConfig",
+      }),
+    ]);
 
-  const notificationsConfig: UserNotificationsConfig[] | null =
-    dataDatabase.UserNotificationsConfig || null;
+  const pushTokens = PushTokens.data;
+  const tableStreamers = Streamers.data;
+  const notificationsConfig = UserNotificationsConfig.data || null;
 
   if (!tableStreamers || !notificationsConfig || !pushTokens) return;
 
-  const usersConfig: Record<string, UserConfig> | null =
-    dataDatabase.UserConfig.reduce(
+  const usersConfig: Record<string, UserConfig> | undefined =
+    UserConfig.data?.reduce(
       (acc, config) => {
         if (config.userId) acc[config.userId] = config;
         return acc;

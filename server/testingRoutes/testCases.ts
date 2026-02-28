@@ -7,7 +7,7 @@ import {
 } from "./types.ts";
 import { encrypt } from "../routes/encryption.ts";
 import { readImage } from "@common";
-import { RoutesAPI, ResponseAuth } from "@types";
+import { RoutesAPI, ResponseAuth, ResponseDatabaseInsert } from "@types";
 
 /**
  * Helper object to check for missing routes at compile time
@@ -64,8 +64,14 @@ const storeInsertedCryptoUid = async (response: any) => {
 };
 
 const storeInsertedLogId = async (response: any) => {
-  const id = response?.data;
+  const data = response?.data as ResponseDatabaseInsert<"Logs">["data"];
+
+  const id = data?.[0]?.id;
   if (typeof id === "string" && id.length > 0) logIdNew = id;
+  else
+    throw new Error(
+      "Failed to store log id: invalid response " + JSON.stringify(response),
+    );
 };
 
 const getBase64SamplePngImage = () => {

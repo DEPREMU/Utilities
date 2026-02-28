@@ -3,6 +3,7 @@ import admin from "firebase-admin";
 import { getEnvValue } from "../env.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 import { ScreensAvailable, ChannelsId } from "@types";
+import { deleteInTable } from "database/functions.ts";
 
 let firebaseApp: admin.app.App | null = null;
 
@@ -79,7 +80,17 @@ export const sendFCMNotification = async (
       showError(chalk.red(`Failures: ${response.failureCount}`));
       response.responses.forEach((resp, idx) => {
         if (!resp.success) {
-          showError(chalk.red(`Error in token ${tokens[idx]}: ${resp.error}`));
+          showError(
+            chalk.red(
+              `Error in token ${tokens[idx].slice(0, 20)}...: ${resp.error}`,
+            ),
+          );
+
+          if (resp.error?.message.includes("Requested entity was not found.")) {
+            deleteInTable("", "PushTokens", {
+              token: tokens[idx],
+            });
+          }
         }
       });
     }

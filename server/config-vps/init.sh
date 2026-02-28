@@ -154,7 +154,7 @@ else
 fi
 
 # --- 6. Database Initialization ---
-DB_SCRIPT="$HOME/Utilities/server/config-oracle/init-db.sh"
+DB_SCRIPT="$HOME/Utilities/server/config-vps/init-db.sh"
 if [ -f "$DB_SCRIPT" ]; then
     chmod +x "$DB_SCRIPT"
     "$DB_SCRIPT"
@@ -258,7 +258,7 @@ EOF
     fi
     
     # --- Start Server (Always runs for VM) ---
-    START_SCRIPT="$HOME/Utilities/server/config-oracle/start.sh"
+    START_SCRIPT="$HOME/Utilities/server/config-vps/start.sh"
     if [ -f "$START_SCRIPT" ]; then
         if pm2 describe Utilities >/dev/null 2>&1; then
             echo -e "${YELLOW}PM2 process 'Utilities' already running.${NC}"
