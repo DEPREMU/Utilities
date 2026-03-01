@@ -61,6 +61,10 @@ export type NetworkSettings = {
   fetchWithCellularData: boolean;
 };
 
+export type DEBUG_SETTINGS = {
+  appAliveCheck: boolean;
+};
+
 export type PermissionsData = Record<Permission, DataPermission>;
 
 export type ExpectedSecureStorageTypes = {
@@ -84,10 +88,11 @@ export type ExpectedSecureStorageTypes = {
 export type ExpectedUnsecureStorageTypes = {
   THEME: "light" | "dark" | "auto";
   API_URL: string | null;
+  DEBUG: DEBUG_SETTINGS;
   LANGUAGE: LanguagesSupported;
-  PENDING_TASKS: SerializableTask<AvailableFunctions>[] | null;
-  WEBSOCKET_URL: string | null;
   NOTIFICATIONS: Notifications;
+  WEBSOCKET_URL: string | null;
+  PENDING_TASKS: SerializableTask<AvailableFunctions>[] | null;
   VAULT_SETTINGS: VaultSettings | null;
   NOTES_SETTINGS: NotesSettings | null;
   HAS_ADMIN_ACCESS: boolean | null;
@@ -146,6 +151,7 @@ export const UNSECURE_KEYS_STORAGE: Record<
   string
 > = {
   THEME: "@theme",
+  DEBUG: "@debug",
   API_URL: "@API_URL",
   LANGUAGE: "@languageKeyStorage",
   PENDING_TASKS: "@pendingTasks",

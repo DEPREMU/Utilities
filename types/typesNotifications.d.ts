@@ -27,17 +27,6 @@ export type typePausedNotification = {
 
 export type ActionNotification = "pause" | "stop" | "dismiss" | "settings";
 
-"cryptos" |
-  "streamers" |
-  "downDetector" |
-  "batteryAlerts" |
-  "timeToDownload" |
-  "locationEnabled" |
-  "allNotifications" |
-  "recorderNotification" |
-  "noInternetConnection" |
-  "loggedInStatusChannel";
-
 export type typeBehaviorNotification = {
   onlyWhenScreenOff: boolean;
   bypassDoNotDisturb: boolean;

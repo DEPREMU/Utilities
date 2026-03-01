@@ -90,6 +90,7 @@ export const routeTests: {
   "/is-update-available": [],
   "/web-page": [],
   "/upload-update": [],
+  "/debug/appAlive": [],
   "/download/:buildType/:version/:platformOS/:id": [],
   "/health": [
     {

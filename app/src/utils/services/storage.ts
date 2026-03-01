@@ -14,6 +14,7 @@ import { REPLACERS } from "../TOP_LEVEL";
 import { windowModule } from "@modules";
 import * as SecureStore from "expo-secure-store";
 import { reloadAppAsync } from "expo";
+import { cloneDeep } from "lodash";
 
 type SaveDataStorage = {
   <T extends ALL_KEYS_STORAGE_TYPE>(
@@ -503,8 +504,19 @@ class StorageManagement {
     key: T,
     fallbackValue?: U,
   ): U | R => {
-    if (fallbackValue === undefined) return this.#data[key] as R;
-    return (this.#data[key] || fallbackValue) as U;
+    if (fallbackValue === undefined) {
+      const returnValue = this.#data[key] as R;
+      if (typeof returnValue === "object" && returnValue !== null)
+        return cloneDeep(returnValue);
+
+      return returnValue;
+    } else {
+      const returnValue = (this.#data[key] || fallbackValue) as U;
+      if (typeof returnValue === "object" && returnValue !== null)
+        return cloneDeep(returnValue);
+
+      return returnValue;
+    }
   };
 
   /**

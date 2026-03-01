@@ -11,7 +11,7 @@ import { BuildTypeUpdates, PlatformsOS, UpdatesRoutes } from "./typesUpdates";
 
 export type RequestBody<
   T extends RoutesAPI | UpdatesRoutes = RoutesAPI | UpdatesRoutes,
-  U extends TablesKeys = TablesKeys
+  U extends TablesKeys = TablesKeys,
 > = T extends RoutesPostAPI | RoutesPutAPI
   ? Extract<
       FetchAPI<U>,
@@ -24,7 +24,7 @@ export type RequestBody<
 
 export type ResponseFetch<
   T extends RoutesAPI | UpdatesRoutes,
-  B = RequestBody<T>
+  B = RequestBody<T>,
 > = {
   ok: boolean;
   data:
@@ -90,7 +90,7 @@ export type RequestDatabaseInsert<T extends TablesKeys = TablesKeys> = {
 };
 
 export type RequestDatabaseFetchWithoutPagination<
-  T extends TablesKeys = TablesKeys
+  T extends TablesKeys = TablesKeys,
 > = {
   lang: LanguagesSupported;
   table: T;
@@ -101,7 +101,7 @@ export type RequestDatabaseFetchWithoutPagination<
 
 export type RequestDatabaseFetchWithPagination<
   T extends TablesKeys = TablesKeys,
-  U extends Tables[T] = Tables[T]
+  U extends Tables[T] = Tables[T],
 > = {
   lang: LanguagesSupported;
   table: T;
@@ -120,7 +120,7 @@ export type RequestDatabaseFetchWithoutSearch = {
 
 export type RequestDatabaseFetchSearch<
   T extends TablesKeys = TablesKeys,
-  K extends keyof Tables[T] = keyof Tables[T]
+  K extends keyof Tables[T] = keyof Tables[T],
 > = {
   search: string;
   columnsToSearch: K[] | K;
@@ -163,7 +163,7 @@ export type RequestDecrypt = {
 };
 
 export type RequestIsUpdateAvailable<
-  T extends BuildTypeUpdates = BuildTypeUpdates
+  T extends BuildTypeUpdates = BuildTypeUpdates,
 > = {
   buildType: T;
   currentVersion: string;
@@ -195,4 +195,9 @@ export type RequestChangeImageFormat = {
   lang: LanguagesSupported;
   format: "jpeg" | "png" | "webp" | "avif" | "gif";
   imageBufferInString: string;
+};
+
+export type RequestDebugAppAlive = {
+  deviceId: string;
+  pushToken: string;
 };

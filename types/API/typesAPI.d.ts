@@ -26,6 +26,7 @@ import type {
   ResponseTranslate,
   ResponseCryptoPrice,
   ResponseAddStreamer,
+  ResponseDebugAppAlive,
   ResponseGetQRForLogin,
   ResponseGetRandomUUID,
   ResponseDatabaseFetch,
@@ -48,6 +49,7 @@ import {
   RequestCryptoPrice,
   RequestAddStreamer,
   RequestDatabaseFetch,
+  RequestDebugAppAlive,
   RequestGetQRForLogin,
   RequestDatabaseInsert,
   RequestDatabaseUpdate,
@@ -201,6 +203,13 @@ export type ChangeImageFormat = {
   response: ResponseChangeImageFormat;
 };
 
+export type DebugAppAlive = {
+  url: "/debug/appAlive";
+  body: RequestDebugAppAlive;
+  method: MethodsAvailableInAPI["post"];
+  response: ResponseDebugAppAlive;
+};
+
 export type FetchAPI<T extends TablesKeys = TablesKeys> =
   | LogFetch
   | HealthFetch
@@ -209,6 +218,7 @@ export type FetchAPI<T extends TablesKeys = TablesKeys> =
   | EncryptFetch
   | WebPageFetch
   | DoQueryFetch
+  | DebugAppAlive
   | TranslateFetch
   | AuthLoginFetch
   | AuthSignUpFetch

@@ -10,6 +10,7 @@ import { REPLACERS } from "../TOP_LEVEL";
 import { fetchToServer } from "../functions/APIManagement";
 import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@refs";
+import { EventsDeviceInfo } from "./deviceInfo";
 import { storageManagement } from "./storage";
 import { setTimeoutPolyfill } from "../functions";
 import { notificationsManager } from "./notifications";
@@ -17,7 +18,6 @@ import { checkLanguage, tTyped } from "../translates";
 import { ResponseAuth, ResponseFetch } from "@types";
 import { NotificationAction, UserData } from "@types";
 import { NativeFunctionsModule, windowModule } from "@modules";
-import { EventsDeviceInfo } from "./deviceInfo";
 
 type SessionData = {
   userData: Omit<UserData, "password"> | null;
@@ -84,7 +84,7 @@ const TAG = "SESSION_MANAGER";
  * @returns A promise that resolves to the Expo push token string.
  * @throws Will throw an error if the project ID is not found or if there is an issue fetching the token.
  */
-const getDevicePushToken = wrapFunctionWithError(
+export const getDevicePushToken = wrapFunctionWithError(
   async () => {
     if (REPLACERS.isWeb) return "Web";
 

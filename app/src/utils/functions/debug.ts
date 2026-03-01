@@ -215,6 +215,8 @@ const error = async (...args: unknown[]): Promise<void> => {
   }
 };
 
+const fun = async () => {};
+
 export const logger = !REPLACERS.isProduction
   ? {
       log,
@@ -222,7 +224,7 @@ export const logger = !REPLACERS.isProduction
       error,
     }
   : {
-      log: async () => {},
-      warn: async () => {},
-      error: async () => {},
+      log: fun,
+      warn: fun,
+      error: fun,
     };

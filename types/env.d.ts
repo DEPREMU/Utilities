@@ -1,4 +1,4 @@
-export type Env = {
+export type Env<B extends boolean = false> = {
   API_URL: string;
   DB_USER: string;
   DB_PASS: string;
@@ -6,41 +6,17 @@ export type Env = {
   ADMIN_EMAIL: string;
   BUILD_PROFILE: "production" | "development" | string;
   VAPID_PRIVATE_KEY: string;
-  DELETE_OLD_SESSIONS: string;
   DEEPL_TRANSLATOR_API: string;
   SECRET_KEY_TO_ENCRYPTION: string;
   FIREBASE_SERVICE_ACCOUNT: string;
   DB_ENCRYPTION_PASS: string;
   VAPID_PUBLIC_KEY: string;
   ADMIN_PASSWORD: string;
-  USE_HTTPS: string;
+  USE_HTTPS: B extends true ? boolean : string;
   DB_NAME: string;
   DB_HOST: string;
-  DB_PORT: string;
-  __DEV__: string;
+  DB_PORT: B extends true ? number : string;
+  __DEV__: B extends true ? boolean : string;
   WS_URL: string;
   IV: string;
 };
-
-export type EnvTranslated = {
-  API_URL: string;
-  DB_USER: string;
-  DB_PASS: string;
-  JWT_SECRET: string;
-  ADMIN_EMAIL: string;
-  VAPID_PRIVATE_KEY: string;
-  DELETE_OLD_SESSIONS: boolean;
-  DEEPL_TRANSLATOR_API: string;
-  SECRET_KEY_TO_ENCRYPTION: string;
-  FIREBASE_SERVICE_ACCOUNT: string;
-  DB_ENCRYPTION_PASS: string;
-  VAPID_PUBLIC_KEY: string;
-  ADMIN_PASSWORD: string;
-  USE_HTTPS: boolean;
-  DB_NAME: string;
-  DB_HOST: string;
-  DB_PORT: number;
-  __DEV__: boolean;
-  WS_URL: string;
-  IV: string;
-}

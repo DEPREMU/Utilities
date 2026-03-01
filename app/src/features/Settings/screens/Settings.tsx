@@ -16,6 +16,10 @@ import {
   fetchAndApplyUpdate,
   isNewUpdateAvailable,
   deviceInfo,
+  debug,
+  getDevicePushToken,
+  DEBUG_SETTINGS,
+  memoDeep,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import ThemePicker from "@screens/Settings/components/ThemePicker";
@@ -30,7 +34,7 @@ import { typeLanguagesKeys } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
 import { ActivityIndicator, Switch, Text, TextInput } from "react-native-paper";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type Section = {
   subtitle: typeLanguagesKeys;
@@ -52,6 +56,65 @@ const getDefaultUpdatesData = (): UpdatesData => ({
   updateState: "NOT_VERIFIED",
   lastUpdateCheck: new Date(),
   lookingForUpdates: false,
+});
+
+const DebugComponent: React.FC = memoDeep(() => {
+  const { styles } = useStylesSettingsScreen();
+
+  const [states, setStates] = useState<DEBUG_SETTINGS>({
+    appAliveCheck: false,
+  });
+
+  const handlePressAppAliveRef = useRef(async () => {
+    const pushToken = await getDevicePushToken();
+    if (!pushToken) {
+      showAlert(
+        "Error",
+        "Unable to get device push token. App alive state cannot be toggled.",
+      );
+      return;
+    }
+
+    const exists = await debug?.toggleInterval("appAliveCheck");
+    setStates((prev) => {
+      const newState = cloneDeep(prev);
+      newState.appAliveCheck = !!exists;
+
+      return newState;
+    });
+
+    showAlert(
+      "Debug state changed",
+      `App alive state is now ${!exists ? "disabled" : "enabled"}.`,
+    );
+  });
+
+  useEffect(() => {
+    const load = async () => {
+      const data = await debug?.getSettings();
+      if (data) setStates(data);
+    };
+    load();
+  }, []);
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.subtitle}>
+        {
+          // eslint-disable-next-line react/jsx-no-literals
+          "Debug Functions (Only visible in debug mode)"
+        }
+      </Text>
+
+      <Button
+        label={
+          "Watch state of app " +
+          (states.appAliveCheck ? "(Enabled)" : "(Disabled)")
+        }
+        handlePress={handlePressAppAliveRef.current}
+      />
+    </View>
+  );
 });
 
 const SettingsScreen: React.FC = () => {
@@ -383,6 +446,8 @@ const SettingsScreen: React.FC = () => {
             </View>
           )}
 
+          {!REPLACERS.isProduction && isLoggedIn && <DebugComponent />}
+
           {!hasAdmin && (
             <View style={styles.section}>
               <Text style={styles.subtitle}>{t("adminSection")}</Text>
@@ -414,4 +479,4 @@ const SettingsScreen: React.FC = () => {
   );
 };
 
-export default SettingsScreen;
+export default memoDeep(SettingsScreen);

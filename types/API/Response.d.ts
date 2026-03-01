@@ -134,3 +134,8 @@ export type ResponseChangeImageFormat = {
   imageUri?: string;
   newFormat?: RequestChangeImageFormat["format"];
 };
+
+export type ResponseDebugAppAlive = {
+  success: boolean;
+  timestamp: string;
+};

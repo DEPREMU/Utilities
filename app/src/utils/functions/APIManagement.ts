@@ -131,6 +131,7 @@ const ROUTES: RoutesAPIWithItsMethod = {
   "/auth/signOut": POST_API,
   "/auth/signup": POST_API,
   "/database/fetch": POST_API,
+  "/debug/appAlive": POST_API,
   "/database/insert": POST_API,
   "/database/update": { method: "put", type: "api" },
   "/database/delete": POST_API,

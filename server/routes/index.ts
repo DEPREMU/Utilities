@@ -16,7 +16,7 @@ import {
 import humanize from "humanize-duration";
 import { Router } from "express";
 import { translate } from "./translate.ts";
-import { handleAddLog } from "./debug.ts";
+import { handleAddLog, handleAppAliveCheck } from "./debug.ts";
 import { Response, Request } from "express";
 import { handleDoQueryDatabase } from "../dev/handleDoQuery.ts";
 import { decryptHandler, encryptHandler } from "./encryption.ts";
@@ -133,6 +133,10 @@ const routes: {
   "/images/changeImageFormat": {
     method: "post",
     handler: handleChangeImageFormat,
+  },
+  "/debug/appAlive": {
+    method: "post",
+    handler: handleAppAliveCheck,
   },
 };
 

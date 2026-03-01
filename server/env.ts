@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { Env, EnvTranslated } from "@types";
+import { Env } from "@types";
 import { showWarn } from "./functions/logger";
 
 dotenv.config({ path: "../.env" });
@@ -57,7 +57,6 @@ const env: Env = {
   VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || "",
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || "",
   DB_ENCRYPTION_PASS: process.env.DB_ENCRYPTION_PASS || "",
-  DELETE_OLD_SESSIONS: process.env.DELETE_OLD_SESSIONS || "false",
   DEEPL_TRANSLATOR_API: process.env.DEEPL_TRANSLATOR_API || "",
   FIREBASE_SERVICE_ACCOUNT: process.env.FIREBASE_SERVICE_ACCOUNT || "",
   SECRET_KEY_TO_ENCRYPTION:
@@ -68,10 +67,12 @@ const env: Env = {
 
 const trueArray = ["true", "1", "yes", "on"];
 
-const envTranslated: EnvTranslated = {
+const envTranslated: Env<true> = {
+  IV: env.IV,
   __DEV__: trueArray.includes(env.__DEV__),
   WS_URL: env.WS_URL,
   API_URL: env.API_URL,
+  BUILD_PROFILE: env.BUILD_PROFILE as "production",
   DB_USER: env.DB_USER,
   DB_PORT: Number(env.DB_PORT),
   DB_PASS: env.DB_PASS,
@@ -79,18 +80,15 @@ const envTranslated: EnvTranslated = {
   DB_HOST: env.DB_HOST,
   USE_HTTPS: trueArray.includes(env.USE_HTTPS),
   JWT_SECRET: env.JWT_SECRET,
+  ADMIN_EMAIL: env.ADMIN_EMAIL,
   ADMIN_PASSWORD: env.ADMIN_PASSWORD,
   VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY,
   DB_ENCRYPTION_PASS: env.DB_ENCRYPTION_PASS,
-  DELETE_OLD_SESSIONS: trueArray.includes(env.DELETE_OLD_SESSIONS),
   DEEPL_TRANSLATOR_API: env.DEEPL_TRANSLATOR_API,
   FIREBASE_SERVICE_ACCOUNT: env.FIREBASE_SERVICE_ACCOUNT,
   SECRET_KEY_TO_ENCRYPTION: env.SECRET_KEY_TO_ENCRYPTION,
-  ADMIN_EMAIL: env.ADMIN_EMAIL,
-  IV: env.IV,
 };
 
-export const getEnvValue = <T extends keyof EnvTranslated>(
-  key: T,
-): EnvTranslated[T] => envTranslated[key];
+export const getEnvValue = <T extends keyof Env<true>>(key: T): Env<true>[T] =>
+  envTranslated[key];
