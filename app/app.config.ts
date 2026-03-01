@@ -88,6 +88,7 @@ export default (
       "expo-secure-store",
       "expo-localization",
       "expo-notifications",
+      "expo-background-task",
       "react-native-quick-crypto",
       [
         "expo-sqlite",

@@ -14,13 +14,15 @@ config.resolver.nodeModulesPaths = [
 ];
 
 //? expo-sqlite
-// config.resolver.assetExts.push("wasm");
-// config.server.enhanceMiddleware = (middleware: any) => {
-//   return (_0: any, res: any, _1: any) => {
-//     res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
-//     res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-//     middleware(_0, res, _1);
-//   };
-// };
+config.resolver.assetExts.push("wasm");
+// @ts-expect-error - enhanceMiddleware is deprecated and is read-only, but expo-sqlite relies on it to set COEP/COOP headers for WebAssembly support. See https://docs.expo.dev/versions/latest/sdk/sqlite/#web-setup for more details.
+config.server.enhanceMiddleware = (middleware: (...args) => void) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (_0: never, res: any, _1: never) => {
+    res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    middleware(_0, res, _1);
+  };
+};
 
 export default config;
