@@ -101,7 +101,7 @@ const askLocationPermission = async (
 export const waitForAppToBeActive = async (): Promise<void> => {
   const { logger, waitForTime } = await import("@utils");
 
-  waitForTime(500);
+  await waitForTime(500);
 
   let step: "waitingForInactivity" | "waitingForActivity" | "done" =
     "waitingForInactivity";

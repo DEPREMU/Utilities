@@ -16,7 +16,6 @@ import React, {
 import {
   tTyped,
   logger,
-  showAlert,
   REPLACERS,
   deviceInfo,
   encryptFile,
@@ -33,6 +32,7 @@ import {
   getMimeTypeFromExtension,
   clearDecryptedFolderDirectory,
   EventsDeviceInfo,
+  alerts,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import { cloneDeep } from "lodash";
@@ -198,12 +198,13 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                 !pass ||
                 pass.length < DEFAULT_VAULT_DATA.MIN_LENGTH_PASSWORD
               ) {
-                showAlert(
+                alerts.showAlert(
                   tTyped("vault.settings.minLengthPassword", {
                     min: String(DEFAULT_VAULT_DATA.MIN_LENGTH_PASSWORD),
-                  }),
-                  undefined,
-                  [{ text: tTyped("common.confirm") }],
+                  }) as never,
+                  "" as never,
+                  async () => {},
+                  { showCancelButton: false },
                 );
 
                 resolve(false);
@@ -247,7 +248,12 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         await new Promise<void>((resolve) => {
           const handlePressSelectFolder = async (errorInDefault?: boolean) => {
             if (errorInDefault)
-              showAlert(tTyped("error"), tTyped("vault.noDefaultFolder"));
+              alerts.showAlert(
+                "error",
+                "vault.noDefaultFolder",
+                async () => {},
+                { showCancelButton: false },
+              );
             directory = await windowModule.pickFolder();
             modalRef.closeModal?.();
             resolve();
@@ -514,7 +520,14 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
           setFiles([]);
           functionsRef.current.unlockFolder();
         } else {
-          showAlert(tTyped("error"));
+          alerts.showAlert(
+            "error",
+            tTyped("vault.encryptFilesErrorMessage", {
+              filenames: files.map((f) => f.name).join(", "),
+              count: String(files.length),
+            }) as never,
+            async () => {},
+          );
         }
       } else {
         const directory = storageManagement.get("VAULT_DIRECTORY", "");
@@ -567,11 +580,12 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
           }),
         );
         if (successes > 0) {
-          showAlert(
-            tTyped("vault.encryptFilesSuccessTitle"),
+          alerts.showAlert(
+            "vault.encryptFilesSuccessTitle",
             tTyped("vault.encryptFilesSuccessMessage", {
               count: String(successes),
-            }),
+            }) as never,
+            async () => {},
           );
           functionsRef.current.unlockFolder();
         }
@@ -622,9 +636,12 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
                 const correctPassword = passwords[folderId];
 
                 if (pass !== correctPassword) {
-                  showAlert(tTyped("error"), tTyped("auth.incorrectPassword"), [
-                    { text: tTyped("common.confirm") },
-                  ]);
+                  alerts.showAlert(
+                    "error",
+                    "auth.incorrectPassword",
+                    async () => {},
+                    { showCancelButton: false },
+                  );
                   resolve("");
                 } else {
                   success = true;

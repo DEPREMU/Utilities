@@ -1,6 +1,5 @@
 import {
   logger,
-  clearRefs,
   REPLACERS,
   fetchToServer,
   sessionManager,
@@ -382,11 +381,7 @@ const ClipboardScreen: React.FC = () => {
 
   useEffect(() => {
     return () => {
-      clearTimeoutPolyfill(idTimeoutRef, idTimeoutSearch);
-
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      setDefaultStates.current?.(true);
-      clearRefs(setDefaultStates, deletedRef);
+      clearTimeoutPolyfill(idTimeoutRef.current, idTimeoutSearch.current);
     };
   }, []);
 

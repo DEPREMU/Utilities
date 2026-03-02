@@ -7,6 +7,7 @@ export const intervalValues: Record<ReasonNotification, number> = {
   batteryAlerts: -1,
   timeToDownload: -1,
   locationEnabled: -1,
+  updateAvailable: -1,
   allNotifications: -1,
   noInternetConnection: -1,
   recorderNotification: -1,

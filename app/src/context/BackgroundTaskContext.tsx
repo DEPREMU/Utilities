@@ -13,12 +13,12 @@ import React, {
 } from "react";
 import {
   logger,
-  showAlert,
   deviceInfo,
   storageManagement,
   executeRegisteredTask,
   hasInternetConnection,
   EventsDeviceInfo,
+  alerts,
 } from "@utils";
 import { BackHandler } from "react-native";
 import { useLanguage } from "./LanguageContext";
@@ -276,19 +276,13 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       getCurrentScreen().then((currentScreen) => {
         const isFirstScreen = currentScreen === "Home";
 
-        showAlert(
-          t(`common.${isFirstScreen ? "exitApp" : "back"}`),
-          t(`common.${isFirstScreen ? "exitAppMessage" : "backMessage"}`),
-          [
-            {
-              text: t("no"),
-              onPress: () => null,
-            },
-            {
-              text: t("yes"),
-              onPress: () => handlePressYes(isFirstScreen),
-            },
-          ],
+        alerts.showAlert(
+          `common.${isFirstScreen ? "exitApp" : "back"}`,
+          `common.${isFirstScreen ? "exitAppMessage" : "backMessage"}`,
+          async (_, accepted) => {
+            if (!accepted) return;
+            handlePressYes(isFirstScreen);
+          },
         );
       });
 

@@ -1,8 +1,8 @@
 import Button from "@/common/components/Button/screens";
 import { View } from "react-native";
-import { useLanguage } from "@/context/LanguageContext";
-import useStylesTranslator from "@/features/Translator/styles/useStylesTranslator";
-import { isFalsy, translate } from "@utils";
+import { translate } from "@utils";
+import { useLanguage } from "@context/LanguageContext";
+import useStylesTranslator from "@screens/Translator/styles/useStylesTranslator";
 import { List, TextInput, Text } from "react-native-paper";
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -28,7 +28,8 @@ const Translator: React.FC = () => {
   const [translatedText, setTranslatedText] = useState<string>("");
 
   const translateText = useCallback(async () => {
-    if (isFalsy(inputText)) return;
+    if (!inputText) return;
+
     const response = await translate(inputText, languageTo);
     setTranslatedText(response);
   }, [inputText, languageTo]);
@@ -78,7 +79,7 @@ const Translator: React.FC = () => {
         <Button
           label={t("translate")}
           handlePress={translateText}
-          disabled={isFalsy(inputText)}
+          disabled={!inputText}
           touchableOpacity
           replaceStyles={{
             button: styles.buttonTranslate,

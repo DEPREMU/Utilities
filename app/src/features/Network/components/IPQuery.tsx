@@ -1,5 +1,4 @@
 import {
-  isFalsy,
   memoDeep,
   getFormattedDate,
   setTimeoutPolyfill,
@@ -14,9 +13,9 @@ import {
 } from "@types";
 import { View, Text } from "react-native";
 // import MapView, { Marker } from "react-native-maps";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@/common/components/SkeletonLoading";
-import useStylesIPQuery from "@/features/Network/styles/useStylesIPQuery";
+import useStylesIPQuery from "@screens/Network/styles/useStylesIPQuery";
 import React, { useEffect, useMemo, useState } from "react";
 
 interface IPQueryProps {
@@ -68,12 +67,12 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
 
   const renderData = useMemo(() => {
     return Object.entries(dataIP).map(([key, value]) => {
-      if (key === "ip" || isFalsy(value)) return null;
+      if (key === "ip" || !value) return null;
 
       if (typeof value !== "object" || Array.isArray(value)) return null;
 
       const subEntries = Object.entries(value || {}).filter(
-        ([, subValue]) => !isFalsy(subValue),
+        ([, subValue]) => !!subValue,
       );
 
       return subEntries.map(([subKey, subValue]) => {

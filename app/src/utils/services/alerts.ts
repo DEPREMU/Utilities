@@ -11,6 +11,14 @@ type AskPermission = <R>(
     cancelable?: boolean;
     /** @default false */
     addDoNotAskAgain?: boolean;
+    /** @default true */
+    showCancelButton?: boolean;
+    /** @default "accept" */
+    acceptButtonText?: typeLanguagesKeys;
+    /** @default "cancel" */
+    cancelButtonText?: typeLanguagesKeys;
+    /** @default "doNotAskAgain" */
+    doNotAskAgainButtonText?: typeLanguagesKeys;
   },
 ) => Promise<Awaited<R> | null>;
 
@@ -35,18 +43,24 @@ const ask: AskPermission = async (
         tTyped(message),
         [
           {
-            text: tTyped("accept"),
+            text: tTyped(options.acceptButtonText ?? "accept"),
             onPress: accept,
           },
-          {
-            text: tTyped("labels.cancel"),
-            style: "cancel",
-            onPress: cancel,
-          },
+          ...(options?.showCancelButton
+            ? [
+                {
+                  text: tTyped(options.cancelButtonText ?? "labels.cancel"),
+                  style: "cancel" as const,
+                  onPress: cancel,
+                },
+              ]
+            : []),
           ...(options?.addDoNotAskAgain
             ? [
                 {
-                  text: tTyped("labels.doNotAskAgain"),
+                  text: tTyped(
+                    options.doNotAskAgainButtonText ?? "labels.doNotAskAgain",
+                  ),
                   style: "destructive" as const,
                   onPress: () => resolve("doNotAskAgain"),
                 },

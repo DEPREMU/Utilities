@@ -1,25 +1,24 @@
 import {
+  debug,
   logger,
-  tTyped,
   openURL,
   API_URL,
-  showAlert,
+  updates,
+  memoDeep,
   REPLACERS,
+  deviceInfo,
   APP_VERSION,
   getRouteAPI,
   fetchToServer,
   ADMIN_PASSWORD,
   sessionManager,
+  DEBUG_SETTINGS,
   getFormattedDate,
   storageManagement,
   setTimeoutPolyfill,
-  fetchAndApplyUpdate,
-  isNewUpdateAvailable,
-  deviceInfo,
-  debug,
   getDevicePushToken,
-  DEBUG_SETTINGS,
-  memoDeep,
+  alerts,
+  EventsDeviceInfo,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import ThemePicker from "@screens/Settings/components/ThemePicker";
@@ -47,7 +46,7 @@ type Section = {
 };
 
 type UpdatesData = {
-  updateState: "NO_UPDATES" | "NOT_VERIFIED";
+  updateState: "NO_UPDATES" | "NOT_VERIFIED" | "UPDATE_AVAILABLE";
   lastUpdateCheck: Date;
   lookingForUpdates: boolean;
 };
@@ -68,9 +67,10 @@ const DebugComponent: React.FC = memoDeep(() => {
   const handlePressAppAliveRef = useRef(async () => {
     const pushToken = await getDevicePushToken();
     if (!pushToken) {
-      showAlert(
-        "Error",
-        "Unable to get device push token. App alive state cannot be toggled.",
+      alerts.showAlert(
+        "error",
+        "Unable to get device push token. App alive state cannot be toggled." as never,
+        async () => {},
       );
       return;
     }
@@ -83,9 +83,10 @@ const DebugComponent: React.FC = memoDeep(() => {
       return newState;
     });
 
-    showAlert(
-      "Debug state changed",
-      `App alive state is now ${!exists ? "disabled" : "enabled"}.`,
+    alerts.showAlert(
+      "Debug state changed" as never,
+      `App alive state is now ${!exists ? "disabled" : "enabled"}.` as never,
+      async () => {},
     );
   });
 
@@ -124,6 +125,9 @@ const SettingsScreen: React.FC = () => {
   const { styles, colors } = useStylesSettingsScreen();
   const { addTaskQueueRef } = useBackgroundTask();
 
+  const [hasInternet, setHasInternet] = useState<boolean>(
+    deviceInfo.hasInternet,
+  );
   const [apiURL, setApiURL] = useState<string>(
     storageManagement.get("API_URL", ""),
   );
@@ -151,36 +155,17 @@ const SettingsScreen: React.FC = () => {
       lookingForUpdates: true,
     });
 
-    const hasUpdate = await isNewUpdateAvailable();
-    if (!hasUpdate) {
-      setTimeoutPolyfill(() => {
-        setUpdatesData((prevState) =>
-          cloneDeep({
-            ...prevState,
-            updateState: "NO_UPDATES",
-            lookingForUpdates: false,
-          }),
-        );
-      }, 1000);
-      return;
-    }
-    showAlert(
-      tTyped("updateAvailable"),
-      tTyped("updateAvailableMessage"),
-      [
-        {
-          text: tTyped("later"),
-          style: "cancel",
-        },
-        {
-          text: tTyped("updateNow"),
-          onPress: async () => {
-            await fetchAndApplyUpdate();
-          },
-        },
-      ],
-      { cancelable: false },
-    );
+    const hasUpdate = await updates?.checkForUpdates();
+
+    setTimeoutPolyfill(() => {
+      setUpdatesData((prevState) =>
+        cloneDeep({
+          ...prevState,
+          updateState: hasUpdate ? "UPDATE_AVAILABLE" : "NO_UPDATES",
+          lookingForUpdates: false,
+        }),
+      );
+    }, 1000);
   });
 
   const openUrlUpdatesWebPageRef = useRef(async () => {
@@ -355,6 +340,15 @@ const SettingsScreen: React.FC = () => {
     ));
   }, [apiURL, socketURL, styles, t, saveApiURL, saveSocketURL]);
 
+  useEffect(() => {
+    const removeListener = deviceInfo.addEventListener(
+      EventsDeviceInfo.hasInternetChange,
+      (hasInternet) => setHasInternet(hasInternet),
+    );
+
+    return () => removeListener();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.contentWrapper}>
@@ -388,7 +382,7 @@ const SettingsScreen: React.FC = () => {
                   button: styles.button,
                   textButton: styles.buttonLabel,
                 }}
-                disabled={updatesData?.lookingForUpdates}
+                disabled={updatesData?.lookingForUpdates || !hasInternet}
                 handlePress={handleCheckForUpdatesRef.current}
               >
                 {updatesData?.lookingForUpdates ? (
@@ -400,6 +394,8 @@ const SettingsScreen: React.FC = () => {
                   <Text style={styles.buttonLabel}>{t("noUpdates")}</Text>
                 ) : updatesData?.updateState === "NOT_VERIFIED" ? (
                   <Text style={styles.buttonLabel}>{t("checkForUpdates")}</Text>
+                ) : updatesData?.updateState === "UPDATE_AVAILABLE" ? (
+                  <Text style={styles.buttonLabel}>{t("updateAvailable")}</Text>
                 ) : null}
               </Button>
             )}

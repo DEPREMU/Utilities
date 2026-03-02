@@ -1,79 +1,24 @@
 import {
-  debug,
-  alerts,
-  logger,
-  openURL,
   REPLACERS,
   deviceInfo,
-  APP_VERSION,
-  fetchToServer,
   sessionManager,
+  cleanupServices,
   recorderManager,
   clipboardManager,
   storageManagement,
   setTimeoutPolyfill,
-  fetchAndApplyUpdate,
-  setIntervalPolyfill,
-  isNewUpdateAvailable,
   notificationsManager,
-  clearIntervalPolyfill,
   configureNotificationChannel,
-  updates,
 } from "@utils";
 import AppNavigator from "./AppNavigator";
 import AppProviders from "@context/AppProviders";
+import React, { useEffect } from "react";
 import { NativeFunctionsModule } from "@modules";
-import React, { useEffect, useRef } from "react";
 
 configureNotificationChannel();
 
 const App = () => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
-
-  const handleCheckForUpdatesNativelyRef = useRef(async () => {
-    try {
-      if (APP_VERSION.includes("dev")) return; // Skip updates for testing builds
-
-      const res = await fetchToServer("/is-update-available", {
-        buildType: "android",
-        currentVersion: APP_VERSION,
-        platformOS: undefined,
-      });
-      const result = res.data;
-
-      if (!result?.updateAvailable) return;
-
-      return await alerts.showAlert(
-        "updateAvailable",
-        "updateAvailableMessage",
-        async (_, accepted) => {
-          if (!accepted) return;
-
-          openURL(result.downloadUrl);
-        },
-      );
-    } catch (error) {
-      logger.error("Error while updating the app", error);
-    }
-  });
-
-  const handleCheckForUpdatesRef = useRef(async () => {
-    try {
-      if (APP_VERSION.includes("dev")) return; // Skip updates for testing builds
-
-      await handleCheckForUpdatesNativelyRef.current();
-      storageManagement.save("LAST_UPDATE_CHECK", Date.now());
-
-      const isAvailable = await isNewUpdateAvailable();
-      if (!isAvailable) return;
-
-      await fetchAndApplyUpdate();
-    } catch (error) {
-      logger.error("Error while updating the app", error);
-    } finally {
-      setIsLoading(false);
-    }
-  });
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -92,12 +37,7 @@ const App = () => {
     initializeApp();
 
     const cleanup = (fun?: () => void) => () => {
-      clipboardManager.cleanup();
-      debug?.cleanup();
-      deviceInfo.cleanup();
-      sessionManager.cleanup();
-      recorderManager.cleanup();
-      updates?.cleanup();
+      cleanupServices();
 
       fun?.();
     };
@@ -110,17 +50,10 @@ const App = () => {
           await NativeFunctionsModule.wasLaunchedFromService();
         if (!launchedFromService) return;
 
-        await handleCheckForUpdatesNativelyRef.current();
+        NativeFunctionsModule.minimizeApp();
       }, 500);
-    else return cleanup();
 
-    handleCheckForUpdatesRef.current();
-    const id = setIntervalPolyfill(
-      () => handleCheckForUpdatesRef.current(),
-      8 * 60 * 60 * 1000,
-    );
-
-    return cleanup(() => clearIntervalPolyfill(id));
+    return cleanup();
   }, []);
 
   if (isLoading) return null;

@@ -1,9 +1,8 @@
-import { isFalsy } from "@utils";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
 import React, { useCallback } from "react";
-import { useDeviceInformation } from "@/context/DeviceInformationContext";
+import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { View, Text, ScrollView } from "react-native";
-import useStylesDeviceInformation from "@/features/DeviceInformation/styles/useStylesDeviceInformation";
+import useStylesDeviceInformation from "@screens/DeviceInformation/styles/useStylesDeviceInformation";
 import { DeviceInformation as DeviceInformationType } from "@types";
 
 const DeviceInformation: React.FC = () => {
@@ -58,7 +57,7 @@ const DeviceInformation: React.FC = () => {
             </Text>
             <View style={styles.infoSection}>
               {Object.entries(value).map(([subKey, subValue]) => {
-                if (isFalsy(subValue) || subValue === "unknown") return null;
+                if (!subValue || subValue === "unknown") return null;
                 return renderKeyValue(
                   subKey as keyof DeviceInformationType,
                   subValue as string | number | boolean,
@@ -91,9 +90,7 @@ const DeviceInformation: React.FC = () => {
     const infoItems: Array<React.ReactElement | null> = [];
 
     Object.entries(deviceInfo || {}).forEach(([key, value]) => {
-      if (isFalsy(value) || ["unknown", -1].includes(value as string)) {
-        return;
-      }
+      if (!value || value === "unknown" || value === -1) return;
 
       if (typeof value === "object") {
         infoItems.push(renderObject(key, value));

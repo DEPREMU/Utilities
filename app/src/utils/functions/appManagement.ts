@@ -10,7 +10,6 @@ import React from "react";
 import isEqual from "react-fast-compare";
 import { logger } from "./debug";
 import { tTyped } from "../translates";
-import * as Updates from "expo-updates";
 import * as Sharing from "expo-sharing";
 import { REPLACERS } from "../TOP_LEVEL";
 import { Alert, Falsy } from "react-native";
@@ -45,32 +44,6 @@ export const getFormattedDate = (
 };
 
 /**
- * Replaces placeholders in a message string with corresponding values from an array.
- *
- * Placeholders in the message should be in the format `{0}`, `{1}`, etc.
- * Each placeholder will be replaced by the value at the corresponding index in the `values` array.
- * If a placeholder index does not exist in the array, the placeholder is left unchanged.
- *
- * @param message - The message string containing placeholders.
- * @param values - An array of strings to replace the placeholders.
- * @returns The interpolated message with placeholders replaced by corresponding values.
- *
- * @example
- * ```typescript
- * const msg = "Hello, {0}! You have {1} new messages.";
- * const result = interpolateMessage(msg, ["Alice", "5"]);
- * // result: "Hello, Alice! You have 5 new messages."
- * ```
- */
-export const interpolateMessage = (message: string, values: string[]) => {
-  if (!message || !values || values.length === 0) return message;
-  return message.replace(/\{(\d+)\}/g, (match, index) => {
-    const value = values[parseInt(index, 10)];
-    return value !== undefined ? value : match;
-  });
-};
-
-/**
  * Capitalizes the first letter of a string.
  *
  * @param str - The string to capitalize.
@@ -79,37 +52,6 @@ export const interpolateMessage = (message: string, values: string[]) => {
 export const capitalize = (str: string): string => {
   if (!str) return str;
   return str.charAt(0).toUpperCase() + str.slice(1);
-};
-
-/**
- * Checks if a value is falsy.
- *
- * A value is considered falsy if it is:
- * - `null`
- * - `undefined`
- * - `false`
- * - an empty string (`""`)
- * Falsy values do not include `0`, `NaN`, or empty arrays/objects.
- *
- * @param value - The value to check.
- * @returns `true` if the value is falsy, otherwise `false`.
- */
-export const isFalsy = (value: unknown): value is Falsy => {
-  return (
-    value === null || value === undefined || value === false || value === ""
-  );
-};
-
-/**
- * Gets the date that is a specified number of days in the future.
- *
- * @param days - The number of days to add to the current date.
- * @returns A Date object representing the future date.
- */
-export const getDateWithDaysAhead = (days: number): Date => {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
 };
 
 export const getCryptosFromDatabase = async (
@@ -152,27 +94,6 @@ export const getCryptosFromDatabase = async (
   );
 };
 
-export const isNewUpdateAvailable = async (): Promise<boolean> => {
-  return (await Updates.checkForUpdateAsync()).isAvailable;
-};
-
-export const fetchAndApplyUpdate = async (): Promise<void> => {
-  try {
-    if (REPLACERS.isDev) return;
-
-    const update = await Updates.fetchUpdateAsync();
-
-    if (update.isNew) {
-      logger.log("New update downloaded, applying update...");
-      await Updates.reloadAsync();
-    } else {
-      logger.log("No new update available to fetch.");
-    }
-  } catch (error) {
-    logger.error("Error fetching or applying update:", error);
-  }
-};
-
 export const setTimeoutPolyfill = (
   fn: (...args: unknown[]) => void,
   timeout: number,
@@ -195,18 +116,6 @@ export const clearTimeoutPolyfill = (
 
     if (REPLACERS.isNative) _BackgroundTimer.clearTimeout(id as number);
     else clearTimeout(id);
-  });
-};
-
-/**
- * Clears the current value of one or more React refs by setting them to null.
- *
- * @param refs - One or more React ref objects to be cleared
- * @returns void
- */
-export const clearRefs = (...refs: React.RefObject<unknown>[]): void => {
-  refs.forEach((ref) => {
-    if (ref && "current" in ref) ref.current = null;
   });
 };
 
@@ -279,6 +188,10 @@ export const hasInternetConnection = async (): Promise<boolean> => {
   }
 };
 
+export const waitForTime = (ms: number) => {
+  return new Promise((resolve) => setTimeoutPolyfill(resolve, ms));
+};
+
 /**
  * Waits for an active internet connection by repeatedly checking connectivity with a specified number of retries and interval.
  * The function attempts to verify the internet connection by calling `hasInternetConnection` at regular intervals until a connection is established or the maximum number of retries is reached.
@@ -293,7 +206,7 @@ export const waitForInternet = async (
 ): Promise<boolean> => {
   for (let i = 0; i < retries; i++) {
     if (await hasInternetConnection()) return true;
-    await new Promise((resolve) => setTimeoutPolyfill(resolve, interval));
+    await waitForTime(interval);
   }
   return false;
 };
@@ -635,15 +548,6 @@ export const downloadBase64 = REPLACERS.isWeb
   ? downloadBase64Web
   : downloadBase64Native;
 
-export const showAlert = (...args: Parameters<typeof Alert.alert>): void => {
-  if (REPLACERS.isWeb) alert(args[0] + "\n\n" + (args[1] || ""));
-  else Alert.alert(...args);
-};
-
 export const sanitizeFileName = (name: string) => {
   return name.replace(/[^a-zA-Z0-9.\-_]/g, " ").trim();
-};
-
-export const waitForTime = (ms: number) => {
-  return new Promise((resolve) => setTimeoutPolyfill(resolve, ms));
 };

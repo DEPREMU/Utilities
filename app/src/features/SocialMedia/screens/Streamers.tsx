@@ -1,10 +1,8 @@
 import {
   ASSETS,
   logger,
-  isFalsy,
   openURL,
   tTyped,
-  clearRefs,
   capitalize,
   deviceInfo,
   fetchToServer,
@@ -37,7 +35,7 @@ const Streamers: React.FC = () => {
     const { userData, sessionToken } = sessionManager.getSessionData();
 
     modalRef.closeModal?.();
-    if (!userData?.userId || isFalsy(id) || !sessionToken) return;
+    if (!userData?.userId || !id || !sessionToken) return;
 
     const deviceId = storageManagement.get("DEVICE_ID");
 
@@ -126,13 +124,15 @@ const Streamers: React.FC = () => {
   });
 
   const handleOpenURLStreamerRef = useRef((url: string) => {
-    if (isFalsy(url)) return;
+    if (!url) return;
+
     modalRef.closeModal?.();
     openURL(url);
   });
 
   const openURLStreamerRef = useRef((name: string) => {
-    if (isFalsy(name)) return;
+    if (!name) return;
+
     const url = `https://www.twitch.tv/${name?.toLowerCase()}`;
     modalRef.openModal?.(
       t("openURL"),
@@ -190,10 +190,10 @@ const Streamers: React.FC = () => {
   );
 
   const addingStreamer = useCallback(async () => {
-    if (isFalsy(streamer)) return;
+    if (!streamer) return;
 
     const { userData } = sessionManager.getSessionData();
-    if (isFalsy(userData?.userId)) return;
+    if (!userData?.userId) return;
 
     if (
       streamers.find(
@@ -274,8 +274,6 @@ const Streamers: React.FC = () => {
 
   useEffect(() => {
     streamersLoaded.current = streamers.length > 0;
-
-    return () => clearRefs(streamersLoaded);
   }, [streamers]);
 
   useEffect(() => {

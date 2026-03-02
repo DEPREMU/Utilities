@@ -2,12 +2,12 @@ import Button from "@/common/components/Button/screens";
 import Markdown from "react-native-marked";
 import { Tables } from "@types";
 import { ScrollView } from "react-native";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@/common/components/SkeletonLoading";
 import { Card, Text, TextInput } from "react-native-paper";
 import { useStylesClipboardScreen } from "@screens/Clipboard/styles";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { clearRefs, getFormattedDate, memoDeep, REPLACERS } from "@utils";
+import React, { useMemo, useRef, useState } from "react";
+import { getFormattedDate, memoDeep, REPLACERS } from "@utils";
 
 interface RenderClipboardItemProps {
   item: Tables["ClipboardSync"];
@@ -121,10 +121,6 @@ const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
 
     return <Text style={styles.contentCardAndroid}>{formattedDate}</Text>;
   }, [item.createdAt, styles.contentCardAndroid]);
-
-  useEffect(() => {
-    return () => clearRefs(getMoreContent);
-  }, []);
 
   return (
     <Card style={styles.card}>

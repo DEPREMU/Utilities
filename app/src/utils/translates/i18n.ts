@@ -17,9 +17,7 @@ i18n.use(initReactI18next).init({
     en: { translation: enApp },
     es: { translation: esApp },
   },
-  interpolation: {
-    escapeValue: false,
-  },
+  interpolation: { escapeValue: false },
 });
 
 /**
@@ -34,6 +32,7 @@ i18n.use(initReactI18next).init({
  */
 export const getLanguageFromStorage =
   async (): Promise<LanguagesSupported | null> => {
+    await storageManagement.waitUntilLoaded();
     const data = storageManagement.get("LANGUAGE");
     if (!data) return null;
 
@@ -68,9 +67,7 @@ export const getLanguageFromDevice = wrapFunctionWithError(
   true,
   async (_, errMsg) => {
     import("@utils").then(({ logger }) => {
-      logger.error(
-        `.utils/translates/i18n.ts/getLanguageFromDevice() => ${errMsg}`,
-      );
+      logger.error(`getLanguageFromDevice() => ${errMsg}`);
     });
     return "en" as LanguagesSupported;
   },

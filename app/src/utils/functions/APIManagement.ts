@@ -21,30 +21,40 @@ import { stringifyData, storageManagement } from "../services/storage";
 
 const TAG = "APIManagement";
 
-/**
- * Generates an options object for a fetch request.
- *
- * @param method - The HTTP method to use for the request. Can be either "POST" or "GET".
- * @param body - An optional request body, which can be of type `RequestEncrypt` or `RequestDecrypt`.
- *               If provided, it will be stringified and included in the request.
- * @returns An object containing the HTTP method, headers, and optionally the stringified body.
- */
-export const fetchOptions = <T = RequestBody>(body?: T, token?: string) => {
-  try {
-    if (body) body = stringifyData(body) as T;
-  } catch (error) {
-    logger.error("Error stringifying request body:", error);
-    body = undefined;
-  }
-  return {
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${token || ""}`,
-    },
-    body: body as string | undefined,
-  };
-};
+const POST_API = {
+  type: "api",
+  method: "post",
+} as const;
+
+const ROUTES: RoutesAPIWithItsMethod = {
+  "/log": POST_API,
+  "/health": { method: "get", type: "api" },
+  "/cryptos": POST_API,
+  "/cryptoPrice": POST_API,
+  "/translate": POST_API,
+  "/addStreamer": POST_API,
+  "/getIsLiveStreamer": POST_API,
+  "/auth/login": POST_API,
+  "/auth/refreshSession": POST_API,
+  "/auth/signOut": POST_API,
+  "/auth/signup": POST_API,
+  "/database/fetch": POST_API,
+  "/debug/appAlive": POST_API,
+  "/database/insert": POST_API,
+  "/database/update": { method: "put", type: "api" },
+  "/database/delete": POST_API,
+  "/doQueryDB": POST_API,
+  "/encrypt": POST_API,
+  "/decrypt": POST_API,
+  "/images/changeImageFormat": POST_API,
+  "/upload-update": { method: "post", type: "updates" },
+  "/is-update-available": { method: "post", type: "updates" },
+  "/web-page": { method: "get", type: "updates" },
+  "/download/:buildType/:version/:platformOS/:id": {
+    method: "get",
+    type: "updates",
+  },
+} as const;
 
 /**
  * Constructs a full API route URL by appending the given route to the base API URL.
@@ -112,41 +122,6 @@ export const getRouteImage = (filename: string): string => {
   const apiUrl = storageManagement.get("API_URL", API_URL);
   return `${apiUrl.replace("/api", "")}${filename}`;
 };
-
-const POST_API = {
-  type: "api",
-  method: "post",
-} as const;
-
-const ROUTES: RoutesAPIWithItsMethod = {
-  "/log": POST_API,
-  "/health": { method: "get", type: "api" },
-  "/cryptos": POST_API,
-  "/cryptoPrice": POST_API,
-  "/translate": POST_API,
-  "/addStreamer": POST_API,
-  "/getIsLiveStreamer": POST_API,
-  "/auth/login": POST_API,
-  "/auth/refreshSession": POST_API,
-  "/auth/signOut": POST_API,
-  "/auth/signup": POST_API,
-  "/database/fetch": POST_API,
-  "/debug/appAlive": POST_API,
-  "/database/insert": POST_API,
-  "/database/update": { method: "put", type: "api" },
-  "/database/delete": POST_API,
-  "/doQueryDB": POST_API,
-  "/encrypt": POST_API,
-  "/decrypt": POST_API,
-  "/images/changeImageFormat": POST_API,
-  "/upload-update": { method: "post", type: "updates" },
-  "/is-update-available": { method: "post", type: "updates" },
-  "/web-page": { method: "get", type: "updates" },
-  "/download/:buildType/:version/:platformOS/:id": {
-    method: "get",
-    type: "updates",
-  },
-} as const;
 
 export enum APIErrorWhy {
   ServerError = "ServerError",

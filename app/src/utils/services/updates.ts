@@ -4,7 +4,7 @@ import { EventsDeviceInfo } from "./deviceInfo";
 
 type CheckUpdatesNatively = {
   time: number;
-  func: () => Promise<void>;
+  func: () => Promise<boolean>;
   removeListenerInternet?: () => void;
 };
 
@@ -16,6 +16,17 @@ class Updates {
   #listenerExpoUpdates: ReturnType<
     typeof ExpoUpdates.addUpdatesStateChangeListener
   > | null = null;
+
+  #updateExpo = async () => {
+    const { cleanupServices } = await import("@utils");
+
+    const update = await ExpoUpdates.checkForUpdateAsync();
+    if (!update.isAvailable) return false;
+
+    await cleanupServices();
+    await ExpoUpdates.fetchUpdateAsync();
+    await ExpoUpdates.reloadAsync();
+  };
 
   #checkUpdatesNatively: CheckUpdatesNatively = {
     time: 8 * 60 * 60 * 1000,
@@ -37,7 +48,7 @@ class Updates {
           currentVersion: APP_VERSION,
         });
         const result = res.data;
-        if (!result?.updateAvailable) return;
+        if (!result?.updateAvailable) return false;
 
         const hasInternet = await waitForInternet(5);
         if (!hasInternet) {
@@ -51,7 +62,7 @@ class Updates {
                 this.#checkUpdatesNatively.removeListenerInternet?.();
               },
             );
-          return;
+          return false;
         }
 
         if (deviceInfo.isBackground) {
@@ -80,20 +91,21 @@ class Updates {
             },
           );
         }
+        return true;
       } catch (error) {
         const { logger } = await import("@utils");
         logger.error("Error while updating the app", error);
       }
+
+      return false;
     },
   };
 
-  private _initCheckUpdatesExpo = async () => {
-    if (!REPLACERS.isNative) return;
-    if (this.#listenerExpoUpdates) return;
-    if (APP_VERSION.includes("dev")) return; // Skip updates for testing builds
-
-    const sub = ExpoUpdates.addUpdatesStateChangeListener(async (event) => {
-      if (!event.context.isUpdateAvailable) return;
+  #checkUpdatesExpo = async () => {
+    try {
+      if (!REPLACERS.isNative) return false;
+      const update = await ExpoUpdates.checkForUpdateAsync();
+      if (!update.isAvailable) return false;
 
       const { alerts, notificationsManager, deviceInfo, tTyped } =
         await import("@utils");
@@ -105,8 +117,7 @@ class Updates {
           async (_, accepted) => {
             if (!accepted) return;
 
-            await ExpoUpdates.fetchUpdateAsync();
-            await ExpoUpdates.reloadAsync();
+            this.#updateExpo();
           },
           {
             cancelable: true,
@@ -129,6 +140,24 @@ class Updates {
           ],
         });
       }
+
+      return true;
+    } catch (error) {
+      const { logger } = await import("@utils");
+      logger.error("Error while updating the app with Expo Updates", error);
+    }
+
+    return false;
+  };
+
+  private _initCheckUpdatesExpo = async () => {
+    if (!REPLACERS.isNative) return;
+    if (this.#listenerExpoUpdates) return;
+    if (APP_VERSION.includes("dev")) return; // Skip updates for testing builds
+
+    const sub = ExpoUpdates.addUpdatesStateChangeListener(async (event) => {
+      if (!event.context.isUpdateAvailable) return;
+      await this.#checkUpdatesExpo();
     });
 
     this.#listenerExpoUpdates = sub;
@@ -157,6 +186,13 @@ class Updates {
     ]);
     this.#initialized = true;
     this.#initPromise = null;
+  };
+
+  public checkForUpdates = async () => {
+    const updateNatively = await this.#checkUpdatesNatively.func();
+    if (updateNatively) return true;
+
+    return await this.#checkUpdatesExpo();
   };
 
   public cleanup = async () => {
