@@ -177,45 +177,45 @@ export const configureNotificationChannel = async () => {
   if (REPLACERS.isWeb) return;
 
   const channels: Record<ChannelsId, notifications.NotificationChannelInput> = {
+    updateAvailable: {
+      name: tTyped("updateAvailable"),
+      importance: notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250, 100],
+      lightColor: "#00ff00",
+    },
     cryptos: {
       name: tTyped("cryptos"),
       importance: notifications.AndroidImportance.MAX,
-      sound: "default",
       vibrationPattern: [0, 250, 250, 250, 250, 250, 100],
       lightColor: "#00f7ff7c",
     },
     streamers: {
       name: tTyped("streamers"),
       importance: notifications.AndroidImportance.HIGH,
-      sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#8400ff7c",
     },
     default: {
       name: tTyped("default"),
       importance: notifications.AndroidImportance.DEFAULT,
-      sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffffff",
     },
     locationEnabled: {
       name: tTyped("locationEnabled"),
       importance: notifications.AndroidImportance.HIGH,
-      sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ff0000",
     },
     batteryAlerts: {
       name: tTyped("batteryAlerts"),
       importance: notifications.AndroidImportance.HIGH,
-      sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#00ff00",
     },
     noInternetConnection: {
       name: tTyped("noInternetConnection"),
       importance: notifications.AndroidImportance.HIGH,
-      sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffff00",
     },
@@ -228,21 +228,18 @@ export const configureNotificationChannel = async () => {
     downDetector: {
       name: tTyped("downDetector"),
       importance: notifications.AndroidImportance.HIGH,
-      sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ff00ff",
     },
     loggedInStatusChannel: {
       name: tTyped("loggedInStatusChannel"),
       importance: notifications.AndroidImportance.HIGH,
-      sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#00ffff",
     },
     timeToDownload: {
       name: tTyped("timeToDownload"),
       importance: notifications.AndroidImportance.HIGH,
-      sound: "default",
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffa500",
     },
@@ -255,12 +252,8 @@ export const configureNotificationChannel = async () => {
   };
 
   await Promise.all(
-    Object.entries(channels).map(
-      async ([channelId, channelOptions]) =>
-        await notifications.setNotificationChannelAsync(
-          channelId,
-          channelOptions,
-        ),
+    Object.entries(channels).map(([channelId, channelOptions]) =>
+      notifications.setNotificationChannelAsync(channelId, channelOptions),
     ),
   );
 };

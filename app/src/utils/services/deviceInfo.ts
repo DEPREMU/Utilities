@@ -15,8 +15,8 @@ import {
   setIntervalPolyfill,
   clearIntervalPolyfill,
 } from "../functions";
-import * as NetInfo from "@react-native-community/netinfo";
 import { tTyped } from "../translates";
+import * as NetInfo from "@react-native-community/netinfo";
 import { REPLACERS } from "../TOP_LEVEL";
 import * as Location from "expo-location";
 import { DATA_PLATFORM } from "../cross";
@@ -131,7 +131,7 @@ class DeviceInfo {
   #initialized = false;
   #initPromise: Promise<void> | null = null;
 
-  #cleanup = () => {
+  public cleanup = () => {
     Object.values(this.#listeners).forEach((cleanup) => cleanup?.());
     this.#listeners = {};
   };
@@ -344,6 +344,7 @@ class DeviceInfo {
                   batteryAlerts: 30,
                   timeToDownload: 1,
                   locationEnabled: 30,
+                  updateAvailable: 15,
                   allNotifications: 60,
                   noInternetConnection: 15,
                   recorderNotification: 30,
@@ -558,9 +559,11 @@ class DeviceInfo {
     if (this.#initPromise) return this.#initPromise;
 
     const init = async () => {
-      this.#cleanup();
+      this.cleanup();
 
       this._initAppState();
+
+      const promises: Promise<void>[] = [];
 
       if (REPLACERS.isNative) {
         this._initStatePhone();
@@ -568,14 +571,16 @@ class DeviceInfo {
         this._initNotificationEvents();
       }
 
-      await Promise.all([
+      promises.push(
         this._initHasInternet(),
         this._initScreenChange(),
         this._initBatteryAlerts(),
         this._initVerifyLocation(),
         this._initNetworkSettings(),
         this._initNetworkTypeChange(),
-      ]);
+      );
+
+      await Promise.all(promises);
 
       this.#initialized = true;
       this.#initPromise = null;

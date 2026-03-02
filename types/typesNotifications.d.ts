@@ -13,6 +13,7 @@ export type ReasonNotification =
   | "batteryAlerts"
   | "timeToDownload"
   | "locationEnabled"
+  | "updateAvailable"
   | "allNotifications"
   | "recorderNotification"
   | "noInternetConnection"

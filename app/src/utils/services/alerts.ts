@@ -7,19 +7,28 @@ type AskPermission = <R>(
   callback: (doNotAskAgain: boolean, success: boolean) => Promise<R>,
   options?: {
     timeout?: number;
+    /** @default false */
     cancelable?: boolean;
+    /** @default false */
     addDoNotAskAgain?: boolean;
   },
 ) => Promise<Awaited<R> | null>;
 
-const ask: AskPermission = async (title, message, callback, options = {}) => {
+const ask: AskPermission = async (
+  title,
+  message,
+  callback,
+  options = {
+    cancelable: false,
+    addDoNotAskAgain: false,
+  },
+) => {
   const { tTyped } = await import("@utils");
 
   const result = await new Promise<"accept" | "cancel" | "doNotAskAgain">(
     (resolve) => {
       const accept = () => resolve("accept");
       const cancel = () => resolve("cancel");
-      const doNotAskAgain = () => resolve("doNotAskAgain");
 
       Alert.alert(
         tTyped(title),
@@ -39,14 +48,14 @@ const ask: AskPermission = async (title, message, callback, options = {}) => {
                 {
                   text: tTyped("labels.doNotAskAgain"),
                   style: "destructive" as const,
-                  onPress: doNotAskAgain,
+                  onPress: () => resolve("doNotAskAgain"),
                 },
               ]
             : []),
         ],
         {
           onDismiss: cancel,
-          cancelable: options?.cancelable ?? false,
+          cancelable: options?.cancelable,
         },
       );
     },

@@ -107,6 +107,13 @@ class Debug {
     }
   };
 
+  public cleanup = async () => {
+    const { clearIntervalPolyfill } = await import("@utils");
+    Object.values(this.#intervals).forEach((interval) => {
+      if (typeof interval === "number") clearIntervalPolyfill(interval);
+    });
+  };
+
   constructor() {
     this.#initPromise = this._init();
   }

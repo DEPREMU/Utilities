@@ -2,6 +2,7 @@ export * from "./debug";
 export * from "./alerts";
 export * from "./storage";
 export * from "./session";
+export * from "./updates";
 export * from "./recorder";
 export * from "./clipboard";
 export * from "./deviceInfo";

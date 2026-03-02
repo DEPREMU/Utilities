@@ -149,7 +149,7 @@ const editMainApplication = async () => {
     ].join("\n"),
   );
 
-  const getPackagesRegex = /getPackages\(\)[^}]+}/g;
+  const getPackagesRegex = /PackageList\(this\)\.packages\.apply[^}]+}/g;
   const getPackagesMatch = newContent.match(getPackagesRegex)?.[0];
 
   if (!getPackagesMatch) {

@@ -652,6 +652,14 @@ class SessionManager {
     return this.#initPromise;
   };
 
+  public cleanup = async () => {
+    if (this.#intervalId) {
+      const { clearIntervalPolyfill } = await import("@utils");
+      clearIntervalPolyfill(this.#intervalId);
+    }
+    this.removeAllListeners();
+  };
+
   public getSessionData = () => this.#data;
 
   constructor() {

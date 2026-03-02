@@ -85,11 +85,19 @@ export default (
       "expo-audio",
       "expo-video",
       "expo-camera",
+      "expo-sharing",
+      "expo-system-ui",
+      "expo-file-system",
       "expo-secure-store",
       "expo-localization",
+      "expo-media-library",
       "expo-notifications",
       "expo-background-task",
+      "expo-document-picker",
+      "expo-local-authentication",
       "react-native-quick-crypto",
+      ["react-native-permissions", { iosPermissions: [] }],
+      ["expo-location", { isAndroidBackgroundLocationEnabled: true }],
       [
         "expo-sqlite",
         {
@@ -98,25 +106,27 @@ export default (
         },
       ],
       [
+        "expo-build-properties",
+        {
+          enableMinifyInReleaseBuilds: true,
+          android: { usesCleartextTraffic: true },
+        },
+      ],
+      [
+        "expo-localization",
+        {
+          supportedLocales: {
+            web: ["en", "es"],
+            android: ["en", "es"],
+          },
+        },
+      ],
+      [
         "react-native-audio-api",
         {
           androidFSTypes: ["microphone", "mediaPlayback"],
           androidPermissions: [],
           androidForegroundService: true,
-        },
-      ],
-      [
-        "react-native-permissions",
-        {
-          iosPermissions: [],
-        },
-      ],
-      [
-        "expo-build-properties",
-        {
-          android: {
-            usesCleartextTraffic: true,
-          },
         },
       ],
     ],

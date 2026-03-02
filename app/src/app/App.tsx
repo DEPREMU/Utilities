@@ -1,4 +1,5 @@
 import {
+  debug,
   alerts,
   logger,
   openURL,
@@ -17,6 +18,7 @@ import {
   notificationsManager,
   clearIntervalPolyfill,
   configureNotificationChannel,
+  updates,
 } from "@utils";
 import AppNavigator from "./AppNavigator";
 import AppProviders from "@context/AppProviders";
@@ -84,22 +86,33 @@ const App = () => {
         storageManagement.waitUntilLoaded(),
         notificationsManager.waitUntilLoaded(),
       ]);
+
       setIsLoading(false);
     };
     initializeApp();
 
-    if (REPLACERS.isWeb) return;
+    const cleanup = (fun?: () => void) => () => {
+      clipboardManager.cleanup();
+      debug?.cleanup();
+      deviceInfo.cleanup();
+      sessionManager.cleanup();
+      recorderManager.cleanup();
+      updates?.cleanup();
+
+      fun?.();
+    };
+
+    if (REPLACERS.isWeb) return cleanup();
 
     if (!REPLACERS.isDev)
-      setTimeoutPolyfill(
-        () =>
-          NativeFunctionsModule.wasLaunchedFromService().then(
-            (launchedFromService) =>
-              launchedFromService && NativeFunctionsModule.minimizeApp(),
-          ),
-        500,
-      );
-    else return;
+      setTimeoutPolyfill(async () => {
+        const launchedFromService =
+          await NativeFunctionsModule.wasLaunchedFromService();
+        if (!launchedFromService) return;
+
+        await handleCheckForUpdatesNativelyRef.current();
+      }, 500);
+    else return cleanup();
 
     handleCheckForUpdatesRef.current();
     const id = setIntervalPolyfill(
@@ -107,7 +120,7 @@ const App = () => {
       8 * 60 * 60 * 1000,
     );
 
-    return () => clearIntervalPolyfill(id);
+    return cleanup(() => clearIntervalPolyfill(id));
   }, []);
 
   if (isLoading) return null;
