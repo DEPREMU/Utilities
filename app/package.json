@@ -2,7 +2,7 @@
   "name": "utilities",
   "version": "1.0.0",
   "license": "ISC",
-  "main": "src/index.ts",
+  "main": "src/index.tsx",
   "type": "module",
   "expo": {
     "doctor": {

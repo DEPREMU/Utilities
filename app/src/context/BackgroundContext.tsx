@@ -8,6 +8,7 @@ import {
   clearTimeoutPolyfill,
   clearIntervalPolyfill,
   EventsDeviceInfo,
+  waitForTime,
 } from "@utils";
 import { reloadAppAsync } from "expo";
 import { getCurrentScreen, navigateReplace } from "@refs";
@@ -127,7 +128,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       let attempt = 0;
       while (!BackgroundModule.start && attempt < 5) {
         attempt++;
-        await new Promise((resolve) => setTimeoutPolyfill(resolve, 1000));
+        await waitForTime(1000);
         logger.log(
           `Waiting for BackgroundModule to be ready... Attempt ${attempt}`,
         );

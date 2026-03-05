@@ -4,8 +4,22 @@ import { createNavigationContainerRef } from "@react-navigation/native";
 
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
-export const navigate = (name: keyof RootStackParamList, params?: object) => {
-  if (!navigationRef.isReady()) return;
+const waitForNavigationReady = async () => {
+  if (navigationRef.isReady()) return;
+
+  let attempts = 0;
+  const { waitForTime } = await import("@utils");
+  while (!navigationRef.isReady() && attempts <= 100) {
+    attempts++;
+    await waitForTime(50);
+  }
+};
+
+export const navigate = async (
+  name: keyof RootStackParamList,
+  params?: object,
+) => {
+  await waitForNavigationReady();
   navigationRef.navigate(...([name, params] as never));
 };
 
@@ -13,16 +27,7 @@ export const navigateReplace = async (
   name: keyof RootStackParamList,
   params?: object,
 ) => {
-  let attempts = 0;
-  while (true) {
-    attempts++;
-    if (navigationRef.isReady() || attempts > 100) break;
-    await new Promise((resolve) => {
-      import("@utils").then(({ setTimeoutPolyfill }) =>
-        setTimeoutPolyfill(resolve, 50),
-      );
-    });
-  }
+  await waitForNavigationReady();
 
   navigationRef.reset({
     index: 0,
@@ -31,15 +36,7 @@ export const navigateReplace = async (
 };
 
 export const getCurrentScreen = async (): Promise<ScreensAvailable> => {
-  let attempts = 0;
-  while (true) {
-    if (navigationRef.isReady() || attempts > 100) break;
-    attempts++;
-    await new Promise((resolve) => {
-      import("@utils").then(({ setTimeoutPolyfill }) =>
-        setTimeoutPolyfill(resolve, 50),
-      );
-    });
-  }
+  await waitForNavigationReady();
+
   return navigationRef.getCurrentRoute()?.name ?? "Home";
 };

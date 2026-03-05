@@ -42,10 +42,6 @@ const ask: AskPermission = async (
         tTyped(title),
         tTyped(message),
         [
-          {
-            text: tTyped(options.acceptButtonText ?? "accept"),
-            onPress: accept,
-          },
           ...(options?.showCancelButton
             ? [
                 {
@@ -55,6 +51,10 @@ const ask: AskPermission = async (
                 },
               ]
             : []),
+          {
+            text: tTyped(options.acceptButtonText ?? "accept"),
+            onPress: accept,
+          },
           ...(options?.addDoNotAskAgain
             ? [
                 {

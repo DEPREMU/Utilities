@@ -82,7 +82,7 @@ const screens: Screens = {
   Vault: { component: VaultNavigator },
   Test: {
     component: REPLACERS.isDev
-      ? require("@screens/test/ButtonTest")
+      ? require("@screens/test/ButtonTest").default
       : ComponentToHome,
   },
   Recorder: {
@@ -105,7 +105,7 @@ const screens: Screens = {
   Notes: {
     component: REPLACERS.isWeb
       ? ComponentToHome
-      : require("@screens/Notes/screens"),
+      : require("@screens/Notes/screens").default,
     //? Temporary fix to prevent web crashes due to incompatible dependencies (expo-sqlite)..
   },
 };

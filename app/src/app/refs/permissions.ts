@@ -64,12 +64,12 @@ const ensureDataIntegrity = (data: any): PermissionsData => {
   return result;
 };
 
-export const initPermissionsData = async () => {
+const initPermissionsData = async () => {
   if (permissionsData.initialized) return;
   if (permissionsData.initializing) return permissionsData.initializing;
 
-  const { storageManagement, logger } = await import("@utils");
-  const { NativeFunctionsModule } = await import("@modules");
+  const [{ storageManagement, logger }, { NativeFunctionsModule }] =
+    await Promise.all([import("@utils"), import("@modules")]);
 
   try {
     await storageManagement.waitUntilLoaded();

@@ -1,0 +1,22 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+import { registerRootComponent } from "expo";
+
+try {
+  const App = require("./app/App")
+    .default as typeof import("./app/App").default;
+
+  registerRootComponent(App);
+} catch (error) {
+  const errMsg = error instanceof Error ? error.message : String(error);
+  // eslint-disable-next-line no-console
+  console.error("Error loading the app:", errMsg);
+
+  const ErrorScreen = require("@screens/Error/screens")
+    .default as typeof import("@screens/Error/screens").default;
+
+  registerRootComponent(() => (
+    <ErrorScreen
+      error={error instanceof Error ? error : new Error(String(error))}
+    />
+  ));
+}

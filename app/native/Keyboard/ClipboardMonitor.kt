@@ -2,7 +2,7 @@ package com.package.name
 
 import android.content.ClipboardManager
 import android.content.Context
-import android.util.Log
+import com.package.name.Logger as Log
 
 class ClipboardMonitor(context: Context) {
     private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

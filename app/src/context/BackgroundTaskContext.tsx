@@ -12,18 +12,16 @@ import React, {
   createContext,
 } from "react";
 import {
+  alerts,
   logger,
   deviceInfo,
+  EventsDeviceInfo,
   storageManagement,
   executeRegisteredTask,
   hasInternetConnection,
-  EventsDeviceInfo,
-  alerts,
 } from "@utils";
 import { BackHandler } from "react-native";
-import { useLanguage } from "./LanguageContext";
-import { useUserContext } from "./UserContext";
-import { getCurrentScreen, navigateReplace } from "@/app/refs/navigationRef";
+import { getCurrentScreen, navigateReplace } from "@refs";
 
 type BackgroundTask = {
   requiresInternet: boolean;
@@ -123,9 +121,6 @@ const BackgroundTaskContext = createContext<
 export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   children,
 }) => {
-  const { t } = useLanguage();
-  const { isLoggedIn } = useUserContext();
-
   const taskQueueRef = useRef<BackgroundTask[]>([]);
   const isProcessingRef = useRef<boolean>(false);
   const executeWhenInternetRef = useRef<BackgroundTaskWithMeta[]>([]);
@@ -283,6 +278,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
             if (!accepted) return;
             handlePressYes(isFirstScreen);
           },
+          { showCancelButton: true },
         );
       });
 
@@ -295,7 +291,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     );
 
     return () => subscription.remove();
-  }, [isLoggedIn, t]);
+  }, []);
 
   useEffect(() => {
     const removeListener = deviceInfo.addEventListener(

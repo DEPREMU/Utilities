@@ -3,7 +3,7 @@ package com.package.name
 import android.app.ActivityManager
 import android.content.Intent
 import android.os.Build
-import android.util.Log
+import com.package.name.Logger as Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext

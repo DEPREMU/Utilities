@@ -8,21 +8,19 @@ import {
   storageManagement,
   setTimeoutPolyfill,
   notificationsManager,
-  configureNotificationChannel,
 } from "@utils";
 import AppNavigator from "./AppNavigator";
 import AppProviders from "@context/AppProviders";
 import React, { useEffect } from "react";
 import { NativeFunctionsModule } from "@modules";
 
-configureNotificationChannel();
-
 const App = () => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   useEffect(() => {
+    storageManagement.setHasUI();
+
     const initializeApp = async () => {
-      storageManagement.setHasUI();
       await Promise.all([
         deviceInfo.waitUntilLoaded(),
         sessionManager.waitUntilLoaded(),

@@ -3,7 +3,7 @@ package com.package.name
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
+import com.package.name.Logger as Log
 
 class ServiceReceiver : BroadcastReceiver() {
     override fun onReceive(

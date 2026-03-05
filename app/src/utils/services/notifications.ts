@@ -173,7 +173,7 @@ export const setupNotificationHandlers = () => {
   };
 };
 
-export const configureNotificationChannel = async () => {
+const configureNotificationChannel = async () => {
   if (REPLACERS.isWeb) return;
 
   const channels: Record<ChannelsId, notifications.NotificationChannelInput> = {
@@ -257,6 +257,7 @@ export const configureNotificationChannel = async () => {
     ),
   );
 };
+configureNotificationChannel();
 
 export const getListenerNameDeviceInfo = (reason: ReasonNotification) => {
   switch (reason) {

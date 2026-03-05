@@ -12,14 +12,15 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
-import android.util.Log
+import com.package.name.Logger as Log
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactInstanceManager
 import com.facebook.react.bridge.ReactContext
+import java.lang.reflect.Method
 
 class ForegroundService : Service() {
     companion object {
-        const var TAG = "ForegroundService"
+        private const val TAG = "ForegroundService"
         
         const val EXTRA_TITLE = "utilities.extra.notification.title"
         const val EXTRA_MESSAGE = "utilities.extra.notification.message"
@@ -78,6 +79,8 @@ class ForegroundService : Service() {
     private var isRecreatingContext = false
     @Volatile
     private var pendingReactInitListener: ReactInstanceManager.ReactInstanceEventListener? = null
+    @Volatile
+    private var canUseDirectReactNativeHost = true
     private val recreateLock = Any()
 
     private val periodicHealthCheckRunnable = object : Runnable {
@@ -232,8 +235,7 @@ class ForegroundService : Service() {
 
     private fun hasActiveReactContext(): Boolean {
         return try {
-            val app = applicationContext as? ReactApplication ?: return false
-            val manager = app.reactNativeHost.reactInstanceManager
+            val manager = getReactInstanceManagerCompat() ?: return false
             val current = manager.currentReactContext
             current != null &&
                 current.hasActiveCatalystInstance() &&
@@ -251,7 +253,24 @@ class ForegroundService : Service() {
             return
         }
 
-        val manager = app.reactNativeHost.reactInstanceManager
+        val manager = getReactInstanceManagerCompat()
+        if (manager == null) {
+            Log.w(TAG, "ReactInstanceManager unavailable, trying ReactHost start. reason=$reason")
+            val started = startReactHostCompat(app, reason)
+            if (!started) {
+                Log.e(TAG, "Unable to start ReactHost fallback, launching app. reason=$reason")
+                launchMainActivity(reason)
+                return
+            }
+
+            mainHandler.postDelayed({
+                if (!hasActiveReactContext()) {
+                    Log.e(TAG, "ReactHost start did not recover active context in time. reason=$reason")
+                    launchMainActivity(reason)
+                }
+            }, RECREATE_WATCHDOG_TIMEOUT_MS)
+            return
+        }
 
         synchronized(recreateLock) {
             if (isRecreatingContext) {
@@ -353,6 +372,67 @@ class ForegroundService : Service() {
             }
             pendingReactInitListener = null
             isRecreatingContext = false
+        }
+    }
+
+    private fun getReactInstanceManagerCompat(): ReactInstanceManager? {
+        val app = applicationContext as? ReactApplication ?: return null
+
+        if (canUseDirectReactNativeHost) {
+            try {
+                return app.reactNativeHost.reactInstanceManager
+            } catch (error: RuntimeException) {
+                if (error.message.orEmpty().contains("You should not use ReactNativeHost directly in the New Architecture")) {
+                    canUseDirectReactNativeHost = false
+                } else {
+                    Log.w(TAG, "Unable to read ReactNativeHost directly: ${error.message}")
+                }
+            } catch (error: Exception) {
+                Log.w(TAG, "Unexpected error while reading ReactNativeHost: ${error.message}")
+            }
+        }
+
+        val reactHost = getReactHostCompat(app) ?: return null
+        return tryInvokeNoArgs(reactHost, "getReactInstanceManager") as? ReactInstanceManager
+    }
+
+    private fun getReactHostCompat(app: ReactApplication): Any? {
+        return try {
+            val method = app.javaClass.methods.firstOrNull {
+                it.name == "getReactHost" && it.parameterCount == 0
+            } ?: return null
+            method.invoke(app)
+        } catch (error: Exception) {
+            Log.w(TAG, "Unable to resolve ReactHost: ${error.message}")
+            null
+        }
+    }
+
+    private fun startReactHostCompat(app: ReactApplication, reason: String): Boolean {
+        val reactHost = getReactHostCompat(app) ?: return false
+        val started = tryInvokeNoArgs(reactHost, "start") != null
+        if (started) {
+            Log.d(TAG, "ReactHost.start() invoked successfully. reason=$reason")
+            return true
+        }
+
+        val loaded = tryInvokeNoArgs(reactHost, "loadReactNative") != null
+        if (loaded) {
+            Log.d(TAG, "ReactHost.loadReactNative() invoked successfully. reason=$reason")
+            return true
+        }
+
+        return false
+    }
+
+    private fun tryInvokeNoArgs(target: Any, methodName: String): Any? {
+        return try {
+            val method: Method = target.javaClass.methods.firstOrNull {
+                it.name == methodName && it.parameterCount == 0
+            } ?: return null
+            method.invoke(target)
+        } catch (_: Exception) {
+            null
         }
     }
 
