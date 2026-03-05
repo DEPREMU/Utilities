@@ -33,7 +33,7 @@ if (!fs.existsSync(fileDataPath)) {
   process.exit(1);
 }
 
-let intervalIdDeleteOldSessions: number;
+let intervalIdDeleteOldSessions: number | NodeJS.Timeout | null = null;
 
 export const initDB = async () => {
   const fileSQL = fs.readFileSync(fileSQLPath, "utf-8");
@@ -143,8 +143,10 @@ export const initDB = async () => {
   );
   client.release();
 
-  if (intervalIdDeleteOldSessions) clearInterval(intervalIdDeleteOldSessions);
-  else await deleteOldSessions();
+  if (intervalIdDeleteOldSessions) {
+    clearInterval(intervalIdDeleteOldSessions);
+    intervalIdDeleteOldSessions = null;
+  } else await deleteOldSessions();
 
   intervalIdDeleteOldSessions = setInterval(
     deleteOldSessions,

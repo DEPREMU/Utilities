@@ -5,18 +5,7 @@ import {
   ChannelsIpcRenderer,
 } from "@types";
 import { ALL_KEYS_STORAGE_TYPE } from "@common";
-import {
-  IpcRenderer,
-  Clipboard,
-  ContextBridge,
-  IpcRendererEvent,
-} from "electron";
-
-const { clipboard, contextBridge, ipcRenderer } = require("electron") as {
-  clipboard: Clipboard;
-  ipcRenderer: IpcRenderer;
-  contextBridge: ContextBridge;
-};
+import { ipcRenderer, contextBridge, IpcRendererEvent } from "electron";
 
 const sendLog = (message: string, level: "info" | "warn" | "error") => {
   fetch("http://localhost:3005/log", {
@@ -47,16 +36,16 @@ let idleTimeout: NodeJS.Timeout | number | null = null;
 
 const contextBridgeType: ContextBridgeType = {
   UtilitiesForPC: {
-    readClipboard: () => {
+    readClipboard: async () => {
       try {
-        return clipboard.readText();
+        return await sendMessage("invoke", "read-clipboard");
       } catch {
         return "";
       }
     },
     setClipboard: (text: string) => {
       try {
-        if (text) clipboard.writeText(text);
+        sendMessage("send", "set-clipboard", text);
       } catch {
         // ignore
       }

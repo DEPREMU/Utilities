@@ -6,12 +6,12 @@ import type {
 import {
   ARGS,
   getArgs,
+  PLATFORM,
   isNewVersion,
   UTILITIES_PATH,
   versionElectron,
   getRouteUpdates,
   UTILITIES_FOR_PC_PATH,
-  PLATFORM,
 } from "../config.ts";
 import fs from "fs";
 import path from "path";
@@ -122,7 +122,6 @@ const uploadElectronBuilds = async () => {
           const data: RequestUploadUpdate = {
             buildType: "electron",
             platformOS,
-            timestamp: Date.now(),
             version: versionElectron,
           };
 
@@ -213,7 +212,7 @@ const buildElectronApp = () => {
     );
   }
 
-  let platform = PLATFORM.isWindows ? "windows" : "linux";
+  const platform = PLATFORM.isWindows ? "windows" : "linux";
 
   console.log(`Building Electron app for platform: ${platform}`);
 
@@ -273,7 +272,10 @@ const run = async () => {
 
   if (!ARGS["skip-build-electron"]) buildElectronApp();
   uploadElectronBuilds().catch((error) => {
-    console.error("Process failed:", error);
+    console.error(
+      "Process failed:",
+      error instanceof Error ? error.message : String(error),
+    );
     process.exit(1);
   });
 };

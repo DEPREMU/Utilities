@@ -5,6 +5,7 @@ import { Colors, REPLACERS_TYPE } from "@types";
 
 NetInfo.configure({
   useNativeReachability: true,
+  reachabilityUrl: "https://www.google.com/generate_204",
 });
 
 const isDev: boolean = process.env.BUILD_PROFILE === "development";
@@ -43,10 +44,10 @@ if (REPLACERS.isDev) {
   console.log(`
 --------------------------------
   App Constants:
+  APP_VERSION: ${Constants.expoConfig?.extra?.version}
   WS_URL_BASE: ${Constants.expoConfig?.extra?.WS_URL_BASE}
   API_URL_BASE: ${Constants.expoConfig?.extra?.API_URL_BASE}
   ADMIN_PASSWORD: ${Constants.expoConfig?.extra?.ADMIN_PASSWORD}
-  APP_VERSION: ${Constants.expoConfig?.extra?.version}
   REPLACERS: ${JSON.stringify(REPLACERS, null, 2)}
 --------------------------------`);
 }

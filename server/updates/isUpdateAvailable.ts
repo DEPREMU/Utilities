@@ -1,4 +1,3 @@
- 
 import {
   PlatformsOS,
   RequestUploadUpdate,
@@ -58,8 +57,6 @@ export const handleIsUpdateAvailable = getHandlerPost(
       if (buildType === "android") {
         downloadUrl = createTempDownloadUrl({
           buildType: "android",
-          platformOS: undefined,
-          timestamp: 0,
           version: latestVersion,
         });
       } else {
@@ -69,7 +66,6 @@ export const handleIsUpdateAvailable = getHandlerPost(
             "android"
           >,
           platformOS: platformOS as PlatformsOS,
-          timestamp: 0,
           version: latestVersion,
         });
       }

@@ -2,14 +2,14 @@ import { REPLACERS } from "../TOP_LEVEL";
 import { ContextBridgeType } from "@types";
 
 const voidFunction = () => {};
+const nullFunction = async () => null;
 const falseFunction = async () => false;
 const successFunction = async () => ({ success: true });
 const asyncVoidFunction = async () => {};
-const nullFunction = async () => null;
 
 const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
   notifyLoginStatus: voidFunction,
-  readClipboard: () => "",
+  readClipboard: async () => "",
   setClipboard: voidFunction,
   turnOffComputer: falseFunction,
   restartComputer: falseFunction,

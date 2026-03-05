@@ -9,6 +9,7 @@ const notifications: NotificationsSaved = {
   batteryAlerts: null,
   timeToDownload: null,
   locationEnabled: null,
+  updateAvailable: null,
   allNotifications: null,
   noInternetConnection: null,
   recorderNotification: null,
@@ -20,14 +21,16 @@ export const sendNotification = (notif: NotificationElectron) => {
     const prevNotification = notifications[notif.reasonNotification];
     prevNotification?.();
     notifications[notif.reasonNotification] = null;
-  } catch {}
+  } catch {
+    // Ignore
+  }
 
   const notification = new Notification(notif);
 
   notification.on("action", (_, index) => {
     writeLog(
       `Notification action clicked: ${index}, ${notification.actions?.[index]}`,
-      "info"
+      "info",
     );
     notification.close();
   });

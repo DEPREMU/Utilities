@@ -15,9 +15,9 @@ const CalculatorNavigator = GetBottomNavigation(
     { key: "finances", title: "finances", focusedIcon: "finance" },
   ],
   {
+    finances: Finances,
     calculator: Calculator,
     timeToDownload: TimeToDownload,
-    finances: Finances,
   },
 );
 

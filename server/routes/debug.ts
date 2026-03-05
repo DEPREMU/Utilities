@@ -35,7 +35,7 @@ export const handleAddLog = getHandlerPost(
 const timers: {
   [deviceId: string]: {
     pushToken: string;
-    idTimeout: number | null;
+    idTimeout: NodeJS.Timeout | number | null;
     lastTimestamp: number;
   };
 } = {};

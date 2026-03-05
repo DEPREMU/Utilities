@@ -79,10 +79,8 @@ const uploadAndroidBuild = async () => {
     console.log(`Found APK: ${apkFile}`);
 
     const data: Types.RequestUploadUpdate = {
-      buildType: "android",
       version: versionExpo,
-      timestamp: Date.now(),
-      platformOS: undefined,
+      buildType: "android",
     };
 
     console.log(`Uploading Android build...`, data);
@@ -118,7 +116,7 @@ const uploadAndroidBuild = async () => {
   } catch (error) {
     console.error(
       "Fatal error during Android upload:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     process.exit(1);
   }

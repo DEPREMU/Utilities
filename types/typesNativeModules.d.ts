@@ -41,6 +41,16 @@ type ExpectedStorageTypesBoth = ExpectedStorageTypes &
 export type ChannelsIpcRenderer<
   T extends ALL_KEYS_STORAGE_TYPE = keyof ExpectedStorageTypes<"BOTH">,
 > = {
+  "read-clipboard": {
+    functionArgs: [];
+    functionReturn: Promise<string>;
+    typeIpc: "invoke";
+  };
+  "set-clipboard": {
+    functionArgs: [text: string];
+    functionReturn: void;
+    typeIpc: "send";
+  };
   "user-login-status": {
     functionArgs: [isLoggedIn: boolean];
     functionReturn: void;
@@ -240,7 +250,7 @@ type NotificationElectron = {
 
 export type ContextBridgeType = {
   UtilitiesForPC: {
-    readClipboard: () => string;
+    readClipboard: () => Promise<string>;
     setClipboard: (text: string) => void;
     notifyLoginStatus: (isLoggedIn: boolean) => void;
     turnOffComputer: () => ChannelsIpcRenderer["turn-off-computer"]["functionReturn"];

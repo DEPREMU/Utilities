@@ -170,19 +170,12 @@ export type RequestIsUpdateAvailable<
   platformOS: T extends "android" ? undefined : PlatformsOS;
 };
 
-export type RequestUploadUpdate =
-  | {
-      version: string;
-      timestamp: number;
-      buildType: Exclude<BuildTypeUpdates, "android">;
-      platformOS: PlatformsOS;
-    }
-  | {
-      version: string;
-      timestamp: number;
-      buildType: "android";
-      platformOS: undefined;
-    };
+export type RequestUploadUpdate<T extends BuildTypeUpdates = BuildTypeUpdates> =
+  {
+    version: string;
+    buildType: T;
+    platformOS?: T extends "android" ? undefined : PlatformsOS;
+  };
 
 export type RequestDownloadViaTempUrl = {
   buildType: BuildTypeUpdates;

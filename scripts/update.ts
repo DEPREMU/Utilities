@@ -129,7 +129,6 @@ const uploadWeb = async (): Promise<boolean> => {
         const data: RequestUploadUpdate = {
           buildType: "web",
           platformOS,
-          timestamp: Date.now(),
           version: versionExpo,
         };
 

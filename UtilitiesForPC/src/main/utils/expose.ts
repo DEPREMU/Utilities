@@ -2,6 +2,7 @@ import {
   app,
   dialog,
   ipcMain,
+  clipboard,
   IpcMainEvent,
   IpcMainInvokeEvent,
 } from "electron";
@@ -51,6 +52,23 @@ type IpcDictHybrid = {
 };
 
 const ipcDict: IpcDictHybrid = {
+  "read-clipboard": {
+    type: "handle",
+    func: async () => {
+      writeLog(`Received read-clipboard request`, "info");
+      return clipboard.readText("clipboard");
+    },
+  },
+  "set-clipboard": {
+    type: "on",
+    func: (_event, text) => {
+      writeLog(
+        `Received set-clipboard request with text length: ${text.length}`,
+        "info",
+      );
+      clipboard.writeText(text, "clipboard");
+    },
+  },
   "user-login-status": {
     type: "on",
     func: (_event, isLoggedIn) => {
@@ -283,7 +301,7 @@ const ipcDict: IpcDictHybrid = {
       try {
         const info = await copyFileToTemp(base64, filename);
         return { success: !info, ...(info ? { info } : {}) };
-      } catch (error) {
+      } catch {
         return { success: false };
       }
     },
@@ -510,7 +528,7 @@ const ipcDict: IpcDictHybrid = {
           `Renamed folder vault from ${oldFolderPath} to ${newFolderPath}`,
           "info",
         );
-      } catch (error) {
+      } catch {
         // Ignore error
       }
     },
@@ -543,5 +561,5 @@ const ipcDict: IpcDictHybrid = {
 };
 
 Object.entries(ipcDict).forEach(([channel, { type, func }]) => {
-  ipcMain?.[type]?.(channel, func as any);
+  ipcMain?.[type]?.(channel, func as never);
 });

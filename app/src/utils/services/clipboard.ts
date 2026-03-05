@@ -18,11 +18,13 @@ import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
 import { getRandomUUID } from "../cross";
 import { sessionManager } from "./session";
 import * as ExpoClipboard from "expo-clipboard";
-import { ClipboardStorage } from "@common";
+import { ClipboardStorage, wrapFunctionWithError } from "@common";
 import { CLIPBOARD_WS_URL } from "../constants";
 import { storageManagement, parseData } from "./storage";
 import { DeviceEventEmitter, EmitterSubscription } from "react-native";
 import { windowModule, keyboardModule, BackgroundModule } from "@modules";
+
+const TAG = "CLIPBOARD_MANAGER";
 
 const OPTIONS_RECONNECT_WS: OptionsReconnectingWS = {
   maxRetries: Infinity,
@@ -359,33 +361,29 @@ class ClipboardManager {
   };
 
   private handleIntervalClipboardWeb = async () => {
-    try {
-      let content: string | null = null;
+    if (!REPLACERS.isWeb) return;
 
-      try {
-        content = windowModule.readClipboard();
-      } catch {
-        // Ignore //! DELETE
-      }
-      try {
+    wrapFunctionWithError(
+      async () => {
+        let content: string = await windowModule.readClipboard();
+
         if (!content)
           content = await ExpoClipboard.getStringAsync({
             preferredFormat: ExpoClipboard.StringFormat.PLAIN_TEXT,
           });
-      } catch {
-        return;
-      }
 
-      this.handleInsertItem(content);
-    } catch (error) {
-      logger.error("Error reading clipboard content", error);
-    }
+        if (content) this.handleInsertItem(content);
+      },
+      async (_, errMsg) => {
+        logger.error(TAG, "Error reading clipboard content", errMsg);
+      },
+    );
   };
 
   private initClipboardNativeListener = () => {
     if (!REPLACERS.isNative) return;
 
-    const listenerClipboard = DeviceEventEmitter.addListener(
+    this.#listenerClipboard = DeviceEventEmitter.addListener(
       "ClipboardEvent",
       async (event: EventClipboardNative) => {
         switch (event.type) {
@@ -453,8 +451,6 @@ class ClipboardManager {
         }
       },
     );
-
-    this.#listenerClipboard = listenerClipboard;
   };
 
   private initInternetListener = () => {

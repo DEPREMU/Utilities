@@ -4,7 +4,6 @@ import {
   isAppStart,
   isAppBuildDev,
   isBuildAndroid,
-  isUploadElectron,
   isAndroidPrebuild,
   isBuildAppElectron,
   isBuildUploadAndroid,
@@ -49,53 +48,76 @@ export type TYPE_ARGS = {
   "platform-update-assets"?: "android" | "web" | "both";
 };
 
+type ArgumentsExplanationType =
+  | "dev"
+  | "fix"
+  | "lan"
+  | "web"
+  | "check"
+  | "profile"
+  | "install"
+  | "platform"
+  | "isWindows"
+  | "skip-build-android"
+  | "skip-build-electron"
+  | "skip-prebuild-android"
+  | "platform-update-assets";
+
+const ArgumentsExplanation: Record<ArgumentsExplanationType, string> = {
+  "skip-build-android":
+    "  -sba, --skip-build-android   Skip the Android build process and only upload the existing APK",
+  profile:
+    "  -f, --profile=<profile>      Specify the build profile (development, preview, production)",
+  platform:
+    "  -p, --platform=<platform>    Specify the platform to build for (windows or linux)",
+  "skip-build-electron":
+    "  -sbe, --skip-build-electron   Skip the Electron app build process and only export the web version",
+  "platform-update-assets":
+    "  -pua, --platform-update-assets=<platform>   Specify the platform to update assets for (android, web, both)",
+  "skip-prebuild-android":
+    "  -spa, --skip-prebuild-android   Skip the Android prebuild process and use existing build artifacts",
+  isWindows:
+    "  --isWindows=<true|false>     Specify if the current platform is Windows (required for build-resources-electron)",
+  dev: "  --dev                        Run with --dev flag",
+  fix: "  --fix                        Run eslint with --fix",
+  lan: "  --lan                        Run with --lan flag",
+  web: "  --web                        Build web version only",
+  check: "  --check                      Run eslint with --max-warnings 0",
+  install: "  --install                    Install dependencies",
+};
+
 const showHelp = () => {
   const options: string[] = [];
 
   if (isBuildUploadAndroid || isAppBuildDev) {
-    options.push(
-      `  -sba, --skip-build-android   Skip the Android build process and only upload the existing APK`,
-    );
+    options.push(ArgumentsExplanation["skip-build-android"]);
   }
   if (isBuildAndroid || isBuildUploadAndroid) {
     options.push(
-      `  -f, --profile=<profile>      Specify the build profile (development, preview, production)`,
-      `  -spa, --skip-prebuild-android   Skip the Android prebuild process`,
-    );
-  }
-  if (isUploadElectron || isBuildAppElectron) {
-    options.push(
-      `  -p, --platform=<platform>    Specify the platform to build for (windows or linux)
-  -sbe, --skip-build-electron   Skip the Electron app build process and only export the web version`,
-    );
-  }
-  if (isAppStart) {
-    options.push(
-      `  --lan                        Run with --lan flag`,
-      `  --dev                        Run with -d flag (development mode)`,
-    );
-  }
-  if (isAppLint) {
-    options.push(
-      `  --fix                        Run eslint with --fix`,
-      `  --check                      Run eslint with --max-warnings 0`,
-    );
-  }
-  if (isUpdate) {
-    options.push(
-      `  -pua, --platform-update-assets=<platform>   Specify the platform assets to update (android, web, both). Default is both.
-  -f, --profile=<profile>      Specify the profile for the update (development, preview, production)`,
-    );
-  }
-  if (isBuildAppElectron || isAndroidPrebuild) {
-    options.push(
-      `  -f, --profile=<profile>      Specify the profile for the update (development, preview, production)`,
+      ArgumentsExplanation["profile"],
+      ArgumentsExplanation["skip-prebuild-android"],
     );
   }
   if (isBuildResourcesElectron) {
+    options.push(ArgumentsExplanation["platform"]);
+  }
+  if (isAppStart) {
+    options.push(ArgumentsExplanation["lan"], ArgumentsExplanation["dev"]);
+  }
+  if (isAppLint) {
+    options.push(ArgumentsExplanation["fix"], ArgumentsExplanation["check"]);
+  }
+  if (isUpdate) {
     options.push(
-      `  --isWindows                  Specify if the build is for Windows (true/false)`,
+      ArgumentsExplanation["platform-update-assets"],
+      ArgumentsExplanation["profile"],
     );
+  }
+  if (isBuildAppElectron || isAndroidPrebuild) {
+    options.push(ArgumentsExplanation["profile"]);
+  }
+  if (isBuildResourcesElectron) {
+    options.push(ArgumentsExplanation["isWindows"]);
   }
 
   console.log(`Usage: [command] [options]
@@ -108,15 +130,16 @@ ${options.join("\n")}
 
 let prevArg = "";
 const argsProcessed: string[] = [];
+
+if (args.includes("-h") || args.includes("--help")) {
+  showHelp();
+  process.exit(0);
+}
+
 export const ARGS = args.reduce((acc, arg, index) => {
   const includesEqual = arg.includes("=");
   const isArg = arg.startsWith("-");
   if (!isArg && !prevArg) throw new Error(`Unknown argument: ${arg}`);
-
-  if (["-h", "--help"].includes(arg)) {
-    showHelp();
-    process.exit(0);
-  }
 
   const nextArg = args[index + 1];
   if (isArg && (nextArg?.startsWith("-") || !nextArg))
