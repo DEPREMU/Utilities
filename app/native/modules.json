@@ -31,7 +31,7 @@
     "name": "BackgroundServiceModule.kt",
     "initPath": "native/",
     "finalPath": "android/app/src/main/java/",
-    "service": "<service \n  android:name=\".MyForegroundService\" \n  android:enabled=\"true\" \n  android:exported=\"false\" \n  android:stopWithTask=\"false\" \n  android:foregroundServiceType=\"dataSync\" />"
+    "service": "<service \n  android:name=\".ForegroundService\" \n  android:enabled=\"true\" \n  android:exported=\"false\" \n  android:stopWithTask=\"false\" \n  android:foregroundServiceType=\"dataSync\" />"
   },
   {
     "name": "BackgroundServicePackage.kt",
@@ -39,7 +39,7 @@
     "finalPath": "android/app/src/main/java/"
   },
   {
-    "name": "MyForegroundService.kt",
+    "name": "ForegroundService.kt",
     "initPath": "native/",
     "finalPath": "android/app/src/main/java/"
   },

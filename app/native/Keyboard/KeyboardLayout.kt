@@ -71,6 +71,7 @@ class KeyboardLayout(
     )
 
     val keyButtonRefs: MutableList<KeyButtonRef> = mutableListOf()
+    val keyHintRefs: MutableMap<Button, TextView> = mutableMapOf()
     var capsButtonRef: Button? = null
 
     var px1: Int = 0
@@ -153,7 +154,7 @@ class KeyboardLayout(
         this.clipboardTextSizePx = clipboardTextSizePx
         this.keyPreviewTextSizePx = keyPreviewTextSizePx
         this.accentTextSizePx = accentTextSizePx
-        this.hintTextSizeFactor = hintTextSizeFactor
+        this.hintTextSizeFactor = hintTextSizeFactor.coerceIn(0.2f, 1f)
         this.keyPaddingHorizontalPx = keyPaddingHorizontalPx
         this.keyPaddingVerticalPx = keyPaddingVerticalPx
         this.keyPreviewPaddingPx = keyPreviewPaddingPx
@@ -253,6 +254,7 @@ class KeyboardLayout(
         val special = specialKeyboardContainer ?: return
 
         keyButtonRefs.clear()
+        keyHintRefs.clear()
         capsButtonRef = null
 
         updateKeyboardContainer(letters, lettersLayout, capsVisualMode, true)
@@ -305,11 +307,17 @@ class KeyboardLayout(
                     if (keyView is FrameLayout && !hints.isNullOrEmpty()) {
                         val hintView = keyView.getChildAt(1) as? TextView
                         if (hintView != null) {
+                            keyHintRefs[button] = hintView
                             hintView.text = hints.take(4).joinToString(" ")
-                            themeManager.applyTypography(hintView, keyTextSizePx * hintTextSizeFactor)
+                            val safeHintFactor = hintTextSizeFactor.coerceIn(0.2f, 1f)
+                            themeManager.applyTypography(hintView, keyTextSizePx * safeHintFactor)
                             hintView.setTextColor(themeManager.paletteTextColor)
                             hintView.alpha = 0.6f
+                            hintView.translationZ = keyElevationPx + 1f
+                            hintView.bringToFront()
                         }
+                    } else {
+                        keyHintRefs.remove(button)
                     }
                     
                     if (oldTag != normalized) {
@@ -544,6 +552,8 @@ class KeyboardLayout(
         if (hints != null && hints.isNotEmpty()) {
             val container = FrameLayout(context)
             container.layoutParams = createLayoutParams(weight)
+            container.clipChildren = false
+            container.clipToPadding = false
 
             button.layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -552,10 +562,15 @@ class KeyboardLayout(
 
             val hintView = TextView(context).apply {
                 text = hints.take(4).joinToString(" ")
-                themeManager.applyTypography(this, keyTextSizePx * hintTextSizeFactor)
+                val safeHintFactor = hintTextSizeFactor.coerceIn(0.2f, 1f)
+                themeManager.applyTypography(this, keyTextSizePx * safeHintFactor)
                 setTextColor(themeManager.paletteTextColor)
                 alpha = 0.6f
-                elevation = keyElevationPx
+                elevation = keyElevationPx + 1f
+                translationZ = keyElevationPx + 1f
+                isClickable = false
+                isFocusable = false
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 layoutParams = FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -567,6 +582,7 @@ class KeyboardLayout(
 
             container.addView(button)
             container.addView(hintView)
+            keyHintRefs[button] = hintView
             return container
         } else {
             button.layoutParams = createLayoutParams(weight)
@@ -779,6 +795,18 @@ class KeyboardLayout(
             }
             themeManager.applyTypography(ref.button, keyTextSizePx)
             ref.button.elevation = keyElevationPx
+
+            val hintView = keyHintRefs[ref.button]
+            if (hintView != null) {
+                val safeHintFactor = hintTextSizeFactor.coerceIn(0.2f, 1f)
+                hintView.text = CustomKeyboard.topRowMap[ref.lower]?.take(4)?.joinToString(" ").orEmpty()
+                hintView.visibility = if (hintView.text.isEmpty()) View.GONE else View.VISIBLE
+                themeManager.applyTypography(hintView, keyTextSizePx * safeHintFactor)
+                hintView.setTextColor(themeManager.paletteTextColor)
+                hintView.alpha = 0.6f
+                hintView.translationZ = keyElevationPx + 1f
+                hintView.bringToFront()
+            }
         }
 
         suggestionButtons.forEach { btn ->
@@ -829,6 +857,15 @@ class KeyboardLayout(
                 }
             }
         }
+    }
+
+    fun updateHintPressedState(keyView: View, isPressed: Boolean) {
+        val button = keyView as? Button ?: return
+        val hintView = keyHintRefs[button] ?: return
+        hintView.alpha = if (isPressed) 0.45f else 0.6f
+        hintView.visibility = View.VISIBLE
+        hintView.translationZ = keyElevationPx + 1f
+        hintView.bringToFront()
     }
 
     fun showKeyPreview(key: View, label: String) {

@@ -81,13 +81,13 @@ class BackgroundServiceModule(
             wasConfigured = true,
         )
 
-        MyForegroundService.start(reactApplicationContext, config)
+        ForegroundService.start(reactApplicationContext, config)
         Log.d("BackgroundServiceModule", "Foreground service started")
     }
 
     @ReactMethod
     fun stop() {
-        val serviceIntent = Intent(reactApplicationContext, MyForegroundService::class.java)
+        val serviceIntent = Intent(reactApplicationContext, ForegroundService::class.java)
         reactApplicationContext.stopService(serviceIntent)
         Log.d("BackgroundServiceModule", "Foreground service stopped")
     }
@@ -116,7 +116,7 @@ class BackgroundServiceModule(
         val config = buildClipboardConfig(enabled = true)
 
         try {
-            MyForegroundService.start(reactApplicationContext, config)
+            ForegroundService.start(reactApplicationContext, config)
             Log.d("BackgroundServiceModule", "Clipboard monitoring started")
         } catch (e: Exception) {
             Log.e("BackgroundServiceModule", "Error starting clipboard service: ${e.message}")
@@ -127,7 +127,7 @@ class BackgroundServiceModule(
     fun stopClipboardService() {
         Log.d("BackgroundServiceModule", "Stopping clipboard monitoring (service will continue)")
         val config = buildClipboardConfig(enabled = false)
-        MyForegroundService.start(reactApplicationContext, config)
+        ForegroundService.start(reactApplicationContext, config)
     }
 
     @ReactMethod
@@ -138,7 +138,7 @@ class BackgroundServiceModule(
             val services = activityManager.getRunningServices(Integer.MAX_VALUE)
             
             val isServiceRunning = services.any { serviceInfo ->
-                serviceInfo.service.className == MyForegroundService::class.java.name
+                serviceInfo.service.className == ForegroundService::class.java.name
             }
             
             Log.d("BackgroundServiceModule", "Service running: $isServiceRunning")

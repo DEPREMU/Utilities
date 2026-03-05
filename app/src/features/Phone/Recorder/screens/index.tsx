@@ -1,3 +1,4 @@
+import { memoDeep } from "@utils";
 import RecorderScreen from "./Recorder";
 import ListeningScreen from "./Listening";
 import RecorderSettings from "./RecorderSettings";
@@ -6,19 +7,19 @@ import GetBottomNavigation from "@/common/components/BottomNavigator/components/
 const RecorderNavigator = GetBottomNavigation(
   [
     {
-      key: "RecorderRecord",
+      key: "RecorderRecord" as const,
       title: "recorder.label",
       focusedIcon: "microphone",
       unfocusedIcon: "microphone-outline",
     },
     {
-      key: "RecorderListening",
+      key: "RecorderListening" as const,
       title: "recorder.recordedAudios",
       focusedIcon: "playlist-music",
       unfocusedIcon: "playlist-music-outline",
     },
     {
-      key: "RecorderSettings",
+      key: "RecorderSettings" as const,
       title: "common.settings",
       focusedIcon: "cog",
       unfocusedIcon: "cog-outline",
@@ -30,4 +31,4 @@ const RecorderNavigator = GetBottomNavigation(
     RecorderSettings: RecorderSettings,
   },
 );
-export default RecorderNavigator;
+export default memoDeep(RecorderNavigator);

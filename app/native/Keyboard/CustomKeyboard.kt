@@ -2871,6 +2871,11 @@ class CustomKeyboard :
             soundHaptics.playKeyFeedback(v, key)
         }
 
+    private fun setKeyPressedState(view: View, isPressed: Boolean) {
+        view.isPressed = isPressed
+        layoutManager.updateHintPressedState(view, isPressed)
+    }
+
     private fun handleBackspacePress() {
         inputProcessor.resetLastSpaceTap()
         val inputConnection = currentInputConnection ?: return
@@ -3241,7 +3246,7 @@ class CustomKeyboard :
                     isSelectionMode = false
                     isVirtualShiftActive = false
                 
-                    v.isPressed = true
+                    setKeyPressedState(v, true)
                     uiHandler.postDelayed(longPressRunnable, longPressDelayMs)
                     return true
                 }
@@ -3342,7 +3347,7 @@ class CustomKeyboard :
                     uiHandler.removeCallbacks(longPressRunnable)
                     isEdgeRepeating = false
                     edgeRepeatHandler.removeCallbacks(edgeRepeatRunnable)
-                    v.isPressed = false
+                    setKeyPressedState(v, false)
                 
                     if (isVirtualShiftActive) {
                         val now = SystemClock.uptimeMillis()
@@ -3386,7 +3391,7 @@ class CustomKeyboard :
                     startY = event.y
                     isSwipeTriggered = false
                     isLongPressTriggered = false
-                    v.isPressed = true
+                    setKeyPressedState(v, true)
                     uiHandler.postDelayed(longPressRunnable, longPressDelayMs)
                     return true
                 }
@@ -3426,7 +3431,7 @@ class CustomKeyboard :
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     uiHandler.removeCallbacks(longPressRunnable)
                     uiHandler.removeCallbacks(swipeRepeatRunnable)
-                    v.isPressed = false
+                    setKeyPressedState(v, false)
                     stopBackspaceRepeat()
                     
                     if (isSwipeTriggered) return true
@@ -3466,7 +3471,7 @@ class CustomKeyboard :
                     isSwipeTriggered = false
                     accumX = 0f
                     accumY = 0f
-                    v.isPressed = true
+                    setKeyPressedState(v, true)
                     return true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -3504,7 +3509,7 @@ class CustomKeyboard :
                     return true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    v.isPressed = false
+                    setKeyPressedState(v, false)
                     if (isSwipeTriggered) return true
                     v.performClick()
                     return true
@@ -3554,7 +3559,7 @@ class CustomKeyboard :
                     isAccentSelectionMode = false
                     hasExceededSlop = false
                     downTimeMs = event.eventTime
-                    v.isPressed = true
+                    setKeyPressedState(v, true)
                     
                     if (label.length == 1 && !isSwipeTriggered) {
                         layoutManager.showKeyPreview(v, label)
@@ -3591,7 +3596,7 @@ class CustomKeyboard :
                                 isSwipeTriggered = true
                                 uiHandler.removeCallbacks(longPressRunnable)
                                 commitKeyWithCaps(charToCommit)
-                                v.isPressed = false
+                                setKeyPressedState(v, false)
                                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                 return true
                             }
@@ -3607,7 +3612,7 @@ class CustomKeyboard :
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     uiHandler.removeCallbacks(longPressRunnable)
-                    v.isPressed = false
+                    setKeyPressedState(v, false)
                     layoutManager.dismissKeyPreview()
                     
                     if (isAccentSelectionMode) {

@@ -176,12 +176,12 @@ const DownDetectorNavigator: React.FC = () => {
       GetBottomNavigation(
         [
           {
-            key: "downDetector",
+            key: "downDetector" as const,
             title: "downDetector",
             focusedIcon: "cloud-alert",
           },
           {
-            key: "addNewWebPage",
+            key: "addNewWebPage" as const,
             title: "addNewWebPage",
             focusedIcon: "sync",
           },

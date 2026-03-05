@@ -26,18 +26,18 @@ data class ForegroundConfig(
             if (intent == null) return existing
 
             val notification = NotificationContent(
-                title = intent.getStringExtra(MyForegroundService.EXTRA_TITLE) ?: existing.notification.title,
-                message = intent.getStringExtra(MyForegroundService.EXTRA_MESSAGE) ?: existing.notification.message,
+                title = intent.getStringExtra(ForegroundService.EXTRA_TITLE) ?: existing.notification.title,
+                message = intent.getStringExtra(ForegroundService.EXTRA_MESSAGE) ?: existing.notification.message,
             )
 
-            val enableClipboard = intent.getBooleanExtra(MyForegroundService.EXTRA_ENABLE_CLIPBOARD, existing.clipboard.enabled)
+            val enableClipboard = intent.getBooleanExtra(ForegroundService.EXTRA_ENABLE_CLIPBOARD, existing.clipboard.enabled)
 
             val clipboard = ClipboardConfig(
                 enabled = enableClipboard,
-                userId = intent.getStringExtra(MyForegroundService.EXTRA_USER_ID) ?: existing.clipboard.userId,
-                deviceId = intent.getStringExtra(MyForegroundService.EXTRA_DEVICE_ID) ?: existing.clipboard.deviceId,
-                lang = intent.getStringExtra(MyForegroundService.EXTRA_LANG) ?: existing.clipboard.lang,
-                userToken = intent.getStringExtra(MyForegroundService.EXTRA_USER_TOKEN) ?: existing.clipboard.userToken,
+                userId = intent.getStringExtra(ForegroundService.EXTRA_USER_ID) ?: existing.clipboard.userId,
+                deviceId = intent.getStringExtra(ForegroundService.EXTRA_DEVICE_ID) ?: existing.clipboard.deviceId,
+                lang = intent.getStringExtra(ForegroundService.EXTRA_LANG) ?: existing.clipboard.lang,
+                userToken = intent.getStringExtra(ForegroundService.EXTRA_USER_TOKEN) ?: existing.clipboard.userToken,
             )
 
             return ForegroundConfig(

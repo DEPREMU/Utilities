@@ -4,31 +4,23 @@ import { useMemo } from "react";
 import { memoDeep } from "@/utils";
 import GetBottomNavigation from "@/common/components/BottomNavigator/components/GetBottomNavigation";
 
-const QRNavigator = () => {
-  const returnValue = useMemo(
-    () =>
-      GetBottomNavigation(
-        [
-          {
-            key: "CreateQR",
-            title: "common.createQR",
-            focusedIcon: "qrcode-plus",
-          },
-          {
-            key: "ScanQR",
-            title: "common.scanQR",
-            focusedIcon: "qrcode",
-          },
-        ],
-        {
-          ScanQR,
-          CreateQR,
-        },
-      ),
-    [],
-  );
-
-  return <>{returnValue()}</>;
-};
+const QRNavigator = GetBottomNavigation(
+  [
+    {
+      key: "CreateQR" as const,
+      title: "common.createQR",
+      focusedIcon: "qrcode-plus",
+    },
+    {
+      key: "ScanQR" as const,
+      title: "common.scanQR",
+      focusedIcon: "qrcode",
+    },
+  ],
+  {
+    ScanQR,
+    CreateQR,
+  },
+);
 
 export default memoDeep(QRNavigator);

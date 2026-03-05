@@ -378,7 +378,7 @@ class KeyboardThemeDialogs(
         val initialClipboard = prefs.getFloat(KeyboardThemeManager.PREF_KEY_CLIPBOARD_TEXT_SIZE_SP, 14f)
         val initialPreview = prefs.getFloat(KeyboardThemeManager.PREF_KEY_KEY_PREVIEW_TEXT_SIZE_SP, 30f)
         val initialAccent = prefs.getFloat(KeyboardThemeManager.PREF_KEY_ACCENT_TEXT_SIZE_SP, 22f)
-        val initialHintFactor = prefs.getFloat(KeyboardThemeManager.PREF_KEY_HINT_TEXT_SIZE_FACTOR, 0.6f)
+        val initialHintFactor = prefs.getFloat(KeyboardThemeManager.PREF_KEY_HINT_TEXT_SIZE_FACTOR, 0.6f).coerceIn(0.2f, 1f)
 
         val familyInput = EditText(context).apply {
             hint = context.getString(R.string.hint_font_family)
@@ -431,10 +431,15 @@ class KeyboardThemeDialogs(
         }
         val hintSeek = SeekBar(context).apply {
             max = 100
-            progress = (initialHintFactor * 100).toInt().coerceIn(0, 100)
+            progress = (initialHintFactor * 100).toInt().coerceIn(20, 100)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    hintLabel.text = context.getString(R.string.label_hint_size_factor_fmt, progress)
+                    val safeProgress = progress.coerceAtLeast(20)
+                    if (progress != safeProgress) {
+                        seekBar?.progress = safeProgress
+                        return
+                    }
+                    hintLabel.text = context.getString(R.string.label_hint_size_factor_fmt, safeProgress)
                 }
                 override fun onStartTrackingTouch(seekBar: SeekBar?) {}
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
@@ -459,7 +464,7 @@ class KeyboardThemeDialogs(
                     val clipboardSp = 8 + clipboardSeek.second.progress
                     val previewSp = 12 + previewSeek.second.progress
                     val accentSp = 12 + accentSeek.second.progress
-                    val hintFactor = hintSeek.progress / 100f
+                    val hintFactor = (hintSeek.progress.coerceAtLeast(20)) / 100f
                     themeManager.saveTypography(
                         family,
                         style,

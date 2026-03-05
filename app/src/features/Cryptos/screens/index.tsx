@@ -18,18 +18,18 @@ const CryptosNavigator = () => {
     },
   );
 
-  const returnValue = useMemo(
+  const Navigator = useMemo(
     () =>
       GetBottomNavigation(
         [
           {
-            key: "display",
+            key: "display" as const,
             title: "Cryptos.display",
             focusedIcon: "view-dashboard",
             unfocusedIcon: "view-dashboard-outline",
           },
           {
-            key: "selection",
+            key: "selection" as const,
             title: "Cryptos.selection",
             focusedIcon: "format-list-checks",
             unfocusedIcon: "format-list-bulleted",
@@ -48,7 +48,7 @@ const CryptosNavigator = () => {
     [selectedCryptos],
   );
 
-  return returnValue();
+  return <Navigator />;
 };
 
 export default CryptosNavigator;

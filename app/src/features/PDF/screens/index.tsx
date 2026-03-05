@@ -15,17 +15,17 @@ type ViewerProps = {
 const PDFNavigator: React.FC<ViewerProps> = ({ route }) => {
   const { uri } = route?.params || {};
 
-  const returnValue = useMemo(
+  const Navigator = useMemo(
     () =>
       GetBottomNavigation(
         [
           {
-            key: "pdfViewer",
+            key: "pdfViewer" as const,
             title: "PDF.viewer",
             focusedIcon: "file-pdf-box",
           },
           {
-            key: "pdfConverter",
+            key: "pdfConverter" as const,
             title: "PDF.converter",
             focusedIcon: "file-cog",
           },
@@ -40,7 +40,7 @@ const PDFNavigator: React.FC<ViewerProps> = ({ route }) => {
 
   useEffect(() => deleteDirectoryPickerFolder, []);
 
-  return returnValue();
+  return <Navigator />;
 };
 
 export default memoDeep(PDFNavigator);

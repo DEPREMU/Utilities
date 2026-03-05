@@ -1,15 +1,15 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from "@react-navigation/native-stack";
-import Test from "@screens/test/ButtonTest";
 import InfoIP from "@screens/Network/screens/IP";
 import Translator from "@screens/Translator/screens/Translator";
 import HomeScreen from "@screens/Home/screens/HomeScreen";
 import ScanQRCode from "@screens/Auth/screens/ScanQRCode";
 import QRNavigator from "@screens/QR/screens";
 import LoginScreen from "@screens/Auth/screens/LoginScreen";
-import Minesweeper from "@/features/Games/Minesweeper/screens/Minesweeper";
+import Minesweeper from "@screens/Games/Minesweeper/screens/Minesweeper";
 import * as Linking from "expo-linking";
 import PDFNavigator from "@screens/PDF/screens";
 import { useTheme } from "@context/ThemeContext";
@@ -24,7 +24,6 @@ import CryptosNavigator from "@screens/Cryptos/screens";
 import TerminalCommands from "@screens/Web/TerminalCommands/screens";
 import RecorderNavigator from "@screens/Phone/Recorder/screens";
 import DeviceInformation from "@screens/DeviceInformation/screens";
-import NotesNavigatorMemo from "@screens/Notes/screens";
 import ClipboardNavigator from "@screens/Clipboard/screens";
 import CalculatorNavigator from "@screens/Calculator/screens";
 import React, { useEffect } from "react";
@@ -81,7 +80,11 @@ const screens: Screens = {
   forgotPassword: { component: ForgotPasswordScreen },
   DeviceInformation: { component: DeviceInformation },
   Vault: { component: VaultNavigator },
-  Test: { component: REPLACERS.isDev ? Test : ComponentToHome },
+  Test: {
+    component: REPLACERS.isDev
+      ? require("@screens/test/ButtonTest")
+      : ComponentToHome,
+  },
   Recorder: {
     component: REPLACERS.isWeb ? ComponentToHome : RecorderNavigator,
   },
@@ -100,7 +103,9 @@ const screens: Screens = {
     component: QRNavigator,
   },
   Notes: {
-    component: REPLACERS.isWeb ? ComponentToHome : NotesNavigatorMemo,
+    component: REPLACERS.isWeb
+      ? ComponentToHome
+      : require("@screens/Notes/screens"),
     //? Temporary fix to prevent web crashes due to incompatible dependencies (expo-sqlite)..
   },
 };

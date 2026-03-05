@@ -5,7 +5,7 @@ import GetBottomNavigation from "@/common/components/BottomNavigator/components/
 const ImagesNavigator = GetBottomNavigation(
   [
     {
-      key: "changeImageFormat",
+      key: "changeImageFormat" as const,
       title: "images.changeImageFormatTabTitle",
       focusedIcon: "image-edit",
     },

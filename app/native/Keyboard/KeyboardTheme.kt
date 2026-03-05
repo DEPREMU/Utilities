@@ -139,7 +139,7 @@ class KeyboardThemeManager(private val context: Context) {
         clipboardTextSizeSp = prefs.getFloat(PREF_KEY_CLIPBOARD_TEXT_SIZE_SP, 14f)
         keyPreviewTextSizeSp = prefs.getFloat(PREF_KEY_KEY_PREVIEW_TEXT_SIZE_SP, 30f)
         accentTextSizeSp = prefs.getFloat(PREF_KEY_ACCENT_TEXT_SIZE_SP, 22f)
-        hintTextSizeFactor = prefs.getFloat(PREF_KEY_HINT_TEXT_SIZE_FACTOR, 0.6f)
+        hintTextSizeFactor = prefs.getFloat(PREF_KEY_HINT_TEXT_SIZE_FACTOR, 0.6f).coerceIn(0.2f, 1f)
 
         keyPaddingHorizontalDp = prefs.getInt(PREF_KEY_KEY_PADDING_H_DP, 10)
         keyPaddingVerticalDp = prefs.getInt(PREF_KEY_KEY_PADDING_V_DP, 10)
@@ -425,6 +425,8 @@ class KeyboardThemeManager(private val context: Context) {
         accentSizeSp: Float,
         hintFactor: Float,
     ) {
+        val safeHintFactor = hintFactor.coerceIn(0.2f, 1f)
+
         prefs.edit {
             putString(PREF_KEY_FONT_FAMILY, family)
             putInt(PREF_KEY_FONT_STYLE, style)
@@ -434,7 +436,7 @@ class KeyboardThemeManager(private val context: Context) {
             putFloat(PREF_KEY_CLIPBOARD_TEXT_SIZE_SP, clipboardSizeSp)
             putFloat(PREF_KEY_KEY_PREVIEW_TEXT_SIZE_SP, previewSizeSp)
             putFloat(PREF_KEY_ACCENT_TEXT_SIZE_SP, accentSizeSp)
-            putFloat(PREF_KEY_HINT_TEXT_SIZE_FACTOR, hintFactor)
+            putFloat(PREF_KEY_HINT_TEXT_SIZE_FACTOR, safeHintFactor)
         }
         fontFamily = family
         fontStyle = style
@@ -444,7 +446,7 @@ class KeyboardThemeManager(private val context: Context) {
         clipboardTextSizeSp = clipboardSizeSp
         keyPreviewTextSizeSp = previewSizeSp
         accentTextSizeSp = accentSizeSp
-        hintTextSizeFactor = hintFactor
+        hintTextSizeFactor = safeHintFactor
     }
 
     fun saveKeyShape(

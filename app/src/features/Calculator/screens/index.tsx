@@ -6,18 +6,26 @@ import GetBottomNavigation from "@/common/components/BottomNavigator/components/
 
 const CalculatorNavigator = GetBottomNavigation(
   [
-    { key: "calculator", title: "calculator", focusedIcon: "calculator" },
     {
-      key: "timeToDownload",
+      key: "Calculator" as const,
+      title: "calculator",
+      focusedIcon: "calculator",
+    },
+    {
+      key: "TimeToDownload" as const,
       title: "timeToDownload",
       focusedIcon: "download",
     },
-    { key: "finances", title: "finances", focusedIcon: "finance" },
+    {
+      key: "Finances" as const,
+      title: "finances",
+      focusedIcon: "finance",
+    },
   ],
   {
-    finances: Finances,
-    calculator: Calculator,
-    timeToDownload: TimeToDownload,
+    Finances,
+    Calculator,
+    TimeToDownload,
   },
 );
 
