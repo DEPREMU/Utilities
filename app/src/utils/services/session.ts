@@ -12,12 +12,13 @@ import * as Notifications from "expo-notifications";
 import { navigateReplace } from "@refs";
 import { EventsDeviceInfo } from "./deviceInfo";
 import { storageManagement } from "./storage";
-import { setTimeoutPolyfill } from "../functions";
+import { clearTimeoutPolyfill, setTimeoutPolyfill } from "../functions";
 import { notificationsManager } from "./notifications";
 import { checkLanguage, tTyped } from "../translates";
 import { ResponseAuth, ResponseFetch } from "@types";
 import { NotificationAction, UserData } from "@types";
 import { NativeFunctionsModule, windowModule } from "@modules";
+import { cloneDeep } from "lodash";
 
 type SessionData = {
   userData: Omit<UserData, "password"> | null;
@@ -406,6 +407,7 @@ export const getCurrentUserId = async (): Promise<string | null> => {
 class SessionManager {
   #i = 0;
   #intervalId: number | null = null;
+  #timeoutIdNotLoggedIn: number | null = null;
 
   #initialized = false;
   #initPromise: Promise<void> | null = null;
@@ -441,8 +443,17 @@ class SessionManager {
     return this.#initPromise;
   };
 
+  private clearTimeoutNotLoggedIn = () => {
+    if (!this.#timeoutIdNotLoggedIn) return;
+    clearTimeoutPolyfill(this.#timeoutIdNotLoggedIn);
+    this.#timeoutIdNotLoggedIn = null;
+  };
+
   private notLoggedIn = () => {
-    setTimeoutPolyfill(async () => {
+    this.clearTimeoutNotLoggedIn();
+
+    this.#timeoutIdNotLoggedIn = setTimeoutPolyfill(async () => {
+      this.clearTimeoutNotLoggedIn();
       const actions: NotificationAction[] = [
         { actionId: "dismiss", title: tTyped("dismiss"), icon: "delete" },
         { actionId: "stop", title: tTyped("stop"), icon: "stop" },
@@ -568,6 +579,7 @@ class SessionManager {
         sessionToken: token,
       };
       this._emitEvent("login");
+      this.clearTimeoutNotLoggedIn();
     } catch (error) {
       logger.error(
         TAG,
@@ -660,7 +672,7 @@ class SessionManager {
     this.removeAllListeners();
   };
 
-  public getSessionData = () => this.#data;
+  public getSessionData = () => cloneDeep(this.#data);
 
   constructor() {
     this.init();

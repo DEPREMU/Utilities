@@ -13,7 +13,9 @@ export const useStylesSettingsClipboard = () => {
         container: {
           ...getCommonStyles("mainContainer"),
           maxWidth: 1000,
+          gap: getResponsiveValue(10, 12, 14, 16),
           alignSelf: "center",
+          justifyContent: "flex-start",
         },
         title: {
           fontSize: getResponsiveValue(18, 20, 22),
@@ -21,6 +23,7 @@ export const useStylesSettingsClipboard = () => {
         section: {
           ...getCommonStyles("shadow"),
           width: "100%",
+          padding: getResponsiveValue(10, 12, 14),
           backgroundColor: colors.primary,
         },
         subtitle: {
@@ -31,6 +34,7 @@ export const useStylesSettingsClipboard = () => {
         },
         buttonEnabled: {
           padding: getResponsiveValue(6, 8, 10, 12),
+          alignItems: "center",
           flexDirection: "row",
           justifyContent: "space-evenly",
         },

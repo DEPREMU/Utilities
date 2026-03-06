@@ -3,9 +3,9 @@ import { cloneDeep } from "lodash";
 import { useLanguage } from "@context/LanguageContext";
 import ButtonComponent from "@/common/components/Button/screens";
 import { clipboardManager } from "@utils";
+import React, { useRef, useState } from "react";
 import { Switch, Text, TextInput } from "react-native-paper";
 import { useStylesSettingsClipboard } from "@screens/Clipboard/styles";
-import React, { useCallback, useRef, useState } from "react";
 
 const SettingsClipboard: React.FC = () => {
   const { t } = useLanguage();
@@ -14,19 +14,22 @@ const SettingsClipboard: React.FC = () => {
   const [clipboardData, setClipboardData] = useState(
     clipboardManager.getClipboardData(),
   );
+  const [promise, setPromise] = useState<Promise<void> | null>(null);
 
   const handlePressSwitchRef = useRef(() => {
     setClipboardData((prev) => {
       const newValue = cloneDeep(prev);
       newValue.enabled = !prev.enabled;
 
-      clipboardManager.setClipboardData("enabled", newValue.enabled);
+      setPromise(
+        clipboardManager.setClipboardData("enabled", newValue.enabled),
+      );
 
       return newValue;
     });
   });
 
-  const handleChangeMaxItems = useCallback((text: string) => {
+  const handleChangeMaxItemsRef = useRef((text: string) => {
     const newNumber = parseInt(text, 10);
 
     setClipboardData((prev) => {
@@ -39,9 +42,9 @@ const SettingsClipboard: React.FC = () => {
     if (isNaN(newNumber)) return;
 
     clipboardManager.setClipboardData("maxClipboardItems", newNumber);
-  }, []);
+  });
 
-  const handleChangeMaxChars = useCallback((text: string) => {
+  const handleChangeMaxCharsRef = useRef((text: string) => {
     const newNumber = parseInt(text, 10);
 
     setClipboardData((prev) => {
@@ -54,28 +57,27 @@ const SettingsClipboard: React.FC = () => {
     if (isNaN(newNumber) || newNumber < 1) return;
 
     clipboardManager.setClipboardData("maxCharsInItem", newNumber);
-  }, []);
+  });
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t("clipboard.settings.title")}</Text>
 
-      <View style={styles.section}>
-        <ButtonComponent
-          handlePress={handlePressSwitchRef.current}
-          touchableOpacity
-          customStyles={{
-            button: styles.buttonEnabled,
-          }}
-        >
-          <Text style={styles.subtitle}>{t("clipboard.settings.enabled")}</Text>
+      <ButtonComponent
+        handlePress={handlePressSwitchRef.current}
+        touchableOpacity
+        customStyles={{
+          button: { ...styles.section, ...styles.buttonEnabled },
+        }}
+      >
+        <Text style={styles.subtitle}>{t("clipboard.settings.enabled")}</Text>
 
-          <Switch
-            value={clipboardData.enabled}
-            onValueChange={handlePressSwitchRef.current}
-          />
-        </ButtonComponent>
-      </View>
+        <Switch
+          value={clipboardData.enabled}
+          disabled={!!promise}
+          onValueChange={handlePressSwitchRef.current}
+        />
+      </ButtonComponent>
 
       <View style={styles.section}>
         <Text style={styles.subtitle}>{t("clipboard.settings.maxItems")}</Text>
@@ -83,7 +85,7 @@ const SettingsClipboard: React.FC = () => {
         <TextInput
           style={styles.textInput}
           value={String(clipboardData.maxClipboardItems)}
-          onChangeText={handleChangeMaxItems}
+          onChangeText={handleChangeMaxItemsRef.current}
           keyboardType="numbers-and-punctuation"
         />
       </View>
@@ -96,7 +98,7 @@ const SettingsClipboard: React.FC = () => {
         <TextInput
           style={styles.textInput}
           value={String(clipboardData.maxCharsInItem)}
-          onChangeText={handleChangeMaxChars}
+          onChangeText={handleChangeMaxCharsRef.current}
           keyboardType="numbers-and-punctuation"
         />
       </View>

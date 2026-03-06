@@ -13,8 +13,15 @@ const getSumVersion = (version: string): number => {
     const versionSum = version
       .split(".")
       .map((num) => {
-        const number = Number(num);
-        return !isNaN(number) ? number : 0;
+        let number = Number(num);
+        if (isNaN(number)) {
+          // Handle cases like "1.0.0-beta"
+          const match = num.match(/^(\d+)/);
+
+          if (match) number = Number(match[1]);
+          else return 0;
+        }
+        return number;
       })
       .reduce((sum, part, index) => sum + part * Math.pow(1000, 2 - index), 0);
     return isNaN(versionSum) ? 0 : versionSum;

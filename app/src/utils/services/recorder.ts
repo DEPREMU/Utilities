@@ -918,7 +918,9 @@ class RecorderManager {
   public waitUntilLoaded = async () => {
     if (this.#initialized) return;
     if (this.#initPromise) return this.#initPromise;
-    return this.init();
+
+    this.#initPromise = this.init();
+    return this.#initPromise;
   };
 
   constructor() {

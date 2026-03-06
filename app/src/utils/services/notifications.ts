@@ -281,7 +281,9 @@ class NotificationsManager {
   public waitUntilLoaded = async (): Promise<void> => {
     if (this.#initialized) return;
     if (this.#initPromise) return this.#initPromise;
-    return this.init();
+
+    this.#initPromise = this.init();
+    return this.#initPromise;
   };
 
   public getNotifications = (): Notifications => {

@@ -8,19 +8,21 @@ import {
 } from "@types";
 import {
   logger,
+  waitForTime,
   fetchToServer,
   setTimeoutPolyfill,
   setIntervalPolyfill,
   clearIntervalPolyfill,
 } from "../functions";
+import { cloneDeep } from "lodash";
 import { REPLACERS } from "../TOP_LEVEL";
-import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
 import { getRandomUUID } from "../cross";
 import { sessionManager } from "./session";
 import * as ExpoClipboard from "expo-clipboard";
-import { ClipboardStorage, wrapFunctionWithError } from "@common";
 import { CLIPBOARD_WS_URL } from "../constants";
 import { storageManagement, parseData } from "./storage";
+import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
+import { ClipboardStorage, wrapFunctionWithError } from "@common";
 import { DeviceEventEmitter, EmitterSubscription } from "react-native";
 import { windowModule, keyboardModule, BackgroundModule } from "@modules";
 
@@ -66,7 +68,7 @@ type EmitEvent = <T extends ClipboardEventType>(
 type SetClipboardData = <T extends keyof ClipboardStorage>(
   key: T,
   value: ClipboardStorage[T],
-) => void;
+) => T extends "enabled" ? Promise<void> : void;
 
 const getItemWithMaxSize = (
   item: ClipboardItem,
@@ -88,6 +90,7 @@ class ClipboardManager {
   #intervalId: number | null = null;
   #shouldConnect: boolean = true;
 
+  #listenerSession: (() => void) | null = null;
   #listenerClipboard: EmitterSubscription | null = null;
   #removeInternetListener: (() => void) | null = null;
   #removeStatePhoneListener: (() => void) | null = null;
@@ -104,7 +107,7 @@ class ClipboardManager {
     Object.values(listeners).forEach((callback) => callback?.(...args));
   };
 
-  public getClipboardData = () => this.#clipboardData;
+  public getClipboardData = () => cloneDeep(this.#clipboardData);
 
   public existsInClipboard = (content: string) =>
     this.#listItemsClipboard.some((item) => item.content === content);
@@ -113,9 +116,8 @@ class ClipboardManager {
     this.#clipboardData[key] = value;
     switch (key) {
       case "enabled":
-        if (value) this.cleanup();
-        else this.init();
-        break;
+        if (!value) return this.cleanup() as never;
+        else return this.init() as never;
       case "maxCharsInItem":
         if ((value as number) < 1) this.#clipboardData.maxCharsInItem = -1;
         break;
@@ -125,6 +127,8 @@ class ClipboardManager {
       default:
         break;
     }
+
+    return null as never;
   };
 
   public addEventListener: AddEventListener = (event, callback) => {
@@ -208,7 +212,7 @@ class ClipboardManager {
         return;
       }
       attempts++;
-      await new Promise((resolve) => setTimeoutPolyfill(resolve, 1000));
+      await waitForTime(1000);
     }
 
     if (currentSocket.readyState === WebSocket.OPEN) {
@@ -305,14 +309,11 @@ class ClipboardManager {
   };
 
   private initClipboardItems = async () => {
-    const { userData } = sessionManager.getSessionData();
+    const { userData, sessionToken } = sessionManager.getSessionData();
     if (!userData?.userId) return;
 
-    const [deviceId, sessionToken, language] = [
-      storageManagement.get("DEVICE_ID"),
-      storageManagement.get("USER_SESSION_TOKEN_STORAGE"),
-      storageManagement.get("LANGUAGE"),
-    ];
+    const language = storageManagement.get("LANGUAGE");
+    const deviceId = storageManagement.get("DEVICE_ID");
 
     if (!sessionToken) return;
 
@@ -388,15 +389,15 @@ class ClipboardManager {
       async (event: EventClipboardNative) => {
         switch (event.type) {
           case "update":
-            this.handleInsertItem(event?.text);
+            this.handleInsertItem(event.text);
             break;
           case "show":
             setTimeoutPolyfill(() => {
-              if (this.#listItemsClipboard.length === 0) return;
+              if (!this.#listItemsClipboard.length) return;
 
-              keyboardModule?.setClipboardSuggestions?.([
-                ...(this.#listItemsClipboard || []),
-              ]);
+              keyboardModule.setClipboardSuggestions?.(
+                this.#listItemsClipboard,
+              );
             }, 100);
             break;
           case "delete": {
@@ -423,6 +424,7 @@ class ClipboardManager {
               storageManagement.get("DEVICE_ID"),
               storageManagement.get("USER_SESSION_TOKEN_STORAGE"),
             ];
+            this._emitEvent("items-updated", this.#listItemsClipboard);
             if (!sessionToken) return;
 
             const match = resolvedId
@@ -443,7 +445,6 @@ class ClipboardManager {
               },
               sessionToken,
             );
-            this._emitEvent("items-updated", this.#listItemsClipboard);
             break;
           }
           default:
@@ -474,44 +475,60 @@ class ClipboardManager {
     );
   };
 
+  private initSessionListener = () => {
+    if (this.#listenerSession) return;
+
+    const removeListenerLogin = sessionManager.addEventListener("login", () => {
+      this.resume();
+      this.initClipboardItems();
+    });
+    const removeListenerLogout = sessionManager.addEventListener(
+      "logout",
+      () => {
+        this.suspend();
+      },
+    );
+
+    this.#listenerSession = () => {
+      removeListenerLogin();
+      removeListenerLogout();
+    };
+  };
+
   public init = async () => {
-    const load = async () => {
-      try {
-        if (this.#initialized) return;
-        if (this.#initPromise) return this.#initPromise;
+    try {
+      if (this.#initialized) return;
+      if (this.#initPromise) return this.#initPromise;
 
-        await storageManagement.waitUntilLoaded();
-        this.#clipboardData = storageManagement.get("CLIPBOARD", {
-          enabled: true,
-          maxCharsInItem: -1,
-          maxClipboardItems: 10,
-        });
+      await Promise.all([
+        sessionManager.waitUntilLoaded(),
+        storageManagement.waitUntilLoaded(),
+      ]);
+      this.#clipboardData = storageManagement.get("CLIPBOARD", {
+        enabled: true,
+        maxCharsInItem: -1,
+        maxClipboardItems: 10,
+      });
 
-        this.cleanup();
+      this.cleanup();
 
-        this.#clipboardSocketURL = storageManagement.get(
-          "CLIPBOARD_WEBSOCKET_URL",
-          null,
-        );
+      this.#clipboardSocketURL = storageManagement.get(
+        "CLIPBOARD_WEBSOCKET_URL",
+        null,
+      );
 
-        await this.createClipboardWebSocket();
+      await this.createClipboardWebSocket();
 
-        this.initClipboardItems();
+      this.initClipboardItems();
 
-        if (REPLACERS.isWeb) {
-          if (this.#intervalId) clearIntervalPolyfill(this.#intervalId);
+      if (REPLACERS.isWeb) {
+        if (this.#intervalId) clearIntervalPolyfill(this.#intervalId);
 
-          this.#intervalId = setIntervalPolyfill(() => {
-            this.handleIntervalClipboardWeb();
-          }, 500);
-        } else {
-          this.initClipboardNativeListener();
-        }
-
-        this.initInternetListener();
-
-        if (!REPLACERS.isNative) return;
-
+        this.#intervalId = setIntervalPolyfill(() => {
+          this.handleIntervalClipboardWeb();
+        }, 500);
+      } else {
+        this.initClipboardNativeListener();
         this.#removeStatePhoneListener = deviceInfo.addEventListener(
           EventsDeviceInfo.statePhoneChange,
           (statePhone) => {
@@ -519,21 +536,20 @@ class ClipboardManager {
             else this.suspend();
           },
         );
-      } catch (error) {
-        logger.error(
-          "CLIPBOARD",
-          "Error initializing ClipboardManager",
-          error instanceof Error ? error.message : String(error),
-        );
-      } finally {
-        this.#initialized = true;
-        this.#initPromise = null;
       }
-    };
 
-    this.#initPromise = load();
-
-    return this.#initPromise;
+      this.initSessionListener();
+      this.initInternetListener();
+    } catch (error) {
+      logger.error(
+        "CLIPBOARD",
+        "Error initializing ClipboardManager",
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      this.#initialized = true;
+      this.#initPromise = null;
+    }
   };
 
   public suspend = () => {
@@ -573,21 +589,26 @@ class ClipboardManager {
     }
   };
 
-  public cleanup = () => {
-    if (this.#intervalId) clearIntervalPolyfill(this.#intervalId);
+  public cleanup = async () => {
+    if (this.#initPromise) await this.#initPromise;
+
+    clearIntervalPolyfill(this.#intervalId);
+    if (this.#listenerSession) this.#listenerSession();
     if (this.#listenerClipboard) this.#listenerClipboard.remove();
     if (this.#removeInternetListener) this.#removeInternetListener();
     if (this.#removeStatePhoneListener) this.#removeStatePhoneListener();
 
     this.#clipboardSocket?.close();
     this.#clipboardSocket = null;
-    this.removeAllListeners();
+    this.#initialized = false;
   };
 
   public waitUntilLoaded = async () => {
     if (this.#initialized) return;
     if (this.#initPromise) return this.#initPromise;
-    return this.init();
+
+    this.#initPromise = this.init();
+    return this.#initPromise;
   };
 
   public getItems = () => this.#listItemsClipboard;
@@ -598,7 +619,7 @@ class ClipboardManager {
 
   constructor() {
     this.#clipboardData = storageManagement.get("CLIPBOARD");
-    this.init();
+    this.#initPromise = this.init();
   }
 }
 

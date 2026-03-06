@@ -13,9 +13,7 @@ class Updates {
   #initPromise: Promise<void> | null = null;
 
   #idIntervalCheckUpdatesNatively: number | null = null;
-  #listenerExpoUpdates: ReturnType<
-    typeof ExpoUpdates.addUpdatesStateChangeListener
-  > | null = null;
+  #listenerExpoUpdates: (() => void) | null = null;
 
   #updateExpo = async () => {
     const { cleanupServices } = await import("@utils");
@@ -119,10 +117,7 @@ class Updates {
 
             this.#updateExpo();
           },
-          {
-            cancelable: true,
-            addDoNotAskAgain: false,
-          },
+          { cancelable: true },
         );
       } else {
         notificationsManager.sendNotification({
@@ -144,29 +139,48 @@ class Updates {
       return true;
     } catch (error) {
       const { logger } = await import("@utils");
-      logger.error("Error while updating the app with Expo Updates", error);
+      logger.error(
+        "Error while updating the app with Expo Updates",
+        error instanceof Error ? error.message : String(error),
+      );
     }
 
     return false;
   };
 
   private _initCheckUpdatesExpo = async () => {
-    if (!REPLACERS.isNative) return;
+    if (!REPLACERS.isNative || REPLACERS.isDev) return;
     if (this.#listenerExpoUpdates) return;
-    if (APP_VERSION.includes("dev")) return; // Skip updates for testing builds
 
-    const sub = ExpoUpdates.addUpdatesStateChangeListener(async (event) => {
-      if (!event.context.isUpdateAvailable) return;
-      await this.#checkUpdatesExpo();
-    });
+    const { setIntervalPolyfill, clearIntervalPolyfill, deviceInfo } =
+      await import("@utils");
 
-    this.#listenerExpoUpdates = sub;
+    let sub: null | (() => void) = null;
+    const id = setIntervalPolyfill(
+      () => {
+        if (deviceInfo.hasInternet) return this.#checkUpdatesExpo();
+
+        if (!sub)
+          sub = deviceInfo.addEventListener(
+            EventsDeviceInfo.hasInternetChange,
+            (hasInternet) => {
+              if (!hasInternet) return;
+
+              this.#checkUpdatesExpo();
+              sub?.();
+              sub = null;
+            },
+          );
+      },
+      60 * 60 * 1000,
+    );
+
+    this.#listenerExpoUpdates = () => clearIntervalPolyfill(id);
   };
 
   private _initCheckUpdatesNatively = async () => {
-    if (!REPLACERS.isNative) return;
+    if (!REPLACERS.isNative || REPLACERS.isDev) return;
     if (this.#idIntervalCheckUpdatesNatively) return;
-    if (APP_VERSION.includes("dev")) return; // Skip updates for testing builds
 
     await this.#checkUpdatesNatively.func();
     const { setIntervalPolyfill } = await import("@utils");
@@ -203,7 +217,7 @@ class Updates {
       this.#idIntervalCheckUpdatesNatively = null;
     }
 
-    this.#listenerExpoUpdates?.remove();
+    this.#listenerExpoUpdates?.();
   };
 
   constructor() {

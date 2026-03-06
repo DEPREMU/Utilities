@@ -594,7 +594,9 @@ class DeviceInfo {
   public waitUntilLoaded = async () => {
     if (this.#initialized) return;
     if (this.#initPromise) return this.#initPromise;
-    return this._init();
+
+    this.#initPromise = this._init();
+    return this.#initPromise;
   };
 
   public initListener = (event: EventsDeviceInfo) => {

@@ -3,8 +3,8 @@ import { AppState } from "react-native";
 import { REPLACERS } from "../TOP_LEVEL";
 import * as Location from "expo-location";
 import { Permission } from "@common";
+import { permissionsData } from "@refs";
 import { NativeFunctionsModule } from "@modules";
-import { initPermissionsData, permissionsData } from "@refs";
 
 const TAG = "PERMISSIONS";
 
@@ -349,7 +349,7 @@ const askDoNotDisturbPermission = async (): Promise<void> => {
 export const askPermissions = async (): Promise<void> => {
   if (REPLACERS.isWeb) return;
 
-  await initPermissionsData();
+  await permissionsData.initializing;
   const { storageManagement } = await import("@utils");
   await storageManagement.waitUntilLoaded();
 

@@ -397,7 +397,7 @@ class StorageManagement {
   #hasUI: boolean = false;
   #promise: Promise<void> | null = null;
 
-  private isLoaded = false;
+  #isLoaded = false;
 
   public get hasUI() {
     return this.#hasUI;
@@ -413,13 +413,13 @@ class StorageManagement {
    * @returns A promise that resolves when the storage data is loaded and ready for use.
    */
   public waitUntilLoaded = async (): Promise<void> => {
-    if (this.isLoaded) return;
+    if (this.#isLoaded) return;
     if (this.#promise) return this.#promise;
 
     const checkLoaded = async () => {
       const { waitForTime } = await import("../functions");
 
-      while (!this.isLoaded) {
+      while (!this.#isLoaded) {
         await waitForTime(50);
       }
 
@@ -434,7 +434,6 @@ class StorageManagement {
     };
 
     this.#promise = checkLoaded();
-
     return this.#promise;
   };
 
@@ -476,7 +475,7 @@ class StorageManagement {
       );
 
       this.#data = data as ExpectedStorageTypes<"BOTH">;
-      this.isLoaded = true;
+      this.#isLoaded = true;
     } catch (e) {
       logger.error("STORAGE", "Failed to load storage data.", e);
       if (!REPLACERS.isDev) reloadAppAsync("Failed to load storage data.");
@@ -629,7 +628,7 @@ class StorageManagement {
    * @returns A promise that resolves when the data has been reloaded.
    */
   public reloadData = async (): Promise<void> => {
-    this.isLoaded = false;
+    this.#isLoaded = false;
     await this.#loadData();
   };
 

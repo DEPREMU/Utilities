@@ -28,6 +28,7 @@ const ask: AskPermission = async (
   callback,
   options = {
     cancelable: false,
+    showCancelButton: true,
     addDoNotAskAgain: false,
   },
 ) => {
@@ -42,7 +43,7 @@ const ask: AskPermission = async (
         tTyped(title),
         tTyped(message),
         [
-          ...(options?.showCancelButton
+          ...((options?.showCancelButton ?? true)
             ? [
                 {
                   text: tTyped(options.cancelButtonText ?? "labels.cancel"),
