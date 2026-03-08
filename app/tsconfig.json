@@ -6,8 +6,9 @@
     "**/*.tsx",
     "**/types/*",
     "../common/both/index.ts",
-    "../common/both/notifications.ts"
-, "src/index.txs"  ],
+    "../common/both/notifications.ts",
+    "src/index.txs"
+  ],
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",

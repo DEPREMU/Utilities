@@ -133,7 +133,8 @@ const AppNavigator: React.FC = () => {
         if (!url || (!url.startsWith("content") && !url.startsWith("file")))
           return;
 
-        navigateReplace("PDF", { uri: decodeURIComponent(url) });
+        if (url.endsWith(".pdf"))
+          navigateReplace("PDF", { uri: decodeURIComponent(url) });
       };
 
       const sub = Linking.addEventListener("url", ({ url }) => {

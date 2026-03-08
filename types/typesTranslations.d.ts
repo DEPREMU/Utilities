@@ -407,6 +407,9 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       noCryptocurrenciesSelected: string;
       cryptocurrenciesTracked: string;
     };
+    loadingScreen: {
+      welcomeTo: string;
+    };
     auth: {
       errorNoSession: string;
       errorNoSessionMessage: string;

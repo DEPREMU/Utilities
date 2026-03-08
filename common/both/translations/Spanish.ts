@@ -802,4 +802,7 @@ export const esApp: typeLanguages = {
       maxCharsInItem: "Maxima Cantidad de Caracteres por Elemento",
     },
   },
+  loadingScreen: {
+    welcomeTo: "Bienvenido a",
+  },
 };

@@ -15,7 +15,7 @@ export default (
   const isProduction = BUILD_PROFILE === "production";
 
   const name = "Utilities" + (isProduction ? "" : ` (${BUILD_PROFILE})`);
-  const version = "0.1.0-beta" + (isProduction ? "" : `-${BUILD_PROFILE}`);
+  const version = "0.1.1-beta" + (isProduction ? "" : `-${BUILD_PROFILE}`);
 
   return {
     ...config,
@@ -89,7 +89,6 @@ export default (
       "expo-system-ui",
       "expo-file-system",
       "expo-secure-store",
-      "expo-localization",
       "expo-media-library",
       "expo-notifications",
       "expo-background-task",

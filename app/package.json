@@ -36,7 +36,7 @@
     "@react-navigation/stack": "^7.6.16",
     "core-js": "^3.48.0",
     "crypto-js": "^4.2.0",
-    "expo": "~55.0.4",
+    "expo": "~55.0.5",
     "expo-audio": "~55.0.8",
     "expo-background-task": "~55.0.9",
     "expo-blur": "~55.0.8",

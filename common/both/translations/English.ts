@@ -790,4 +790,7 @@ export const enApp: typeLanguages = {
       maxCharsInItem: "Max characters per content",
     },
   },
+  loadingScreen: {
+    welcomeTo: "Welcome to",
+  },
 };

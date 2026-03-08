@@ -1,16 +1,12 @@
 import {
   REPLACERS,
-  deviceInfo,
-  sessionManager,
   cleanupServices,
-  recorderManager,
-  clipboardManager,
   storageManagement,
   setTimeoutPolyfill,
-  notificationsManager,
 } from "@utils";
 import AppNavigator from "./AppNavigator";
 import AppProviders from "@context/AppProviders";
+import LoadingScreen from "@screens/Loading/screens/LoadingScreen";
 import React, { useEffect } from "react";
 import { NativeFunctionsModule } from "@modules";
 
@@ -19,20 +15,6 @@ const App = () => {
 
   useEffect(() => {
     storageManagement.setHasUI();
-
-    const initializeApp = async () => {
-      await Promise.all([
-        deviceInfo.waitUntilLoaded(),
-        sessionManager.waitUntilLoaded(),
-        recorderManager.waitUntilLoaded(),
-        clipboardManager.waitUntilLoaded(),
-        storageManagement.waitUntilLoaded(),
-        notificationsManager.waitUntilLoaded(),
-      ]);
-
-      setIsLoading(false);
-    };
-    initializeApp();
 
     const cleanup = (fun?: () => void) => () => {
       cleanupServices();
@@ -54,7 +36,7 @@ const App = () => {
     return cleanup();
   }, []);
 
-  if (isLoading) return null;
+  if (isLoading) return <LoadingScreen setIsLoading={setIsLoading} />;
 
   return (
     <AppProviders>
