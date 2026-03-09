@@ -193,10 +193,12 @@ export const fetchToServer: FetchToServer = async (route, ...bodyAndToken) => {
       ...(isBodyMethod ? [data, config] : [config]),
     );
 
+    const ok = res.status >= 200 && res.status < 300;
+
     return {
-      ok: res.status >= 200 && res.status < 300,
+      ok,
       data: res.data || null,
-      errorText: res.data?.error || res.statusText || undefined,
+      errorText: ok ? undefined : res.data?.error || res.statusText,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

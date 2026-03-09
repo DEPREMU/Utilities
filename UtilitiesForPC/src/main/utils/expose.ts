@@ -55,7 +55,6 @@ const ipcDict: IpcDictHybrid = {
   "read-clipboard": {
     type: "handle",
     func: async () => {
-      writeLog(`Received read-clipboard request`, "info");
       return clipboard.readText("clipboard");
     },
   },

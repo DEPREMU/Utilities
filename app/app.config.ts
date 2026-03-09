@@ -15,7 +15,7 @@ export default (
   const isProduction = BUILD_PROFILE === "production";
 
   const name = "Utilities" + (isProduction ? "" : ` (${BUILD_PROFILE})`);
-  const version = "0.1.1-beta" + (isProduction ? "" : `-${BUILD_PROFILE}`);
+  const version = "0.1.2-beta" + (isProduction ? "" : `-${BUILD_PROFILE}`);
 
   return {
     ...config,

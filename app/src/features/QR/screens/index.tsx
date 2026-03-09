@@ -1,6 +1,5 @@
 import ScanQR from "./ScanQR";
 import CreateQR from "./CreateQR";
-import { useMemo } from "react";
 import { memoDeep } from "@/utils";
 import GetBottomNavigation from "@/common/components/BottomNavigator/components/GetBottomNavigation";
 

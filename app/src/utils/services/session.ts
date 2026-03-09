@@ -543,6 +543,7 @@ class SessionManager {
         return;
       }
 
+      await storageManagement.waitUntilLoaded();
       const rememberMe = storageManagement.get("SESSION_EXPIRY");
       const sessionToken = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
 

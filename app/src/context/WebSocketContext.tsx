@@ -17,15 +17,13 @@ import {
   deviceInfo,
   URL_WEB_SOCKET,
   sessionManager,
-  clipboardManager,
+  EventsDeviceInfo,
   storageManagement,
   setTimeoutPolyfill,
   notificationsManager,
-  EventsDeviceInfo,
 } from "@utils";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
-import { useUserContext } from "@context/UserContext";
 import { WebSocketMessage } from "@types";
 
 type SendMessageFunc = (
@@ -61,7 +59,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
 }) => {
   const { language } = useLanguage();
-  const { isLoggedIn } = useUserContext();
 
   const [socketURL, setSocketURL] = useState<string | null>(null);
 
@@ -196,14 +193,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   useEffect(() => {
     setSocketURL(storageManagement.get("WEBSOCKET_URL", null));
   }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn) return;
-
-    clipboardManager.init();
-
-    return () => clipboardManager.cleanup();
-  }, [isLoggedIn]);
 
   useEffect(() => {
     const removeListener = deviceInfo.addEventListener(
