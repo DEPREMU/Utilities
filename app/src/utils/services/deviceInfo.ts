@@ -229,51 +229,49 @@ class DeviceInfo {
   private _initHasInternet = async () => {
     const event = EventsDeviceInfo.hasInternetChange;
     if (this.#listeners[event]) return;
+    const reason: ReasonNotification = "noInternetConnection";
 
     const { notificationsManager, hasInternetConnection } =
       await import("@utils");
 
     await notificationsManager.waitUntilLoaded();
-    const notification = notificationsManager.getNotification(
-      "noInternetConnection",
-    );
+    const notification = notificationsManager.getNotification(reason);
     if (!notification.enabled) return;
 
     const hasInternetId = setIntervalPolyfill(
       async () => {
-        if (REPLACERS.isNative)
-          NotificationModule.cancelPreviousReasonNotification(
-            "noInternetConnection",
-          );
-
+        const prev = this.hasInternet;
         const info = this.fetchNetworkInfo;
 
-        const hasInternet =
-          (info.isCellular ? info.fetchWithCellularData : true) &&
+        const current =
+          (!info.isCellular || info.fetchWithCellularData) &&
           (await hasInternetConnection());
-        if (this.hasInternet === hasInternet) return;
+        if (prev === current) return;
 
-        if (this.hasInternet && !hasInternet) {
+        if (REPLACERS.isNative)
+          NotificationModule.cancelPreviousReasonNotification(reason);
+
+        if (prev && !current) {
           notificationsManager.sendNotification({
             type: "warning",
             title: tTyped("common.NoInternetConnection"),
             message: tTyped("common.PleaseCheckInternetConnection"),
-            channelId: "noInternetConnection",
-            reasonNotification: "noInternetConnection",
+            channelId: reason,
+            reasonNotification: reason,
             overrideNotification: false,
           });
         } else {
           notificationsManager.sendNotification({
-            type: "success",
+            type: "info",
             title: tTyped("InternetConnectionRestored"),
             message: tTyped("YouAreBackOnline"),
-            channelId: "noInternetConnection",
-            reasonNotification: "noInternetConnection",
+            channelId: reason,
+            reasonNotification: reason,
             overrideNotification: false,
           });
         }
 
-        this.#data.hasInternet = hasInternet;
+        this.#data.hasInternet = current;
         this._emitEvent(event, this.hasInternet);
       },
       REPLACERS.isNative ? 8000 : 5000,

@@ -29,30 +29,30 @@ const keysTranslated: Record<
   | Record<keyof IPQueryLocation, typeLanguagesKeys>
   | Record<keyof IPQueryRisk, typeLanguagesKeys>
 > = {
-  ip: "yourIP",
+  ip: "network.yourIP",
   isp: {
-    asn: "asn",
-    org: "organization",
-    isp: "isp",
+    asn: "network.asn",
+    org: "network.organization",
+    isp: "network.isp",
   },
   location: {
-    country: "country",
-    country_code: "countryCode",
-    city: "city",
-    state: "state",
-    zipcode: "zipcode",
-    latitude: "latitude",
-    longitude: "longitude",
-    timezone: "timezone",
-    localtime: "localTime",
+    country: "network.country",
+    country_code: "network.countryCode",
+    city: "network.city",
+    state: "network.state",
+    zipcode: "network.zipcode",
+    latitude: "network.latitude",
+    longitude: "network.longitude",
+    timezone: "network.timezone",
+    localtime: "network.localTime",
   },
   risk: {
-    is_mobile: "isMobile",
-    is_vpn: "isVPN",
-    is_tor: "isTOR",
-    is_proxy: "isProxy",
-    is_datacenter: "isDatacenter",
-    risk_score: "riskScore",
+    is_mobile: "network.isMobile",
+    is_vpn: "network.isVPN",
+    is_tor: "network.isTOR",
+    is_proxy: "network.isProxy",
+    is_datacenter: "network.isDatacenter",
+    risk_score: "network.riskScore",
   },
 };
 
@@ -85,9 +85,9 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
 
         let valueToShow: string = "";
         if (typeof subValue === "boolean")
-          valueToShow = subValue ? t("yes") : t("no");
+          valueToShow = subValue ? t("common.yes") : t("common.no");
         else if (
-          translationKey === "localTime" &&
+          translationKey === "network.localTime" &&
           String(subValue).includes("T") &&
           String(subValue).includes(":")
         )
@@ -145,9 +145,9 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
       <Text style={styles.textIP}>{t("IPQuery.title")}</Text>
 
       <View style={styles.containerIP}>
-        <Text style={styles.textKey}>{t("yourIP", { ip: "" })}</Text>
+        <Text style={styles.textKey}>{t("network.yourIP", { ip: "" })}</Text>
         <SkeletonLoading
-          showChildren={dataIP?.ip !== "yourIP"}
+          showChildren={dataIP?.ip !== "network.yourIP"}
           style={[styles.skeletonValue]}
         >
           <Text style={styles.valueIP}>{dataIP?.ip}</Text>

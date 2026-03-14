@@ -3,7 +3,7 @@ import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from "@react-navigation/native-stack";
-import InfoIP from "@screens/Network/screens/IP";
+import Network from "@screens/Network/screens";
 import Translator from "@screens/Translator/screens/Translator";
 import HomeScreen from "@screens/Home/screens/HomeScreen";
 import ScanQRCode from "@screens/Auth/screens/ScanQRCode";
@@ -63,8 +63,8 @@ const screens: Screens = {
   Home: { component: HomeScreen },
   Login: { component: LoginScreen },
   Games: { component: GamesNavigator },
-  InfoIP: { component: InfoIP },
   SignUp: { component: SignUpScreen },
+  Network: { component: Network },
   Cryptos: { component: CryptosNavigator },
   Settings: { component: SettingsScreen },
   Clipboard: { component: ClipboardNavigator },
@@ -121,7 +121,7 @@ const allScreens = Object.entries(screens).map(
   ),
 );
 
-const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "Home" : "Home";
+const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "Network" : "Home";
 
 const AppNavigator: React.FC = () => {
   const { navigationTheme } = useTheme();

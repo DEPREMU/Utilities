@@ -37,30 +37,30 @@ interface IP_ApiProps {
 }
 
 const keysTranslated: Record<keyof dataIP_API_JSON, typeLanguagesKeys> = {
-  status: "status",
-  continent: "continent",
-  continentCode: "continentCode",
-  country: "country",
-  countryCode: "countryCode",
-  region: "region",
-  regionName: "regionName",
-  city: "city",
-  district: "district",
-  zip: "zipcode",
-  lat: "latitude",
-  lon: "longitude",
-  timezone: "timezone",
-  offset: "utcOffset",
-  currency: "currency",
-  isp: "isp",
-  org: "organization",
-  as: "as",
-  asname: "asname",
-  reverse: "reverse",
-  mobile: "isMobile",
-  proxy: "isProxy",
-  hosting: "isHosting",
-  query: "yourIP",
+  status: "network.status",
+  continent: "network.continent",
+  continentCode: "network.continentCode",
+  country: "network.country",
+  countryCode: "network.countryCode",
+  region: "network.region",
+  regionName: "network.regionName",
+  city: "network.city",
+  district: "network.district",
+  zip: "network.zipcode",
+  lat: "network.latitude",
+  lon: "network.longitude",
+  timezone: "network.timezone",
+  offset: "network.utcOffset",
+  currency: "network.currency",
+  isp: "network.isp",
+  org: "network.organization",
+  as: "network.as",
+  asname: "network.asname",
+  reverse: "network.reverseDNS",
+  mobile: "network.isMobile",
+  proxy: "network.isProxy",
+  hosting: "network.isHosting",
+  query: "network.yourIP",
 };
 
 const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
@@ -98,14 +98,16 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
         const valueToShow =
           typeof value === "boolean"
             ? value
-              ? t("yes")
-              : t("no")
+              ? t("common.yes")
+              : t("common.no")
             : String(value);
 
         return (
           <View key={key} style={styles.containerEachValue}>
             <Text style={styles.textKey}>{t(keysTranslated[keyTyped])}</Text>
-            <Text style={styles.value}>{valueToShow || t("notAvailable")}</Text>
+            <Text style={styles.value}>
+              {valueToShow || t("common.notAvailable")}
+            </Text>
           </View>
         );
       }),
@@ -119,7 +121,7 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
       <Text style={styles.textIP}>{t("IP_API.title")}</Text>
 
       <View style={styles.containerIP}>
-        <Text style={styles.textKey}>{t("yourIP", { ip: "" })}</Text>
+        <Text style={styles.textKey}>{t("network.yourIP", { ip: "" })}</Text>
         <Text style={styles.value}>{dataIP?.query}</Text>
       </View>
 
