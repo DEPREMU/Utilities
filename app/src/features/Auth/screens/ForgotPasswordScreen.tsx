@@ -1,18 +1,23 @@
+import {
+  logger,
+  REPLACERS,
+  navigation,
+  isValidEmail as isValidEmailFunc,
+} from "@utils";
 import Animated, {
   withTiming,
   withSequence,
   useSharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
+import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import ButtonComponent from "@/common/components/Button/screens";
 import { useUserContext } from "@context/UserContext";
 import { View, Keyboard } from "react-native";
 import useStylesAuthScreens from "@screens/Auth/styles/useStylesAuthScreens";
-import { modalRef, navigateReplace } from "@refs";
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, Text, TextInput } from "react-native-paper";
-import { isValidEmail as isValidEmailFunc, logger, REPLACERS } from "@utils";
 
 const ForgotPasswordScreen: React.FC = () => {
   const { t } = useLanguage();
@@ -80,7 +85,7 @@ const ForgotPasswordScreen: React.FC = () => {
   };
 
   const handlePressLogin = useCallback(() => {
-    navigateReplace("Login");
+    navigation.replace("Login");
   }, []);
 
   const handlerOnFocus = useCallback(() => {

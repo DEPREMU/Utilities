@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import {
   logger,
+  navigation,
   isValidEmail,
   sessionManager,
   saveStorageData,
@@ -14,7 +15,6 @@ import {
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
 import { ResponseAuth } from "@types";
-import { navigateReplace } from "@refs";
 import { BackgroundModule } from "@modules";
 
 type DataRef = {
@@ -60,7 +60,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       setIsLoggedIn(true);
       await saveStorageData(response.storageValues);
       logger.log("User logged in with QR successfully:", response.user.email);
-      navigateReplace("Home");
+      navigation.replace("Home");
     },
     forgotPassword: async (
       email: string,

@@ -7,11 +7,11 @@ import {
 import AppNavigator from "./AppNavigator";
 import AppProviders from "@context/AppProviders";
 import LoadingScreen from "@screens/Loading/screens/LoadingScreen";
-import React, { useEffect } from "react";
 import { NativeFunctionsModule } from "@modules";
+import React, { useEffect, useState } from "react";
 
 const App = () => {
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     storageManagement.setHasUI();

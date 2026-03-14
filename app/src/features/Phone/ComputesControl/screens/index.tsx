@@ -2,17 +2,18 @@ import {
   logger,
   tTyped,
   deviceInfo,
+  navigation,
   checkUrlStatus,
+  EventsDeviceInfo,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
-  EventsDeviceInfo,
 } from "@utils";
 import axios from "axios";
+import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { AdvertisementTXT } from "@types";
 import Zeroconf, { Service } from "react-native-zeroconf";
 import useStylesComputerControl from "@screens/Phone/ComputesControl/styles/useStylesComputerControl";
-import { modalRef, navigateReplace } from "@refs";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Card, List, Text, FAB } from "react-native-paper";
 // eslint-disable-next-line react-native/split-platform-components
@@ -236,7 +237,7 @@ const ComputerControl: React.FC = () => {
       if (granted) {
         startRescanCycleRef.current();
       } else {
-        navigateReplace("Home");
+        navigation.replace("Home");
       }
     });
 

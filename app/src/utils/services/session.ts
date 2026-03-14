@@ -6,19 +6,19 @@ import {
   DO_NOT_DELETE_OR_SAVE,
 } from "@common";
 import { logger } from "../functions/debug";
+import { cloneDeep } from "lodash";
 import { REPLACERS } from "../TOP_LEVEL";
+import { navigation } from "./navigation";
 import { fetchToServer } from "../functions/APIManagement";
 import * as Notifications from "expo-notifications";
-import { navigateReplace } from "@refs";
 import { EventsDeviceInfo } from "./deviceInfo";
 import { storageManagement } from "./storage";
-import { clearTimeoutPolyfill, setTimeoutPolyfill } from "../functions";
 import { notificationsManager } from "./notifications";
 import { checkLanguage, tTyped } from "../translates";
 import { ResponseAuth, ResponseFetch } from "@types";
 import { NotificationAction, UserData } from "@types";
 import { NativeFunctionsModule, windowModule } from "@modules";
-import { cloneDeep } from "lodash";
+import { clearTimeoutPolyfill, setTimeoutPolyfill } from "../functions";
 
 type SessionData = {
   userData: Omit<UserData, "password"> | null;
@@ -273,7 +273,7 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
     if (REPLACERS.isNative) storageManagement.remove("TERMINAL_COMMANDS");
 
     logger.log(TAG, "User signed out successfully");
-    navigateReplace("Login");
+    navigation.replace("Login");
     return {};
   } catch (error) {
     const errorMsg = `Unexpected error during sign out: ${(error as Error).message}`;

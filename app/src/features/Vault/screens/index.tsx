@@ -1,3 +1,12 @@
+import {
+  tTyped,
+  memoDeep,
+  REPLACERS,
+  deviceInfo,
+  navigation,
+  DATA_PLATFORM,
+  EventsDeviceInfo,
+} from "@utils";
 import Button from "@/common/components/Button/screens";
 import { View } from "react-native";
 import { Route } from "@/common/components/BottomNavigator/components/GetBottomNavigation";
@@ -8,18 +17,9 @@ import BackupScreen from "@screens/Vault/screens/BackupScreen";
 import SettingsScreen from "@screens/Vault/screens/SettingsScreen";
 import { useLanguage } from "@context/LanguageContext";
 import CompressionScreen from "@screens/Vault/screens/CompressionScreen";
-import { navigateReplace } from "@refs";
 import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
 import useStylesBottomNavigator from "@/common/components/BottomNavigator/styles/useStylesBottomNavigator";
 import { BottomNavigation, Text } from "react-native-paper";
-import {
-  DATA_PLATFORM,
-  memoDeep,
-  tTyped,
-  REPLACERS,
-  deviceInfo,
-  EventsDeviceInfo,
-} from "@utils";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 
 const routes: Route[] = [
@@ -117,7 +117,7 @@ const VaultNavigator = () => {
     if (REPLACERS.isNative || DATA_PLATFORM.isElectron) return;
 
     alert(tTyped("vault.unsupportedPlatformAlert"));
-    navigateReplace("Home");
+    navigation.replace("Home");
   }, []);
 
   if (index === -1)

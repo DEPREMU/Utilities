@@ -1,5 +1,6 @@
 import {
   memoDeep,
+  navigation,
   fetchToServer,
   languagesNames,
   sessionManager,
@@ -8,7 +9,6 @@ import {
 import { List } from "react-native-paper";
 import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
-import { navigateReplace } from "@refs";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import { LanguagesSupported } from "@types";
 import React, { useMemo, useRef } from "react";
@@ -27,7 +27,7 @@ const LanguagePicker: React.FC = () => {
         {
           requiresInternet: true,
           func: async () => {
-            if (!sessionToken) return navigateReplace("Login");
+            if (!sessionToken) return navigation.replace("Login");
             const deviceId = storageManagement.get("DEVICE_ID");
 
             fetchToServer(
@@ -84,6 +84,4 @@ const LanguagePicker: React.FC = () => {
   );
 };
 
-const LanguagePickerMemo = memoDeep(LanguagePicker);
-
-export default LanguagePickerMemo;
+export default memoDeep(LanguagePicker);

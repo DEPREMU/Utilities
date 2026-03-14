@@ -1,9 +1,9 @@
 import Animated, {
+  FadeInUp,
   withSpring,
+  FadeOutDown,
   useSharedValue,
   useAnimatedStyle,
-  FadeOutDown,
-  FadeInUp,
 } from "react-native-reanimated";
 import {
   ASSETS,
@@ -25,7 +25,7 @@ import { View, useWindowDimensions } from "react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type LoadingScreenProps = {
-  setIsLoading: (isLoading: boolean) => void;
+  setIsLoading: (value: boolean) => void;
 };
 
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {

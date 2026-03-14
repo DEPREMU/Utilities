@@ -1,19 +1,20 @@
 import {
   tTyped,
   logger,
+  navigation,
   isValidEmail,
   sessionManager,
   isValidPassword,
 } from "@utils";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
+import { modalRef } from "@refs";
 import ButtonComponent from "@/common/components/Button/screens";
 import { useLanguage } from "@context/LanguageContext";
 import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
 import { useUserContext } from "@/context/UserContext";
 import useStylesAuthScreens from "@screens/Auth/styles/useStylesAuthScreens";
 import { ActivityIndicator } from "react-native-paper";
-import { modalRef, navigateReplace } from "@refs";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const SignUpScreen: React.FC = () => {
@@ -31,7 +32,7 @@ const SignUpScreen: React.FC = () => {
   });
 
   const handlePressLoginRef = useRef(() => {
-    navigateReplace("Login");
+    navigation.replace("Login");
   });
 
   const signingUpRef = useRef<boolean | null>(false);
@@ -62,7 +63,7 @@ const SignUpScreen: React.FC = () => {
   }, [email, password]);
 
   useEffect(() => {
-    if (isLoggedIn) navigateReplace("Home");
+    if (isLoggedIn) navigation.replace("Home");
   }, [isLoggedIn]);
 
   return (

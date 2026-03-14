@@ -11,14 +11,15 @@ import {
   tTyped,
   REPLACERS,
   deviceInfo,
+  navigation,
   AudioPlayer,
   AudioStatus,
   DataRecorder,
   recorderManager,
   EventsDeviceInfo,
 } from "@utils";
+import { modalRef } from "@refs";
 import { AudioModule } from "expo-audio";
-import { modalRef, navigateReplace } from "@refs";
 
 interface RecorderContextType {
   player: AudioPlayer;
@@ -140,7 +141,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
         const permission = await AudioModule.requestRecordingPermissionsAsync();
         if (!permission.granted) {
           modalRef.openSnackBar?.(tTyped("recorder.permissionDenied"));
-          navigateReplace("Home");
+          navigation.replace("Home");
           return;
         }
 

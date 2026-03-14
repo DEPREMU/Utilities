@@ -15,13 +15,13 @@ import {
   alerts,
   logger,
   deviceInfo,
+  navigation,
   EventsDeviceInfo,
   storageManagement,
   executeRegisteredTask,
   hasInternetConnection,
 } from "@utils";
 import { BackHandler } from "react-native";
-import { getCurrentScreen, navigateReplace } from "@refs";
 
 type BackgroundTask = {
   requiresInternet: boolean;
@@ -264,23 +264,22 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   useEffect(() => {
     const handlePressYes = (isFirstScreen: boolean) => {
       if (isFirstScreen) return BackHandler.exitApp();
-      navigateReplace("Home");
+      navigation.replace("Home");
     };
 
     const onBackPress = () => {
-      getCurrentScreen().then((currentScreen) => {
-        const isFirstScreen = currentScreen === "Home";
+      const currentScreen = navigation.getCurrentScreen();
+      const isFirstScreen = currentScreen === "Home";
 
-        alerts.showAlert(
-          `common.${isFirstScreen ? "exitApp" : "back"}`,
-          `common.${isFirstScreen ? "exitAppMessage" : "backMessage"}`,
-          async (_, accepted) => {
-            if (!accepted) return;
-            handlePressYes(isFirstScreen);
-          },
-          { showCancelButton: true },
-        );
-      });
+      alerts.showAlert(
+        `common.${isFirstScreen ? "exitApp" : "back"}`,
+        `common.${isFirstScreen ? "exitAppMessage" : "backMessage"}`,
+        async (_, accepted) => {
+          if (!accepted) return;
+          handlePressYes(isFirstScreen);
+        },
+        { showCancelButton: true },
+      );
 
       return true;
     };

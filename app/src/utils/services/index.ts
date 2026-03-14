@@ -13,6 +13,7 @@ export * from "./updates";
 export * from "./recorder";
 export * from "./clipboard";
 export * from "./deviceInfo";
+export * from "./navigation";
 export * from "./notifications";
 
 export const cleanupServices = async () => {

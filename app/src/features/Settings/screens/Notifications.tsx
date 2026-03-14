@@ -13,25 +13,25 @@ import React, {
 import {
   memoDeep,
   REPLACERS,
+  navigation,
   fetchToServer,
   DATA_PLATFORM,
   sessionManager,
   getFormattedDate,
   storageManagement,
+  askForPermission,
   getDefaultMinutes,
   setTimeoutPolyfill,
   notificationsManager,
   clearTimeoutPolyfill,
-  askForPermission,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWebSocket } from "@/context/WebSocketContext";
 import { FlatList, View } from "react-native";
-import { useUserContext } from "@/context/UserContext";
-import { navigateReplace } from "@/app/refs/navigationRef";
-import { useBackgroundTask } from "@/context/BackgroundTaskContext";
-import useStylesNotifications from "@/features/Settings/styles/useStylesNotifications";
+import { useUserContext } from "@context/UserContext";
+import { useBackgroundTask } from "@context/BackgroundTaskContext";
+import useStylesNotifications from "@screens/Settings/styles/useStylesNotifications";
 import { Switch, Text, TextInput } from "react-native-paper";
 
 type typeMinutes = Record<ReasonNotification, number | null> | null;
@@ -155,7 +155,7 @@ const NotificationsScreen: React.FC = () => {
   const handleChangeNotificationRef = useRef(
     async (reason: ReasonNotification) => {
       if (reason === "cryptos" && !sessionManager.getSessionData().isLoggedIn)
-        return navigateReplace("Login");
+        return navigation.replace("Login");
       if (reason === "locationEnabled") {
         const granted = await askForPermission("location", {
           overrideDoNotAskAgain: true,
@@ -172,7 +172,7 @@ const NotificationsScreen: React.FC = () => {
     async (id: ReasonNotification, value: string) => {
       const { sessionToken, userData } = sessionManager.getSessionData();
 
-      if (!sessionToken) return navigateReplace("Login");
+      if (!sessionToken) return navigation.replace("Login");
       if (!userData?.userId) return;
 
       let interval = parseFloat(value);

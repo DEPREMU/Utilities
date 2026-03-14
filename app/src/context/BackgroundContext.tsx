@@ -3,15 +3,15 @@ import {
   tTyped,
   REPLACERS,
   deviceInfo,
+  navigation,
+  waitForTime,
+  EventsDeviceInfo,
   setTimeoutPolyfill,
   setIntervalPolyfill,
   clearTimeoutPolyfill,
   clearIntervalPolyfill,
-  EventsDeviceInfo,
-  waitForTime,
 } from "@utils";
 import { reloadAppAsync } from "expo";
-import { getCurrentScreen, navigateReplace } from "@refs";
 import { BackgroundModule } from "@modules";
 import React, { useRef, useMemo, useEffect, createContext } from "react";
 
@@ -167,10 +167,10 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       (newState) => {
         if (newState === "background") {
           if (!timeoutId)
-            timeoutId = setTimeoutPolyfill(async () => {
-              const current = await getCurrentScreen();
+            timeoutId = setTimeoutPolyfill(() => {
+              const current = navigation.getCurrentScreen();
 
-              if (current !== "Home") navigateReplace("Home");
+              if (current !== "Home") navigation.replace("Home");
             }, 60000);
         } else if (timeoutId) {
           clearTimeoutPolyfill(timeoutId);

@@ -16,6 +16,7 @@ import {
   RoutesAPIWithItsMethod,
 } from "@types";
 import { logger } from "./debug";
+import { REPLACERS } from "../TOP_LEVEL";
 import axios, { AxiosRequestConfig } from "axios";
 import { stringifyData, storageManagement } from "../services/storage";
 
@@ -161,15 +162,19 @@ export const fetchToServer: FetchToServer = async (route, ...bodyAndToken) => {
 
     const info = deviceInfo.fetchNetworkInfo;
 
-    if (info.isCellular && !info.fetchWithCellularData)
+    const apiRoute = await getRouteAPI(route);
+
+    if (
+      info.isCellular &&
+      !info.fetchWithCellularData &&
+      (REPLACERS.isProduction || route !== "/debug/appAlive")
+    )
       return {
         ok: false,
         why: APIErrorWhy.FetchWithCellularDataOff,
         data: null,
         errorText: "Fetching with cellular data is turned off in settings.",
       };
-
-    const apiRoute = await getRouteAPI(route);
 
     const method = ROUTES[route].method;
 

@@ -1,5 +1,6 @@
 import {
   debug,
+  alerts,
   logger,
   openURL,
   API_URL,
@@ -7,18 +8,18 @@ import {
   memoDeep,
   REPLACERS,
   deviceInfo,
+  navigation,
   APP_VERSION,
   getRouteAPI,
   fetchToServer,
   ADMIN_PASSWORD,
   sessionManager,
   DEBUG_SETTINGS,
+  EventsDeviceInfo,
   getFormattedDate,
   storageManagement,
   setTimeoutPolyfill,
   getDevicePushToken,
-  alerts,
-  EventsDeviceInfo,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import ThemePicker from "@screens/Settings/components/ThemePicker";
@@ -27,7 +28,6 @@ import LanguagePicker from "@screens/Settings/components/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
-import { navigateReplace } from "@refs";
 import { ScrollView, View } from "react-native";
 import { typeLanguagesKeys } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
@@ -437,7 +437,7 @@ const SettingsScreen: React.FC = () => {
 
               <Button
                 label={t("loginWithQR")}
-                handlePress={() => navigateReplace("ScanQRCode")}
+                handlePress={() => navigation.replace("ScanQRCode")}
               />
             </View>
           )}

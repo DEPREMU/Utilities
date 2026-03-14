@@ -1,10 +1,10 @@
-import React, { useMemo } from "react";
 import Button from "@/common/components/Button/screens";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
-import { useLanguage } from "@/context/LanguageContext";
-import { navigateReplace } from "@/app/refs/navigationRef";
-import { useStylesGamesNavigator } from "@/features/Games/styles/useStylesGamesNavigator";
+import { navigation } from "@utils";
+import { useLanguage } from "@context/LanguageContext";
+import React, { useMemo } from "react";
+import { useStylesGamesNavigator } from "@screens/Games/styles/useStylesGamesNavigator";
 import { ScreensAvailable, typeLanguagesKeys } from "@types";
 
 const buttons: { label: typeLanguagesKeys; screen: ScreensAvailable }[] = [
@@ -19,11 +19,11 @@ const GamesNavigator: React.FC = () => {
     () =>
       buttons.map((button) => (
         <Button
+          touchableOpacity
           key={button.label}
           label={t(button.label)}
-          touchableOpacity
+          handlePress={navigation.replace}
           argsFuncHandlePress={[button.screen]}
-          handlePress={navigateReplace}
         />
       )),
     [t],

@@ -12,13 +12,14 @@ import {
 } from "@types";
 import { logger } from "../functions";
 import { tTyped } from "../translates";
+import { modalRef } from "@refs";
 import { cloneDeep } from "lodash";
 import { REPLACERS } from "../TOP_LEVEL";
+import { navigation } from "./navigation";
 import * as DeviceInfo from "react-native-device-info";
 import * as notifications from "expo-notifications";
 import { AppState, Falsy } from "react-native";
 import { storageManagement } from "../services/storage";
-import { navigateReplace, modalRef } from "@refs";
 import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
 import { reasonNotification, objByReasonNotification } from "@common";
 
@@ -149,7 +150,7 @@ export const setupNotificationHandlers = () => {
 
       if (!data?.screen) return;
 
-      navigateReplace(data.screen);
+      navigation.replace(data.screen);
     });
 
   const foregroundListener = notifications.addNotificationReceivedListener(

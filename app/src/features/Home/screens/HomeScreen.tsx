@@ -1,20 +1,20 @@
+import {
+  REPLACERS,
+  deviceInfo,
+  navigation,
+  DATA_PLATFORM,
+  sessionManager,
+  EventsDeviceInfo,
+  hasInternetConnection,
+} from "@utils";
 import Button from "@/common/components/Button/screens";
 import { List, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
-import { navigateReplace } from "@refs";
 import { ScrollView, View } from "react-native";
 import { useStylesHomeScreen } from "@screens/Home/styles/useStylesHomeScreen";
 import { ScreensAvailable, typeLanguagesKeys } from "@types";
 import React, { useRef, useMemo, useState, useEffect } from "react";
-import {
-  DATA_PLATFORM,
-  deviceInfo,
-  EventsDeviceInfo,
-  hasInternetConnection,
-  REPLACERS,
-  sessionManager,
-} from "@utils";
 
 type ButtonType = {
   label: typeLanguagesKeys;
@@ -132,7 +132,7 @@ const HomeScreen: React.FC = () => {
 
   const [hasInternet, setHasInternet] = useState(deviceInfo.hasInternet);
 
-  const handleLoginPressRef = useRef(() => navigateReplace("Login"));
+  const handleLoginPressRef = useRef(() => navigation.replace("Login"));
 
   const renderButtons = useMemo(() => {
     return buttons.map((button, i) => {
@@ -162,7 +162,7 @@ const HomeScreen: React.FC = () => {
             touchableOpacity
             label={t(button.label)}
             disabled={(!internet && !isValidScreen) || !loggedIn}
-            handlePress={navigateReplace}
+            handlePress={navigation.replace}
             argsFuncHandlePress={[button.screen]}
           />
         </View>

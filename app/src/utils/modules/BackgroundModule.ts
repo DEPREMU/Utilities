@@ -20,37 +20,20 @@ interface Spec extends TurboModule {
   setReactAlive(alive: boolean): void;
 }
 
+const voidFunc = () => {};
+
 const defaultBackgroundModule: Spec = {
-  start: () => {},
-  stop: () => {},
-  setUserData: () => {},
+  start: voidFunc,
+  stop: voidFunc,
+  setUserData: voidFunc,
   isRunning: async () => false,
   getMethods: async () => [],
-  setReactAlive: () => {},
-  setClipboardText: () => {},
-  stopClipboardService: () => {},
-  startClipboardService: () => {},
+  setReactAlive: voidFunc,
+  setClipboardText: voidFunc,
+  stopClipboardService: voidFunc,
+  startClipboardService: voidFunc,
 };
 
-const BackgroundModule = REPLACERS.isNative
+export const BackgroundModule = REPLACERS.isNative
   ? TurboModuleRegistry.getEnforcing<Spec>("BackgroundServiceModule")
   : defaultBackgroundModule;
-
-if (REPLACERS.isDev && REPLACERS.isNative)
-  import("@utils").then(({ logger, setTimeoutPolyfill }) => {
-    setTimeoutPolyfill(() => {
-      if (!BackgroundModule || !Object.keys(BackgroundModule).length) {
-        logger.error(
-          "BackgroundServiceModule is not available.",
-          BackgroundModule,
-        );
-      } else {
-        logger.log(
-          "BackgroundServiceModule is available.",
-          Object.keys(BackgroundModule),
-        );
-      }
-    }, 2000);
-  });
-
-export { BackgroundModule };

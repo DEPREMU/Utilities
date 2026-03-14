@@ -14,14 +14,17 @@ import React, {
   createContext,
 } from "react";
 import {
+  alerts,
   tTyped,
   logger,
   REPLACERS,
   deviceInfo,
+  navigation,
   encryptFile,
   getRandomUUID,
   getFoldersVault,
   renameVaultItem,
+  EventsDeviceInfo,
   sanitizeFileName,
   storageManagement,
   decryptFolderFiles,
@@ -31,10 +34,9 @@ import {
   getDefaultVaultDirectory,
   getMimeTypeFromExtension,
   clearDecryptedFolderDirectory,
-  EventsDeviceInfo,
-  alerts,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
+import { modalRef } from "@refs";
 import { cloneDeep } from "lodash";
 import { TextInput } from "react-native-paper";
 import * as ExpoAuth from "expo-local-authentication";
@@ -42,7 +44,6 @@ import { ModalData } from "@screens/Vault/screens/VaultViewer";
 import * as FileSystem from "expo-file-system";
 import { windowModule } from "@modules";
 import * as DocumentPicker from "expo-document-picker";
-import { modalRef, navigateReplace } from "@refs";
 
 type VaultData = {
   sessionId: string;
@@ -314,7 +315,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!success) {
           const onPressDismiss = () => {
             modalRef.closeModal?.();
-            navigateReplace("Home");
+            navigation.replace("Home");
           };
 
           modalRef.openModal?.(

@@ -44,29 +44,33 @@ export interface Spec extends TurboModule {
   ) => Promise<boolean>;
 }
 
+const voidFunc = () => {};
+const asyncFalse = async () => false;
+const notSupported = async () => "NOT_SUPPORTED" as const;
+
 const defaultNativeFunctionsModule: Spec = {
-  checkOverlayPermission: async () => false,
+  checkOverlayPermission: asyncFalse,
   requestOverlayPermission: async () => "NOT_AVAILABLE",
-  checkDoNotDisturbPermission: async () => false,
+  checkDoNotDisturbPermission: asyncFalse,
   requestDoNotDisturbPermission: async () => "NOT_NEEDED",
-  enableDoNotDisturb: async () => "NOT_SUPPORTED",
-  disableDoNotDisturb: async () => "NOT_SUPPORTED",
-  isIgnoringBatteryOptimizations: async () => false,
-  requestIgnoreBatteryOptimizations: () => {},
-  openApp: () => {},
+  enableDoNotDisturb: notSupported,
+  disableDoNotDisturb: notSupported,
+  isIgnoringBatteryOptimizations: asyncFalse,
+  requestIgnoreBatteryOptimizations: voidFunc,
+  openApp: voidFunc,
   requestAutoStartPermission: async () => "GENERIC_SETTINGS_OPENED",
-  minimizeApp: () => {},
-  wasLaunchedFromService: async () => false,
-  isDoNotDisturbEnabled: async () => false,
-  subscribeToProgressDecrypt: () => () => {},
-  subscribeToProgressEncrypt: () => () => {},
-  decryptFile: async () => false,
-  encryptFile: async () => false,
+  minimizeApp: voidFunc,
+  wasLaunchedFromService: asyncFalse,
+  isDoNotDisturbEnabled: asyncFalse,
+  subscribeToProgressDecrypt: () => voidFunc,
+  subscribeToProgressEncrypt: () => voidFunc,
+  decryptFile: asyncFalse,
+  encryptFile: asyncFalse,
 };
 
-const NativeFunctionsModule = REPLACERS.isWeb
-  ? defaultNativeFunctionsModule
-  : TurboModuleRegistry.getEnforcing<Spec>("NativeFunctionsModule");
+const NativeFunctionsModule = REPLACERS.isNative
+  ? TurboModuleRegistry.getEnforcing<Spec>("NativeFunctionsModule")
+  : defaultNativeFunctionsModule;
 
 if (REPLACERS.isNative) {
   const methods = [
@@ -91,25 +95,5 @@ if (REPLACERS.isNative) {
     };
   });
 }
-
-if (REPLACERS.isDev && REPLACERS.isNative)
-  import("@utils").then(({ logger, setTimeoutPolyfill }) => {
-    setTimeoutPolyfill(() => {
-      if (
-        !NativeFunctionsModule ||
-        !Object.keys(NativeFunctionsModule).length
-      ) {
-        logger.error(
-          "NativeFunctionsModule is not available.",
-          NativeFunctionsModule,
-        );
-      } else {
-        logger.log(
-          "NativeFunctionsModule is available.",
-          Object.keys(NativeFunctionsModule),
-        );
-      }
-    }, 2000);
-  });
 
 export { NativeFunctionsModule };

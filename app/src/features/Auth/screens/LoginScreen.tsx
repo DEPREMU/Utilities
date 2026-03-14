@@ -1,14 +1,14 @@
 import { View } from "react-native";
 import LoginTypeQR from "@screens/Auth/components/LoginTypeQR";
+import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import ButtonComponent from "@/common/components/Button/screens";
 import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
 import stylesLoginScreen from "@screens/Auth/styles/useStylesAuthScreens";
 import { useUserContext } from "@context/UserContext";
-import { modalRef, navigateReplace } from "@refs";
 import { Text, ActivityIndicator, Switch } from "react-native-paper";
-import { logger, tTyped, REPLACERS, sessionManager } from "@utils";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { logger, tTyped, REPLACERS, sessionManager, navigation } from "@utils";
 
 const LoginScreen: React.FC = () => {
   const { t } = useLanguage();
@@ -30,11 +30,11 @@ const LoginScreen: React.FC = () => {
   });
 
   const handlePressCreateAccountRef = useRef(() => {
-    navigateReplace("SignUp");
+    navigation.replace("SignUp");
   });
 
   const handleForgotPasswordRef = useRef(() => {
-    navigateReplace("forgotPassword");
+    navigation.replace("forgotPassword");
   });
 
   const handleChangeTypeLoginRef = useRef(() => {
@@ -62,7 +62,7 @@ const LoginScreen: React.FC = () => {
   }, [email, password, loggingIn, rememberMe]);
 
   useEffect(() => {
-    if (isLoggedIn) navigateReplace("Home");
+    if (isLoggedIn) navigation.replace("Home");
   }, [isLoggedIn]);
 
   useEffect(() => {
@@ -71,7 +71,7 @@ const LoginScreen: React.FC = () => {
         logger.error("AUTH", "Login event error:", err);
         return;
       }
-      navigateReplace("Home");
+      navigation.replace("Home");
     });
 
     return () => removeListener();

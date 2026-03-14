@@ -32,32 +32,17 @@ interface Spec extends TurboModule {
   ) => void;
 }
 
+const voidFunc = () => {};
+
 const defaultNotificationModule: Spec = {
-  createNotificationChannel: () => {},
+  createNotificationChannel: voidFunc,
   sendNotification: async () => 0,
-  cancelNotification: () => {},
-  cancelPreviousReasonNotification: () => {},
+  cancelNotification: voidFunc,
+  cancelPreviousReasonNotification: voidFunc,
 };
 
 const NotificationModule = REPLACERS.isNative
   ? TurboModuleRegistry.getEnforcing<Spec>("NotificationModule")
   : defaultNotificationModule;
-
-if (REPLACERS.isDev && REPLACERS.isNative)
-  import("@utils").then(({ logger, setTimeoutPolyfill }) => {
-    setTimeoutPolyfill(() => {
-      if (!NotificationModule || !Object.keys(NotificationModule).length) {
-        logger.error(
-          "NotificationModule is not available.",
-          NotificationModule,
-        );
-      } else {
-        logger.log(
-          "NotificationModule is available.",
-          Object.keys(NotificationModule),
-        );
-      }
-    }, 2000);
-  });
 
 export { NotificationModule };

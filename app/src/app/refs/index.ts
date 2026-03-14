@@ -1,3 +1,3 @@
 export * from "./Modal";
 export * from "./permissions";
-export * from "./navigationRef";
+export * from "../../utils/services/navigation";

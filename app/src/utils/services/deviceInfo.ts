@@ -19,11 +19,11 @@ import { tTyped } from "../translates";
 import * as NetInfo from "@react-native-community/netinfo";
 import { REPLACERS } from "../TOP_LEVEL";
 import * as Location from "expo-location";
+import { navigation } from "./navigation";
 import { DATA_PLATFORM } from "../cross";
 import * as DeviceInfoRN from "react-native-device-info";
 import { storageManagement } from "./storage";
 import { ExpectedSecureStorageTypes } from "@common";
-import { navigateReplace, navigationRef } from "@refs";
 import { AppState, AppStateStatus, DeviceEventEmitter } from "react-native";
 
 export type typeDataReceivedState = { state: "suspended" | "resumed" };
@@ -332,7 +332,7 @@ class DeviceInfo {
             // Handled below
             break;
           case "settings":
-            navigateReplace("Settings");
+            navigation.replace("Settings");
             break;
           case "pause":
             try {
@@ -503,8 +503,8 @@ class DeviceInfo {
 
     let prevScreen: ScreensAvailable = "Home";
 
-    const remover = navigationRef.current?.addListener("state", () => {
-      const route = navigationRef.current?.getCurrentRoute();
+    const remover = navigation.ref.current?.addListener("state", () => {
+      const route = navigation.ref.current?.getCurrentRoute();
       const screen = route?.name || "Home";
       if (screen === prevScreen) return;
 

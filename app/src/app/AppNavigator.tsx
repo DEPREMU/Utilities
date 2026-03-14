@@ -33,8 +33,7 @@ import ForgotPasswordScreen from "@screens/Auth/screens/ForgotPasswordScreen";
 import DownDetectorNavigator from "@screens/DownDetector/screens";
 import { NavigationContainer } from "@react-navigation/native";
 import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
-import { navigateReplace, navigationRef } from "@refs";
-import { REPLACERS, setupNotificationHandlers } from "@utils";
+import { REPLACERS, setupNotificationHandlers, navigation } from "@utils";
 
 export type RootStackParamList = Record<ScreensAvailable, object | undefined>;
 
@@ -50,12 +49,10 @@ type Screens = Record<
 
 const ComponentToHome: React.FC = () => {
   useEffect(() => {
-    navigateReplace("Home");
+    navigation.replace("Home");
   }, []);
   return null;
 };
-
-const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "Notes" : "Home";
 
 /**
  * Centralized configuration object for all app screens.
@@ -124,6 +121,8 @@ const allScreens = Object.entries(screens).map(
   ),
 );
 
+const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "Home" : "Home";
+
 const AppNavigator: React.FC = () => {
   const { navigationTheme } = useTheme();
 
@@ -134,7 +133,7 @@ const AppNavigator: React.FC = () => {
           return;
 
         if (url.endsWith(".pdf"))
-          navigateReplace("PDF", { uri: decodeURIComponent(url) });
+          navigation.replace("PDF", { uri: decodeURIComponent(url) });
       };
 
       const sub = Linking.addEventListener("url", ({ url }) => {
@@ -157,7 +156,7 @@ const AppNavigator: React.FC = () => {
         case "h":
           if (event.ctrlKey) {
             event.preventDefault();
-            navigateReplace("Home");
+            navigation.replace("Home");
           }
           break;
 
@@ -173,7 +172,7 @@ const AppNavigator: React.FC = () => {
   }, []);
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+    <NavigationContainer ref={navigation.ref} theme={navigationTheme}>
       <BackgroundTaskProvider>
         <Stack.Navigator initialRouteName={initialRouteName}>
           {allScreens}

@@ -2,6 +2,7 @@ import {
   logger,
   parseData,
   REPLACERS,
+  navigation,
   QR_LOGIN_WS_URL,
   storageManagement,
   setTimeoutPolyfill,
@@ -10,11 +11,11 @@ import {
 import Button from "@/common/components/Button/screens";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
+import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import useStylesScanQRCode from "@screens/Auth/styles/useStylesScanQRCode";
 import ReconnectingWebSocket from "@/utils/reconnecting-websocket";
-import { modalRef, navigateReplace } from "@refs";
 import React, { useEffect, useRef, useState } from "react";
 import { BarcodeScanningResult, Camera, CameraView } from "expo-camera";
 import { LoginWithQRMobile, MessageWebSocketQRLogin } from "@types";
@@ -60,7 +61,7 @@ const ScanQRCode: React.FC = () => {
         label={t("accept")}
         handlePress={() => {
           modalRef.closeModal?.();
-          navigateReplace("Home");
+          navigation.replace("Home");
         }}
       />,
     );
@@ -69,7 +70,7 @@ const ScanQRCode: React.FC = () => {
   useEffect(() => {
     if (isLoggedIn && REPLACERS.isNative) return;
 
-    navigateReplace("Home");
+    navigation.replace("Home");
   }, [isLoggedIn]);
 
   useEffect(() => {
@@ -89,7 +90,7 @@ const ScanQRCode: React.FC = () => {
         const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
         if (!token) {
           logger.error("No session token available for QR login");
-          navigateReplace("Home");
+          navigation.replace("Home");
           return;
         }
 
@@ -105,7 +106,7 @@ const ScanQRCode: React.FC = () => {
               label={t("accept")}
               handlePress={() => {
                 modalRef.closeModal?.();
-                navigateReplace("Home");
+                navigation.replace("Home");
               }}
             />,
           );
@@ -122,7 +123,7 @@ const ScanQRCode: React.FC = () => {
             () => {
               logger.error("QR login error: timeout");
               ws?.close();
-              navigateReplace("Home");
+              navigation.replace("Home");
             },
             1 * 60 * 1000,
           );
@@ -147,7 +148,7 @@ const ScanQRCode: React.FC = () => {
                     label={t("accept")}
                     handlePress={() => {
                       modalRef.closeModal?.();
-                      navigateReplace("Home");
+                      navigation.replace("Home");
                     }}
                   />,
                 );
@@ -159,7 +160,7 @@ const ScanQRCode: React.FC = () => {
                 break;
             }
             ws?.close();
-            navigateReplace("Home");
+            navigation.replace("Home");
           } catch (error) {
             logger.error("Error parsing WebSocket message:", error);
           }
