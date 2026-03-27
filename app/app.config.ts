@@ -15,7 +15,7 @@ export default (
   const isProduction = BUILD_PROFILE === "production";
 
   const name = "Utilities" + (isProduction ? "" : ` (${BUILD_PROFILE})`);
-  const version = "0.1.2-beta" + (isProduction ? "" : `-${BUILD_PROFILE}`);
+  const version = "0.1.3-beta" + (isProduction ? "" : `-${BUILD_PROFILE}`);
 
   return {
     ...config,
@@ -91,34 +91,21 @@ export default (
       "expo-secure-store",
       "expo-media-library",
       "expo-notifications",
-      "expo-background-task",
       "expo-document-picker",
       "expo-local-authentication",
       "react-native-quick-crypto",
-      ["react-native-permissions", { iosPermissions: [] }],
+      ["expo-sqlite", { enableFTS: true, useSQLCipher: true }],
       ["expo-location", { isAndroidBackgroundLocationEnabled: true }],
-      [
-        "expo-sqlite",
-        {
-          enableFTS: true,
-          useSQLCipher: true,
-        },
-      ],
       [
         "expo-build-properties",
         {
           enableMinifyInReleaseBuilds: true,
-          android: { usesCleartextTraffic: true },
+          android: { usesCleartextTraffic: true, minSdkVersion: 29 },
         },
       ],
       [
         "expo-localization",
-        {
-          supportedLocales: {
-            web: ["en", "es"],
-            android: ["en", "es"],
-          },
-        },
+        { supportedLocales: { web: ["en", "es"], android: ["en", "es"] } },
       ],
       [
         "react-native-audio-api",
@@ -129,8 +116,6 @@ export default (
         },
       ],
     ],
-    web: {
-      favicon: "./src/assets/favicon.png",
-    },
+    web: { favicon: "./src/assets/favicon.png" },
   };
 };
