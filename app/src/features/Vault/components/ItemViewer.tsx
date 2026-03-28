@@ -1,10 +1,10 @@
-import { FolderFiles } from "@types";
-import React, { useCallback } from "react";
-import { useVault } from "../context/VaultContext.tsx";
-import useStylesVaultScreen from "../styles/useStylesVaultScreen";
-import { ModalData, OnLongPressRef } from "../screens/VaultViewer";
-import { Image, Pressable } from "react-native";
+import { useVault } from "../context/VaultContext";
 import { List, Text } from "react-native-paper";
+import { FolderFiles } from "@types";
+import { Image, Pressable } from "react-native";
+import useStylesVaultScreen from "../styles/useStylesVaultScreen";
+import React, { useCallback } from "react";
+import { ModalData, OnLongPressRef } from "../screens/VaultViewer";
 
 interface ItemViewerProps {
   item: FolderFiles[number];

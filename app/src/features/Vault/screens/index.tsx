@@ -19,10 +19,7 @@ import CompressionScreen from "@screens/Vault/screens/CompressionScreen";
 import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
 import useStylesBottomNavigator from "@/common/components/BottomNavigator/styles/useStylesBottomNavigator";
 import { BottomNavigation, Text } from "react-native-paper";
-import {
-  useVault,
-  VaultProvider,
-} from "@screens/Vault/context/VaultContext.tsx";
+import { useVault, VaultProvider } from "@screens/Vault/context/VaultContext";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 
 const routes: Route[] = [

@@ -1,7 +1,7 @@
 import {
   useVault,
   DEFAULT_VAULT_DATA,
-} from "@screens/Vault/context/VaultContext.tsx";
+} from "@screens/Vault/context/VaultContext";
 import {
   Gesture,
   GestureDetector,
@@ -22,13 +22,13 @@ import {
 } from "@utils";
 import bytes from "bytes";
 import { ModalData } from "../screens/VaultViewer";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
 import { scheduleOnRN } from "react-native-worklets";
-import useStylesVaultScreen from "@/features/Vault/styles/useStylesVaultScreen";
+import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
 import { useVideoPlayer, VideoView } from "expo-video";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Divider, IconButton, Modal, Portal, Text } from "react-native-paper";
 import { View, Image, Pressable, GestureResponderEvent } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 type ModalComponentProps = {
   onDismiss: () => void;

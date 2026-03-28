@@ -1,4 +1,3 @@
-import { PickedFile, FolderFiles, VaultSettings } from "@types";
 import React, {
   useRef,
   useMemo,
@@ -8,8 +7,6 @@ import React, {
   createContext,
   useCallback,
 } from "react";
-import { deviceInfo, EventsDeviceInfo } from "@utils";
-import { ActivityIndicator } from "react-native-paper";
 import {
   VaultData,
   VaultFunctions,
@@ -17,8 +14,11 @@ import {
   VaultDomainState,
   DEFAULT_VAULT_DATA,
   vaultDomainServiceManager,
-} from "@/features/Vault/services/vaultDomain.tsx";
-import { vaultServiceManager } from "@/features/Vault/services/vault";
+} from "@screens/Vault/services/vaultDomain";
+import { ActivityIndicator } from "react-native-paper";
+import { vaultServiceManager } from "@screens/Vault/services/vault";
+import { deviceInfo, EventsDeviceInfo } from "@utils";
+import { PickedFile, FolderFiles, VaultSettings } from "@types";
 
 export type StatesObj = {
   data: VaultData | null;

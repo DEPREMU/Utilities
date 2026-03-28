@@ -1,9 +1,9 @@
 import Modal from "../components/Modal";
 import ItemViewer from "../components/ItemViewer";
-import { useVault } from "@/features/Vault/context/VaultContext.tsx";
+import { useVault } from "@screens/Vault/context/VaultContext";
 import { REPLACERS } from "@utils";
 import { FolderFiles } from "@types";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
 import { VaultScreenProps } from ".";
 import React, { useCallback, useRef } from "react";
 import ActionsMenu, { defaultMenuState } from "../components/ActionsMenu";

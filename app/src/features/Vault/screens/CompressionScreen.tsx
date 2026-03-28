@@ -8,7 +8,7 @@ import {
 } from "react-native-paper";
 import { View } from "react-native";
 import { modalRef } from "@refs";
-import { useVault } from "@/features/Vault/context/VaultContext.tsx";
+import { useVault } from "@screens/Vault/context/VaultContext";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import { windowModule } from "@modules";

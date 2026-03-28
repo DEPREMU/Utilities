@@ -12,7 +12,7 @@ import {
   TextInput,
 } from "react-native-paper";
 import { modalRef } from "@refs";
-import { useVault } from "@/features/Vault/context/VaultContext.tsx";
+import { useVault } from "@/features/Vault/context/VaultContext";
 import { cloneDeep } from "lodash";
 import { ScrollView, View } from "react-native";
 import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
