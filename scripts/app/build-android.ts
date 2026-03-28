@@ -84,7 +84,7 @@ const build = async () => {
       console.log(
         `EAS Build is still running... ${timePassed} seconds passed.`,
       );
-    if (notWritten && timePassed >= 60 * 10) {
+    if (notWritten && timePassed >= 60 * 2) {
       notWritten = false;
       deleteAndroidFromGitIgnore(true);
     }
