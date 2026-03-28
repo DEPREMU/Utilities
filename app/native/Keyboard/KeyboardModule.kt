@@ -5,6 +5,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
+import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.ReadableType
 
 class KeyboardModule(
@@ -59,10 +60,22 @@ class KeyboardModule(
         promise: Promise,
     ) {
         try {
-            val items = mutableListOf<String>()
+            val items = mutableListOf<ClipboardRepository.ClipboardEntry>()
             for (i in 0 until list.size()) {
-                if (list.getType(i) == ReadableType.String) {
-                    list.getString(i)?.let { items.add(it) }
+                when (list.getType(i)) {
+                    ReadableType.String -> {
+                        list.getString(i)?.let { content ->
+                            val trimmed = content.trim()
+                            if (trimmed.isNotEmpty()) {
+                                items.add(ClipboardRepository.ClipboardEntry(id = null, content = trimmed))
+                            }
+                        }
+                    }
+                    ReadableType.Map -> {
+                        val item = list.getMap(i)
+                        parseClipboardItem(item)?.let { items.add(it) }
+                    }
+                    else -> Unit
                 }
             }
             CustomKeyboard.setClipboardSuggestionsFromModule(items)
@@ -70,6 +83,28 @@ class KeyboardModule(
         } catch (e: Exception) {
             promise.reject("ERROR_CLIPBOARD_SUGGESTIONS", e)
         }
+    }
+
+    private fun parseClipboardItem(item: ReadableMap?): ClipboardRepository.ClipboardEntry? {
+        if (item == null) return null
+
+        val contentRaw =
+            when {
+                item.hasKey("content") && item.getType("content") == ReadableType.String -> item.getString("content")
+                item.hasKey("text") && item.getType("text") == ReadableType.String -> item.getString("text")
+                else -> null
+            }
+
+        val content = contentRaw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+
+        val id =
+            if (item.hasKey("id") && item.getType("id") == ReadableType.String) {
+                item.getString("id")?.trim()?.takeIf { it.isNotEmpty() }
+            } else {
+                null
+            }
+
+        return ClipboardRepository.ClipboardEntry(id = id, content = content)
     }
 
     private fun parseLayout(layout: ReadableArray): List<List<String>> {

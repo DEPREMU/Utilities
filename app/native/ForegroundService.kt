@@ -117,8 +117,9 @@ class ForegroundService : Service() {
 
         if (config.clipboard.enabled) {
             clipboardMonitor.start(config.clipboard) { text ->
+                val newEntry = ClipboardRepository.ClipboardEntry(id = null, content = text)
                 ClipboardRepository.setClipboardItems(
-                    listOf(text) + ClipboardRepository.clipboardItems.value.filter { it != text },
+                    listOf(newEntry) + ClipboardRepository.clipboardItems.value.filter { it.content != text },
                 )
                 BackgroundServiceModule.sendEvent(
                     "ClipboardEvent",

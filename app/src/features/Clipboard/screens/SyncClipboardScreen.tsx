@@ -1,15 +1,15 @@
 import Button from "@/common/components/Button/screens";
-import { Text } from "react-native-paper";
+import { Text, TextInput } from "react-native-paper";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
-import { View, TextInput } from "react-native";
+import { View } from "react-native";
 import { useStylesSyncClipboard } from "@screens/Clipboard/styles";
 import React, { useCallback, useState } from "react";
 import { fetchToServer, sessionManager, storageManagement } from "@utils";
 
 const SyncClipboardScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { styles } = useStylesSyncClipboard();
+  const { styles, colors } = useStylesSyncClipboard();
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -61,25 +61,32 @@ const SyncClipboardScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("addTextToClipboard")}</Text>
+      <View style={styles.formCard}>
+        <Text style={styles.title}>{t("addTextToClipboard")}</Text>
 
-      <TextInput
-        style={styles.textInput}
-        placeholder={t("enterYourTextHere")}
-        value={inputText}
-        onChangeText={setInputText}
-        multiline
-      />
+        <TextInput
+          mode="outlined"
+          style={styles.textInput}
+          placeholder={t("enterYourTextHere")}
+          value={inputText}
+          onChangeText={setInputText}
+          multiline
+          outlineColor={colors.border}
+          activeOutlineColor={colors.primary}
+          selectionColor={colors.primary}
+          textColor={colors.text}
+        />
 
-      <Button
-        replaceStyles={{ button: styles.button, textButton: {} }}
-        handlePress={handleAddToDatabase}
-        disabled={isLoading}
-      >
-        <Text style={styles.textButton}>
-          {t(isLoading ? "adding" : "addToDatabase")}
-        </Text>
-      </Button>
+        <Button
+          replaceStyles={{ button: styles.button, textButton: {} }}
+          handlePress={handleAddToDatabase}
+          disabled={isLoading}
+        >
+          <Text style={styles.textButton}>
+            {t(isLoading ? "adding" : "addToDatabase")}
+          </Text>
+        </Button>
+      </View>
     </View>
   );
 };

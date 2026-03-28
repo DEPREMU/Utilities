@@ -396,37 +396,39 @@ const ClipboardScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Searchbar
-        value={searchText}
-        style={styles.searchBar}
-        editable={!isLoading}
-        placeholder={t("search")}
-        onChangeText={handleSearchingRef.current}
-      />
+      <View style={styles.topControlsContainer}>
+        <Searchbar
+          value={searchText}
+          style={styles.searchBar}
+          editable={!isLoading}
+          placeholder={t("search")}
+          onChangeText={handleSearchingRef.current}
+        />
 
-      <View style={styles.sectionContainer}>
-        <Text style={styles.switchLabel}>{t("showDeleted")}</Text>
-        <Switch
-          value={deleted}
-          color={colors.primary}
-          disabled={isLoading}
-          onValueChange={setDeleted}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.switchLabel}>{t("showDeleted")}</Text>
+          <Switch
+            value={deleted}
+            color={colors.primary}
+            disabled={isLoading}
+            onValueChange={setDeleted}
+          />
+        </View>
+
+        <Button
+          label={deleted ? t("restoreAll") : t("deleteAll")}
+          disabled={isLoading || !clipboardData || clipboardData.length === 0}
+          handlePress={handleDeleteRestoreAll}
+          replaceStyles={{
+            button: {
+              ...styles.buttonContainer,
+              ...(deleted ? styles.buttonRestore : styles.buttonDelete),
+            },
+            textButton: styles.buttonText,
+          }}
+          touchableOpacity
         />
       </View>
-
-      <Button
-        label={deleted ? t("restoreAll") : t("deleteAll")}
-        disabled={isLoading || !clipboardData || clipboardData.length === 0}
-        handlePress={handleDeleteRestoreAll}
-        replaceStyles={{
-          button: {
-            ...styles.buttonContainer,
-            ...(deleted ? styles.buttonRestore : styles.buttonDelete),
-          },
-          textButton: styles.buttonText,
-        }}
-        touchableOpacity
-      />
 
       <FlatList
         nestedScrollEnabled

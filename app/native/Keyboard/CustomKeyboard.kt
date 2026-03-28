@@ -348,8 +348,13 @@ class CustomKeyboard :
                 val text = currentInputConnection?.getSelectedText(0)
                 if (text != null) cutSelection(text.toString())
             }
-            override fun getClipboardItemClickListener(text: String) = View.OnClickListener { pasteClipboardItem(text) }
-            override fun getClipboardItemLongClickListener(text: String) = View.OnLongClickListener { showClipboardDialog(text); true }
+            override fun getClipboardItemClickListener(item: ClipboardRepository.ClipboardEntry) =
+                View.OnClickListener { pasteClipboardItem(item) }
+            override fun getClipboardItemLongClickListener(item: ClipboardRepository.ClipboardEntry) =
+                View.OnLongClickListener {
+                    showClipboardDialog(item)
+                    true
+                }
             override fun commitKey(key: String) {
                 commitKeyWithCaps(key)
             }
@@ -871,13 +876,16 @@ class CustomKeyboard :
         layoutManager.renderClipboardSuggestions(ClipboardRepository.clipboardItems.value)
     }
 
-    private fun pasteClipboardItem(item: String) {
-        inputProcessor.pasteText(item)
+    private fun pasteClipboardItem(item: ClipboardRepository.ClipboardEntry) {
+        inputProcessor.pasteText(item.content)
     }
 
-    private fun sendClipboardEvent(type: String, text: String? = null) {
+    private fun sendClipboardEvent(type: String, text: String? = null, id: String? = null) {
         val params = Arguments.createMap().apply {
             putString("type", type)
+            if (!id.isNullOrBlank()) {
+                putString("id", id)
+            }
             if (!text.isNullOrBlank()) {
                 putString("text", text)
             }
@@ -885,7 +893,8 @@ class CustomKeyboard :
         BackgroundServiceModule.sendEvent("ClipboardEvent", params)
     }
 
-    private fun showClipboardDialog(text: String) {
+    private fun showClipboardDialog(item: ClipboardRepository.ClipboardEntry) {
+        val text = item.content
         val (pasteLabel, deleteLabel, closeLabel) = getClipboardDialogLabels()
         val windowToken =
             window?.window?.decorView?.windowToken ?: window?.window?.attributes?.token ?: return
@@ -894,14 +903,23 @@ class CustomKeyboard :
                 AlertDialog.Builder(this)
                     .setMessage(text)
                     .setPositiveButton(pasteLabel) { dialogInterface, _ ->
-                        pasteClipboardItem(text)
+                        pasteClipboardItem(item)
                         dialogInterface.dismiss()
                     }
                     .setNeutralButton(deleteLabel) { dialogInterface, _ ->
-                        val updated = ClipboardRepository.clipboardItems.value.filter { it != text }
+                        val updated =
+                            if (!item.id.isNullOrBlank()) {
+                                ClipboardRepository.clipboardItems.value.filter {
+                                    it.id != item.id
+                                }
+                            } else {
+                                ClipboardRepository.clipboardItems.value.filter {
+                                    it.content != text
+                                }
+                            }
                         ClipboardRepository.setClipboardItems(updated)
                         renderClipboardSuggestions()
-                        sendClipboardEvent("delete", text)
+                        sendClipboardEvent("delete", text = text, id = item.id)
                         dialogInterface.dismiss()
                     }
                     .setNegativeButton(closeLabel) { dialogInterface, _ ->
@@ -3759,12 +3777,14 @@ class CustomKeyboard :
                 listOf("abc", "space", "×", "§", "¶", "°", "enter"),
             )
             
-        fun setClipboardSuggestionsFromModule(items: List<String>) {
+        fun setClipboardSuggestionsFromModule(items: List<ClipboardRepository.ClipboardEntry>) {
             val cleaned =
                 items
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
-            val signature = cleaned.joinToString("|")
+                    .mapNotNull { item ->
+                        val content = item.content.trim()
+                        if (content.isEmpty()) null else item.copy(content = content)
+                    }
+            val signature = cleaned.joinToString("|") { "${it.id ?: ""}:${it.content}" }
             if (cleaned.isNotEmpty() && signature != lastClipboardModuleSignature) {
                 ClipboardRepository.setClipboardItems(cleaned)
                 lastClipboardModuleSignature = signature

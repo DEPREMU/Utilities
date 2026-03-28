@@ -116,6 +116,7 @@ class ClipboardManager {
     this.#clipboardData[key] = value;
     switch (key) {
       case "enabled":
+        storageManagement.save("CLIPBOARD", this.#clipboardData);
         if (!value) return this.cleanup() as never;
         else return this.init() as never;
       case "maxCharsInItem":
@@ -128,6 +129,7 @@ class ClipboardManager {
         break;
     }
 
+    storageManagement.save("CLIPBOARD", this.#clipboardData);
     return null as never;
   };
 
@@ -187,9 +189,11 @@ class ClipboardManager {
 
     this.#listItemsClipboard = newItems;
 
-    if (REPLACERS.isNative) return;
+    const func = REPLACERS.isNative
+      ? keyboardModule.setClipboardSuggestions
+      : windowModule.setClipboardHistory;
 
-    windowModule.setClipboardHistory?.(this.#listItemsClipboard);
+    func?.(this.#listItemsClipboard);
     this._emitEvent("items-updated", this.#listItemsClipboard);
   };
 
@@ -310,7 +314,7 @@ class ClipboardManager {
 
   private initClipboardItems = async () => {
     const { userData, sessionToken } = sessionManager.getSessionData();
-    if (!userData?.userId) return;
+    if (!userData?.userId || !sessionToken) return;
 
     const language = storageManagement.get("LANGUAGE");
     const deviceId = storageManagement.get("DEVICE_ID");
@@ -478,10 +482,15 @@ class ClipboardManager {
   private initSessionListener = () => {
     if (this.#listenerSession) return;
 
-    const removeListenerLogin = sessionManager.addEventListener("login", () => {
-      this.resume();
-      this.initClipboardItems();
-    });
+    const removeListenerLogin = sessionManager.addEventListener(
+      "login",
+      (err) => {
+        if (err) return;
+
+        this.resume();
+        this.initClipboardItems();
+      },
+    );
     const removeListenerLogout = sessionManager.addEventListener(
       "logout",
       () => {
@@ -504,11 +513,16 @@ class ClipboardManager {
         sessionManager.waitUntilLoaded(),
         storageManagement.waitUntilLoaded(),
       ]);
-      this.#clipboardData = storageManagement.get("CLIPBOARD", {
-        enabled: true,
-        maxCharsInItem: -1,
-        maxClipboardItems: 10,
-      });
+      this.#clipboardData = storageManagement.get("CLIPBOARD");
+      if (!this.#clipboardData) {
+        const data = {
+          enabled: true,
+          maxCharsInItem: -1,
+          maxClipboardItems: 10,
+        };
+        storageManagement.save("CLIPBOARD", data);
+        this.#clipboardData = data;
+      }
 
       this.cleanup();
 

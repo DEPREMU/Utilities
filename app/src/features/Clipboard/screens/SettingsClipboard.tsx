@@ -3,13 +3,13 @@ import { cloneDeep } from "lodash";
 import { useLanguage } from "@context/LanguageContext";
 import ButtonComponent from "@/common/components/Button/screens";
 import { clipboardManager } from "@utils";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Switch, Text, TextInput } from "react-native-paper";
 import { useStylesSettingsClipboard } from "@screens/Clipboard/styles";
 
 const SettingsClipboard: React.FC = () => {
   const { t } = useLanguage();
-  const { styles } = useStylesSettingsClipboard();
+  const { styles, colors } = useStylesSettingsClipboard();
 
   const [clipboardData, setClipboardData] = useState(
     clipboardManager.getClipboardData(),
@@ -59,6 +59,14 @@ const SettingsClipboard: React.FC = () => {
     clipboardManager.setClipboardData("maxCharsInItem", newNumber);
   });
 
+  useEffect(() => {
+    if (!(promise instanceof Promise)) return;
+
+    promise.then(() => {
+      setPromise(null);
+    });
+  }, [promise]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t("clipboard.settings.title")}</Text>
@@ -74,7 +82,7 @@ const SettingsClipboard: React.FC = () => {
 
         <Switch
           value={clipboardData.enabled}
-          disabled={!!promise}
+          disabled={promise instanceof Promise}
           onValueChange={handlePressSwitchRef.current}
         />
       </ButtonComponent>
@@ -83,10 +91,14 @@ const SettingsClipboard: React.FC = () => {
         <Text style={styles.subtitle}>{t("clipboard.settings.maxItems")}</Text>
 
         <TextInput
+          mode="outlined"
           style={styles.textInput}
           value={String(clipboardData.maxClipboardItems)}
           onChangeText={handleChangeMaxItemsRef.current}
-          keyboardType="numbers-and-punctuation"
+          keyboardType="number-pad"
+          outlineColor={colors.border}
+          activeOutlineColor={colors.primary}
+          selectionColor={colors.primary}
         />
       </View>
 
@@ -96,10 +108,14 @@ const SettingsClipboard: React.FC = () => {
         </Text>
 
         <TextInput
+          mode="outlined"
           style={styles.textInput}
           value={String(clipboardData.maxCharsInItem)}
           onChangeText={handleChangeMaxCharsRef.current}
-          keyboardType="numbers-and-punctuation"
+          keyboardType="number-pad"
+          outlineColor={colors.border}
+          activeOutlineColor={colors.primary}
+          selectionColor={colors.primary}
         />
       </View>
     </View>

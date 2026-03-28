@@ -26,8 +26,8 @@ interface KeyboardListenerProvider {
     fun getKeyLongClickListener(key: String): View.OnLongClickListener?
     fun getCopyClickListener(): View.OnClickListener
     fun getCutClickListener(): View.OnClickListener
-    fun getClipboardItemClickListener(text: String): View.OnClickListener
-    fun getClipboardItemLongClickListener(text: String): View.OnLongClickListener
+    fun getClipboardItemClickListener(item: ClipboardRepository.ClipboardEntry): View.OnClickListener
+    fun getClipboardItemLongClickListener(item: ClipboardRepository.ClipboardEntry): View.OnLongClickListener
     fun commitKey(key: String)
 }
 
@@ -741,7 +741,7 @@ class KeyboardLayout(
         container.addView(cutButton)
     }
 
-    fun renderClipboardSuggestions(items: List<String>) {
+    fun renderClipboardSuggestions(items: List<ClipboardRepository.ClipboardEntry>) {
         val container = clipboardContainer ?: return
 
         container.removeAllViews()
@@ -754,7 +754,8 @@ class KeyboardLayout(
         clipboardScroll?.visibility = View.VISIBLE
 
         items.forEach { item ->
-            val label = if (item.length > 10) item.take(10) + "..." else item
+            val label =
+                if (item.content.length > 10) item.content.take(10) + "..." else item.content
             val button =
                 Button(context).apply {
                     layoutParams =

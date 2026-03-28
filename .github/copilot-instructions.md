@@ -1,619 +1,173 @@
 # Copilot Instructions for Utilities Project
 
-## Project Architecture
+## Purpose
 
-This is a **cross-platform utility app** with three interconnected workspaces:
+This file defines high-signal rules for working in this repository.
+If two rules conflict, prioritize: correctness, type safety, resource cleanup, and existing repository patterns.
 
-- **`app/`** - React Native (Expo) app targeting Android, iOS, and Web (Electron)
-- **`server/`** - Node.js Express server with PostgreSQL + WebSocket servers
-- **`UtilitiesForPC/`** - Electron desktop app wrapper for the web build
-- **`types/`** - Shared TypeScript definitions across all workspaces
+## Project Layout
 
-## Path Aliases (Critical)
+- `app/`: React Native (Expo) app for Android + Web (Electron renderer).
+- `server/`: Node.js Express + PostgreSQL + WebSocket services.
+- `UtilitiesForPC/`: Electron desktop shell for the web build.
+- `types/`: Shared type declarations used by all workspaces.
+- `common/`: Shared cross-workspace helpers and translations.
 
-All imports use Babel/TypeScript path aliases defined in `app/babel.config.js` and `app/tsconfig.json`:
+## Import Rules
 
-```typescript
-import Screen from "@screens/MyScreen"; // app/screens/MyScreen
-import Component from "@components/MyComp"; // app/components/MyComp
-import { utility } from "@utils"; // app/utils/index.ts
-import { Something } from "@types"; // ../types/index.d.ts
-import { commonUtil } from "@common"; // common/both/index.ts
-import { useContext } from "@context/MyCtx"; // app/context/MyCtx
-```
-
-**Never use relative imports** - always use these aliases.
-
-## Platform-Specific Code Pattern
-
-The app supports **web (Electron), Android, and native**. Platform detection:
-
-```typescript
-import { Platform } from "react-native";
-import { windowModule } from "@/utils/modules/WindowModule"; // Electron bridge
-import { BackgroundModule } from "@/utils/modules/BackgroundModule"; // Native module
-
-if (Platform.OS === "web") {
-  // Use windowModule for Electron bridge
-  windowModule.functionName();
-} else if (Platform.OS === "android") {
-  // Use native modules
-  BackgroundModule?.nativeFunction?.();
-}
-```
-
-### Electron Bridge (`UtilitiesForPC/`)
-
-- **`src/preload.ts`** - Exposes native functions to renderer via `contextBridge`
-- **`app/utils/modules/WindowModule.ts`** - Type-safe wrapper to access Electron APIs
-- Communication: `ipcRenderer.invoke()` for async, `.send()` for fire-and-forget
+- In `app/`, use path aliases from `app/babel.config.ts` and `app/tsconfig.json`.
+- Do not introduce relative imports when an alias exists.
+- Keep shared contracts in `types/` and import them through `@types`.
 
 Example:
 
-```typescript
-// In renderer (app/)
-const result = await windowModule.executeCommand("ls -la");
-
-// In preload (UtilitiesForPC/src/preload.ts)
-executeCommand: async (command) => {
-  return await ipcRenderer.invoke("execute-command", command);
-};
+```ts
+import Screen from "@screens/MyScreen";
+import { useModal } from "@context/ModalContext";
+import { Something } from "@types";
+import { utility } from "@utils";
 ```
 
-## React Context Pattern
+## Platform-Aware Pattern
 
-**9 providers** wrap the app in `app/context/AppProviders.tsx` (order matters for dependencies):
+Use the Electron bridge on web/electron runtime and native modules on Android.
 
-```typescript
-BackgroundProvider → SafeAreaProvider → ThemeProvider →
-DeviceInformationProvider → LayoutProvider → UserProvider → LanguageProvider →
-ModalProvider → NotificationsProvider → WebSocketProvider → AppNavigator → Screens
+```ts
+import { Platform } from "react-native";
+import { REPLACERS } from "@utils";
+import { windowModule } from "@modules/WindowModule";
+import { BackgroundModule } from "@modules/BackgroundModule";
+
+if (REPLACERS.isDev) {
+  await windowModule.functionName();
+} else if (Platform.OS === "android") {
+  await BackgroundModule.nativeFunction();
+}
 ```
 
-### Critical Memory Management Rules
+## Context And Lifecycle Rules
 
-**ALWAYS clean up resources in `useEffect` returns:**
+- `app/context/AppProviders.tsx` provider order matters; preserve dependency ordering.
+- Always clear timers/intervals/subscriptions/sockets in `useEffect` cleanup.
+- Before creating a new timer/interval, clear an existing ref-backed instance first.
+- `WebSocketContext`: tear down sockets and ping timers on background/error.
+- `NotificationsContext`: clear clipboard/location intervals before creating new ones.
+- `BackgroundTaskContext`: keep queue bounded (max 100 pending tasks).
 
-```typescript
-// 1. Store refs for cleanup
-const intervalRef = useRef<number | null>(null);
+## WebSocket Expectations
 
-useEffect(() => {
-  // 2. Clear previous before creating new
-  clearIntervalPolyfill(intervalRef);
+- Server maintains two channels: `ws` (general) and `clipboard` (clipboard sync).
+- Client should use ping/pong keepalive (~29s), exponential reconnect, and deterministic teardown.
+- General socket should close on app background where required.
+- Clipboard socket should suspend/resume correctly on supported mobile lifecycle events.
 
-  // 3. Create new resource
-  intervalRef.current = setIntervalPolyfill(fn, delay);
+## Type Safety Rules
 
-  // 4. MANDATORY cleanup
-  return () => {
-    clearIntervalPolyfill(intervalRef);
-  };
-}, [deps]);
-```
+- Add shared types in `types/` before feature implementation.
+- Avoid `any`; use explicit types for API payloads, context values, and public function contracts.
+- Keep backward compatibility when modifying shared type declarations.
 
-**Context-specific cleanup:**
+## i18n Rules
 
-- `WebSocketContext`: Close sockets + clear ping intervals on background/error
-- `NotificationsContext`: Clear clipboard/location intervals before creating new
-- `BackgroundTaskContext`: Limit pending tasks to MAX 100
+- Use `t` translation keys with full typed paths (example: `common.notAvailable`).
+- Do not use raw user-visible string literals in JSX when a translation key is expected.
+- For new keys, update all three files: `common/both/translations/English.ts`, `common/both/translations/Spanish.ts`, and `types/typesTranslations.d.ts`.
 
-## WebSocket Architecture
+## Database And API Rules
 
-**Server** (`server/routes/WebSocket.ts`) runs TWO WebSocket servers:
+- Prefer typed database helpers in `server/database/functions.ts`.
+- Validate table/shape usage through shared table/type maps.
+- Keep request/response types aligned with `types/typesAPI.d.ts`.
+- Handle errors close to source and avoid logging secrets or sensitive values.
 
-1. **General WS** (`/ws`) - User config, notifications, crypto updates
-2. **Clipboard WS** (`/clipboard`) - Cross-device clipboard sync
-
-**Client** (`app/context/WebSocketContext.tsx`) manages both connections:
-
-- Ping/pong every 29 seconds to keep alive
-- Auto-reconnect with exponential backoff
-- Closes connection of General WS when app enters background (mobile and electron)
-- Closes connection of Clipboard WS on suspend, reconnects on resume (mobile)
-
-## Database Patterns
-
-PostgreSQL accessed via `server/database/functions.ts`:
-
-```typescript
-// Type-safe database operations
-import {
-  updateInTable,
-  fetchFromTable,
-  insertIntoTable,
-} from "@/database/functions";
-
-// TABLE_MAP auto-validates table names
-const users = await fetchFromTable("Users", { email });
-await insertIntoTable("ClipboardSync", { userId, content });
-```
-
-Table types in `types/database/typesDatabase.d.ts` enforce schema compliance.
-
-## Build & Development Workflows
-
-### Starting Development
+## Build And Dev Commands
 
 ```bash
-# Root - install all workspaces
 yarn install
-
-# Terminal 1 - Server (required for app)
 yarn run server-dev
-
-# Terminal 2 - App
-yarn run app          # Choose platform: Android/iOS/Web
-
-# Terminal 3 - Electron (if testing desktop)
+yarn run app
 yarn run start-electron
 ```
 
-### Platform-Specific Builds
+Native Android workflow:
 
 ```bash
-# Android APK (local build)
-yarn run build-android
-
-# Web for Electron
-yarn run start-electron    # Creates Electron dev build
-yarn run build-app-electron    # Creates production Electron build
+yarn run app-prebuild-android
+yarn expo run:android
 ```
 
-**CRITICAL**: Set `PLATFORM` env var before building - it's replaced at compile time via Babel:
+Pre-merge check:
 
 ```bash
-# In babel.config.js
-"Platform.OS": JSON.stringify(platform)  // Hardcoded during build
-```
-
-## Native Modules (Android)
-
-Custom native modules in `app/native/modules/`:
-
-- **BackgroundModule** - Foreground service, clipboard access
-- **NotificationModule** - Advanced notification handling
-- **NativeFunctionsModule** - Battery optimization, overlays, permissions
-
-**Prebuild process** (`scripts/app/app-prebuild.ts`) auto-registers these in `MainApplication.kt`.
-
-Run `yarn run app-prebuild-android` before `yarn expo run:android`.
-
-## Common Patterns
-
-### Translation System
-
-```typescript
-import { useLanguage } from "@context/LanguageContext";
-
-const { t, language } = useLanguage();
-const text = t("keyFromTranslation"); // Auto-typed from types/typesTranslations.d.ts
-```
-
-### Background Tasks with Offline Support
-
-```typescript
-import { useBackgroundTask } from "@context/BackgroundTaskContext";
-
-const { addTaskQueue } = useBackgroundTask();
-
-// Execute when internet available
-addTaskQueue(
-  {
-    requiresInternet: true, // Retry until online, if false, runs immediately
-    func: async () => {
-      /* task */
-    },
-  },
-  {
-    id: uniqueId,
-    functionName: "registeredTaskName",
-    args: [arg1, arg2],
-  },
-  uniqueId, // If any task with same ID exists, it will be replaced by the new one
-);
-```
-
-### Modal/SnackBar Pattern
-
-```typescript
-import { useModal } from "@context/ModalContext";
-
-const { openModal, openSnackBar } = useModal();
-
-openSnackBar("Message", 3000, { label: "Action", onPress: () => {} });
-openModal("Title", "Body", <CustomButtons />);
-```
-
-## Type Safety
-
-**All API requests/responses** typed via `types/typesAPI.d.ts`:
-
-```typescript
-import { RequestDatabaseFetch, ResponseDatabaseFetch } from "@types";
-
-const req: RequestDatabaseFetch = { table: "Users", match: { id } };
-const res: ResponseDatabaseFetch<"Users"> = await fetch(...);
-```
-
-## Environment Variables
-
-- **App**: `.env` (loaded via `expo-constants`)
-- **Server**: `.env` (validated in `server/env.ts`)
-- **Electron**: Uses `.env` via build process
-
-## Testing After Changes
-
-```bash
-# Type check and lint check all workspaces
 yarn run before-commit
-
-# Manual testing checklist
-1. Test on Android (if mobile changes)
-2. Test on Web/Electron (if desktop/web changes)
-3. Verify WebSocket reconnection after suspend
-4. Check memory usage doesn't exceed 500MB (use memory monitor)
 ```
 
-## Performance Considerations
-
-- **Limit background tasks**: Max 100 in queue (BackgroundTaskContext)
-- **WebSocket lifecycle**: Close on background, reconnect on foreground
-- **Clipboard sync**: 500ms interval on web only (refs prevent leaks)
-- **Memory monitor**: Auto GC when >500MB (`UtilitiesForPC/src/main/utils/memoryMonitor.ts`)
-
-## When Adding New Features
-
-1. Add types to `types/` first (used by all workspaces)
-2. Use path aliases (`@types`, `@utils`, etc.)
-3. Add translations to `common/both/translations`
-4. Clean up intervals/timeouts/sockets in useEffect returns
-5. Test cross-platform (especially web vs native differences)
-6. Update `ProblemsDetected.md` if introducing known issues
-
-## Well Practices While Programming
-
-- Follow the repository conventions first: add new shared types before implementation, use path aliases for all imports, and avoid relative imports entirely.
-- Prioritize type safety: prefer explicit types on public APIs, DTOs, and context values. Add or update shared types in the types/ workspace when introducing new data shapes.
-- Resource lifecycle discipline: always release timers, intervals, subscriptions, sockets, and background tasks in cleanup callbacks. Store handles in refs and clear/close them deterministically.
-- Keep contexts minimal and deterministic: each provider should expose only the necessary API. Ensure providers that open resources also close them when unmounted or when the app background state changes.
-- Platform-aware code: branch on runtime platform and call the appropriate bridge (Electron preload wrapper on web/electron; native modules on Android/iOS). Encapsulate platform logic behind small, testable modules.
-- Background tasks and queues: enforce an upper bound on queued tasks and surface queue metrics for observability. Retry with backoff and avoid unbounded retries.
-- WebSocket hygiene: implement ping/pong and exponential-reconnect; close connections on background/sleep and fully teardown timers on errors.
-- Error handling and logging: handle and surface errors near the source; log contextual information (user id, operation, inputs) but never log secrets or PII. Use structured logs for easier analysis.
-- Security and secrets: keep secrets out of source control; access them via env vars or platform secret stores. Validate inputs on both client and server.
-- Performance and memory: prefer small, pure functions; avoid creating new closures on every render for stable callbacks; batch updates where possible. Monitor memory and add guards if usage grows unexpectedly.
-- Tests and CI: add unit tests for new logic and integration tests for cross-workspace features. Ensure type-checking and lint run in CI before merge.
-- Build & native workflows: follow prebuild steps for native modules and set PLATFORM appropriately for release builds. Document platform-specific build instructions in the feature PR.
-- Code review and PR checklist: include changes to types, translations, and docs when adding features; run local type-check and lint; list manual test steps and platforms validated.
-- Documentation: update translations and ProblemsDetected.md for known caveats. Add usage examples for public utilities and context hooks.
-- Dependency management: keep dependencies up-to-date, audit for vulnerabilities, and prefer lightweight libraries for cross-platform compatibility.
-- Use early returns to reduce nesting and improve readability.
-- Documentation: while adding a new function or module, include JSDoc comments describing its purpose, parameters, and return values to aid future maintainers, only English.
-- Commenting: when a comment is added, it should finish with "//! DELETE", only if a comment is added for explanation or clarification, p.g:
-
-  ```typescript
-  // This function does X, Y, Z //! DELETE
-  const example = () => { ... }
-  const exampleVar = ...; // This variable holds ... //! DELETE
-  ```
-
-  NOT:
-
-  ```typescript
-  // This function does X, Y, Z
-  const example = () => { ... }
-  const exampleVar = ...; //! DELETE
-  ```
-
-- Consistent formatting: adhere to the project's formatting rules (Prettier, ESLint) to maintain code consistency across the codebase.
-- Always use `async/await` for asynchronous code instead of `.then()` for better readability and error handling.
-- Avoid using `any` type; strive for precise typing to leverage TypeScript's strengths.
-- When working with arrays or collections, prefer using array methods like `map`, `filter`, and `reduce` over traditional loops for cleaner and more functional code.
-- When modifying shared types, ensure backward compatibility to prevent breaking changes in dependent workspaces.
-- Always use arrow functions while making functions for consistent syntax and lexical `this` binding.
-- If md files are added, make sure add it to folder implementation-md/ to avoid committing them.
-- Avoid using emojis in code comments or documentation within the codebase to maintain professionalism and clarity.
-
----
-
----
-
-# Utilities Documentation - app
-
-## App Management Functions
-
-### `getFormattedDate`
-
-Formats a date object into a localized string.
-
-```typescript
-const dateStr = getFormattedDate(new Date(), "es-MX", { dateStyle: "short" });
-```
-
-### `parseData`
-
-Safely parses a JSON string, handling defined Symbols/Functions placeholders.
-
-```typescript
-// 1. Basic parsing
-const obj = parseData<MyType>(jsonString);
-
-// 2. Parsing failing JSON returns null/original value
-const safe = parseData(null); // returns null
-```
-
-### `stringifyData`
-
-Stringifies data safely, handling dates and sorting object keys.
-
-```typescript
-// 1. Standard stringify
-const json = stringifyData(myObject);
-
-// 2. Handling Dates and sorting keys
-const sortedJson = stringifyData({ b: 2, a: 1, date: new Date() });
-```
-
-### `interpolateMessage`
-
-Replaces `{0}`, `{1}` placeholders in strings.
-
-```typescript
-const msg = interpolateMessage("Hello {0}", ["World"]);
-```
-
-### `isFalsy`
-
-Checks if value is null, undefined, false or empty string.
-
-```typescript
-if (isFalsy(value)) {
-  /* handle falsy */
-}
-```
-
-### `setTimeoutPolyfill` / `setIntervalPolyfill`
-
-Platform-aware timer functions (uses BackgroundTimer on Android, standard on others).
-
-```typescript
-// 1. Standard timeout
-const id = setTimeoutPolyfill(() => console.log("hi"), 1000);
-
-// 2. Clear timeout
-clearTimeoutPolyfill(id);
-// Also accepts ref objects: clearTimeoutPolyfill(timerRef);
-```
-
-### `areEqualValues`
-
-Compares multiple values for deep equality.
-
-```typescript
-// 1. Check with deep equality (isEqual)
-const isEqual = areEqualValues(false, obj1, obj2);
-
-// 2. Check using JSON stringification (faster for simple objects)
-const isStringEqual = areEqualValues(true, obj1, obj2);
-
-// 3. Compare multiple values at once
-const allEqual = areEqualValues(false, val1, val2, val3);
-```
-
-### `selectImage`
-
-Opens document picker to select an image.
-
-```typescript
-// 1. Select single image with base64
-const result = await selectImage({ multiple: false, base64: true });
-
-// 2. Select multiple images
-const results = await selectImage({ multiple: true });
-```
-
-### `downloadBase64`
-
-Downloads a base64 string as a file (Web/Native compatible).
-
-```typescript
-await downloadBase64({
-  uri: base64String,
-  fileName: "image.png",
-  typeFile: "image/png",
-  directory: "images",
-  // Optional: albumName: "MyAlbum" (native)
-  // Optional: deleteAfterDownload: true
-});
-```
-
----
-
-## API Management Functions
-
-### `fetchToServer`
-
-Generic wrapper for making API requests to the server with token/auth handling.
-
-```typescript
-// 1. POST Request with Body
-const res = await fetchToServer("/database/fetch", { table: "Users" }, token);
-
-// 2. GET Request (no body)
-const resGet = await fetchToServer("/health");
-
-// 3. Request without token
-const resAuth = await fetchToServer("/auth/login", { email, password });
-```
-
-### `fetchOptions`
-
-Generates headers and stringified body for fetch requests.
-
-```typescript
-// 1. Options with Body and Token
-const opts = fetchOptions({ some: "data" }, token);
-
-// 2. Options without Body
-const optsGet = fetchOptions(undefined, token);
-```
-
----
-
-## Authentication Functions
-
-### `signInWithEmail`
-
-Authenticates a user and saves session data.
-
-```typescript
-const result = await signInWithEmail("user@example.com", "password123");
-if (result.success) {
-  /* user logged in */
-}
-```
-
-### `saveStorageData`
-
-Saves multiple storage key-values at once (e.g. from login response).
-
-```typescript
-await saveStorageData(response.storageValues);
-```
-
----
-
-## Background & Permissions Functions
-
-### `askLocationPermission`
-
-Requests foreground and background location permissions.
-
-```typescript
-const granted = await askLocationPermission();
-```
-
-### `askDisplayOverOtherAppsPermission`
-
-Requests overlay permission (Android).
-
-```typescript
-const granted = await askDisplayOverOtherAppsPermission();
-```
-
----
-
-## Debug Functions
-
-### `log` / `logWarn` / `logError`
-
-Logs to console in Dev, sends to server in Preview, ignores in Production.
-
-```typescript
-// 1. Standard Log
-log("Message");
-
-// 2. Log with data
-log("User Info", { id: 1, name: "Test" });
-
-// 3. Log Error
-logError("Critical Failure", errorObj);
-```
-
----
-
-## Storage Management Functions
-
-### `saveDataStorage`
-
-Saves a value to storage (SecureStore for sensitive keys, AsyncStorage for others).
-
-```typescript
-// 1. Save Unsecure Data
-await saveDataStorage("THEME", "dark");
-
-// 2. Save Secure Data
-await saveDataStorage("USER_DATA", userData);
-
-// 3. Save with Error Callback
-await saveDataStorage("API_URL", "http://...", (err, msg) => {
-  console.error("Save failed", msg);
-});
-```
-
-### `loadDataStorage`
-
-Loads and parses a value from storage.
-
-```typescript
-// 1. Basic Load
-const theme = await loadDataStorage("THEME");
-
-// 2. Load with Fallback Value
-const lang = await loadDataStorage("LANGUAGE", "en");
-
-// 3. Load with Callback
-await loadDataStorage("USER_DATA", (value, err) => {
-  if (err) handleErr(err);
-  else setUser(value);
-});
-```
-
----
-
-## Task Registry
-
-### `taskRegistry` methods
-
-Methods to perform database operations via the server.
-
-```typescript
-await taskRegistry.updateFromDatabase(
-  "Users",
-  { name: "New Name" },
-  { id: "123" },
-);
-await taskRegistry.insertIntoDatabase("Logs", { message: "Test" });
-await taskRegistry.deleteFromDatabase("Temp", { id: "456" });
-```
-
----
-
-## Common Validations
-
-### `isValidEmail`
-
-Validates email format.
-
-```typescript
-if (isValidEmail("test@test.com")) { ... }
-```
-
-### `wrapFunctionWithError`
-
-Wraps a function to catch errors and optionally execute a callback.
-
-```typescript
-// 1. Execute immediately with error handler
-const result = await wrapFunctionWithError(
-  async () => {
-    return await riskyOperation();
-  },
-  (err) => console.log(err),
-);
-
-// 2. Return a wrapped function
-const safeFn = wrapFunctionWithError(
-  async (arg) => {
-    return await doWork(arg);
-  },
-  true,
-  (err) => null,
-);
-
-// 3. Default error handling (returns undefined on error)
-const simpleSafe = wrapFunctionWithError(async () => {
-  // ...
-});
-```
+Validation source of truth:
+
+- Use `yarn run before-commit` as the canonical quality gate for this repository.
+- Do not block changes based only on external/unmanaged checks that are not part of project scripts.
+- If an external tool reports an issue but `yarn run before-commit` passes, treat it as a likely false positive unless a real runtime/type failure is reproducible.
+
+## Standard Work Protocol
+
+Follow this sequence for every non-trivial change:
+
+1. Read affected files and confirm existing patterns before editing.
+2. Define or update shared types first when data contracts change.
+3. Implement the smallest safe change that satisfies the requirement.
+4. Validate platform impact (Android and Web/Electron where applicable).
+5. Run quality checks (`yarn run before-commit` at minimum) before finalizing.
+6. Document known caveats in `ProblemsDetected.md` when applicable.
+
+When requirements are ambiguous, prefer preserving current behavior and extending it incrementally instead of broad refactors.
+
+## Code Writing Conventions
+
+- Keep functions small and focused on one responsibility.
+- Prefer guard clauses and early exits over deep nesting.
+- Keep side effects isolated near edges (I/O, storage, sockets, native modules).
+- Avoid hidden mutations; prefer explicit immutable updates.
+- Reuse existing utilities/hooks before creating new abstractions.
+- Use descriptive names: `verbNoun` for functions, `is/has/can` prefixes for booleans.
+- Co-locate types close to domain boundaries; promote to `types/` when shared.
+- Write defensive null/undefined checks around runtime/platform bridges.
+- Keep logs actionable and structured; never include secrets, tokens, or PII.
+
+## Pull Request Readiness
+
+Before considering a change complete, ensure:
+
+1. Contracts and types are updated and backward-compatible.
+2. New user-facing text uses translation keys and updated dictionaries.
+3. Resource cleanup is deterministic (timers, intervals, sockets, listeners).
+4. Platform-specific branches were reviewed for Android and Web/Electron.
+5. Project checks pass using `yarn run before-commit` (authoritative gate for lint/type validation).
+6. Manual verification steps are clear and reproducible.
+
+## Quality Checklist For Changes
+
+When adding or modifying features:
+
+1. Add or update shared types first.
+2. Use alias imports and repository utilities.
+3. Add/update translations and typed translation keys.
+4. Ensure lifecycle cleanup for all resources.
+5. Validate behavior on Android and Web/Electron when applicable.
+6. Update `ProblemsDetected.md` if known caveats are introduced.
+
+## Style And Implementation Rules
+
+- Prefer early returns to reduce nesting.
+- Prefer `async/await` over `.then()` chains.
+- Use arrow functions consistently for new functions.
+- Favor array methods (`map`, `filter`, `reduce`) over manual loops when clearer.
+- Keep formatting and naming consistent with surrounding code in the same module.
+- Avoid optional behavior hidden behind implicit defaults; make intent explicit.
+- Follow project formatting/linting conventions.
+- If adding explanatory comments, end each explanation comment with `//! DELETE`.
+- Keep comments in English and avoid emoji in code comments.
+
+## Documentation Scope
+
+- Keep `copilot-instructions.md` focused on rules and workflows.
+- Place feature/function walkthrough docs in `implementation-md/` when needed.
