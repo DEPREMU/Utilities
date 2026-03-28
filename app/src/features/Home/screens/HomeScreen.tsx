@@ -63,7 +63,11 @@ const buttonsDev: ButtonType[] = [
 
 const buttons: ButtonType[] = [
   { label: "common.settings", screen: "Settings", noNeedsSession: true },
-  { label: "infoIP", screen: "InfoIP", noNeedsSession: true },
+  {
+    label: "network.networkInfo.title",
+    screen: "Network",
+    noNeedsSession: true,
+  },
   { label: "cryptoInfo", screen: "Cryptos" },
   {
     label: "calculator",

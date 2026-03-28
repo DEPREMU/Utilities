@@ -161,7 +161,7 @@ const RecorderScreen: React.FC = () => {
                 {t("recorder.autoStartRecording")}
               </Text>
               <Text style={styles.infoValue}>
-                {t(dataRecorder.shouldAutoStart ? "yes" : "no")}
+                {t(dataRecorder.shouldAutoStart ? "common.yes" : "common.no")}
               </Text>
             </View>
             <View style={styles.infoItem}>

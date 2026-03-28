@@ -21,7 +21,8 @@ const DeviceInformation: React.FC = () => {
     ) => {
       let displayValue = "";
 
-      if (typeof value === "boolean") displayValue = value ? t("yes") : t("no");
+      if (typeof value === "boolean")
+        displayValue = value ? t("common.yes") : t("common.no");
       else if (key === "batteryLevel" && typeof value === "number")
         displayValue = `${(value * 100).toFixed(0)}%`;
       else if (
@@ -29,7 +30,7 @@ const DeviceInformation: React.FC = () => {
         key.toLowerCase().includes("storage")
       )
         displayValue = isNaN(value as number)
-          ? t("notAvailable")
+          ? t("common.notAvailable")
           : `${((value as number) / 1024 ** 3).toFixed(2)} GB`;
       else displayValue = String(value);
 

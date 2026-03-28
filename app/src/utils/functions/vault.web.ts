@@ -16,3 +16,5 @@ export const fetchFileInfo: FetchFileInfo = async (filePath) => {
     return null;
   }
 };
+
+export const getImageFromVideo = async () => null;

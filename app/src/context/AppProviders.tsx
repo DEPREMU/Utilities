@@ -1,7 +1,6 @@
 import React from "react";
 import { UserProvider } from "@context/UserContext";
 import { ThemeProvider } from "@context/ThemeContext";
-import { VaultProvider } from "@context/VaultContext";
 import { ModalProvider } from "@context/ModalContext";
 import { LayoutProvider } from "@context/LayoutContext";
 import { RecorderProvider } from "@context/RecorderContext";
@@ -28,13 +27,11 @@ const AppProviders: React.FC<AppProvidersProps> = ({ children }) => (
               <LanguageProvider>
                 <ModalProvider>
                   <WebSocketProvider>
-                    <VaultProvider>
-                      {REPLACERS.isWeb ? (
-                        children
-                      ) : (
-                        <RecorderProvider>{children}</RecorderProvider>
-                      )}
-                    </VaultProvider>
+                    {REPLACERS.isWeb ? (
+                      children
+                    ) : (
+                      <RecorderProvider>{children}</RecorderProvider>
+                    )}
                   </WebSocketProvider>
                 </ModalProvider>
               </LanguageProvider>

@@ -315,7 +315,9 @@ const ListeningScreen: React.FC = () => {
                       opacity="0.5"
                     />
                   </Svg>
-                  <Text style={styles.emptyTitle}>{t("notAvailable")}</Text>
+                  <Text style={styles.emptyTitle}>
+                    {t("common.notAvailable")}
+                  </Text>
                   <Text style={styles.emptySubtitle}>
                     {t("recorder.recordedAudios")}
                   </Text>

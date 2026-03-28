@@ -111,12 +111,12 @@ const Streamers: React.FC = () => {
       t("askDeleteStreamerBody", { name: streamerName }),
       <>
         <Button
-          label={tTyped("yes")}
+          label={tTyped("common.yes")}
           handlePress={deleteStreamerRef.current}
           argsFuncHandlePress={[streamer.id || ""]}
         />
         <Button
-          label={tTyped("no")}
+          label={tTyped("common.no")}
           handlePress={() => modalRef.closeModal?.()}
         />
       </>,
@@ -139,12 +139,12 @@ const Streamers: React.FC = () => {
       t("askOpenURL", { url }),
       <>
         <Button
-          label={tTyped("yes")}
+          label={tTyped("common.yes")}
           handlePress={handleOpenURLStreamerRef.current}
           argsFuncHandlePress={[url]}
         />
         <Button
-          label={tTyped("no")}
+          label={tTyped("common.no")}
           handlePress={() => modalRef.closeModal?.()}
         />
       </>,
@@ -261,13 +261,16 @@ const Streamers: React.FC = () => {
       t("askAddStreamerBody", { name: streamerName }),
       <>
         <Button
-          label={t("yes")}
+          label={t("common.yes")}
           handlePress={() => {
             addingStreamer();
             modalRef.closeModal?.();
           }}
         />
-        <Button label={t("no")} handlePress={() => modalRef.closeModal?.()} />
+        <Button
+          label={t("common.no")}
+          handlePress={() => modalRef.closeModal?.()}
+        />
       </>,
     );
   }, [streamer, t, addingStreamer]);

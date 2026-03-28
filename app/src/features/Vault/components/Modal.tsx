@@ -1,4 +1,8 @@
 import {
+  useVault,
+  DEFAULT_VAULT_DATA,
+} from "@screens/Vault/context/VaultContext.tsx";
+import {
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
@@ -17,18 +21,16 @@ import {
   getFormattedDate,
 } from "@utils";
 import bytes from "bytes";
+import { ModalData } from "../screens/VaultViewer";
 import { useLanguage } from "@/context/LanguageContext";
 import { scheduleOnRN } from "react-native-worklets";
 import useStylesVaultScreen from "@/features/Vault/styles/useStylesVaultScreen";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { DataVaultViewer, ModalData } from "../screens/VaultViewer";
-import { DEFAULT_VAULT_DATA, useVault } from "@/context/VaultContext";
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Divider, IconButton, Modal, Portal, Text } from "react-native-paper";
 import { View, Image, Pressable, GestureResponderEvent } from "react-native";
 
 type ModalComponentProps = {
-  dataRef: React.RefObject<DataVaultViewer>;
   onDismiss: () => void;
   renderModal: ModalData;
   setRenderModal: React.Dispatch<React.SetStateAction<ModalData>>;
@@ -49,12 +51,19 @@ const unknownInfo: FileInfo = {
   modifiedAt: new Date(),
 };
 
+const VideoPlayerContent: React.FC<{
+  uri: string;
+  style: ReturnType<typeof useStylesVaultScreen>["styles"]["videoModal"];
+}> = memoDeep(({ uri, style }) => {
+  const player = useVideoPlayer(uri);
+
+  return <VideoView player={player} style={style} />;
+});
+
 const ModalComponent: React.FC<ModalComponentProps> = ({
-  dataRef,
   onDismiss,
   renderModal,
   onLongPress,
-  setRenderModal,
   useStylesVaultScreen,
 }) => {
   const { t } = useLanguage();
@@ -63,6 +72,9 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
   const { statesRef, functionsRef } = useVault();
 
   const [info, setInfo] = React.useState<FileInfo | null>(null);
+  const [localModal, setLocalModal] = useState(renderModal);
+  const localModalRef = React.useRef(localModal);
+  localModalRef.current = localModal;
 
   const translationX = useSharedValue<number>(0);
   const translationY = useSharedValue<number>(height * 2);
@@ -79,55 +91,65 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
     x: false,
     y: false,
   });
-
-  const video = useVideoPlayer(renderModal.item.uri);
+  const isTransitioningRef = useSharedValue(false);
 
   const renderNewItem = useCallback(
     (direction: 1 | -1) => {
-      const currentItem = dataRef.current.renderModal.item;
+      if (isTransitioningRef.value) return;
+
+      const exiting = () => {
+        translationX.value = withTiming(0, { duration: 200 });
+        isTransitioningRef.value = false;
+      };
+
+      const currentItem = localModalRef.current.item;
       const currentFolder =
         statesRef.current.folders[
           statesRef.current.currentFolderId ||
             DEFAULT_VAULT_DATA.DEFAULT_FOLDER_NAME
         ];
-      if (currentFolder === "locked")
-        translationX.value = withTiming(0, { duration: 200 });
-      else {
-        const currentIndex = currentFolder.findIndex(
-          (f) => f.uri === currentItem.uri,
-        );
-        const nextIndex = currentIndex + direction;
-        if (nextIndex < 0 || nextIndex >= currentFolder.length) {
-          translationX.value = withTiming(0, { duration: 200 });
-          return;
-        }
+      if (currentFolder === "locked") return exiting();
 
-        const nextItem = currentFolder[nextIndex];
+      isTransitioningRef.value = true;
 
-        const type = functionsRef.current.getTypeModalData(nextItem.mimeType);
-
-        translationX.value = withTiming(
-          direction * -width,
-          { duration: 200 },
-          () => {
-            translationX.value = width * direction;
-            scheduleOnRN(setRenderModal, {
-              show: true,
-              item: nextItem,
-              type,
-            });
-            translationX.value = withTiming(0, { duration: 200 });
-          },
-        );
+      const currentIndex = currentFolder.findIndex(
+        (f) => f.originalUri === currentItem.originalUri,
+      );
+      const nextIndex = currentIndex + direction;
+      if (nextIndex < 0 || nextIndex >= currentFolder.length) {
+        return exiting();
       }
+
+      const nextItem = currentFolder[nextIndex];
+      if (nextItem.decrypting) return exiting();
+
+      const type = functionsRef.current.getTypeModalData(nextItem.mimeType);
+
+      translationX.value = withTiming(
+        direction * -width,
+        { duration: 200 },
+        () => {
+          translationX.value = width * direction;
+          scheduleOnRN(setLocalModal, {
+            show: true,
+            item: nextItem,
+            type,
+          });
+          setTimeout(() => {
+            translationX.value = withTiming(0, { duration: 200 }, () => {
+              isTransitioningRef.value = false;
+            });
+          }, 200);
+        },
+      );
     },
-    [translationX, statesRef, functionsRef, width, setRenderModal, dataRef],
+    [translationX, statesRef, functionsRef, width, isTransitioningRef],
   );
 
   const onDismissHandler = useCallback(() => {
-    translationY.value = withTiming(height * 2, { duration: 300 }, () =>
-      scheduleOnRN(onDismiss),
-    );
+    translationY.value = withTiming(height * 2, { duration: 300 }, () => {
+      scheduleOnRN(onDismiss);
+    });
   }, [onDismiss, translationY, height]);
 
   const gesturePan = useMemo(
@@ -168,6 +190,7 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
               translationX.value = withTiming(0, options);
               return;
             } else if (absTranslationX >= 50 || absVelocityX >= 1000) {
+              if (isTransitioningRef.value) return;
               scheduleOnRN(renderNewItem, velocityX < 0 ? 1 : -1);
             }
           } else if (cappedTranslationShared.value.y) {
@@ -177,8 +200,10 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
             if (absTranslationY < 50 && absVelocityY < 1000) {
               translationY.value = withTiming(0, options);
             } else {
-              translationY.value = withTiming(height * 2, options, () =>
-                scheduleOnRN(onDismiss),
+              translationY.value = withTiming(
+                height * 2 * (event.translationY > 0 ? 1 : -1),
+                options,
+                () => scheduleOnRN(onDismiss),
               );
             }
           }
@@ -192,11 +217,12 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
       onDismiss,
       translationY,
       cappedTranslationShared,
+      isTransitioningRef,
     ],
   );
 
   useEffect(() => {
-    switch (renderModal.type) {
+    switch (localModal.type) {
       case "none":
         translationY.value = withTiming(height * 2, { duration: 300 }, () =>
           scheduleOnRN(onDismiss),
@@ -204,7 +230,7 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
         break;
       case "info": {
         const fetchInfo = async () => {
-          const fileInfo = await fetchFileInfo(renderModal.item.uri);
+          const fileInfo = await fetchFileInfo(localModal.item.uri);
 
           translationY.value = withTiming(0, { duration: 300 });
           setInfo(!fileInfo ? unknownInfo : fileInfo);
@@ -219,9 +245,11 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
 
         break;
     }
-  }, [translationY, renderModal.type, height, onDismiss, renderModal.item.uri]);
+  }, [translationY, localModal.type, height, onDismiss, localModal.item.uri]);
 
-  if (renderModal.type === "none") return null;
+  useEffect(() => setLocalModal(renderModal), [renderModal]);
+
+  if (localModal.type === "none") return null;
 
   return (
     <Portal>
@@ -235,7 +263,7 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
           <GestureDetector gesture={gesturePan}>
             <Pressable
               style={styles.modal}
-              onLongPress={(event) => onLongPress(event, renderModal.item)}
+              onLongPress={(event) => onLongPress(event, localModal.item)}
             >
               <Animated.View style={[styles.modal, animatedStyle]}>
                 <View style={styles.modalHeader}>
@@ -245,25 +273,29 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
                     style={styles.modalCloseButton}
                   />
                   <Text style={styles.modalTitle} numberOfLines={1}>
-                    {renderModal.item.name}
+                    {localModal.item.name}
                   </Text>
                 </View>
 
-                {renderModal.type === "image" && (
+                {localModal.type === "image" && (
                   <Image
                     style={styles.imageModal}
-                    source={{ uri: renderModal.item.uri }}
+                    source={{ uri: localModal.item.uri }}
                     resizeMode="contain"
                   />
                 )}
-                {renderModal.type === "video" && (
-                  <VideoView player={video} style={styles.videoModal} />
+                {localModal.type === "video" && (
+                  <VideoPlayerContent
+                    key={localModal.item.originalUri || localModal.item.uri}
+                    uri={localModal.item.uri}
+                    style={styles.videoModal}
+                  />
                 )}
-                {renderModal.type === "pdf" && (
+                {localModal.type === "pdf" && (
                   <PDF
                     scale={1}
                     style={styles.pdf}
-                    source={{ uri: renderModal.item.uri }}
+                    source={{ uri: localModal.item.uri }}
                     minScale={0.5}
                     maxScale={20}
                     fitPolicy={2}
@@ -273,7 +305,7 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
                   />
                 )}
 
-                {renderModal.type === "info" && (
+                {localModal.type === "info" && (
                   <View style={styles.modalContent}>
                     <View style={styles.modalInfoColumn}>
                       <View style={styles.modalInfoRow}>
@@ -283,7 +315,7 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
                           })}
                         </Text>
                         <Text style={styles.modalInfoValue}>
-                          {renderModal.item.name}
+                          {localModal.item.name}
                         </Text>
                       </View>
 
@@ -371,4 +403,4 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
   );
 };
 
-export default memoDeep(ModalComponent);
+export default ModalComponent;

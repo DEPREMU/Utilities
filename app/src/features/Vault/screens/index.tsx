@@ -11,7 +11,6 @@ import Button from "@/common/components/Button/screens";
 import { View } from "react-native";
 import { Route } from "@/common/components/BottomNavigator/components/GetBottomNavigation";
 import VaultViewer from "@screens/Vault/screens/VaultViewer";
-import { useVault } from "@context/VaultContext";
 import ImportScreen from "@screens/Vault/screens/ImportScreen";
 import BackupScreen from "@screens/Vault/screens/BackupScreen";
 import SettingsScreen from "@screens/Vault/screens/SettingsScreen";
@@ -20,6 +19,10 @@ import CompressionScreen from "@screens/Vault/screens/CompressionScreen";
 import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
 import useStylesBottomNavigator from "@/common/components/BottomNavigator/styles/useStylesBottomNavigator";
 import { BottomNavigation, Text } from "react-native-paper";
+import {
+  useVault,
+  VaultProvider,
+} from "@screens/Vault/context/VaultContext.tsx";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 
 const routes: Route[] = [
@@ -154,6 +157,10 @@ const VaultNavigator = () => {
   );
 };
 
-const VaultNavigatorMemo = memoDeep(VaultNavigator);
+const VaultNavigatorMemo = memoDeep(() => (
+  <VaultProvider>
+    <VaultNavigator />
+  </VaultProvider>
+));
 
 export default VaultNavigatorMemo;

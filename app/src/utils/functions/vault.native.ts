@@ -12,16 +12,18 @@ import {
   GetFoldersVault,
   GetDecryptedFolderDirectory,
   ClearDecryptedFolderDirectory,
+  GetImageFromVideo,
 } from "@types";
 import * as ZIP from "react-native-zip-archive";
 import { logger } from "../functions/debug";
+import { Directories } from "../cross";
 import * as FileSystem from "@dr.pogodin/react-native-fs";
 import * as ExpoFileSystem from "expo-file-system";
+import { createThumbnail } from "react-native-create-thumbnail";
 import { sanitizeFileName } from "../functions/appManagement";
 import { storageManagement } from "../services/storage";
 import { NativeFunctionsModule } from "@modules";
 import { FetchFileInfo, DecryptFolderFiles, ActionWithVaultItem } from "@types";
-import { Directories } from "../cross";
 
 type ProgressCallback = (percentage: number) => void;
 
@@ -538,5 +540,31 @@ export const getFoldersVault: GetFoldersVault = async () => {
     return folders;
   } catch {
     return [];
+  }
+};
+
+export const getImageFromVideo: GetImageFromVideo = async (videoUri) => {
+  try {
+    const thumbnail = await createThumbnail({
+      url: videoUri,
+    });
+
+    if (new ExpoFileSystem.File(thumbnail.path).exists) {
+      return thumbnail.path;
+    } else {
+      logger.error(
+        "GET_IMAGE_FROM_VIDEO",
+        "Thumbnail file does not exist after creation:",
+        thumbnail,
+      );
+      return null;
+    }
+  } catch (error) {
+    logger.error(
+      "GET_IMAGE_FROM_VIDEO",
+      "Error getting image from video:",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
   }
 };

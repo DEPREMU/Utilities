@@ -1,4 +1,20 @@
 #!/bin/bash
+MAX_START_SECONDS=300
+
+# Reboot if startup does not reach server launch on time. //! DELETE
+(
+    sleep "$MAX_START_SECONDS"
+    echo "Startup timeout reached before server launch. Rebooting..."
+    sudo reboot
+) &
+WATCHDOG_PID=$!
+
+cleanup_watchdog() {
+    kill "$WATCHDOG_PID" >/dev/null 2>&1
+}
+
+trap cleanup_watchdog EXIT
+
 sudo apt-get update -y
 sudo apt-get upgrade -y
 cd $HOME/Utilities
@@ -16,4 +32,8 @@ until curl -sSf --connect-timeout 5 http://www.google.com/generate_204 >/dev/nul
 done
 git pull
 yarn install
+
+cleanup_watchdog
+trap - EXIT
+
 NODE_ENV=production yarn run server

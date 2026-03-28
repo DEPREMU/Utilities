@@ -16,10 +16,8 @@ const App = () => {
   useEffect(() => {
     storageManagement.setHasUI();
 
-    const cleanup = (fun?: () => void) => () => {
+    const cleanup = () => () => {
       cleanupServices();
-
-      fun?.();
     };
 
     if (REPLACERS.isWeb) return cleanup();

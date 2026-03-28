@@ -82,8 +82,9 @@ const useStylesVaultScreen = () => {
         fileItem: {
           alignItems: "center",
           justifyContent: "center",
-          width: width / (REPLACERS.isWeb ? 4 : 3) - 10,
-          height: width / (REPLACERS.isWeb ? 4 : 3) - 10,
+          width: width / (REPLACERS.isWeb ? 4 : 3) - 11,
+          height: width / (REPLACERS.isWeb ? 4 : 3) - 11,
+          margin: 2,
         },
         fileName: {
           fontSize: getResponsiveValue(16, 18, 20),

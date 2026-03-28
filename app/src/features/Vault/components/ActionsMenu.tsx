@@ -12,7 +12,7 @@ import {
   TextInput,
 } from "react-native-paper";
 import { modalRef } from "@refs";
-import { useVault } from "@context/VaultContext";
+import { useVault } from "@/features/Vault/context/VaultContext.tsx";
 import { cloneDeep } from "lodash";
 import { ScrollView, View } from "react-native";
 import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
@@ -41,6 +41,10 @@ export const defaultMenuState: MenuType = {
   y: 0,
   item: null,
   visible: false,
+};
+
+const getFileSelectionKey = (file: FolderFiles[number] | PickedFile) => {
+  return (file as FolderFiles[number]).originalUri || file.uri;
 };
 
 const ACTIONS_MENU: Action[] = [
@@ -317,10 +321,10 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
             statesRef.current.filesSelected.files[currentFolderId] || {};
 
           const lastSelectedIndex = folderFiles.findIndex((file) =>
-            Object.keys(selectedFilesMap).includes(file.uri),
+            Object.keys(selectedFilesMap).includes(getFileSelectionKey(file)),
           );
           const currentIndex = folderFiles.findIndex(
-            (file) => file.uri === item.uri,
+            (file) => getFileSelectionKey(file) === getFileSelectionKey(item),
           );
 
           if (lastSelectedIndex === -1) {
@@ -329,7 +333,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
               const updated = cloneDeep(prev);
               if (!updated.files[currentFolderId])
                 updated.files[currentFolderId] = {};
-              updated.files[currentFolderId][item.uri] = true;
+              updated.files[currentFolderId][getFileSelectionKey(item)] = true;
               return updated;
             });
           } else {
@@ -345,7 +349,8 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
               if (!updated.files[currentFolderId])
                 updated.files[currentFolderId] = {};
               itemsToSelect.forEach((file) => {
-                updated.files[currentFolderId][file.uri] = true;
+                updated.files[currentFolderId][getFileSelectionKey(file)] =
+                  true;
               });
               return updated;
             });
@@ -404,19 +409,24 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
         if (folderFiles === "locked") return null;
 
         const isSelected =
+          dataRef.current.menu.item &&
           statesRef.current.filesSelected.files[currentFolderId]?.[
-            dataRef.current.menu.item?.uri || ""
+            getFileSelectionKey(dataRef.current.menu.item)
           ];
         if (isSelected && action.action === "select") {
           title = tTyped("labels.deselect");
         } else if (!isSelected && action.action === "selectFromLastToHere") {
           const currentIndex = folderFiles.findIndex(
-            (f) => f.uri === dataRef.current.menu.item?.uri,
+            (f) =>
+              getFileSelectionKey(f) ===
+              getFileSelectionKey(
+                dataRef.current.menu.item as FolderFiles[number],
+              ),
           );
           const lastSelectedIndex = folderFiles.findIndex((file) =>
             Object.keys(
               statesRef.current.filesSelected.files[currentFolderId] || {},
-            ).includes(file.uri),
+            ).includes(getFileSelectionKey(file)),
           );
 
           if (lastSelectedIndex === -1 || currentIndex === -1) return null;

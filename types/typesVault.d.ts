@@ -22,13 +22,19 @@ export type PickedFile = {
   mimeType: DownloadableMimeType | null;
 };
 
-export type FolderFiles = (PickedFile & { originalUri: string })[];
+export type VaultFolderFile = PickedFile & {
+  originalUri: string;
+  previewUri?: string | null;
+  decrypting?: boolean;
+};
+
+export type FolderFiles = VaultFolderFile[];
 
 export type EncryptFile = (
   inputPath: string,
   outputPath: string,
   password: string,
-  onProgress?: (percentage: number) => void
+  onProgress?: (percentage: number) => void,
 ) => Promise<boolean>;
 
 export declare const encryptFile: EncryptFile;
@@ -37,7 +43,7 @@ export type DecryptFile = (
   inputPath: string,
   outputPath: string,
   password: string,
-  onProgress?: (percentage: number) => void
+  onProgress?: (percentage: number) => void,
 ) => Promise<boolean>;
 
 export declare const decryptFile: DecryptFile;
@@ -45,7 +51,7 @@ export declare const decryptFile: DecryptFile;
 export type DecryptFolderFiles = (
   folder: string,
   password: string,
-  onDecryptedFile?: (file: FolderFiles[number]) => void
+  onDecryptedFile?: (file: FolderFiles[number]) => void,
 ) => Promise<FolderFiles>;
 
 export declare const decryptFolderFiles: DecryptFolderFiles;
@@ -53,14 +59,14 @@ export declare const decryptFolderFiles: DecryptFolderFiles;
 export type ActionWithVaultItem = (
   action: "copy" | "move",
   item: FolderFiles[number],
-  targetFolderId: string
+  targetFolderId: string,
 ) => Promise<{ success: boolean; error?: string }>;
 
 export declare const actionWithVaultItem: ActionWithVaultItem;
 
 export type RenameVaultItem = (
   item: FolderFiles[number],
-  newName: string
+  newName: string,
 ) => Promise<{ success: boolean; error?: string }>;
 
 export declare const renameVaultItem: RenameVaultItem;
@@ -82,7 +88,7 @@ export declare const hasPasswordZIP: HasPasswordZIP;
 export type UnzipFile = (
   filePath: string,
   destinationPath: string,
-  onPasswordRequired?: () => Promise<string | null>
+  onPasswordRequired?: () => Promise<string | null>,
 ) => Promise<string[]>;
 
 export declare const unzipFile: UnzipFile;
@@ -91,7 +97,7 @@ export type ZipFile = (
   sourcePaths: string[],
   onProgress: (percentage: number) => void,
   password?: string,
-  onZip?: (path: string, deleteTempFile: () => void) => unknown
+  onZip?: (path: string, deleteTempFile: () => void) => unknown,
 ) => Promise<string>;
 
 export declare const zipFile: ZipFile;
@@ -103,3 +109,7 @@ export declare const getFoldersVault: GetFoldersVault;
 export type getDefaultVaultDirectory = () => Promise<ExpoFileSystem.Directory>;
 
 export declare const getDefaultVaultDirectory: getDefaultVaultDirectory;
+
+export type GetImageFromVideo = (videoUri: string) => Promise<string | null>;
+
+export declare const getImageFromVideo: GetImageFromVideo;

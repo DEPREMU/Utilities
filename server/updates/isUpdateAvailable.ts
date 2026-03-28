@@ -5,30 +5,9 @@ import {
 } from "@types";
 import data from "./dataUploads.ts";
 import { showError } from "../functions/logger.ts";
+import { getSumVersion } from "@common";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { createTempDownloadUrl } from "./tempDownloadUrl.ts";
-
-const getSumVersion = (version: string): number => {
-  try {
-    const versionSum = version
-      .split(".")
-      .map((num) => {
-        let number = Number(num);
-        if (isNaN(number)) {
-          // Handle cases like "1.0.0-beta"
-          const match = num.match(/^(\d+)/);
-
-          if (match) number = Number(match[1]);
-          else return 0;
-        }
-        return number;
-      })
-      .reduce((sum, part, index) => sum + part * Math.pow(1000, 2 - index), 0);
-    return isNaN(versionSum) ? 0 : versionSum;
-  } catch {
-    return 0;
-  }
-};
 
 export const handleIsUpdateAvailable = getHandlerPost(
   "/is-update-available",

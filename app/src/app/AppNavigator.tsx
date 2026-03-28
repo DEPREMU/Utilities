@@ -121,7 +121,7 @@ const allScreens = Object.entries(screens).map(
   ),
 );
 
-const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "Network" : "Home";
+const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "Vault" : "Home";
 
 const AppNavigator: React.FC = () => {
   const { navigationTheme } = useTheme();

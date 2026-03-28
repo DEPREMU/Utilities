@@ -3,7 +3,10 @@ import { View } from "react-native";
 import { useLanguage } from "@/context/LanguageContext";
 import { Text, Button, Divider, TextInput } from "react-native-paper";
 import { VaultScreenProps } from ".";
-import { DEFAULT_VAULT_DATA, useVault } from "@/context/VaultContext";
+import {
+  DEFAULT_VAULT_DATA,
+  useVault,
+} from "@/features/Vault/context/VaultContext.tsx";
 
 const SettingsScreen: React.FC<VaultScreenProps> = ({
   useStylesVaultScreen: { styles },

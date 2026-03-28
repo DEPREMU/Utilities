@@ -274,11 +274,12 @@ const NotificationsScreen: React.FC = () => {
         minutes?.[item.id] ??
         (item.data.interval > 0 ? item.data.interval / (60 * 1000) : null);
 
-      const formatBoolean = (value: boolean) => (value ? t("yes") : t("no"));
+      const formatBoolean = (value: boolean) =>
+        value ? t("common.yes") : t("common.no");
 
       const formatPausedUntil = () => {
         if (!paused.isPaused || paused.timePaused <= 0)
-          return t("notAvailable");
+          return t("common.notAvailable");
 
         return getFormattedDate(new Date(paused.timePaused), undefined, {
           dateStyle: "medium",
@@ -331,7 +332,7 @@ const NotificationsScreen: React.FC = () => {
                 <Text style={styles.detailValue}>
                   {typeof intervalMinutes === "number" && intervalMinutes >= 0
                     ? `${intervalMinutes}`
-                    : t("notAvailable")}
+                    : t("common.notAvailable")}
                 </Text>
               </View>
               <View style={styles.detailRow}>

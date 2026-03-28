@@ -8,13 +8,17 @@ import {
 } from "react-native-paper";
 import { View } from "react-native";
 import { modalRef } from "@refs";
-import { useVault } from "@context/VaultContext";
+import { useVault } from "@/features/Vault/context/VaultContext.tsx";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import { windowModule } from "@modules";
 import { VaultScreenProps } from "./";
 import React, { useCallback, useMemo, useState } from "react";
 import { FolderFiles, logger, REPLACERS, tTyped, zipFile } from "@utils";
+
+const getFileSelectionKey = (item: FolderFiles[number]) => {
+  return item.originalUri || item.uri;
+};
 
 const CompressionScreen: React.FC<VaultScreenProps> = ({
   useStylesVaultScreen,
@@ -156,7 +160,9 @@ const CompressionScreen: React.FC<VaultScreenProps> = ({
         const filesInFolder = statesRef.current.folders[folderId];
         if (!filesInFolder || filesInFolder === "locked") return null;
 
-        const file = filesInFolder.find((f) => f.uri === fileUri);
+        const file = filesInFolder.find(
+          (f) => getFileSelectionKey(f) === fileUri,
+        );
         return file || null;
       });
 

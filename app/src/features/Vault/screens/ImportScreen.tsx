@@ -8,7 +8,7 @@ import {
   ProgressBar,
   RadioButton,
 } from "react-native-paper";
-import { useVault } from "@context/VaultContext";
+import { useVault } from "@/features/Vault/context/VaultContext.tsx";
 import { useLanguage } from "@context/LanguageContext";
 import { VaultScreenProps } from "./";
 import { ScrollView, View, Image } from "react-native";

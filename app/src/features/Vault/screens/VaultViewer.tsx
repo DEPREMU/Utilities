@@ -1,13 +1,6 @@
-import {
-  View,
-  Image,
-  FlatList,
-  Pressable,
-  ScrollView,
-  GestureResponderEvent,
-} from "react-native";
 import Modal from "../components/Modal";
-import { useVault } from "@/context/VaultContext";
+import ItemViewer from "../components/ItemViewer";
+import { useVault } from "@/features/Vault/context/VaultContext.tsx";
 import { REPLACERS } from "@utils";
 import { FolderFiles } from "@types";
 import { useLanguage } from "@/context/LanguageContext";
@@ -15,6 +8,7 @@ import { VaultScreenProps } from ".";
 import React, { useCallback, useRef } from "react";
 import ActionsMenu, { defaultMenuState } from "../components/ActionsMenu";
 import { List, Menu, Text, Button, Divider } from "react-native-paper";
+import { View, FlatList, GestureResponderEvent } from "react-native";
 
 export type ModalData = {
   show: boolean;
@@ -38,18 +32,17 @@ const defaultModalData: ModalData = {
   item: {} as FolderFiles[number],
 };
 
+export type OnLongPressRef = React.RefObject<
+  (event: GestureResponderEvent, item: FolderFiles[number]) => void
+>;
+
 const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
   const { t } = useLanguage();
 
   const returnVault = useVault();
 
-  const {
-    folders,
-    functionsRef,
-    filesSelected,
-    currentFolderId,
-    setCurrentFolderId,
-  } = returnVault;
+  const { folders, functionsRef, currentFolderId, setCurrentFolderId } =
+    returnVault;
 
   const { styles } = useStylesVaultScreen;
 
@@ -66,19 +59,43 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
   const onDismissRef = useRef(() => {
     setRenderModal(defaultModalData);
   });
-  const onLongPressRef = useRef(
-    (event: GestureResponderEvent, item: FolderFiles[number]) => {
-      if (dataRef.current.renderModal.type === "video") return;
 
-      const { pageX, pageY } = event.nativeEvent;
+  const onLongPressRef: OnLongPressRef = useRef((event, item) => {
+    if (dataRef.current.renderModal.type === "video") return;
+
+    const { pageX, pageY } = event.nativeEvent;
+    setMenu({
+      x: pageX,
+      y: pageY,
+      item,
+      visible: true,
+    });
+  });
+
+  const onLongPressFolderRef = useRef(
+    (event: GestureResponderEvent, folderId: string) => {
+      const x = event.nativeEvent.pageX;
+      const y = event.nativeEvent.pageY;
+
       setMenu({
-        x: pageX,
-        y: pageY,
-        item,
+        x,
+        y,
+        item: null,
+        folderId,
         visible: true,
       });
     },
   );
+
+  const renderItemRef = useRef(({ item }: { item: FolderFiles[number] }) => {
+    return (
+      <ItemViewer
+        item={item}
+        onLongPressRef={onLongPressRef}
+        setRenderModal={setRenderModal}
+      />
+    );
+  });
 
   const renderEmptyOrLocked = useCallback(() => {
     if (folders[currentFolderId] === "locked") {
@@ -101,79 +118,38 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
     }
   }, [styles, t, folders, currentFolderId, functionsRef]);
 
-  const renderItem = useCallback(
-    ({ item }: { item: FolderFiles[number] }) => {
-      const currentFolderId = functionsRef.current.getCurrentFolderId();
-      const isSelected = !!filesSelected.files[currentFolderId]?.[item.uri];
+  const renderItemFolder = useCallback(
+    ({ item }: { item: [string, FolderFiles | "locked"] }) => {
+      const [folderName, files] = item;
 
-      const onPress = () => {
-        if (filesSelected.selecting || isSelected) {
-          functionsRef.current.selectFile(item);
-          return;
-        }
+      let icon = "folder-lock";
+      const isCurrent =
+        functionsRef.current.getCurrentFolderId() === folderName;
 
-        const mimeType = item.mimeType || "none";
-        let typeMain: ModalData["type"] = mimeType.split("/")[0] as "image";
-
-        if (mimeType === "application/pdf") typeMain = "pdf";
-
-        setRenderModal({
-          item,
-          show: true,
-          type: typeMain,
-        });
-      };
+      if (files === "locked") {
+        if (isCurrent) icon = "folder-lock-outline";
+      } else {
+        if (isCurrent) icon = "folder";
+        else icon = "folder-outline";
+      }
 
       return (
-        <Pressable
-          style={[styles.fileItem, isSelected ? styles.fileItemSelected : {}]}
-          onPress={onPress}
-          onLongPress={(event) => onLongPressRef.current(event, item)}
-          delayLongPress={300}
+        <Button
+          key={folderName}
+          style={styles.folderItem}
+          onPress={() => {
+            setCurrentFolderId(folderName);
+          }}
+          onLongPress={(event) =>
+            onLongPressFolderRef.current(event, folderName)
+          }
         >
-          {item.mimeType?.startsWith("image/") ? (
-            <Image
-              style={[
-                styles.fileItem,
-                isSelected ? styles.fileItemSelected : {},
-              ]}
-              source={{ uri: item.uri }}
-            />
-          ) : item.mimeType?.startsWith("video/") ? (
-            <>
-              <List.Icon style={styles.iconLeft} icon="video" />
-              <Text style={styles.fileName} numberOfLines={1}>
-                {item.name}
-              </Text>
-            </>
-          ) : (
-            <>
-              <List.Icon style={styles.iconLeft} icon="file" />
-              <Text style={styles.fileName} numberOfLines={1}>
-                {item.name}
-              </Text>
-            </>
-          )}
-        </Pressable>
+          <List.Icon style={styles.folderIcon} icon={icon} color={"#666"} />
+          <Text style={styles.folderName}>{folderName}</Text>
+        </Button>
       );
     },
-    [styles, filesSelected, functionsRef],
-  );
-
-  const onLongPress = useCallback(
-    (event: GestureResponderEvent, folderId: string) => {
-      const x = event.nativeEvent.pageX;
-      const y = event.nativeEvent.pageY;
-
-      setMenu({
-        x,
-        y,
-        item: null,
-        folderId,
-        visible: true,
-      });
-    },
-    [],
+    [functionsRef, setCurrentFolderId, styles],
   );
 
   return (
@@ -188,7 +164,6 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
       />
 
       <Modal
-        dataRef={dataRef}
         onDismiss={onDismissRef.current}
         renderModal={renderModal}
         onLongPress={onLongPressRef.current}
@@ -198,38 +173,13 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
 
       <Text style={styles.title}>{t("vault.viewer.title")}</Text>
 
-      <ScrollView
+      <FlatList
         style={styles.foldersList}
         contentContainerStyle={styles.content}
         horizontal
-      >
-        {Object.entries(folders).map(([folderName, files], i) => {
-          let icon = "folder-lock";
-          const isCurrent =
-            functionsRef.current.getCurrentFolderId() === folderName;
-
-          if (files === "locked") {
-            if (isCurrent) icon = "folder-lock-outline";
-          } else {
-            if (isCurrent) icon = "folder";
-            else icon = "folder-outline";
-          }
-
-          return (
-            <Button
-              key={i}
-              style={styles.folderItem}
-              onPress={() => {
-                setCurrentFolderId(folderName);
-              }}
-              onLongPress={(event) => onLongPress(event, folderName)}
-            >
-              <List.Icon style={styles.folderIcon} icon={icon} color={"#666"} />
-              <Text style={styles.folderName}>{folderName}</Text>
-            </Button>
-          );
-        })}
-      </ScrollView>
+        data={Object.entries(folders)}
+        renderItem={renderItemFolder}
+      />
 
       <Divider style={styles.margin8} />
 
@@ -240,8 +190,8 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
             : []
         }
         numColumns={REPLACERS.isWeb ? 4 : 3}
-        renderItem={renderItem}
-        keyExtractor={(_, index) => String(index)}
+        renderItem={renderItemRef.current}
+        keyExtractor={(item) => item.originalUri || item.uri}
         ListEmptyComponent={renderEmptyOrLocked}
         contentContainerStyle={styles.filesViewerList}
       />
