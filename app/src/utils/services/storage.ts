@@ -392,12 +392,10 @@ const cleanAllStorageData = wrapFunctionWithError(
 );
 
 class StorageManagement {
-  public static instance: StorageManagement;
-
   #hasUI: boolean = false;
-  #promise: Promise<void> | null = null;
 
-  #isLoaded = false;
+  #initialized = false;
+  #initPromise: Promise<void> | null = null;
 
   public get hasUI() {
     return this.#hasUI;
@@ -413,32 +411,32 @@ class StorageManagement {
    * @returns A promise that resolves when the storage data is loaded and ready for use.
    */
   public waitUntilLoaded = async (): Promise<void> => {
-    if (this.#isLoaded) return;
-    if (this.#promise) return this.#promise;
+    if (this.#initialized) return;
+    if (this.#initPromise) return this.#initPromise;
 
-    const checkLoaded = async () => {
-      const { waitForTime } = await import("../functions");
-
-      while (!this.#isLoaded) {
-        await waitForTime(50);
-      }
-
-      const startTime = Date.now();
-      const timeout = 10 * 1000;
-
-      while (!this.#hasUI) {
-        await waitForTime(50);
-        if (Date.now() - startTime > timeout) return;
-      }
-      await waitForTime(1000);
-    };
-
-    this.#promise = checkLoaded();
-    return this.#promise;
+    this.#initPromise = this.#init();
+    return this.#initPromise;
   };
 
   public setHasUI = async (): Promise<void> => {
     this.#hasUI = true;
+  };
+
+  #init = async () => {
+    try {
+      await this.#loadData();
+      const { waitForTime } = await import("@utils");
+
+      const t = Date.now();
+      while (!this.#hasUI) {
+        const elapsed = Date.now() - t;
+        await waitForTime(50 + elapsed);
+        if (elapsed > 30 * 1000) break;
+      }
+    } finally {
+      this.#initialized = true;
+      this.#initPromise = null;
+    }
   };
 
   #data = {} as ExpectedStorageTypes<"BOTH">;
@@ -475,7 +473,6 @@ class StorageManagement {
       );
 
       this.#data = data as ExpectedStorageTypes<"BOTH">;
-      this.#isLoaded = true;
     } catch (e) {
       logger.error("STORAGE", "Failed to load storage data.", e);
       if (!REPLACERS.isDev) reloadAppAsync("Failed to load storage data.");
@@ -628,12 +625,12 @@ class StorageManagement {
    * @returns A promise that resolves when the data has been reloaded.
    */
   public reloadData = async (): Promise<void> => {
-    this.#isLoaded = false;
+    this.#initialized = false;
     await this.#loadData();
   };
 
   constructor() {
-    this.#loadData();
+    this.#initPromise = this.#init();
   }
 }
 

@@ -13,7 +13,7 @@ import {
 } from "@utils";
 import { reloadAppAsync } from "expo";
 import { BackgroundModule } from "@modules";
-import React, { useRef, useMemo, useEffect, createContext } from "react";
+import React, { useRef, useEffect, createContext } from "react";
 
 type dataTimeControl = {
   fn: (...args: unknown[]) => void;
@@ -165,7 +165,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
     const removeAppStateListener = deviceInfo.addEventListener(
       EventsDeviceInfo.appStateChange,
       (newState) => {
-        if (newState === "background") {
+        if (newState !== "active") {
           if (!timeoutId)
             timeoutId = setTimeoutPolyfill(() => {
               const current = navigation.getCurrentScreen();
@@ -186,17 +186,13 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
     };
   }, []);
 
-  const value: BackgroundContextType = useMemo(
-    () => ({
-      timeControlsRef,
-      initIntervalTimeoutsRef,
-      deleteIntervalTimeoutRef,
-    }),
-    [],
-  );
+  const valueRef = useRef<BackgroundContextType>({
+    initIntervalTimeoutsRef,
+    deleteIntervalTimeoutRef,
+  });
 
   return (
-    <BackgroundContext.Provider value={value}>
+    <BackgroundContext.Provider value={valueRef.current}>
       {children}
     </BackgroundContext.Provider>
   );

@@ -17,6 +17,12 @@ export * from "./navigation";
 export * from "./notifications";
 
 export const cleanupServices = async () => {
+  import("@screens/Vault/services/vaultDomain").then(
+    ({ vaultDomainServiceManager }) => {
+      vaultDomainServiceManager.cleanUp(true);
+    },
+  );
+  
   await Promise.all([
     debug?.cleanup(),
     updates?.cleanup(),
@@ -25,4 +31,5 @@ export const cleanupServices = async () => {
     recorderManager?.cleanup(),
     clipboardManager?.cleanup(),
   ]);
+  ;
 };

@@ -21,6 +21,7 @@ export const useStylesModalComponent = () => {
           height: height + (StatusBar?.currentHeight || 0),
           maxHeight: height + (StatusBar?.currentHeight || 0),
           cursor: "auto",
+          width,
         },
         modal: {
           ...getCommonStyles("shadow"),
@@ -73,7 +74,7 @@ export const useStylesModalComponent = () => {
           maxHeight: height * 0.5,
         },
       }),
-    [getCommonStyles, colors, getResponsiveValue, height],
+    [getCommonStyles, colors, getResponsiveValue, height, width],
   );
 
   return useMemo(() => ({ styles, height, width }), [styles, height, width]);

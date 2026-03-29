@@ -3,10 +3,10 @@ import { Image } from "react-native";
 import * as RNFS from "@dr.pogodin/react-native-fs";
 import * as PDFLib from "pdf-lib";
 import { randomUUID } from "react-native-quick-crypto";
+import { Directories } from "./Directories";
 import * as ExpoFileSystem from "expo-file-system";
 import { ImageManipulator } from "expo-image-manipulator";
 import { CreatePdfFromImages, PlatformData } from "./platform";
-import { Directories } from "./Directories";
 
 export const ready = async () => {};
 
@@ -84,7 +84,7 @@ export const createPdfFromImages: CreatePdfFromImages = async (
 
   for (const img of images) {
     try {
-      onProgress?.(++i / len);
+      if (onProgress) onProgress(++i / len);
 
       if (!img.uri) continue;
       const image = new ExpoFileSystem.File(img.uri);

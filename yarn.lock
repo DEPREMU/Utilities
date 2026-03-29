@@ -5471,6 +5471,11 @@ expo-constants@~55.0.9:
     "@expo/config" "~55.0.10"
     "@expo/env" "~2.1.1"
 
+expo-crypto@~55.0.10:
+  version "55.0.10"
+  resolved "https://registry.yarnpkg.com/expo-crypto/-/expo-crypto-55.0.10.tgz#edf64a9d75fa1757fcae466b26fce9b93031b293"
+  integrity sha512-3emt67pWch07F7DPQutn7CUpaiCJI8OOFxCGiwmzeSqSjuWP9upGOXkLQNVWf+29KZQRTVgf88LhDC2GFshMNA==
+
 expo-dev-client@~55.0.19:
   version "55.0.19"
   resolved "https://registry.yarnpkg.com/expo-dev-client/-/expo-dev-client-55.0.19.tgz#88b024983c32247b9cae6ef62fa66bb5d62ceb71"

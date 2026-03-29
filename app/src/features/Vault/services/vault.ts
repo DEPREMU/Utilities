@@ -154,6 +154,7 @@ class VaultService {
       this.#initPromise = null;
       this.#initialized = false;
       await this.#db.closeAsync();
+      this.#db = null as unknown as ExpoSQL.SQLiteDatabase;
     } catch (error) {
       logger.error(
         TAG,
@@ -517,21 +518,24 @@ class VaultServiceManager {
     return this.#service;
   };
 
-  public cleanUp = async (afterTimeout?: () => Promise<void> | void) => {
-    if (this.#timeoutId !== null) return;
+  public cleanUp = async (
+    afterTimeout?: () => Promise<void> | void,
+    force?: boolean,
+  ) => {
+    if (this.#timeoutId !== null && !force) return;
+
+    const func = async () => {
+      await afterTimeout?.();
+      this.#timeoutId = null;
+      if (this.#service) {
+        await this.#service.cleanUp();
+        this.#service = null;
+      }
+    };
+    if (force) return func();
 
     const { setTimeoutPolyfill } = await import("@utils");
-    this.#timeoutId = setTimeoutPolyfill(
-      async () => {
-        await afterTimeout?.();
-        this.#timeoutId = null;
-        if (this.#service) {
-          await this.#service.cleanUp();
-          this.#service = null;
-        }
-      },
-      5 * 60 * 1000,
-    );
+    this.#timeoutId = setTimeoutPolyfill(func, 5 * 60 * 1000);
   };
 }
 

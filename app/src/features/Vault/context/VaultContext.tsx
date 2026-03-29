@@ -133,7 +133,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
       unsubscribe();
       removeListenerScreen();
       removeListenerAppState();
-      void vaultDomainServiceManager.cleanUp();
+      vaultDomainServiceManager.cleanUp();
     };
   }, [service]);
 

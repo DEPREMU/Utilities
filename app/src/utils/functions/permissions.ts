@@ -319,7 +319,7 @@ const askDoNotDisturbPermission = async (): Promise<void> => {
   )
     return;
 
-  let granted = await alerts.showAlert(
+  const accepted = await alerts.showAlert(
     "doNotDisturbPermission",
     "doNotDisturbPermissionMessage",
     async (doNotAskAgain, accepted) => {
@@ -328,13 +328,16 @@ const askDoNotDisturbPermission = async (): Promise<void> => {
     },
     { addDoNotAskAgain: true },
   );
+  if (!accepted) return;
 
   const { NativeFunctionsModule } = await import("@modules");
 
-  const state = await NativeFunctionsModule.requestDoNotDisturbPermission?.();
+  let granted = await NativeFunctionsModule.checkDoNotDisturbPermission();
+
+  const state = await NativeFunctionsModule.requestDoNotDisturbPermission();
   if (state === "SETTINGS_OPENED") {
     await waitForAppToBeActive();
-    granted = await NativeFunctionsModule.checkDoNotDisturbPermission?.();
+    granted = await NativeFunctionsModule.checkDoNotDisturbPermission();
   } else if (state === "ALREADY_GRANTED" || state === "NOT_NEEDED") {
     granted = true;
   }
