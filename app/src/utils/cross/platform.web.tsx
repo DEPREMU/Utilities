@@ -127,8 +127,6 @@ export const PDFDoc = {
   PageSizes: PDF_PAGE_SIZES,
 };
 
-export const RNFSModule = null;
-
 export { DATA_PLATFORM };
 
 export const createPdfFromImages: CreatePdfFromImages = async (

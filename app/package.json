@@ -23,7 +23,6 @@
     "ios": "echo \"Not Supported\""
   },
   "dependencies": {
-    "@dr.pogodin/react-native-fs": "^2.36.2",
     "@expo/metro-runtime": "~55.0.7",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",

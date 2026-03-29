@@ -339,9 +339,12 @@ class VaultDomainService {
         return;
       }
 
+      await storageManagement.waitUntilLoaded();
+
       let directory = storageManagement.get("VAULT_DIRECTORY", "");
       if (!directory && REPLACERS.isNative) {
         directory = (await getDefaultVaultDirectory()).uri;
+        storageManagement.save("VAULT_DIRECTORY", directory);
       }
 
       const password = storageManagement.get("VAULT_PASSWORD", {});

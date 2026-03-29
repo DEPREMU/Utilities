@@ -191,19 +191,19 @@ class VaultService {
     });
   };
 
-  #migrateDB = async (tx: ExpoSQL.SQLiteDatabase) => {
-    const data = await tx.getAllAsync<Tables["EncryptedFiles"]>(
+  #migrateDB = async () => {
+    const data = await this.#db.getAllAsync<Tables["EncryptedFiles"]>(
       `SELECT * FROM ${MAIN_TABLE_NAME}`,
     );
-    await tx.execAsync(`DROP TABLE IF EXISTS ${MAIN_TABLE_NAME}`);
-    await tx.execAsync(TABLES.EncryptedFiles.create);
+    await this.#db.execAsync(`DROP TABLE IF EXISTS ${MAIN_TABLE_NAME}`);
+    await this.#db.execAsync(TABLES.EncryptedFiles.create);
     const insertPromises = data.map((row) => {
       const { str, args } = insert("EncryptedFiles", {
         ...TABLES.EncryptedFiles.default,
         ...row,
       });
 
-      tx.runAsync(str, args);
+      return this.#db.runAsync(str, args);
     });
     await Promise.all(insertPromises);
 
@@ -213,35 +213,33 @@ class VaultService {
       { key: "version" },
     );
 
-    await tx.runAsync(str, args);
+    await this.#db.runAsync(str, args);
   };
 
   private _initDB = async () => {
     try {
-      await this.#db.withExclusiveTransactionAsync(async (tx) => {
-        await Promise.all(
-          Object.values(TABLES).map((table) => tx.execAsync(table.create)),
-        );
+      await Promise.all(
+        Object.values(TABLES).map((table) => this.#db.execAsync(table.create)),
+      );
 
-        const versionRow = await tx.getFirstAsync<Tables["Meta"]>(
-          `SELECT value FROM ${META_TABLE_NAME} WHERE key = ?`,
-          ["version"],
-        );
-        if (!versionRow) {
-          const { str, args } = insert("Meta", {
-            key: "version",
-            value: DB_VERSION,
-          });
-          await tx.runAsync(str, args);
-          return;
-        } else if (versionRow.value === DB_VERSION) return;
+      const versionRow = await this.#db.getFirstAsync<Tables["Meta"]>(
+        `SELECT value FROM ${META_TABLE_NAME} WHERE key = ?`,
+        ["version"],
+      );
+      if (!versionRow) {
+        const { str, args } = insert("Meta", {
+          key: "version",
+          value: DB_VERSION,
+        });
+        await this.#db.runAsync(str, args);
+        return;
+      } else if (versionRow.value === DB_VERSION) return;
 
-        const targetVersion = getSumVersion(DB_VERSION);
-        const currentVersion = getSumVersion(versionRow.value);
-        if (targetVersion > currentVersion) {
-          await this.#migrateDB(tx);
-        }
-      });
+      const targetVersion = getSumVersion(DB_VERSION);
+      const currentVersion = getSumVersion(versionRow.value);
+      if (targetVersion > currentVersion) {
+        await this.#migrateDB();
+      }
     } catch (e) {
       logger.error(
         TAG,

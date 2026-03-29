@@ -1,6 +1,5 @@
 import PDF from "react-native-pdf";
 import { Image } from "react-native";
-import * as RNFS from "@dr.pogodin/react-native-fs";
 import * as PDFLib from "pdf-lib";
 import { randomUUID } from "react-native-quick-crypto";
 import { Directories } from "./Directories";
@@ -51,8 +50,6 @@ export { PDF };
 export const getRandomUUID = () => randomUUID();
 
 export const PDFDoc = PDFLib;
-
-export const RNFSModule = RNFS;
 
 export const createPdfFromImages: CreatePdfFromImages = async (
   images,

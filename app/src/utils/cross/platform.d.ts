@@ -1,5 +1,4 @@
 import type RNPDF from "react-native-pdf";
-import type * as RNFS from "@dr.pogodin/react-native-fs";
 import type PDFDocType from "pdf-lib";
 import type { PdfCreateOptions, PdfCreateResult, PdfImageInput } from "@types";
 
@@ -42,8 +41,6 @@ export type CreatePdfFromImages = (
 >;
 
 export declare const createPdfFromImages: CreatePdfFromImages;
-
-export declare const RNFSModule: typeof RNFS;
 
 type PdfCreateResultWithCleanup = PdfCreateResult & {
   cleanup?: () => Promise<void> | void;

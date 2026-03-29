@@ -9,10 +9,9 @@ import {
   PDF,
   logger,
   memoDeep,
-  RNFSModule,
+  REPLACERS,
   URI_EXTENSION,
   sanitizeFileName,
-  REPLACERS,
 } from "@utils";
 
 type ViewerProps = {
@@ -49,27 +48,31 @@ const Viewer: React.FC<ViewerProps> = ({ uri }) => {
 
     if (!uri || (!uri.startsWith("file://") && !uri.startsWith("content://")))
       return;
+    const filename = uri.split("/").pop();
+    if (!filename) {
+      logger.error("Failed to extract filename from URI:", uri);
+      return;
+    }
 
     const encodedUri = encodeURI(uri);
 
-    const filename = uri.split("/").pop() || "document.pdf";
-    const outputPath = `${RNFSModule.CachesDirectoryPath}/${sanitizeFileName(filename)}`;
+    const outputPath = new ExpoFileSystem.Directory(
+      ExpoFileSystem.Paths.cache,
+      sanitizeFileName(filename),
+    );
+    const cacheFile = new ExpoFileSystem.File(outputPath);
+    const copiedFile = new ExpoFileSystem.File(encodedUri);
+    cacheFile.copy(copiedFile);
 
-    RNFSModule.copyFile(encodedUri, outputPath)
-      .then(async () => {
-        if (await RNFSModule.exists(outputPath)) {
-          const cacheFilePath = URI_EXTENSION + outputPath;
+    if (cacheFile.info()?.exists) {
+      const cacheFilePath = URI_EXTENSION + outputPath;
 
-          setUriState(cacheFilePath);
-        }
-      })
-      .catch((error) => {
-        logger.error("PDF", "Error copying file to cache", error);
-      });
+      setUriState(cacheFilePath);
+    }
 
     return () => {
       try {
-        RNFSModule.unlink(outputPath);
+        cacheFile.delete();
       } catch {
         // Ignore errors
       }

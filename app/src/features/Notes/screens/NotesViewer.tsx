@@ -45,10 +45,9 @@ import {
   Share,
   Pressable,
   ScrollView,
-  NativeSyntheticEvent,
-  TextInputKeyPressEventData,
+  TextInputKeyPressEvent,
   TextInput as NativeTextInput,
-  TextInputSelectionChangeEventData,
+  TextInputSelectionChangeEvent,
 } from "react-native";
 import { File } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -912,10 +911,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
   );
 
   const handleLineSelectionChange = useCallback(
-    (
-      lineIndex: number,
-      event: NativeSyntheticEvent<TextInputSelectionChangeEventData>,
-    ) => {
+    (lineIndex: number, event: TextInputSelectionChangeEvent) => {
       const lineStart = getLineStartPosition(editableContent, lineIndex);
       const nextSelection = {
         start: lineStart + event.nativeEvent.selection.start,
@@ -1012,10 +1008,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
   );
 
   const handleLineBackspaceEmpty = useCallback(
-    (
-      lineIndex: number,
-      event: NativeSyntheticEvent<TextInputKeyPressEventData>,
-    ) => {
+    (lineIndex: number, event: TextInputKeyPressEvent) => {
       if (event.nativeEvent.key !== "Backspace") return;
       if (lineIndex <= 0) return;
 

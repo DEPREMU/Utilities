@@ -17,7 +17,6 @@ import {
 import * as ZIP from "react-native-zip-archive";
 import { logger } from "../functions/debug";
 import { Directories } from "../cross";
-import * as FileSystem from "@dr.pogodin/react-native-fs";
 import * as ExpoFileSystem from "expo-file-system";
 import { createThumbnail } from "react-native-create-thumbnail";
 import { sanitizeFileName } from "../functions/appManagement";
@@ -57,37 +56,35 @@ export const encryptFile = async (
   password: string,
   onProgress?: ProgressCallback,
 ): Promise<boolean> => {
-  if (inputPath.startsWith(URI_EXTENSION))
-    inputPath = inputPath.slice(URI_EXTENSION.length);
-  if (outputPath.startsWith(URI_EXTENSION))
-    outputPath = outputPath.slice(URI_EXTENSION.length);
-
-  inputPath = decodeURIComponent(inputPath);
-  outputPath = decodeURIComponent(outputPath);
+  if (!inputPath.startsWith(URI_EXTENSION))
+    inputPath = URI_EXTENSION + inputPath;
+  if (!outputPath.startsWith(URI_EXTENSION))
+    outputPath = URI_EXTENSION + outputPath;
 
   let remove = () => {};
 
+  let file: ExpoFileSystem.File | null = null;
+
   try {
-    if (!(await FileSystem.exists(inputPath))) return false;
+    file = new ExpoFileSystem.File(inputPath);
+    if (!file.exists) return false;
+
+    const cleanedInputPath = inputPath.startsWith(URI_EXTENSION)
+      ? inputPath.slice(URI_EXTENSION.length)
+      : inputPath;
+    const cleanedOutputPath = outputPath.startsWith(URI_EXTENSION)
+      ? outputPath.slice(URI_EXTENSION.length)
+      : outputPath;
 
     if (onProgress) {
       remove = NativeFunctionsModule.subscribeToProgressEncrypt((per, uri) => {
-        const cleanUri = uri.startsWith(URI_EXTENSION)
-          ? uri.slice(URI_EXTENSION.length)
-          : uri;
-        const cleanInput = inputPath.startsWith(URI_EXTENSION)
-          ? inputPath.slice(URI_EXTENSION.length)
-          : inputPath;
-
-        if (decodeURIComponent(cleanUri) === decodeURIComponent(cleanInput)) {
-          onProgress(per);
-        }
+        if (uri === cleanedInputPath) onProgress(per);
       });
     }
 
     const success = await NativeFunctionsModule.encryptFile(
-      inputPath,
-      outputPath,
+      cleanedInputPath,
+      cleanedOutputPath,
       password,
     );
     remove();
@@ -100,9 +97,9 @@ export const encryptFile = async (
       "Encryption failed:",
       error instanceof Error ? error.message : error,
     );
+
     try {
-      if (await FileSystem.exists(outputPath))
-        await FileSystem.unlink(outputPath);
+      if (file?.exists) file.delete();
     } catch {
       // Ignore errors during cleanup
     }
@@ -116,46 +113,41 @@ export const decryptFile = async (
   password: string,
   onProgress?: ProgressCallback,
 ): Promise<boolean> => {
-  if (inputPath.startsWith(URI_EXTENSION))
-    inputPath = inputPath.slice(URI_EXTENSION.length);
-  if (outputPath.startsWith(URI_EXTENSION))
-    outputPath = outputPath.slice(URI_EXTENSION.length);
-
-  inputPath = decodeURIComponent(inputPath);
-  outputPath = decodeURIComponent(outputPath);
+  if (!inputPath.startsWith(URI_EXTENSION))
+    inputPath = URI_EXTENSION + inputPath;
+  if (!outputPath.startsWith(URI_EXTENSION))
+    outputPath = URI_EXTENSION + outputPath;
 
   let remove = () => {};
 
-  try {
-    const [inputExists, outputExists] = await Promise.all([
-      FileSystem.exists(inputPath),
-      FileSystem.exists(outputPath),
-    ]);
+  let outputFile: ExpoFileSystem.File | null = null;
 
-    if (!inputExists) {
-      if (outputExists) await FileSystem.unlink(outputPath);
+  try {
+    const inputFile = new ExpoFileSystem.File(inputPath);
+    outputFile = new ExpoFileSystem.File(outputPath);
+
+    if (!inputFile.exists) {
+      if (outputFile.exists) outputFile.delete();
       return false;
     }
-    if (outputExists) return true;
+    if (outputFile.exists) return true;
+
+    const cleanedInputPath = inputPath.startsWith(URI_EXTENSION)
+      ? inputPath.slice(URI_EXTENSION.length)
+      : inputPath;
+    const cleanedOutputPath = outputPath.startsWith(URI_EXTENSION)
+      ? outputPath.slice(URI_EXTENSION.length)
+      : outputPath;
 
     if (onProgress) {
       remove = NativeFunctionsModule.subscribeToProgressEncrypt((per, uri) => {
-        const cleanUri = uri.startsWith(URI_EXTENSION)
-          ? uri.slice(URI_EXTENSION.length)
-          : uri;
-        const cleanInput = inputPath.startsWith(URI_EXTENSION)
-          ? inputPath.slice(URI_EXTENSION.length)
-          : inputPath;
-
-        if (decodeURIComponent(cleanUri) === decodeURIComponent(cleanInput)) {
-          onProgress(per);
-        }
+        if (uri === cleanedOutputPath) onProgress(per);
       });
     }
 
     const success = await NativeFunctionsModule.decryptFile(
-      inputPath,
-      outputPath,
+      cleanedInputPath,
+      cleanedOutputPath,
       password,
     );
     remove();
@@ -164,7 +156,7 @@ export const decryptFile = async (
   } catch (error) {
     remove();
     logger.error("DECRYPT", "Decryption failed:", (error as Error).message);
-    if (await FileSystem.exists(outputPath)) FileSystem.unlink(outputPath);
+    if (outputFile?.exists) outputFile.delete();
 
     return false;
   }
@@ -175,11 +167,10 @@ export const decryptFolderFiles: DecryptFolderFiles = async (
   password,
   onDecryptedFile,
 ) => {
-  if (folder.startsWith(URI_EXTENSION))
-    folder = folder.slice(URI_EXTENSION.length);
+  if (!folder.startsWith(URI_EXTENSION)) folder = URI_EXTENSION + folder;
 
   try {
-    const files = await FileSystem.readDir(folder);
+    const files = new ExpoFileSystem.Directory(folder).list();
 
     const outputDir = getDecryptedFolderDirectory();
 
@@ -196,7 +187,7 @@ export const decryptFolderFiles: DecryptFolderFiles = async (
     const decryptedFiles: FolderFiles = [];
 
     for (const file of files) {
-      if (!file.isFile()) continue;
+      if (!(file instanceof ExpoFileSystem.File)) continue;
 
       const finalFilename = sanitizeFileName(file.name.replace(/\.enc$/, ""));
 
