@@ -97,10 +97,17 @@ class Alerts {
   };
 
   public showAlert: AskPermission = async (...args) => {
-    const { setTimeoutPolyfill, clearTimeoutPolyfill, storageManagement } =
-      await import("@utils");
+    const {
+      storageManagement,
+      setTimeoutPolyfill,
+      clearTimeoutPolyfill,
+      notificationsManager,
+    } = await import("@utils");
 
-    await storageManagement.waitUntilLoaded();
+    await Promise.all([
+      storageManagement.waitUntilLoaded(),
+      notificationsManager.waitUntilLoaded(),
+    ]);
 
     if (!storageManagement.hasUI) return null as never;
 
@@ -128,6 +135,7 @@ class Alerts {
       );
       this.processQueue();
     });
+
     return value as never;
   };
 }

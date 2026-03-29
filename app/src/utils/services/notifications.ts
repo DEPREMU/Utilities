@@ -70,40 +70,39 @@ export const isNotificationsAlreadyInitialized = (
  * This function ensures that the notifications storage is set up correctly
  * before any notifications are scheduled or managed.
  */
-export const initializeNotificationsStorage =
-  async (): Promise<Notifications> => {
-    await storageManagement.waitUntilLoaded();
-    const notificationsData = storageManagement.get("NOTIFICATIONS");
+const initializeNotificationsStorage = async (): Promise<Notifications> => {
+  await storageManagement.waitUntilLoaded();
+  const notificationsData = storageManagement.get("NOTIFICATIONS");
 
-    if (isNotificationsAlreadyInitialized(notificationsData))
-      return notificationsData;
+  if (isNotificationsAlreadyInitialized(notificationsData))
+    return notificationsData;
 
-    const newNotifications = reasonNotification.reduce((acc, reason) => {
-      acc[reason] = cloneDeep(objByReasonNotification) as never;
-      switch (reason) {
-        case "downDetector":
-          acc[reason].enabled = true;
-          break;
-        case "streamers":
-          acc[reason].streamersList = [];
-          break;
-        case "cryptos":
-          acc[reason].interval = 1000 * 60 * 10;
-          break;
-        default:
-          break;
-      }
+  const newNotifications = reasonNotification.reduce((acc, reason) => {
+    acc[reason] = cloneDeep(objByReasonNotification) as never;
+    switch (reason) {
+      case "downDetector":
+        acc[reason].enabled = true;
+        break;
+      case "streamers":
+        acc[reason].streamersList = [];
+        break;
+      case "cryptos":
+        acc[reason].interval = 1000 * 60 * 10;
+        break;
+      default:
+        break;
+    }
 
-      return acc;
-    }, {} as Notifications);
+    return acc;
+  }, {} as Notifications);
 
-    const { status } = await notifications.requestPermissionsAsync();
-    newNotifications.allNotifications.enabled =
-      status === notifications.PermissionStatus.GRANTED;
+  const { status } = await notifications.requestPermissionsAsync();
+  newNotifications.allNotifications.enabled =
+    status === notifications.PermissionStatus.GRANTED;
 
-    storageManagement.save("NOTIFICATIONS", newNotifications);
-    return newNotifications;
-  };
+  storageManagement.save("NOTIFICATIONS", newNotifications);
+  return newNotifications;
+};
 
 /**
  * Checks if the application has permission to send push notifications.
@@ -491,11 +490,11 @@ class NotificationsManager {
     const load = async () => {
       const notificationsData = await initializeNotificationsStorage();
       this.#initialized = true;
+      this.#initPromise = null;
       this.#notifications = notificationsData;
     };
 
     this.#initPromise = load();
-
     return this.#initPromise;
   };
 

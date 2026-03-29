@@ -1,4 +1,5 @@
 import React from "react";
+import { REPLACERS } from "@utils";
 import { UserProvider } from "@context/UserContext";
 import { ThemeProvider } from "@context/ThemeContext";
 import { ModalProvider } from "@context/ModalContext";
@@ -9,9 +10,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { WebSocketProvider } from "@context/WebSocketContext";
 import { BackgroundProvider } from "@context/BackgroundContext";
 import { DeviceInformationProvider } from "./DeviceInformationContext";
-import { initializeNotificationsStorage, REPLACERS } from "@utils";
-
-initializeNotificationsStorage();
 
 interface AppProvidersProps {
   children: React.ReactNode;
