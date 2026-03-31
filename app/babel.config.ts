@@ -77,11 +77,11 @@ const config: ConfigFunction = (api) => {
           allowConflictingReplacements: true,
         },
       ],
-      "react-native-reanimated/plugin",
       "babel-plugin-minify-constant-folding",
       "babel-plugin-transform-remove-undefined",
       "babel-plugin-minify-guarded-expressions",
       "babel-plugin-minify-dead-code-elimination",
+      "react-native-reanimated/plugin",
     ],
   };
 };
