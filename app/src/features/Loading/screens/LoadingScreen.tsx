@@ -33,20 +33,21 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
   const { height, width } = useWindowDimensions();
 
   const [loaded, setLoaded] = useState<number>(0);
+  const [isLoadingImage, setIsLoadingImage] = useState(true);
 
   const idTimeout = useRef<number | null>(null);
+  const isFinished = useRef(false);
 
-  const functions = useMemo(
-    () => [
-      deviceInfo.waitUntilLoaded,
-      sessionManager.waitUntilLoaded,
-      recorderManager.waitUntilLoaded,
-      clipboardManager.waitUntilLoaded,
-      storageManagement.waitUntilLoaded,
-      notificationsManager.waitUntilLoaded,
-    ],
-    [],
-  );
+  const functionsRef = useRef([
+    deviceInfo.waitUntilLoaded,
+    sessionManager.waitUntilLoaded,
+    recorderManager.waitUntilLoaded,
+    clipboardManager.waitUntilLoaded,
+    storageManagement.waitUntilLoaded,
+    notificationsManager.waitUntilLoaded,
+  ]);
+
+  const onLoadEndImageRef = useRef(() => setIsLoadingImage(false));
 
   const initValues = useMemo(
     () => ({
@@ -85,65 +86,71 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
   }));
 
   useEffect(() => {
-    const animation = (reverse?: boolean, onFinished?: () => void) => {
+    if (isLoadingImage) return;
+
+    const duration = {
+      500: { duration: 500 },
+      400: { duration: 400 },
+    };
+
+    const animation = async (reverse?: boolean, onFinished?: () => void) => {
       if (reverse) {
-        xValueAppName.value = withSpring(initValues.xValueAppName, {
-          duration: 500,
-        });
+        xValueAppName.value = withSpring(
+          initValues.xValueAppName,
+          duration[500],
+        );
+        yValueProgressBar.value = withSpring(
+          initValues.yValueProgressBar,
+          duration[400],
+        );
+        await waitForTime(100);
 
-        yValueProgressBar.value = withSpring(initValues.yValueProgressBar, {
-          duration: 400,
-        });
+        xValueWelcome.value = withSpring(
+          initValues.xValueWelcome,
+          duration[400],
+        );
+        await waitForTime(200);
 
-        setTimeoutPolyfill(() => {
-          xValueWelcome.value = withSpring(initValues.xValueWelcome, {
-            duration: 400,
-          });
+        xValueImage.value = withSpring(initValues.xValueImage, duration[500]);
+        await waitForTime(350);
 
-          setTimeoutPolyfill(() => {
-            xValueImage.value = withSpring(initValues.xValueImage, {
-              duration: 500,
-            });
+        yValueMain.value = withSpring(initValues.yValueMain, duration[500]);
 
-            setTimeoutPolyfill(() => {
-              yValueMain.value = withSpring(initValues.yValueMain, {
-                duration: 500,
-              });
-
-              if (onFinished) setTimeoutPolyfill(onFinished, 500);
-            }, 350);
-          }, 200);
-        }, 100);
+        if (!onFinished) return;
+        await waitForTime(500);
+        onFinished();
       } else {
-        yValueMain.value = withSpring(0, { duration: 500 });
+        yValueMain.value = withSpring(0, duration[500]);
+        await waitForTime(500);
 
-        setTimeoutPolyfill(() => {
-          xValueImage.value = withSpring(0, { duration: 500 });
+        xValueImage.value = withSpring(0, duration[500]);
+        await waitForTime(200);
 
-          setTimeoutPolyfill(() => {
-            xValueWelcome.value = withSpring(0, { duration: 400 });
+        xValueWelcome.value = withSpring(0, duration[400]);
+        await waitForTime(100);
 
-            setTimeoutPolyfill(() => {
-              xValueAppName.value = withSpring(0, { duration: 500 });
-              yValueProgressBar.value = withSpring(0, { duration: 400 });
+        xValueAppName.value = withSpring(0, duration[500]);
+        yValueProgressBar.value = withSpring(0, duration[400]);
 
-              if (onFinished) setTimeoutPolyfill(onFinished, 500);
-            }, 100);
-          }, 200);
-        }, 500);
+        if (!onFinished) return;
+
+        await waitForTime(500);
+        onFinished();
       }
     };
     animation();
 
     const startTime = Date.now();
     const finished = async () => {
+      if (isFinished.current) return;
+      isFinished.current = true;
       const onFinished = async () => {
         await waitForTime(500);
         animation(true, () => setIsLoading(false));
       };
 
       if (idTimeout.current) clearTimeoutPolyfill(idTimeout.current);
-      const remainingTime = 5000 - Date.now() - startTime;
+      const remainingTime = 3000 - (Date.now() - startTime);
       if (remainingTime <= 0) {
         onFinished();
         return;
@@ -156,21 +163,25 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
       await fun();
       setLoaded((prev) => {
         const newValue = prev + 1;
-        if (newValue >= functions.length)
-          waitForTime(Math.random() * 1000).then(finished);
+        if (newValue >= functionsRef.current.length)
+          waitForTime(300).then(finished);
         return newValue;
       });
     };
 
-    functions.forEach((fun) => executeWaiting(fun));
+    functionsRef.current.forEach(executeWaiting);
+
+    return () => {
+      if (idTimeout.current) clearTimeoutPolyfill(idTimeout.current);
+    };
   }, [
-    functions,
     yValueMain,
     initValues,
     xValueImage,
     setIsLoading,
     xValueWelcome,
     xValueAppName,
+    isLoadingImage,
     yValueProgressBar,
   ]);
 
@@ -182,8 +193,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
     >
       <Animated.View style={[styles.main, animatedStyleMain]}>
         <Animated.Image
-          source={ASSETS.icon}
           style={[styles.image, animatedStyleImage]}
+          source={ASSETS.icon}
+          onLoadEnd={onLoadEndImageRef.current}
         />
 
         <View style={styles.containerText}>
@@ -199,7 +211,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
         <Animated.View
           style={[styles.containerProgressBar, animatedStyleProgressBar]}
         >
-          <ProgressBar progress={loaded / functions.length} />
+          <ProgressBar progress={loaded / functionsRef.current.length} />
         </Animated.View>
       </Animated.View>
     </Animated.View>

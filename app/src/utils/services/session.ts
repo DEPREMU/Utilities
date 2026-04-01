@@ -420,11 +420,10 @@ class SessionManager {
     sessionToken: null,
   };
 
-  private init = async () => {
+  private _init = async () => {
     if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
 
-    const load = async () => {
+    try {
       await this.refreshSession();
       const { setIntervalPolyfill, clearIntervalPolyfill } =
         await import("../functions");
@@ -434,13 +433,10 @@ class SessionManager {
         () => this.refreshSession(),
         15 * 60 * 1000,
       );
+    } finally {
       this.#initialized = true;
       this.#initPromise = null;
-    };
-
-    this.#initPromise = load();
-
-    return this.#initPromise;
+    }
   };
 
   private clearTimeoutNotLoggedIn = () => {
@@ -524,9 +520,13 @@ class SessionManager {
       if (this.#data.isLoggingIn) return;
       this.#data.isLoggingIn = true;
 
-      const { waitForInternet, deviceInfo } = await import("@utils");
+      const { waitForInternet, deviceInfo, checkServerAlive } =
+        await import("@utils");
 
-      const hasInternet = await waitForInternet(5);
+      const [hasInternet, isServerAlive] = await Promise.all([
+        waitForInternet(5),
+        checkServerAlive(),
+      ]);
       if (!hasInternet) {
         logger.error(TAG, "No internet connection, cannot refresh session");
         this.#data.isLoggingIn = false;
@@ -540,6 +540,11 @@ class SessionManager {
             sub?.();
           },
         );
+        return;
+      }
+      if (!isServerAlive) {
+        logger.error(TAG, "Server is not reachable, cannot refresh session");
+        this.#data.isLoggingIn = false;
         return;
       }
 
@@ -661,7 +666,7 @@ class SessionManager {
     if (this.#initialized) return;
     if (this.#initPromise) return this.#initPromise;
 
-    this.#initPromise = this.init();
+    this.#initPromise = this._init();
     return this.#initPromise;
   };
 
@@ -676,7 +681,7 @@ class SessionManager {
   public getSessionData = () => cloneDeep(this.#data);
 
   constructor() {
-    this.init();
+    this.#initPromise = this._init();
   }
 }
 

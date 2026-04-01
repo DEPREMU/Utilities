@@ -16,9 +16,9 @@ import {
   RoutesAPIWithItsMethod,
 } from "@types";
 import { logger } from "./debug";
-import { REPLACERS } from "../TOP_LEVEL";
 import axios, { AxiosRequestConfig } from "axios";
 import { stringifyData, storageManagement } from "../services/storage";
+import { REPLACERS } from "../TOP_LEVEL";
 
 const TAG = "APIManagement";
 
@@ -27,9 +27,25 @@ const POST_API = {
   method: "post",
 } as const;
 
+const GET_API = {
+  type: "api",
+  method: "get",
+} as const;
+
+const POST_UPDATES = {
+  type: "updates",
+  method: "post",
+} as const;
+
+const GET_UPDATES = {
+  type: "updates",
+  method: "get",
+} as const;
+
 const ROUTES: RoutesAPIWithItsMethod = {
   "/log": POST_API,
-  "/health": { method: "get", type: "api" },
+  "/health": GET_API,
+  "/generate204": GET_API,
   "/cryptos": POST_API,
   "/cryptoPrice": POST_API,
   "/translate": POST_API,
@@ -48,13 +64,10 @@ const ROUTES: RoutesAPIWithItsMethod = {
   "/encrypt": POST_API,
   "/decrypt": POST_API,
   "/images/changeImageFormat": POST_API,
-  "/upload-update": { method: "post", type: "updates" },
-  "/is-update-available": { method: "post", type: "updates" },
-  "/web-page": { method: "get", type: "updates" },
-  "/download/:buildType/:version/:platformOS/:id": {
-    method: "get",
-    type: "updates",
-  },
+  "/upload-update": POST_UPDATES,
+  "/is-update-available": POST_UPDATES,
+  "/web-page": GET_UPDATES,
+  "/download/:buildType/:version/:platformOS/:id": GET_UPDATES,
 } as const;
 
 /**
@@ -217,5 +230,25 @@ export const fetchToServer: FetchToServer = async (route, ...bodyAndToken) => {
       data: null,
       errorText: errorMessage,
     };
+  }
+};
+
+/**
+ * Checks whether the server is reachable and responding successfully.
+ *
+ * This function resolves the API route for `"/generate204"` and performs
+ * a `GET` request with a 2-second timeout. It returns `true` when the
+ * response status is in the 2xx range, and `false` if the request fails,
+ * times out, or returns a non-success status.
+ *
+ * @returns A promise that resolves to `true` if the server is alive; otherwise `false`.
+ */
+export const checkServerAlive = async (): Promise<boolean> => {
+  try {
+    const route = await getRouteAPI("/generate204");
+    const res = await axios.get(route, { timeout: 2000 });
+    return res.status >= 200 && res.status < 300;
+  } catch {
+    return false;
   }
 };

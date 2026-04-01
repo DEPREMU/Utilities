@@ -212,6 +212,29 @@ export const waitForInternet = async (
 };
 
 /**
+ * Checks whether the server is reachable by requesting a lightweight health-check endpoint.
+ *
+ * Sends a request to `"/generate204"` and returns `true` when the response is successful
+ * (`Response.ok`), otherwise returns `false`.
+ *
+ * If the request throws, the error is logged and `false` is returned.
+ *
+ * @returns A promise that resolves to `true` if the server responds successfully; otherwise `false`.
+ */
+export const isServerAlive = async (): Promise<boolean> => {
+  try {
+    const res = await fetchToServer("/generate204");
+    return res.ok;
+  } catch (error) {
+    logger.error(
+      "Error checking server status:",
+      error instanceof Error ? error.message : error,
+    );
+    return false;
+  }
+};
+
+/**
  * Creates a deeply memoized version of a React functional component.
  *
  * This function wraps a React functional component with `React.memo` using deep equality comparison

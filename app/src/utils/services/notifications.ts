@@ -282,7 +282,7 @@ class NotificationsManager {
     if (this.#initialized) return;
     if (this.#initPromise) return this.#initPromise;
 
-    this.#initPromise = this.init();
+    this.#initPromise = this._init();
     return this.#initPromise;
   };
 
@@ -486,16 +486,14 @@ class NotificationsManager {
     }
   };
 
-  public init = async () => {
-    const load = async () => {
-      const notificationsData = await initializeNotificationsStorage();
-      this.#initialized = true;
-      this.#initPromise = null;
-      this.#notifications = notificationsData;
-    };
+  private _init = async () => {
+    if (this.#initialized) return;
 
-    this.#initPromise = load();
-    return this.#initPromise;
+    const notificationsData = await initializeNotificationsStorage();
+    this.#notifications = notificationsData;
+
+    this.#initialized = true;
+    this.#initPromise = null;
   };
 
   public toggleNotification = async <T extends ReasonNotification>(
@@ -515,7 +513,7 @@ class NotificationsManager {
   };
 
   constructor() {
-    this.init();
+    this.#initPromise = this._init();
   }
 }
 

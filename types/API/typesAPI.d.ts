@@ -202,6 +202,11 @@ export type ChangeImageFormat = {
   method: MethodsAvailableInAPI["post"];
   response: ResponseChangeImageFormat;
 };
+export type Generate204Fetch = {
+  url: "/generate204";
+  method: MethodsAvailableInAPI["get"];
+  response: undefined;
+};
 
 export type DebugAppAlive = {
   url: "/debug/appAlive";
@@ -222,9 +227,10 @@ export type FetchAPI<T extends TablesKeys = TablesKeys> =
   | TranslateFetch
   | AuthLoginFetch
   | AuthSignUpFetch
+  | AddStreamerFetch
   | AuthSignOutFetch
   | CryptoPriceFetch
-  | AddStreamerFetch
+  | Generate204Fetch
   | ChangeImageFormat
   | UploadUpdateFetch
   | DownloadUploadFetch

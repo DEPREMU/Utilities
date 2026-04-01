@@ -577,11 +577,10 @@ class RecorderManager {
     this._emitEvent("data-change", this.#data);
   };
 
-  public init = async () => {
+  private _init = async () => {
     if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
 
-    const load = async () => {
+    try {
       await storageManagement.waitUntilLoaded();
 
       this.syncDataFromStorage();
@@ -637,17 +636,14 @@ class RecorderManager {
 
       this.setStatusMessage(tTyped("recorder.dataLoaded"));
       this.initPlayerInterval();
+    } finally {
       this.#initialized = true;
       this.#initPromise = null;
-    };
-
-    this.#initPromise = load();
-
-    return this.#initPromise;
+    }
   };
 
   public startRecording = async () => {
-    await this.init();
+    await this._init();
 
     await wrapFunctionWithError(
       async () => {
@@ -919,7 +915,7 @@ class RecorderManager {
     if (this.#initialized) return;
     if (this.#initPromise) return this.#initPromise;
 
-    this.#initPromise = this.init();
+    this.#initPromise = this._init();
     return this.#initPromise;
   };
 
@@ -928,7 +924,7 @@ class RecorderManager {
     this.#player = createAudioPlayer({ uri: this.#data?.lastUri });
     this.#statusPlayer = this.#player.currentStatus;
 
-    this.init();
+    this.#initPromise = this._init();
   }
 }
 

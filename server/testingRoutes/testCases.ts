@@ -89,6 +89,7 @@ export const routeTests: {
 } = {
   "/is-update-available": [],
   "/web-page": [],
+  "/generate204": [],
   "/upload-update": [],
   "/debug/appAlive": [],
   "/download/:buildType/:version/:platformOS/:id": [],

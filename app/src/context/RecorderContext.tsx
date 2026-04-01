@@ -122,8 +122,6 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     );
 
-    recorderManager.init();
-
     return () => {
       isMounted = false;
       removeData();
@@ -149,7 +147,6 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
         setStatusMessage(recorderManager.getStatusMessage());
         setStatusPlayer(recorderManager.getPlayerStatus());
 
-        await recorderManager.init();
         removeListener();
       },
     );

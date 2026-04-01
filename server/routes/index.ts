@@ -47,6 +47,10 @@ const handleHealthCheck = (_: Request, res: Response<ResponseHealth>) => {
   });
 };
 
+const handleGenerate204 = (_: Request, res: Response) => {
+  res.status(204).send();
+};
+
 const router = Router();
 
 const routes: {
@@ -59,6 +63,10 @@ const routes: {
   "/cryptos": {
     method: "post",
     handler: handleGetCryptos,
+  },
+  "/generate204": {
+    method: "get",
+    handler: handleGenerate204,
   },
   "/translate": {
     method: "post",

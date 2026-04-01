@@ -222,15 +222,16 @@ const uploadAndroidAssets = async () => {
 };
 
 const run = async () => {
-  const isNewVersionWeb = await checkIsNewVersion("web");
-  const isNewVersionAndroid = await checkIsNewVersion("android");
-
   const platformUpdateAssets = ARGS["platform-update-assets"] ?? "both";
 
-  if (isNewVersionWeb && ["web", "both"].includes(platformUpdateAssets))
-    await uploadWeb();
+  const isBoth = platformUpdateAssets === "both";
+  const isWeb = isBoth || platformUpdateAssets === "web";
+  const isAndroid = isBoth || platformUpdateAssets === "android";
 
-  if (isNewVersionAndroid && ["android", "both"].includes(platformUpdateAssets))
-    await uploadAndroidAssets();
+  const isNewVersionWeb = isWeb && (await checkIsNewVersion("web"));
+
+  if (isNewVersionWeb) await uploadWeb();
+
+  if (isAndroid) await uploadAndroidAssets();
 };
 run();

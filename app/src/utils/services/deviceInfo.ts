@@ -554,9 +554,8 @@ class DeviceInfo {
 
   private _init = async () => {
     if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
 
-    const init = async () => {
+    try {
       this.cleanup();
 
       this._initAppState();
@@ -579,14 +578,10 @@ class DeviceInfo {
       );
 
       await Promise.all(promises);
-
+    } finally {
       this.#initialized = true;
       this.#initPromise = null;
-    };
-
-    this.#initPromise = init();
-
-    return this.#initPromise;
+    }
   };
 
   public waitUntilLoaded = async () => {
@@ -636,7 +631,7 @@ class DeviceInfo {
   };
 
   constructor() {
-    this._init();
+    this.#initPromise = this._init();
   }
 }
 

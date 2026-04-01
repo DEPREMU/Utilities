@@ -118,7 +118,7 @@ class ClipboardManager {
       case "enabled":
         storageManagement.save("CLIPBOARD", this.#clipboardData);
         if (!value) return this.cleanup() as never;
-        else return this.init() as never;
+        else return this._init() as never;
       case "maxCharsInItem":
         if ((value as number) < 1) this.#clipboardData.maxCharsInItem = -1;
         break;
@@ -504,7 +504,7 @@ class ClipboardManager {
     };
   };
 
-  public init = async () => {
+  private _init = async () => {
     try {
       if (this.#initialized) return;
       if (this.#initPromise) return this.#initPromise;
@@ -621,7 +621,7 @@ class ClipboardManager {
     if (this.#initialized) return;
     if (this.#initPromise) return this.#initPromise;
 
-    this.#initPromise = this.init();
+    this.#initPromise = this._init();
     return this.#initPromise;
   };
 
@@ -633,7 +633,7 @@ class ClipboardManager {
 
   constructor() {
     this.#clipboardData = storageManagement.get("CLIPBOARD");
-    this.#initPromise = this.init();
+    this.#initPromise = this._init();
   }
 }
 

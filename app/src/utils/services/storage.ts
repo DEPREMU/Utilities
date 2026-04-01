@@ -428,10 +428,11 @@ class StorageManagement {
       const { waitForTime } = await import("@utils");
 
       const t = Date.now();
+      const maxWaitTime = 30 * 1000;
       while (!this.#hasUI) {
         const elapsed = Date.now() - t;
         await waitForTime(50 + elapsed);
-        if (elapsed > 30 * 1000) break;
+        if (elapsed > maxWaitTime) break;
       }
     } finally {
       this.#initialized = true;
