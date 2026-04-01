@@ -5,14 +5,15 @@ import android.content.Context
 import com.package.name.Logger as Log
 
 class ClipboardMonitor(context: Context) {
-    private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
     private var enabled = false
     private var onClipboardText: ((String) -> Unit)? = null
 
     private val listener = ClipboardManager.OnPrimaryClipChangedListener {
         if (!enabled) return@OnPrimaryClipChangedListener
 
-        val clip = clipboardManager.primaryClip
+        val manager = clipboardManager ?: return@OnPrimaryClipChangedListener
+        val clip = manager.primaryClip
         val item = clip?.getItemAt(0)
         val text = item?.text?.toString() ?: return@OnPrimaryClipChangedListener
         if (text.isBlank()) return@OnPrimaryClipChangedListener
@@ -22,14 +23,14 @@ class ClipboardMonitor(context: Context) {
     }
 
     init {
-        clipboardManager.addPrimaryClipChangedListener(listener)
+        clipboardManager?.addPrimaryClipChangedListener(listener)
     }
 
     fun start(
         settings: ClipboardConfig,
         onText: (String) -> Unit,
     ) {
-        enabled = settings.enabled && !settings.userId.isNullOrBlank() && !settings.userToken.isNullOrBlank()
+        enabled = clipboardManager != null && settings.enabled && !settings.userId.isNullOrBlank() && !settings.userToken.isNullOrBlank()
         onClipboardText = if (enabled) onText else null
     }
 
@@ -40,7 +41,7 @@ class ClipboardMonitor(context: Context) {
 
     fun destroy() {
         enabled = false
-        clipboardManager.removePrimaryClipChangedListener(listener)
+        clipboardManager?.removePrimaryClipChangedListener(listener)
         onClipboardText = null
     }
 }

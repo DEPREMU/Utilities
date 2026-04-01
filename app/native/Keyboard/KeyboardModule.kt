@@ -11,6 +11,11 @@ import com.facebook.react.bridge.ReadableType
 class KeyboardModule(
     reactContext: ReactApplicationContext,
 ) : ReactContextBaseJavaModule(reactContext) {
+    private companion object {
+        private const val MAX_LAYOUT_ROWS = 8
+        private const val MAX_LAYOUT_KEYS_PER_ROW = 24
+    }
+
     override fun getName(): String = "KeyboardModule"
 
     @ReactMethod
@@ -41,6 +46,10 @@ class KeyboardModule(
     ) {
         try {
             val parsedLayout = parseLayout(layout)
+            if (parsedLayout.isEmpty()) {
+                promise.reject("ERROR_SET_LAYOUT", "Layout cannot be empty")
+                return
+            }
             KeyboardCommandRepository.sendCommand(KeyboardCommandRepository.Command.SetLayout(parsedLayout))
             promise.resolve(true)
         } catch (e: Exception) {
@@ -109,12 +118,17 @@ class KeyboardModule(
 
     private fun parseLayout(layout: ReadableArray): List<List<String>> {
         val rows = mutableListOf<List<String>>()
-        for (i in 0 until layout.size()) {
+        val totalRows = minOf(layout.size(), MAX_LAYOUT_ROWS)
+        for (i in 0 until totalRows) {
             val row = layout.getArray(i) ?: continue
             val keys = mutableListOf<String>()
-            for (j in 0 until row.size()) {
+            val keyCount = minOf(row.size(), MAX_LAYOUT_KEYS_PER_ROW)
+            for (j in 0 until keyCount) {
                 if (row.getType(j) == ReadableType.String) {
-                    row.getString(j)?.let { keys.add(it) }
+                    row.getString(j)
+                        ?.trim()
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { keys.add(it) }
                 }
             }
             if (keys.isNotEmpty()) {

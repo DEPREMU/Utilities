@@ -1,7 +1,8 @@
 package com.package.name
 
-import java.util.concurrent.ConcurrentHashMap
+import java.util.PriorityQueue
 import kotlin.math.abs
+import kotlin.math.ln
 
 class BigramModel {
     private data class BigramKey(
@@ -15,7 +16,7 @@ class BigramModel {
     private val maxPrefixes = 2_000
     private val maxTokenLength = 30
 
-    private val data: ConcurrentHashMap<String, LinkedHashMap<String, Int>> = ConcurrentHashMap()
+    private val data: MutableMap<String, LinkedHashMap<String, Int>> = HashMap()
     private val globalLru: LinkedHashMap<BigramKey, Int> = LinkedHashMap(16, 0.75f, true)
     private val prefixLru: LinkedHashMap<String, Unit> = LinkedHashMap(16, 0.75f, true)
 
@@ -81,24 +82,38 @@ class BigramModel {
         if (prev.isBlank()) return emptyList()
         val safeLimit = limit.coerceAtLeast(1)
 
-        val snapshot: List<Map.Entry<String, Int>> = synchronized(lock) {
+        val topCandidates: List<Pair<String, Int>> = synchronized(lock) {
             val map = data[prev] ?: return emptyList()
-            map.entries.map { it.toMutableEntry() }
+            val queue = PriorityQueue<Pair<String, Int>>(safeLimit + 1) { a, b ->
+                when {
+                    a.second != b.second -> a.second - b.second
+                    else -> b.first.compareTo(a.first)
+                }
+            }
+
+            for ((word, count) in map) {
+                val candidate = word to count
+                if (queue.size < safeLimit) {
+                    queue.add(candidate)
+                    continue
+                }
+
+                val weakest = queue.peek() ?: continue
+                val isBetter =
+                    candidate.second > weakest.second ||
+                        (candidate.second == weakest.second && candidate.first < weakest.first)
+                if (isBetter) {
+                    queue.poll()
+                    queue.add(candidate)
+                }
+            }
+
+            queue.toList()
         }
 
-        return snapshot
-            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-            .take(safeLimit)
-            .map { it.key }
-    }
-
-    private fun <K, V> Map.Entry<K, V>.toMutableEntry(): Map.Entry<K, V> {
-        val key = this.key
-        val value = this.value
-        return object : Map.Entry<K, V> {
-            override val key: K = key
-            override val value: V = value
-        }
+        return topCandidates
+            .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
+            .map { it.first }
     }
 
     fun clear() {
@@ -137,6 +152,13 @@ internal class SuggestionEngine(
 
     @Volatile
     private var snapshot: Snapshot = Snapshot(listOf(TrieNode()), 0)
+    private val rowBufferPool = ThreadLocal<RowBufferPool>()
+
+    private class RowBufferPool(
+        var rows: Int,
+        var cols: Int,
+        var buffers: Array<IntArray>,
+    )
 
     fun applySnapshot(newSnapshot: Snapshot) {
         snapshot = newSnapshot
@@ -144,6 +166,7 @@ internal class SuggestionEngine(
 
     fun clear() {
         snapshot = Snapshot(listOf(TrieNode()), 0)
+        rowBufferPool.remove()
     }
 
     fun buildSnapshot(words: Sequence<String>): Snapshot {
@@ -237,7 +260,7 @@ internal class SuggestionEngine(
 
         val len = wordLower.length
         val maxDistance = maxDistanceForLength(len, similarityThreshold)
-        val rowBuffers = Array(maxWordLength + 1) { IntArray(len + 1) }
+        val rowBuffers = obtainRowBuffers(maxWordLength + 1, len + 1)
         val firstRow = rowBuffers[0]
         for (i in 0..len) {
             firstRow[i] = i
@@ -250,9 +273,10 @@ internal class SuggestionEngine(
 
         fun computeScore(distance: Int, candidateLen: Int, prefixLen: Int): Double {
             val denom = maxOf(len, candidateLen)
-            val baseScore = (denom - distance).toDouble() / denom.toDouble()
-            val prefixBonus = (prefixLen.toDouble() / denom.toDouble()) * 0.12
-            val lengthPenalty = (abs(len - candidateLen).toDouble() / denom.toDouble()) * 0.08
+            val invDenom = 1.0 / denom.toDouble()
+            val baseScore = (denom - distance).toDouble() * invDenom
+            val prefixBonus = prefixLen.toDouble() * invDenom * 0.12
+            val lengthPenalty = abs(len - candidateLen).toDouble() * invDenom * 0.08
             val isPrefixShape =
                 (candidateLen <= len && prefixLen == candidateLen) ||
                     (candidateLen >= len && prefixLen >= len)
@@ -377,7 +401,7 @@ internal class SuggestionEngine(
         val comparator = compareByDescending<SuggestState> { nodes[it.nodeIndex].frequency }
             .thenBy { it.depth }
             .thenBy { it.wordLower }
-        val queue = java.util.PriorityQueue(comparator)
+        val queue = PriorityQueue(comparator)
         queue.add(SuggestState(nodeIndex, prefixLower, prefixLower.length))
 
         val tryOffer: (Int, Char, SuggestState) -> Unit = { childIndex, key, state ->
@@ -395,7 +419,7 @@ internal class SuggestionEngine(
         val out = ArrayList<String>(maxSuggestions)
         while (queue.isNotEmpty() && out.size < maxSuggestions) {
             if (shouldCancel()) return out
-            val state = queue.poll()
+            val state = queue.poll() ?: continue
             val node = nodes[state.nodeIndex]
             if (node.isTerminal) {
                 node.original?.let { out.add(it) }
@@ -470,7 +494,7 @@ internal class SuggestionEngine(
         val len = inputLower.length
         val similarityThreshold = fuzzySimilarityThreshold(len)
         val maxDistance = maxDistanceForLength(len, similarityThreshold)
-        val rowBuffers = Array(maxWordLength + 1) { IntArray(len + 1) }
+        val rowBuffers = obtainRowBuffers(maxWordLength + 1, len + 1)
         val firstRow = rowBuffers[0]
         for (i in 0..len) {
             firstRow[i] = i
@@ -478,20 +502,21 @@ internal class SuggestionEngine(
 
         val maxQueue = (maxNeeded * 8 + 12).coerceAtMost(MAX_SUGGEST_QUEUE)
         val bestByWord = HashMap<String, FuzzyCandidate>(maxQueue)
-        val heap = java.util.PriorityQueue<FuzzyCandidate>(compareBy<FuzzyCandidate> { it.score }
+        val heap = PriorityQueue<FuzzyCandidate>(compareBy<FuzzyCandidate> { it.score }
             .thenByDescending { it.distance }
             .thenBy { it.word })
 
         fun scoreCandidate(distance: Int, candidateLen: Int, prefixLen: Int, frequency: Int): Double {
             val denom = maxOf(len, candidateLen)
-            val baseScore = (denom - distance).toDouble() / denom.toDouble()
-            val prefixBonus = (prefixLen.toDouble() / denom.toDouble()) * 0.12
-            val lengthPenalty = (abs(len - candidateLen).toDouble() / denom.toDouble()) * 0.12
+            val invDenom = 1.0 / denom.toDouble()
+            val baseScore = (denom - distance).toDouble() * invDenom
+            val prefixBonus = prefixLen.toDouble() * invDenom * 0.12
+            val lengthPenalty = abs(len - candidateLen).toDouble() * invDenom * 0.12
             val isPrefixShape =
                 (candidateLen <= len && prefixLen == candidateLen) ||
                     (candidateLen >= len && prefixLen >= len)
             val shapeBonus = if (isPrefixShape) 0.06 else 0.0
-            val freqBonus = kotlin.math.ln((frequency + 1).toDouble())
+            val freqBonus = ln((frequency + 1).toDouble())
                 .div(12.0)
                 .coerceAtMost(0.08)
             return baseScore + prefixBonus + shapeBonus - lengthPenalty + freqBonus
@@ -630,6 +655,20 @@ internal class SuggestionEngine(
         }
 
         return trimmed to 1
+    }
+
+    private fun obtainRowBuffers(
+        requiredRows: Int,
+        requiredCols: Int,
+    ): Array<IntArray> {
+        val existing = rowBufferPool.get()
+        if (existing != null && existing.rows >= requiredRows && existing.cols >= requiredCols) {
+            return existing.buffers
+        }
+
+        val buffers = Array(requiredRows) { IntArray(requiredCols) }
+        rowBufferPool.set(RowBufferPool(requiredRows, requiredCols, buffers))
+        return buffers
     }
 
     fun updateMaxSuggestions(newMax: Int) {

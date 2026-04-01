@@ -5,10 +5,13 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.inputmethod.InputConnection
+import com.package.name.Logger as Log
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class InputProcessor(private val service: CustomKeyboard) {
@@ -265,6 +268,10 @@ class InputProcessor(private val service: CustomKeyboard) {
         autoSpaceEnabled = config.autoSpaceEnabled
         deleteWordEnabled = config.deleteWordEnabled
     }
+
+    fun destroy() {
+        logicHandler.cancel()
+    }
 }
 
 data class InputBehaviorConfig(
@@ -300,7 +307,10 @@ private class InputLogicHandler(
             }
             try {
                 block(ic)
-            } catch (_: Throwable) {
+            } catch (cancelError: CancellationException) {
+                throw cancelError
+            } catch (error: Exception) {
+                Log.e("InputLogicHandler", "Failed to execute input operation on main thread", error)
             } finally {
                 if (began) {
                     ic.safeEndBatch()
@@ -318,7 +328,10 @@ private class InputLogicHandler(
             }
             try {
                 block(ic)
-            } catch (_: Throwable) {
+            } catch (cancelError: CancellationException) {
+                throw cancelError
+            } catch (error: Exception) {
+                Log.e("InputLogicHandler", "Failed to execute input operation in coroutine", error)
             } finally {
                 if (began) {
                     ic.safeEndBatch()
@@ -334,5 +347,9 @@ private class InputLogicHandler(
 
     private fun InputConnection.safeEndBatch() {
         runCatching { endBatchEdit() }
+    }
+
+    fun cancel() {
+        job.cancel()
     }
 }

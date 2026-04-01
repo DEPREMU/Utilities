@@ -54,7 +54,7 @@ import kotlinx.coroutines.isActive
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import com.package.name.R
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 class CustomKeyboard :
     InputMethodService(),
@@ -147,7 +147,9 @@ class CustomKeyboard :
     private var autoCorrectThresholdLong: Double = 0.65
     private var pendingWordPromotionThreshold: Int = 3
     private var maxPendingWordCache: Int = 250
-    private val pendingWordCounts = ConcurrentHashMap<String, Int>()
+    private val pendingWordCountsLock = Any()
+    private val pendingWordCounts = mutableMapOf<String, Int>()
+    private val whitespaceRegex = Regex("\\s+")
 
     private lateinit var themeManager: KeyboardThemeManager
     private lateinit var themeDialogs: KeyboardThemeDialogs
@@ -159,19 +161,18 @@ class CustomKeyboard :
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         layoutManager.dismissKeyPreview()
-        suggestionsJob?.cancel()
-        suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
+        clearSuggestionScheduling()
         soundHaptics.cancel()
     }
 
     override fun onWindowHidden() {
         super.onWindowHidden()
         layoutManager.dismissKeyPreview()
-        suggestionsJob?.cancel()
-        suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
+        clearSuggestionScheduling()
         soundHaptics.cancel()
         dictionaryLoadJob?.cancel()
-        speechRecognizer?.destroy()
+        stopObservers()
+        destroySpeechRecognizer()
     }
 
     private val serviceJob = SupervisorJob()
@@ -219,42 +220,44 @@ class CustomKeyboard :
     private var cachedEffectiveCaps: CapsMode? = null
 
     private var suggestionsJob: Job? = null
-    private var suggestionsRequestId: Long = 0L
+    private val suggestionsRequestId = AtomicLong(0L)
     private var suggestionDebounceMs: Long = 24L
     private var suggestionMinIntervalMs: Long = 48L
     private var lastSuggestionComputeAtMs: Long = 0L
-    private var pendingSuggestionPrefix: String? = null
-    private var pendingSuggestionCurrentWord: String? = null
-    private var pendingSuggestionCapitalize: Boolean = false
-    private var pendingNextWordBase: String? = null
-    private var pendingNextWordMode: Boolean = false
+
+    private data class PendingSuggestionState(
+        val prefix: String? = null,
+        val currentWord: String? = null,
+        val capitalize: Boolean = false,
+        val nextWordBase: String? = null,
+        val nextWordMode: Boolean = false,
+    )
+
+    private var pendingSuggestionState = PendingSuggestionState()
     private var suggestionUpdateRunnable: Runnable? = null
 
     private var isPrivateMode: Boolean = false
     private var areSuggestionsEnabled: Boolean = true
     private var isRebuildPending: Boolean = false
     private var isCapsVisualUpdatePending: Boolean = false
+    private var clipboardObserveJob: Job? = null
+    private var commandObserveJob: Job? = null
 
     private fun observeClipboard() {
-        serviceScope.launch {
-            ClipboardRepository.clipboardItems.collect { items ->
-                withContext(Dispatchers.Main) {
-                    if (!themeManager.isClipboardSuggestionsEnabled) {
-                        renderClipboardSuggestions()
-                        return@withContext
-                    }
-                    renderClipboardSuggestions()
+        clipboardObserveJob?.cancel()
+        clipboardObserveJob = serviceScope.launch {
+            ClipboardRepository.clipboardItems
+                .collect {
+                renderClipboardSuggestions()
                 }
-            }
         }
     }
 
     private fun observeCommands() {
-        serviceScope.launch {
+        commandObserveJob?.cancel()
+        commandObserveJob = serviceScope.launch {
             KeyboardCommandRepository.commands.collect { command ->
-                withContext(Dispatchers.Main) {
-                    handleCommand(command)
-                }
+                handleCommand(command)
             }
         }
     }
@@ -268,6 +271,18 @@ class CustomKeyboard :
             is KeyboardCommandRepository.Command.ResetLayout -> resetKeyboardLayoutInstance()
             is KeyboardCommandRepository.Command.SetInputMode -> { /* TODO */ }
         }
+    }
+
+    private fun startObservers() {
+        observeClipboard()
+        observeCommands()
+    }
+
+    private fun stopObservers() {
+        clipboardObserveJob?.cancel()
+        clipboardObserveJob = null
+        commandObserveJob?.cancel()
+        commandObserveJob = null
     }
 
     private fun setKeyboardLayoutInstance(layout: List<List<String>>) {
@@ -294,8 +309,7 @@ class CustomKeyboard :
         )
         soundHaptics.init()
 
-        observeClipboard()
-        observeCommands()
+        startObservers()
 
         listenerProvider = object : KeyboardListenerProvider {
             override fun getKeyClickListener() = keyClickListener
@@ -414,6 +428,7 @@ class CustomKeyboard :
 
     override fun onStartInputView(info: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        startObservers()
         refreshAppearanceFromPrefsIfNeeded()
 
         val inputType = info?.inputType ?: 0
@@ -436,9 +451,7 @@ class CustomKeyboard :
         }
 
         if (!areSuggestionsEnabled) {
-            suggestionsJob?.cancel()
-            layoutManager.suggestionsContainer?.visibility = View.GONE
-            renderSuggestions(emptyList(), capitalizeFirst = false)
+            clearAndRenderEmptySuggestions(hideContainer = true)
         }
 
         refreshClipboardSource()
@@ -513,6 +526,9 @@ class CustomKeyboard :
             suggestionEngine.clear()
             bigramModel.clear()
             lastCommittedWordLower = null
+            synchronized(pendingWordCountsLock) {
+                pendingWordCounts.clear()
+            }
 
             cachedEnSnapshot = null
             cachedEsSnapshot = null
@@ -522,7 +538,7 @@ class CustomKeyboard :
             layoutManager.keyPreviewPopup = null
             layoutManager.popupTextView = null
 
-            suggestionsJob?.cancel()
+            clearSuggestionScheduling()
             dictionaryLoadJob?.cancel()
             dictionaryLoadJob = null
         }
@@ -531,17 +547,23 @@ class CustomKeyboard :
     override fun onDestroy() {
         super.onDestroy()
         stopBackspaceRepeat()
-        suggestionsJob?.cancel()
-        suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
+        clearSuggestionScheduling()
         soundHaptics.cancel()
         dictionaryLoadJob?.cancel()
+        if (::inputProcessor.isInitialized) {
+            inputProcessor.destroy()
+        }
+        stopObservers()
         suggestionEngine.clear()
         bigramModel.clear()
+        synchronized(pendingWordCountsLock) {
+            pendingWordCounts.clear()
+        }
         cachedEnSnapshot = null
         cachedEsSnapshot = null
         cachedBothSnapshot = null
         serviceScope.cancel()
-        speechRecognizer?.destroy()
+        destroySpeechRecognizer()
         soundHaptics.release()
     }
 
@@ -864,7 +886,6 @@ class CustomKeyboard :
         serviceScope.launch {
             val loaded = ClipboardRepository.loadSystemClipboard(this@CustomKeyboard)
             ClipboardRepository.setClipboardItems(loaded)
-            renderClipboardSuggestions()
         }
     }
 
@@ -1021,6 +1042,31 @@ class CustomKeyboard :
         runCatching { speechRecognizer?.stopListening() }
         runCatching { speechRecognizer?.cancel() }
         Toast.makeText(this, getString(R.string.voice_input_stopped), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun destroySpeechRecognizer() {
+        isVoiceListening = false
+        runCatching { speechRecognizer?.stopListening() }
+        runCatching { speechRecognizer?.cancel() }
+        runCatching { speechRecognizer?.destroy() }
+        speechRecognizer = null
+    }
+
+    private fun clearSuggestionScheduling() {
+        suggestionsRequestId.incrementAndGet()
+        suggestionsJob?.cancel()
+        suggestionsJob = null
+        pendingSuggestionState = PendingSuggestionState()
+        suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
+        suggestionUpdateRunnable = null
+    }
+
+    private fun clearAndRenderEmptySuggestions(hideContainer: Boolean = false) {
+        clearSuggestionScheduling()
+        if (hideContainer) {
+            layoutManager.suggestionsContainer?.visibility = View.GONE
+        }
+        renderSuggestions(emptyList(), capitalizeFirst = false)
     }
 
     private fun isPunctuation(ch: Char): Boolean =
@@ -1274,7 +1320,8 @@ class CustomKeyboard :
                             }
                         }
                     }
-                } catch (_: Exception) {
+                } catch (error: Exception) {
+                    Logger.w("CustomKeyboard", "Failed to load dictionary file: $fileName", error)
                 }
             }
         }
@@ -2495,7 +2542,7 @@ class CustomKeyboard :
 
     private fun extractNormalizedWords(text: String): List<String> {
         if (text.isBlank()) return emptyList()
-        val parts = text.split(Regex("\\s+"))
+        val parts = text.split(whitespaceRegex)
         val out = ArrayList<String>(parts.size)
         for (part in parts) {
             val word = normalizeWord(part)
@@ -2514,20 +2561,22 @@ class CustomKeyboard :
             return normalized
         }
 
-        val updatedCount = (pendingWordCounts[normalized] ?: 0) + 1
-        pendingWordCounts[normalized] = updatedCount
-        if (pendingWordCounts.size > maxPendingWordCache) {
-            val iterator = pendingWordCounts.keys.iterator()
-            var removed = 0
-            while (iterator.hasNext() && removed < 50) {
-                iterator.next()
-                iterator.remove()
-                removed += 1
+        val updatedCount =
+            synchronized(pendingWordCountsLock) {
+                val nextCount = (pendingWordCounts[normalized] ?: 0) + 1
+                pendingWordCounts[normalized] = nextCount
+                if (pendingWordCounts.size > maxPendingWordCache) {
+                    val overflow = (pendingWordCounts.size - maxPendingWordCache).coerceAtLeast(0)
+                    val keysToRemove = pendingWordCounts.keys.take(overflow + 16)
+                    keysToRemove.forEach { key -> pendingWordCounts.remove(key) }
+                }
+                nextCount
             }
-        }
 
         if (updatedCount < pendingWordPromotionThreshold) return null
-        pendingWordCounts.remove(normalized)
+        synchronized(pendingWordCountsLock) {
+            pendingWordCounts.remove(normalized)
+        }
         if (userDictionary.add(normalized)) {
             saveUserDictionary()
             cachedEnSnapshot = null
@@ -2588,7 +2637,7 @@ class CustomKeyboard :
                             for (line in lines) {
                                 val trimmed = line.trim()
                                 if (trimmed.isEmpty()) continue
-                                val parts = trimmed.split(Regex("\\s+"))
+                                val parts = trimmed.split(whitespaceRegex)
                                 if (parts.size < 2) continue
                                 val prev = normalizeWord(parts[0])
                                 val next = normalizeWord(parts[1])
@@ -2597,7 +2646,8 @@ class CustomKeyboard :
                                 bigramModel.add(prev, next, count)
                             }
                         }
-                    } catch (_: Exception) {
+                    } catch (error: Exception) {
+                        Logger.w("CustomKeyboard", "Failed to load bigram file: $fileName", error)
                     }
                 }
             }
@@ -2606,13 +2656,7 @@ class CustomKeyboard :
 
     private fun updateSuggestions() {
         if (!areSuggestionsEnabled || !themeManager.isAutoCorrectionEnabled) {
-            suggestionsJob?.cancel()
-            pendingSuggestionPrefix = null
-            pendingSuggestionCurrentWord = null
-            pendingNextWordBase = null
-            pendingNextWordMode = false
-            suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
-            renderSuggestions(emptyList(), capitalizeFirst = false)
+            clearAndRenderEmptySuggestions()
             return
         }
 
@@ -2620,29 +2664,29 @@ class CustomKeyboard :
         if (currentWord.isNullOrEmpty()) {
             val baseWord = lastCommittedWordLower
             if (!baseWord.isNullOrEmpty() && shouldShowNextWordSuggestions()) {
-                pendingNextWordMode = true
-                pendingNextWordBase = baseWord
-                pendingSuggestionCapitalize = shouldAutoCapitalizeNextChar()
+                pendingSuggestionState =
+                    PendingSuggestionState(
+                        nextWordMode = true,
+                        nextWordBase = baseWord,
+                        capitalize = shouldAutoCapitalizeNextChar(),
+                    )
                 scheduleSuggestionUpdate()
                 return
             }
 
-            suggestionsJob?.cancel()
-            pendingSuggestionPrefix = null
-            pendingSuggestionCurrentWord = null
-            pendingNextWordBase = null
-            pendingNextWordMode = false
-            suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
-            renderSuggestions(emptyList(), capitalizeFirst = false)
+            clearAndRenderEmptySuggestions()
             return
         }
 
         val capitalizeFirst = currentWord.firstOrNull()?.isUpperCase() == true
         val prefix = currentWord.lowercase()
-        pendingNextWordMode = false
-        pendingSuggestionPrefix = prefix
-        pendingSuggestionCurrentWord = currentWord
-        pendingSuggestionCapitalize = capitalizeFirst
+        pendingSuggestionState =
+            PendingSuggestionState(
+                prefix = prefix,
+                currentWord = currentWord,
+                capitalize = capitalizeFirst,
+                nextWordMode = false,
+            )
         scheduleSuggestionUpdate()
     }
 
@@ -2661,14 +2705,15 @@ class CustomKeyboard :
 
     private fun runSuggestionUpdate() {
         lastSuggestionComputeAtMs = SystemClock.elapsedRealtime()
-        val requestId = ++suggestionsRequestId
+        val requestId = suggestionsRequestId.incrementAndGet()
         suggestionsJob?.cancel()
 
-        val nextWordMode = pendingNextWordMode
-        val nextWordBase = pendingNextWordBase
-        val prefix = pendingSuggestionPrefix
-        val currentWord = pendingSuggestionCurrentWord
-        val capitalizeFirst = pendingSuggestionCapitalize
+        val pendingState = pendingSuggestionState
+        val nextWordMode = pendingState.nextWordMode
+        val nextWordBase = pendingState.nextWordBase
+        val prefix = pendingState.prefix
+        val currentWord = pendingState.currentWord
+        val capitalizeFirst = pendingState.capitalize
 
         if (nextWordMode) {
             if (nextWordBase.isNullOrEmpty()) {
@@ -2680,11 +2725,8 @@ class CustomKeyboard :
                     val matches = withContext(Dispatchers.Default) {
                         bigramModel.suggestNext(nextWordBase, maxSuggestions)
                     }
-                    if (requestId != suggestionsRequestId) return@launch
-
-                    uiHandler.post {
-                        renderSuggestions(matches, capitalizeFirst)
-                    }
+                    if (requestId != suggestionsRequestId.get()) return@launch
+                    renderSuggestions(matches, capitalizeFirst, rawCurrentWord = currentWord)
                 }
             return
         }
@@ -2698,9 +2740,9 @@ class CustomKeyboard :
             serviceScope.launch {
                 val matches = withContext(Dispatchers.Default) {
                     val ctx = coroutineContext
-                    suggestionEngine.suggest(prefix) { !ctx.isActive || requestId != suggestionsRequestId }
+                    suggestionEngine.suggest(prefix) { !ctx.isActive || requestId != suggestionsRequestId.get() }
                 }
-                if (requestId != suggestionsRequestId) return@launch
+                if (requestId != suggestionsRequestId.get()) return@launch
 
                 val filteredMatches = ArrayList<String>(maxSuggestions)
                 val seen = HashSet<String>(maxSuggestions * 2)
@@ -2714,14 +2756,15 @@ class CustomKeyboard :
                     filteredMatches.add(match)
                     if (filteredMatches.size >= maxSuggestions) break
                 }
-
-                uiHandler.post {
-                    renderSuggestions(filteredMatches, capitalizeFirst)
-                }
+                renderSuggestions(filteredMatches, capitalizeFirst, rawCurrentWord = currentWord)
             }
     }
 
-    private fun renderSuggestions(suggestions: List<String>, capitalizeFirst: Boolean) {
+    private fun renderSuggestions(
+        suggestions: List<String>,
+        capitalizeFirst: Boolean,
+        rawCurrentWord: String? = pendingSuggestionState.currentWord,
+    ) {
         val container = layoutManager.suggestionsContainer ?: return
         val parent = container.parent as? ViewGroup
 
@@ -2731,7 +2774,6 @@ class CustomKeyboard :
 
         suggestionSlotsCapitalizeFirst = capitalizeFirst
 
-        val rawCurrentWord = pendingSuggestionCurrentWord
         val useRawFirstSlot = isTypedWordSuggestion(rawCurrentWord)
         val displaySuggestions = ArrayList<String>(maxSuggestions)
         val seen = HashSet<String>(maxSuggestions * 2)

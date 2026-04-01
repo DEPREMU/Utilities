@@ -1,5 +1,9 @@
 package com.package.name
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 
@@ -15,8 +19,13 @@ object KeyboardCommandRepository {
 
     private val _commands = MutableSharedFlow<Command>(extraBufferCapacity = 10)
     val commands: SharedFlow<Command> = _commands
+    private val commandScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     fun sendCommand(command: Command) {
-        _commands.tryEmit(command)
+        if (_commands.tryEmit(command)) return
+
+        commandScope.launch {
+            _commands.emit(command)
+        }
     }
 }

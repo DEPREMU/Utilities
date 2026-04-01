@@ -16,14 +16,29 @@ object ClipboardRepository {
 
     private val _clipboardItems = MutableStateFlow<List<ClipboardEntry>>(emptyList())
     val clipboardItems: StateFlow<List<ClipboardEntry>> = _clipboardItems
+    private val lock = Any()
+
+    private fun sanitize(items: List<ClipboardEntry>): List<ClipboardEntry> {
+        if (items.isEmpty()) return emptyList()
+        val seenContent = LinkedHashSet<String>(items.size)
+        val out = ArrayList<ClipboardEntry>(items.size)
+
+        for (item in items) {
+            val trimmed = item.content.trim()
+            if (trimmed.isEmpty()) continue
+            if (!seenContent.add(trimmed)) continue
+            out.add(item.copy(content = trimmed))
+        }
+
+        return out
+    }
     
     fun setClipboardItems(items: List<ClipboardEntry>) {
-        _clipboardItems.value =
-            items
-                .mapNotNull { item ->
-                    val trimmed = item.content.trim()
-                    if (trimmed.isEmpty()) null else item.copy(content = trimmed)
-                }
+        synchronized(lock) {
+            val sanitized = sanitize(items)
+            if (_clipboardItems.value == sanitized) return
+            _clipboardItems.value = sanitized
+        }
     }
 
     suspend fun loadSystemClipboard(context: Context): List<ClipboardEntry> {
@@ -44,6 +59,10 @@ object ClipboardRepository {
     }
     
     fun updateFromSystem(items: List<ClipboardEntry>) {
-         _clipboardItems.value = items
+        synchronized(lock) {
+            val sanitized = sanitize(items)
+            if (_clipboardItems.value == sanitized) return
+            _clipboardItems.value = sanitized
+        }
     }
 }
