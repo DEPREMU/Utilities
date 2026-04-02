@@ -4012,7 +4012,9 @@ class CustomKeyboard :
             lastClipboardModuleSignature = signature
 
             if (shouldEmitShowEvent) {
-                val params = Arguments.createMap().apply { putString("type", "show") }
+                val params = Arguments.createMap().apply { 
+                    putString("type", "show")
+                }
                 BackgroundServiceModule.sendEvent("ClipboardEvent", params)
             }
         }

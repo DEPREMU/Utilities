@@ -2,7 +2,6 @@ package com.package.name
 
 import android.app.ActivityManager
 import android.content.Intent
-import android.os.Build
 import com.package.name.Logger as Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -33,16 +32,17 @@ class BackgroundServiceModule(
             params: WritableMap?,
         ): Boolean {
             val context = reactContext ?: return false
-            if (!isReactAlive.get()) return false
+            if (!isReactAlive.get() && eventName != "queryAppState") return false
 
             return try {
                 val safeParams = params ?: Arguments.createMap()
+                val safeParamsString = safeParams.toString()
 
                 context
-                    .getJSModule(DeviceEventManagerModule.  RCTDeviceEventEmitter::class.java)
+                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                     .emit(eventName, safeParams)
 
-                Log.d(NAME, "Event $eventName emitted to JS")
+                Log.d(NAME, "Event $eventName emitted to JS. Params: ${safeParamsString}")
                 true
             } catch (error: Exception) {
                 Log.w(NAME, "Failed to emit event $eventName: ${error.message}")
@@ -87,12 +87,14 @@ class BackgroundServiceModule(
 
             if (context == null) {
                 enqueueEvent(eventName, params)
-                Log.w(NAME, "ReactContext null, queued event $eventName")
                 return
             }
 
             context.runOnUiQueueThread {
                 if (tryEmitEvent(eventName, params)) {
+                    return@runOnUiQueueThread
+                }
+                if (eventName == "queryAppState") {
                     return@runOnUiQueueThread
                 }
 
@@ -112,17 +114,20 @@ class BackgroundServiceModule(
         }
     }
 
-    private var lang: String = "en"
-    private var userId: String? = null
-    private var deviceId: String? = null
-    private var userToken: String? = null
     private var title: String = "Service not running"
     private var message: String = "Utilities may not be running in the background, open the app to ensure it continues running."
-    private val defaultDeviceId: String = "${Build.MANUFACTURER} ${Build.MODEL}"
 
     init {
+        Companion.reactContext = reactApplicationContext
         Companion.flushPendingEvents()
-        Log.d("BackgroundServiceModule", "BackgroundServiceModule initialized")
+        Log.d(NAME, "BackgroundServiceModule initialized")
+    }
+
+    override fun invalidate() {
+        if (Companion.reactContext === reactApplicationContext) {
+            Companion.reactContext = null
+        }
+        super.invalidate()
     }
 
     override fun getName(): String = NAME
@@ -134,68 +139,56 @@ class BackgroundServiceModule(
     ) {
         title = titleNotification
         message = messageNotification
-        Log.d("BackgroundServiceModule", "Starting foreground service with title: $titleNotification")
 
-        val config = ForegroundConfig(
-            notification = NotificationContent(titleNotification, messageNotification),
-            clipboard = ClipboardConfig(
-                enabled = false,
-                userId = userId,
-                deviceId = deviceId ?: defaultDeviceId,
-                lang = lang,
-                userToken = userToken,
-            ),
-            wasConfigured = true,
-        )
+        val config = ForegroundPreferences(reactApplicationContext).load()
+
+        Log.d(NAME, "Starting foreground service with title: $titleNotification config: ${config.toString()}")
 
         ForegroundService.start(reactApplicationContext, config)
-        Log.d("BackgroundServiceModule", "Foreground service started")
+        Log.d(NAME, "Foreground service started")
     }
 
     @ReactMethod
     fun stop() {
         val serviceIntent = Intent(reactApplicationContext, ForegroundService::class.java)
         reactApplicationContext.stopService(serviceIntent)
-        Log.d("BackgroundServiceModule", "Foreground service stopped")
+        Log.d(NAME, "Foreground service stopped")
     }
-    
-    @ReactMethod
-    fun setUserData(token: String, id: String, language: String, deviceID: String) {
-        lang = language
-        userId = id
-        deviceId = deviceID
-        userToken = token
-        Log.d("BackgroundServiceModule", "User data set")
-    }
-    
+
     @ReactMethod
     fun startClipboardService() {
-        Log.d("BackgroundServiceModule", "startClipboardService() called")
-        if (userToken.isNullOrEmpty() || userId.isNullOrEmpty()) {
-            Log.e("BackgroundServiceModule", "User data not set, cannot start clipboard monitoring")
-            return
-        }
-
+        Log.d(NAME, "startClipboardService() called")
         val config = buildClipboardConfig(enabled = true)
 
         try {
-            ForegroundService.start(reactApplicationContext, config)
-            Log.d("BackgroundServiceModule", "Clipboard monitoring started")
+            val startedInRunningService = ForegroundService.setClipboardMonitoringEnabled(enabled = true)
+            if (!startedInRunningService) {
+                ForegroundService.start(reactApplicationContext, config)
+            }
+            Log.d(NAME, "Clipboard monitoring started")
         } catch (e: Exception) {
-            Log.e("BackgroundServiceModule", "Error starting clipboard service: ${e.message}")
+            Log.e(NAME, "Error starting clipboard service: ${e.message}")
         }
     }
 
     @ReactMethod
     fun stopClipboardService() {
-        Log.d("BackgroundServiceModule", "Stopping clipboard monitoring (service will continue)")
-        val config = buildClipboardConfig(enabled = false)
-        ForegroundService.start(reactApplicationContext, config)
+        Log.d(NAME, "Stopping clipboard monitoring (service will continue)")
+        try {
+            val stoppedInRunningService = ForegroundService.setClipboardMonitoringEnabled(enabled = false)
+            if (!stoppedInRunningService) {
+                Log.d(NAME, "Foreground service is not running, nothing to stop")
+                return
+            }
+            Log.d(NAME, "Clipboard monitoring stopped")
+        } catch (e: Exception) {
+            Log.e(NAME, "Error stopping clipboard service: ${e.message}")
+        }
     }
 
     @ReactMethod
     fun isRunning(promise: Promise) {
-        Log.d("BackgroundServiceModule", "isRunning() called")
+        Log.d(NAME, "isRunning() called")
         try {
             val activityManager = reactApplicationContext.getSystemService(android.content.Context.ACTIVITY_SERVICE) as ActivityManager
             val services = activityManager.getRunningServices(Integer.MAX_VALUE)
@@ -204,21 +197,20 @@ class BackgroundServiceModule(
                 serviceInfo.service.className == ForegroundService::class.java.name
             }
             
-            Log.d("BackgroundServiceModule", "Service running: $isServiceRunning")
+            Log.d(NAME, "Service running: $isServiceRunning")
             promise.resolve(isServiceRunning)
         } catch (e: Exception) {
-            Log.e("BackgroundServiceModule", "Error checking service: ${e.message}")
+            Log.e(NAME, "Error checking service: ${e.message}")
             promise.reject("ERROR_CHECKING_SERVICE", e.message, e)
         }
     }
 
     @ReactMethod
     fun getMethods(promise: Promise) {
-        Log.d("BackgroundServiceModule", "getMethods() called")
+        Log.d(NAME, "getMethods() called")
         val methods = mapOf(
             "start" to "available",
             "stop" to "available",
-            "setUserData" to "available",
             "startClipboardService" to "available", 
             "stopClipboardService" to "available",
             "isRunning" to "available",
@@ -231,14 +223,14 @@ class BackgroundServiceModule(
     @ReactMethod
     fun setClipboardText(text: String) {
         try {
-            Log.d("BackgroundServiceModule", "setClipboardText() called")
+            Log.d(NAME, "setClipboardText() called")
             val context = reactApplicationContext
             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             val clip = android.content.ClipData.newPlainText("label", text)
             clipboard.setPrimaryClip(clip)
-            Log.d("BackgroundServiceModule", "Text set to clipboard.")
+            Log.d(NAME, "Text set to clipboard.")
         } catch (e: Exception) {
-            Log.e("BackgroundServiceModule", "Error setting clipboard text: ${e.message}")
+            Log.e(NAME, "Error setting clipboard text: ${e.message}")
         }
     }
 
@@ -253,10 +245,6 @@ class BackgroundServiceModule(
             notification = NotificationContent(title, message),
             clipboard = ClipboardConfig(
                 enabled = enabled,
-                userId = userId,
-                deviceId = deviceId ?: defaultDeviceId,
-                lang = lang,
-                userToken = userToken,
             ),
             wasConfigured = true,
         )

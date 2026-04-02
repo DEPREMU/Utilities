@@ -15,11 +15,11 @@ import {
   logger,
   parseData,
   deviceInfo,
+  waitForTime,
   URL_WEB_SOCKET,
   sessionManager,
   EventsDeviceInfo,
   storageManagement,
-  setTimeoutPolyfill,
   notificationsManager,
 } from "@utils";
 import { modalRef } from "@refs";
@@ -87,7 +87,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         return;
       }
       attempts++;
-      await new Promise((resolve) => setTimeoutPolyfill(resolve, 1000));
+      await waitForTime(1000);
     }
 
     if (currentSocket.readyState === WebSocket.OPEN) {

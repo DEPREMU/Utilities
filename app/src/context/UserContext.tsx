@@ -11,11 +11,9 @@ import {
   isValidEmail,
   sessionManager,
   saveStorageData,
-  storageManagement,
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
 import { ResponseAuth } from "@types";
-import { BackgroundModule } from "@modules";
 
 type DataRef = {
   isLoggedIn: boolean;
@@ -100,17 +98,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           return;
         }
 
-        const language = storageManagement.get("LANGUAGE");
-        const deviceId = storageManagement.get("DEVICE_ID");
-        const { sessionToken, userData, isLoggedIn } =
-          sessionManager.getSessionData();
-
-        BackgroundModule?.setUserData(
-          sessionToken || "",
-          userData?.userId || "",
-          language,
-          deviceId,
-        );
+        const { isLoggedIn } = sessionManager.getSessionData();
         setIsLoggedIn(isLoggedIn);
       });
       sessionManager.addEventListener("logout", () => setIsLoggedIn(false));

@@ -6,7 +6,9 @@ import com.package.name.Logger as Log
 
 class ClipboardMonitor(context: Context) {
     private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+    @Volatile
     private var enabled = false
+    @Volatile
     private var onClipboardText: ((String) -> Unit)? = null
 
     private val listener = ClipboardManager.OnPrimaryClipChangedListener {
@@ -18,8 +20,9 @@ class ClipboardMonitor(context: Context) {
         val text = item?.coerceToText(context)?.toString() ?: return@OnPrimaryClipChangedListener
         if (text.isBlank()) return@OnPrimaryClipChangedListener
 
+        val callback = onClipboardText ?: return@OnPrimaryClipChangedListener
         Log.d("ClipboardMonitor", "New clipboard text: $text")
-        onClipboardText?.invoke(text)
+        callback.invoke(text)
     }
 
     init {
@@ -30,7 +33,7 @@ class ClipboardMonitor(context: Context) {
         settings: ClipboardConfig,
         onText: (String) -> Unit,
     ) {
-        enabled = clipboardManager != null && settings.enabled && !settings.userId.isNullOrBlank() && !settings.userToken.isNullOrBlank()
+        enabled = clipboardManager != null && settings.enabled
         onClipboardText = if (enabled) onText else null
     }
 

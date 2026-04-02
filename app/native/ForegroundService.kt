@@ -17,18 +17,17 @@ import com.facebook.react.ReactApplication
 import com.facebook.react.ReactInstanceManager
 import com.facebook.react.bridge.ReactContext
 import java.lang.reflect.Method
+import com.facebook.react.bridge.Arguments
 
 class ForegroundService : Service() {
     companion object {
         private const val TAG = "ForegroundService"
+        @Volatile
+        private var runningInstance: ForegroundService? = null
         
         const val EXTRA_TITLE = "utilities.extra.notification.title"
         const val EXTRA_MESSAGE = "utilities.extra.notification.message"
         const val EXTRA_ENABLE_CLIPBOARD = "utilities.extra.clipboard.enabled"
-        const val EXTRA_USER_ID = "utilities.extra.clipboard.userId"
-        const val EXTRA_DEVICE_ID = "utilities.extra.clipboard.deviceId"
-        const val EXTRA_LANG = "utilities.extra.clipboard.lang"
-        const val EXTRA_USER_TOKEN = "utilities.extra.clipboard.userToken"
 
         private const val RESTART_REQUEST_CODE = 1001
         private const val HEALTH_CHECK_INTERVAL_MS = 10_000L
@@ -45,10 +44,6 @@ class ForegroundService : Service() {
                 putExtra(EXTRA_TITLE, config.notification.title)
                 putExtra(EXTRA_MESSAGE, config.notification.message)
                 putExtra(EXTRA_ENABLE_CLIPBOARD, config.clipboard.enabled)
-                putExtra(EXTRA_USER_ID, config.clipboard.userId)
-                putExtra(EXTRA_DEVICE_ID, config.clipboard.deviceId)
-                putExtra(EXTRA_LANG, config.clipboard.lang)
-                putExtra(EXTRA_USER_TOKEN, config.clipboard.userToken)
             }
         }
 
@@ -57,11 +52,15 @@ class ForegroundService : Service() {
             config: ForegroundConfig,
         ) {
             val intent = intentFor(context, config)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            context.startForegroundService(intent)
+        }
+
+        fun setClipboardMonitoringEnabled(enabled: Boolean): Boolean {
+            val service = runningInstance ?: return false
+            service.mainHandler.post {
+                service.updateClipboardMonitoring(enabled)
             }
+            return true
         }
     }
 
@@ -96,6 +95,7 @@ class ForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        runningInstance = this
         notificationHelper = NotificationHelper(this)
         wakeLockManager = WakeLockManager(this)
         clipboardMonitor = ClipboardMonitor(this)
@@ -115,30 +115,7 @@ class ForegroundService : Service() {
         config = ForegroundConfig.fromIntent(intent, config)
         preferences.save(config)
 
-        if (config.clipboard.enabled) {
-            clipboardMonitor.start(config.clipboard) { text ->
-                val newEntry = ClipboardRepository.ClipboardEntry(id = null, content = text)
-                ClipboardRepository.setClipboardItems(
-                    listOf(newEntry) + ClipboardRepository.clipboardItems.value.filter { it.content != text },
-                )
-                BackgroundServiceModule.sendEvent(
-                    "ClipboardEvent",
-                    com.facebook.react.bridge.Arguments.createMap().apply {
-                        putString("type", "update")
-                        putString("text", text)
-                    },
-                )
-                BackgroundServiceModule.sendEvent(
-                    "ClipboardEvent",
-                    com.facebook.react.bridge.Arguments.createMap().apply {
-                        putString("type", "show")
-                    },
-                )
-            }
-            Log.d(TAG, "Clipboard monitoring enabled")
-        } else {
-            clipboardMonitor.stop()
-        }
+        updateClipboardMonitoring(config.clipboard.enabled)
 
         notificationHelper.startForeground(this, config.notification)
         Log.d(TAG, "Service started with title: ${config.notification.title} and message: ${config.notification.message}")
@@ -159,6 +136,9 @@ class ForegroundService : Service() {
         }
 
         isShuttingDown = true
+        if (runningInstance === this) {
+            runningInstance = null
+        }
         stopPeriodicHealthCheck()
         super.onDestroy()
         wakeLockManager.release()
@@ -168,6 +148,32 @@ class ForegroundService : Service() {
         triggerRecovery(reason = "onDestroy", scheduleServiceRestart = true)
     }
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun updateClipboardMonitoring(enabled: Boolean) {
+        config = config.copy(clipboard = config.clipboard.copy(enabled = enabled), wasConfigured = true)
+        preferences.save(config)
+
+        if (enabled) {
+            clipboardMonitor.start(config.clipboard) { text ->
+                val newEntry = ClipboardRepository.ClipboardEntry(id = null, content = text)
+                ClipboardRepository.setClipboardItems(
+                    listOf(newEntry) + ClipboardRepository.clipboardItems.value.filter { it.content != text },
+                )
+                BackgroundServiceModule.sendEvent(
+                    "ClipboardEvent",
+                    Arguments.createMap().apply {
+                        putString("type", "update")
+                        putString("text", text)
+                    },
+                )
+            }
+            Log.d(TAG, "Clipboard monitoring enabled")
+            return
+        }
+
+        clipboardMonitor.stop()
+        Log.d(TAG, "Clipboard monitoring disabled")
+    }
 
     private fun startPeriodicHealthCheck() {
         if (isPeriodicHealthCheckRunning) {
@@ -225,7 +231,6 @@ class ForegroundService : Service() {
 
         probeReactLivenessWithRetries(1, "pre-recreation:$reason") { isAlive ->
             if (isAlive) {
-                Log.d(TAG, "React runtime responded during probe, skipping recreation. reason=$reason")
                 return@probeReactLivenessWithRetries
             }
 
@@ -350,7 +355,6 @@ class ForegroundService : Service() {
         checkReactAliveAsync(EVENT_QUERY_TIMEOUT_MS) { eventAlive ->
             val alive = eventAlive || hasActiveReactContext()
             if (alive) {
-                Log.d(TAG, "[$phase] React runtime responded on event probe attempt=$attempt")
                 callback(true)
                 return@checkReactAliveAsync
             }

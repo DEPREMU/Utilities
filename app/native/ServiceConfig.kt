@@ -1,7 +1,6 @@
 package com.package.name
 
 import android.content.Intent
-import android.os.Build
 
 data class NotificationContent(
     val title: String = ForegroundDefaults.defaultTitle,
@@ -10,10 +9,6 @@ data class NotificationContent(
 
 data class ClipboardConfig(
     val enabled: Boolean = false,
-    val userId: String? = null,
-    val deviceId: String = "${Build.MANUFACTURER} ${Build.MODEL}",
-    val lang: String = "en",
-    val userToken: String? = null,
 )
 
 data class ForegroundConfig(
@@ -34,10 +29,6 @@ data class ForegroundConfig(
 
             val clipboard = ClipboardConfig(
                 enabled = enableClipboard,
-                userId = intent.getStringExtra(ForegroundService.EXTRA_USER_ID) ?: existing.clipboard.userId,
-                deviceId = intent.getStringExtra(ForegroundService.EXTRA_DEVICE_ID) ?: existing.clipboard.deviceId,
-                lang = intent.getStringExtra(ForegroundService.EXTRA_LANG) ?: existing.clipboard.lang,
-                userToken = intent.getStringExtra(ForegroundService.EXTRA_USER_TOKEN) ?: existing.clipboard.userToken,
             )
 
             return ForegroundConfig(
