@@ -17,6 +17,7 @@ interface Spec extends TurboModule {
   setClipboardText(text: string): void;
   stopClipboardService(): void;
   startClipboardService(): void;
+  requestClipboardConfigEvent(): void;
   setReactAlive(alive: boolean): void;
 }
 
@@ -32,6 +33,7 @@ const defaultBackgroundModule: Spec = {
   setClipboardText: voidFunc,
   stopClipboardService: voidFunc,
   startClipboardService: voidFunc,
+  requestClipboardConfigEvent: voidFunc,
 };
 
 export const BackgroundModule = REPLACERS.isNative

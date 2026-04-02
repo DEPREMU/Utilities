@@ -82,7 +82,7 @@ class BigramModel {
         if (prev.isBlank()) return emptyList()
         val safeLimit = limit.coerceAtLeast(1)
 
-        val topCandidates: List<Pair<String, Int>> = synchronized(lock) {
+        return synchronized(lock) {
             val map = data[prev] ?: return emptyList()
             val queue = PriorityQueue<Pair<String, Int>>(safeLimit + 1) { a, b ->
                 when {
@@ -108,12 +108,20 @@ class BigramModel {
                 }
             }
 
-            queue.toList()
-        }
+            if (queue.isEmpty()) return emptyList()
 
-        return topCandidates
-            .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
-            .map { it.first }
+            val sorted = ArrayList<Pair<String, Int>>(queue.size)
+            while (queue.isNotEmpty()) {
+                val polled = queue.poll() ?: break
+                sorted.add(polled)
+            }
+
+            val out = ArrayList<String>(sorted.size)
+            for (i in sorted.lastIndex downTo 0) {
+                out.add(sorted[i].first)
+            }
+            out
+        }
     }
 
     fun clear() {
@@ -506,6 +514,27 @@ internal class SuggestionEngine(
             .thenByDescending { it.distance }
             .thenBy { it.word })
 
+        fun pollValid(): FuzzyCandidate? {
+            while (heap.isNotEmpty()) {
+                val top = heap.peek() ?: return null
+                if (bestByWord[top.word] == top) {
+                    return top
+                }
+                heap.poll()
+            }
+            return null
+        }
+
+        fun trimHeapToMaxQueue() {
+            while (heap.size > maxQueue) {
+                val weakest = pollValid() ?: break
+                heap.poll()
+                if (bestByWord[weakest.word] == weakest) {
+                    bestByWord.remove(weakest.word)
+                }
+            }
+        }
+
         fun scoreCandidate(distance: Int, candidateLen: Int, prefixLen: Int, frequency: Int): Double {
             val denom = maxOf(len, candidateLen)
             val invDenom = 1.0 / denom.toDouble()
@@ -525,17 +554,9 @@ internal class SuggestionEngine(
         fun offerCandidate(candidate: FuzzyCandidate) {
             val existing = bestByWord[candidate.word]
             if (existing != null && existing.score >= candidate.score) return
-            if (existing != null) {
-                heap.remove(existing)
-            }
             bestByWord[candidate.word] = candidate
             heap.add(candidate)
-            if (heap.size > maxQueue) {
-                val removed = heap.poll()
-                if (removed != null && bestByWord[removed.word] == removed) {
-                    bestByWord.remove(removed.word)
-                }
-            }
+            trimHeapToMaxQueue()
         }
 
         fun dfs(nodeIndex: Int, depth: Int, prevRow: IntArray, prefixLen: Int) {

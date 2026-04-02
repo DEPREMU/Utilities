@@ -141,7 +141,7 @@ Before considering a change complete, ensure:
 2. New user-facing text uses translation keys and updated dictionaries.
 3. Resource cleanup is deterministic (timers, intervals, sockets, listeners).
 4. Platform-specific branches were reviewed for Android and Web/Electron.
-5. Project checks pass using `yarn run before-commit` (authoritative gate for lint/type validation).
+5. Project checks pass using `yarn run before-commit` (authoritative gate for lint/type validation) or `yarn run app-compile-check` if any native code is involved.
 6. Manual verification steps are clear and reproducible.
 
 ## Quality Checklist For Changes

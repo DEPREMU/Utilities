@@ -48,6 +48,15 @@ export const handleFetchFromDatabase = getHandlerPost(
         });
 
       if (!match) match = { userId: decode.userId };
+      else {
+        if (match.userId && match.userId !== decode.userId) {
+          return sendResponse("UNAUTHORIZED", {
+            success: false,
+            error: t("auth.unauthorized", lang),
+          });
+        }
+      }
+
       const options: Record<string, unknown> = {};
       if (requestBody.pagination) {
         if (typeof requestBody.limit === "number" && requestBody.limit > 0)
@@ -118,15 +127,9 @@ export const handleInsertToDatabase = getHandlerPost(
 
       const { data: usersSessions } = await fetchFromTable({
         table: "UserSessions",
-        match: {
-          userId: decode.userId,
-          token,
-        },
+        match: { userId: decode.userId, token },
       });
-      if (
-        !usersSessions ||
-        (Array.isArray(usersSessions) && usersSessions.length === 0)
-      )
+      if (!usersSessions || usersSessions.length === 0)
         return sendResponse("UNAUTHORIZED", {
           success: false,
           error: t("auth.sessionNotFound", lang),
@@ -170,6 +173,16 @@ export const handleUpdateToDatabase = async (
       );
 
     if (!match) match = { userId: decode.userId };
+    else {
+      if (match.userId && match.userId !== decode.userId) {
+        return sendResponse(
+          res,
+          "UNAUTHORIZED",
+          { success: false, error: t("auth.unauthorized", lang) },
+          "/database/update",
+        );
+      }
+    }
 
     const { data, error } = await updateInTable(table, values, match);
     if (error)
@@ -205,13 +218,20 @@ export const handleDeleteFromDatabase = getHandlerPost(
 
     try {
       const { tokenDecoded: decode } = req.user || {};
-      const { table, match } = requestBody;
+      const { table, match = { userId: decode.userId } } = requestBody;
 
       if (!table || !TABLE_MAP[table])
         return sendResponse("BAD_REQUEST", {
           error: t("database.invalidBody", lang),
           success: false,
         });
+
+      if (match.userId && match.userId !== decode.userId) {
+        return sendResponse("UNAUTHORIZED", {
+          success: false,
+          error: t("auth.unauthorized", lang),
+        });
+      }
 
       const { success, error } = await deleteInTable(
         decode.userId,

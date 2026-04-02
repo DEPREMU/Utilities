@@ -12,6 +12,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.ArrayDeque
 import com.package.name.ClipboardConfig
 import com.package.name.ForegroundConfig
 import com.package.name.NotificationContent
@@ -21,17 +22,83 @@ class BackgroundServiceModule(
 ) : ReactContextBaseJavaModule(reactContext) {
     companion object {
         const val NAME = "BackgroundServiceModule"
+        private const val MAX_PENDING_EVENTS = 100
         private var reactContext: ReactApplicationContext? = null
+        private val pendingEvents = ArrayDeque<Pair<String, WritableMap?>>()
 
         val isReactAlive = AtomicBoolean(false)
+
+        private fun tryEmitEvent(
+            eventName: String,
+            params: WritableMap?,
+        ): Boolean {
+            val context = reactContext ?: return false
+            if (!isReactAlive.get()) return false
+
+            return try {
+                val safeParams = params ?: Arguments.createMap()
+
+                context
+                    .getJSModule(DeviceEventManagerModule.  RCTDeviceEventEmitter::class.java)
+                    .emit(eventName, safeParams)
+
+                Log.d(NAME, "Event $eventName emitted to JS")
+                true
+            } catch (error: Exception) {
+                Log.w(NAME, "Failed to emit event $eventName: ${error.message}")
+                false
+            }
+        }
+
+        private fun enqueueEvent(
+            eventName: String,
+            params: WritableMap?,
+        ) {
+            synchronized(pendingEvents) {
+                if (pendingEvents.size >= MAX_PENDING_EVENTS) {
+                    pendingEvents.removeFirst()
+                }
+                pendingEvents.addLast(eventName to params)
+            }
+        }
+
+        fun flushPendingEvents() {
+            val context = reactContext ?: return
+            if (!isReactAlive.get()) return
+
+            context.runOnUiQueueThread {
+                synchronized(pendingEvents) {
+                    while (pendingEvents.isNotEmpty()) {
+                        val (eventName, params) = pendingEvents.removeFirst()
+                        if (!tryEmitEvent(eventName, params)) {
+                            pendingEvents.addFirst(eventName to params)
+                            return@runOnUiQueueThread
+                        }
+                    }
+                }
+            }
+        }
 
         fun sendEvent(
             eventName: String,
             params: WritableMap?,
         ) {
-            reactContext?.takeIf { it.hasActiveReactInstance() }?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                ?.emit(eventName, params)
-                ?: Log.w(NAME, "ReactContext is null or inactive, cannot send event $eventName")
+            val context = reactContext
+
+            if (context == null) {
+                enqueueEvent(eventName, params)
+                Log.w(NAME, "ReactContext null, queued event $eventName")
+                return
+            }
+
+            context.runOnUiQueueThread {
+                if (tryEmitEvent(eventName, params)) {
+                    return@runOnUiQueueThread
+                }
+
+                enqueueEvent(eventName, params)
+                Log.w(NAME, "Could not emit, queued event $eventName")
+            }
         }
         
         fun sendEvent(
@@ -54,7 +121,7 @@ class BackgroundServiceModule(
     private val defaultDeviceId: String = "${Build.MANUFACTURER} ${Build.MODEL}"
 
     init {
-        Companion.reactContext = reactContext
+        Companion.flushPendingEvents()
         Log.d("BackgroundServiceModule", "BackgroundServiceModule initialized")
     }
 
@@ -98,11 +165,7 @@ class BackgroundServiceModule(
         userId = id
         deviceId = deviceID
         userToken = token
-        Log.d("BackgroundServiceModule", "User data set, starting clipboard monitoring")
-
-        if (!userToken.isNullOrEmpty() && !userId.isNullOrEmpty()) {
-            startClipboardService()
-        }
+        Log.d("BackgroundServiceModule", "User data set")
     }
     
     @ReactMethod
@@ -182,6 +245,7 @@ class BackgroundServiceModule(
     @ReactMethod
     fun setReactAlive(alive: Boolean) {
         isReactAlive.set(alive)
+        Companion.flushPendingEvents()
     }
 
     private fun buildClipboardConfig(enabled: Boolean): ForegroundConfig {

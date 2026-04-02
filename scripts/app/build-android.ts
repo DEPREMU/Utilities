@@ -4,6 +4,7 @@ import {
   ARGS,
   getArgs,
   APP_PATH,
+  GRADLE_OPTS,
   ANDROID_PATH,
   UTILITIES_PATH,
   handleExitFromScript,
@@ -35,6 +36,7 @@ const build = async () => {
     else profile = "production";
   }
   env.BUILD_PROFILE = profile;
+  env.GRADLE_OPTS = GRADLE_OPTS;
 
   if (!ARGS["skip-prebuild-android"]) {
     fs.rmSync(ANDROID_PATH, { recursive: true, force: true });

@@ -37,6 +37,8 @@ export const APP_CONFIG = APP_CONFIG_FUNC(
   ARGS.BUILD_PROFILE ?? process.env.BUILD_PROFILE ?? "production",
 );
 
+export const GRADLE_OPTS = "-Xmx4g -XX:MaxMetaspaceSize=1536m";
+
 export const gitignore = fs.readFileSync(
   path.resolve(UTILITIES_PATH, ".gitignore"),
   "utf-8",

@@ -100,7 +100,10 @@ export default (
         "expo-build-properties",
         {
           enableMinifyInReleaseBuilds: true,
-          android: { usesCleartextTraffic: true, minSdkVersion: 29 },
+          android: {
+            usesCleartextTraffic: true,
+            minSdkVersion: 29,
+          },
         },
       ],
       [

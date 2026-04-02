@@ -53,6 +53,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.isActive
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
+import kotlin.math.max
 import com.package.name.R
 import java.util.concurrent.atomic.AtomicLong
 
@@ -148,7 +149,7 @@ class CustomKeyboard :
     private var pendingWordPromotionThreshold: Int = 3
     private var maxPendingWordCache: Int = 250
     private val pendingWordCountsLock = Any()
-    private val pendingWordCounts = mutableMapOf<String, Int>()
+    private val pendingWordCounts = LinkedHashMap<String, Int>(256, 0.75f, true)
     private val whitespaceRegex = Regex("\\s+")
 
     private lateinit var themeManager: KeyboardThemeManager
@@ -180,7 +181,44 @@ class CustomKeyboard :
 
     private var suggestionEngine = SuggestionEngine(maxSuggestions)
     private val bigramModel = BigramModel()
+    private val trigramModel = TrigramModel()
+    private val phrasePredictionEngine = PhrasePredictionEngine(trigramModel)
+    private val emojiPredictorEngine = EmojiPredictorEngine()
+    private val languageDetector = LanguageDetector()
+    private val languageSwitcher = DynamicLanguageSwitcher()
+    private val gestureDetector = GestureDetector()
+    private val posTagging = POSTagging()
+    private val grammarCorrector = GrammarCorrector(posTagging)
     private var lastCommittedWordLower: String? = null
+    private var previousCommittedWordLower: String? = null
+
+    private data class LanguageConfig(
+        val code: LanguageCode,
+        val dictionaryFiles: List<String>,
+        val bigramFiles: List<String>,
+        val trigramFiles: List<String>,
+        val badgeLabel: String,
+    )
+
+    private val languageConfigs: Map<LanguageCode, LanguageConfig> = mapOf(
+        LanguageCode.EN to LanguageConfig(
+            code = LanguageCode.EN,
+            dictionaryFiles = listOf(AUTOCOMPLETE_FILE_EN_DICT, AUTOCOMPLETE_FILE_EN),
+            bigramFiles = listOf(BIGRAM_FILE_EN),
+            trigramFiles = listOf(TRIGRAM_FILE_EN),
+            badgeLabel = "EN",
+        ),
+        LanguageCode.ES to LanguageConfig(
+            code = LanguageCode.ES,
+            dictionaryFiles = listOf(AUTOCOMPLETE_FILE_ES_DICT, AUTOCOMPLETE_FILE_ES),
+            bigramFiles = listOf(BIGRAM_FILE_ES),
+            trigramFiles = listOf(TRIGRAM_FILE_ES),
+            badgeLabel = "ES",
+        ),
+    )
+
+    private var activeLanguageCode: LanguageCode = LanguageCode.EN
+    private val taggedWordHistory = ArrayDeque<TaggedWord>()
 
     private enum class AutocompleteMode {
         EN,
@@ -235,6 +273,7 @@ class CustomKeyboard :
 
     private var pendingSuggestionState = PendingSuggestionState()
     private var suggestionUpdateRunnable: Runnable? = null
+    private var isSuggestionUpdateQueued: Boolean = false
 
     private var isPrivateMode: Boolean = false
     private var areSuggestionsEnabled: Boolean = true
@@ -309,8 +348,6 @@ class CustomKeyboard :
         )
         soundHaptics.init()
 
-        startObservers()
-
         listenerProvider = object : KeyboardListenerProvider {
             override fun getKeyClickListener() = keyClickListener
             override fun getSuggestionClickListener() = suggestionClickListener
@@ -374,6 +411,7 @@ class CustomKeyboard :
             }
         }
         layoutManager = KeyboardLayout(this, themeManager, listenerProvider)
+        startObservers()
 
         themeDialogs = KeyboardThemeDialogs(
             context = this,
@@ -416,7 +454,7 @@ class CustomKeyboard :
         }
 
         themeManager.initPalette(isPrivateMode)
-        loadBigramModelFromAssets(BIGRAM_FILE_EN, BIGRAM_FILE_ES)
+        loadLanguageModelsFromAssets()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -430,6 +468,8 @@ class CustomKeyboard :
         super.onStartInputView(info, restarting)
         startObservers()
         refreshAppearanceFromPrefsIfNeeded()
+
+        sendClipboardEvent("show")
 
         val inputType = info?.inputType ?: 0
         val newPrivateMode = isPasswordInputType(inputType)
@@ -525,7 +565,10 @@ class CustomKeyboard :
             userDictionary.clear()
             suggestionEngine.clear()
             bigramModel.clear()
+            trigramModel.clear()
             lastCommittedWordLower = null
+            previousCommittedWordLower = null
+            taggedWordHistory.clear()
             synchronized(pendingWordCountsLock) {
                 pendingWordCounts.clear()
             }
@@ -556,6 +599,8 @@ class CustomKeyboard :
         stopObservers()
         suggestionEngine.clear()
         bigramModel.clear()
+        trigramModel.clear()
+        taggedWordHistory.clear()
         synchronized(pendingWordCountsLock) {
             pendingWordCounts.clear()
         }
@@ -890,6 +935,9 @@ class CustomKeyboard :
     }
 
     private fun renderClipboardSuggestions() {
+        if (!::layoutManager.isInitialized) {
+            return
+        }
         if (!themeManager.isClipboardSuggestionsEnabled) {
             layoutManager.renderClipboardSuggestions(emptyList())
             return
@@ -1058,7 +1106,13 @@ class CustomKeyboard :
         suggestionsJob = null
         pendingSuggestionState = PendingSuggestionState()
         suggestionUpdateRunnable?.let { uiHandler.removeCallbacks(it) }
+        isSuggestionUpdateQueued = false
         suggestionUpdateRunnable = null
+        lastSuggestionComputeAtMs = 0L
+    }
+
+    private fun isSuggestionRequestActive(requestId: Long): Boolean {
+        return requestId == suggestionsRequestId.get()
     }
 
     private fun clearAndRenderEmptySuggestions(hideContainer: Boolean = false) {
@@ -1209,92 +1263,58 @@ class CustomKeyboard :
         }
 
         if (currentAutocompleteMode == mode) {
+            updateLanguageBadge()
             return
         }
 
         currentAutocompleteMode = mode
         dictionaryLoadJob?.cancel()
 
-        when (mode) {
-            AutocompleteMode.EN -> {
-                cachedEsSnapshot = null
-                cachedBothSnapshot = null
-            }
-
-            AutocompleteMode.ES -> {
-                cachedEnSnapshot = null
-                cachedBothSnapshot = null
-            }
-
-            AutocompleteMode.BOTH -> {
-                cachedEnSnapshot = null
-                cachedEsSnapshot = null
-            }
+        val targetLanguage = when (mode) {
+            AutocompleteMode.EN -> LanguageCode.EN
+            AutocompleteMode.ES -> LanguageCode.ES
+            AutocompleteMode.BOTH -> activeLanguageCode
         }
+        applyLanguageConfig(targetLanguage)
+    }
 
-        val cached =
-            when (mode) {
-                AutocompleteMode.EN -> cachedEnSnapshot
-                AutocompleteMode.ES -> cachedEsSnapshot
-                AutocompleteMode.BOTH -> cachedBothSnapshot
-            }
+    private fun applyLanguageConfig(code: LanguageCode) {
+        activeLanguageCode = code
+        updateLanguageBadge()
 
+        val cached = when (code) {
+            LanguageCode.EN -> cachedEnSnapshot
+            LanguageCode.ES -> cachedEsSnapshot
+        }
         if (cached != null) {
             suggestionEngine.applySnapshot(cached)
             updateSuggestions()
             return
         }
 
-        dictionaryLoadJob =
-            serviceScope.launch {
-                when (mode) {
-                    AutocompleteMode.EN -> {
-                        val snapshot =
-                            withContext(Dispatchers.IO) {
-                                suggestionEngine.clear()
-                                suggestionEngine.buildSnapshot(
-                                    loadWordsSequenceFromAssets(
-                                        AUTOCOMPLETE_FILE_EN
-                                    )
-                                )
-                            }
-                        cachedEnSnapshot = snapshot
-                        suggestionEngine.applySnapshot(snapshot)
-                        updateSuggestions()
-                    }
-
-                    AutocompleteMode.ES -> {
-                        val snapshot =
-                            withContext(Dispatchers.IO) {
-                                suggestionEngine.clear()
-                                suggestionEngine.buildSnapshot(
-                                    loadWordsSequenceFromAssets(
-                                        AUTOCOMPLETE_FILE_ES
-                                    )
-                                )
-                            }
-                        cachedEsSnapshot = snapshot
-                        suggestionEngine.applySnapshot(snapshot)
-                        updateSuggestions()
-                    }
-
-                    AutocompleteMode.BOTH -> {
-                        val bothSnapshot =
-                            withContext(Dispatchers.IO) {
-                                suggestionEngine.clear()
-                                suggestionEngine.buildSnapshot(
-                                    loadWordsSequenceFromAssets(
-                                        AUTOCOMPLETE_FILE_EN,
-                                        AUTOCOMPLETE_FILE_ES
-                                    ),
-                                )
-                            }
-                        cachedBothSnapshot = bothSnapshot
-                        suggestionEngine.applySnapshot(bothSnapshot)
-                        updateSuggestions()
-                    }
-                }
+        val config = languageConfigs[code] ?: return
+        dictionaryLoadJob?.cancel()
+        dictionaryLoadJob = serviceScope.launch {
+            val snapshot = withContext(Dispatchers.IO) {
+                suggestionEngine.buildSnapshot(loadWordsSequenceFromAssets(*config.dictionaryFiles.toTypedArray()))
             }
+            when (code) {
+                LanguageCode.EN -> cachedEnSnapshot = snapshot
+                LanguageCode.ES -> cachedEsSnapshot = snapshot
+            }
+            suggestionEngine.applySnapshot(snapshot)
+            updateSuggestions()
+        }
+    }
+
+    private fun updateLanguageBadge() {
+        val mode = currentAutocompleteMode ?: AutocompleteMode.EN
+        val badgeLabel = when (mode) {
+            AutocompleteMode.BOTH -> "AUTO ${languageConfigs[activeLanguageCode]?.badgeLabel ?: activeLanguageCode.name}"
+            AutocompleteMode.EN -> languageConfigs[LanguageCode.EN]?.badgeLabel ?: "EN"
+            AutocompleteMode.ES -> languageConfigs[LanguageCode.ES]?.badgeLabel ?: "ES"
+        }
+        layoutManager.updateLanguageBadge(badgeLabel)
     }
 
     private fun loadWordsSequenceFromAssets(vararg fileNames: String): Sequence<String> {
@@ -2565,11 +2585,7 @@ class CustomKeyboard :
             synchronized(pendingWordCountsLock) {
                 val nextCount = (pendingWordCounts[normalized] ?: 0) + 1
                 pendingWordCounts[normalized] = nextCount
-                if (pendingWordCounts.size > maxPendingWordCache) {
-                    val overflow = (pendingWordCounts.size - maxPendingWordCache).coerceAtLeast(0)
-                    val keysToRemove = pendingWordCounts.keys.take(overflow + 16)
-                    keysToRemove.forEach { key -> pendingWordCounts.remove(key) }
-                }
+                trimPendingWordCountsLocked(maxPendingWordCache)
                 nextCount
             }
 
@@ -2589,36 +2605,76 @@ class CustomKeyboard :
         return normalized
     }
 
+    private fun trimPendingWordCountsLocked(targetSize: Int) {
+        if (targetSize <= 0) {
+            pendingWordCounts.clear()
+            return
+        }
+        if (pendingWordCounts.size <= targetSize) return
+
+        val iterator = pendingWordCounts.entries.iterator()
+        while (pendingWordCounts.size > targetSize && iterator.hasNext()) {
+            iterator.next()
+            iterator.remove()
+        }
+    }
+
     private fun learnFromCommittedText(text: String) {
         if (isPrivateMode) return
+        val emojis = text.filter { Character.getType(it) == Character.OTHER_SYMBOL.toInt() }
+        emojis.forEach { emojiPredictorEngine.recordEmojiUsage(it.toString()) }
+
         val words = extractNormalizedWords(text)
         if (words.isEmpty()) return
-        var prev = lastCommittedWordLower
+        var prev1 = lastCommittedWordLower
+        var prev2 = previousCommittedWordLower
         for (word in words) {
             val learned = getLearnableWord(word)
             if (learned == null) {
-                prev = null
+                prev1 = null
+                prev2 = null
                 continue
             }
-            if (!prev.isNullOrEmpty()) {
-                bigramModel.add(prev, learned)
+            if (!prev1.isNullOrEmpty()) {
+                bigramModel.add(prev1, learned)
             }
-            prev = learned
+            if (!prev2.isNullOrEmpty() && !prev1.isNullOrEmpty()) {
+                trigramModel.add(prev2, prev1, learned)
+            }
+            prev2 = prev1
+            prev1 = learned
+            pushTaggedWord(learned)
         }
-        lastCommittedWordLower = prev
+        previousCommittedWordLower = prev2
+        lastCommittedWordLower = prev1
     }
 
     private fun recordCommittedWord(word: String) {
         val learned = getLearnableWord(word)
         if (learned == null) {
+            previousCommittedWordLower = null
             lastCommittedWordLower = null
             return
         }
         val prev = lastCommittedWordLower
+        val prev2 = previousCommittedWordLower
         if (!prev.isNullOrEmpty()) {
             bigramModel.add(prev, learned)
         }
+        if (!prev2.isNullOrEmpty() && !prev.isNullOrEmpty()) {
+            trigramModel.add(prev2, prev, learned)
+        }
+        previousCommittedWordLower = prev
         lastCommittedWordLower = learned
+        pushTaggedWord(learned)
+    }
+
+    private fun pushTaggedWord(word: String) {
+        val tag = posTagging.tag(word, activeLanguageCode)
+        taggedWordHistory.addLast(TaggedWord(word, tag))
+        while (taggedWordHistory.size > 10) {
+            taggedWordHistory.removeFirst()
+        }
     }
 
     private fun shouldShowNextWordSuggestions(): Boolean {
@@ -2626,6 +2682,24 @@ class CustomKeyboard :
         val before = inputConnection.getTextBeforeCursor(1, 0)?.toString().orEmpty()
         if (before.isEmpty()) return false
         return before.last().isWhitespace()
+    }
+
+    private fun extractRecentWords(limit: Int, lookbackChars: Int = 120): List<String> {
+        val inputConnection = currentInputConnection ?: return emptyList()
+        val before = inputConnection.getTextBeforeCursor(lookbackChars, 0)?.toString().orEmpty()
+        if (before.isBlank()) return emptyList()
+        val words = extractNormalizedWords(before)
+        if (words.isEmpty()) return emptyList()
+        return words.takeLast(limit)
+    }
+
+    private fun maybeSwitchDynamicLanguage() {
+        if (currentAutocompleteMode != AutocompleteMode.BOTH) return
+        val inputConnection = currentInputConnection ?: return
+        val before = inputConnection.getTextBeforeCursor(100, 0)?.toString().orEmpty()
+        val detection = languageDetector.detect(before)
+        val next = languageSwitcher.decideSwitch(activeLanguageCode, detection) ?: return
+        applyLanguageConfig(next)
     }
 
     private fun loadBigramModelFromAssets(vararg fileNames: String) {
@@ -2654,23 +2728,59 @@ class CustomKeyboard :
         }
     }
 
+    private fun loadTrigramModelFromAssets(vararg fileNames: String) {
+        serviceScope.launch {
+            withContext(Dispatchers.IO) {
+                fileNames.forEach { fileName ->
+                    try {
+                        assets.open(fileName).bufferedReader().useLines { lines ->
+                            for (line in lines) {
+                                val trimmed = line.trim()
+                                if (trimmed.isEmpty()) continue
+                                val parts = trimmed.split(whitespaceRegex)
+                                if (parts.size < 3) continue
+                                val w1 = normalizeWord(parts[0])
+                                val w2 = normalizeWord(parts[1])
+                                val w3 = normalizeWord(parts[2])
+                                if (w1.isEmpty() || w2.isEmpty() || w3.isEmpty()) continue
+                                val count = parts.getOrNull(3)?.toIntOrNull() ?: 1
+                                trigramModel.add(w1, w2, w3, count)
+                            }
+                        }
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+        }
+    }
+
+    private fun loadLanguageModelsFromAssets() {
+        val bigramFiles = languageConfigs.values.flatMap { it.bigramFiles }.distinct()
+        val trigramFiles = languageConfigs.values.flatMap { it.trigramFiles }.distinct()
+        loadBigramModelFromAssets(*bigramFiles.toTypedArray())
+        loadTrigramModelFromAssets(*trigramFiles.toTypedArray())
+    }
+
     private fun updateSuggestions() {
         if (!areSuggestionsEnabled || !themeManager.isAutoCorrectionEnabled) {
             clearAndRenderEmptySuggestions()
             return
         }
 
+        maybeSwitchDynamicLanguage()
+        updateLanguageBadge()
+
         val currentWord = extractCurrentWord()
         if (currentWord.isNullOrEmpty()) {
             val baseWord = lastCommittedWordLower
             if (!baseWord.isNullOrEmpty() && shouldShowNextWordSuggestions()) {
-                pendingSuggestionState =
+                requestSuggestionUpdate(
                     PendingSuggestionState(
                         nextWordMode = true,
                         nextWordBase = baseWord,
                         capitalize = shouldAutoCapitalizeNextChar(),
-                    )
-                scheduleSuggestionUpdate()
+                    ),
+                )
                 return
             }
 
@@ -2680,25 +2790,38 @@ class CustomKeyboard :
 
         val capitalizeFirst = currentWord.firstOrNull()?.isUpperCase() == true
         val prefix = currentWord.lowercase()
-        pendingSuggestionState =
+        requestSuggestionUpdate(
             PendingSuggestionState(
                 prefix = prefix,
                 currentWord = currentWord,
                 capitalize = capitalizeFirst,
                 nextWordMode = false,
-            )
+            ),
+        )
+    }
+
+    private fun requestSuggestionUpdate(newState: PendingSuggestionState) {
+        val alreadyRunning = suggestionsJob?.isActive == true
+        if (newState == pendingSuggestionState && (isSuggestionUpdateQueued || alreadyRunning)) {
+            return
+        }
+        pendingSuggestionState = newState
         scheduleSuggestionUpdate()
     }
 
     private fun scheduleSuggestionUpdate() {
         if (suggestionUpdateRunnable == null) {
-            suggestionUpdateRunnable = Runnable { runSuggestionUpdate() }
+            suggestionUpdateRunnable = Runnable {
+                isSuggestionUpdateQueued = false
+                runSuggestionUpdate()
+            }
         }
         suggestionUpdateRunnable?.let {
             uiHandler.removeCallbacks(it)
             val now = SystemClock.elapsedRealtime()
             val sinceLast = now - lastSuggestionComputeAtMs
             val minDelay = if (sinceLast >= suggestionMinIntervalMs) 0L else suggestionMinIntervalMs - sinceLast
+            isSuggestionUpdateQueued = true
             uiHandler.postDelayed(it, maxOf(suggestionDebounceMs, minDelay))
         }
     }
@@ -2717,21 +2840,28 @@ class CustomKeyboard :
 
         if (nextWordMode) {
             if (nextWordBase.isNullOrEmpty()) {
+                if (!isSuggestionRequestActive(requestId)) return
                 renderSuggestions(emptyList(), capitalizeFirst = false)
                 return
             }
             suggestionsJob =
                 serviceScope.launch {
+                    val recentWords = extractRecentWords(limit = 2)
+                    val previousWord = recentWords.getOrNull(recentWords.lastIndex - 1)
                     val matches = withContext(Dispatchers.Default) {
-                        bigramModel.suggestNext(nextWordBase, maxSuggestions)
+                        val out = ArrayList<String>(maxSuggestions * 2)
+                        out.addAll(bigramModel.suggestNext(nextWordBase, maxSuggestions))
+                        out.addAll(phrasePredictionEngine.suggestPhrases(previousWord, nextWordBase, maxSuggestions))
+                        out
                     }
-                    if (requestId != suggestionsRequestId.get()) return@launch
-                    renderSuggestions(matches, capitalizeFirst, rawCurrentWord = currentWord)
+                    if (!isSuggestionRequestActive(requestId)) return@launch
+                    renderSuggestions(matches.distinct().take(maxSuggestions), capitalizeFirst, rawCurrentWord = currentWord)
                 }
             return
         }
 
         if (prefix.isNullOrEmpty()) {
+            if (!isSuggestionRequestActive(requestId)) return
             renderSuggestions(emptyList(), capitalizeFirst = false)
             return
         }
@@ -2740,9 +2870,9 @@ class CustomKeyboard :
             serviceScope.launch {
                 val matches = withContext(Dispatchers.Default) {
                     val ctx = coroutineContext
-                    suggestionEngine.suggest(prefix) { !ctx.isActive || requestId != suggestionsRequestId.get() }
+                    suggestionEngine.suggest(prefix) { !ctx.isActive || !isSuggestionRequestActive(requestId) }
                 }
-                if (requestId != suggestionsRequestId.get()) return@launch
+                if (!isSuggestionRequestActive(requestId)) return@launch
 
                 val filteredMatches = ArrayList<String>(maxSuggestions)
                 val seen = HashSet<String>(maxSuggestions * 2)
@@ -2756,6 +2886,29 @@ class CustomKeyboard :
                     filteredMatches.add(match)
                     if (filteredMatches.size >= maxSuggestions) break
                 }
+
+                val emojiSuggestions = emojiPredictorEngine.predict(currentLower, maxSuggestions)
+                emojiSuggestions.forEach { emoji ->
+                    if (filteredMatches.size >= maxSuggestions) return@forEach
+                    if (seen.add(emoji)) filteredMatches.add(emoji)
+                }
+
+                val swipeSuffix = gestureDetector.suggestedSuffix(SwipeDirection.RIGHT, activeLanguageCode)
+                if (!swipeSuffix.isNullOrBlank() && !currentLower.isNullOrBlank()) {
+                    val swipeSuggestion = currentLower + swipeSuffix
+                    if (filteredMatches.size < maxSuggestions && seen.add(swipeSuggestion)) {
+                        filteredMatches.add(swipeSuggestion)
+                    }
+                }
+
+                val grammarContext = extractRecentWords(limit = 2) + listOfNotNull(currentLower)
+                val grammarSuggestion = grammarCorrector.suggest(grammarContext, activeLanguageCode)
+                if (grammarSuggestion != null && grammarSuggestion.confidence >= 0.8) {
+                    if (filteredMatches.size < maxSuggestions && seen.add(grammarSuggestion.replacement)) {
+                        filteredMatches.add(grammarSuggestion.replacement)
+                    }
+                }
+
                 renderSuggestions(filteredMatches, capitalizeFirst, rawCurrentWord = currentWord)
             }
     }
@@ -3014,9 +3167,20 @@ class CustomKeyboard :
         keyMinWideWidthPx = dpToPx(themeManager.keyMinWideWidthDp)
         keyMinHeightPx = (dpToPx(themeManager.keyMinHeightDp) * keyboardHeightFactor).toInt()
         keyRowHeightPx = (dpToPx(themeManager.keyRowHeightDp) * keyboardHeightFactor).toInt()
-        suggestionBarHeightPx = (dpToPx(themeManager.suggestionBarHeightDp) * keyboardHeightFactor).toInt()
-        selectionBarHeightPx = (dpToPx(themeManager.selectionBarHeightDp) * keyboardHeightFactor).toInt()
-        clipboardBarHeightPx = (dpToPx(themeManager.clipboardBarHeightDp) * keyboardHeightFactor).toInt()
+        val requestedSuggestionBarHeightPx =
+            (dpToPx(themeManager.suggestionBarHeightDp) * keyboardHeightFactor).toInt()
+        val requestedSelectionBarHeightPx =
+            (dpToPx(themeManager.selectionBarHeightDp) * keyboardHeightFactor).toInt()
+        val requestedClipboardBarHeightPx =
+            (dpToPx(themeManager.clipboardBarHeightDp) * keyboardHeightFactor).toInt()
+
+        val suggestionMinHeightPx = keyMinHeightPx + px4 + px8 + px10 + (px1 * 2)
+        val selectionMinHeightPx = keyMinHeightPx + px6 + px4 + (px1 * 2)
+        val clipboardMinHeightPx = keyMinHeightPx + px4 + px6 + (px1 * 2)
+
+        suggestionBarHeightPx = max(requestedSuggestionBarHeightPx, suggestionMinHeightPx)
+        selectionBarHeightPx = max(requestedSelectionBarHeightPx, selectionMinHeightPx)
+        clipboardBarHeightPx = max(requestedClipboardBarHeightPx, clipboardMinHeightPx)
 
         px44 = keyMinHeightPx
         px52 = (dpToPx(52) * keyboardHeightFactor).toInt()
@@ -3157,6 +3321,10 @@ class CustomKeyboard :
                 ic.deleteSurroundingText(currentWord.length, 0)
             }
             ic.commitText("$textToCommit ", 1)
+        }
+
+        if (textToCommit.any { Character.getType(it) == Character.OTHER_SYMBOL.toInt() }) {
+            emojiPredictorEngine.recordEmojiUsage(textToCommit)
         }
 
         recordCommittedWord(textToCommit)
@@ -3776,11 +3944,15 @@ class CustomKeyboard :
         private const val PREF_KEY_SPACING_10_DP = "spacing_10_dp"
         private const val PREF_KEY_SPACING_36_DP = "spacing_36_dp"
         private const val PREF_KEY_USER_DICTIONARY = "user_dictionary"
-        private const val MAX_DICTIONARY_WORDS = 150_000
+        private const val MAX_DICTIONARY_WORDS = 300_000
+        private const val AUTOCOMPLETE_FILE_EN_DICT = "en.dict"
+        private const val AUTOCOMPLETE_FILE_ES_DICT = "es.dict"
         private const val AUTOCOMPLETE_FILE_EN = "autocomplete_en.txt"
         private const val AUTOCOMPLETE_FILE_ES = "autocomplete_es.txt"
         private const val BIGRAM_FILE_EN = "bigrams_en.txt"
         private const val BIGRAM_FILE_ES = "bigrams_es.txt"
+        private const val TRIGRAM_FILE_EN = "trigrams_en.txt"
+        private const val TRIGRAM_FILE_ES = "trigrams_es.txt"
         
         private var lastClipboardModuleSignature: String = ""
         
@@ -3827,9 +3999,19 @@ class CustomKeyboard :
                         if (content.isEmpty()) null else item.copy(content = content)
                     }
             val signature = cleaned.joinToString("|") { "${it.id ?: ""}:${it.content}" }
-            if (cleaned.isNotEmpty() && signature != lastClipboardModuleSignature) {
+
+            val shouldUpdateRepository = ClipboardRepository.clipboardItems.value != cleaned
+            if (shouldUpdateRepository) {
                 ClipboardRepository.setClipboardItems(cleaned)
-                lastClipboardModuleSignature = signature
+            }
+
+            val shouldEmitShowEvent =
+                cleaned.isNotEmpty() &&
+                    (signature != lastClipboardModuleSignature || shouldUpdateRepository)
+
+            lastClipboardModuleSignature = signature
+
+            if (shouldEmitShowEvent) {
                 val params = Arguments.createMap().apply { putString("type", "show") }
                 BackgroundServiceModule.sendEvent("ClipboardEvent", params)
             }

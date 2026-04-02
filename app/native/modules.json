@@ -6,19 +6,6 @@
     "service": "<service \n  android:name=\".CustomKeyboard\" \n  android:enabled=\"true\" \n  android:exported=\"true\" \n  android:permission=\"android.permission.BIND_INPUT_METHOD\" \n  android:label=\"@string/app_name\" >\n  <intent-filter>\n    <action android:name=\"android.view.InputMethod\" />\n  </intent-filter>\n  <meta-data android:name=\"android.view.im\" \n    android:resource=\"@xml/method\" />\n</service>"
   },
   {
-    "name": [
-      "KeyboardTheme.kt",
-      "KeyboardLayout.kt",
-      "InputProcessor.kt",
-      "KeyboardModule.kt",
-      "KeyboardPackage.kt",
-      "ClipboardMonitor.kt",
-      "ClipboardRepository.kt",
-      "KeyboardSuggestions.kt",
-      "KeyboardSoundHaptics.kt",
-      "KeyboardThemeDialogs.kt",
-      "KeyboardCommandRepository.kt"
-    ],
     "initPath": "native/Keyboard/",
     "finalPath": "android/app/src/main/java/"
   },
@@ -44,12 +31,6 @@
     "finalPath": "android/app/src/main/java/"
   },
   {
-    "name": [
-      "NotificationModule.kt",
-      "NotificationHelper.kt",
-      "NotificationPackage.kt",
-      "NotificationActionReceiver.kt"
-    ],
     "initPath": "native/Notifications",
     "finalPath": "android/app/src/main/java/",
     "service": "<receiver \n  android:name=\".NotificationActionReceiver\" \n  android:enabled=\"true\" \n  android:exported=\"false\" />"
@@ -71,12 +52,6 @@
     "finalPath": "android/app/src/main/java/"
   },
   {
-    "name": "autocomplete_en.txt",
-    "initPath": "native/autocomplete/",
-    "finalPath": "android/app/src/main/assets/"
-  },
-  {
-    "name": "autocomplete_es.txt",
     "initPath": "native/autocomplete/",
     "finalPath": "android/app/src/main/assets/"
   },

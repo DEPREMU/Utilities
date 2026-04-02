@@ -40,6 +40,8 @@ class KeyboardLayout(
         private set
     var suggestionsContainer: LinearLayout? = null
         private set
+    private var suggestionsButtonsContainer: LinearLayout? = null
+    private var languageBadgeView: TextView? = null
     var selectionActionsContainer: LinearLayout? = null
         private set
     var clipboardContainer: LinearLayout? = null
@@ -63,6 +65,9 @@ class KeyboardLayout(
 
     val suggestionButtons: MutableList<Button?> = mutableListOf()
     val suggestionSlotValues: MutableList<String?> = mutableListOf()
+    private var clipboardRenderSignature: String? = null
+    private var copyActionButton: Button? = null
+    private var cutActionButton: Button? = null
 
     data class KeyButtonRef(
         val raw: String,
@@ -424,7 +429,7 @@ class KeyboardLayout(
 
     private fun createSuggestionsContainer(): LinearLayout {
         return LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
+            orientation = LinearLayout.VERTICAL
             layoutParams =
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -432,7 +437,44 @@ class KeyboardLayout(
                 )
             visibility = View.GONE
             setPadding(px4, px4, px4, px8)
+
+            languageBadgeView = TextView(context).apply {
+                layoutParams =
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        setMargins(px1, 0, px1, px1)
+                    }
+                text = context.getString(R.string.language_badge_default)
+                themeManager.applyTypography(this, suggestionTextSizePx * 0.75f)
+                setTextColor(themeManager.paletteTextColor)
+                alpha = 0.75f
+                visibility = View.VISIBLE
+            }
+            addView(languageBadgeView)
+
+            suggestionsButtonsContainer = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams =
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        0,
+                        1f,
+                    )
+            }
+            addView(suggestionsButtonsContainer)
         }
+    }
+
+    fun updateLanguageBadge(label: String) {
+        val badge = languageBadgeView ?: return
+        badge.text = label
+        badge.visibility = View.VISIBLE
+    }
+
+    private fun getSuggestionsButtonsHost(): LinearLayout? {
+        return suggestionsButtonsContainer ?: suggestionsContainer
     }
 
     private fun createSelectionActionsContainer(): LinearLayout {
@@ -640,7 +682,41 @@ class KeyboardLayout(
     }
 
     fun ensureSuggestionButtons(maxSuggestions: Int) {
-        val container = suggestionsContainer ?: return
+        val container = getSuggestionsButtonsHost() ?: return
+
+        val canReuse =
+            suggestionButtons.size == maxSuggestions &&
+                container.childCount == maxSuggestions &&
+                suggestionButtons.none { it == null }
+
+        if (canReuse) {
+            suggestionSlotValues.clear()
+            for (i in 0 until maxSuggestions) {
+                val btn = suggestionButtons[i] ?: continue
+                btn.layoutParams =
+                    LinearLayout.LayoutParams(
+                        0,
+                        keyMinHeightPx,
+                        1f,
+                    ).apply {
+                        val margin = px1
+                        setMargins(margin, margin, margin, margin)
+                    }
+                btn.isAllCaps = false
+                btn.text = ""
+                btn.minHeight = keyMinHeightPx
+                btn.tag = i
+                btn.visibility = View.INVISIBLE
+                themeManager.applyTypography(btn, suggestionTextSizePx)
+                themeManager.applyButtonBackground(btn, themeManager.paletteKeyBackgroundColor)
+                btn.setTextColor(themeManager.paletteTextColor)
+                btn.setOnClickListener(listenerProvider.getSuggestionClickListener())
+                btn.setOnLongClickListener(listenerProvider.getSuggestionLongClickListener(i))
+                suggestionSlotValues.add(null)
+            }
+            return
+        }
+
         container.removeAllViews()
         suggestionButtons.clear()
         suggestionSlotValues.clear()
@@ -686,7 +762,6 @@ class KeyboardLayout(
 
         if (selectedText.isNullOrEmpty()) {
             container.visibility = View.GONE
-            container.removeAllViews()
               if (areSuggestionsEnabled && suggestionButtons.any { it?.visibility == View.VISIBLE }) {
                  suggestions?.visibility = View.VISIBLE
             }
@@ -695,54 +770,71 @@ class KeyboardLayout(
 
         container.visibility = View.VISIBLE
         suggestions?.visibility = View.INVISIBLE
-        container.removeAllViews()
-
         val copyButton =
-            Button(context).apply {
-                layoutParams =
-                    LinearLayout.LayoutParams(
-                        0,
-                        keyMinHeightPx,
-                        1f,
-                    ).apply {
-                        val margin = px1
-                        setMargins(margin, margin, margin, margin)
-                    }
-                text = copyLabel
-                isAllCaps = false
-                themeManager.applyTypography(this, selectionTextSizePx)
-                    minHeight = keyMinHeightPx
-                themeManager.applyButtonBackground(this, themeManager.paletteKeyBackgroundColor)
-                setTextColor(themeManager.paletteTextColor)
-                setOnClickListener(listenerProvider.getCopyClickListener())
+            copyActionButton ?: createSelectionActionButton().also {
+                copyActionButton = it
             }
-
         val cutButton =
-            Button(context).apply {
-                layoutParams =
-                    LinearLayout.LayoutParams(
-                        0,
-                        keyMinHeightPx,
-                        1f,
-                    ).apply {
-                        val margin = px1
-                        setMargins(margin, margin, margin, margin)
-                    }
-                text = cutLabel
-                isAllCaps = false
-                themeManager.applyTypography(this, selectionTextSizePx)
-                    minHeight = keyMinHeightPx
-                themeManager.applyButtonBackground(this, themeManager.paletteKeyBackgroundColor)
-                setTextColor(themeManager.paletteTextColor)
-                setOnClickListener(listenerProvider.getCutClickListener())
+            cutActionButton ?: createSelectionActionButton().also {
+                cutActionButton = it
             }
 
-        container.addView(copyButton)
-        container.addView(cutButton)
+        if (copyButton.parent !== container || cutButton.parent !== container) {
+            container.removeAllViews()
+            container.addView(copyButton)
+            container.addView(cutButton)
+        }
+
+        copyButton.text = copyLabel
+        cutButton.text = cutLabel
+        copyButton.setOnClickListener(listenerProvider.getCopyClickListener())
+        cutButton.setOnClickListener(listenerProvider.getCutClickListener())
+
+        styleSelectionActionButton(copyButton)
+        styleSelectionActionButton(cutButton)
+    }
+
+    private fun createSelectionActionButton(): Button {
+        return Button(context).apply {
+            layoutParams =
+                LinearLayout.LayoutParams(
+                    0,
+                    keyMinHeightPx,
+                    1f,
+                ).apply {
+                    val margin = px1
+                    setMargins(margin, margin, margin, margin)
+                }
+            isAllCaps = false
+            minHeight = keyMinHeightPx
+        }
+    }
+
+    private fun styleSelectionActionButton(button: Button) {
+        button.layoutParams =
+            LinearLayout.LayoutParams(
+                0,
+                keyMinHeightPx,
+                1f,
+            ).apply {
+                val margin = px1
+                setMargins(margin, margin, margin, margin)
+            }
+        button.minHeight = keyMinHeightPx
+        themeManager.applyTypography(button, selectionTextSizePx)
+        themeManager.applyButtonBackground(button, themeManager.paletteKeyBackgroundColor)
+        button.setTextColor(themeManager.paletteTextColor)
     }
 
     fun renderClipboardSuggestions(items: List<ClipboardRepository.ClipboardEntry>) {
         val container = clipboardContainer ?: return
+        val signature = buildClipboardRenderSignature(items)
+
+        if (signature == clipboardRenderSignature && container.childCount == items.size) {
+            clipboardScroll?.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+            return
+        }
+        clipboardRenderSignature = signature
 
         container.removeAllViews()
 
@@ -784,6 +876,18 @@ class KeyboardLayout(
         }
     }
 
+    private fun buildClipboardRenderSignature(items: List<ClipboardRepository.ClipboardEntry>): String {
+        if (items.isEmpty()) return ""
+        val builder = StringBuilder(items.size * 16)
+        for (item in items) {
+            builder.append(item.id ?: "")
+            builder.append('|')
+            builder.append(item.content)
+            builder.append(';')
+        }
+        return builder.toString()
+    }
+
     fun applyPaletteToCurrentViews(capsMode: CustomKeyboard.CapsMode) {
         rootLayout?.setBackgroundColor(themeManager.paletteBackgroundColor)
 
@@ -816,6 +920,12 @@ class KeyboardLayout(
                 btn.setTextColor(themeManager.paletteTextColor)
                 themeManager.applyTypography(btn, suggestionTextSizePx)
             }
+        }
+
+        languageBadgeView?.let { badge ->
+            themeManager.applyTypography(badge, suggestionTextSizePx * 0.75f)
+            badge.setTextColor(themeManager.paletteTextColor)
+            badge.alpha = 0.75f
         }
 
         val selectionContainer = selectionActionsContainer

@@ -306,6 +306,7 @@ class DeviceInfo {
     const event = EventsDeviceInfo.queryAppState;
     if (this.#listeners[event]) return;
 
+    BackgroundModule.setReactAlive(true);
     const queryAppStateListener = DeviceEventEmitter.addListener(
       "queryAppState",
       () => {

@@ -334,6 +334,11 @@ export type ContextBridgeType = {
 
 export type KeyboardLayout = string[][];
 
+export type GrammarSuggestion = {
+  replacement: string;
+  confidence: number;
+};
+
 export type KeyboardModuleType = {
   enter: () => Promise<boolean>;
   sendKey: (key: string) => Promise<string>;

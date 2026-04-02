@@ -15,10 +15,44 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class InputProcessor(private val service: CustomKeyboard) {
+    private val autoCorrectionLock = Any()
 
-    @Volatile var lastAutoCorrectOriginal: String? = null
-    @Volatile var lastAutoCorrectReplacement: String? = null
-    @Volatile var ignoreAutoCorrectWord: String? = null
+    private data class AutoCorrectionSnapshot(
+        val original: String?,
+        val replacement: String?,
+        val ignoreWord: String?,
+        val appliedAtMs: Long,
+        val replacementLength: Int,
+        val hasTrailingSpace: Boolean,
+    )
+
+    private var lastAutoCorrectOriginalValue: String? = null
+    private var lastAutoCorrectReplacementValue: String? = null
+    private var ignoreAutoCorrectWordValue: String? = null
+
+    var lastAutoCorrectOriginal: String?
+        get() = synchronized(autoCorrectionLock) { lastAutoCorrectOriginalValue }
+        set(value) {
+            synchronized(autoCorrectionLock) {
+                lastAutoCorrectOriginalValue = value
+            }
+        }
+
+    var lastAutoCorrectReplacement: String?
+        get() = synchronized(autoCorrectionLock) { lastAutoCorrectReplacementValue }
+        set(value) {
+            synchronized(autoCorrectionLock) {
+                lastAutoCorrectReplacementValue = value
+            }
+        }
+
+    var ignoreAutoCorrectWord: String?
+        get() = synchronized(autoCorrectionLock) { ignoreAutoCorrectWordValue }
+        set(value) {
+            synchronized(autoCorrectionLock) {
+                ignoreAutoCorrectWordValue = value
+            }
+        }
 
     private var lastSpaceTapTimeMs: Long = 0L
     private var doubleSpaceWindowMs: Long = 800L
@@ -57,14 +91,15 @@ class InputProcessor(private val service: CustomKeyboard) {
                 return@enqueue
             }
 
-            val replacement = lastAutoCorrectReplacement
-            val original = lastAutoCorrectOriginal
-            if (!replacement.isNullOrEmpty() && !original.isNullOrEmpty() && isWithinAutoCorrectWindow()) {
-                val extra = if (lastAutoCorrectHasTrailingSpace) 1 else 0
+            val autoCorrectState = snapshotAutoCorrectionState()
+            val replacement = autoCorrectState.replacement
+            val original = autoCorrectState.original
+            if (!replacement.isNullOrEmpty() && !original.isNullOrEmpty() && isWithinAutoCorrectWindow(autoCorrectState.appliedAtMs)) {
+                val extra = if (autoCorrectState.hasTrailingSpace) 1 else 0
                 val before = ic.getTextBeforeCursor(replacement.length + extra, 0)?.toString().orEmpty()
                 val after = ic.getTextAfterCursor(1, 0)?.toString().orEmpty()
                 val endsWithReplacement = before.endsWith(replacement)
-                val endsWithReplacementSpace = lastAutoCorrectHasTrailingSpace && before.endsWith("$replacement ")
+                val endsWithReplacementSpace = autoCorrectState.hasTrailingSpace && before.endsWith("$replacement ")
                 val hasSpaceAfter = after.startsWith(" ")
                 if (endsWithReplacementSpace || (endsWithReplacement && (hasSpaceAfter || before.length == replacement.length))) {
                     val deleteCount = if (endsWithReplacementSpace) replacement.length + 1 else replacement.length
@@ -220,19 +255,23 @@ class InputProcessor(private val service: CustomKeyboard) {
         replacement: String,
         hasTrailingSpace: Boolean,
     ) {
-        lastAutoCorrectOriginal = original
-        lastAutoCorrectReplacement = replacement
-        lastAutoCorrectReplacementLength = replacement.length
-        lastAutoCorrectHasTrailingSpace = hasTrailingSpace
-        lastAutoCorrectAppliedAtMs = SystemClock.elapsedRealtime()
+        synchronized(autoCorrectionLock) {
+            lastAutoCorrectOriginalValue = original
+            lastAutoCorrectReplacementValue = replacement
+            lastAutoCorrectReplacementLength = replacement.length
+            lastAutoCorrectHasTrailingSpace = hasTrailingSpace
+            lastAutoCorrectAppliedAtMs = SystemClock.elapsedRealtime()
+        }
     }
 
     fun clearAutoCorrectionState() {
-        lastAutoCorrectOriginal = null
-        lastAutoCorrectReplacement = null
-        lastAutoCorrectReplacementLength = 0
-        lastAutoCorrectHasTrailingSpace = false
-        lastAutoCorrectAppliedAtMs = 0L
+        synchronized(autoCorrectionLock) {
+            lastAutoCorrectOriginalValue = null
+            lastAutoCorrectReplacementValue = null
+            lastAutoCorrectReplacementLength = 0
+            lastAutoCorrectHasTrailingSpace = false
+            lastAutoCorrectAppliedAtMs = 0L
+        }
     }
 
     fun shouldApplyAutoCorrection(original: String, replacement: String): Boolean {
@@ -248,10 +287,23 @@ class InputProcessor(private val service: CustomKeyboard) {
         return autoPunctuationChars.contains(ch)
     }
 
-    private fun isWithinAutoCorrectWindow(): Boolean {
-        if (lastAutoCorrectAppliedAtMs <= 0L) return false
+    private fun snapshotAutoCorrectionState(): AutoCorrectionSnapshot {
+        return synchronized(autoCorrectionLock) {
+            AutoCorrectionSnapshot(
+                original = lastAutoCorrectOriginalValue,
+                replacement = lastAutoCorrectReplacementValue,
+                ignoreWord = ignoreAutoCorrectWordValue,
+                appliedAtMs = lastAutoCorrectAppliedAtMs,
+                replacementLength = lastAutoCorrectReplacementLength,
+                hasTrailingSpace = lastAutoCorrectHasTrailingSpace,
+            )
+        }
+    }
+
+    private fun isWithinAutoCorrectWindow(appliedAtMs: Long): Boolean {
+        if (appliedAtMs <= 0L) return false
         val now = SystemClock.elapsedRealtime()
-        return now - lastAutoCorrectAppliedAtMs <= autoCorrectRevertWindowMs
+        return now - appliedAtMs <= autoCorrectRevertWindowMs
     }
 
     fun resetLastSpaceTap() {

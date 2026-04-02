@@ -37,7 +37,8 @@
     "update-assets": "node scripts/update.ts",
     "build-android": "node scripts/app/build-android.ts",
     "build-upload-electron": "node scripts/UtilitiesForPC/build-upload-electron.ts",
-    "build-upload-android": "node scripts/app/build-upload-android.ts"
+    "build-upload-android": "node scripts/app/build-upload-android.ts",
+    "build-autocomplete-dict": "node scripts/app/build-autocomplete-dict.ts"
   },
   "repository": {
     "type": "git",

@@ -15,7 +15,7 @@ class ClipboardMonitor(context: Context) {
         val manager = clipboardManager ?: return@OnPrimaryClipChangedListener
         val clip = manager.primaryClip
         val item = clip?.getItemAt(0)
-        val text = item?.text?.toString() ?: return@OnPrimaryClipChangedListener
+        val text = item?.coerceToText(context)?.toString() ?: return@OnPrimaryClipChangedListener
         if (text.isBlank()) return@OnPrimaryClipChangedListener
 
         Log.d("ClipboardMonitor", "New clipboard text: $text")

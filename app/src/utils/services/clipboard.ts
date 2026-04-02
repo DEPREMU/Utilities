@@ -10,7 +10,6 @@ import {
   logger,
   waitForTime,
   fetchToServer,
-  setTimeoutPolyfill,
   setIntervalPolyfill,
   clearIntervalPolyfill,
 } from "../functions";
@@ -99,6 +98,13 @@ class ClipboardManager {
   #initPromise: Promise<void> | null = null;
 
   private _listeners: ListenersClipboard = {};
+
+  private syncClipboardSuggestionsToModule = () => {
+    const func = REPLACERS.isNative
+      ? keyboardModule.setClipboardSuggestions
+      : windowModule.setClipboardHistory;
+    func?.(this.#listItemsClipboard);
+  };
 
   private _emitEvent: EmitEvent = (event, ...args) => {
     const listeners = this._listeners[event];
@@ -189,11 +195,7 @@ class ClipboardManager {
 
     this.#listItemsClipboard = newItems;
 
-    const func = REPLACERS.isNative
-      ? keyboardModule.setClipboardSuggestions
-      : windowModule.setClipboardHistory;
-
-    func?.(this.#listItemsClipboard);
+    this.syncClipboardSuggestionsToModule();
     this._emitEvent("items-updated", this.#listItemsClipboard);
   };
 
@@ -316,7 +318,7 @@ class ClipboardManager {
     const { userData, sessionToken } = sessionManager.getSessionData();
     if (!userData?.userId || !sessionToken) return;
 
-    const language = storageManagement.get("LANGUAGE");
+    const lang = storageManagement.get("LANGUAGE");
     const deviceId = storageManagement.get("DEVICE_ID");
 
     if (!sessionToken) return;
@@ -324,7 +326,7 @@ class ClipboardManager {
     const res = await fetchToServer(
       "/database/fetch",
       {
-        lang: language,
+        lang,
         limit: this.#clipboardData.maxClipboardItems,
         table: "ClipboardSync",
         match: { userId: userData.userId, deleted: false },
@@ -396,13 +398,7 @@ class ClipboardManager {
             this.handleInsertItem(event.text);
             break;
           case "show":
-            setTimeoutPolyfill(() => {
-              if (!this.#listItemsClipboard.length) return;
-
-              keyboardModule.setClipboardSuggestions?.(
-                this.#listItemsClipboard,
-              );
-            }, 100);
+            this.syncClipboardSuggestionsToModule();
             break;
           case "delete": {
             const idToDelete = event?.id || null;
@@ -423,11 +419,14 @@ class ClipboardManager {
               : this.#listItemsClipboard.filter(
                   (item) => item.content !== textToDelete,
                 );
-            const [lang, deviceId, sessionToken] = [
-              storageManagement.get("LANGUAGE"),
-              storageManagement.get("DEVICE_ID"),
-              storageManagement.get("USER_SESSION_TOKEN_STORAGE"),
-            ];
+            this.syncClipboardSuggestionsToModule();
+
+            const lang = storageManagement.get("LANGUAGE");
+            const deviceId = storageManagement.get("DEVICE_ID");
+            const sessionToken = storageManagement.get(
+              "USER_SESSION_TOKEN_STORAGE",
+            );
+
             this._emitEvent("items-updated", this.#listItemsClipboard);
             if (!sessionToken) return;
 
@@ -466,15 +465,15 @@ class ClipboardManager {
       (hasInternet) => {
         if (!hasInternet) return;
 
-        if (!this.#listItemsClipboardNoInternet.length) return;
+        while (this.#listItemsClipboardNoInternet.length) {
+          const item = this.#listItemsClipboardNoInternet.shift();
+          if (!item) continue;
 
-        for (const item of this.#listItemsClipboardNoInternet) {
           this.sendMessage({
             type: "add-new-item",
             content: item.content,
           });
         }
-        this.#listItemsClipboardNoInternet = [];
       },
     );
   };

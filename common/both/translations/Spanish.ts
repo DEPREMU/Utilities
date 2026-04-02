@@ -22,6 +22,7 @@ export const esServer: typeLanguagesServer = {
     invalidCredentials: "Credenciales inválidas",
     accountAlreadyExists: "Ya existe una cuenta con este correo electrónico",
     tokenRequired: "Se requiere un token",
+    unauthorized: "Acceso no autorizado",
     userNotFound: "Usuario no encontrado",
     invalidPassword: "Contraseña inválida",
     wrongCredentials: "Correo electrónico o contraseña incorrectos",

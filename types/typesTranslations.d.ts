@@ -717,6 +717,7 @@ export type typeLanguagesServer = {
   notificationNotCryptosSelectedBody: string;
   notificationNotCryptosSelectedTitle: string;
   auth: {
+    unauthorized: string;
     userNotFound: string;
     tokenRequired: string;
     invalidPassword: string;

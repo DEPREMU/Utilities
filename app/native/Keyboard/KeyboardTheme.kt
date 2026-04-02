@@ -22,6 +22,8 @@ import androidx.core.content.edit
 
 class KeyboardThemeManager(private val context: Context) {
 
+    private var lastPaletteSignature: String? = null
+
     enum class ThemeMode(val prefValue: String) {
         DARK("dark"),
         LIGHT("light"),
@@ -187,9 +189,41 @@ class KeyboardThemeManager(private val context: Context) {
     }
 
     fun initPalette(isPrivateMode: Boolean) {
-        drawableCache.evictAll()
         val systemIsDark =
             (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val paletteSignature =
+            buildString(160) {
+                append(currentThemeMode.prefValue)
+                append('|')
+                append(currentBackgroundMode.prefValue)
+                append('|')
+                append(systemIsDark)
+                append('|')
+                append(isPrivateMode)
+                append('|')
+                append(customThemeEnabled)
+                append('|')
+                append(customBgColor)
+                append('|')
+                append(customKeyColor)
+                append('|')
+                append(customAccentColor)
+                append('|')
+                append(customTextColor)
+                append('|')
+                append(customCapsNeutralColor)
+                append('|')
+                append(customCapsMediumColor)
+                append('|')
+                append(customCapsStrongColor)
+                append('|')
+                append(customCapsStrongTextColor)
+            }
+        if (paletteSignature == lastPaletteSignature) {
+            return
+        }
+
+        drawableCache.evictAll()
         val isDark =
             when (currentThemeMode) {
                 ThemeMode.DARK -> true
@@ -245,6 +279,7 @@ class KeyboardThemeManager(private val context: Context) {
         paletteCapsMediumColor = if (customCapsMediumColor != 0) customCapsMediumColor else blendColors(paletteKeyBackgroundColor, paletteAccentColor, 0.45f)
         paletteCapsStrongTextColor =
             if (customCapsStrongTextColor != 0) customCapsStrongTextColor else if (isColorDark(paletteCapsStrongColor)) Color.WHITE else Color.BLACK
+        lastPaletteSignature = paletteSignature
     }
 
     private val drawableCache = LruCache<Int, Drawable.ConstantState>(100)

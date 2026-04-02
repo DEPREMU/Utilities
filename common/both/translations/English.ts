@@ -18,6 +18,7 @@ export const enServer: typeLanguagesServer = {
   auth: {
     passwordNotStrong:
       "Password must be at least 8 characters long and contain at least one letter and one number",
+    unauthorized: "Unauthorized access",
     emailAndPasswordRequired: "email and password are required",
     invalidCredentials: "Invalid email or password",
     accountAlreadyExists: "An account with this email already exists",

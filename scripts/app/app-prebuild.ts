@@ -1,9 +1,15 @@
 /* eslint-disable no-console */
+import {
+  env,
+  APP_PATH,
+  APP_CONFIG,
+  GRADLE_OPTS,
+  ANDROID_PATH,
+} from "../config.ts";
 import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import { execSync } from "child_process";
-import { APP_CONFIG, APP_PATH, env } from "../config.ts";
 
 const packageName = APP_CONFIG.android?.package;
 if (!packageName) throw new Error("Package name not found in app config");
@@ -22,6 +28,25 @@ const INTENTS_TO_ADD = `
       android:scheme="file" />
     </intent-filter>
 `;
+
+const editMemorySettings = () => {
+  const gradlePropertiesPath = path.resolve(ANDROID_PATH, "gradle.properties");
+
+  let content = fs.readFileSync(gradlePropertiesPath, "utf8");
+  if (!content.includes("org.gradle.jvmargs")) {
+    content += `\norg.gradle.jvmargs=${GRADLE_OPTS}\n`;
+    fs.writeFileSync(gradlePropertiesPath, content);
+    console.log(chalk.green("Memory settings added to gradle.properties"));
+  } else {
+    const match = content.match(/org\.gradle\.jvmargs=[^\n]*/);
+    if (!match) {
+      throw new Error("Could not find org.gradle.jvmargs in gradle.properties");
+    }
+
+    content = content.replace(match[0], `org.gradle.jvmargs=${GRADLE_OPTS}`);
+    fs.writeFileSync(gradlePropertiesPath, content);
+  }
+};
 
 const getPath = (relativePath: string) => {
   const pathLocal = path.resolve(APP_PATH, relativePath);
@@ -194,7 +219,7 @@ const createModules = async () => {
 
   console.log(chalk.blue("Creating native modules..."));
   const modules = JSON.parse(fs.readFileSync(modulesPath, "utf8")) as {
-    name: string | string[];
+    name?: string | string[];
     content: string;
     service?: string;
     initPath: string;
@@ -204,6 +229,19 @@ const createModules = async () => {
 
   modules.forEach((module) => {
     const modulePath = getPath(module.initPath);
+
+    if (!module.name) {
+      const files = fs.readdirSync(modulePath);
+      if (files.length === 0) {
+        console.warn(
+          chalk.yellow(
+            `No files found in ${modulePath} for module with content: ${module.content}`,
+          ),
+        );
+        return;
+      }
+      module.name = files;
+    }
 
     [...(Array.isArray(module.name) ? module.name : [module.name])].forEach(
       (name) => {
@@ -232,6 +270,7 @@ const createModules = async () => {
   await addDependencies();
   await editPackagingOptions();
   await addStringToXML();
+  editMemorySettings();
   console.log(chalk.green("Prebuild process completed."));
 };
 

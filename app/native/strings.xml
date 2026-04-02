@@ -25,7 +25,8 @@
   <string name="btn_close">Close</string>
   <string name="option_en">English (en)</string>
   <string name="option_es">Spanish (es)</string>
-  <string name="option_both">Both (en + es)</string>
+  <string name="option_both">Auto switch (en/es)</string>
+  <string name="language_badge_default">AUTO</string>
   <string name="dialog_settings_title">Settings</string>
   <string name="dialog_theme_title">Color mode</string>
   <string name="dialog_background_title">Background</string>
@@ -217,7 +218,8 @@
   <string name="btn_close">Cerrar</string>
   <string name="option_en">Inglés (en)</string>
   <string name="option_es">Español (es)</string>
-  <string name="option_both">Ambos (en + es)</string>
+  <string name="option_both">Cambio auto (en/es)</string>
+  <string name="language_badge_default">AUTO</string>
   <string name="dialog_settings_title">Configuración</string>
   <string name="dialog_theme_title">Modo de color</string>
   <string name="dialog_background_title">Fondo</string>
