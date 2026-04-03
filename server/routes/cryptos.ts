@@ -28,10 +28,10 @@ export const getCryptoPrice = async (
   currency: string,
 ): Promise<number> => {
   try {
-    return (
-      dataBinance?.find((item) => item.symbol === `${cryptoId}${currency}`)
-        ?.price ?? -1
-    );
+    const symbol = cryptoId.toUpperCase() + currency.toUpperCase();
+    const cryptoData = dataBinance.find((item) => item.symbol === symbol);
+
+    return cryptoData?.price ?? -1;
   } catch (error) {
     showError(chalk.red("Error fetching crypto price:"), error);
     return -1;
@@ -48,8 +48,11 @@ export const handleGetCryptoPrice = getHandlerPost(
     try {
       const { cryptoId, currency } = body;
 
-      const priceUSD = await getCryptoPrice(cryptoId, currency);
-      const priceUSDTMXN = await getCryptoPrice("USDT", "MXN");
+      const [priceUSD, priceUSDTMXN] = await Promise.all([
+        getCryptoPrice(cryptoId, currency),
+        getCryptoPrice("USDT", "MXN"),
+      ]);
+
       if (priceUSD === -1 || priceUSDTMXN === -1)
         return sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,

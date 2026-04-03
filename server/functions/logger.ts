@@ -1,4 +1,3 @@
- 
 import pino from "pino";
 
 const logger = pino({
@@ -23,14 +22,29 @@ const logger = pino({
 
 const JOINER = " | ";
 
+const getMessage = (...args: unknown[]): string => {
+  return args
+    .map((arg) => {
+      if (typeof arg === "object" && arg !== null) {
+        try {
+          return JSON.stringify(arg);
+        } catch {
+          return String(arg);
+        }
+      }
+      return String(arg);
+    })
+    .join(JOINER);
+};
+
 export const showInfo = (...args: unknown[]): void => {
-  logger.info(args.map(String).join(JOINER));
+  logger.info(getMessage(...args));
 };
 
 export const showWarn = (...args: unknown[]): void => {
-  logger.warn(args.map(String).join(JOINER));
+  logger.warn(getMessage(...args));
 };
 
 export const showError = (...args: unknown[]): void => {
-  logger.error(args.map(String).join(JOINER));
+  logger.error(getMessage(...args));
 };

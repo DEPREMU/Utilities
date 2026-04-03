@@ -36,6 +36,20 @@ const deleteDevice = (data: { userId: string; deviceId: string }) => {
   delete usersClipboard[data.userId];
 };
 
+const cleanDeviceUserData = (data: DataUser) => {
+  if (!usersClipboard[data.userId]) return;
+
+  if (!usersClipboard[data.userId]) return;
+
+  const pingIntervalId =
+    usersClipboard[data.userId][data.deviceId]?.pingIntervalId;
+  if (pingIntervalId) clearInterval(pingIntervalId);
+
+  const pingTimeoutId =
+    usersClipboard[data.userId][data.deviceId]?.pingTimeoutId;
+  if (pingTimeoutId) clearTimeout(pingTimeoutId);
+};
+
 const handleClose = (data: DataUser, ws?: WebSocket) => {
   try {
     if (ws && ws.readyState !== WebSocket.CLOSED && !data.isClosing) {
@@ -47,15 +61,7 @@ const handleClose = (data: DataUser, ws?: WebSocket) => {
     // Ignore
   }
 
-  if (!usersClipboard[data.userId]) return;
-
-  const pingIntervalId =
-    usersClipboard[data.userId][data.deviceId]?.pingIntervalId;
-  if (pingIntervalId) clearInterval(pingIntervalId);
-
-  const pingTimeoutId =
-    usersClipboard[data.userId][data.deviceId]?.pingTimeoutId;
-  if (pingTimeoutId) clearTimeout(pingTimeoutId);
+  cleanDeviceUserData(data);
 
   deleteDevice(data);
 };
@@ -143,6 +149,15 @@ export const initWebSocketClipboard = () => {
                 chalk.yellow(data.deviceId),
               );
 
+              const existingDevice =
+                usersClipboard[data.userId]?.[data.deviceId];
+              if (existingDevice) {
+                cleanDeviceUserData(data);
+
+                if (existingDevice.ws !== connectionClipboard)
+                  existingDevice.ws.terminate();
+              }
+
               const pingIntervalId = setInterval(() => {
                 if (!usersClipboard[data.userId]) return;
                 if (!usersClipboard[data.userId][data.deviceId]) return;
@@ -213,7 +228,6 @@ export const initWebSocketClipboard = () => {
               }
 
               const devices = usersClipboard[data.userId] || {};
-              devices[data.deviceId].lastContent = message.content;
 
               Object.entries(devices).forEach(([deviceId, device]) => {
                 try {
@@ -232,6 +246,8 @@ export const initWebSocketClipboard = () => {
                   // Ignore
                 }
               });
+              devices[data.deviceId].lastContent = message.content;
+
               break;
             }
             case "pong": {
@@ -282,7 +298,7 @@ export const initWebSocketClipboard = () => {
   } catch (error) {
     showError(
       chalk.red("Error initializing Clipboard WebSocket server:"),
-      error,
+      error instanceof Error ? error.message : error,
     );
     throw error;
   }
