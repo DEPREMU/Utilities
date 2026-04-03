@@ -69,7 +69,8 @@ const trueArray = ["true", "1", "yes", "on"];
 
 const envTranslated: Env<true> = {
   IV: env.IV,
-  __DEV__: trueArray.includes(env.__DEV__),
+  __DEV__:
+    trueArray.includes(env.__DEV__) && process.env.NODE_ENV !== "production",
   WS_URL: env.WS_URL,
   API_URL: env.API_URL,
   BUILD_PROFILE: env.BUILD_PROFILE as "production",

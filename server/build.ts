@@ -30,7 +30,18 @@ build({
             {
               filter: /\.ts|\.js$/,
               replace: /showInfo\(/g,
-              replacer: () => JSON.stringify("(()=> {})("),
+              replacer: () => "(()=> {})(",
+            },
+            {
+              filter: /\.ts|\.js$/,
+              replace: /process\.env\.NODE_ENV/g,
+              replacer: () =>
+                JSON.stringify(process.env.NODE_ENV ?? "production"),
+            },
+            {
+              filter: /\.ts|\.js$/,
+              replace: /getEnvValue\("__DEV__"\)/g,
+              replacer: () => `${process.env.NODE_ENV !== "production"}`,
             },
           ]),
         ],

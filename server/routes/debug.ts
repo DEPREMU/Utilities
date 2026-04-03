@@ -3,7 +3,7 @@ import { RequestLogs } from "@types";
 import humanizeDuration from "humanize-duration";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { insertIntoTable } from "../database/functions.ts";
-import { sendFCMNotification } from "firebase/admin.ts";
+import { sendFCMNotification } from "../firebase/admin.ts";
 
 /**
  * Handles adding a log entry to the database.

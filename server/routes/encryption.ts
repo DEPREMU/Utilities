@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import crypto from "crypto";
 import { showError } from "../functions/logger.ts";
-import { getEnvValue } from "env.ts";
+import { getEnvValue } from "../env.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { RequestDecrypt, RequestEncrypt } from "@types";
 

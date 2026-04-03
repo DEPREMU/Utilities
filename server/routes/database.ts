@@ -3,7 +3,7 @@ import {
   updateInTable,
   fetchFromTable,
   insertIntoTable,
-} from "database/functions.ts";
+} from "../database/functions.ts";
 import {
   RequestDatabaseDelete,
   RequestDatabaseFetch,

@@ -11,21 +11,20 @@
   ],
   "compilerOptions": {
     "strict": true,
-    "baseUrl": ".",
     "allowImportingTsExtensions": true,
     "paths": {
-      "@/*": ["src/*"],
-      "@refs": ["src/app/refs/"],
-      "@utils": ["src/utils/"],
+      "@/*": ["./src/*"],
+      "@refs": ["./src/app/refs/"],
+      "@utils": ["./src/utils/"],
       "@types": ["../types/index.d.ts"],
       "@common": ["../common/both/"],
-      "@modules": ["src/utils/modules/"],
-      "@hooks/*": ["src/hooks/*"],
-      "@assets/*": ["src/assets/*"],
-      "@screens/*": ["src/features/*"],
-      "@context/*": ["src/context/*"],
-      "@components/*": ["src/components/*"],
-      "@navigation/*": ["src/app/navigation/*"]
+      "@modules": ["./src/utils/modules/"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@assets/*": ["./src/assets/*"],
+      "@screens/*": ["./src/features/*"],
+      "@context/*": ["./src/context/*"],
+      "@components/*": ["./src/components/*"],
+      "@navigation/*": ["./src/app/navigation/*"]
     }
   }
 }

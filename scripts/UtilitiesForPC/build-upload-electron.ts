@@ -2,7 +2,7 @@ import type {
   PlatformsOS,
   RequestUploadUpdate,
   RequestIsUpdateAvailable,
-} from "../../types/index";
+} from "@types";
 import {
   ARGS,
   getArgs,

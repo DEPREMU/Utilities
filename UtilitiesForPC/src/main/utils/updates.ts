@@ -12,13 +12,13 @@ import dataApp from "./variables";
 import { writeLog } from "./logger";
 import { getJSPath } from "@utils";
 import { handleShutdown } from "./server";
-import type { UpdatesRoutes } from "./../../../../types";
+import type { UpdatesRoutes } from "@types";
 import { execFileSync, execSync, spawn } from "child_process";
 
 if (!app.isPackaged)
   dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
 
-let urlUpdates = process.env.API_URL.replace("api", "updates"); // API_URL replaced in build process
+const urlUpdates = process.env.API_URL.replace("api", "updates"); // API_URL replaced in build process
 
 if (!urlUpdates) {
   throw new Error("API_URL is not defined.");
@@ -38,7 +38,7 @@ export const deleteDownloadedUpdate = () => {
   try {
     fs.unlinkSync(downloadFilePath);
     writeLog("Deleted downloaded update file.", "info");
-  } catch (error) {
+  } catch {
     try {
       if (dataApp.getValue("isWindows"))
         execSync(
@@ -105,17 +105,17 @@ const openInstallerOrInstall = async (filePath: string) => {
 };
 
 export const downloadNewUpdate = async (downloadUrl: string) => {
-  return new Promise<void>(async (resolve) => {
+  const response: any = await axios.get(downloadUrl, {
+    responseType: "stream",
+  });
+
+  return new Promise<void>((resolve) => {
     try {
       const downloadFilePath = dataApp.getValue("downloadFilePath");
       writeLog(
         `Starting download from ${downloadUrl} to ${downloadFilePath}`,
         "info",
       );
-
-      const response: any = await axios.get(downloadUrl, {
-        responseType: "stream",
-      });
 
       const writer = fs.createWriteStream(downloadFilePath);
       response.data.pipe(writer);
@@ -213,7 +213,7 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
           timeout: 2500,
         });
         if (res.status >= 200 && res.status < 300) break;
-      } catch (error) {
+      } catch {
         writeLog(
           `No internet connection detected. Retry attempt ${attempts + 1}/5`,
           "warn",

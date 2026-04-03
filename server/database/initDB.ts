@@ -3,7 +3,7 @@ import path from "path";
 import chalk from "chalk";
 import { pool } from "./postgres";
 import DataJSON from "./data.json";
-import { getEnvValue } from "env.ts";
+import { getEnvValue } from "../env.ts";
 import { deleteOldSessions } from "./functions.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 import { wrapFunctionWithError } from "@common";

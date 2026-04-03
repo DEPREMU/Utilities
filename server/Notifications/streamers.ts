@@ -6,8 +6,8 @@ import {
 } from "@types";
 import chalk from "chalk";
 import { t } from "@common";
-import { fetchFromTable } from "database/functions.ts";
 import { isLiveStreamer } from "../routes/socialMedia.ts";
+import { fetchFromTable } from "../database/functions.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 

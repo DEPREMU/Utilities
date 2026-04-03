@@ -1,9 +1,9 @@
 import chalk from "chalk";
 import admin from "firebase-admin";
 import { getEnvValue } from "../env.ts";
+import { deleteInTable } from "../database/functions.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 import { ScreensAvailable, ChannelsId } from "@types";
-import { deleteInTable } from "database/functions.ts";
 
 let firebaseApp: admin.app.App | null = null;
 

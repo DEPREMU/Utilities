@@ -4,7 +4,7 @@
   "description": "A collection of useful utilities for PC users.",
   "main": "build/index.cjs",
   "scripts": {
-    "type-check": "tsc --project src/tsconfig.json --noEmit",
+    "type-check": "tsc --noEmit",
     "before-commit": "yarn run type-check"
   },
   "homepage": "https://example.com",

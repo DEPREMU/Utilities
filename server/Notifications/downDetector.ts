@@ -1,10 +1,10 @@
 import chalk from "chalk";
 import axios from "axios";
 import { showInfo } from "../functions/logger.ts";
+import { fetchFromTable } from "../database/functions.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
 import { languagesSupported, t } from "@common";
 import { LanguagesSupported, ReasonNotification } from "@types";
-import { fetchFromTable } from "database/functions.ts";
 
 const isDown = async (url: string): Promise<boolean> => {
   if (!url || !url.startsWith("http")) return false;

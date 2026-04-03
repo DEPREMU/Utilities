@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { TablesKeys } from "@types";
-import { getEnvValue } from "env";
+import { getEnvValue } from "./env.ts";
 
 export const host: string = getEnvValue("__DEV__") ? "0.0.0.0" : "localhost";
 export const port: number = 3000;

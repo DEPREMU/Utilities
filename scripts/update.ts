@@ -3,7 +3,7 @@ import type {
   RequestUploadUpdate,
   RequestIsUpdateAvailable,
   ResponseIsUpdateAvailable,
-} from "./../types/";
+} from "@types";
 import {
   env,
   ARGS,
