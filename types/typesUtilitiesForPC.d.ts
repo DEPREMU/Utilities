@@ -38,6 +38,7 @@ export type DataAppElectron = {
   wasSleeping: boolean;
   SERVICE_NAME: string;
   webRestarted: boolean;
+  downloadsPath: string;
   userIsLoggedIn: boolean;
   clipboardWindow: Electron.BrowserWindow | null;
   downloadFilePath: string;

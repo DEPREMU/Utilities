@@ -16,6 +16,7 @@ import {
 import fs from "fs";
 import path from "path";
 import axios from "axios";
+import archiver from "archiver";
 import FormData from "form-data";
 import { execSync } from "child_process";
 
@@ -112,11 +113,31 @@ const uploadWeb = async (): Promise<boolean> => {
     if (!fileJS)
       throw new Error(`Build file not found in directory ${buildPath}`);
 
-    const buildFilePath = path.join(buildPath, fileJS);
-
     const platformsOS: PlatformsOS[] = [];
     if (isNewVersionWeb.windows) platformsOS.push("windows");
     if (isNewVersionWeb.linux) platformsOS.push("linux");
+
+    const zipPath = path.join(
+      UTILITIES_FOR_PC_PATH,
+      "dist",
+      "temp_web_build.zip",
+    );
+    const output = fs.createWriteStream(zipPath);
+
+    const zip = archiver("zip", {
+      zlib: { level: 9 },
+    });
+    zip.pipe(output);
+
+    dirFiles.forEach((file) => {
+      const filePath = path.join(buildPath, file);
+      zip.file(filePath, { name: file });
+    });
+
+    await zip.finalize();
+
+    if (!fs.existsSync(zipPath))
+      throw new Error(`Zip file not found at ${zipPath}`);
 
     const url = `${process.env.API_URL?.replace(
       "api",
@@ -136,7 +157,7 @@ const uploadWeb = async (): Promise<boolean> => {
 
         const formData = new FormData();
         formData.append("data", JSON.stringify(data));
-        formData.append("file", fs.createReadStream(buildFilePath));
+        formData.append("file", fs.createReadStream(zipPath));
 
         const contentLength = await new Promise<number>((resolve, reject) => {
           formData.getLength((err, length) => {

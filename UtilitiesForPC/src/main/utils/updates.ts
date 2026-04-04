@@ -104,93 +104,107 @@ const openInstallerOrInstall = async (filePath: string) => {
   }
 };
 
-export const downloadNewUpdate = async (downloadUrl: string) => {
-  const response: any = await axios.get(downloadUrl, {
+export const downloadNewUpdate = async (
+  downloadUrl: string,
+  downloadFilePath: string,
+) => {
+  const response = await axios.get(downloadUrl, {
     responseType: "stream",
   });
 
-  return new Promise<void>((resolve) => {
+  return new Promise<"success" | "error">((resolve) => {
+    const writer = fs.createWriteStream(downloadFilePath);
+
+    let handleFinishCalled = false;
+    const handleFinish = (err?: string) => {
+      if (handleFinishCalled) return;
+      handleFinishCalled = true;
+      writer.close();
+
+      resolve(err ? "error" : "success");
+    };
     try {
-      const downloadFilePath = dataApp.getValue("downloadFilePath");
       writeLog(
         `Starting download from ${downloadUrl} to ${downloadFilePath}`,
         "info",
       );
 
-      const writer = fs.createWriteStream(downloadFilePath);
       response.data.pipe(writer);
 
       writer.on("finish", async () => {
         writeLog("Download finished successfully.", "info");
-        writer.close();
-        await openInstallerOrInstall(downloadFilePath);
-        resolve();
+        handleFinish();
       });
 
       writer.on("error", (err: unknown) => {
-        console.error("Error writing file", err);
         writeLog("Error writing update file: " + String(err), "error");
-        writer.close();
-        resolve();
+        handleFinish(err instanceof Error ? err.message : String(err));
       });
 
       response.data.on("error", (err: unknown) => {
-        console.error("Error downloading the file", err);
         writeLog("Error downloading the file stream: " + String(err), "error");
-        writer.close();
-        resolve();
+        handleFinish(err instanceof Error ? err.message : String(err));
       });
     } catch (error) {
-      console.error("Error downloading the update:", error);
-      writeLog("Error downloading the update: " + String(error), "error");
-      resolve();
+      writeLog(
+        "Error downloading the update: " +
+          (error instanceof Error ? error.message : String(error)),
+        "error",
+      );
+      handleFinish(error instanceof Error ? error.message : String(error));
     }
   });
 };
 
 export const updateWebJS = async (downloadUrl: string): Promise<void> => {
   try {
-    const response = await axios.get<string>(downloadUrl, {
-      responseType: "text",
-    });
+    const filePath = path.join(
+      dataApp.getValue("downloadsPath"),
+      "utilities-for-pc-web.zip",
+    );
 
-    const newFileJS = response.data;
-
-    if (typeof newFileJS !== "string" || newFileJS.length < 10000) {
-      writeLog("HTML received is too small or invalid. Skipping.", "warn");
+    const res = await downloadNewUpdate(downloadUrl, filePath);
+    if (res === "error") {
+      writeLog("Failed to download the web update.", "error");
       return;
     }
 
-    const jsPath = getJSPath();
+    const unzipper = await import("unzipper");
 
-    if (dataApp.getValue("isWindows")) {
-      try {
-        fs.writeFileSync(jsPath, newFileJS, { encoding: "utf-8" });
-      } catch (error) {
-        execSync(
-          `powershell -NoProfile -Command "Set-Content -LiteralPath '${jsPath.replace(
-            /'/g,
-            "''",
-          )}' -"`,
-          {
-            input: newFileJS,
-            stdio: ["pipe", "ignore", "ignore"],
-          },
-        );
+    const jsDir = getJSPath();
 
-        writeLog("Error writing HTML on Windows: " + String(error), "error");
-      }
-    } else {
-      execFileSync("sudo", ["tee", jsPath], {
-        input: newFileJS,
-        stdio: ["pipe", "ignore", "ignore"],
-      });
-    }
+    await Promise.all(
+      fs.readdirSync(jsDir).map(async (file) => {
+        try {
+          if (file.endsWith(".js"))
+            await fs.promises.unlink(path.join(jsDir, file));
+        } catch {
+          writeLog(`Failed to delete old JS file: ${file}`, "warn");
+        }
+      }),
+    );
+
+    await new Promise<void>((resolve) => {
+      fs.createWriteStream(filePath)
+        .pipe(
+          unzipper.Extract({
+            path: jsDir,
+          }),
+        )
+        .on("close", async () => {
+          writeLog("Web update extracted successfully.", "info");
+          try {
+            await fs.promises.unlink(filePath);
+          } catch {
+            writeLog("Failed to delete the web update zip file.", "warn");
+          }
+          resolve();
+        });
+    });
 
     writeLog("Web HTML updated correctly.", "info");
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Error updating Web HTML:", errorMessage);
     writeLog("Error updating Web HTML: " + errorMessage, "error");
   }
 };
@@ -242,8 +256,17 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
     if (!data?.updateAvailable) return;
     dataApp.setValue("isUpdating", true);
 
-    if (buildType === "electron") await downloadNewUpdate(data.downloadUrl);
-    else await updateWebJS(data.downloadUrl);
+    if (buildType === "electron") {
+      const path = dataApp.getValue("downloadFilePath");
+      const res = await downloadNewUpdate(data.downloadUrl, path);
+      if (res === "error") {
+        writeLog("Failed to download the update installer.", "error");
+        dataApp.setValue("isUpdating", false);
+        return;
+      }
+
+      await openInstallerOrInstall(path);
+    } else await updateWebJS(data.downloadUrl);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error verifying new update:", errorMessage);

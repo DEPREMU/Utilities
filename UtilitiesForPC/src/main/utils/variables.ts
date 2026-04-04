@@ -68,8 +68,7 @@ const userHome = (process.env.ORIGINAL_HOME ||
     : process.env.HOME)) as string;
 
 const getDownloadsPath = (): string => {
-  if (isWindows)
-    return path.join(app.getPath("downloads"), `UtilitiesForPC-Update.exe`);
+  if (isWindows) return path.join(app.getPath("downloads"));
 
   let downloadsPath = path.join(userHome, "Downloads");
   try {
@@ -91,10 +90,12 @@ const getDownloadsPath = (): string => {
   }
 
   writeLog(`Using Downloads path: ${downloadsPath}`, "info");
-  return path.join(downloadsPath, "UtilitiesForPC-Update.deb");
+  return downloadsPath;
 };
 
-let dataAppDefault: DataAppElectron = {
+const downloadsPath = getDownloadsPath();
+
+const dataAppDefault: DataAppElectron = {
   ad: null,
   PORT: 3005,
   tray: null,
@@ -118,7 +119,11 @@ let dataAppDefault: DataAppElectron = {
   isUpdating: false,
   wasSleeping: false,
   webRestarted: false,
-  downloadFilePath: getDownloadsPath(),
+  downloadsPath,
+  downloadFilePath: path.join(
+    downloadsPath,
+    `UtilitiesForPC-update.${isWindows ? "exe" : "deb"}`,
+  ),
   mainWindow: null,
   isQuitting: false,
   SERVICE_NAME: "UtilitiesForPC",

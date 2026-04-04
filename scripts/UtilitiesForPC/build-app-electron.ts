@@ -218,16 +218,12 @@ const buildApp = async () => {
   if (buildPlatform === "windows") {
     console.log(t("buildingWindowsExecutable"));
 
-    try {
-      execSync("yarn electron-builder --win", {
-        cwd: TEMP_FOLDER,
-        stdio: "inherit",
-      });
+    execSync("yarn electron-builder --win", {
+      cwd: TEMP_FOLDER,
+      stdio: "inherit",
+    });
 
-      console.log(t("windowsBuildCompleted"));
-    } catch (error) {
-      throw error;
-    }
+    console.log(t("windowsBuildCompleted"));
   } else if (buildPlatform === "linux") {
     console.log(t("buildingLinuxPackage"));
 
@@ -241,15 +237,11 @@ const buildApp = async () => {
       console.log(t("someDependenciesInstalled"));
     }
 
-    try {
-      execSync("yarn electron-builder --linux deb", {
-        cwd: TEMP_FOLDER,
-        stdio: "inherit",
-      });
-      console.log("\n" + t("appPackagedSuccessfully"));
-    } catch (error) {
-      throw error;
-    }
+    execSync("yarn electron-builder --linux deb", {
+      cwd: TEMP_FOLDER,
+      stdio: "inherit",
+    });
+    console.log("\n" + t("appPackagedSuccessfully"));
   }
 
   const extension = PLATFORM.isWindows ? ".exe" : ".deb";

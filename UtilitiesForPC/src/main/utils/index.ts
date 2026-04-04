@@ -92,7 +92,7 @@ export const getJSPath = (): string => {
 
   if (!jsFile) throw new Error(`JS file not found in directory ${pathWeb}`);
 
-  return path.join(pathWeb, jsFile);
+  return pathWeb;
 };
 
 export const askPath = async (): Promise<string | null> => {

@@ -1,10 +1,10 @@
 import fs from "fs";
 import path from "path";
+import { app } from "electron";
 import { path7za } from "7zip-bin";
+import { URI_EXTENSION } from "@common";
 import { ChannelsIpcRenderer } from "@types";
 import { add, SevenZipOptions } from "node-7z";
-import { app } from "electron";
-import { URI_EXTENSION } from "@common";
 
 export const zipFolder = async (
   ...args: ChannelsIpcRenderer["zip-folder"]["functionArgs"]
@@ -14,7 +14,7 @@ export const zipFolder = async (
 
     const outputZipPath = path.join(
       outputPath.path,
-      `${outputPath.folderName}.zip`
+      `${outputPath.folderName}.zip`,
     );
 
     const tempFolder = path.join(app.getPath("temp"), "zip-temp-folder");
@@ -33,7 +33,7 @@ export const zipFolder = async (
         } catch {
           // Ignore individual file copy errors
         }
-      })
+      }),
     );
 
     return await new Promise((resolve) => {
@@ -63,7 +63,7 @@ export const zipFolder = async (
         onError?.(err);
         console.error(
           "Error zipping folder:",
-          err instanceof Error ? err.message : err
+          err instanceof Error ? err.message : err,
         );
         resolve("");
       });

@@ -131,6 +131,8 @@ export const isNewVersion = (
   current: string,
   serverVersion: string,
 ): boolean => {
+  if (serverVersion.toLowerCase() === "unknown") return true;
+
   return getSumVersion(serverVersion) < getSumVersion(current);
 };
 

@@ -1,4 +1,3 @@
- 
 import {
   UpdateInfo,
   PlatformsOS,
@@ -18,7 +17,7 @@ import dataUploads, { updateDataUploads } from "./dataUploads.ts";
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const extensions = {
-  web: ".js",
+  web: ".zip",
   android: ".apk",
   windows: ".exe",
 } as const;
@@ -29,7 +28,7 @@ export const getFinalFileName = (
   const extension =
     extensions[dataFile.buildType as keyof typeof extensions] || ".deb";
 
-  return `${dataFile.version}-${dataFile.buildType}-${extension === ".apk" ? "android" : dataFile.platformOS}${extension}`;
+  return `${dataFile.version}-${dataFile.buildType}${extension === ".apk" ? "" : `-${dataFile.platformOS}`}${extension}`;
 };
 
 export const handleUploadUpdate = (req: Request, res: Response) => {
