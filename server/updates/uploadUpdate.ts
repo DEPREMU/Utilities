@@ -18,6 +18,7 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const extensions = {
   web: ".zip",
+  linux: ".deb",
   android: ".apk",
   windows: ".exe",
 } as const;
@@ -26,7 +27,8 @@ export const getFinalFileName = (
   dataFile: Omit<RequestUploadUpdate, "timestamp">,
 ) => {
   const extension =
-    extensions[dataFile.buildType as keyof typeof extensions] || ".deb";
+    extensions[dataFile.buildType as keyof typeof extensions] ??
+    extensions[dataFile.platformOS as keyof typeof extensions];
 
   return `${dataFile.version}-${dataFile.buildType}${extension === ".apk" ? "" : `-${dataFile.platformOS}`}${extension}`;
 };
