@@ -1,27 +1,22 @@
-import { useTheme } from "@/context/ThemeContext";
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@/context/LayoutContext";
+import { useMemo } from "react";
 
 const useStylesFinances = () => {
-  const theme = useTheme();
-  const { isWeb, getCommonStyles } = useResponsiveLayout();
-  const { primary, background } = theme;
+  const { colors } = useTheme();
+  const { getCommonStyles, texts } = useResponsiveLayout();
 
-  const styles = StyleSheet.create({
-    container: {
-      ...getCommonStyles("mainContainer", {
-        fallbackValues: [isWeb ? 20 : 16],
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        ...texts,
+        ...getCommonStyles("container"),
       }),
-      backgroundColor: background,
-    },
-    title: {
-      fontSize: isWeb ? 24 : 20,
-      fontWeight: "bold",
-      color: primary,
-    },
-  });
+    [getCommonStyles, texts],
+  );
 
-  return { styles, ...theme };
+  return { styles, colors };
 };
 
 export default useStylesFinances;

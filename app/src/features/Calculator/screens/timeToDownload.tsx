@@ -1,11 +1,20 @@
-import Button from "@/common/components/Button/screens";
-import { View } from "react-native";
-import { useLanguage } from "@/context/LanguageContext";
+import {
+  KeyboardGestureArea,
+  KeyboardAvoidingView,
+} from "react-native-keyboard-controller";
+import Animated, {
+  FadeOutUp,
+  FadeInDown,
+  LinearTransition,
+} from "react-native-reanimated";
+import TextInput from "@components/TextInput";
+import { ScrollView } from "react-native";
+import { useLanguage } from "@context/LanguageContext";
 import humanizeDuration from "humanize-duration";
 import * as Notifications from "expo-notifications";
-import { tTyped, REPLACERS } from "@utils";
-import useStylesTimeToDownload from "@/features/Calculator/styles/useStylesTimeToDownload";
-import { Text, TextInput, List } from "react-native-paper";
+import { useStylesTimeToDownload } from "@screens/Calculator/styles/useStylesTimeToDownload";
+import { tTyped, REPLACERS, memoDeep } from "@utils";
+import { Text, List, Button, Divider } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const SCALE = {
@@ -23,20 +32,34 @@ const TimeToDownload = () => {
 
   const [scale, setScale] = useState<ScaleKey>("MB");
   const [timeMS, setTimeMS] = useState<number>(0);
-  const [fileSize, setFileSize] = useState<number>(0);
-  const [speedMbps, setSpeedMbps] = useState<number>(0);
+  const [fileSize, setFileSize] = useState<string>("");
+  const [speedMbps, setSpeedMbps] = useState<string>("");
   const [accordionExpanded, setAccordionExpanded] = useState<boolean>(false);
 
   const prevIdNotifications = useRef<string | null>(null);
+
+  const accordionRef = useRef(
+    Object.keys(SCALE).map((key) => (
+      <List.Item
+        key={key}
+        title={key}
+        onPress={() => handleSelectScaleRef.current(key as ScaleKey)}
+      />
+    )),
+  );
 
   const handleSelectScaleRef = useRef((value: ScaleKey) => {
     setScale(value);
     setAccordionExpanded(false);
   });
 
+  const handlePressAccordionRef = useRef(() => {
+    setAccordionExpanded((prev) => !prev);
+  });
+
   const handleSetAlarm = useCallback(async () => {
     if (REPLACERS.isWeb) return;
-    if (timeMS <= 0) return;
+    if (timeMS <= 1000) return;
 
     const alarmTime = Date.now() + timeMS;
     const id = await Notifications.scheduleNotificationAsync({
@@ -65,9 +88,21 @@ const TimeToDownload = () => {
       setTimeMS(0);
       return;
     }
+    const fileSizeNum = Number(fileSize);
+    const speedMbpsNum = Number(speedMbps);
 
-    const sizeInMB = fileSize * SCALE[scale];
-    const speedMBps = speedMbps / 8;
+    if (
+      isNaN(fileSizeNum) ||
+      isNaN(speedMbpsNum) ||
+      fileSizeNum <= 0 ||
+      speedMbpsNum <= 0
+    ) {
+      setTimeMS(0);
+      return;
+    }
+
+    const sizeInMB = fileSizeNum * SCALE[scale];
+    const speedMBps = speedMbpsNum / 8;
 
     const timeSeconds = sizeInMB / speedMBps;
     setTimeMS(timeSeconds * 1000);
@@ -83,55 +118,100 @@ const TimeToDownload = () => {
       : "--";
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{t("timeToDownload")}</Text>
-
-      <TextInput
-        label={t("fileSize")}
-        keyboardType="numeric"
-        value={fileSize ? String(fileSize) : ""}
-        onChangeText={(v) => setFileSize(Number(v))}
-        style={styles.input}
-      />
-
-      <List.Section style={styles.section}>
-        <List.Accordion
-          title={t("scale", { scale })}
-          expanded={accordionExpanded}
-          onPress={() => setAccordionExpanded(!accordionExpanded)}
+    <KeyboardGestureArea style={styles.scrollViewContainer} interpolator="ios">
+      <KeyboardAvoidingView
+        style={styles.scrollViewContainer}
+        behavior="padding"
+      >
+        <ScrollView
+          style={styles.scrollViewContainer}
+          contentContainerStyle={styles.scrollViewContentContainer}
         >
-          {Object.keys(SCALE).map((key) => (
-            <List.Item
-              key={key}
-              title={key}
-              onPress={() => handleSelectScaleRef.current(key as ScaleKey)}
-            />
-          ))}
-        </List.Accordion>
-      </List.Section>
+          <Animated.View
+            style={styles.container}
+            layout={LinearTransition.duration(200).springify()}
+          >
+            <Text style={styles.title}>{t("timeToDownload")}</Text>
 
-      <TextInput
-        label={t("internetSpeedMbps")}
-        keyboardType="numeric"
-        value={speedMbps ? String(speedMbps) : ""}
-        onChangeText={(v) => setSpeedMbps(Number(v))}
-        style={styles.input}
-      />
+            <Animated.View
+              style={styles.sectionContainer}
+              layout={LinearTransition.duration(200).springify()}
+            >
+              <TextInput
+                style={styles.input}
+                label={t("fileSize")}
+                value={fileSize}
+                keyboardType="numeric"
+                onChangeText={setFileSize}
+              />
+            </Animated.View>
 
-      <View style={styles.resultContainer}>
-        <Text style={styles.resultLabel}>{t("timeToDownloadResult")}</Text>
+            <Divider style={styles.divider} />
 
-        <Text style={styles.resultValue}>{timeText}</Text>
-        {timeMS > 0 && REPLACERS.isNative && (
-          <Button
-            label={t("setAlarmWhenDone", { time: timeText })}
-            handlePress={handleSetAlarm}
-            touchableOpacity
-          />
-        )}
-      </View>
-    </View>
+            <Animated.View
+              style={styles.sectionContainer}
+              layout={LinearTransition.duration(200).springify()}
+            >
+              <List.Accordion
+                title={t("scale", { scale })}
+                onPress={handlePressAccordionRef.current}
+                expanded={accordionExpanded}
+              >
+                {accordionRef.current}
+              </List.Accordion>
+            </Animated.View>
+
+            <Animated.View
+              style={styles.sectionContainer}
+              layout={LinearTransition.duration(200).springify()}
+            >
+              <TextInput
+                style={styles.input}
+                label={t("internetSpeedMbps")}
+                value={speedMbps}
+                keyboardType="numeric"
+                onChangeText={setSpeedMbps}
+              />
+            </Animated.View>
+
+            <Animated.View layout={LinearTransition.duration(200).springify()}>
+              <Divider style={styles.divider} />
+            </Animated.View>
+
+            <Animated.View
+              layout={LinearTransition.duration(200).springify()}
+              style={styles.resultContainer}
+            >
+              <Text style={styles.resultLabel}>
+                {t("timeToDownloadResult")}
+              </Text>
+
+              <Text style={styles.resultValue} selectable>
+                {timeText}
+              </Text>
+
+              {timeMS > 1000 && REPLACERS.isNative && (
+                <>
+                  <Divider style={styles.divider} />
+
+                  <Animated.View
+                    exiting={FadeOutUp.duration(200)}
+                    entering={FadeInDown.duration(200)}
+                  >
+                    <Button mode="contained" onPress={handleSetAlarm}>
+                      <Text style={styles.h3}>
+                        {t("setAlarmWhenDone", { time: timeText })}
+                      </Text>
+                    </Button>
+                  </Animated.View>
+                </>
+              )}
+            </Animated.View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </KeyboardGestureArea>
   );
 };
 
-export default TimeToDownload;
+export default memoDeep(TimeToDownload);

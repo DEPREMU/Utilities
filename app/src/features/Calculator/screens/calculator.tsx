@@ -1,7 +1,6 @@
 import Button from "@/common/components/Button/screens";
 import { Icon, Text } from "react-native-paper";
-import { useLanguage } from "@/context/LanguageContext";
-import useStylesCalculator from "@/features/Calculator/styles/useStylesCalculator";
+import { useStylesCalculator } from "@screens/Calculator/styles/useStylesCalculator";
 import { logger, memoDeep } from "@utils";
 import { ScrollView, View } from "react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -16,7 +15,6 @@ const layout: string[][] = [
 ];
 
 const Calculator: React.FC = () => {
-  const { t } = useLanguage();
   const { styles } = useStylesCalculator();
 
   const [input, setInput] = useState<string>("");
@@ -38,7 +36,7 @@ const Calculator: React.FC = () => {
               label={["d", "c"].includes(char) ? "" : char}
               replaceStyles={{
                 button: styles.buttonInput,
-                textButton: styles.buttonText,
+                textButton: styles.h3,
               }}
               touchableOpacity
               handlePress={() => handlePressInputRef.current(char)}
@@ -56,39 +54,42 @@ const Calculator: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!input || !t || input.trim().length === 0) return setResult("0");
+    if (!input || input.trim().length === 0) return setResult("0");
+
     try {
-      const value = eval(
-        input
-          .replace(/e/g, Math.E.toString())
-          .replace(/π/g, Math.PI.toString())
-          .replace(/,/g, "")
-          .replace(/(\d)(\()/g, "$1*$2"),
-      );
+      const cleanInput = input
+        .replace(/e/g, `(${Math.E})`)
+        .replace(/π/g, `(${Math.PI})`)
+        .replace(/,/g, "")
+        .replace(/\)\s*\(/g, ")*(")
+        .replace(/(\d)\s*\(/g, "$1*(")
+        .replace(/\)\s*(\d)/g, ")*$1");
+
+      const value = eval(cleanInput);
       if (!isFinite(value)) setResult("Error");
       else setResult(value.toString());
     } catch (error) {
-      logger.error(error);
+      logger.error(error instanceof Error ? error.message : String(error));
       setResult("Error");
     }
-  }, [input, t]);
+  }, [input]);
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
+          style={styles.scrollViewContainer}
+          contentContainerStyle={styles.scrollViewContentContainer}
         >
           <Text style={styles.input}>{input}</Text>
         </ScrollView>
+
         <Text style={styles.result}>{result}</Text>
       </View>
+
       <View style={styles.inputsCalculator}>{renderButtons}</View>
     </View>
   );
 };
 
-const CalculatorMemo = memoDeep(Calculator);
-
-export default CalculatorMemo;
+export default memoDeep(Calculator);
