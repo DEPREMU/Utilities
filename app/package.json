@@ -76,6 +76,7 @@
     "react-native-create-thumbnail": "^2.2.0",
     "react-native-device-info": "^15.0.2",
     "react-native-gesture-handler": "~2.30.1",
+    "react-native-keyboard-controller": "1.20.7",
     "react-native-marked": "^8.0.1",
     "react-native-nitro-modules": "^0.35.2",
     "react-native-paper": "^5.15.0",

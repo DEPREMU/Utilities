@@ -625,6 +625,7 @@ export const esApp: typeLanguages = {
     unknown: "Desconocido",
     selectFolder: "Seleccionar carpeta",
     welcome: "Bienvenido",
+    welcomeAgain: "Bienvenido de nuevo",
     NoInternetConnection: "Sin conexión a Internet",
     PleaseCheckInternetConnection:
       "Por favor, verifica tu conexión a Internet.",
@@ -807,9 +808,10 @@ export const esApp: typeLanguages = {
   clipboard: {
     settings: {
       title: "Configuración del Portapapeles",
-      enabled: "Habilitar el Sincronizado del Portapapeles",
+      enabled: "Sincronización del portapapeles habilitada: ",
       maxItems: "Maxima Cantidad de Elementos por Guardar en Memoria",
       maxCharsInItem: "Maxima Cantidad de Caracteres por Elemento",
+      enableClipboard: "Habilitar sincronización del portapapeles",
     },
   },
   loadingScreen: {

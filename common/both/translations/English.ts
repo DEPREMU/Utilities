@@ -608,6 +608,7 @@ export const enApp: typeLanguages = {
     close: "Close",
     success: "Success",
     welcome: "Welcome",
+    welcomeAgain: "Welcome Back",
     easy: "Easy",
     selectFolder: "Select Folder",
     hard: "Hard",
@@ -795,8 +796,9 @@ export const enApp: typeLanguages = {
   clipboard: {
     settings: {
       title: "Clipboard Settings",
-      enabled: "Clipboard Sync Enabled",
+      enabled: "Clipboard Sync Enabled: ",
       maxItems: "Max items to save in memory",
+      enableClipboard: "Enable Clipboard Sync",
       maxCharsInItem: "Max characters per content",
     },
   },

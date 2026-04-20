@@ -1,41 +1,27 @@
 import { useMemo } from "react";
-import { useTheme } from "@/context/ThemeContext";
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
-import { useResponsiveLayout } from "@/context/LayoutContext";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
-/**
- * @function  useStylesScanQRCode
- */
-const useStylesScanQRCode = () => {
-  const colors = useTheme();
-  const { background, secondary, text } = colors;
-  const { width, height, getCommonStyles } = useResponsiveLayout();
+export const useStylesScanQRCode = () => {
+  const { colors } = useTheme();
+  const { width, height, getCommonStyles, texts } = useResponsiveLayout();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer", { fallbackValues: [40, 20] }),
-          backgroundColor: background,
-        },
-        text: {
-          color: text,
-          fontSize: 16,
-          textAlign: "center",
-          marginTop: 20,
-        },
         cameraView: {
           width: "100%",
           height: 400,
           borderRadius: 10,
           overflow: "hidden",
-          backgroundColor: secondary,
+          backgroundColor: colors.secondary,
         },
+        ...texts,
+        ...getCommonStyles("container"),
       }),
-    [background, getCommonStyles, text, secondary],
+    [colors, getCommonStyles, texts],
   );
 
-  return { styles, height, width, ...colors };
+  return { styles, height, width, colors };
 };
-
-export default useStylesScanQRCode;

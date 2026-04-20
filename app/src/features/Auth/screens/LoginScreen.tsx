@@ -1,19 +1,51 @@
-import { View } from "react-native";
+import {
+  KeyboardGestureArea,
+  KeyboardAvoidingView,
+} from "react-native-keyboard-controller";
+import {
+  Text,
+  Switch,
+  Button,
+  SegmentedButtons,
+  ActivityIndicator,
+} from "react-native-paper";
+import React, {
+  useRef,
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import Animated, {
+  FadeInUp,
+  FadeInRight,
+  FadeOutDown,
+  FadeOutLeft,
+  LinearTransition,
+} from "react-native-reanimated";
+import {
+  logger,
+  tTyped,
+  REPLACERS,
+  navigation,
+  sessionManager,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
+  isValidEmail,
+  isValidPassword,
+} from "@utils";
 import LoginTypeQR from "@screens/Auth/components/LoginTypeQR";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
-import ButtonComponent from "@/common/components/Button/screens";
 import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
-import stylesLoginScreen from "@screens/Auth/styles/useStylesAuthScreens";
 import { useUserContext } from "@context/UserContext";
-import { Text, ActivityIndicator, Switch } from "react-native-paper";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { logger, tTyped, REPLACERS, sessionManager, navigation } from "@utils";
+import { ScrollView, View } from "react-native";
+import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 
 const LoginScreen: React.FC = () => {
   const { t } = useLanguage();
   const { isLoggedIn } = useUserContext();
-  const { styles, text, primary } = stylesLoginScreen();
+  const { styles, colors } = useStylesAuthScreens();
 
   const [email, setEmail] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +56,8 @@ const LoginScreen: React.FC = () => {
   const [typeLogin, setTypeLogin] = useState<"email" | "qr">(
     REPLACERS.isNative ? "email" : "qr",
   );
+
+  const timeoutIdRef = useRef<number | null>(null);
 
   const handleShowPasswordRef = useRef(() => {
     setShowPassword((prev) => !prev);
@@ -39,6 +73,16 @@ const LoginScreen: React.FC = () => {
 
   const handleChangeTypeLoginRef = useRef(() => {
     setTypeLogin((prev) => (prev === "email" ? "qr" : "email"));
+    setPassword("");
+  });
+
+  const setErrorMessage = useRef((message: string) => {
+    setError(message);
+    clearTimeoutPolyfill(timeoutIdRef.current);
+    timeoutIdRef.current = setTimeoutPolyfill(() => {
+      setError(null);
+      timeoutIdRef.current = null;
+    }, 5000);
   });
 
   const handlePressLogin = useCallback(() => {
@@ -47,7 +91,7 @@ const LoginScreen: React.FC = () => {
 
     sessionManager.login(email, password, rememberMe, (error) => {
       if (error) {
-        setError(error || "Login failed");
+        setErrorMessage.current(error || "Login failed");
         setLoggingIn(false);
         logger.error("AUTH", "Login failed:", error, email);
         return;
@@ -61,116 +105,159 @@ const LoginScreen: React.FC = () => {
     });
   }, [email, password, loggingIn, rememberMe]);
 
+  const buttons = useMemo(() => {
+    // if (REPLACERS.isNative) return [];
+
+    return [
+      {
+        value: "qr",
+        label: t("QR.title"),
+      },
+      {
+        value: "email",
+        label: "Email",
+      },
+    ];
+  }, [t]);
+
   useEffect(() => {
     if (isLoggedIn) navigation.replace("Home");
   }, [isLoggedIn]);
 
-  useEffect(() => {
-    const removeListener = sessionManager.addEventListener("login", (err) => {
-      if (err) {
-        logger.error("AUTH", "Login event error:", err);
-        return;
-      }
-      navigation.replace("Home");
-    });
-
-    return () => removeListener();
-  }, []);
-
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>{t("common.welcome")}</Text>
+    <KeyboardGestureArea style={styles.flex} interpolator="ios">
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+        <ScrollView
+          style={styles.scrollViewContainer}
+          contentContainerStyle={styles.scrollViewContentContainer}
+        >
+          <Animated.View
+            style={styles.content}
+            layout={LinearTransition.duration(300).springify()}
+          >
+            <Text style={styles.title}>{t("common.welcomeAgain")}</Text>
 
-        {typeLogin === "email" && (
-          <EmailAndPassword
-            email={email}
-            setEmail={setEmail}
-            password={password}
-            showPassword={showPassword}
-            handleShowPassword={handleShowPasswordRef.current}
-            setPassword={setPassword}
-          />
-        )}
-        {REPLACERS.isWeb && typeLogin === "qr" && (
-          <LoginTypeQR
-            rememberMe={rememberMe}
-            handleChangeTypeLogin={handleChangeTypeLoginRef.current}
-          />
-        )}
-
-        {!!error && <Text style={styles.errorText}>{error}</Text>}
-
-        {typeLogin === "email" && (
-          <ButtonComponent
-            label={!loggingIn ? t("auth.loginButton") : ""}
-            touchableOpacity
-            disabled={loggingIn}
-            children={
-              loggingIn ? (
-                <ActivityIndicator
-                  size="small"
-                  color={text}
-                  style={styles.loadingIndicator}
+            {(REPLACERS.isWeb || REPLACERS.isDev) && (
+              <Animated.View
+                style={styles.segmentedButtons}
+                layout={LinearTransition.duration(300).springify()}
+                exiting={FadeOutDown.duration(200)}
+                entering={FadeInUp.duration(200)}
+              >
+                <SegmentedButtons
+                  value={typeLogin}
+                  style={styles.segmentedButtons}
+                  buttons={buttons}
+                  onValueChange={handleChangeTypeLoginRef.current}
                 />
-              ) : null
-            }
-            handlePress={handlePressLogin}
-            customStyles={{
-              button: styles.loginButton,
-              textButton: styles.buttonText,
-            }}
-          />
-        )}
+              </Animated.View>
+            )}
 
-        <View style={styles.linksContainer}>
-          <View style={styles.rememberMeContainer}>
-            <Text style={styles.rememberMeText}>{t("auth.rememberMe")}</Text>
-            <Switch
-              color={text}
-              trackColor={{ false: primary, true: text }}
-              thumbColor={!rememberMe ? primary : text}
-              value={rememberMe}
-              onValueChange={setRememberMe}
-            />
-          </View>
-          {REPLACERS.isWeb && (
-            <View style={styles.typeLoginContainer}>
-              <Text style={styles.typeLoginText}>
-                {t(typeLogin === "email" ? "loginWithEmail" : "loginWithQR")}
-              </Text>
-              <Switch
-                color={text}
-                trackColor={{ false: primary, true: text }}
-                thumbColor={typeLogin === "email" ? primary : text}
-                value={typeLogin === "qr"}
-                onValueChange={handleChangeTypeLoginRef.current}
-              />
+            <View style={styles.divider} />
+
+            <View style={styles.loginTypeContainer}>
+              {typeLogin === "email" && (
+                <Animated.View
+                  style={styles.loginTypeContainer}
+                  layout={LinearTransition.duration(300).springify()}
+                  exiting={FadeOutDown.duration(200)}
+                  entering={FadeInUp.duration(200)}
+                >
+                  <EmailAndPassword
+                    email={email}
+                    setEmail={setEmail}
+                    password={password}
+                    setPassword={setPassword}
+                    showPassword={showPassword}
+                    handleShowPassword={handleShowPasswordRef.current}
+                    showPasswordContainer
+                  />
+                </Animated.View>
+              )}
+              {typeLogin === "qr" && (REPLACERS.isWeb || REPLACERS.isDev) && (
+                <Animated.View
+                  style={styles.loginTypeContainer}
+                  layout={LinearTransition.duration(300).springify()}
+                  exiting={FadeOutDown.duration(200)}
+                  entering={FadeInUp.duration(200)}
+                >
+                  <LoginTypeQR rememberMe={rememberMe} />
+                </Animated.View>
+              )}
             </View>
-          )}
 
-          <ButtonComponent
-            label={t("auth.forgotPassword")}
-            touchableOpacity
-            handlePress={handleForgotPasswordRef.current}
-            replaceStyles={{
-              button: {},
-              textButton: styles.linkText,
-            }}
-          />
-          <ButtonComponent
-            label={t("auth.createAccount")}
-            touchableOpacity
-            handlePress={handlePressCreateAccountRef.current}
-            replaceStyles={{
-              button: {},
-              textButton: styles.linkText,
-            }}
-            forceReplaceStyles
-          />
-        </View>
-      </View>
-    </View>
+            {!!error && (
+              <Animated.Text
+                style={styles.error}
+                layout={LinearTransition.duration(200).springify()}
+                exiting={FadeOutLeft.duration(200)}
+                entering={FadeInRight.duration(300)}
+              >
+                {error}
+              </Animated.Text>
+            )}
+
+            {typeLogin === "email" &&
+              isValidEmail(email) &&
+              isValidPassword(password) && (
+                <Animated.View
+                  style={styles.loginButton}
+                  layout={LinearTransition.duration(200).springify()}
+                  exiting={FadeOutDown.duration(200)}
+                  entering={FadeInUp.duration(200)}
+                >
+                  <Button
+                    mode="contained"
+                    onPress={handlePressLogin}
+                    disabled={loggingIn || typeLogin !== "email"}
+                    elevation={4}
+                    contentStyle={styles.loginButton}
+                  >
+                    {loggingIn ? (
+                      <ActivityIndicator size="small" />
+                    ) : (
+                      <Text style={styles.h3}>{t("auth.loginButton")}</Text>
+                    )}
+                  </Button>
+                </Animated.View>
+              )}
+
+            <Animated.View
+              style={styles.linksContainer}
+              layout={LinearTransition.springify()}
+              exiting={FadeOutDown.duration(200)}
+              entering={FadeInUp.duration(200)}
+            >
+              <View style={styles.rememberMeContainer}>
+                <Text style={styles.subtitle}>{t("auth.rememberMe")}</Text>
+                <Switch
+                  color={colors.text}
+                  trackColor={{ false: colors.primary, true: colors.text }}
+                  thumbColor={!rememberMe ? colors.primary : colors.text}
+                  value={rememberMe}
+                  onValueChange={setRememberMe}
+                />
+              </View>
+
+              <Button
+                mode="text"
+                onPress={handleForgotPasswordRef.current}
+                labelStyle={styles.linkText}
+              >
+                {t("auth.forgotPassword")}
+              </Button>
+              <Button
+                mode="text"
+                onPress={handlePressCreateAccountRef.current}
+                labelStyle={styles.linkText}
+              >
+                {t("auth.createAccount")}
+              </Button>
+            </Animated.View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </KeyboardGestureArea>
   );
 };
 

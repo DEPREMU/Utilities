@@ -1,23 +1,31 @@
 import {
+  KeyboardGestureArea,
+  KeyboardAvoidingView,
+} from "react-native-keyboard-controller";
+import {
   logger,
-  REPLACERS,
   navigation,
-  isValidEmail as isValidEmailFunc,
+  isValidEmail,
+  setTimeoutPolyfill,
+  clearTimeoutPolyfill,
 } from "@utils";
 import Animated, {
+  FadeInUp,
   withTiming,
+  FadeOutDown,
   withSequence,
   useSharedValue,
-  useAnimatedStyle,
+  LinearTransition,
 } from "react-native-reanimated";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
-import ButtonComponent from "@/common/components/Button/screens";
 import { useUserContext } from "@context/UserContext";
-import { View, Keyboard } from "react-native";
-import useStylesAuthScreens from "@screens/Auth/styles/useStylesAuthScreens";
-import React, { useCallback, useState } from "react";
-import { ActivityIndicator, Text, TextInput } from "react-native-paper";
+import { ScrollView, View } from "react-native";
+import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
+import { Button, Divider, Text } from "react-native-paper";
+import React, { useRef, useState } from "react";
+
+import EmailAndPassword from "../components/EmailAndPassword";
 
 const ForgotPasswordScreen: React.FC = () => {
   const { t } = useLanguage();
@@ -27,20 +35,23 @@ const ForgotPasswordScreen: React.FC = () => {
   const [email, setEmail] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState<boolean>(false);
-  const [isValidEmail, setIsValidEmail] = useState<boolean>(true);
   const [sendingEmail, setSendingEmail] = useState<boolean>(false);
   const shakeInput = useSharedValue(0);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: shakeInput.value }],
-    };
+  const timeoutIdRef = useRef<number | null>(null);
+
+  const handlePressLoginRef = useRef(() => {
+    navigation.replace("Login");
+  });
+
+  const handlePressCreateAccountRef = useRef(() => {
+    navigation.replace("SignUp");
   });
 
   const handlePressForgotPassword = () => {
     if (emailSent) return;
     handlerBlurInputEmail();
-    if (!isValidEmailFunc(email)) return;
+    if (!isValidEmail(email)) return;
 
     setEmailSent(true);
     setSendingEmail(true);
@@ -48,6 +59,13 @@ const ForgotPasswordScreen: React.FC = () => {
     dataRef.current.forgotPassword(email, (success, error) => {
       if (!success) {
         setError(error || "Sign up failed");
+
+        clearTimeoutPolyfill(timeoutIdRef.current);
+        timeoutIdRef.current = setTimeoutPolyfill(() => {
+          setError(null);
+          timeoutIdRef.current = null;
+        }, 4000);
+
         setEmailSent(false);
         setSendingEmail(false);
         return logger.log("Sign up failed:", error, email);
@@ -75,87 +93,69 @@ const ForgotPasswordScreen: React.FC = () => {
   };
 
   const handlerBlurInputEmail = () => {
-    if (isValidEmailFunc(email)) {
-      setIsValidEmail(true);
-      return;
-    }
+    if (isValidEmail(email)) return;
 
-    setIsValidEmail(false);
     triggerShake();
   };
 
-  const handlePressLogin = useCallback(() => {
-    navigation.replace("Login");
-  }, []);
-
-  const handlerOnFocus = useCallback(() => {
-    if (REPLACERS.isWeb) return;
-    if (typeof Keyboard.emit === "function") Keyboard?.emit("keyboardDidShow");
-  }, []);
-
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>{t("common.welcome")}</Text>
-
-        {/* Email space */}
-        <Animated.View
-          style={[
-            styles.inputContainer,
-            isValidEmail ? null : animatedStyle,
-            isValidEmail ? null : styles.inputError,
-          ]}
+    <KeyboardGestureArea style={styles.flex}>
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+        <ScrollView
+          style={styles.scrollViewContainer}
+          contentContainerStyle={styles.scrollViewContentContainer}
         >
-          <TextInput
-            style={styles.input}
-            label={t("auth.emailPlaceholder")}
-            underlineColor="#00a69d"
-            activeUnderlineColor="#00a69d"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-            onFocus={handlerOnFocus}
-            onBlur={handlerBlurInputEmail}
-          />
-        </Animated.View>
+          <Animated.View
+            style={styles.content}
+            layout={LinearTransition.duration(300).springify()}
+          >
+            <Text style={styles.title}>{t("auth.forgotPassword")}</Text>
 
-        {!!error && <Text style={styles.errorText}>{error}</Text>}
+            <Divider style={styles.divider} />
 
-        <ButtonComponent
-          label={sendingEmail ? t("common.sending") : t("auth.forgotPassword")}
-          disabled={emailSent}
-          touchableOpacity
-          children={
-            sendingEmail ? (
-              <ActivityIndicator
-                size="small"
-                color="#fff"
-                style={styles.marginRight10}
-              />
-            ) : null
-          }
-          handlePress={handlePressForgotPassword}
-          customStyles={{
-            button: styles.loginButton,
-            textButton: styles.buttonText,
-          }}
-        />
+            <EmailAndPassword email={email} setEmail={setEmail} />
 
-        <View style={styles.linksContainer}>
-          <ButtonComponent
-            label={t("auth.hasAccount")}
-            touchableOpacity
-            handlePress={handlePressLogin}
-            replaceStyles={{
-              button: {},
-              textButton: styles.linkText,
-            }}
-            forceReplaceStyles
-          />
-        </View>
-      </View>
-    </View>
+            {!!error && <Text style={styles.error}>{error}</Text>}
+
+            {isValidEmail(email) && (
+              <Animated.View
+                style={styles.linksContainer}
+                exiting={FadeOutDown.duration(200)}
+                entering={FadeInUp.duration(200)}
+              >
+                <Button
+                  mode="contained"
+                  onPress={handlePressForgotPassword}
+                  disabled={emailSent || sendingEmail}
+                  contentStyle={styles.loginButton}
+                >
+                  {sendingEmail
+                    ? t("common.sending")
+                    : t("auth.forgotPassword")}
+                </Button>
+              </Animated.View>
+            )}
+
+            <View style={styles.linksContainer}>
+              <Button
+                mode="text"
+                onPress={handlePressLoginRef.current}
+                labelStyle={styles.linkText}
+              >
+                {t("auth.hasAccount")}
+              </Button>
+              <Button
+                mode="text"
+                onPress={handlePressCreateAccountRef.current}
+                labelStyle={styles.linkText}
+              >
+                {t("auth.createAccount")}
+              </Button>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </KeyboardGestureArea>
   );
 };
 
