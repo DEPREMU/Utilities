@@ -45,7 +45,7 @@ type Screens = Record<
 >;
 
 const initialRouteName: ScreensAvailable = REPLACERS.isDev
-  ? "Clipboard"
+  ? "ComputerControl"
   : "Home";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
