@@ -1,6 +1,7 @@
 import {
   logger,
   tTyped,
+  REPLACERS,
   deviceInfo,
   navigation,
   checkUrlStatus,
@@ -10,17 +11,30 @@ import {
 } from "@utils";
 import axios from "axios";
 import { modalRef } from "@refs";
+import ComputerItem from "../components/ComputerItem";
 import { useLanguage } from "@context/LanguageContext";
 import { AdvertisementTXT } from "@types";
 import Zeroconf, { Service } from "react-native-zeroconf";
 import useStylesComputerControl from "@screens/Phone/ComputesControl/styles/useStylesComputerControl";
-import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Card, List, Text, FAB } from "react-native-paper";
+import Animated, { LinearTransition } from "react-native-reanimated";
+import { ActivityIndicator, Text, FAB } from "react-native-paper";
 // eslint-disable-next-line react-native/split-platform-components
 import { View, PermissionsAndroid, Platform, Permission } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
-type Device = ServiceAdvertisementTXT & { url: string; deviceId: string };
+export type Device = ServiceAdvertisementTXT & {
+  url: string;
+  deviceId: string;
+};
 type ServiceAdvertisementTXT = Service & { txt: AdvertisementTXT };
+
+export type ExecuteCommandOnDevice = (
+  baseUrl: string,
+  deviceId: string,
+  command: "turn-off-computer" | "restart-computer",
+) => Promise<void>;
+
+const TAG = "ComputerControl";
 
 const getUrl = (host: string, port: number): string => {
   return `http://${host}:${port}/status`;
@@ -58,7 +72,7 @@ const tryUrls = async (
         }
       } catch (error) {
         logger.error(
-          "COMPUTER CONTROL",
+          TAG,
           `Error while fetching ${url}:`,
           (error as Error).message,
         );
@@ -67,18 +81,38 @@ const tryUrls = async (
   });
 };
 
+const devicesDev: Device[] = Array.from({ length: 5 }).map((_, i) => {
+  const ip = `192.168.1.${100 + i}`;
+
+  return {
+    name: "Test-PC" + i,
+    host: ip,
+    port: 3000,
+    addresses: [ip],
+    fullName: "Test-PC._http._tcp.local.",
+    deviceId: "test-device-id",
+    txt: {
+      deviceId: "test-device-id",
+      lanIP: ip,
+    },
+    url: `http://${ip}:3000`,
+  };
+});
+
 const ComputerControl: React.FC = () => {
   const { t } = useLanguage();
-  const { styles } = useStylesComputerControl();
+  const { styles, colors } = useStylesComputerControl();
 
-  const [devices, setDevices] = useState<Device[]>([]);
+  const [devices, setDevices] = useState<Device[]>(
+    REPLACERS.isDev ? devicesDev : [],
+  );
   const [loading, setLoading] = useState<boolean>(false);
   const [scanning, setScanning] = useState<boolean>(false);
 
   const scanningRef = useRef(scanning);
   scanningRef.current = scanning;
 
-  const devicesRef = useRef<Device[]>([]);
+  const devicesRef = useRef<Device[]>(devices);
   devicesRef.current = devices;
 
   const zeroconfRef = useRef(new Zeroconf());
@@ -87,12 +121,12 @@ const ComputerControl: React.FC = () => {
   const rescanPauseTimeoutRef = useRef<number | null>(null);
 
   const clearRescanTimersRef = useRef(() => {
-    clearTimeoutPolyfill(rescanTimeoutRef);
-    clearTimeoutPolyfill(rescanPauseTimeoutRef);
+    clearTimeoutPolyfill(rescanTimeoutRef.current);
+    clearTimeoutPolyfill(rescanPauseTimeoutRef.current);
   });
 
   const handleStopRef = useRef(async () => {
-    logger.log("COMPUTER CONTROL", "Scan stopped");
+    logger.log(TAG, "Scan stopped");
     setLoading(false);
     setScanning(false);
   });
@@ -103,7 +137,7 @@ const ComputerControl: React.FC = () => {
 
     const results = await Promise.all(
       currentDevices.map(async (device) => {
-        const newUrl = await tryUrls(device);
+        const newUrl = REPLACERS.isDev ? device.url : await tryUrls(device);
         return { deviceId: device.deviceId, newUrl, device };
       }),
     );
@@ -152,12 +186,8 @@ const ComputerControl: React.FC = () => {
     }, 10000);
   });
 
-  const executeCommandOnDevice = useRef(
-    async (
-      baseUrl: string,
-      deviceId: string,
-      command: "turn-off-computer" | "restart-computer",
-    ) => {
+  const executeCommandOnDevice = useRef<ExecuteCommandOnDevice>(
+    async (baseUrl, deviceId, command) => {
       let success = false;
       try {
         const res = await axios.post<{ success: boolean }>(
@@ -167,7 +197,10 @@ const ComputerControl: React.FC = () => {
         );
         success = res?.data?.success;
       } catch (error) {
-        logger.error(`Error sending ${command} command to ${baseUrl}:`, error);
+        logger.error(
+          `Error sending "${command}" command to "${baseUrl}":`,
+          error instanceof Error ? error.message : String(error),
+        );
       }
       let translate: "turnOff" | "restart" = "restart";
       if (command === "turn-off-computer") translate = "turnOff";
@@ -181,6 +214,29 @@ const ComputerControl: React.FC = () => {
       if (success) setScanning(true);
     },
   );
+
+  const renderItem = useCallback(({ item }: { item: Device }) => {
+    return (
+      <ComputerItem
+        item={item}
+        executeCommandOnDevice={executeCommandOnDevice.current}
+      />
+    );
+  }, []);
+
+  const renderEmpty = useCallback(() => {
+    if (scanning && loading)
+      return (
+        <View style={styles.flexCenter}>
+          <ActivityIndicator animating size="large" />
+          <Text style={styles.subtitle}>{t("searchingDevices")}</Text>
+        </View>
+      );
+
+    return <Text style={styles.subtitle}>{t("noDevices")}</Text>;
+  }, [styles.subtitle, t, scanning, loading, styles.flexCenter]);
+
+  const keyExtractor = useCallback((item: Device) => item.name, []);
 
   useEffect(() => {
     const requestPermissions = async (): Promise<boolean> => {
@@ -217,7 +273,7 @@ const ComputerControl: React.FC = () => {
 
         if (!isGranted) {
           logger.error(
-            "COMPUTER CONTROL",
+            TAG,
             "Location permissions not granted, cannot scan for devices",
           );
           modalRef.openSnackBar?.(tTyped("locationPermissionMessage"), 3000);
@@ -226,7 +282,7 @@ const ComputerControl: React.FC = () => {
         return isGranted;
       } catch (err) {
         logger.error(
-          "COMPUTER CONTROL",
+          TAG,
           "Error while requesting permissions",
           err instanceof Error ? err.message : err,
         );
@@ -279,7 +335,7 @@ const ComputerControl: React.FC = () => {
     zeroconfRef.current.on("stop", handleStopRef.current);
     zeroconfRef.current.on("resolved", handleResolved);
     zeroconfRef.current.on("error", (err) => {
-      logger.error("COMPUTER CONTROL", "Zeroconf error:", err);
+      logger.error(TAG, "Zeroconf error:", err?.message ?? err);
       zeroconfRef.current.stop("DNSSD");
     });
 
@@ -299,9 +355,11 @@ const ComputerControl: React.FC = () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
       clearRescanTimersRef.current();
       removeListener();
-      zeroconfRef.current.stop("DNSSD");
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      zeroconfRef.current.removeDeviceListeners();
+      const currentZeroconf = zeroconfRef.current;
+      currentZeroconf.stop("DNSSD");
+      currentZeroconf.removeAllListeners();
+      currentZeroconf.removeDeviceListeners();
     };
   }, []);
 
@@ -311,68 +369,21 @@ const ComputerControl: React.FC = () => {
         {t("computerControlTitle")}
       </Text>
 
-      {scanning && loading && devices.length === 0 && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator animating size="large" />
-          <Text style={styles.loadingText}>{t("searchingDevices")}</Text>
-        </View>
-      )}
-
-      {!loading &&
-        devices.length > 0 &&
-        devices.map((item) => (
-          <Card key={item.name} style={styles.deviceCard}>
-            <Card.Content>
-              <List.Section>
-                <List.Item
-                  title={item.name}
-                  description={item.url}
-                  left={(props) => (
-                    <List.Icon {...props} icon="remote-desktop" />
-                  )}
-                />
-
-                <List.Item
-                  title={t("turnOffComputer")}
-                  description={item.url}
-                  left={(props) => (
-                    <List.Icon {...props} icon="power" color="#d32f2f" />
-                  )}
-                  onPress={() =>
-                    executeCommandOnDevice.current(
-                      item.url,
-                      item.deviceId,
-                      "turn-off-computer",
-                    )
-                  }
-                />
-
-                <List.Item
-                  title={t("restartComputer")}
-                  description={item.url}
-                  left={(props) => (
-                    <List.Icon {...props} icon="restart" color="#1976d2" />
-                  )}
-                  onPress={() =>
-                    executeCommandOnDevice.current(
-                      item.url,
-                      item.deviceId,
-                      "restart-computer",
-                    )
-                  }
-                />
-              </List.Section>
-            </Card.Content>
-          </Card>
-        ))}
-
-      {!loading && devices.length === 0 && (
-        <Text style={styles.emptyText}>{t("noDevices")}</Text>
-      )}
+      <Animated.FlatList
+        data={devices}
+        style={styles.scrollViewContainer}
+        layout={LinearTransition.duration(300).springify()}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={styles.scrollViewContentContainer}
+      />
 
       <FAB
+        animated
         icon={scanning ? "refresh" : "magnify"}
-        style={styles.fab}
+        style={styles.FAB}
+        color={colors.primary}
         label={t(scanning ? "scanning" : "search")}
         loading={scanning}
         onPress={scanNetworkRef.current}
