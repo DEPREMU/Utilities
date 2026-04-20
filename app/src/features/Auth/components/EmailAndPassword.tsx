@@ -3,6 +3,9 @@ import Animated, {
   withSequence,
   useSharedValue,
   useAnimatedStyle,
+  FadeOutDown,
+  FadeInUp,
+  LinearTransition,
 } from "react-native-reanimated";
 import TextInput from "@components/TextInput";
 import { useLanguage } from "@context/LanguageContext";
@@ -108,7 +111,12 @@ const EmailAndPassword: LoginTypeEmail = (props) => {
   });
 
   return (
-    <>
+    <Animated.View
+      style={styles.loginTypeContainer}
+      layout={LinearTransition.duration(300).springify()}
+      exiting={FadeOutDown.duration(200)}
+      entering={FadeInUp.duration(200)}
+    >
       {/* Email space */}
       <Animated.View
         style={[
@@ -133,7 +141,7 @@ const EmailAndPassword: LoginTypeEmail = (props) => {
         <Animated.View
           style={[
             styles.inputContainer,
-            validations.isPasswordValid ? null : animatedStylePassword,
+            animatedStylePassword,
             validations.isPasswordValid ? null : styles.inputError,
           ]}
         >
@@ -153,7 +161,7 @@ const EmailAndPassword: LoginTypeEmail = (props) => {
           />
         </Animated.View>
       )}
-    </>
+    </Animated.View>
   );
 };
 
