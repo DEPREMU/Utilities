@@ -10,31 +10,26 @@ export const useStylesSyncClipboard = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        ...getCommonStyles("sectionContainer"),
-        container: {
-          ...getCommonStyles("container").container,
-          justifyContent: "center",
-        },
         textInput: {
+          color: colors.text,
           fontSize: getResponsiveValue(16, 18, 20),
           minHeight: getResponsiveValue(120, 140, 180),
           maxHeight: getResponsiveValue(280, 360, 480),
-          color: colors.text,
           marginBottom: getResponsiveValue(14, 18, 22),
           backgroundColor: colors.background,
+          paddingVertical: getResponsiveValue(12, 14, 16),
           paddingHorizontal: getResponsiveValue(8, 10, 12),
-          paddingVertical: getResponsiveValue(12, 14, 16),
         },
-        button: {
-          paddingVertical: getResponsiveValue(12, 14, 16),
-          borderRadius: getResponsiveValue(8, 10, 12),
-          borderWidth: 1,
-          borderColor: colors.border,
-          alignItems: "center",
+        FABContainer: {
+          width: "100%",
+          marginBottom: getResponsiveValue(14, 18, 22),
+          alignItems: "flex-end",
         },
         ...texts,
         ...getCommonStyles("flex"),
         ...getCommonStyles("divider"),
+        ...getCommonStyles("scrollView"),
+        ...getCommonStyles("sectionContainer"),
       }),
     [getCommonStyles, getResponsiveValue, colors, texts],
   );

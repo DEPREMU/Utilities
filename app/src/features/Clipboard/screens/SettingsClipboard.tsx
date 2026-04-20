@@ -2,16 +2,19 @@ import { View } from "react-native";
 import TextInput from "@components/TextInput";
 import { cloneDeep } from "lodash";
 import { useLanguage } from "@context/LanguageContext";
-import ButtonComponent from "@components/Button/screens";
 import { clipboardManager } from "@utils";
 import { Divider, Switch, Text } from "react-native-paper";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import { useStylesSettingsClipboard } from "@screens/Clipboard/styles";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  KeyboardAvoidingView,
+  KeyboardGestureArea,
+} from "react-native-keyboard-controller";
 
 const SettingsClipboard: React.FC = () => {
   const { t } = useLanguage();
-  const { styles, colors } = useStylesSettingsClipboard();
+  const { styles } = useStylesSettingsClipboard();
 
   const [clipboardData, setClipboardData] = useState(
     clipboardManager.getClipboardData(),
@@ -23,6 +26,8 @@ const SettingsClipboard: React.FC = () => {
     String(clipboardData.maxClipboardItems),
   );
   const [promise, setPromise] = useState<Promise<void> | null>(null);
+
+  const isPromise = useMemo(() => promise instanceof Promise, [promise]);
 
   const handlePressSwitchRef = useRef(() => {
     setClipboardData((prev) => {
@@ -71,7 +76,7 @@ const SettingsClipboard: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!(promise instanceof Promise)) return;
+    if (!isPromise) return;
 
     const wait = async () => {
       try {
@@ -81,67 +86,87 @@ const SettingsClipboard: React.FC = () => {
       }
     };
     wait();
-  }, [promise]);
+  }, [promise, isPromise]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{t("clipboard.settings.title")}</Text>
-
-      <Animated.View
-        style={styles.sectionContainer}
-        layout={LinearTransition.duration(200).springify()}
-      >
-        <Text style={styles.subtitle}>
-          {t("clipboard.settings.enableClipboard")}
-        </Text>
-
-        <Divider style={styles.divider} />
-
-        <ButtonComponent
-          disabled={promise instanceof Promise}
-          handlePress={handlePressSwitchRef.current}
-          replaceStyles={{ button: styles.rowSwitchText, textButton: {} }}
+    <KeyboardGestureArea style={styles.flex} interpolator="ios">
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+        <Animated.ScrollView
+          style={styles.scrollViewContainer}
+          layout={LinearTransition.duration(300).springify()}
+          contentContainerStyle={styles.scrollViewContentContainer}
         >
-          <Text style={styles.subtitle}>{t("clipboard.settings.enabled")}</Text>
+          <Text style={styles.title}>{t("clipboard.settings.title")}</Text>
 
-          <Switch
-            value={clipboardData.enabled}
-            disabled={promise instanceof Promise}
-            onValueChange={handlePressSwitchRef.current}
-          />
-        </ButtonComponent>
-      </Animated.View>
+          <Animated.View
+            style={styles.sectionContainer}
+            layout={LinearTransition.duration(200).springify()}
+          >
+            <Text style={styles.subtitle}>
+              {t("clipboard.settings.enableClipboard")}
+            </Text>
 
-      <View style={styles.sectionContainer}>
-        <Text style={styles.subtitle}>{t("clipboard.settings.maxItems")}</Text>
+            <Divider style={styles.divider} />
 
-        <TextInput
-          mode="outlined"
-          value={maxItemsInput}
-          keyboardType="number-pad"
-          outlineColor={colors.border}
-          onChangeText={handleChangeMaxItemsRef.current}
-          selectionColor={colors.primary}
-          activeOutlineColor={colors.primary}
-        />
-      </View>
+            <View style={styles.rowSwitchText}>
+              <Text style={styles.subtitle}>
+                {t("clipboard.settings.enabled")}
+              </Text>
 
-      <View style={styles.sectionContainer}>
-        <Text style={styles.subtitle}>
-          {t("clipboard.settings.maxCharsInItem")}
-        </Text>
+              <Switch
+                value={clipboardData.enabled}
+                disabled={isPromise}
+                onValueChange={handlePressSwitchRef.current}
+              />
+            </View>
+          </Animated.View>
 
-        <TextInput
-          mode="outlined"
-          value={maxCharsInput}
-          keyboardType="number-pad"
-          outlineColor={colors.border}
-          onChangeText={handleChangeMaxCharsRef.current}
-          selectionColor={colors.primary}
-          activeOutlineColor={colors.primary}
-        />
-      </View>
-    </View>
+          <Animated.View
+            style={styles.sectionContainer}
+            layout={LinearTransition.duration(300).springify()}
+          >
+            <Animated.Text
+              style={styles.subtitle}
+              layout={LinearTransition.duration(200).springify()}
+            >
+              {t("clipboard.settings.maxItems")}
+            </Animated.Text>
+
+            <Animated.View layout={LinearTransition.duration(200).springify()}>
+              <TextInput
+                mode="outlined"
+                value={maxItemsInput}
+                disabled={isPromise}
+                keyboardType="number-pad"
+                onChangeText={handleChangeMaxItemsRef.current}
+              />
+            </Animated.View>
+          </Animated.View>
+
+          <Animated.View
+            style={styles.sectionContainer}
+            layout={LinearTransition.duration(300).springify()}
+          >
+            <Animated.Text
+              style={styles.subtitle}
+              layout={LinearTransition.duration(200).springify()}
+            >
+              {t("clipboard.settings.maxCharsInItem")}
+            </Animated.Text>
+
+            <Animated.View layout={LinearTransition.duration(200).springify()}>
+              <TextInput
+                mode="outlined"
+                value={maxCharsInput}
+                disabled={isPromise}
+                keyboardType="number-pad"
+                onChangeText={handleChangeMaxCharsRef.current}
+              />
+            </Animated.View>
+          </Animated.View>
+        </Animated.ScrollView>
+      </KeyboardAvoidingView>
+    </KeyboardGestureArea>
   );
 };
 

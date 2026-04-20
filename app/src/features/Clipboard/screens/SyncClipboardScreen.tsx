@@ -12,9 +12,9 @@ import Animated, {
 import TextInput from "@components/TextInput";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
-import { Text, Button } from "react-native-paper";
 import { useStylesSyncClipboard } from "@screens/Clipboard/styles";
 import React, { useCallback, useState } from "react";
+import { Text, Button, TextInput as PaperTextInput } from "react-native-paper";
 import { fetchToServer, sessionManager, storageManagement } from "@utils";
 
 const SyncClipboardScreen: React.FC = () => {
@@ -69,19 +69,23 @@ const SyncClipboardScreen: React.FC = () => {
     }
   }, [inputText, t]);
 
+  const handleClearText = useCallback(() => {
+    setInputText("");
+  }, []);
+
   return (
     <KeyboardGestureArea style={styles.flex} interpolator="ios">
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <Animated.ScrollView
-          style={styles.flex}
+          style={styles.scrollViewContainer}
           layout={LinearTransition.duration(200).springify()}
-          contentContainerStyle={styles.container}
+          contentContainerStyle={styles.sectionContainer}
         >
           <Animated.Text
             style={styles.title}
             layout={LinearTransition.duration(200).springify()}
           >
-            {t("addTextToClipboard")}
+            {t("clipboard.addTextToClipboard")}
           </Animated.Text>
 
           <Animated.View
@@ -105,16 +109,25 @@ const SyncClipboardScreen: React.FC = () => {
               onChangeText={setInputText}
               outlineColor={colors.border}
               selectionColor={colors.primary}
+              right={
+                inputText.length > 10 && (
+                  <PaperTextInput.Icon
+                    animated
+                    icon="delete"
+                    onPress={handleClearText}
+                  />
+                )
+              }
               activeOutlineColor={colors.primary}
             />
 
             {!isLoading && !!inputText.trim() && (
               <Animated.View
-                entering={FadeInUp.delay(200).duration(200)}
                 exiting={FadeOutUp.duration(200)}
+                entering={FadeInUp.delay(200).duration(200)}
               >
                 <Button
-                  contentStyle={styles.button}
+                  mode="contained"
                   onPress={handleAddToDatabase}
                   disabled={isLoading || !inputText.trim()}
                 >

@@ -18,7 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { memoDeep } from "@utils";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useRef, useMemo, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 
 interface SkeletonLoadingProps {
   showChildren: boolean;
@@ -31,9 +31,9 @@ const SkeletonLoading: React.FC<SkeletonLoadingProps> = ({
   style,
   children,
   showChildren,
-  duration = 750,
+  duration = 1000,
 }) => {
-  const progress = useSharedValue<number>(-200);
+  const progress = useSharedValue<number>(-100);
   const [layout, setLayout] = useState<LayoutRectangle | null>(null);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -45,34 +45,30 @@ const SkeletonLoading: React.FC<SkeletonLoadingProps> = ({
     setLayout(layoutLocal);
   });
 
-  const options: WithTimingConfig = useMemo(
-    () => ({
+  useEffect(() => {
+    if (showChildren) {
+      progress.value = 0;
+      return;
+    }
+
+    if (!layout) return;
+
+    const options: WithTimingConfig = {
       duration,
       easing: Easing.linear,
-    }),
-    [duration],
-  );
+    };
 
-  useEffect(() => {
-    if (!layout) return;
     if (layout.width > 200) {
-      progress.value = withRepeat(withTiming(layout.width, options), -1);
+      progress.value = withRepeat(withTiming(layout.width + 50, options), -1);
       return;
     }
 
     progress.value = withRepeat(withTiming(200, options), -1);
-  }, [layout, progress, options]);
-
-  useEffect(() => {
-    if (!showChildren || !progress) return;
-
-    progress.value = 0;
-  }, [showChildren, progress]);
+  }, [layout, progress, duration, showChildren]);
 
   if (showChildren) return <React.Fragment>{children}</React.Fragment>;
 
-  if (!layout)
-    return <View style={styles.fill} onLayout={changeLayoutRef.current} />;
+  if (!layout) return <View style={style} onLayout={changeLayoutRef.current} />;
 
   return (
     <View style={[styles.overflowHidden, style]}>
@@ -98,7 +94,6 @@ const styles = StyleSheet.create({
   container: { position: "absolute", width: "40%", height: "100%" },
   linearGradient: { flex: 1 },
   overflowHidden: { overflow: "hidden", minHeight: 10 },
-  fill: { width: "100%", height: "100%" },
 });
 
 const SkeletonLoadingMemo = memoDeep(SkeletonLoading);

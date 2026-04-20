@@ -221,13 +221,9 @@ export const esApp: typeLanguages = {
   YourBatteryIsLow: "Tu batería está baja",
   BatteryFullyCharged: "Batería completamente cargada",
   YouCanUnplugYourDevice: "Puedes desconectar tu dispositivo",
-  noClipboardData: "No hay elementos en el portapapeles",
-  clipboardEmptyDescription:
-    "Tu portapapeles está vacío. Cualquier texto que copies en tu dispositivo aparecerá aquí para un acceso fácil.",
   sync: "Sincronizar",
   addToDatabase: "Agregar a la base de datos",
   adding: "Agregando...",
-  addTextToClipboard: "Agregar texto al portapapeles",
   enterYourTextHere: "Ingresa tu texto aquí",
   errorOccurred: "Ocurrió un error: {{error}}",
   doNotDisturbPermission: "Permiso de No molestar",
@@ -237,8 +233,6 @@ export const esApp: typeLanguages = {
   textAddedToDatabase: "Texto agregado a la base de datos",
   test: "Prueba",
   pleaseEnterSomeText: "Por favor, ingresa algún texto",
-  clipboardWebSocketError:
-    "Ocurrió un error de conexión con el servicio de portapapeles. Por favor, verifica tu conexión a Internet e intenta reconectar. Mientras estés desconectado, la sincronización del portapapeles no funcionará.",
   retry: "Reintentar",
   foregroundNotificationTitle: "Utilities Activo",
   foregroundNotificationMessage:
@@ -806,6 +800,13 @@ export const esApp: typeLanguages = {
     selectedItems: "{{count}} elementos seleccionados",
   },
   clipboard: {
+    clipboardWebSocketError:
+      "Ocurrió un error de conexión con el servicio de portapapeles. Por favor, verifica tu conexión a Internet e intenta reconectar. Mientras estés desconectado, la sincronización del portapapeles no funcionará.",
+    noClipboardData: "No hay elementos en el portapapeles",
+    clipboardEmptyDescription:
+      "Tu portapapeles está vacío. Cualquier texto que copies en tu dispositivo aparecerá aquí para un acceso fácil.",
+    addTextToClipboard: "Agregar texto al portapapeles",
+    contentLength: "Longitud del contenido: {{length}} caracteres",
     settings: {
       title: "Configuración del Portapapeles",
       enabled: "Sincronización del portapapeles habilitada: ",

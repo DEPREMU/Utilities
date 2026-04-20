@@ -247,13 +247,10 @@ export const enApp: typeLanguages = {
   YourBatteryIsLow: "Your Battery Is Low",
   BatteryFullyCharged: "Battery Fully Charged",
   YouCanUnplugYourDevice: "You Can Unplug Your Device",
-  noClipboardData: "No clipboard items available",
-  clipboardEmptyDescription:
-    "Your clipboard is currently empty. Any text you copy on your device will appear here for easy access.",
+
   sync: "Sync",
   addToDatabase: "Add to Database",
   adding: "Adding...",
-  addTextToClipboard: "Add Text to Clipboard",
   enterYourTextHere: "Enter your text here",
   errorOccurred: "An error occurred: {{error}}",
   failedToAddTextToDatabase: "Failed to add text to database",
@@ -261,8 +258,6 @@ export const enApp: typeLanguages = {
   test: "Test",
   pleaseEnterSomeText: "Please enter some text",
   retry: "Retry",
-  clipboardWebSocketError:
-    "A connection error occurred with the clipboard service. Please check your internet connection and try reconnecting. While disconnected, clipboard syncing will not function.",
   foregroundNotificationTitle: "Utilities Active",
   foregroundNotificationMessage: "Utilities is running in the background.",
   locationEnabled: "Check if location is enabled",
@@ -794,6 +789,13 @@ export const enApp: typeLanguages = {
     getSizeFromImageFiles: "Get size from each image.",
   },
   clipboard: {
+    noClipboardData: "No clipboard items available",
+    clipboardEmptyDescription:
+      "Your clipboard is currently empty. Any text you copy on your device will appear here for easy access.",
+    addTextToClipboard: "Add Text to Clipboard",
+    clipboardWebSocketError:
+      "A connection error occurred with the clipboard service. Please check your internet connection and try reconnecting. While disconnected, clipboard syncing will not function.",
+    contentLength: "Content length: {{length}} characters",
     settings: {
       title: "Clipboard Settings",
       enabled: "Clipboard Sync Enabled: ",
