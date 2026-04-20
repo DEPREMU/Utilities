@@ -20,7 +20,7 @@ const GetBottomNavigation = <T extends Route[]>(
 ) => {
   const Component = () => {
     const { t } = useLanguage();
-    const { styles, colors } = useStylesBottomNavigator();
+    const { colors } = useStylesBottomNavigator();
 
     const [index, setIndex] = useState<number>(0);
 
@@ -39,7 +39,6 @@ const GetBottomNavigation = <T extends Route[]>(
       <BottomNavigation
         shifting
         sceneAnimationEnabled
-        style={styles.tabBar}
         barStyle={{ backgroundColor: colors.primary }}
         renderScene={renderScene}
         activeColor={colors.background}

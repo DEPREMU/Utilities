@@ -2,7 +2,7 @@ import Finances from "./finances";
 import Calculator from "./calculator";
 import { memoDeep } from "@utils";
 import TimeToDownload from "./timeToDownload";
-import GetBottomNavigation from "@/common/components/BottomNavigator/components/GetBottomNavigation";
+import GetBottomNavigation from "@components/BottomNavigator/components/GetBottomNavigation";
 
 const CalculatorNavigator = GetBottomNavigation(
   [

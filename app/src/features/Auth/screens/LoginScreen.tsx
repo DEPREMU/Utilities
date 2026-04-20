@@ -158,22 +158,15 @@ const LoginScreen: React.FC = () => {
 
               <View style={styles.loginTypeContainer}>
                 {typeLogin === "email" && (
-                  <Animated.View
-                    style={styles.loginTypeContainer}
-                    layout={LinearTransition.duration(300).springify()}
-                    exiting={FadeOutDown.duration(200)}
-                    entering={FadeInUp.duration(200)}
-                  >
-                    <EmailAndPassword
-                      email={email}
-                      setEmail={setEmail}
-                      password={password}
-                      setPassword={setPassword}
-                      showPassword={showPassword}
-                      handleShowPassword={handleShowPasswordRef.current}
-                      showPasswordContainer
-                    />
-                  </Animated.View>
+                  <EmailAndPassword
+                    email={email}
+                    setEmail={setEmail}
+                    password={password}
+                    setPassword={setPassword}
+                    showPassword={showPassword}
+                    handleShowPassword={handleShowPasswordRef.current}
+                    showPasswordContainer
+                  />
                 )}
                 {typeLogin === "qr" && (REPLACERS.isWeb || REPLACERS.isDev) && (
                   <Animated.View
