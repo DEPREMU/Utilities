@@ -37,17 +37,18 @@ const deleteDevice = (data: { userId: string; deviceId: string }) => {
 };
 
 const cleanDeviceUserData = (data: DataUser) => {
-  if (!usersClipboard[data.userId]) return;
-
-  if (!usersClipboard[data.userId]) return;
+  if (!usersClipboard[data.userId]?.[data.deviceId]) return;
 
   const pingIntervalId =
-    usersClipboard[data.userId][data.deviceId]?.pingIntervalId;
+    usersClipboard[data.userId][data.deviceId].pingIntervalId;
   if (pingIntervalId) clearInterval(pingIntervalId);
 
   const pingTimeoutId =
-    usersClipboard[data.userId][data.deviceId]?.pingTimeoutId;
+    usersClipboard[data.userId][data.deviceId].pingTimeoutId;
   if (pingTimeoutId) clearTimeout(pingTimeoutId);
+
+  usersClipboard[data.userId][data.deviceId].pingTimeoutId = null;
+  usersClipboard[data.userId][data.deviceId].pingIntervalId = null;
 };
 
 const handleClose = (data: DataUser, ws?: WebSocket) => {
@@ -159,8 +160,10 @@ export const initWebSocketClipboard = () => {
               }
 
               const pingIntervalId = setInterval(() => {
-                if (!usersClipboard[data.userId]) return;
-                if (!usersClipboard[data.userId][data.deviceId]) return;
+                if (!usersClipboard[data.userId]?.[data.deviceId]) {
+                  clearInterval(pingIntervalId);
+                  return;
+                }
 
                 usersClipboard[data.userId][data.deviceId].pingTimeoutId =
                   setTimeout(() => {
@@ -173,7 +176,7 @@ export const initWebSocketClipboard = () => {
                     handleClose(data, connectionClipboard);
                   }, 10000);
                 connectionClipboard.send(JSON.stringify({ type: "ping" }));
-              }, 29000);
+              }, 30000);
 
               usersClipboard[data.userId] = {
                 ...usersClipboard[data.userId],

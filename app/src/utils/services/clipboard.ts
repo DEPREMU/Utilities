@@ -1,4 +1,5 @@
-import ReconnectingWebSocket, {
+import {
+  ReconnectingWebSocket,
   OptionsReconnectingWS,
 } from "@/utils/reconnecting-websocket";
 import {
@@ -8,7 +9,6 @@ import {
 } from "@types";
 import {
   logger,
-  waitForTime,
   fetchToServer,
   setIntervalPolyfill,
   clearIntervalPolyfill,
@@ -21,18 +21,39 @@ import * as ExpoClipboard from "expo-clipboard";
 import { CLIPBOARD_WS_URL } from "../constants";
 import { storageManagement, parseData } from "./storage";
 import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
-import { ClipboardStorage, wrapFunctionWithError } from "@common";
 import { DeviceEventEmitter, EmitterSubscription } from "react-native";
+import { wrapFunctionWithError, ClipboardStorage } from "@common";
 import { windowModule, keyboardModule, BackgroundModule } from "@modules";
 
 const TAG = "CLIPBOARD_MANAGER";
 
 const OPTIONS_RECONNECT_WS: OptionsReconnectingWS = {
-  maxRetries: Infinity,
-  minReconnectionDelay: 1500,
-  maxReconnectionDelay: 10000,
-  reconnectionDelayGrowFactor: 1.5,
-  connectionTimeout: 5000,
+  retryDelay: REPLACERS.isNative ? 5000 : 2500,
+  startClosed: true,
+  pingPong: {
+    expectedMessage: JSON.stringify({ type: "ping" }),
+    expectedResponse: JSON.stringify({ type: "pong" }),
+  },
+  messagesAfterOpen: [
+    async () => {
+      await storageManagement.waitUntilLoaded();
+
+      const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
+      const deviceId = storageManagement.get("DEVICE_ID");
+
+      if (!token || !deviceId) {
+        logger.error(
+          "No session token or device ID found for Clipboard WebSocket initialization message.",
+        );
+        return "";
+      }
+      return JSON.stringify({
+        type: "init",
+        token,
+        deviceId,
+      });
+    },
+  ],
 };
 
 type SendMessageFunc = (
@@ -80,7 +101,10 @@ const getItemWithMaxSize = (
 class ClipboardManager {
   #i = 0;
   #clipboardData: ClipboardStorage;
-  #clipboardSocket: ReconnectingWebSocket | null = null;
+  #clipboardSocket: ReconnectingWebSocket = new ReconnectingWebSocket(
+    CLIPBOARD_WS_URL,
+    OPTIONS_RECONNECT_WS,
+  );
   #clipboardSocketURL: string | null = null;
 
   #updatedItems: boolean = false;
@@ -207,93 +231,35 @@ class ClipboardManager {
   };
 
   private sendMessage: SendMessageFunc = async (message) => {
-    const currentSocket = this.#clipboardSocket;
-
-    if (!currentSocket) {
-      logger.error(`Cannot send message to clipboard: Socket is null`);
-      return;
-    }
-
-    let attempts = 0;
-    const maxAttempts = 5;
-
-    while (currentSocket.readyState === WebSocket.CONNECTING) {
-      if (attempts >= maxAttempts) {
-        logger.error(
-          `Clipboard WebSocket connection timed out after ${maxAttempts} attempts (still CONNECTING).`,
-        );
-        return;
-      }
-      attempts++;
-      await waitForTime(1000);
-    }
-
-    if (currentSocket.readyState === WebSocket.OPEN) {
-      currentSocket.send(JSON.stringify(message));
-    } else {
-      logger.error(
-        `Failed to send message to clipboard: Socket state is ${currentSocket.readyState}`,
-      );
-    }
+    this.#clipboardSocket.send(JSON.stringify(message));
   };
 
   private createClipboardWebSocket = async () => {
     const { userData } = sessionManager.getSessionData();
 
     if (!userData?.userId) return;
-    if (!this.#shouldConnect) return;
 
-    logger.log("Initializing Clipboard WebSocket connection...");
-    const socket = new ReconnectingWebSocket(
-      this.#clipboardSocketURL || CLIPBOARD_WS_URL,
-      [],
-      OPTIONS_RECONNECT_WS,
-    );
-
-    socket.onopen = async () => {
-      const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
-      const deviceId = storageManagement.get("DEVICE_ID");
-
-      if (!token || !deviceId) {
-        logger.error(
-          "No session token or device ID found for Clipboard WebSocket.",
-        );
-        socket.close();
-        return;
-      }
-      this.#clipboardSocket = socket;
-
-      const message: ClipboardWebSocketMessage<"sentByApp"> = {
-        type: "init",
-        userId: userData.userId,
-        deviceId,
-      };
-      socket.send(JSON.stringify(message));
-      logger.log(
-        "Clipboard WebSocket connection opened and init message sent.",
-        message,
-      );
+    this.#clipboardSocket.onOpen = async () => {
       this._emitEvent("connection-status", true);
     };
 
-    socket.onerror = (error) => {
+    this.#clipboardSocket.onError = (error) => {
       logger.error("Clipboard WebSocket error:", error.message || error);
       this._emitEvent("connection-status", false);
     };
 
-    socket.onclose = () => {
+    this.#clipboardSocket.onClose = () => {
       logger.log("Clipboard WebSocket connection closed.");
       this._emitEvent("connection-status", false);
     };
 
-    socket.onmessage = (event) => {
+    this.#clipboardSocket.onMessage = (event) => {
       try {
         const parsedMessage: ClipboardWebSocketMessage<"sentByServer"> | null =
-          parseData(event.data);
+          parseData(event.data.toString());
 
         if (!parsedMessage) return;
-        if (parsedMessage.type !== "new-clipboard-item")
-          return this.sendMessage({ type: "pong" });
+        if (parsedMessage.type !== "new-clipboard-item") return;
 
         if (
           this.#listItemsClipboard.some(
@@ -316,7 +282,8 @@ class ClipboardManager {
       }
     };
 
-    this.#clipboardSocket = socket;
+    this.#clipboardSocket.url = this.#clipboardSocketURL || CLIPBOARD_WS_URL;
+    this.#clipboardSocket.shouldReconnect = this.#shouldConnect;
   };
 
   private initClipboardItems = async () => {
@@ -605,10 +572,8 @@ class ClipboardManager {
 
   public suspend = () => {
     this.#shouldConnect = false;
-    const currentSocket = this.#clipboardSocket;
 
-    currentSocket?.close();
-    this.#clipboardSocket = null;
+    this.#clipboardSocket.close();
     this._emitEvent("connection-status", false);
   };
 
@@ -616,12 +581,9 @@ class ClipboardManager {
     if (!this.#initialized) return;
 
     this.#shouldConnect = true;
-    const currentSocket = this.#clipboardSocket;
 
-    if (!currentSocket || currentSocket.readyState === WebSocket.CLOSED)
-      this.createClipboardWebSocket();
-    else if (typeof currentSocket.reconnect === "function")
-      currentSocket.reconnect();
+    const currentSocket = this.#clipboardSocket;
+    currentSocket.reconnect();
   };
 
   public updateSocketURL = (url: string | null) => {
@@ -631,13 +593,8 @@ class ClipboardManager {
     const hasDifferentURL =
       !!currentSocket && "url" in currentSocket && currentSocket.url !== url;
 
-    if (
-      !currentSocket ||
-      currentSocket.readyState === ReconnectingWebSocket.CLOSED ||
-      hasDifferentURL
-    ) {
-      currentSocket?.close?.();
-      this.#clipboardSocket = null;
+    if (!currentSocket.isConnected || hasDifferentURL) {
+      currentSocket.close?.();
       this.createClipboardWebSocket();
     }
   };
@@ -654,7 +611,6 @@ class ClipboardManager {
     }
 
     this.#clipboardSocket?.close();
-    this.#clipboardSocket = null;
     this.#initialized = false;
   };
 

@@ -12,14 +12,15 @@ export type Logs = {
   deviceName: string;
 };
 
-export type Cryptos = {
+export type Crypto = {
   uid?: string;
   id: string;
+  symbol: string;
   amount: string;
-  firstPricePurchased: number;
-  datePurchased: string;
-  currency: string;
   userId: string;
+  currency: string;
+  datePurchased: string;
+  firstPricePurchased: number;
 };
 
 export type PushTokens = {
@@ -130,7 +131,7 @@ export type Tables = {
   Logs: Logs;
   Notes: Notes;
   Users: UserData;
-  Cryptos: Cryptos;
+  Cryptos: Crypto;
   Streamers: Streamer;
   UserConfig: UserConfig;
   PushTokens: PushTokens;

@@ -23,8 +23,8 @@
       "@assets/*": ["./src/assets/*"],
       "@screens/*": ["./src/features/*"],
       "@context/*": ["./src/context/*"],
-      "@components/*": ["./src/components/*"],
-      "@navigation/*": ["./src/app/navigation/*"]
+      "@navigation/*": ["./src/app/navigation/*"],
+      "@components/*": ["./src/common/components/*"]
     }
   }
 }
