@@ -1,7 +1,7 @@
 import type { Falsy } from "react-native";
 import { RequestChangeImageFormat } from "./Request";
-import { ExpectedStorageTypes, PriceBinanceAPI } from "./typesAPI";
 import { Streamer, Tables, TablesKeys, UserData } from "../database";
+import type { PriceBinanceAPI, ExpectedStorageTypes } from "@common";
 
 export { Falsy };
 

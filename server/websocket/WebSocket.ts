@@ -1,11 +1,5 @@
 import {
-  updateInTable,
-  fetchFromTable,
-  insertIntoTable,
-} from "../database/functions.ts";
-import {
-  Cryptos,
-  UserConfig,
+  Crypto,
   Notification,
   WebSocketMessage,
   ReasonNotification,
@@ -17,21 +11,24 @@ import { dataBinance } from "../routes/cryptos.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
 import WebSocket, { WebSocketServer } from "ws";
+import { updateInTable, fetchFromTable } from "../database/functions.ts";
 
-const users: Record<
-  string,
-  {
-    ws: WebSocket;
-    intervalsId: Record<
-      ReasonNotification,
-      NodeJS.Timeout | number | null
-    > | null;
-    pingTimeoutId: NodeJS.Timeout | number | null;
-    pingIntervalId: NodeJS.Timeout | number | null;
-  }
-> = {};
+type Timeout = NodeJS.Timeout | number | null;
 
-const getPercentGain = (priceUsd: number, cryptoData: Cryptos) => {
+type UsersWS = {
+  [userId: string]: {
+    [deviceId: string]: {
+      ws: WebSocket;
+      intervalsId: Record<ReasonNotification, Timeout> | null;
+      pingTimeoutId: Timeout;
+      pingIntervalId: Timeout;
+    };
+  };
+};
+
+const users: UsersWS = {};
+
+const getPercentGain = (priceUsd: number, cryptoData: Crypto) => {
   if (!cryptoData.firstPricePurchased) return "0%";
   const percentage =
     ((priceUsd - cryptoData.firstPricePurchased) /
@@ -41,33 +38,19 @@ const getPercentGain = (priceUsd: number, cryptoData: Cryptos) => {
   return `${percentage > 0 ? "+" : ""}${percentage.toFixed(2)}%`;
 };
 
-const insertUserConfig = async (config: UserConfig) => {
-  try {
-    const fetchedData = await fetchFromTable({
-      table: "UserConfig",
-      match: { userId: config.userId },
-    });
-    const data = fetchedData.data?.[0];
-
-    if (!data) return await insertIntoTable("UserConfig", config);
-    updateInTable("UserConfig", { id: data.id }, { id: data.id });
-  } catch (error) {
-    showError(chalk.red("Error in insertUserConfig:"), error);
-  }
-};
-
 const handleInitWebSocket = (
   data: WebSocketMessage<"sentByApp">,
   ws: WebSocket,
-): string => {
-  if (data.type !== "init") return "";
+): void => {
+  if (data.type !== "init") return;
 
   try {
-    const pingIntervalIdOld = users?.[data.userId]?.pingIntervalId;
+    const pingIntervalIdOld =
+      users[data.userId]?.[data.deviceId]?.pingIntervalId;
     if (pingIntervalIdOld) clearInterval(pingIntervalIdOld);
 
     const pingIntervalId = setInterval(() => {
-      users[data.userId].pingTimeoutId = setTimeout(() => {
+      users[data.userId][data.deviceId].pingTimeoutId = setTimeout(() => {
         showInfo(
           chalk.red("Terminating unresponsive client:"),
           chalk.yellow(data.userId),
@@ -75,30 +58,28 @@ const handleInitWebSocket = (
         ws.close?.();
       }, 10000);
       ws.send(JSON.stringify({ type: "ping" }));
-    }, 29000);
+    }, 30000);
 
-    if (!users[data.userId]) {
+    if (!users[data.userId] || !users[data.userId][data.deviceId]) {
       users[data.userId] = {
-        ws,
-        intervalsId: null,
-        pingTimeoutId: null,
-        pingIntervalId,
+        ...(users[data.userId] || {}),
+        [data.deviceId]: {
+          ws,
+          intervalsId: null,
+          pingTimeoutId: null,
+          pingIntervalId,
+        },
       };
-    } else users[data.userId].pingIntervalId = pingIntervalId;
-
-    insertUserConfig({
-      userId: data.userId,
-      language: data.language || "en",
-      theme: data.theme || "auto",
-      hasAdmin: data.hasAdmin || false,
-      updatedAt: new Date().toISOString(),
-    });
-
-    if (users[data.userId].ws !== ws) {
-      if (users[data.userId].ws.readyState === WebSocket.OPEN) {
-        users[data.userId].ws.close();
+    } else {
+      users[data.userId][data.deviceId].pingIntervalId = pingIntervalId;
+      if (users[data.userId][data.deviceId].pingTimeoutId) {
+        clearTimeout(users[data.userId][data.deviceId].pingTimeoutId as number);
       }
-      users[data.userId].ws = ws;
+    }
+
+    if (users[data.userId][data.deviceId].ws !== ws) {
+      users[data.userId][data.deviceId].ws.terminate();
+      users[data.userId][data.deviceId].ws = ws;
     }
 
     const message: WebSocketMessage<"sentByServer"> = {
@@ -106,108 +87,114 @@ const handleInitWebSocket = (
       message: "WebSocket initialized successfully",
     };
     ws.send(JSON.stringify(message));
-
-    return data.userId;
   } catch (error) {
     showError(chalk.red("Error in handleInitWebSocket:"), error);
-    return "";
+  }
+};
+
+const handleClose = (userId: string, deviceId: string, ws: WebSocket) => {
+  ws.removeAllListeners();
+
+  const deviceObj = users[userId]?.[deviceId];
+  if (!deviceObj) return;
+
+  const pingTimeoutId = deviceObj.pingTimeoutId;
+  deviceObj.pingTimeoutId = null;
+  if (pingTimeoutId) clearTimeout(pingTimeoutId);
+
+  const pingIntervalId = deviceObj.pingIntervalId;
+  deviceObj.pingIntervalId = null;
+  if (pingIntervalId) clearInterval(pingIntervalId);
+
+  const intervalsId = deviceObj.intervalsId;
+  deviceObj.intervalsId = null;
+  if (!intervalsId) return;
+
+  Object.values(intervalsId).forEach((intervalId) => {
+    if (intervalId) clearInterval(intervalId);
+  });
+};
+
+const getNotificationCrypto = async (
+  cryptos: Crypto[],
+  userId: string,
+): Promise<Notification | null> => {
+  try {
+    const id = Math.floor(Math.random() * 1000000);
+
+    const fetchedData = await fetchFromTable({
+      table: "UserConfig",
+      match: { userId },
+    });
+
+    const dataLang = fetchedData.data?.[0];
+    const language = (dataLang?.language || "en") as LanguagesSupported;
+
+    if (!cryptos || cryptos?.length === 0)
+      return {
+        title: t("notificationNotCryptosSelectedTitle", language),
+        message: t("notificationNotCryptosSelectedBody", language),
+        reasonNotification: "cryptos",
+        channelId: "cryptos",
+        id,
+        type: "info",
+        timestamp: new Date(),
+        overrideNotification: false,
+        data: {
+          screen: "Cryptos",
+        },
+      };
+
+    if (!dataBinance || !Array.isArray(dataBinance)) return null;
+    const prices = cryptos?.map((crypto) => {
+      const priceData = dataBinance?.find(
+        (item) => item.symbol === `${crypto.id}${crypto.currency}`,
+      );
+      return priceData ? priceData.price : 0;
+    });
+    const percentageGains = prices.map((price, index) =>
+      getPercentGain(price, cryptos[index]),
+    );
+    const message = cryptos
+      .map((crypto, index) =>
+        t("notificationCryptoBody", language, {
+          crypto: crypto.id,
+          price: prices[index],
+          gainPercent: percentageGains[index],
+        }),
+      )
+      .join("\n");
+
+    const notification: Notification = {
+      message,
+      reasonNotification: "cryptos",
+      channelId: "cryptos",
+      title: t("notificationCryptoTitle", language, {
+        cryptos: cryptos.map((crypto) => crypto.id).join(", "),
+      }),
+      id,
+      type: "info",
+      timestamp: new Date(),
+      overrideNotification: false,
+      data: {
+        screen: "Cryptos",
+      },
+    };
+    return notification;
+  } catch (error) {
+    showError(chalk.red("Error in getNotificationCrypto:"), error);
+    return null;
   }
 };
 
 const connectionWss = (ws: WebSocket) => {
+  let isErrorClose = false;
+
   let userId: string;
+  let deviceId: string;
   showInfo(chalk.green("New client connected"));
 
   try {
-    const getNotificationCrypto = async (
-      cryptos: Cryptos[],
-    ): Promise<Notification | null> => {
-      try {
-        const id = Math.floor(Math.random() * 1000000);
-
-        const fetchedData = await fetchFromTable({
-          table: "UserConfig",
-          match: { userId },
-        });
-
-        const dataLang = fetchedData.data?.[0];
-        const language = (dataLang?.language || "en") as LanguagesSupported;
-
-        if (!cryptos || cryptos?.length === 0)
-          return {
-            title: t("notificationNotCryptosSelectedTitle", language),
-            message: t("notificationNotCryptosSelectedBody", language),
-            reasonNotification: "cryptos",
-            channelId: "cryptos",
-            id,
-            type: "info",
-            timestamp: new Date(),
-            overrideNotification: false,
-            data: {
-              screen: "Cryptos",
-            },
-          };
-
-        if (!dataBinance || !Array.isArray(dataBinance)) return null;
-        const prices = cryptos?.map((crypto) => {
-          const priceData = dataBinance?.find(
-            (item) => item.symbol === `${crypto.id}${crypto.currency}`,
-          );
-          return priceData ? priceData.price : 0;
-        });
-        const percentageGains = prices.map((price, index) =>
-          getPercentGain(price, cryptos[index]),
-        );
-        const message = cryptos
-          .map((crypto, index) =>
-            t("notificationCryptoBody", language, {
-              crypto: crypto.id,
-              price: prices[index],
-              gainPercent: percentageGains[index],
-            }),
-          )
-          .join("\n");
-
-        const notification: Notification = {
-          message,
-          reasonNotification: "cryptos",
-          channelId: "cryptos",
-          title: t("notificationCryptoTitle", language, {
-            cryptos: cryptos.map((crypto) => crypto.id).join(", "),
-          }),
-          id,
-          type: "info",
-          timestamp: new Date(),
-          overrideNotification: false,
-          data: {
-            screen: "Cryptos",
-          },
-        };
-        return notification;
-      } catch (error) {
-        showError(chalk.red("Error in getNotificationCrypto:"), error);
-        return null;
-      }
-    };
-
-    const handleClose = () => {
-      if (!users[userId]) return;
-
-      const pingTimeoutId = users[userId].pingTimeoutId;
-      if (pingTimeoutId) clearTimeout(pingTimeoutId);
-
-      const pingIntervalId = users[userId].pingIntervalId;
-      if (pingIntervalId) clearInterval(pingIntervalId);
-
-      const intervalsId = users[userId].intervalsId;
-      if (!intervalsId) return;
-
-      Object.values(intervalsId).forEach((intervalId) => {
-        if (intervalId) clearInterval(intervalId);
-      });
-      ws.removeAllListeners();
-    };
-
     ws.on("message", (message) => {
       try {
         const data = JSON.parse(
@@ -216,7 +203,10 @@ const connectionWss = (ws: WebSocket) => {
 
         switch (data.type) {
           case "init":
-            userId = handleInitWebSocket(data, ws);
+            handleInitWebSocket(data, ws);
+            userId = data.userId;
+            deviceId = data.deviceId;
+
             break;
           case "language-change":
             if (!users[userId]) return;
@@ -227,12 +217,12 @@ const connectionWss = (ws: WebSocket) => {
             );
             break;
           case "pong": {
-            if (!users[userId]) return ws.close();
+            if (!users[userId] || !users[userId][deviceId]) return ws.close();
 
-            const timeoutId = users[userId].pingTimeoutId;
+            const timeoutId = users[userId][deviceId].pingTimeoutId;
+            users[userId][deviceId].pingTimeoutId = null;
             if (timeoutId) clearTimeout(timeoutId);
 
-            users[userId].pingTimeoutId = null;
             break;
           }
           default:
@@ -245,24 +235,26 @@ const connectionWss = (ws: WebSocket) => {
     });
 
     ws.on("close", (code, reason) => {
-      showInfo(
-        chalk.red("Client"),
-        chalk.yellow(userId),
-        chalk.red("disconnected:"),
-        code,
-        chalk.yellow(reason.toString()),
-      );
-      handleClose();
+      if (!isErrorClose)
+        showInfo(
+          chalk.red("Client"),
+          chalk.yellow(userId),
+          chalk.red("disconnected:"),
+          code,
+          chalk.yellow(reason.toString()),
+        );
+      handleClose(userId, deviceId, ws);
     });
 
     ws.on("error", (error) => {
+      isErrorClose = true;
       showInfo(
         chalk.red("WebSocket error for client:"),
         chalk.yellow(userId),
         chalk.red("-"),
         error,
       );
-      ws.close?.();
+      ws.close();
     });
   } catch (error) {
     showError(chalk.red("Error in connectionWss:"), error);

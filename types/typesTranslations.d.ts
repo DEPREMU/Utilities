@@ -631,6 +631,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       sending: string;
       selectFolder: string;
       welcome: string;
+      welcomeAgain: string;
       close: string;
       success: string;
       easy: string;
@@ -700,6 +701,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
         enabled: string;
         maxItems: string;
         maxCharsInItem: string;
+        enableClipboard: string;
       };
     };
   };

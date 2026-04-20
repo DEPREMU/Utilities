@@ -7,7 +7,8 @@
     "typeRoots": ["../node_modules/@types"],
     "skipLibCheck": true,
     "paths": {
-      "@types": ["./index.d.ts"]
+      "@types": ["./index.d.ts"],
+      "@common": ["../common/both"]
     }
   },
   "include": ["./**/*.d.ts"],

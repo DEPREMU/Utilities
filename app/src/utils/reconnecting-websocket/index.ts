@@ -1,550 +1,416 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable no-console */
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-/*!
- * Reconnecting WebSocket
- * by Pedro Ladaria <pedro.ladaria@gmail.com>
- * https://github.com/pladaria/reconnecting-websocket
- * License MIT
- * Changes made by DEPREMU to support background reconnections in mobile environments.
- */
-
 import {
+  waitForTime,
   setTimeoutPolyfill,
+  setIntervalPolyfill,
   clearTimeoutPolyfill,
 } from "../functions/appManagement";
-import * as Events from "./events";
-
-const getGlobalWebSocket = (): WebSocket | undefined => {
-  if (typeof WebSocket !== "undefined") {
-    // @ts-expect-error TS doesn't know WebSocket exists in this environment
-    return WebSocket;
-  }
-};
-
-/**
- * Returns true if given argument looks like a WebSocket class
- */
-const isWebSocket = (w: any) =>
-  typeof w !== "undefined" && !!w && w.CLOSING === 2;
-
-export type Event = Events.Event;
-export type ErrorEvent = Events.ErrorEvent;
-export type CloseEvent = Events.CloseEvent;
+import type WebSocketType from "ws";
+import { logger } from "../functions/debug";
 
 export type OptionsReconnectingWS = {
-  WebSocket?: any;
-  maxReconnectionDelay?: number;
-  minReconnectionDelay?: number;
-  reconnectionDelayGrowFactor?: number;
-  minUptime?: number;
-  connectionTimeout?: number;
+  /**
+   * The maximum number of reconnection attempts before giving up, negatives mean infinite.
+   * @default -1 // meaning it will keep trying indefinitely.
+   */
   maxRetries?: number;
-  maxEnqueuedMessages?: number;
+  /**
+   * The delay in milliseconds between reconnection attempts.
+   * @default 1000 // (1 second).
+   */
+  retryDelay?: number;
+  /**
+   * Whether to start the WebSocket connection in a closed state. If `true`, the connection will not be established until the `reconnect()` method is called.
+   * @default false
+   */
   startClosed?: boolean;
-  debug?: boolean;
+  /**
+   * A string or a function that returns a string (or a Promise that resolves to a string) to be sent immediately after the WebSocket connection is opened. This can be used for authentication or initialization purposes, every time the connection is established, this value will be sent.
+   * @default undefined // meaning no message will be sent after opening the connection.
+   */
+  messagesAfterOpen?: (string | (() => Promise<string> | string))[];
+  /**
+   * Optional subprotocols parameter to specify the WebSocket subprotocols. This can be a single string or an array of strings, depending on the server's requirements.
+   * @default undefined // meaning no subprotocols will be specified.
+   */
+  protocols?: string | string[];
+  /**
+   * Whether the WebSocket should automatically attempt to reconnect when a connection error occurs. If `true`, the WebSocket will try to reconnect according to the specified `maxRetries` and `retryDelay` options. If `false`, the WebSocket will not attempt to reconnect and will require manual intervention to establish a new connection.
+   * @default true
+   */
+  reconnectOnError?: boolean;
+  /**
+   * Whether the WebSocket should automatically attempt to reconnect when the connection is closed. If `true`, the WebSocket will try to reconnect according to the specified `maxRetries` and `retryDelay` options whenever the connection is closed, regardless of the reason for closure. If `false`, the WebSocket will not attempt to reconnect when the connection is closed and will require manual intervention to establish a new connection.
+   * @default true
+   */
+  reconnectOnClose?: boolean;
+  /**
+   * Whether to enable automatic ping-pong messages to keep the WebSocket connection alive and detect disconnections. If timeout and interval, the WebSocket will send a ping message after the specified interval and wait for a pong response within the specified timeout. If the expected message is not received within the timeout period, the WebSocket will be considered disconnected and will trigger the reconnection logic if enabled. If only expectedMessage and expectedResponse are provided, the WebSocket will listen for incoming messages and automatically respond with the expectedResponse whenever a message matching the expectedMessage is received. This can be used to implement a custom keep-alive mechanism or to respond to specific server messages without having to set up manual event listeners.
+   * @default undefined // meaning no automatic ping-pong mechanism will be enabled.
+   */
+  pingPong?:
+    | {
+        timeout: number;
+        interval: number;
+        messageToSend: string;
+        expectedMessage: string;
+      }
+    | {
+        expectedMessage: string;
+        expectedResponse: string;
+      };
+  /**
+   * Whether to queue messages sent while the WebSocket is not open and automatically send them once the connection is established. If `true`, any messages sent using the `send()` method while the WebSocket is not in the OPEN state will be stored in a queue and sent in order once the connection is successfully established. If `false`, messages sent while the WebSocket is not open will be discarded, and a warning will be logged to indicate that the message could not be sent due to the WebSocket's state.
+   * @default true
+   */
+  queueMessages?: boolean;
 };
 
-const DEFAULT = {
-  maxReconnectionDelay: 10000,
-  minReconnectionDelay: 1000 + Math.random() * 4000,
-  minUptime: 5000,
-  reconnectionDelayGrowFactor: 1.3,
-  connectionTimeout: 4000,
-  maxRetries: Infinity,
-  maxEnqueuedMessages: Infinity,
+export type ReasonCloseWS = "timeout" | "error" | "reconnect" | "manual";
+
+const DEFAULT_OPTIONS: OptionsReconnectingWS = {
+  maxRetries: -1,
+  retryDelay: 1000,
   startClosed: false,
-  debug: false,
+  queueMessages: true,
+  reconnectOnError: true,
+  reconnectOnClose: true,
 };
 
-export type UrlProvider = string | (() => string) | (() => Promise<string>);
+const TAG = "ReconnectingWebSocket";
 
-export type Message = string | ArrayBuffer | Blob | ArrayBufferView;
-
-export type ListenersMap = {
-  error: Array<Events.WebSocketEventListenerMap["error"]>;
-  message: Array<Events.WebSocketEventListenerMap["message"]>;
-  open: Array<Events.WebSocketEventListenerMap["open"]>;
-  close: Array<Events.WebSocketEventListenerMap["close"]>;
-};
-
-export default class ReconnectingWebSocket {
-  private _ws?: WebSocket;
-  private _listeners: ListenersMap = {
-    error: [],
-    message: [],
-    open: [],
-    close: [],
+export class ReconnectingWebSocket {
+  #url: string;
+  #options: OptionsReconnectingWS = { ...DEFAULT_OPTIONS };
+  #ws: WebSocket | null = null;
+  #retries = 0;
+  #connected = false;
+  #connecting = false;
+  #closeWithError = false;
+  #shouldReconnect = true;
+  #pongSettings = {
+    timeoutId: null as number | null,
+    intervalId: null as number | null,
   };
-  private _retryCount = -1;
-  private _uptimeTimeout: any;
-  private _connectTimeout: any;
-  private _shouldReconnect = true;
-  private _connectLock = false;
-  private _binaryType: BinaryType = "blob";
-  private _closeCalled = false;
-  private _messageQueue: Message[] = [];
+  #messagesQueue: string[] = [];
 
-  private readonly _url: UrlProvider;
-  private readonly _protocols?: string | string[];
-  private readonly _options: OptionsReconnectingWS;
+  #onOpen: WebSocketType["onopen"] | null = null;
+  #onClose: WebSocketType["onclose"] | null = null;
+  #onError: WebSocketType["onerror"] | null = null;
+  #onMessage: WebSocketType["onmessage"] | null = null;
 
-  constructor(
-    url: UrlProvider,
-    protocols?: string | string[],
-    options: OptionsReconnectingWS = {},
-  ) {
-    this._url = url;
-    this._protocols = protocols;
-    this._options = options;
-    if (this._options.startClosed) {
-      this._shouldReconnect = false;
+  #unQueueMessages = () => {
+    if (!this.#ws || this.#ws.readyState !== WebSocket.OPEN) return;
+
+    while (this.#messagesQueue.length > 0) {
+      const message = this.#messagesQueue.shift();
+      if (message) this.#ws.send(message);
     }
-    this._connect();
-  }
+  };
 
-  static get CONNECTING() {
-    return 0;
-  }
-  static get OPEN() {
-    return 1;
-  }
-  static get CLOSING() {
-    return 2;
-  }
-  static get CLOSED() {
-    return 3;
-  }
-
-  get CONNECTING() {
-    return ReconnectingWebSocket.CONNECTING;
-  }
-  get OPEN() {
-    return ReconnectingWebSocket.OPEN;
-  }
-  get CLOSING() {
-    return ReconnectingWebSocket.CLOSING;
-  }
-  get CLOSED() {
-    return ReconnectingWebSocket.CLOSED;
-  }
-
-  get binaryType() {
-    return this._ws ? this._ws.binaryType : this._binaryType;
-  }
-
-  set binaryType(value: BinaryType) {
-    this._binaryType = value;
-    if (this._ws) {
-      this._ws.binaryType = value;
+  public set url(newURL: string) {
+    if (this.#url === newURL) return;
+    this.#url = newURL;
+    if (this.#ws) {
+      this.#closeWs("manual");
+      if (this.#shouldReconnect) this.reconnect();
     }
   }
 
-  /**
-   * Returns the number or connection retries
-   */
-  get retryCount(): number {
-    return Math.max(this._retryCount, 0);
+  public set onOpen(callback: WebSocketType["onopen"] | null) {
+    this.#onOpen = callback;
   }
 
-  /**
-   * The number of bytes of data that have been queued using calls to send() but not yet
-   * transmitted to the network. This value resets to zero once all queued data has been sent.
-   * This value does not reset to zero when the connection is closed; if you keep calling send(),
-   * this will continue to climb. Read only
-   */
-  get bufferedAmount(): number {
-    const bytes = this._messageQueue.reduce((acc, message) => {
-      if (typeof message === "string") {
-        acc += message.length; // not byte size
-      } else if (message instanceof Blob) {
-        acc += message.size;
+  public set onClose(callback: WebSocketType["onclose"] | null) {
+    this.#onClose = callback;
+  }
+
+  public set onError(callback: WebSocketType["onerror"] | null) {
+    this.#onError = callback;
+  }
+
+  public set onMessage(callback: WebSocketType["onmessage"] | null) {
+    this.#onMessage = callback;
+  }
+
+  public get isConnecting() {
+    return this.#connecting;
+  }
+
+  public get isConnected() {
+    return this.#connected;
+  }
+
+  public send = (data: string) => {
+    if (!this.#ws || this.#ws.readyState !== WebSocket.OPEN) {
+      if (this.#options.queueMessages) {
+        this.#messagesQueue.push(data);
       } else {
-        acc += message.byteLength;
-      }
-      return acc;
-    }, 0);
-    return bytes + (this._ws ? this._ws.bufferedAmount : 0);
-  }
-
-  /**
-   * The extensions selected by the server. This is currently only the empty string or a list of
-   * extensions as negotiated by the connection
-   */
-  get extensions(): string {
-    return this._ws ? this._ws.extensions : "";
-  }
-
-  /**
-   * A string indicating the name of the sub-protocol the server selected;
-   * this will be one of the strings specified in the protocols parameter when creating the
-   * WebSocket object
-   */
-  get protocol(): string {
-    return this._ws ? this._ws.protocol : "";
-  }
-
-  /**
-   * The current state of the connection; this is one of the Ready state constants
-   */
-  get readyState(): number {
-    if (this._ws) {
-      return this._ws.readyState;
-    }
-    return this._options.startClosed
-      ? ReconnectingWebSocket.CLOSED
-      : ReconnectingWebSocket.CONNECTING;
-  }
-
-  /**
-   * The URL as resolved by the constructor
-   */
-  get url(): string {
-    return this._ws ? this._ws.url : "";
-  }
-
-  /**
-   * An event listener to be called when the WebSocket connection's readyState changes to CLOSED
-   */
-  public onclose: ((event: Events.CloseEvent) => void) | null = null;
-
-  /**
-   * An event listener to be called when an error occurs
-   */
-  public onerror: ((event: Events.ErrorEvent) => void) | null = null;
-
-  /**
-   * An event listener to be called when a message is received from the server
-   */
-  public onmessage: ((event: MessageEvent) => void) | null = null;
-
-  /**
-   * An event listener to be called when the WebSocket connection's readyState changes to OPEN;
-   * this indicates that the connection is ready to send and receive data
-   */
-  public onopen: ((event: Event) => void) | null = null;
-
-  /**
-   * Closes the WebSocket connection or connection attempt, if any. If the connection is already
-   * CLOSED, this method does nothing
-   */
-  public close(code: number = 1000, reason?: string) {
-    this._closeCalled = true;
-    this._shouldReconnect = false;
-    this._clearTimeouts();
-    if (!this._ws) {
-      this._debug("close enqueued: no ws instance");
-      return;
-    }
-    if (this._ws.readyState === this.CLOSED) {
-      this._debug("close: already closed");
-      return;
-    }
-    this._ws.close(code, reason);
-  }
-
-  /**
-   * Closes the WebSocket connection or connection attempt and connects again.
-   * Resets retry counter;
-   */
-  public reconnect(code?: number, reason?: string) {
-    this._shouldReconnect = true;
-    this._closeCalled = false;
-    this._retryCount = -1;
-    if (!this._ws || this._ws.readyState === this.CLOSED) {
-      this._connect();
-    } else {
-      this._disconnect(code, reason);
-      this._connect();
-    }
-  }
-
-  /**
-   * Enqueue specified data to be transmitted to the server over the WebSocket connection
-   */
-  public send(data: Message) {
-    if (this._ws && this._ws.readyState === this.OPEN) {
-      this._debug("send", data);
-      this._ws.send(data);
-    } else {
-      const { maxEnqueuedMessages = DEFAULT.maxEnqueuedMessages } =
-        this._options;
-      if (this._messageQueue.length < maxEnqueuedMessages) {
-        this._debug("enqueue", data);
-        this._messageQueue.push(data);
-      }
-    }
-  }
-
-  /**
-   * Register an event handler of a specific event type
-   */
-  public addEventListener<T extends keyof Events.WebSocketEventListenerMap>(
-    type: T,
-    listener: Events.WebSocketEventListenerMap[T],
-  ): void {
-    if (this._listeners[type]) {
-      // @ts-expect-error TS doesn't know WebSocket exists in this environment
-      this._listeners[type].push(listener);
-    }
-  }
-
-  public dispatchEvent(event: Event) {
-    const listeners =
-      this._listeners[event.type as keyof Events.WebSocketEventListenerMap];
-    if (listeners) {
-      for (const listener of listeners) {
-        this._callEventListener(event, listener);
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Removes an event listener
-   */
-  public removeEventListener<T extends keyof Events.WebSocketEventListenerMap>(
-    type: T,
-    listener: Events.WebSocketEventListenerMap[T],
-  ): void {
-    if (this._listeners[type]) {
-      // @ts-expect-error TS doesn't know WebSocket exists in this environment
-      this._listeners[type] = this._listeners[type].filter(
-        (l) => l !== listener,
-      );
-    }
-  }
-
-  private _debug(...args: any[]) {
-    if (this._options.debug) {
-      // not using spread because compiled version uses Symbols
-      // tslint:disable-next-line
-      console.log.apply(console, ["RWS>", ...args]);
-    }
-  }
-
-  private _getNextDelay() {
-    const {
-      reconnectionDelayGrowFactor = DEFAULT.reconnectionDelayGrowFactor,
-      minReconnectionDelay = DEFAULT.minReconnectionDelay,
-      maxReconnectionDelay = DEFAULT.maxReconnectionDelay,
-    } = this._options;
-    let delay = 0;
-    if (this._retryCount > 0) {
-      delay =
-        minReconnectionDelay *
-        Math.pow(reconnectionDelayGrowFactor, this._retryCount - 1);
-      if (delay > maxReconnectionDelay) {
-        delay = maxReconnectionDelay;
-      }
-    }
-    this._debug("next delay", delay);
-    return delay;
-  }
-
-  private _wait(): Promise<void> {
-    return new Promise((resolve) => {
-      setTimeoutPolyfill(resolve as any, this._getNextDelay());
-    });
-  }
-
-  private _getNextUrl(urlProvider: UrlProvider): Promise<string> {
-    if (typeof urlProvider === "string") {
-      return Promise.resolve(urlProvider);
-    }
-    if (typeof urlProvider === "function") {
-      const url = urlProvider();
-      if (typeof url === "string") {
-        return Promise.resolve(url);
-      }
-      // eslint-disable-next-line no-extra-boolean-cast
-      if (!!url.then) {
-        return url;
-      }
-    }
-    throw Error("Invalid URL");
-  }
-
-  private _connect() {
-    if (this._connectLock || !this._shouldReconnect) {
-      return;
-    }
-    this._connectLock = true;
-
-    const {
-      maxRetries = DEFAULT.maxRetries,
-      connectionTimeout = DEFAULT.connectionTimeout,
-      WebSocket = getGlobalWebSocket(),
-    } = this._options;
-
-    if (this._retryCount >= maxRetries) {
-      this._debug("max retries reached", this._retryCount, ">=", maxRetries);
-      return;
-    }
-
-    this._retryCount++;
-
-    this._debug("connect", this._retryCount);
-    this._removeListeners();
-    if (!isWebSocket(WebSocket)) {
-      throw Error("No valid WebSocket class provided");
-    }
-    this._wait()
-      .then(() => this._getNextUrl(this._url))
-      .then((url) => {
-        // close could be called before creating the ws
-        if (this._closeCalled) {
-          return;
-        }
-        this._debug("connect", { url, protocols: this._protocols });
-        this._ws = this._protocols
-          ? new WebSocket(url, this._protocols)
-          : new WebSocket(url);
-        this._ws!.binaryType = this._binaryType;
-        this._connectLock = false;
-        this._addListeners();
-
-        this._connectTimeout = setTimeoutPolyfill(
-          () => this._handleTimeout(),
-          connectionTimeout,
+        logger.warn(
+          TAG,
+          "Cannot send message: WebSocket is not open. Message discarded:",
+          data.slice(0, 50) + (data.length > 50 ? "..." : ""),
         );
-      });
-  }
-
-  private _handleTimeout() {
-    this._debug("timeout event");
-    this._handleError(new Events.ErrorEvent(Error("TIMEOUT"), this));
-  }
-
-  private _disconnect(code: number = 1000, reason?: string) {
-    this._clearTimeouts();
-    if (!this._ws) {
+      }
       return;
     }
-    this._removeListeners();
+
+    this.#ws.send(data);
+  };
+
+  #reconnectingPromise: Promise<void> | null = null;
+
+  #handlePingPong = () => {
+    if (!this.#options.pingPong || this.#pongSettings.intervalId) return;
+
+    if ("timeout" in this.#options.pingPong) {
+      const { interval, timeout } = this.#options.pingPong;
+      this.#pongSettings.intervalId = setIntervalPolyfill(() => {
+        if (!this.#ws) return;
+        if (!this.#options.pingPong) return;
+
+        if ("messageToSend" in this.#options.pingPong) {
+          this.#ws.send(this.#options.pingPong.messageToSend);
+        }
+
+        this.#pongSettings.timeoutId = setTimeoutPolyfill(() => {
+          logger.warn(
+            TAG,
+            "Ping timeout: No pong response received within expected time.",
+          );
+          this.#closeWithError = true;
+          this.#closeWs("timeout");
+          this.reconnect();
+        }, timeout);
+      }, interval);
+    }
+  };
+
+  #_reconnect = async () => {
     try {
-      this._ws.close(code, reason);
-      this._handleClose(new Events.CloseEvent(code, reason, this));
-    } catch {
-      // ignore
+      if (!this.#shouldReconnect) return;
+      if (this.#reconnectingPromise) return this.#reconnectingPromise;
+      if (this.#connecting) return;
+      this.#connecting = true;
+
+      let shouldAttemptReconnect = true;
+
+      while (
+        !this.#connected &&
+        this.#shouldReconnect &&
+        shouldAttemptReconnect &&
+        (!this.#options.maxRetries ||
+          this.#options.maxRetries < 0 ||
+          this.#retries < this.#options.maxRetries)
+      ) {
+        await new Promise<void>((resolve) => {
+          let resolved = false;
+          let handleResolve = (success: boolean) => {
+            if (resolved) return;
+            resolved = true;
+
+            shouldAttemptReconnect = !success;
+            this.#connected = success;
+            this.#connecting = false;
+            if (success) this.#reconnectingPromise = null;
+
+            resolve();
+            handleResolve = () => {};
+          };
+
+          if (
+            this.#options.maxRetries &&
+            this.#options.maxRetries >= 0 &&
+            this.#retries >= this.#options.maxRetries
+          ) {
+            logger.warn(
+              TAG,
+              "Maximum reconnection attempts reached. Stopping further attempts.",
+            );
+            this.#shouldReconnect = false;
+            handleResolve(false);
+            return;
+          }
+
+          this.#ws = new WebSocket(
+            this.#url,
+            this.#options.protocols || undefined,
+          );
+
+          this.#ws.onopen = async (event) => {
+            if (!this.#ws) return;
+
+            logger.log(TAG, "WebSocket connection established:", this.#url);
+
+            this.#retries = 0;
+            for (
+              let i = 0;
+              i < (this.#options.messagesAfterOpen?.length || 0);
+              i++
+            ) {
+              const messageOrFunc = this.#options.messagesAfterOpen?.[i];
+              const message =
+                typeof messageOrFunc === "function"
+                  ? await messageOrFunc()
+                  : messageOrFunc;
+
+              if (!message) continue;
+              this.#ws.send(message);
+            }
+            if (this.#onOpen) this.#onOpen.call(this.#ws, event as never);
+            this.#handlePingPong();
+            this.#unQueueMessages();
+            handleResolve(true);
+          };
+
+          this.#ws.onclose = (event) => {
+            if (this.#closeWithError) return;
+            if (!this.#ws) return;
+
+            logger.warn(
+              TAG,
+              "WebSocket connection closed:",
+              this.#url,
+              "Code:",
+              event.code ?? "No code provided",
+              "Reason:",
+              event.reason ?? "No reason provided",
+            );
+
+            if (this.#options.reconnectOnClose) {
+              this.#closeWs("reconnect");
+              this.#retries++;
+              this.#connected = false;
+              this.#connecting = false;
+              this.#reconnectingPromise = this.reconnect();
+            } else {
+              this.#shouldReconnect = false;
+              this.#onClose?.call(this.#ws, event as never);
+              this.#closeWs();
+            }
+            handleResolve(false);
+          };
+
+          this.#ws.onerror = (event) => {
+            if (!this.#ws) return;
+
+            logger.error(
+              TAG,
+              "WebSocket error occurred:",
+              this.#url,
+              "Event:",
+              event,
+            );
+
+            if (this.#options.reconnectOnError) {
+              this.#closeWithError = true;
+              this.#closeWs("error");
+              this.#retries++;
+              this.#connected = false;
+              this.#connecting = false;
+              this.#reconnectingPromise = this.reconnect();
+            } else {
+              this.#shouldReconnect = false;
+              this.#onError?.call(this.#ws, event as never);
+              this.#closeWs();
+            }
+            handleResolve(false);
+          };
+
+          this.#ws.onmessage = (event) => {
+            if (!this.#ws) return;
+
+            if (this.#options.pingPong) {
+              const expectedMessage = this.#options.pingPong.expectedMessage;
+
+              if (expectedMessage && event.data === expectedMessage) {
+                if (this.#pongSettings.timeoutId) {
+                  clearTimeoutPolyfill(this.#pongSettings.timeoutId);
+                  this.#pongSettings.timeoutId = null;
+                }
+                if ("expectedResponse" in this.#options.pingPong && this.#ws) {
+                  this.#ws.send(this.#options.pingPong.expectedResponse);
+                }
+                return;
+              }
+            }
+
+            if (this.#onMessage) this.#onMessage.call(this.#ws, event as never);
+          };
+        });
+        if (!this.#connected)
+          await waitForTime(
+            this.#options.retryDelay || (DEFAULT_OPTIONS.retryDelay as number),
+          );
+      }
+    } catch (error) {
+      logger.error(
+        TAG,
+        "Error during WebSocket reconnection:",
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      this.#reconnectingPromise = null;
     }
-  }
+  };
 
-  private _acceptOpen() {
-    this._debug("accept open");
-    this._retryCount = 0;
-  }
+  #closeWs = (reason?: ReasonCloseWS) => {
+    if (!this.#ws) return;
 
-  private _callEventListener<T extends keyof Events.WebSocketEventListenerMap>(
-    event: Events.WebSocketEventMap[T],
-    listener: Events.WebSocketEventListenerMap[T],
-  ) {
-    if ("handleEvent" in listener) {
-      // @ts-expect-error TS doesn't know WebSocket exists in this environment
-      listener.handleEvent(event);
+    logger.log(
+      TAG,
+      "Closing WebSocket connection:",
+      this.#url,
+      "Reason:",
+      reason || "No specified",
+    );
+
+    this.#ws.close();
+    this.#ws = null;
+    this.#connected = false;
+    this.#closeWithError = false;
+  };
+
+  /**
+   * Manually initiates a reconnection attempt to establish a new WebSocket connection. If the WebSocket is already connected or in the process of connecting, this method will have no effect. If the WebSocket is currently disconnected and not attempting to reconnect, calling this method will start the reconnection process according to the specified options (such as `maxRetries` and `retryDelay`). The method returns a Promise that resolves once the reconnection attempt has completed, whether it was successful or not.
+   */
+  public reconnect = async (): Promise<void> => {
+    this.#shouldReconnect = true;
+
+    if (this.#reconnectingPromise) return this.#reconnectingPromise;
+
+    this.#reconnectingPromise = this.#_reconnect();
+    return this.#reconnectingPromise;
+  };
+
+  /**
+   * Manually closes the WebSocket connection and prevents any further automatic reconnection attempts. After calling this method, the WebSocket will remain closed until the `reconnect()` method is called again to establish a new connection.
+   */
+  public close = () => {
+    this.#shouldReconnect = false;
+    this.#closeWs("manual");
+  };
+
+  /**
+   * Sets whether the WebSocket should automatically attempt to reconnect when the connection is closed or an error occurs. If set to `true`, the WebSocket will try to reconnect according to the specified `maxRetries` and `retryDelay` options whenever the connection is closed or an error occurs, regardless of the reason for closure or error. If set to `false`, the WebSocket will not attempt to reconnect when the connection is closed or an error occurs and will require manual intervention (by calling the `reconnect()` method) to establish a new connection.
+   */
+  public set shouldReconnect(value: boolean) {
+    this.#shouldReconnect = value;
+    if (!value) {
+      this.#closeWs("manual");
     } else {
-      // @ts-expect-error TS doesn't know WebSocket exists in this environment
-      listener(event);
+      this.reconnect();
     }
   }
 
-  private _handleOpen = (event: Event) => {
-    this._debug("open event");
-    const { minUptime = DEFAULT.minUptime } = this._options;
-
-    clearTimeoutPolyfill(this._connectTimeout);
-    this._uptimeTimeout = setTimeoutPolyfill(
-      () => this._acceptOpen(),
-      minUptime,
-    );
-
-    this._ws!.binaryType = this._binaryType;
-
-    // send enqueued messages (messages sent before websocket open event)
-    this._messageQueue.forEach((message) => this._ws!.send(message));
-    this._messageQueue = [];
-
-    if (this.onopen) {
-      this.onopen(event);
-    }
-    this._listeners.open.forEach((listener) =>
-      this._callEventListener(event, listener),
-    );
-  };
-
-  private _handleMessage = (event: MessageEvent) => {
-    this._debug("message event");
-
-    if (this.onmessage) {
-      this.onmessage(event);
-    }
-    this._listeners.message.forEach((listener) =>
-      this._callEventListener(event, listener),
-    );
-  };
-
-  private _handleError = (event: Events.ErrorEvent) => {
-    this._debug("error event", event.message);
-    this._disconnect(
-      undefined,
-      event.message === "TIMEOUT" ? "timeout" : undefined,
-    );
-
-    if (this.onerror) {
-      this.onerror(event);
-    }
-    this._debug("exec error listeners");
-    this._listeners.error.forEach((listener) =>
-      this._callEventListener(event, listener),
-    );
-
-    this._connect();
-  };
-
-  private _handleClose = (event: Events.CloseEvent) => {
-    this._debug("close event");
-    this._clearTimeouts();
-
-    if (this._shouldReconnect) {
-      this._connect();
-    }
-
-    if (this.onclose) {
-      this.onclose(event);
-    }
-    this._listeners.close.forEach((listener) =>
-      this._callEventListener(event, listener),
-    );
-  };
-
-  private _removeListeners() {
-    if (!this._ws) {
-      return;
-    }
-    this._debug("removeListeners");
-    this._ws.removeEventListener("open", this._handleOpen);
-    this._ws.removeEventListener("close", this._handleClose);
-    this._ws.removeEventListener("message", this._handleMessage);
-    // @ts-expect-error TS doesn't know WebSocket exists in this environment
-    this._ws.removeEventListener("error", this._handleError);
+  public get shouldReconnect() {
+    return this.#shouldReconnect;
   }
 
-  private _addListeners() {
-    if (!this._ws) {
-      return;
-    }
-    this._debug("addListeners");
-    this._ws.addEventListener("open", this._handleOpen);
-    this._ws.addEventListener("close", this._handleClose);
-    this._ws.addEventListener("message", this._handleMessage);
-    // @ts-expect-error TS doesn't know WebSocket exists in this environment
-    this._ws.addEventListener("error", this._handleError);
-  }
+  constructor(url: string, options?: OptionsReconnectingWS) {
+    this.#url = url;
+    this.#options = { ...this.#options, ...options };
 
-  private _clearTimeouts() {
-    clearTimeoutPolyfill(this._connectTimeout);
-    clearTimeoutPolyfill(this._uptimeTimeout);
+    if (this.#options.startClosed) return;
+    this.reconnect();
   }
 }

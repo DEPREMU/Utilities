@@ -15,9 +15,8 @@ export type WebSocketMessage<T extends "sentByApp" | "sentByServer"> =
         | {
             type: "init";
             userId: string;
+            deviceId: string;
             language: LanguagesSupported;
-            hasAdmin: boolean;
-            theme: "light" | "dark" | "auto";
           }
         | {
             type: "language-change";
@@ -52,18 +51,14 @@ export type ClipboardWebSocketMessage<T extends "sentByApp" | "sentByServer"> =
             type: "add-new-item";
             content: string;
           }
-        | {
-            type: "pong";
-          }
+        | { type: "pong" }
     :
         | {
             id: string;
             type: "new-clipboard-item";
             content: string;
           }
-        | {
-            type: "ping";
-          };
+        | { type: "ping" };
 
 export type WebSocketPathname = "/ws" | "/clipboard" | "/ws-login-qr";
 
