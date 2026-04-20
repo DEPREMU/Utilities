@@ -7,18 +7,32 @@ export const useStylesClipboardScreen = () => {
   const { colors } = useTheme();
   const { getCommonStyles, getResponsiveValue, texts } = useResponsiveLayout();
 
+  const FAB = useMemo(() => getCommonStyles("FAB").FAB, [getCommonStyles]);
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        header: {
+          width: "100%",
+          alignItems: "center",
+          flexDirection: "row",
+          justifyContent: "center",
+        },
+        buttonsContainer: {
+          flex: 1,
+          gap: getResponsiveValue(10, 12, 14, 16),
+          flexDirection: "row",
+          justifyContent: "flex-end",
+        },
         showDeletedContainer: {
           width: "100%",
-          paddingHorizontal: getResponsiveValue(8, 10, 12, 14),
-          paddingVertical: getResponsiveValue(10, 12, 14, 16),
           alignItems: "center",
-          marginVertical: 10,
           flexDirection: "row",
+          marginVertical: 10,
           justifyContent: "space-between",
           backgroundColor: colors.background,
+          paddingVertical: getResponsiveValue(10, 12, 14, 16),
+          paddingHorizontal: getResponsiveValue(8, 10, 12, 14),
         },
         switchLabel: {
           fontSize: getResponsiveValue(15, 17, 19, 21),
@@ -26,7 +40,7 @@ export const useStylesClipboardScreen = () => {
           marginTop: 0,
         },
         noMoreDataContainer: {
-          padding: getResponsiveValue(10, 12, 14, 16),
+          padding: getResponsiveValue(5, 7, 9, 11),
           alignItems: "center",
         },
         noMoreDataText: {
@@ -34,59 +48,47 @@ export const useStylesClipboardScreen = () => {
           fontSize: getResponsiveValue(14, 16, 18, 20),
           borderWidth: 1,
           borderColor: colors.border,
-          backgroundColor: colors.secondary,
           borderRadius: getResponsiveValue(14, 16, 18, 20),
-          paddingHorizontal: getResponsiveValue(10, 12, 14, 16),
+          backgroundColor: colors.secondary,
           paddingVertical: getResponsiveValue(6, 8, 10, 12),
+          paddingHorizontal: getResponsiveValue(10, 12, 14, 16),
         },
         contentContainer: {
-          padding: getResponsiveValue(4, 8, 12, 16),
           gap: getResponsiveValue(12, 16, 20, 24),
+          padding: getResponsiveValue(4, 8, 12, 16),
           paddingBottom: getResponsiveValue(20, 30, 40, 50),
         },
         card: {
-          ...getCommonStyles("container").container,
+          ...getCommonStyles("sectionContainer").sectionContainer,
           ...getCommonStyles("shadow").shadow,
-          marginVertical: getResponsiveValue(4, 6, 8, 10),
-          marginHorizontal: getResponsiveValue(2, 4, 6, 8),
-          borderRadius: getResponsiveValue(8, 10, 12, 16),
-          backgroundColor: colors.background,
-          borderWidth: 1,
+          gap: getResponsiveValue(5, 8, 12, 16),
           width: getResponsiveValue<DimensionValue>("95%", "95%", "95%", "80%"),
-          borderColor: colors.border,
+          alignSelf: "center",
+        },
+        titleContainer: {
+          flex: 1,
+          minWidth: getResponsiveValue(40, 60, 80, 100),
+          minHeight: getResponsiveValue(30, 40, 50, 60),
+          justifyContent: "center",
         },
         titleCard: {
-          minHeight: getResponsiveValue(30, 40, 50, 60),
-          paddingBottom: getResponsiveValue(8, 10, 12, 14),
-          minWidth: getResponsiveValue(80, 100, 120, 140),
+          ...getCommonStyles("subtitle").subtitle,
         },
         contentCard: {
           width: "100%",
           minHeight: getResponsiveValue(80, 100, 130, 170),
-          padding: 0,
           maxHeight: getResponsiveValue(200, 240, 280, 320),
           marginBottom: getResponsiveValue(8, 10, 12, 14),
         },
-        contentCardAndroid: {
-          color: colors.text,
-          padding: getResponsiveValue(8, 10, 12, 14),
-          fontFamily: "monospace",
-          lineHeight: getResponsiveValue(20, 22, 24, 26),
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: getResponsiveValue(6, 8, 10, 12),
-          backgroundColor: colors.secondary,
-        },
         contentText: {
-          lineHeight: getResponsiveValue(20, 22, 24, 26),
           color: colors.text,
-          backgroundColor: colors.secondary,
           padding: getResponsiveValue(8, 10, 12, 14),
-          borderRadius: getResponsiveValue(6, 8, 10, 12),
+          fontFamily: "monospace",
+          lineHeight: getResponsiveValue(20, 22, 24, 26),
           borderWidth: 1,
           borderColor: colors.border,
-          fontFamily: "monospace",
-          maxHeight: getResponsiveValue(120, 140, 160, 180),
+          borderRadius: getResponsiveValue(6, 8, 10, 12),
+          backgroundColor: colors.secondary,
         },
         buttonContainer: {
           ...getCommonStyles("shadow").shadow,
@@ -113,13 +115,18 @@ export const useStylesClipboardScreen = () => {
           borderWidth: 1,
           borderColor: colors.border,
         },
+        gap: {
+          gap: getResponsiveValue(8, 10, 12, 14),
+        },
+        FAB,
         ...texts,
-        ...getCommonStyles("FAB"),
         ...getCommonStyles("flex"),
+        ...getCommonStyles("divider"),
         ...getCommonStyles("container"),
+        ...getCommonStyles("scrollView"),
         ...getCommonStyles("sectionContainer"),
       }),
-    [getCommonStyles, getResponsiveValue, colors, texts],
+    [getCommonStyles, getResponsiveValue, colors, texts, FAB],
   );
 
   return { styles, colors };

@@ -1,10 +1,3 @@
-import Animated, {
-  FadeOutUp,
-  FadeInDown,
-  LinearTransition,
-  FadeInRight,
-  FadeOutRight,
-} from "react-native-reanimated";
 import {
   View,
   FlatList,
@@ -12,6 +5,13 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
+import Animated, {
+  FadeInDown,
+  FadeInRight,
+  FadeOutDown,
+  FadeOutRight,
+  LinearTransition,
+} from "react-native-reanimated";
 import {
   logger,
   REPLACERS,
@@ -21,33 +21,27 @@ import {
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
 } from "@utils";
-import Button from "@components/Button/screens";
 import { Tables } from "@types";
-import * as Clipboard from "expo-clipboard";
 import { useLanguage } from "@context/LanguageContext";
 import RenderClipboardItem from "@screens/Clipboard/components/RenderClipboardItem";
 import { useStylesClipboardScreen } from "@screens/Clipboard/styles";
-import { FAB, Searchbar, Switch, Text } from "react-native-paper";
+import { FAB, Searchbar, Switch, Text, Button } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-const skeletonData: Tables["ClipboardSync"][] = Array.from({ length: 5 }).map(
-  () => {
+const getSkeletonData = (deleted: boolean) => {
+  const createdAt = new Date().toISOString();
+
+  return Array.from({ length: 5 }).map(() => {
     const returnData: Tables["ClipboardSync"] = {
+      deleted,
       userId: "userId",
-      deleted: false,
       content: "Loading...",
       deviceId: "deviceId",
-      createdAt: new Date().toISOString(),
+      createdAt,
     };
     return returnData;
-  },
-);
-const skeletonDataRestore: Tables["ClipboardSync"][] = skeletonData.map(
-  (item) => ({ ...item, deleted: true }),
-);
-
-const getSkeletonData = (deleted: boolean) =>
-  deleted ? skeletonDataRestore : skeletonData;
+  });
+};
 
 const limitLoadMore = REPLACERS.isWeb ? 20 : 15;
 
@@ -60,12 +54,12 @@ const ClipboardScreen: React.FC = () => {
   const [searchText, setSearchText] = useState<string>("");
   const [noMoreData, setNoMoreData] = useState<boolean>(false);
   const [isFarFromStart, setIsFarFromStart] = useState(false);
-  const [clipboardData, setClipboardData] = useState<
-    Tables["ClipboardSync"][] | null
-  >(getSkeletonData(deleted));
   const [searchData, setSearchData] = useState<
     Tables["ClipboardSync"][] | null
   >(null);
+  const [clipboardData, setClipboardData] = useState<
+    Tables["ClipboardSync"][] | null
+  >(getSkeletonData(deleted));
 
   const pageRef = useRef<number | null>(0);
   const deletedRef = useRef<boolean | null>(deleted);
@@ -75,6 +69,7 @@ const ClipboardScreen: React.FC = () => {
   const hasNoMoreData = useRef<boolean | null>(false);
   const prevSearchTextRef = useRef<string | null>("");
   const hasNoMoreDataSearch = useRef<boolean | null>(false);
+  const isScrollingToTopRef = useRef<boolean | null>(false);
   const allClipboardDataRef = useRef<Tables["ClipboardSync"][] | null>(null);
   const isLoadingSkeletonRef = useRef<boolean | null>(true);
 
@@ -110,18 +105,16 @@ const ClipboardScreen: React.FC = () => {
 
       if (!sessionToken) return logger.error("No session token available");
 
-      const [deviceId, language] = [
-        storageManagement.get("DEVICE_ID"),
-        storageManagement.get("LANGUAGE"),
-      ];
+      const deviceId = storageManagement.get("DEVICE_ID");
+      const language = storageManagement.get("LANGUAGE");
 
       const res = await fetchToServer(
         "/database/update",
         {
-          lang: language,
           deviceId,
-          match: { id },
+          lang: language,
           table: "ClipboardSync",
+          match: { id },
           values: { deleted },
         },
         sessionToken,
@@ -238,6 +231,11 @@ const ClipboardScreen: React.FC = () => {
       const { layoutMeasurement, contentOffset, contentSize } =
         event.nativeEvent;
 
+      if (isScrollingToTopRef.current) {
+        if (contentOffset.y <= 50) isScrollingToTopRef.current = false;
+        return;
+      }
+
       setIsFarFromStart(contentOffset.y > 500);
 
       if (isLoadingRef.current || hasNoMoreData.current) return;
@@ -255,14 +253,9 @@ const ClipboardScreen: React.FC = () => {
     fetchClipboardFromDatabaseRef.current();
   });
 
-  const copyClipboardContentRef = useRef(async (content: string) => {
-    if (!content) return logger.error("No content provided for copying");
-
-    await Clipboard.setStringAsync(content);
-  });
-
   const handleGoToTopRef = useRef(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    isScrollingToTopRef.current = true;
     setIsFarFromStart(false);
   });
 
@@ -346,14 +339,10 @@ const ClipboardScreen: React.FC = () => {
     ({ item }: { item: Tables["ClipboardSync"] }) => (
       <RenderClipboardItem
         item={item}
-        title={t("common.content")}
-        copyLabel={t("copy")}
         deleteItem={changeClipboardItemDeletedRef.current}
-        copyContent={copyClipboardContentRef.current}
-        removeLabel={t(!deleted ? "remove" : "restore")}
       />
     ),
-    [t, deleted],
+    [],
   );
 
   const renderEmptyComponent = useCallback(() => {
@@ -361,17 +350,22 @@ const ClipboardScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.card}>
           <View style={styles.titleCard}>
-            <Text style={styles.h3}>{t("noClipboardData")}</Text>
+            <Text style={styles.h3}>{t("clipboard.noClipboardData")}</Text>
           </View>
           <View style={styles.contentCard}>
             <Text style={styles.contentText}>
-              {t("clipboardEmptyDescription")}
+              {t("clipboard.clipboardEmptyDescription")}
             </Text>
           </View>
         </View>
       </View>
     );
   }, [t, styles]);
+
+  const keyExtractor = useCallback(
+    (item: Tables["ClipboardSync"]) => String(item.id || Math.random()),
+    [],
+  );
 
   useEffect(() => {
     if (deleted === deletedRef.current) return;
@@ -425,18 +419,15 @@ const ClipboardScreen: React.FC = () => {
         </View>
 
         <Button
-          label={deleted ? t("restoreAll") : t("deleteAll")}
+          onPress={handleDeleteRestoreAll}
+          mode="contained"
+          buttonColor={deleted ? colors.success : colors.error}
           disabled={isLoading || !clipboardData || clipboardData.length === 0}
-          handlePress={handleDeleteRestoreAll}
-          replaceStyles={{
-            button: {
-              ...styles.buttonContainer,
-              ...(deleted ? styles.buttonRestore : styles.buttonDelete),
-            },
-            textButton: styles.subtitle,
-          }}
-          touchableOpacity
-        />
+        >
+          <Text style={styles.subtitle}>
+            {deleted ? t("restoreAll") : t("deleteAll")}
+          </Text>
+        </Button>
       </Animated.View>
 
       <FlatList
@@ -445,21 +436,23 @@ const ClipboardScreen: React.FC = () => {
         data={searchData || clipboardData}
         onScroll={handleScrollRef.current}
         renderItem={renderItems}
-        keyExtractor={(item) => String(item.id || Math.random())}
+        keyExtractor={keyExtractor}
+        scrollEnabled={!isLoading}
         ListEmptyComponent={renderEmptyComponent}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={styles.scrollViewContentContainer}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            enabled={!isLoading}
             onRefresh={handleRefreshRef.current}
+            refreshing={refreshing}
           />
         }
       />
 
-      {noMoreData && (
+      {(noMoreData || REPLACERS.isDev) && (
         <Animated.View
           style={styles.noMoreDataContainer}
-          exiting={FadeOutUp.duration(200)}
+          exiting={FadeOutDown.duration(200)}
           entering={FadeInDown.duration(200)}
         >
           <Text style={styles.noMoreDataText}>{t("noMoreData")}</Text>

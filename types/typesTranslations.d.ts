@@ -138,19 +138,15 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     YouCanUnplugYourDevice: string;
     BatteryLow: string;
     YourBatteryIsLow: string;
-    noClipboardData: string;
-    clipboardEmptyDescription: string;
     sync: string;
     addToDatabase: string;
     adding: string;
-    addTextToClipboard: string;
     enterYourTextHere: string;
     errorOccurred: `${string}{{error}}${string}`;
     failedToAddTextToDatabase: string;
     textAddedToDatabase: string;
     test: string;
     pleaseEnterSomeText: string;
-    clipboardWebSocketError: string;
     retry: string;
     foregroundNotificationTitle: string;
     foregroundNotificationMessage: string;
@@ -695,7 +691,12 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       getSizeFromImageFiles: string;
       selectCurrentPaperSize: `${string}{{size}}${string}`;
     };
-    clipboard: {
+  clipboard: {
+      contentLength: `${string}{{length}}${string}`;
+      noClipboardData: string;
+      clipboardEmptyDescription: string;
+      addTextToClipboard: string;
+      clipboardWebSocketError: string;
       settings: {
         title: string;
         enabled: string;

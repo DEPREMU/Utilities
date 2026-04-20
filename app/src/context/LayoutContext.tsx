@@ -285,6 +285,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
             gap: getResponsiveValue(10, 12, 14, 16),
             flex: 1,
             width: "100%",
+            padding: getResponsiveValue(6, 10, 14, 18),
             maxWidth: 1200,
             alignSelf: "center",
             justifyContent: "flex-start",
