@@ -11,23 +11,18 @@ export const useStylesAuthScreens = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("container", { fallbackValues: [40, 20] })
-            .container,
-          justifyContent: undefined,
-        },
         content: {
-          width: "100%",
-          maxWidth: 400,
-          backgroundColor: colors.secondary,
-          borderWidth: 2,
-          borderColor: colors.primary,
-          borderRadius: 20,
-          padding: 30,
-          alignItems: "center",
-          justifyContent: "space-evenly",
           ...getCommonStyles("sectionContainer").sectionContainer,
+          width: "90%",
+          alignSelf: "center",
+          maxWidth: 400,
+          padding: 20,
+          justifyContent: "space-evenly",
           minHeight: 300,
+        },
+        contentContainer: {
+          flex: 1,
+          justifyContent: "center",
         },
         inputContainer: {
           ...getCommonStyles("shadow").shadow,
@@ -120,6 +115,7 @@ export const useStylesAuthScreens = () => {
         ...texts,
         ...getCommonStyles("flex"),
         ...getCommonStyles("divider"),
+        ...getCommonStyles("container"),
         ...getCommonStyles("scrollView"),
       }),
     [colors, getCommonStyles, getResponsiveValue, texts],

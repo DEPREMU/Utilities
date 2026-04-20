@@ -1,19 +1,15 @@
 import {
+  TablesKeys,
   SerializableTask,
   MetaInfoFunctions,
   AvailableFunctions,
   FunctionsArguments,
 } from "@types";
-import React, {
-  useRef,
-  useMemo,
-  useEffect,
-  useContext,
-  createContext,
-} from "react";
+import React, { useRef, useEffect, useContext, createContext } from "react";
 import {
   alerts,
   logger,
+  REPLACERS,
   deviceInfo,
   navigation,
   EventsDeviceInfo,
@@ -57,11 +53,11 @@ type BackgroundTaskContextType = {
    * @param meta.args - Array of arguments to pass to the function
    */
   addTaskQueueRef: React.RefObject<
-    <T extends AvailableFunctions>(
+    <T extends AvailableFunctions, U extends TablesKeys>(
       task: BackgroundTask,
       meta?: {
         id: string;
-        args: FunctionsArguments<T>;
+        args: FunctionsArguments<T, U>;
         functionName: T;
       },
       removeTaskWithId?: string,
@@ -262,6 +258,8 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   }, []);
 
   useEffect(() => {
+    if (REPLACERS.isWeb) return;
+
     const handlePressYes = (isFirstScreen: boolean) => {
       if (isFirstScreen) return BackHandler.exitApp();
       navigation.replace("Home");
@@ -312,16 +310,13 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     return () => removeListener();
   }, []);
 
-  const value: BackgroundTaskContextType = useMemo(
-    () => ({
-      runTaskRef,
-      addTaskQueueRef,
-    }),
-    [],
-  );
+  const valueRef = useRef<BackgroundTaskContextType>({
+    runTaskRef,
+    addTaskQueueRef,
+  });
 
   return (
-    <BackgroundTaskContext.Provider value={value}>
+    <BackgroundTaskContext.Provider value={valueRef.current}>
       {children}
     </BackgroundTaskContext.Provider>
   );
