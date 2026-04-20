@@ -1,24 +1,15 @@
-import { useTheme } from "@/context/ThemeContext";
+import { useMemo } from "react";
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@/context/LayoutContext";
-import { useMemo } from "react";
 
-const useStylesTimeToDownload = () => {
+export const useStylesTimeToDownload = () => {
   const { colors } = useTheme();
-  const { getCommonStyles, getResponsiveValue } = useResponsiveLayout();
+  const { getCommonStyles, getResponsiveValue, texts } = useResponsiveLayout();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          backgroundColor: colors.background,
-        },
-        title: {
-          fontSize: getResponsiveValue(20, 22, 24),
-          fontWeight: "bold",
-          color: colors.primary,
-        },
         input: {
           marginBottom: 16,
           width: "100%",
@@ -40,14 +31,14 @@ const useStylesTimeToDownload = () => {
           fontWeight: "bold",
           color: colors.text,
         },
-        section: {
-          width: "100%",
-        },
+        ...texts,
+        ...getCommonStyles("divider"),
+        ...getCommonStyles("container"),
+        ...getCommonStyles("scrollView"),
+        ...getCommonStyles("sectionContainer"),
       }),
-    [colors, getCommonStyles, getResponsiveValue],
+    [colors, getCommonStyles, getResponsiveValue, texts],
   );
 
   return { styles, colors };
 };
-
-export default useStylesTimeToDownload;

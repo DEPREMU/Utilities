@@ -1,46 +1,33 @@
-import { useTheme } from "@/context/ThemeContext";
+import { useMemo } from "react";
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@/context/LayoutContext";
-import { useMemo } from "react";
 
-const useStylesCalculator = () => {
-  const theme = useTheme();
-  const { isLargeTablet, isTablet, getCommonStyles } = useResponsiveLayout();
-  const { secondary, text, background } = theme;
+export const useStylesCalculator = () => {
+  const { colors } = useTheme();
+  const { getResponsiveValue, getCommonStyles, texts } = useResponsiveLayout();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer", { fallbackValues: [16] }),
-          backgroundColor: background,
-        },
         header: {
           width: "100%",
-          backgroundColor: secondary,
+          backgroundColor: colors.secondary,
           borderRadius: 12,
           padding: 16,
           marginBottom: 16,
         },
-        scrollView: {
-          width: "100%",
-          height: 100,
-        },
-        scrollViewContent: {
-          justifyContent: "center",
-          alignItems: "flex-end",
-        },
         input: {
-          fontSize: isTablet || isLargeTablet ? 24 : 20,
+          fontSize: getResponsiveValue(16, 20, 24),
           fontWeight: "500",
-          color: text,
+          color: colors.text,
           textAlign: "right",
           marginBottom: 8,
         },
         result: {
-          fontSize: isTablet || isLargeTablet ? 32 : 24,
+          fontSize: getResponsiveValue(24, 32, 40),
           fontWeight: "bold",
-          color: text,
+          color: colors.text,
           textAlign: "right",
         },
         inputsCalculator: {
@@ -58,25 +45,21 @@ const useStylesCalculator = () => {
           marginBottom: 12,
         },
         buttonInput: {
-          ...getCommonStyles("shadow"),
+          ...getCommonStyles("shadow").shadow,
           flex: 1,
           marginHorizontal: 4,
-          backgroundColor: secondary,
+          backgroundColor: colors.secondary,
           minHeight: 50,
           borderRadius: 10,
           alignItems: "center",
           justifyContent: "center",
         },
-        buttonText: {
-          color: text,
-          fontSize: isTablet || isLargeTablet ? 20 : 16,
-          fontWeight: "bold",
-        },
+        ...texts,
+        ...getCommonStyles("container"),
+        ...getCommonStyles("scrollView"),
       }),
-    [secondary, text, background, isTablet, isLargeTablet, getCommonStyles],
+    [colors, getResponsiveValue, getCommonStyles, texts],
   );
 
-  return { styles, ...theme };
+  return { styles };
 };
-
-export default useStylesCalculator;
