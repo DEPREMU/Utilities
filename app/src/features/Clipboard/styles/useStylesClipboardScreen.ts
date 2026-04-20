@@ -1,48 +1,21 @@
 import { useMemo } from "react";
-import { useTheme } from "@/context/ThemeContext";
-import { useResponsiveLayout } from "@/context/LayoutContext";
+import { useTheme } from "@context/ThemeContext";
+import { useResponsiveLayout } from "@context/LayoutContext";
 import { DimensionValue, StyleSheet } from "react-native";
 
 export const useStylesClipboardScreen = () => {
-  const { getCommonStyles, getResponsiveValue } = useResponsiveLayout();
   const { colors } = useTheme();
+  const { getCommonStyles, getResponsiveValue, texts } = useResponsiveLayout();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          maxWidth: 1000,
-          width: "100%",
-          paddingHorizontal: getResponsiveValue(6, 10, 14, 18),
-          alignSelf: "center",
-        },
-        containerFlatList: {
-          flex: 1,
-          width: "100%",
-        },
-        topControlsContainer: {
-          ...getCommonStyles("shadow"),
-          width: "100%",
-          borderRadius: getResponsiveValue(10, 12, 14, 16),
-          borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: colors.secondary,
-          paddingHorizontal: getResponsiveValue(8, 10, 12, 14),
-          paddingTop: getResponsiveValue(6, 8, 10, 12),
-          paddingBottom: getResponsiveValue(10, 12, 14, 16),
-          marginBottom: getResponsiveValue(8, 10, 12, 14),
-          gap: getResponsiveValue(8, 10, 12, 14),
-        },
-        sectionContainer: {
+        showDeletedContainer: {
           width: "100%",
           paddingHorizontal: getResponsiveValue(8, 10, 12, 14),
           paddingVertical: getResponsiveValue(10, 12, 14, 16),
           alignItems: "center",
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: getResponsiveValue(8, 10, 12, 14),
-          marginBottom: 0,
+          marginVertical: 10,
           flexDirection: "row",
           justifyContent: "space-between",
           backgroundColor: colors.background,
@@ -51,14 +24,6 @@ export const useStylesClipboardScreen = () => {
           fontSize: getResponsiveValue(15, 17, 19, 21),
           color: colors.text,
           marginTop: 0,
-        },
-        scrollToTopFAB: {
-          right: 20,
-          bottom: 20,
-          position: "absolute",
-          borderWidth: 1,
-          borderColor: colors.accent,
-          backgroundColor: colors.background,
         },
         noMoreDataContainer: {
           padding: getResponsiveValue(10, 12, 14, 16),
@@ -80,15 +45,14 @@ export const useStylesClipboardScreen = () => {
           paddingBottom: getResponsiveValue(20, 30, 40, 50),
         },
         card: {
-          ...getCommonStyles(["shadow", "mainContainer"]),
+          ...getCommonStyles("container").container,
+          ...getCommonStyles("shadow").shadow,
           marginVertical: getResponsiveValue(4, 6, 8, 10),
           marginHorizontal: getResponsiveValue(2, 4, 6, 8),
           borderRadius: getResponsiveValue(8, 10, 12, 16),
           backgroundColor: colors.background,
           borderWidth: 1,
-          alignSelf: "center",
           width: getResponsiveValue<DimensionValue>("95%", "95%", "95%", "80%"),
-          alignItems: undefined,
           borderColor: colors.border,
         },
         titleCard: {
@@ -125,7 +89,7 @@ export const useStylesClipboardScreen = () => {
           maxHeight: getResponsiveValue(120, 140, 160, 180),
         },
         buttonContainer: {
-          ...getCommonStyles("shadow"),
+          ...getCommonStyles("shadow").shadow,
           paddingVertical: getResponsiveValue(10, 12, 14, 16),
           paddingHorizontal: getResponsiveValue(12, 14, 16, 18),
           marginTop: getResponsiveValue(6, 8, 10, 12),
@@ -141,22 +105,21 @@ export const useStylesClipboardScreen = () => {
         buttonRestore: {
           backgroundColor: colors.success,
         },
-        buttonText: {
-          textAlign: "center",
-          fontSize: getResponsiveValue(14, 16, 18, 20),
-          color: colors.text,
-        },
         searchBar: {
           marginVertical: 0,
           marginHorizontal: 0,
-          height: getResponsiveValue(46, 50, 54, 58),
           borderRadius: getResponsiveValue(8, 10, 12, 16),
           backgroundColor: colors.background,
           borderWidth: 1,
           borderColor: colors.border,
         },
+        ...texts,
+        ...getCommonStyles("FAB"),
+        ...getCommonStyles("flex"),
+        ...getCommonStyles("container"),
+        ...getCommonStyles("sectionContainer"),
       }),
-    [getCommonStyles, getResponsiveValue, colors],
+    [getCommonStyles, getResponsiveValue, colors, texts],
   );
 
   return { styles, colors };
