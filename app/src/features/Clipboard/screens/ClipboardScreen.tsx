@@ -1,3 +1,17 @@
+import Animated, {
+  FadeOutUp,
+  FadeInDown,
+  LinearTransition,
+  FadeInRight,
+  FadeOutRight,
+} from "react-native-reanimated";
+import {
+  View,
+  FlatList,
+  RefreshControl,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from "react-native";
 import {
   logger,
   REPLACERS,
@@ -7,14 +21,7 @@ import {
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
 } from "@utils";
-import {
-  View,
-  FlatList,
-  RefreshControl,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-} from "react-native";
-import Button from "@/common/components/Button/screens";
+import Button from "@components/Button/screens";
 import { Tables } from "@types";
 import * as Clipboard from "expo-clipboard";
 import { useLanguage } from "@context/LanguageContext";
@@ -354,7 +361,7 @@ const ClipboardScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.card}>
           <View style={styles.titleCard}>
-            <Text style={styles.buttonText}>{t("noClipboardData")}</Text>
+            <Text style={styles.h3}>{t("noClipboardData")}</Text>
           </View>
           <View style={styles.contentCard}>
             <Text style={styles.contentText}>
@@ -380,23 +387,25 @@ const ClipboardScreen: React.FC = () => {
   }, [searchText, deleted]);
 
   useEffect(() => {
+    fetchClipboardFromDatabaseRef.current();
+
     return () => {
       clearTimeoutPolyfill(idTimeoutRef.current, idTimeoutSearch.current);
     };
-  }, []);
-
-  useEffect(() => {
-    fetchClipboardFromDatabaseRef.current();
-
-    return () => clearTimeoutPolyfill(idTimeoutRef);
   }, []);
 
   const isLoading =
     refreshing || !!isLoadingRef.current || !!isLoadingSkeletonRef.current;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.topControlsContainer}>
+    <Animated.View
+      style={styles.container}
+      layout={LinearTransition.duration(200).springify()}
+    >
+      <Animated.View
+        style={styles.sectionContainer}
+        layout={LinearTransition.duration(300).springify()}
+      >
         <Searchbar
           value={searchText}
           style={styles.searchBar}
@@ -405,7 +414,7 @@ const ClipboardScreen: React.FC = () => {
           onChangeText={handleSearchingRef.current}
         />
 
-        <View style={styles.sectionContainer}>
+        <View style={styles.showDeletedContainer}>
           <Text style={styles.switchLabel}>{t("showDeleted")}</Text>
           <Switch
             value={deleted}
@@ -424,17 +433,16 @@ const ClipboardScreen: React.FC = () => {
               ...styles.buttonContainer,
               ...(deleted ? styles.buttonRestore : styles.buttonDelete),
             },
-            textButton: styles.buttonText,
+            textButton: styles.subtitle,
           }}
           touchableOpacity
         />
-      </View>
+      </Animated.View>
 
       <FlatList
         nestedScrollEnabled
         ref={flatListRef}
         data={searchData || clipboardData}
-        style={styles.containerFlatList}
         onScroll={handleScrollRef.current}
         renderItem={renderItems}
         keyExtractor={(item) => String(item.id || Math.random())}
@@ -447,33 +455,52 @@ const ClipboardScreen: React.FC = () => {
           />
         }
       />
+
       {noMoreData && (
-        <View style={styles.noMoreDataContainer}>
+        <Animated.View
+          style={styles.noMoreDataContainer}
+          exiting={FadeOutUp.duration(200)}
+          entering={FadeInDown.duration(200)}
+        >
           <Text style={styles.noMoreDataText}>{t("noMoreData")}</Text>
-        </View>
+        </Animated.View>
       )}
+
       {isFarFromStart && (
-        <FAB
-          size="small"
-          icon="arrow-up"
-          color={colors.primary}
-          style={styles.scrollToTopFAB}
-          onPress={handleGoToTopRef.current}
-          animated
-        />
+        <Animated.View
+          style={styles.FAB}
+          exiting={FadeOutRight.duration(300)}
+          entering={FadeInRight.duration(300)}
+        >
+          <FAB
+            animated
+            size={REPLACERS.isNative ? "small" : "medium"}
+            icon="arrow-up"
+            color={colors.primary}
+            style={styles.FAB}
+            onPress={handleGoToTopRef.current}
+          />
+        </Animated.View>
       )}
-      {REPLACERS.isWeb && !isFarFromStart && (
-        <FAB
-          size="small"
-          icon="refresh"
-          color={colors.primary}
-          style={styles.scrollToTopFAB}
-          onPress={handleRefreshRef.current}
-          disabled={isLoading}
-          animated
-        />
+
+      {(REPLACERS.isWeb || REPLACERS.isDev) && !isFarFromStart && (
+        <Animated.View
+          style={styles.FAB}
+          exiting={FadeOutRight.duration(300)}
+          entering={FadeInRight.duration(300)}
+        >
+          <FAB
+            animated
+            size={REPLACERS.isNative ? "small" : "medium"}
+            icon="refresh"
+            color={colors.primary}
+            style={styles.FAB}
+            onPress={handleRefreshRef.current}
+            disabled={isLoading}
+          />
+        </Animated.View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 

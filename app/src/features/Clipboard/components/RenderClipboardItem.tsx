@@ -1,10 +1,11 @@
-import Button from "@/common/components/Button/screens";
+import Button from "@components/Button/screens";
 import Markdown from "react-native-marked";
+import TextInput from "@components/TextInput";
 import { Tables } from "@types";
 import { ScrollView } from "react-native";
+import { Card, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
-import SkeletonLoading from "@/common/components/SkeletonLoading";
-import { Card, Text, TextInput } from "react-native-paper";
+import SkeletonLoading from "@components/SkeletonLoading";
 import { useStylesClipboardScreen } from "@screens/Clipboard/styles";
 import React, { useMemo, useRef, useState } from "react";
 import { getFormattedDate, memoDeep, REPLACERS } from "@utils";
@@ -140,7 +141,7 @@ const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
             ...styles.buttonContainer,
             ...(!item.deleted ? styles.buttonDelete : styles.buttonRestore),
           },
-          textButton: styles.buttonText,
+          textButton: styles.subtitle,
         }}
         label={removeLabel}
         handlePress={deleteItem}
@@ -151,7 +152,7 @@ const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
       <Button
         replaceStyles={{
           button: styles.buttonContainer,
-          textButton: styles.buttonText,
+          textButton: styles.subtitle,
         }}
         label={copyLabel}
         touchableOpacity

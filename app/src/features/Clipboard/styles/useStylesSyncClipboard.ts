@@ -1,38 +1,19 @@
-import { useResponsiveLayout } from "@/context/LayoutContext";
-import { useTheme } from "@/context/ThemeContext";
 import { useMemo } from "react";
+import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
 export const useStylesSyncClipboard = () => {
   const { colors } = useTheme();
-  const { getCommonStyles, getResponsiveValue } = useResponsiveLayout();
+  const { getCommonStyles, getResponsiveValue, texts } = useResponsiveLayout();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        ...getCommonStyles("sectionContainer"),
         container: {
-          ...getCommonStyles("mainContainer"),
-          width: "100%",
-          maxWidth: 900,
-          alignSelf: "center",
-          paddingHorizontal: getResponsiveValue(12, 18, 24),
-          paddingTop: getResponsiveValue(10, 14, 18),
-          backgroundColor: colors.background,
-        },
-        formCard: {
-          ...getCommonStyles("shadow"),
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: getResponsiveValue(12, 14, 16),
-          backgroundColor: colors.secondary,
-          padding: getResponsiveValue(14, 18, 22),
-        },
-        title: {
-          fontSize: getResponsiveValue(28, 30, 34),
-          fontWeight: "bold",
-          color: colors.text,
-          marginBottom: getResponsiveValue(14, 18, 22),
-          textAlign: "center",
+          ...getCommonStyles("container").container,
+          justifyContent: "center",
         },
         textInput: {
           fontSize: getResponsiveValue(16, 18, 20),
@@ -41,22 +22,21 @@ export const useStylesSyncClipboard = () => {
           color: colors.text,
           marginBottom: getResponsiveValue(14, 18, 22),
           backgroundColor: colors.background,
+          paddingHorizontal: getResponsiveValue(8, 10, 12),
+          paddingVertical: getResponsiveValue(12, 14, 16),
         },
         button: {
-          backgroundColor: colors.primary,
           paddingVertical: getResponsiveValue(12, 14, 16),
-          borderRadius: getResponsiveValue(10, 12, 14),
+          borderRadius: getResponsiveValue(8, 10, 12),
           borderWidth: 1,
           borderColor: colors.border,
           alignItems: "center",
         },
-        textButton: {
-          color: colors.text,
-          fontSize: getResponsiveValue(18, 20, 22),
-          fontWeight: "bold",
-        },
+        ...texts,
+        ...getCommonStyles("flex"),
+        ...getCommonStyles("divider"),
       }),
-    [getCommonStyles, getResponsiveValue, colors],
+    [getCommonStyles, getResponsiveValue, colors, texts],
   );
 
   return { styles, colors };
