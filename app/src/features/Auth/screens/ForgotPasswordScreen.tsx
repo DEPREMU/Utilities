@@ -105,54 +105,56 @@ const ForgotPasswordScreen: React.FC = () => {
           style={styles.scrollViewContainer}
           contentContainerStyle={styles.scrollViewContentContainer}
         >
-          <Animated.View
-            style={styles.content}
-            layout={LinearTransition.duration(300).springify()}
-          >
-            <Text style={styles.title}>{t("auth.forgotPassword")}</Text>
+          <View style={styles.contentContainer}>
+            <Animated.View
+              style={styles.content}
+              layout={LinearTransition.duration(300).springify()}
+            >
+              <Text style={styles.title}>{t("auth.forgotPassword")}</Text>
 
-            <Divider style={styles.divider} />
+              <Divider style={styles.divider} />
 
-            <EmailAndPassword email={email} setEmail={setEmail} />
+              <EmailAndPassword email={email} setEmail={setEmail} />
 
-            {!!error && <Text style={styles.error}>{error}</Text>}
+              {!!error && <Text style={styles.error}>{error}</Text>}
 
-            {isValidEmail(email) && (
-              <Animated.View
-                style={styles.linksContainer}
-                exiting={FadeOutDown.duration(200)}
-                entering={FadeInUp.duration(200)}
-              >
-                <Button
-                  mode="contained"
-                  onPress={handlePressForgotPassword}
-                  disabled={emailSent || sendingEmail}
-                  contentStyle={styles.loginButton}
+              {isValidEmail(email) && (
+                <Animated.View
+                  style={styles.linksContainer}
+                  exiting={FadeOutDown.duration(200)}
+                  entering={FadeInUp.duration(200)}
                 >
-                  {sendingEmail
-                    ? t("common.sending")
-                    : t("auth.forgotPassword")}
-                </Button>
-              </Animated.View>
-            )}
+                  <Button
+                    mode="contained"
+                    onPress={handlePressForgotPassword}
+                    disabled={emailSent || sendingEmail}
+                    contentStyle={styles.loginButton}
+                  >
+                    {sendingEmail
+                      ? t("common.sending")
+                      : t("auth.forgotPassword")}
+                  </Button>
+                </Animated.View>
+              )}
 
-            <View style={styles.linksContainer}>
-              <Button
-                mode="text"
-                onPress={handlePressLoginRef.current}
-                labelStyle={styles.linkText}
-              >
-                {t("auth.hasAccount")}
-              </Button>
-              <Button
-                mode="text"
-                onPress={handlePressCreateAccountRef.current}
-                labelStyle={styles.linkText}
-              >
-                {t("auth.createAccount")}
-              </Button>
-            </View>
-          </Animated.View>
+              <View style={styles.linksContainer}>
+                <Button
+                  mode="text"
+                  onPress={handlePressLoginRef.current}
+                  labelStyle={styles.linkText}
+                >
+                  {t("auth.hasAccount")}
+                </Button>
+                <Button
+                  mode="text"
+                  onPress={handlePressCreateAccountRef.current}
+                  labelStyle={styles.linkText}
+                >
+                  {t("auth.createAccount")}
+                </Button>
+              </View>
+            </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </KeyboardGestureArea>

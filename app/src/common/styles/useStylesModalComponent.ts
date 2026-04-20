@@ -12,7 +12,7 @@ export const useStylesModalComponent = () => {
     () =>
       StyleSheet.create({
         overlay: {
-          ...getCommonStyles("mainContainer"),
+          ...getCommonStyles("container").container,
           backgroundColor: colors.overlay,
           position: "absolute",
           zIndex: 1000,

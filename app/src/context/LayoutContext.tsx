@@ -8,21 +8,11 @@ import React, {
 import { useTheme } from "./ThemeContext";
 import { REPLACERS } from "@/utils/TOP_LEVEL";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { TextStyle, ViewStyle, useWindowDimensions } from "react-native";
+import { TextStyle, View, ViewStyle, useWindowDimensions } from "react-native";
 
 interface LayoutProviderProps {
   children: ReactNode;
 }
-
-type SafeAreaContainerStyle = Record<
-  "paddingTop" | "paddingBottom" | "paddingLeft" | "paddingRight",
-  number
->;
-
-type propGetStylesSafeAreaContainer =
-  | [top: number, bottom: number, left: number, right: number]
-  | [vertical: number, horizontal: number]
-  | [all: number];
 
 type ViewStyleFinder =
   | "FAB"
@@ -75,9 +65,6 @@ type GetCommonStyles = <T extends CommonStyles>(
 ) => ReturnGetCommonStyles<T>;
 
 interface LayoutContextProps {
-  getStylesSafeAreaContainer: (
-    fallbackValues?: propGetStylesSafeAreaContainer,
-  ) => SafeAreaContainerStyle;
   getResponsiveValue: <T = number>(
     phoneValue: T,
     tabletValue: T,
@@ -131,29 +118,17 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     [width, height],
   );
 
-  const getStylesSafeAreaContainer = useCallback(
-    (fallbackValues: propGetStylesSafeAreaContainer = [10]) => {
-      let top: number, bottom: number, left: number, right: number;
-      const length = fallbackValues.length;
-      if (length >= 4) {
-        [top, bottom, left, right] = fallbackValues.slice(0, 4);
-      } else if (length >= 2) {
-        const [vertical, horizontal] = fallbackValues.slice(0, 2);
-        left = right = vertical;
-        top = bottom = horizontal;
-      } else {
-        top = bottom = left = right = fallbackValues[0];
-      }
-
-      return {
-        paddingTop: insets.top > top ? insets.top : top,
-        paddingBottom: insets.bottom > bottom ? insets.bottom : bottom,
-        paddingLeft: insets.left > left ? insets.left : left,
-        paddingRight: insets.right > right ? insets.right : right,
-      };
-    },
-    [insets],
-  );
+  const safeAreaStyles: ViewStyle = useMemo(() => {
+    return {
+      flex: 1,
+      width: "100%",
+      paddingTop: insets.top,
+      paddingLeft: insets.left,
+      paddingRight: insets.right,
+      paddingBottom: insets.bottom,
+      backgroundColor: colors.background,
+    };
+  }, [insets, colors.background]);
 
   const getResponsiveValue: LayoutContextProps["getResponsiveValue"] =
     useCallback(
@@ -272,11 +247,11 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
       scrollViewContainer: {
         flex: 1,
         width: "100%",
-        justifyContent: "flex-start",
       },
       scrollViewContentContainer: {
+        flexGrow: 1,
         paddingVertical: getResponsiveValue(6, 8, 10, 12),
-        paddingHorizontal: getResponsiveValue(4, 6, 8, 10),
+        paddingHorizontal: getResponsiveValue(8, 10, 12, 14),
       },
     };
   }, [getResponsiveValue]);
@@ -290,18 +265,21 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
           return scrollViewStyles as never;
         case "backgroundShapeOne":
         case "backgroundShapeTwo":
-          return shapesStyles[styleFinder as keyof ShapesStyles] as never;
+          styleToReturn = shapesStyles[styleFinder as keyof ShapesStyles];
+          break;
         case "FAB":
         case "flex":
         case "shadow":
         case "flexCenter":
-          return staticStyles[styleFinder as keyof StaticStyles] as never;
+          styleToReturn = staticStyles[styleFinder as keyof StaticStyles];
+          break;
         case "h3":
         case "error":
         case "title":
         case "subtitle":
         case "paragraph":
-          return texts[styleFinder as TextStyleFinder] as never;
+          styleToReturn = texts[styleFinder as TextStyleFinder] as never;
+          break;
         case "container":
           styleToReturn = {
             gap: getResponsiveValue(10, 12, 14, 16),
@@ -373,7 +351,6 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
       isLargeTablet,
       getCommonStyles,
       getResponsiveValue,
-      getStylesSafeAreaContainer,
     }),
     [
       isWeb,
@@ -387,13 +364,12 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
       isLargeTablet,
       getCommonStyles,
       getResponsiveValue,
-      getStylesSafeAreaContainer,
     ],
   );
 
   return (
     <LayoutContext.Provider value={layoutData}>
-      {children}
+      <View style={safeAreaStyles}>{children}</View>
     </LayoutContext.Provider>
   );
 };

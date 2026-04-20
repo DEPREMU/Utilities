@@ -18,6 +18,7 @@ import {
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
   notificationsManager,
+  REPLACERS,
 } from "@utils";
 import { ProgressBar } from "react-native-paper";
 import { useStylesLoadingScreen } from "@screens/Loading/styles";
@@ -151,7 +152,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
 
       if (idTimeout.current) clearTimeoutPolyfill(idTimeout.current);
       const remainingTime = 3000 - (Date.now() - startTime);
-      if (remainingTime <= 0) {
+      if (remainingTime <= 0 || REPLACERS.isDev) {
         onFinished();
         return;
       }

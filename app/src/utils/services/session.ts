@@ -102,7 +102,7 @@ export const getDevicePushToken = wrapFunctionWithError(
 );
 
 export const saveStorageData = async (
-  storageValues?: ExpectedStorageTypes<"BOTH">,
+  storageValues?: Partial<ExpectedStorageTypes<"BOTH">>,
 ): Promise<boolean> => {
   if (!storageValues) return false;
 

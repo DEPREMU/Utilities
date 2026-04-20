@@ -32,12 +32,9 @@ import SocialMediaNavigator from "@screens/SocialMedia/screens";
 import ForgotPasswordScreen from "@screens/Auth/screens/ForgotPasswordScreen";
 import DownDetectorNavigator from "@screens/DownDetector/screens";
 import { NavigationContainer } from "@react-navigation/native";
-import { BackgroundTaskProvider } from "@context/BackgroundTaskContext";
 import { REPLACERS, setupNotificationHandlers, navigation } from "@utils";
 
 export type RootStackParamList = Record<ScreensAvailable, object | undefined>;
-
-const Stack = createNativeStackNavigator<RootStackParamList>();
 
 type Screens = Record<
   keyof RootStackParamList,
@@ -46,6 +43,10 @@ type Screens = Record<
     options?: NativeStackNavigationOptions;
   }
 >;
+
+const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "Home" : "Home";
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const ComponentToHome: React.FC = () => {
   useEffect(() => {
@@ -121,8 +122,6 @@ const allScreens = Object.entries(screens).map(
   ),
 );
 
-const initialRouteName: ScreensAvailable = REPLACERS.isDev ? "Vault" : "Home";
-
 const AppNavigator: React.FC = () => {
   const { navigationTheme } = useTheme();
 
@@ -173,11 +172,9 @@ const AppNavigator: React.FC = () => {
 
   return (
     <NavigationContainer ref={navigation.ref} theme={navigationTheme}>
-      <BackgroundTaskProvider>
-        <Stack.Navigator initialRouteName={initialRouteName}>
-          {allScreens}
-        </Stack.Navigator>
-      </BackgroundTaskProvider>
+      <Stack.Navigator initialRouteName={initialRouteName}>
+        {allScreens}
+      </Stack.Navigator>
     </NavigationContainer>
   );
 };

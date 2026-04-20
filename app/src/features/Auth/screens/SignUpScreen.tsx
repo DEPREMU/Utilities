@@ -98,72 +98,74 @@ const SignUpScreen: React.FC = () => {
           style={styles.scrollViewContainer}
           contentContainerStyle={styles.scrollViewContentContainer}
         >
-          <Animated.View
-            style={styles.content}
-            layout={LinearTransition.duration(300).springify()}
-          >
-            <Text style={styles.title}>{t("common.welcome")}</Text>
+          <View style={styles.contentContainer}>
+            <Animated.View
+              style={styles.content}
+              layout={LinearTransition.duration(300).springify()}
+            >
+              <Text style={styles.title}>{t("common.welcome")}</Text>
 
-            <Divider style={styles.divider} />
+              <Divider style={styles.divider} />
 
-            <EmailAndPassword
-              email={email}
-              setEmail={setEmail}
-              password={password}
-              setPassword={setPassword}
-              showPassword={showPassword}
-              handleShowPassword={handlePressShowPasswordRef.current}
-              showPasswordContainer
-            />
+              <EmailAndPassword
+                email={email}
+                setEmail={setEmail}
+                password={password}
+                setPassword={setPassword}
+                showPassword={showPassword}
+                handleShowPassword={handlePressShowPasswordRef.current}
+                showPasswordContainer
+              />
 
-            {!!error && (
-              <Animated.Text
-                style={styles.error}
-                layout={LinearTransition.duration(200).springify()}
-                exiting={FadeOutLeft.duration(200)}
-                entering={FadeInRight.duration(200)}
-              >
-                {error}
-              </Animated.Text>
-            )}
-
-            {isValidEmail(email) && isValidPassword(password) && (
-              <Animated.View
-                style={styles.loginButton}
-                layout={LinearTransition.duration(300).springify()}
-                exiting={FadeOutDown.duration(200)}
-                entering={FadeInUp.duration(200)}
-              >
-                <Button
-                  mode="contained"
-                  onPress={handlePressSignUp}
-                  disabled={signingUp}
-                  elevation={4}
-                  contentStyle={styles.loginButton}
+              {!!error && (
+                <Animated.Text
+                  style={styles.error}
+                  layout={LinearTransition.duration(200).springify()}
+                  exiting={FadeOutLeft.duration(200)}
+                  entering={FadeInRight.duration(200)}
                 >
-                  {signingUp ? (
-                    <ActivityIndicator
-                      size="small"
-                      color="#fff"
-                      style={styles.marginRight10}
-                    />
-                  ) : (
-                    <Text style={styles.h3}>{t("auth.signUp")}</Text>
-                  )}
-                </Button>
-              </Animated.View>
-            )}
+                  {error}
+                </Animated.Text>
+              )}
 
-            <View style={styles.linksContainer}>
-              <Button
-                mode="text"
-                onPress={handlePressLoginRef.current}
-                labelStyle={styles.linkText}
-              >
-                {t("auth.hasAccount")}
-              </Button>
-            </View>
-          </Animated.View>
+              {isValidEmail(email) && isValidPassword(password) && (
+                <Animated.View
+                  style={styles.loginButton}
+                  layout={LinearTransition.duration(300).springify()}
+                  exiting={FadeOutDown.duration(200)}
+                  entering={FadeInUp.duration(200)}
+                >
+                  <Button
+                    mode="contained"
+                    onPress={handlePressSignUp}
+                    disabled={signingUp}
+                    elevation={4}
+                    contentStyle={styles.loginButton}
+                  >
+                    {signingUp ? (
+                      <ActivityIndicator
+                        size="small"
+                        color="#fff"
+                        style={styles.marginRight10}
+                      />
+                    ) : (
+                      <Text style={styles.h3}>{t("auth.signUp")}</Text>
+                    )}
+                  </Button>
+                </Animated.View>
+              )}
+
+              <View style={styles.linksContainer}>
+                <Button
+                  mode="text"
+                  onPress={handlePressLoginRef.current}
+                  labelStyle={styles.linkText}
+                >
+                  {t("auth.hasAccount")}
+                </Button>
+              </View>
+            </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </KeyboardGestureArea>

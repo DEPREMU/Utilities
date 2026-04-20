@@ -131,7 +131,7 @@ const buttons: ButtonType[] = [
 
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { styles, background } = useStylesHomeScreen();
+  const { styles, colors } = useStylesHomeScreen();
   const { isLoggedIn, loggingIn } = useUserContext();
 
   const [hasInternet, setHasInternet] = useState(deviceInfo.hasInternet);
@@ -154,7 +154,7 @@ const HomeScreen: React.FC = () => {
       return (
         <View style={styles.buttonContainer} key={i}>
           <List.Icon
-            color={background}
+            color={colors.background}
             style={styles.leftIcon}
             icon={
               (internet || isValidScreen) && loggedIn
@@ -174,11 +174,11 @@ const HomeScreen: React.FC = () => {
     });
   }, [
     t,
+    isLoggedIn,
     hasInternet,
     styles.leftIcon,
     styles.buttonContainer,
-    background,
-    isLoggedIn,
+    colors.background,
   ]);
 
   useEffect(() => {
@@ -224,6 +224,7 @@ const HomeScreen: React.FC = () => {
       >
         {renderButtons}
       </ScrollView>
+
       {REPLACERS.isWeb && (
         <Text style={styles.footer}>
           {t("appVersion", {

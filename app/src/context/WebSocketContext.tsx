@@ -49,15 +49,15 @@ const OPTIONS_RECONNECT_WS: OptionsReconnectingWS = {
   },
   messagesAfterOpen: [
     () => {
-      const lang = storageManagement.get("LANGUAGE");
+      const language = storageManagement.get("LANGUAGE");
       const deviceId = storageManagement.get("DEVICE_ID");
       const { userData } = sessionManager.getSessionData();
 
       const msg: Parameters<SendMessageFunc>[0] = {
         type: "init",
-        deviceId,
         userId: userData?.userId || "",
-        language: lang || "en",
+        deviceId,
+        language,
       };
       return JSON.stringify(msg);
     },
