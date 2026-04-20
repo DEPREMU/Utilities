@@ -4,31 +4,41 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { Keyboard } from "react-native";
-import { TextInput } from "react-native-paper";
-import { useLanguage } from "@/context/LanguageContext";
-import ButtonComponent from "@/common/components/Button/screens";
-import React, { useState } from "react";
-import useStylesAuthScreens from "@/features/Auth/styles/useStylesAuthScreens";
-import { isValidEmail, isValidPassword, REPLACERS } from "@utils";
+import TextInput from "@components/TextInput";
+import { useLanguage } from "@context/LanguageContext";
+import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
+import React, { useRef, useState } from "react";
+import { TextInput as TextInputPaper } from "react-native-paper";
+import { isValidEmail, isValidPassword } from "@utils";
 
-interface LoginTypeEmailProps {
+type LoginTypeEmail = <T extends boolean>(
+  props: LoginTypeEmailProps<T>,
+) => React.ReactNode;
+
+type LoginTypeEmailProps<T extends boolean> = {
   email: string;
   setEmail: React.Dispatch<React.SetStateAction<string>>;
-  password: string;
-  setPassword: React.Dispatch<React.SetStateAction<string>>;
-  showPassword: boolean;
-  handleShowPassword: () => void;
-}
+  showPasswordContainer?: T;
+} & (T extends true
+  ? {
+      password?: string;
+      setPassword?: React.Dispatch<React.SetStateAction<string>>;
+      showPassword?: boolean;
+      handleShowPassword?: () => void;
+    }
+  : unknown);
 
-const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
-  email,
-  setEmail,
-  password,
-  setPassword,
-  showPassword,
-  handleShowPassword,
-}) => {
+const EmailAndPassword: LoginTypeEmail = (props) => {
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    showPassword,
+    handleShowPassword,
+    showPasswordContainer,
+  } = props as LoginTypeEmailProps<true>;
+
   const { t } = useLanguage();
   const { styles } = useStylesAuthScreens();
 
@@ -39,12 +49,32 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
     isPasswordValid: true,
   });
 
-  const shakeInputs = [useSharedValue(0), useSharedValue(0)];
+  const shakeInputEmail = useSharedValue(0);
+  const shakeInputPassword = useSharedValue(0);
 
-  const triggerShake = (which: "password" | "email") => {
+  const animatedStyleEmail = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: shakeInputEmail.value }],
+    };
+  });
+
+  const animatedStylePassword = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: shakeInputPassword.value }],
+    };
+  });
+
+  const refs = useRef({
+    password,
+    email,
+  });
+  refs.current.email = email;
+  refs.current.password = password;
+
+  const triggerShakeRef = useRef((which: "password" | "email") => {
     const valueToMove = 5;
     const duration = 50;
-    const shakeInput = which === "email" ? shakeInputs[0] : shakeInputs[1];
+    const shakeInput = which === "email" ? shakeInputEmail : shakeInputPassword;
 
     shakeInput.value = withSequence(
       withTiming(-valueToMove, { duration }),
@@ -53,52 +83,29 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
       withTiming(valueToMove, { duration: duration * 2 }),
       withTiming(0, { duration }),
     );
-  };
+  });
 
-  const animatedStyles = [
-    useAnimatedStyle(() => {
-      return {
-        transform: [{ translateX: shakeInputs[0].value }],
-      };
-    }),
-    useAnimatedStyle(() => {
-      return {
-        transform: [{ translateX: shakeInputs[1].value }],
-      };
-    }),
-  ];
-
-  const handlerBlurInputEmail = () => {
-    if (isValidEmail(email)) {
-      setValidations((prev) => ({
-        ...prev,
-        isEmailValid: true,
-      }));
-      return;
-    }
+  const handlerBlurInputEmailRef = useRef(() => {
+    const isEmailValid = isValidEmail(refs.current.email || "");
 
     setValidations((prev) => ({
       ...prev,
-      isEmailValid: false,
+      isEmailValid,
     }));
-    triggerShake("email");
-  };
 
-  const handlerBlurInputPassword = () => {
-    if (isValidPassword(password)) {
-      setValidations((prev) => ({
-        ...prev,
-        isPasswordValid: true,
-      }));
-      return;
-    }
+    if (!isEmailValid) triggerShakeRef.current("email");
+  });
+
+  const handlerBlurInputPasswordRef = useRef(() => {
+    const isPasswordValid = isValidPassword(refs.current.password || "");
 
     setValidations((prev) => ({
       ...prev,
-      isPasswordValid: false,
+      isPasswordValid,
     }));
-    triggerShake("password");
-  };
+
+    if (!isPasswordValid) triggerShakeRef.current("password");
+  });
 
   return (
     <>
@@ -106,62 +113,46 @@ const EmailAndPassword: React.FC<LoginTypeEmailProps> = ({
       <Animated.View
         style={[
           styles.inputContainer,
-          validations.isEmailValid ? null : animatedStyles[0],
+          animatedStyleEmail,
           validations.isEmailValid ? null : styles.inputError,
         ]}
       >
         <TextInput
+          value={email}
           style={styles.input}
           label={t("auth.emailPlaceholder")}
+          onBlur={handlerBlurInputEmailRef.current}
+          onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-          onFocus={() => {
-            if (!REPLACERS.isNative) return;
-            if (typeof Keyboard.emit === "function")
-              Keyboard?.emit("keyboardDidShow");
-          }}
-          onBlur={handlerBlurInputEmail}
         />
       </Animated.View>
 
       {/* Password space */}
-      <Animated.View
-        style={[
-          styles.inputContainer,
-          validations.isPasswordValid ? null : animatedStyles[1],
-          validations.isPasswordValid ? null : styles.inputError,
-        ]}
-      >
-        <TextInput
-          style={styles.input}
-          label={t("auth.passwordPlaceholder")}
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
-          onFocus={() => {
-            if (!REPLACERS.isNative) return;
-            if (typeof Keyboard.emit === "function")
-              Keyboard?.emit("keyboardDidShow");
-          }}
-          onBlur={handlerBlurInputPassword}
-          right={
-            <TextInput.Icon
-              icon={showPassword ? "eye-off" : "eye"}
-              onPress={handleShowPassword}
-            />
-          }
-        />
-        <ButtonComponent
-          replaceStyles={{
-            button: styles.showPasswordButton,
-            textButton: {},
-          }}
-          forceReplaceStyles
-          handlePress={handleShowPassword}
-        />
-      </Animated.View>
+      {showPasswordContainer && (
+        <Animated.View
+          style={[
+            styles.inputContainer,
+            validations.isPasswordValid ? null : animatedStylePassword,
+            validations.isPasswordValid ? null : styles.inputError,
+          ]}
+        >
+          <TextInput
+            value={password}
+            style={styles.input}
+            label={t("auth.passwordPlaceholder")}
+            onBlur={handlerBlurInputPasswordRef.current}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            right={
+              <TextInputPaper.Icon
+                icon={showPassword ? "eye-off" : "eye"}
+                onPress={handleShowPassword}
+              />
+            }
+          />
+        </Animated.View>
+      )}
     </>
   );
 };

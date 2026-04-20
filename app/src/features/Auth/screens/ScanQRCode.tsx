@@ -1,4 +1,8 @@
 import {
+  ReconnectingWebSocket,
+  OptionsReconnectingWS,
+} from "@/utils/reconnecting-websocket";
+import {
   logger,
   parseData,
   REPLACERS,
@@ -14,13 +18,16 @@ import { Text } from "react-native-paper";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
-import useStylesScanQRCode from "@screens/Auth/styles/useStylesScanQRCode";
-import ReconnectingWebSocket from "@/utils/reconnecting-websocket";
+import { useStylesScanQRCode } from "@screens/Auth/styles/useStylesScanQRCode";
 import React, { useEffect, useRef, useState } from "react";
 import { BarcodeScanningResult, Camera, CameraView } from "expo-camera";
 import { LoginWithQRMobile, MessageWebSocketQRLogin } from "@types";
 
 type PermissionCamera = "granted" | "denied" | null;
+
+const optionsWebSocket: OptionsReconnectingWS = {
+  startClosed: true,
+};
 
 const ScanQRCode: React.FC = () => {
   const { t } = useLanguage();
@@ -68,7 +75,7 @@ const ScanQRCode: React.FC = () => {
   }, [hasPermission, t]);
 
   useEffect(() => {
-    if (isLoggedIn && REPLACERS.isNative) return;
+    if (isLoggedIn && REPLACERS.isNative && !REPLACERS.isDev) return;
 
     navigation.replace("Home");
   }, [isLoggedIn]);
@@ -94,7 +101,7 @@ const ScanQRCode: React.FC = () => {
           return;
         }
 
-        ws = new ReconnectingWebSocket(QR_LOGIN_WS_URL);
+        ws = new ReconnectingWebSocket(QR_LOGIN_WS_URL, optionsWebSocket);
 
         const handleError = () => {
           setScannedData(null);
@@ -113,7 +120,7 @@ const ScanQRCode: React.FC = () => {
           ws?.close();
         };
 
-        ws.onopen = () => {
+        ws.onOpen = () => {
           const message: LoginWithQRMobile = {
             ...parsedMessage,
             token,
@@ -129,10 +136,10 @@ const ScanQRCode: React.FC = () => {
           );
         };
 
-        ws.onmessage = (event) => {
+        ws.onMessage = (event) => {
           try {
             const message: MessageWebSocketQRLogin<"sentByServer"> | null =
-              parseData(event.data);
+              parseData(event.data.toString());
 
             if (!message) return ws?.close();
 
@@ -166,7 +173,7 @@ const ScanQRCode: React.FC = () => {
           }
         };
 
-        ws.onerror = (error) => {
+        ws.onError = (error) => {
           logger.error("WebSocket error:", error);
           handleError();
         };
@@ -190,20 +197,20 @@ const ScanQRCode: React.FC = () => {
   return (
     <View style={styles.container}>
       {!hasPermission && (
-        <Text style={styles.text}>{t("requestingCameraPermission")}</Text>
+        <Text style={styles.title}>{t("requestingCameraPermission")}</Text>
       )}
       {hasPermission === "granted" && !scannedData && (
         <>
-          <Text style={styles.text}>{t("scanQRCodeInstructions")}</Text>
+          <Text style={styles.subtitle}>{t("scanQRCodeInstructions")}</Text>
           <CameraView
             style={styles.cameraView}
             onBarcodeScanned={handleScannedBarcodeRef.current}
           />
         </>
       )}
-      {scannedData && <Text style={styles.text}>{t("processingQRCode")}</Text>}
+      {scannedData && <Text style={styles.title}>{t("processingQRCode")}</Text>}
       {hasPermission === "denied" && (
-        <Text style={styles.text}>{t("noCameraPermission")}</Text>
+        <Text style={styles.title}>{t("noCameraPermission")}</Text>
       )}
     </View>
   );

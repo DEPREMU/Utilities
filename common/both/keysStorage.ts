@@ -1,9 +1,9 @@
 import {
-  Cryptos,
-  NotesSettings,
+  Crypto,
   Streamer,
   UserData,
   DownDetector,
+  NotesSettings,
   Notifications,
   VaultSettings,
   SerializableTask,
@@ -33,7 +33,7 @@ export type PriceBinanceAPI = {
   price: number;
 }[];
 
-export type SelectedCryptos = Record<string, Cryptos>;
+export type SelectedCryptos = Record<string, Crypto>;
 
 export type ClipboardStorage = {
   enabled: boolean;
