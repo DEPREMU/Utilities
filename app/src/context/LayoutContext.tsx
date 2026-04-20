@@ -24,16 +24,57 @@ type propGetStylesSafeAreaContainer =
   | [vertical: number, horizontal: number]
   | [all: number];
 
-export type CommonStyles = "mainContainer" | "shadow";
+type ViewStyleFinder =
+  | "FAB"
+  | "flex"
+  | "shadow"
+  | "divider"
+  | "container"
+  | "flexCenter"
+  | "scrollView"
+  | "rowSwitchText"
+  | "sectionContainer"
+  | "backgroundShapeOne"
+  | "backgroundShapeTwo";
 
-export type OptionsCommonStyles = {
-  fallbackValues?: propGetStylesSafeAreaContainer;
-  copyInsets?: boolean;
-  shadowColor?: string;
+type TextStyleFinder = "h3" | "title" | "subtitle" | "paragraph" | "error";
+
+export type CommonStyles = TextStyleFinder | ViewStyleFinder;
+
+type StaticStyles = {
+  FAB: ViewStyle;
+  flex: ViewStyle;
+  shadow: ViewStyle;
+  flexCenter: ViewStyle;
 };
 
+type ShapesStyles = {
+  backgroundShapeOne: ViewStyle;
+  backgroundShapeTwo: ViewStyle;
+};
+
+type Texts = {
+  h3: TextStyle;
+  error: TextStyle;
+  title: TextStyle;
+  subtitle: TextStyle;
+  paragraph: TextStyle;
+};
+
+type ReturnGetCommonStyles<T extends CommonStyles> = T extends "scrollView"
+  ? {
+      scrollViewContainer: ViewStyle;
+      scrollViewContentContainer: ViewStyle;
+    }
+  : {
+      [K in T]: T extends ViewStyleFinder ? ViewStyle : TextStyle;
+    };
+
+type GetCommonStyles = <T extends CommonStyles>(
+  style: T,
+) => ReturnGetCommonStyles<T>;
+
 interface LayoutContextProps {
-  isLargeTablet: boolean;
   getStylesSafeAreaContainer: (
     fallbackValues?: propGetStylesSafeAreaContainer,
   ) => SafeAreaContainerStyle;
@@ -43,47 +84,20 @@ interface LayoutContextProps {
     largeTabletValue: T,
     webValue?: T,
   ) => T;
-  getCommonStyles: (
-    style: CommonStyles | CommonStyles[],
-    options?: OptionsCommonStyles,
-  ) => ViewStyle | TextStyle;
-  isPortrait: boolean;
-  isTablet: boolean;
-  isPhone: boolean;
+  texts: Texts;
   isWeb: boolean;
   width: number;
   height: number;
   insets: ReturnType<typeof useSafeAreaInsets>;
+  isPhone: boolean;
+  isTablet: boolean;
+  isPortrait: boolean;
+  isLargeTablet: boolean;
+  getCommonStyles: GetCommonStyles;
 }
 
-/**
- * LayoutContext provides information about the current layout of the application,
- * including device type and dimensions.
- *
- * It allows components to access responsive layout data for better UI adaptation.
- *
- * @context
- * @returns {LayoutContextProps} The context value containing layout information.
- */
 const LayoutContext = createContext<LayoutContextProps | undefined>(undefined);
 
-/**
- * Provides layout-related context values to its children, such as device type and screen dimensions.
- *
- * @param {LayoutProviderProps} props - The props for the LayoutProvider component.
- * @param {React.ReactNode} props.children - The child components that will have access to the layout context.
- *
- * @const {ScaledSize} dimensions - The current window dimensions, updated on screen size changes.
- * @const {(dimensions: ScaledSize) => void} setDimensions - Setter function to update the window dimensions state.
- * @const {number} width - The current width of the window.
- * @const {number} height - The current height of the window.
- * @const {boolean} isWeb - Indicates if the platform is web.
- * @const {boolean} isPhone - Indicates if the device is considered a phone (width <= 768 and height <= 1600).
- * @const {boolean} isTablet - Indicates if the device is considered a tablet (width > 768 and height <= 1600).
- * @const {boolean} isLargeTablet - Indicates if the device is considered a large tablet (width > 1024 and height <= 2048).
- * @const {object} layoutData - The object containing all layout-related values provided to the context.
- * @const {Insets} insets - The safe area insets for the current device.
- */
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const { colors } = useTheme();
 
@@ -94,11 +108,11 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const insets = useMemo(
     () => ({
       top: rawInsets.top,
-      bottom: rawInsets.bottom,
       left: rawInsets.left,
       right: rawInsets.right,
+      bottom: rawInsets.bottom,
     }),
-    [rawInsets.top, rawInsets.bottom, rawInsets.left, rawInsets.right],
+    [rawInsets.top, rawInsets.left, rawInsets.right, rawInsets.bottom],
   );
 
   const isPortrait: boolean = useMemo(() => height >= width, [height, width]);
@@ -141,80 +155,229 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     [insets],
   );
 
-  const getCommonStyles = useCallback(
-    (
-      styleFinder: CommonStyles | CommonStyles[],
-      options?: OptionsCommonStyles,
-    ) => {
+  const getResponsiveValue: LayoutContextProps["getResponsiveValue"] =
+    useCallback(
+      (phoneValue, tabletValue, largeTabletValue, webValue) => {
+        if (isLargeTablet) return largeTabletValue;
+        if (isTablet) return tabletValue;
+        if (isWeb) return webValue !== undefined ? webValue : largeTabletValue;
+        return phoneValue;
+      },
+      [isTablet, isLargeTablet, isWeb],
+    );
+
+  const texts: Texts = useMemo(() => {
+    const baseTextStyle: TextStyle = {
+      color: colors.text,
+    };
+
+    return {
+      title: {
+        ...baseTextStyle,
+        fontSize: getResponsiveValue(22, 26, 30),
+        textAlign: "center",
+        fontWeight: "bold",
+      },
+      subtitle: {
+        ...baseTextStyle,
+        fontSize: getResponsiveValue(18, 22, 26),
+        textAlign: "center",
+        fontWeight: "600",
+      },
+      h3: {
+        ...baseTextStyle,
+        color: colors.text,
+        fontSize: getResponsiveValue(16, 18, 20),
+        fontWeight: "bold",
+      },
+      paragraph: {
+        ...baseTextStyle,
+        color: colors.text,
+        fontSize: getResponsiveValue(14, 16, 18),
+        textAlign: "justify",
+      },
+      error: {
+        ...baseTextStyle,
+        color: colors.error,
+        fontSize: getResponsiveValue(14, 16, 18),
+        textAlign: "center",
+        marginTop: 10,
+        marginBottom: 10,
+        width: "100%",
+        zIndex: 10,
+        fontWeight: "500",
+      },
+    };
+  }, [colors, getResponsiveValue]);
+
+  const staticStyles: StaticStyles = useMemo(() => {
+    return {
+      FAB: {
+        right: 20,
+        bottom: 20,
+        position: "absolute",
+        borderWidth: 1,
+        borderColor: colors.accent,
+        backgroundColor: colors.background,
+      },
+      flex: {
+        flex: 1,
+        width: "100%",
+      },
+      flexCenter: {
+        flex: 1,
+        width: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+      },
+      shadow: {
+        elevation: 6,
+        shadowColor: colors.shadow,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+      },
+    };
+  }, [colors]);
+
+  const shapesStyles: ShapesStyles = useMemo(() => {
+    return {
+      backgroundShapeOne: {
+        top: -getResponsiveValue(60, 70, 80),
+        width: "75%",
+        right: -getResponsiveValue(30, 40, 50),
+        height: getResponsiveValue(140, 180, 200),
+        opacity: 0.06,
+        position: "absolute",
+        transform: [{ rotate: "10deg" }],
+        borderRadius: getResponsiveValue(120, 150, 180),
+        backgroundColor: colors.primary,
+      },
+      backgroundShapeTwo: {
+        left: -getResponsiveValue(30, 40, 50),
+        width: "70%",
+        bottom: -getResponsiveValue(70, 80, 90),
+        height: getResponsiveValue(140, 180, 200),
+        opacity: 0.08,
+        position: "absolute",
+        transform: [{ rotate: "-6deg" }],
+        borderRadius: getResponsiveValue(110, 140, 170),
+        backgroundColor: colors.accent,
+      },
+    };
+  }, [colors, getResponsiveValue]);
+
+  const scrollViewStyles: ReturnGetCommonStyles<"scrollView"> = useMemo(() => {
+    return {
+      scrollViewContainer: {
+        flex: 1,
+        width: "100%",
+        justifyContent: "flex-start",
+      },
+      scrollViewContentContainer: {
+        paddingVertical: getResponsiveValue(6, 8, 10, 12),
+        paddingHorizontal: getResponsiveValue(4, 6, 8, 10),
+      },
+    };
+  }, [getResponsiveValue]);
+
+  const getCommonStyles: GetCommonStyles = useCallback(
+    (styleFinder) => {
       let styleToReturn: ViewStyle | TextStyle = {};
-      if (!Array.isArray(styleFinder)) {
-        styleFinder = [styleFinder];
-      }
-      for (const style of styleFinder) {
-        switch (style) {
-          case "mainContainer":
-            styleToReturn = {
-              ...(options?.copyInsets || options?.copyInsets === undefined
-                ? getStylesSafeAreaContainer(options?.fallbackValues)
-                : {}),
-              flex: 1,
-              width: "100%",
-              alignItems: "center",
-              justifyContent: "center",
-              ...styleToReturn,
-            };
-            break;
-          case "shadow":
-            styleToReturn = {
-              shadowColor: options?.shadowColor || colors.shadow,
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.15,
-              shadowRadius: 4,
-              elevation: 6,
-              ...styleToReturn,
-            };
-            break;
-          default:
-            break;
-        }
+
+      switch (styleFinder) {
+        case "scrollView":
+          return scrollViewStyles as never;
+        case "backgroundShapeOne":
+        case "backgroundShapeTwo":
+          return shapesStyles[styleFinder as keyof ShapesStyles] as never;
+        case "FAB":
+        case "flex":
+        case "shadow":
+        case "flexCenter":
+          return staticStyles[styleFinder as keyof StaticStyles] as never;
+        case "h3":
+        case "error":
+        case "title":
+        case "subtitle":
+        case "paragraph":
+          return texts[styleFinder as TextStyleFinder] as never;
+        case "container":
+          styleToReturn = {
+            gap: getResponsiveValue(10, 12, 14, 16),
+            flex: 1,
+            width: "100%",
+            maxWidth: 1200,
+            alignSelf: "center",
+            justifyContent: "flex-start",
+            ...styleToReturn,
+          };
+          break;
+        case "sectionContainer":
+          styleToReturn = {
+            ...staticStyles.shadow,
+            padding: getResponsiveValue(12, 16, 20),
+            minHeight: 100,
+            borderWidth: 2,
+            borderColor: colors.accent,
+            borderRadius: 16,
+            marginBottom: getResponsiveValue(12, 16, 20),
+            backgroundColor: colors.secondary,
+            ...styleToReturn,
+          };
+          break;
+        case "divider":
+          styleToReturn = {
+            width: "100%",
+            height: 1,
+            marginVertical: getResponsiveValue(12, 16, 20),
+            backgroundColor: colors.primary,
+            ...styleToReturn,
+          };
+          break;
+        case "rowSwitchText":
+          styleToReturn = {
+            padding: getResponsiveValue(8, 10, 12),
+            alignItems: "center",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            ...styleToReturn,
+          };
+          break;
+        default:
+          break;
       }
 
-      return styleToReturn;
+      return { [styleFinder]: styleToReturn } as never;
     },
-    [colors, getStylesSafeAreaContainer],
-  );
-
-  const getResponsiveValue = useCallback(
-    <T,>(
-      phoneValue: T,
-      tabletValue: T,
-      largeTabletValue: T,
-      webValue?: T,
-    ): T => {
-      if (isLargeTablet) return largeTabletValue;
-      if (isTablet) return tabletValue;
-      if (isWeb) return webValue !== undefined ? webValue : largeTabletValue;
-      return phoneValue;
-    },
-    [isTablet, isLargeTablet, isWeb],
+    [
+      texts,
+      colors,
+      staticStyles,
+      shapesStyles,
+      scrollViewStyles,
+      getResponsiveValue,
+    ],
   );
 
   const layoutData: LayoutContextProps = useMemo(
     () => ({
       isWeb,
+      texts,
+      width,
       insets,
+      height,
       isPhone,
+      isTablet,
       isPortrait,
       isLargeTablet,
       getCommonStyles,
       getResponsiveValue,
       getStylesSafeAreaContainer,
-      isTablet,
-      height,
-      width,
     }),
     [
       isWeb,
+      texts,
       width,
       height,
       insets,
@@ -235,18 +398,11 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   );
 };
 
-/**
- * Custom hook to access the layout context values.
- *
- * @returns {LayoutContextProps} The layout context values.
- *
- * @throws {Error} If used outside of a LayoutProvider.
- */
-export const useResponsiveLayout = () => {
+export const useResponsiveLayout = (): LayoutContextProps => {
   const context = useContext(LayoutContext);
   if (!context) {
     throw new Error(
-      "useResponsiveLayout debe ser usado dentro de un LayoutProvider",
+      "useResponsiveLayout must be used within a LayoutProvider.",
     );
   }
   return context;
