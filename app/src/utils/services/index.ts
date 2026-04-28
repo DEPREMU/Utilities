@@ -1,9 +1,12 @@
 import { debug } from "./debug";
 import { updates } from "./updates";
 import { deviceInfo } from "./deviceInfo";
+import { navigation } from "./navigation";
 import { sessionManager } from "./session";
 import { recorderManager } from "./recorder";
 import { clipboardManager } from "./clipboard";
+import { storageManagement } from "./storage";
+import { notificationsManager } from "./notifications";
 
 export * from "./debug";
 export * from "./alerts";
@@ -19,17 +22,19 @@ export * from "./notifications";
 export const cleanupServices = async () => {
   import("@screens/Vault/services/vaultDomain").then(
     ({ vaultDomainServiceManager }) => {
-      vaultDomainServiceManager.cleanUp(true);
+      vaultDomainServiceManager.destroy();
     },
   );
-  
+
   await Promise.all([
-    debug?.cleanup(),
-    updates?.cleanup(),
-    deviceInfo?.cleanup(),
-    sessionManager?.cleanup(),
-    recorderManager?.cleanup(),
-    clipboardManager?.cleanup(),
+    debug?.destroy(),
+    updates?.destroy(),
+    deviceInfo?.destroy(),
+    navigation?.destroy(),
+    sessionManager?.destroy(),
+    recorderManager?.destroy(),
+    clipboardManager?.destroy(),
+    storageManagement?.destroy(),
+    notificationsManager?.destroy(),
   ]);
-  ;
 };

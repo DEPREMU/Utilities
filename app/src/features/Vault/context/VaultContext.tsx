@@ -58,7 +58,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [loading, setLoading] = useState(true);
-  const service = useMemo(() => vaultDomainServiceManager.getService(), []);
+  const service = useMemo(() => vaultDomainServiceManager.instance, []);
   const [vaultState, setVaultState] = useState<VaultDomainState>(
     service.getState(),
   );
@@ -103,9 +103,12 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   useEffect(() => {
-    const unsubscribe = service.subscribe((nextState) => {
-      setVaultState(nextState);
-    });
+    const removeListenerState = service.addEventListener(
+      "state",
+      (nextState) => {
+        setVaultState(nextState);
+      },
+    );
 
     const removeListenerAppState = deviceInfo.addEventListener(
       EventsDeviceInfo.appStateChange,
@@ -125,15 +128,15 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     );
 
-    void service.initialize().finally(() => {
+    void service.waitUntilInitialized().finally(() => {
       setLoading(false);
     });
 
     return () => {
-      unsubscribe();
-      removeListenerScreen();
-      removeListenerAppState();
-      vaultDomainServiceManager.cleanUp();
+      removeListenerState.remove();
+      removeListenerScreen.remove();
+      removeListenerAppState.remove();
+      vaultDomainServiceManager.startTimer();
     };
   }, [service]);
 

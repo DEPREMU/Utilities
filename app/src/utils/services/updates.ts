@@ -1,17 +1,16 @@
 import { APP_VERSION, REPLACERS } from "../TOP_LEVEL";
 import * as ExpoUpdates from "expo-updates";
 import { EventsDeviceInfo } from "./deviceInfo";
+import { EventEmitterService } from "@types";
+import { ServiceClass } from "@common";
 
 type CheckUpdatesNatively = {
   time: number;
   func: () => Promise<boolean>;
-  removeListenerInternet?: () => void;
+  removeListenerInternet?: EventEmitterService;
 };
 
-class Updates {
-  #initialized = false;
-  #initPromise: Promise<void> | null = null;
-
+class Updates extends ServiceClass<never> {
   #idIntervalCheckUpdatesNatively: number | null = null;
   #listenerExpoUpdates: (() => void) | null = null;
 
@@ -57,7 +56,7 @@ class Updates {
                 if (!hasInternet) return;
 
                 this.#checkUpdatesNatively.func();
-                this.#checkUpdatesNatively.removeListenerInternet?.();
+                this.#checkUpdatesNatively.removeListenerInternet?.remove();
               },
             );
           return false;
@@ -155,7 +154,7 @@ class Updates {
     const { setIntervalPolyfill, clearIntervalPolyfill, deviceInfo } =
       await import("@utils");
 
-    let sub: null | (() => void) = null;
+    let sub: null | EventEmitterService = null;
     const id = setIntervalPolyfill(
       () => {
         if (deviceInfo.hasInternet) return this.#checkUpdatesExpo();
@@ -167,7 +166,7 @@ class Updates {
               if (!hasInternet) return;
 
               this.#checkUpdatesExpo();
-              sub?.();
+              sub?.remove();
               sub = null;
             },
           );
@@ -190,16 +189,11 @@ class Updates {
     );
   };
 
-  private _init = async () => {
-    if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
-
+  override _init = async () => {
     await Promise.all([
       this._initCheckUpdatesExpo(),
       this._initCheckUpdatesNatively(),
     ]);
-    this.#initialized = true;
-    this.#initPromise = null;
   };
 
   public checkForUpdates = async () => {
@@ -209,19 +203,19 @@ class Updates {
     return await this.#checkUpdatesExpo();
   };
 
-  public cleanup = async () => {
-    const { clearIntervalPolyfill } = await import("@utils");
-
+  override async destroy() {
     if (this.#idIntervalCheckUpdatesNatively) {
+      const { clearIntervalPolyfill } = await import("@utils");
       clearIntervalPolyfill(this.#idIntervalCheckUpdatesNatively);
       this.#idIntervalCheckUpdatesNatively = null;
     }
 
     this.#listenerExpoUpdates?.();
-  };
+    super.destroy();
+  }
 
   constructor() {
-    this.#initPromise = this._init();
+    super();
   }
 }
 

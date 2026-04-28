@@ -4,6 +4,7 @@ import {
   wrapFunctionWithError,
   ALL_KEYS_STORAGE_TYPE,
   DO_NOT_DELETE_OR_SAVE,
+  ServiceClass,
 } from "@common";
 import { logger } from "../functions/debug";
 import { cloneDeep } from "lodash";
@@ -28,40 +29,13 @@ type SessionData = {
   sessionToken: string | null;
 };
 
-type EventSession =
-  | "error"
-  | "login"
-  | "logout"
-  | "sessionRefreshed"
-  | "refreshingSession";
-
 type ListenersSession = {
-  [event in EventSession]?: Record<
-    string,
-    (...args: ArgsListener<event>) => void
-  >;
+  error: (error?: string) => void;
+  login: (error?: string) => void;
+  logout: () => void;
+  sessionRefreshed: (error?: string) => void;
+  refreshingSession: () => void;
 };
-
-type ArgsListener<T extends EventSession> = T extends
-  | "error"
-  | "login"
-  | "sessionRefreshed"
-  ? [error?: string]
-  : T extends "logout" | "refreshingSession"
-    ? []
-    : never;
-
-type AddEventListener = <T extends EventSession>(
-  event: T,
-  callback: (...args: ArgsListener<T>) => void,
-) => () => void;
-
-type EmitEvent = <T extends EventSession>(
-  event: T,
-  ...args: ArgsListener<T>
-) => void;
-
-type RemoveAllListeners = (event?: EventSession) => void;
 
 type Login = (
   email: string,
@@ -259,7 +233,6 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
       "PENDING_TASKS",
       "SESSION_EXPIRY",
       "HAS_ADMIN_ACCESS",
-      "SELECTED_CRYPTOS",
       "USER_SESSION_TOKEN_STORAGE",
     ];
 
@@ -404,13 +377,9 @@ export const getCurrentUserId = async (): Promise<string | null> => {
   return user?.userId || null;
 };
 
-class SessionManager {
-  #i = 0;
+class SessionManager extends ServiceClass<ListenersSession> {
   #intervalId: number | null = null;
   #timeoutIdNotLoggedIn: number | null = null;
-
-  #initialized = false;
-  #initPromise: Promise<void> | null = null;
 
   #data: SessionData = {
     userData: null,
@@ -420,9 +389,7 @@ class SessionManager {
     sessionToken: null,
   };
 
-  private _init = async () => {
-    if (this.#initialized) return;
-
+  override _init = async () => {
     try {
       await this.refreshSession();
       const { setIntervalPolyfill, clearIntervalPolyfill } =
@@ -433,9 +400,12 @@ class SessionManager {
         () => this.refreshSession(),
         15 * 60 * 1000,
       );
-    } finally {
-      this.#initialized = true;
-      this.#initPromise = null;
+    } catch (error) {
+      logger.error(
+        TAG,
+        "Unexpected error initializing session manager:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
   };
 
@@ -477,44 +447,6 @@ class SessionManager {
     }, 30000);
   };
 
-  private _listeners: ListenersSession = {};
-
-  private _emitEvent: EmitEvent = (event, ...args) => {
-    const listeners = this._listeners[event];
-    if (!listeners) return;
-
-    Object.values(listeners).forEach((callback) => callback?.(...args));
-  };
-
-  public addEventListener: AddEventListener = (event, callback) => {
-    if (!REPLACERS.isProduction) {
-      if (this.#i > 100) {
-        const count = Object.values(this._listeners).reduce(
-          (acc, listeners) => acc + Object.keys(listeners || {}).length,
-          0,
-        );
-        if (count > 100) {
-          logger.warn(
-            TAG,
-            "Too many session listeners, you may have a memory leak, to suppress this warning set REPLACERS.isDev = false.",
-          );
-        }
-      }
-    }
-
-    if (!this._listeners[event]) this._listeners[event] = {};
-    const id = `${this.#i++}`;
-    this._listeners[event][id] = callback;
-    return () => {
-      delete this._listeners[event]?.[id];
-    };
-  };
-
-  public removeAllListeners: RemoveAllListeners = (event?: EventSession) => {
-    if (event) delete this._listeners[event];
-    else this._listeners = {};
-  };
-
   public refreshSession = async () => {
     try {
       if (this.#data.isLoggingIn) return;
@@ -537,7 +469,7 @@ class SessionManager {
             if (!hasInternet) return;
 
             this.refreshSession();
-            sub?.();
+            sub?.remove();
           },
         );
         return;
@@ -548,14 +480,14 @@ class SessionManager {
         return;
       }
 
-      await storageManagement.waitUntilLoaded();
+      await storageManagement.waitUntilInitialized();
       const rememberMe = storageManagement.get("SESSION_EXPIRY");
       const sessionToken = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
 
       const handleNotLoggedIn = (reason?: string) => {
         if (reason) logger.log(TAG, "Not logged in:", reason);
         this.notLoggedIn();
-        this._emitEvent("logout");
+        this.emit("logout");
         this.#data.isLoggedIn = false;
         if (REPLACERS.isWeb) windowModule.notifyLoginStatus?.(false);
       };
@@ -584,7 +516,7 @@ class SessionManager {
         isLoggedIn: true,
         sessionToken: token,
       };
-      this._emitEvent("login");
+      this.emit("login");
       this.clearTimeoutNotLoggedIn();
     } catch (error) {
       logger.error(
@@ -617,7 +549,7 @@ class SessionManager {
             ? `Login error: ${error}`
             : "No user or token returned";
         logger.error(TAG, "Login error:", errorMsg);
-        this._emitEvent("login", errorMsg);
+        this.emit("login", errorMsg);
         callback?.(errorMsg);
         return;
       }
@@ -629,7 +561,7 @@ class SessionManager {
         isLoggedIn: true,
         sessionToken: token,
       };
-      this._emitEvent("login");
+      this.emit("login");
       callback?.();
     } catch (error) {
       callback?.(error instanceof Error ? error.message : String(error));
@@ -647,7 +579,7 @@ class SessionManager {
       isLoggedIn: false,
       sessionToken: null,
     };
-    this._emitEvent("logout");
+    this.emit("logout");
   };
 
   public signUp: SignUp = async (email, password, callback) => {
@@ -662,26 +594,18 @@ class SessionManager {
     callback?.(success, error);
   };
 
-  public waitUntilLoaded = async () => {
-    if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
-
-    this.#initPromise = this._init();
-    return this.#initPromise;
-  };
-
-  public cleanup = async () => {
+  override destroy = async () => {
     if (this.#intervalId) {
       const { clearIntervalPolyfill } = await import("@utils");
       clearIntervalPolyfill(this.#intervalId);
     }
-    this.removeAllListeners();
+    super.destroy();
   };
 
   public getSessionData = () => cloneDeep(this.#data);
 
   constructor() {
-    this.#initPromise = this._init();
+    super();
   }
 }
 

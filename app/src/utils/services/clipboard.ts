@@ -21,7 +21,7 @@ import { REPLACERS, URLS } from "../TOP_LEVEL";
 import { storageManagement, parseData } from "./storage";
 import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
 import { DeviceEventEmitter, EmitterSubscription } from "react-native";
-import { wrapFunctionWithError, ClipboardStorage } from "@common";
+import { wrapFunctionWithError, ClipboardStorage, ServiceClass } from "@common";
 import { windowModule, keyboardModule, BackgroundModule } from "@modules";
 
 const TAG = "CLIPBOARD_MANAGER";
@@ -35,7 +35,7 @@ const OPTIONS_RECONNECT_WS: OptionsReconnectingWS = {
   },
   messagesAfterOpen: [
     async () => {
-      await storageManagement.waitUntilLoaded();
+      await storageManagement.waitUntilInitialized();
 
       const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
       const deviceId = storageManagement.get("DEVICE_ID");
@@ -59,30 +59,11 @@ type SendMessageFunc = (
   message: ClipboardWebSocketMessage<"sentByApp">,
 ) => Promise<void>;
 
-type ClipboardEventType = "items-updated" | "connection-status";
-
-type ArgsListenersClipboard = {
-  "items-updated": [items: ClipboardItem[]];
-  "last-item-change": [content: string | null];
-  "connection-status": [connected: boolean];
-};
-
 type ListenersClipboard = {
-  [event in ClipboardEventType]?: Record<
-    string,
-    (...args: ArgsListenersClipboard[event]) => void
-  >;
+  "items-updated": (items: ClipboardItem[]) => void;
+  "last-item-change": (content: string | null) => void;
+  "connection-status": (connected: boolean) => void;
 };
-
-type AddEventListener = <T extends ClipboardEventType>(
-  event: T,
-  callback: (...args: ArgsListenersClipboard[T]) => void,
-) => () => void;
-
-type EmitEvent = <T extends ClipboardEventType>(
-  event: T,
-  ...args: ArgsListenersClipboard[T]
-) => void;
 
 type SetClipboardData = <T extends keyof ClipboardStorage>(
   key: T,
@@ -97,8 +78,7 @@ const getItemWithMaxSize = (
   return { ...item, content: item.content.slice(0, maxSize) };
 };
 
-class ClipboardManager {
-  #i = 0;
+class ClipboardManager extends ServiceClass<ListenersClipboard> {
   #clipboardData: ClipboardStorage;
   #clipboardSocket: ReconnectingWebSocket = new ReconnectingWebSocket(
     URLS.clipboard,
@@ -113,16 +93,16 @@ class ClipboardManager {
   #intervalId: number | null = null;
   #shouldConnect: boolean = true;
 
-  #listenerSession: (() => void) | null = null;
   #listenerClipboard: EmitterSubscription | null = null;
-  #removeInternetListener: (() => void) | null = null;
-  #removeStatePhoneListener: (() => void) | null = null;
+  #listenerSession: ReturnType<typeof deviceInfo.addEventListener> | null =
+    null;
+  #removeInternetListener: ReturnType<
+    typeof deviceInfo.addEventListener
+  > | null = null;
+  #removeStatePhoneListener: ReturnType<
+    typeof deviceInfo.addEventListener
+  > | null = null;
   #isRunningNativeService: boolean = false;
-
-  #initialized = false;
-  #initPromise: Promise<void> | null = null;
-
-  private _listeners: ListenersClipboard = {};
 
   private syncClipboardSuggestionsToModule = () => {
     const func = REPLACERS.isNative
@@ -130,13 +110,6 @@ class ClipboardManager {
       : windowModule.setClipboardHistory;
     func?.(this.#listItemsClipboard);
     this.#updatedItems = false;
-  };
-
-  private _emitEvent: EmitEvent = (event, ...args) => {
-    const listeners = this._listeners[event];
-    if (!listeners) return;
-
-    Object.values(listeners).forEach((callback) => callback?.(...args));
   };
 
   public getClipboardData = () => cloneDeep(this.#clipboardData);
@@ -149,10 +122,10 @@ class ClipboardManager {
     switch (key) {
       case "enabled":
         storageManagement.save("CLIPBOARD", this.#clipboardData);
-        if (!value) return this.cleanup() as never;
+        if (!value) return this.suspend() as never;
         else {
-          this.#initPromise = this._init();
-          return this.#initPromise as never;
+          this.resume();
+          return this.waitUntilInitialized() as never;
         }
       case "maxCharsInItem":
         if ((value as number) < 1) this.#clipboardData.maxCharsInItem = -1;
@@ -166,35 +139,6 @@ class ClipboardManager {
 
     storageManagement.save("CLIPBOARD", this.#clipboardData);
     return null as never;
-  };
-
-  public addEventListener: AddEventListener = (event, callback) => {
-    if (!REPLACERS.isProduction) {
-      if (this.#i > 100) {
-        const count = Object.values(this._listeners).reduce(
-          (acc, listeners) => acc + Object.keys(listeners || {}).length,
-          0,
-        );
-        if (count > 100) {
-          logger.warn(
-            "CLIPBOARD_MANAGER",
-            "Too many clipboard listeners, you may have a memory leak",
-          );
-        }
-      }
-    }
-
-    if (!this._listeners[event]) this._listeners[event] = {};
-    const id = `${this.#i++}`;
-    this._listeners[event][id] = callback;
-    return () => {
-      delete this._listeners[event]?.[id];
-    };
-  };
-
-  public removeAllListeners = (event?: ClipboardEventType) => {
-    if (event) delete this._listeners[event];
-    else this._listeners = {};
   };
 
   private addToItemsClipboard = (item: ClipboardItem | ClipboardItem[]) => {
@@ -226,7 +170,7 @@ class ClipboardManager {
     this.#updatedItems = true;
 
     this.syncClipboardSuggestionsToModule();
-    this._emitEvent("items-updated", this.#listItemsClipboard);
+    this.emit("items-updated", this.#listItemsClipboard);
   };
 
   private sendMessage: SendMessageFunc = async (message) => {
@@ -239,17 +183,17 @@ class ClipboardManager {
     if (!userData?.userId) return;
 
     this.#clipboardSocket.onOpen = async () => {
-      this._emitEvent("connection-status", true);
+      this.emit("connection-status", true);
     };
 
     this.#clipboardSocket.onError = (error) => {
       logger.error("Clipboard WebSocket error:", error.message || error);
-      this._emitEvent("connection-status", false);
+      this.emit("connection-status", false);
     };
 
     this.#clipboardSocket.onClose = () => {
       logger.log("Clipboard WebSocket connection closed.");
-      this._emitEvent("connection-status", false);
+      this.emit("connection-status", false);
     };
 
     this.#clipboardSocket.onMessage = (event) => {
@@ -408,7 +352,7 @@ class ClipboardManager {
               "USER_SESSION_TOKEN_STORAGE",
             );
 
-            this._emitEvent("items-updated", this.#listItemsClipboard);
+            this.emit("items-updated", this.#listItemsClipboard);
             if (!sessionToken) return;
 
             const match = resolvedId
@@ -466,35 +410,34 @@ class ClipboardManager {
       "login",
       (err) => {
         if (err) {
-          this.cleanup();
+          this.suspend();
           return;
         }
 
-        this.#initPromise = this._init();
+        this._reInit();
       },
     );
     const removeListenerLogout = sessionManager.addEventListener(
       "logout",
       () => {
-        this.cleanup();
+        this.suspend();
       },
     );
 
-    this.#listenerSession = () => {
-      removeListenerLogin();
-      removeListenerLogout();
+    this.#listenerSession = {
+      remove: () => {
+        removeListenerLogin.remove();
+        removeListenerLogout.remove();
+      },
     };
   };
 
-  private _init = async () => {
+  override _init = async () => {
     try {
-      if (this.#initialized) return;
-      if (this.#initPromise) return this.#initPromise;
-
       await Promise.all([
-        this.cleanup(),
-        sessionManager.waitUntilLoaded(),
-        storageManagement.waitUntilLoaded(),
+        this.#clearTimers(),
+        sessionManager.waitUntilInitialized(),
+        storageManagement.waitUntilInitialized(),
       ]);
 
       if (
@@ -563,9 +506,6 @@ class ClipboardManager {
         "Error initializing ClipboardManager",
         error instanceof Error ? error.message : String(error),
       );
-    } finally {
-      this.#initialized = true;
-      this.#initPromise = null;
     }
   };
 
@@ -573,16 +513,18 @@ class ClipboardManager {
     this.#shouldConnect = false;
 
     this.#clipboardSocket.close();
-    this._emitEvent("connection-status", false);
+    this.emit("connection-status", false);
+    this.#clearTimers();
   };
 
   public resume = () => {
-    if (!this.#initialized) return;
+    if (!this.isInitialized) return;
 
     this.#shouldConnect = true;
 
     const currentSocket = this.#clipboardSocket;
     currentSocket.reconnect();
+    this._reInit();
   };
 
   public updateSocketURL = (url: string | null) => {
@@ -598,38 +540,45 @@ class ClipboardManager {
     }
   };
 
-  public cleanup = async () => {
+  #clearTimers = () => {
     clearIntervalPolyfill(this.#intervalId);
-    if (this.#listenerSession) this.#listenerSession();
-    if (this.#listenerClipboard) this.#listenerClipboard.remove();
-    if (this.#removeInternetListener) this.#removeInternetListener();
-    if (this.#removeStatePhoneListener) this.#removeStatePhoneListener();
+    if (this.#listenerSession) {
+      this.#listenerSession.remove();
+      this.#listenerSession = null;
+    }
+    if (this.#listenerClipboard) {
+      this.#listenerClipboard.remove();
+      this.#listenerClipboard = null;
+    }
+    if (this.#removeInternetListener) {
+      this.#removeInternetListener.remove();
+      this.#removeInternetListener = null;
+    }
+    if (this.#removeStatePhoneListener) {
+      this.#removeStatePhoneListener.remove();
+      this.#removeStatePhoneListener = null;
+    }
     if (REPLACERS.isNative && this.#isRunningNativeService) {
       BackgroundModule.stopClipboardService();
       this.#isRunningNativeService = false;
     }
-
-    this.#clipboardSocket?.close();
-    this.#initialized = false;
   };
 
-  public waitUntilLoaded = async () => {
-    if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
-
-    this.#initPromise = this._init();
-    return this.#initPromise;
+  override destroy = async () => {
+    this.#clearTimers();
+    this.#clipboardSocket?.close();
+    super.destroy();
   };
 
   public getItems = () => this.#listItemsClipboard;
   public getLastItem = () =>
-    this.#listItemsClipboard[0] ||
-    this.#listItemsClipboardNoInternet[0] ||
+    this.#listItemsClipboard[0] ??
+    this.#listItemsClipboardNoInternet[0] ??
     null;
 
   constructor() {
+    super();
     this.#clipboardData = null as never;
-    this.#initPromise = this._init();
   }
 }
 

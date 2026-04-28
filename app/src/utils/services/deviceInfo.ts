@@ -23,7 +23,7 @@ import { navigation } from "./navigation";
 import { DATA_PLATFORM } from "../cross";
 import * as DeviceInfoRN from "react-native-device-info";
 import { storageManagement } from "./storage";
-import { ExpectedSecureStorageTypes } from "@common";
+import { ExpectedSecureStorageTypes, ServiceClass } from "@common";
 import { AppState, AppStateStatus, DeviceEventEmitter } from "react-native";
 
 export type typeDataReceivedState = { state: "suspended" | "resumed" };
@@ -53,45 +53,26 @@ export enum EventsDeviceInfo {
   isBackgroundChange = "isBackground-change",
 }
 
-type ArgsListenersDeviceInfo = {
-  [EventsDeviceInfo.screenChange]: [
-    prevScreen: ScreensAvailable,
-    newScreen: ScreensAvailable,
-  ];
-  [EventsDeviceInfo.queryAppState]: [];
-  [EventsDeviceInfo.batteryAlerts]: [];
-  [EventsDeviceInfo.verifyLocation]: [];
-  [EventsDeviceInfo.appStateChange]: [newState: AppStateStatus];
-  [EventsDeviceInfo.statePhoneChange]: [
-    newState: typeDataReceivedState["state"],
-  ];
-  [EventsDeviceInfo.hasInternetChange]: [newState: boolean];
-  [EventsDeviceInfo.isBackgroundChange]: [newState: boolean];
-  [EventsDeviceInfo.notificationAction]: [action: EventNativeModule];
-  [EventsDeviceInfo.networkTypeChange]: [type: NetInfo.NetInfoStateType];
-};
-
-type AddEventListener = <T extends EventsDeviceInfo>(
-  event: T,
-  callback: (...args: ArgsListenersDeviceInfo[T]) => void,
-) => () => void;
-
-type RemoveEventListener = <T extends keyof ListenersDeviceInfo>(
-  event: T,
-  callback: (...args: ArgsListenersDeviceInfo[T]) => void,
-) => void;
+type Function<T extends unknown[] = unknown[]> = (...args: T) => void;
 
 type ListenersDeviceInfo = {
-  [event in EventsDeviceInfo]?: Record<
-    string,
-    (...args: ArgsListenersDeviceInfo[event]) => void
+  [EventsDeviceInfo.screenChange]: Function<
+    [prevScreen: ScreensAvailable, newScreen: ScreensAvailable]
+  >;
+  [EventsDeviceInfo.queryAppState]: Function;
+  [EventsDeviceInfo.batteryAlerts]: Function;
+  [EventsDeviceInfo.verifyLocation]: Function;
+  [EventsDeviceInfo.appStateChange]: Function<[newState: AppStateStatus]>;
+  [EventsDeviceInfo.statePhoneChange]: Function<
+    [newState: typeDataReceivedState["state"]]
+  >;
+  [EventsDeviceInfo.hasInternetChange]: Function<[newState: boolean]>;
+  [EventsDeviceInfo.isBackgroundChange]: Function<[newState: boolean]>;
+  [EventsDeviceInfo.notificationAction]: Function<[action: EventNativeModule]>;
+  [EventsDeviceInfo.networkTypeChange]: Function<
+    [type: NetInfo.NetInfoStateType]
   >;
 };
-
-type EmitEvent = <T extends keyof ListenersDeviceInfo>(
-  event: T,
-  ...args: ArgsListenersDeviceInfo[T]
-) => void;
 
 const verifyLocation = async () => {
   const { status } = await Location.getBackgroundPermissionsAsync();
@@ -125,16 +106,10 @@ const verifyLocation = async () => {
   });
 };
 
-class DeviceInfo {
-  #i = 0;
-
-  #initialized = false;
-  #initPromise: Promise<void> | null = null;
-
-  public cleanup = () => {
-    Object.values(this.#listeners).forEach((cleanup) => cleanup?.());
-    this.#listeners = {};
-  };
+class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
+  override destroy() {
+    super.destroy();
+  }
 
   #listeners: Partial<Record<keyof ListenersDeviceInfo, () => void>> = {};
 
@@ -170,44 +145,6 @@ class DeviceInfo {
       value ?? !this.#data.networkInfo.fetchWithCellularData;
   }
 
-  public addEventListener: AddEventListener = (event, callback) => {
-    const id = `${this.#i++}`;
-    if (!this._listeners[event]) this._listeners[event] = {};
-    this._listeners[event][id] = callback;
-
-    return () => {
-      delete this._listeners[event]?.[id];
-    };
-  };
-
-  public removeEventListener: RemoveEventListener = (event, callback) => {
-    const listeners = this._listeners[event];
-    if (!listeners) return;
-
-    const entry = Object.entries(listeners).find(([, cb]) => cb === callback);
-    if (!entry) return;
-
-    const [id] = entry;
-    delete this._listeners[event]?.[id];
-  };
-
-  public removeAllListeners = (event?: keyof ListenersDeviceInfo) => {
-    if (event) {
-      delete this._listeners[event];
-    } else {
-      this._listeners = {};
-    }
-  };
-
-  private _listeners: ListenersDeviceInfo = {};
-
-  private _emitEvent: EmitEvent = (event, ...args) => {
-    const listeners = this._listeners[event];
-    if (!listeners) return;
-
-    Object.values(listeners).forEach((callback) => callback?.(...args));
-  };
-
   private _initAppState = () => {
     const event = EventsDeviceInfo.appStateChange;
     if (this.#listeners[event]) return;
@@ -220,7 +157,7 @@ class DeviceInfo {
         if (this.isBackground === newIsBackground) return;
 
         this.#data.isBackground = newIsBackground;
-        this._emitEvent(EventsDeviceInfo.isBackgroundChange, this.isBackground);
+        this.emit(EventsDeviceInfo.isBackgroundChange, this.isBackground);
       },
     );
     this.#listeners[event] = () => appStateListener.remove();
@@ -234,7 +171,7 @@ class DeviceInfo {
     const { notificationsManager, hasInternetConnection } =
       await import("@utils");
 
-    await notificationsManager.waitUntilLoaded();
+    await notificationsManager.waitUntilInitialized();
     const notification = notificationsManager.getNotification(reason);
     if (!notification.enabled) return;
 
@@ -272,7 +209,7 @@ class DeviceInfo {
         }
 
         this.#data.hasInternet = current;
-        this._emitEvent(event, this.hasInternet);
+        this.emit(event, this.hasInternet);
       },
       REPLACERS.isNative ? 8000 : 5000,
     );
@@ -294,7 +231,7 @@ class DeviceInfo {
         if (data.state === this.statePhone) return;
 
         this.#data.statePhone = data.state || "resumed";
-        this._emitEvent(event, this.statePhone);
+        this.emit(event, this.statePhone);
       },
     );
     this.#listeners[event] = () => statePhoneListener.remove();
@@ -356,7 +293,7 @@ class DeviceInfo {
               if (event.reasonNotification === "streamers") break;
 
               const { notificationsManager } = await import("@utils");
-              await notificationsManager.waitUntilLoaded();
+              await notificationsManager.waitUntilInitialized();
 
               notificationsManager.editNotification(
                 event.reasonNotification,
@@ -387,7 +324,7 @@ class DeviceInfo {
               }
 
               const { notificationsManager } = await import("@utils");
-              await notificationsManager.waitUntilLoaded();
+              await notificationsManager.waitUntilInitialized();
 
               notificationsManager.editNotification(
                 event.reasonNotification,
@@ -416,7 +353,7 @@ class DeviceInfo {
     if (this.#listeners[event]) return;
 
     const { notificationsManager } = await import("@utils");
-    await notificationsManager.waitUntilLoaded();
+    await notificationsManager.waitUntilInitialized();
     const notification =
       notificationsManager.getNotification("locationEnabled");
     if (!notification.enabled) return;
@@ -431,9 +368,9 @@ class DeviceInfo {
 
     const reasonNotification: ReasonNotification = event;
     const { notificationsManager } = await import("@utils");
-    await notificationsManager.waitUntilLoaded();
+    await notificationsManager.waitUntilInitialized();
 
-    await notificationsManager.waitUntilLoaded();
+    await notificationsManager.waitUntilInitialized();
     const notification =
       notificationsManager.getNotification(reasonNotification);
     if (!notification.enabled) return;
@@ -494,7 +431,7 @@ class DeviceInfo {
   };
 
   private _initScreenChange = async () => {
-    await storageManagement.waitUntilLoaded();
+    await storageManagement.waitUntilInitialized();
     if (!storageManagement.hasUI) return;
 
     const event = EventsDeviceInfo.screenChange;
@@ -507,7 +444,7 @@ class DeviceInfo {
       const screen = route?.name || "Home";
       if (screen === prevScreen) return;
 
-      this._emitEvent(event, prevScreen, screen);
+      this.emit(event, prevScreen, screen);
       prevScreen = screen;
     });
     this.#listeners[event] = () => remover?.();
@@ -526,7 +463,7 @@ class DeviceInfo {
         isCellular: state.type === NetInfo.NetInfoStateType.cellular,
       };
 
-      this._emitEvent(event, state.type);
+      this.emit(event, state.type);
     });
 
     this.#listeners[event] = () => subscription();
@@ -535,7 +472,7 @@ class DeviceInfo {
   private _initNetworkSettings = async () => {
     const [data] = await Promise.all([
       NetInfo.fetch(),
-      storageManagement.waitUntilLoaded(),
+      storageManagement.waitUntilInitialized(),
     ]);
 
     let info = storageManagement.get("NETWORK_SETTINGS");
@@ -553,12 +490,8 @@ class DeviceInfo {
     };
   };
 
-  private _init = async () => {
-    if (this.#initialized) return;
-
+  override _init = async () => {
     try {
-      this.cleanup();
-
       this._initAppState();
 
       const promises: Promise<void>[] = [];
@@ -579,18 +512,12 @@ class DeviceInfo {
       );
 
       await Promise.all(promises);
-    } finally {
-      this.#initialized = true;
-      this.#initPromise = null;
+    } catch (error) {
+      logger.error(
+        "Error initializing DeviceInfo service",
+        error instanceof Error ? error.message : String(error),
+      );
     }
-  };
-
-  public waitUntilLoaded = async () => {
-    if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
-
-    this.#initPromise = this._init();
-    return this.#initPromise;
   };
 
   public initListener = (event: EventsDeviceInfo) => {
@@ -632,7 +559,7 @@ class DeviceInfo {
   };
 
   constructor() {
-    this.#initPromise = this._init();
+    super();
   }
 }
 

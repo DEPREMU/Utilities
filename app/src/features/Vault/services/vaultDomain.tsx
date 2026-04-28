@@ -10,33 +10,36 @@ import {
   alerts,
   tTyped,
   logger,
-  EXTENSION_ENCRYPTED,
   REPLACERS,
   navigation,
   encryptFile,
+  ServiceClass,
   getRandomUUID,
+  InstanceManager,
   getFoldersVault,
   renameVaultItem,
   sanitizeFileName,
   storageManagement,
   decryptFolderFiles,
   setTimeoutPolyfill,
+  setIntervalPolyfill,
   actionWithVaultItem,
+  EXTENSION_ENCRYPTED,
   clearTimeoutPolyfill,
   getDefaultVaultDirectory,
   getMimeTypeFromExtension,
   clearDecryptedFolderDirectory,
 } from "@utils";
-import { cloneDeep } from "lodash";
+import Button from "@components/Button/screens";
 import { modalRef } from "@refs";
+import { cloneDeep } from "lodash";
+import { TextInput } from "react-native-paper";
 import * as ExpoAuth from "expo-local-authentication";
 import { ModalData } from "@screens/Vault/screens/VaultViewer";
 import * as FileSystem from "expo-file-system";
 import { windowModule } from "@modules";
 import * as DocumentPicker from "expo-document-picker";
-import Button from "@/common/components/Button/screens";
-import { TextInput } from "react-native-paper";
-import { vaultServiceManager } from "@/features/Vault/services/vault";
+import { vaultServiceManager } from "@screens/Vault/services/vault";
 
 export type VaultData = {
   sessionId: string;
@@ -84,6 +87,12 @@ export type VaultDomainState = {
   filesUploading: Record<string, number>;
 };
 
+type ListenersVault = {
+  state: (state: VaultDomainState) => void;
+};
+
+type StateUpdater<T> = T | ((previous: T) => T);
+
 const defaultFilesSelected: FilesSelected = {
   files: {},
   selecting: false,
@@ -114,16 +123,14 @@ const initializeVault = (isUnlocked?: boolean): VaultData => ({
   initializedAt: new Date().toISOString(),
 });
 
+const TAG = "VaultDomainService";
+
 export const DEFAULT_VAULT_DATA = {
   MIN_LENGTH_PASSWORD: 32,
   DEFAULT_FOLDER_NAME: "Default",
 };
 
-type VaultStateListener = (state: VaultDomainState) => void;
-
-type StateUpdater<T> = T | ((previous: T) => T);
-
-class VaultDomainService {
+class VaultDomainService extends ServiceClass<ListenersVault> {
   #state: VaultDomainState = {
     data: null,
     files: [],
@@ -135,21 +142,11 @@ class VaultDomainService {
   };
 
   #dbService = vaultServiceManager.getService();
-  #listeners = new Set<VaultStateListener>();
   #idTimeoutRef: number | null = null;
-
-  #initialized = false;
-  #initPromise: Promise<void> | null = null;
-
-  #emitState = () => {
-    for (const listener of this.#listeners) {
-      listener(this.#state);
-    }
-  };
 
   #setState = (updater: (previous: VaultDomainState) => VaultDomainState) => {
     this.#state = updater(this.#state);
-    this.#emitState();
+    this.emit("state", this.#state);
   };
 
   #setSlice = <K extends keyof VaultDomainState>(
@@ -165,15 +162,6 @@ class VaultDomainService {
             )
           : value,
     }));
-  };
-
-  public subscribe = (listener: VaultStateListener) => {
-    this.#listeners.add(listener);
-    listener(this.#state);
-
-    return () => {
-      this.#listeners.delete(listener);
-    };
   };
 
   public getState = () => this.#state;
@@ -202,66 +190,60 @@ class VaultDomainService {
     this.#setSlice("filesSelected", value);
   };
 
-  public initialize = async () => {
-    if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
+  override async _init(): Promise<void> {
+    try {
+      await this.#dbService.waitUntilLoaded();
 
-    const init = async () => {
-      try {
-        await this.#dbService.waitUntilLoaded();
-
-        const loadedSettings = storageManagement.get("VAULT_SETTINGS");
-        if (loadedSettings) {
-          this.#setSlice("settings", loadedSettings);
-        } else {
-          storageManagement.save("VAULT_SETTINGS", getDefaultSettings());
-        }
-
-        const passwords = storageManagement.get("VAULT_PASSWORD", {});
-        let folderNames = Object.keys(passwords);
-        if (!folderNames.length) {
-          if (REPLACERS.isWeb) {
-            folderNames = await windowModule.getExistingVaultFolders();
-          } else {
-            folderNames = await getFoldersVault();
-          }
-        }
-        if (!folderNames.length) {
-          folderNames = [DEFAULT_VAULT_DATA.DEFAULT_FOLDER_NAME];
-        }
-
-        this.#setState((previous) => ({
-          ...previous,
-          folders: folderNames.reduce(
-            (acc, folder) => {
-              acc[folder] = "locked";
-              return acc;
-            },
-            {} as VaultDomainState["folders"],
-          ),
-        }));
-
-        this.#setSlice("data", initializeVault(false));
-        if (REPLACERS.isWeb) {
-          windowModule.clearDecryptedFolderDirectory();
-        } else {
-          clearDecryptedFolderDirectory();
-        }
-      } finally {
-        this.#initialized = true;
-        this.#initPromise = null;
+      const loadedSettings = storageManagement.get("VAULT_SETTINGS");
+      if (loadedSettings) {
+        this.#setSlice("settings", loadedSettings);
+      } else {
+        storageManagement.save("VAULT_SETTINGS", getDefaultSettings());
       }
-    };
 
-    this.#initPromise = init();
+      const passwords = storageManagement.get("VAULT_PASSWORD", {});
+      let folderNames = Object.keys(passwords);
+      if (!folderNames.length) {
+        if (REPLACERS.isWeb) {
+          folderNames = await windowModule.getExistingVaultFolders();
+        } else {
+          folderNames = await getFoldersVault();
+        }
+      }
+      if (!folderNames.length) {
+        folderNames = [DEFAULT_VAULT_DATA.DEFAULT_FOLDER_NAME];
+      }
 
-    return this.#initPromise;
-  };
+      this.#setState((previous) => ({
+        ...previous,
+        folders: folderNames.reduce(
+          (acc, folder) => {
+            acc[folder] = "locked";
+            return acc;
+          },
+          {} as VaultDomainState["folders"],
+        ),
+      }));
 
-  public cleanUp = () => {
+      this.#setSlice("data", initializeVault(false));
+      if (REPLACERS.isWeb) {
+        windowModule.clearDecryptedFolderDirectory();
+      } else {
+        clearDecryptedFolderDirectory();
+      }
+    } catch (error) {
+      logger.error(
+        TAG,
+        "Error initializing VaultDomainService:",
+        (error as Error).message,
+      );
+    }
+  }
+
+  override destroy() {
     clearTimeoutPolyfill(this.#idTimeoutRef);
-    this.#listeners.clear();
-  };
+    super.destroy();
+  }
 
   #functions: VaultFunctions = {
     getCurrentFolderId: () => {
@@ -339,7 +321,7 @@ class VaultDomainService {
         return;
       }
 
-      await storageManagement.waitUntilLoaded();
+      await storageManagement.waitUntilInitialized();
 
       let directory = storageManagement.get("VAULT_DIRECTORY", "");
       if (!directory && REPLACERS.isNative) {
@@ -1129,25 +1111,9 @@ class VaultDomainService {
   public getFunctions = (): VaultFunctions => this.#functions;
 }
 
-class VaultDomainServiceManager {
-  #service: VaultDomainService | null = null;
-
-  getService = () => {
-    if (!this.#service) {
-      this.#service = new VaultDomainService();
-    }
-
-    return this.#service;
-  };
-
-  cleanUp = async (force?: boolean) => {
-    if (!this.#service && !force) return;
-
-    await vaultServiceManager.cleanUp(() => {
-      this.#service?.cleanUp();
-      this.#service = null;
-    }, force);
-  };
-}
-
-export const vaultDomainServiceManager = new VaultDomainServiceManager();
+export const vaultDomainServiceManager = new InstanceManager(
+  () => new VaultDomainService(),
+  5 * 60 * 1000,
+  setIntervalPolyfill,
+  clearTimeoutPolyfill,
+);
