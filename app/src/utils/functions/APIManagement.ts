@@ -1,12 +1,4 @@
 import {
-  API_URL,
-  URL_WEB_SOCKET,
-  fallbackAPI_URL,
-  CLIPBOARD_WS_URL,
-  fallbackURL_WEB_SOCKET,
-  fallbackCLIPBOARD_WS_URL,
-} from "../constants/server";
-import {
   RoutesAPI,
   TablesKeys,
   RequestBody,
@@ -17,8 +9,8 @@ import {
 } from "@types";
 import { logger } from "./debug";
 import axios, { AxiosRequestConfig } from "axios";
+import { PRODUCTION_URLS, REPLACERS, URLS } from "../TOP_LEVEL";
 import { stringifyData, storageManagement } from "../services/storage";
-import { REPLACERS } from "../TOP_LEVEL";
 
 const TAG = "APIManagement";
 
@@ -88,7 +80,7 @@ export const getRouteAPI = async (route: RoutesAPI | UpdatesRoutes) => {
   let apiUrl = storageManagement.get("API_URL");
 
   if (!apiUrl) {
-    apiUrl = API_URL;
+    apiUrl = URLS.api;
     try {
       const res = await axios.get<ResponseHealth>(apiUrl + "/health", {
         timeout: 2000,
@@ -99,21 +91,20 @@ export const getRouteAPI = async (route: RoutesAPI | UpdatesRoutes) => {
     }
 
     if (isOk) {
-      storageManagement.save("API_URL", API_URL);
-      storageManagement.save("WEBSOCKET_URL", URL_WEB_SOCKET);
-      storageManagement.save("CLIPBOARD_WEBSOCKET_URL", CLIPBOARD_WS_URL);
+      storageManagement.save("API_URL", URLS.api);
+      storageManagement.save("WEBSOCKET_URL", URLS.ws);
+      storageManagement.save("CLIPBOARD_WEBSOCKET_URL", URLS.clipboard);
     } else {
       logger.warn(TAG, "Falling back to server API URL and WebSocket URL");
-      apiUrl = fallbackAPI_URL;
-      storageManagement.save("API_URL", fallbackAPI_URL);
-      storageManagement.save("WEBSOCKET_URL", fallbackURL_WEB_SOCKET);
+      apiUrl = PRODUCTION_URLS?.api || URLS.api;
+      storageManagement.save("API_URL", apiUrl);
+      storageManagement.save("WEBSOCKET_URL", PRODUCTION_URLS?.ws || URLS.ws);
       storageManagement.save(
         "CLIPBOARD_WEBSOCKET_URL",
-        fallbackCLIPBOARD_WS_URL,
+        PRODUCTION_URLS?.clipboard || URLS.clipboard,
       );
     }
   }
-  if (apiUrl.endsWith("/")) apiUrl = apiUrl.slice(0, -1);
   if (ROUTES[route].type === "updates")
     apiUrl = apiUrl.replace("api", "updates");
 
@@ -133,7 +124,7 @@ export const getRouteAPI = async (route: RoutesAPI | UpdatesRoutes) => {
  * "https://example.com/images/photo.jpg".
  */
 export const getRouteImage = (filename: string): string => {
-  const apiUrl = storageManagement.get("API_URL", API_URL);
+  const apiUrl = storageManagement.get("API_URL", URLS.api);
   return `${apiUrl.replace("/api", "")}${filename}`;
 };
 
@@ -169,13 +160,13 @@ type FetchToServer = <
 >;
 
 export const fetchToServer: FetchToServer = async (route, ...bodyAndToken) => {
+  const { deviceInfo } = await import("@utils");
+  await deviceInfo?.waitUntilLoaded();
+
+  const apiRoute = await getRouteAPI(route);
+
   try {
-    const { deviceInfo } = await import("@utils");
-    await deviceInfo?.waitUntilLoaded();
-
     const info = deviceInfo.fetchNetworkInfo;
-
-    const apiRoute = await getRouteAPI(route);
 
     if (
       info.isCellular &&
@@ -187,6 +178,13 @@ export const fetchToServer: FetchToServer = async (route, ...bodyAndToken) => {
         why: APIErrorWhy.FetchWithCellularDataOff,
         data: null,
         errorText: "Fetching with cellular data is turned off in settings.",
+      };
+    if (!deviceInfo.hasInternet)
+      return {
+        ok: false,
+        why: APIErrorWhy.NetworkError,
+        data: null,
+        errorText: "No internet connection available.",
       };
 
     const method = ROUTES[route].method;
@@ -222,7 +220,7 @@ export const fetchToServer: FetchToServer = async (route, ...bodyAndToken) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(
       "FETCH_TO_SERVER",
-      `Error fetching to server at route ${route}:`,
+      `Error fetching to server at route ${apiRoute}:`,
       errorMessage,
     );
     return {

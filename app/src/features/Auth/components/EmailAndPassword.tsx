@@ -1,10 +1,10 @@
 import Animated, {
+  FadeInLeft,
   withTiming,
+  FadeOutRight,
   withSequence,
   useSharedValue,
   useAnimatedStyle,
-  FadeOutDown,
-  FadeInUp,
   LinearTransition,
 } from "react-native-reanimated";
 import TextInput from "@components/TextInput";
@@ -12,7 +12,7 @@ import { useLanguage } from "@context/LanguageContext";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import React, { useRef, useState } from "react";
 import { TextInput as TextInputPaper } from "react-native-paper";
-import { isValidEmail, isValidPassword } from "@utils";
+import { isValidEmail, isValidPassword, REPLACERS } from "@utils";
 
 type LoginTypeEmail = <T extends boolean>(
   props: LoginTypeEmailProps<T>,
@@ -114,8 +114,8 @@ const EmailAndPassword: LoginTypeEmail = (props) => {
     <Animated.View
       style={styles.loginTypeContainer}
       layout={LinearTransition.duration(300).springify()}
-      exiting={FadeOutDown.duration(200)}
-      entering={FadeInUp.duration(200)}
+      exiting={FadeOutRight.duration(200)}
+      entering={FadeInLeft.duration(200)}
     >
       {/* Email space */}
       <Animated.View
@@ -151,7 +151,7 @@ const EmailAndPassword: LoginTypeEmail = (props) => {
             label={t("auth.passwordPlaceholder")}
             onBlur={handlerBlurInputPasswordRef.current}
             onChangeText={setPassword}
-            secureTextEntry={!showPassword}
+            secureTextEntry={!showPassword && !REPLACERS.isDev}
             right={
               <TextInputPaper.Icon
                 icon={showPassword ? "eye-off" : "eye"}

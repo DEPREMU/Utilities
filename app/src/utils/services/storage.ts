@@ -101,7 +101,7 @@ export const sortArray = (arr: unknown[]): unknown[] => {
  */
 export const sortObject = (obj: object): { [key: string]: unknown } => {
   if (typeof obj !== "object" || obj === null) return obj;
-  const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b));
+  const keys = Object.keys(obj).sort((a, b) => (a > b ? 1 : -1));
 
   const sortedEntries = Object.fromEntries(
     keys.map((key) => {
