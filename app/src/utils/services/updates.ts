@@ -189,12 +189,12 @@ class Updates extends ServiceClass<never> {
     );
   };
 
-  override _init = async () => {
+  override async _init(): Promise<void> {
     await Promise.all([
       this._initCheckUpdatesExpo(),
       this._initCheckUpdatesNatively(),
     ]);
-  };
+  }
 
   public checkForUpdates = async () => {
     const updateNatively = await this.#checkUpdatesNatively.func();
@@ -216,6 +216,7 @@ class Updates extends ServiceClass<never> {
 
   constructor() {
     super();
+    this._reInit();
   }
 }
 

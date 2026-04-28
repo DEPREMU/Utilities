@@ -403,7 +403,7 @@ class StorageManagement extends ServiceClass<never> {
     this.#hasUI = true;
   };
 
-  override _init = async () => {
+  override async _init() {
     try {
       await this.#loadData();
       const { waitForTime } = await import("@utils");
@@ -420,7 +420,7 @@ class StorageManagement extends ServiceClass<never> {
         logger.error("StorageManagement", "Initialization error:", error);
       });
     }
-  };
+  }
 
   #data = {} as ExpectedStorageTypes<"BOTH">;
   #loadData = async () => {
@@ -613,11 +613,11 @@ class StorageManagement extends ServiceClass<never> {
 
   override destroy(): void {
     super.destroy();
-    
   }
 
   constructor() {
     super();
+    this._reInit();
   }
 }
 

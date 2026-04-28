@@ -37,7 +37,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
     });
   };
 
-  override _init = async () => {
+  override async _init(): Promise<void> {
     const { waitForTime, logger } = await import("@utils");
 
     try {
@@ -55,7 +55,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
         error instanceof Error ? error.message : String(error),
       );
     }
-  };
+  }
 
   override destroy(): void {
     super.destroy();
@@ -64,6 +64,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
   constructor() {
     super();
     this.ref = createNavigationContainerRef<RootStackParamList>();
+    this._reInit();
   }
 }
 

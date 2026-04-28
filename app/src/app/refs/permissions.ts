@@ -72,7 +72,7 @@ const initPermissionsData = async () => {
     await Promise.all([import("@utils"), import("@modules")]);
 
   try {
-    await storageManagement.waitUntilLoaded();
+    await storageManagement.waitUntilInitialized();
     const storedData = storageManagement.get("PERMISSIONS_DATA");
     if (!storedData) {
       storageManagement.save("PERMISSIONS_DATA", permissionsData.permissions);
