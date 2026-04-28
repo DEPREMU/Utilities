@@ -1,19 +1,22 @@
+import { ResponseDebugAppAlive } from "@types";
 import { REPLACERS } from "../TOP_LEVEL";
-import { DEBUG_SETTINGS } from "@common";
+import { DEBUG_SETTINGS, ServiceClass } from "@common";
 
-type Intervals = "appAliveCheck";
+type ListenersDebug = {
+  appAliveCheck:
+    | ((status: "sent") => void)
+    | ((status: "error", error: Error) => void)
+    | ((status: "result", result: ResponseDebugAppAlive | null) => void);
+};
 
 const TAG = "DEBUG_SERVICE";
 
-class Debug {
-  #initialized = false;
-  #initPromise: Promise<void> | null = null;
-
+class Debug extends ServiceClass<ListenersDebug> {
   #defaultSettings: DEBUG_SETTINGS = {
     appAliveCheck: false,
   };
 
-  #intervals: Record<Intervals, number | null> = {
+  #intervals: Record<keyof ListenersDebug, number | null> = {
     appAliveCheck: null,
   };
 
@@ -30,15 +33,32 @@ class Debug {
 
       const pushToken = await getDevicePushToken();
 
-      const res = await fetchToServer("/debug/appAlive", {
-        deviceId: storageManagement.get("DEVICE_ID"),
-        pushToken,
-      });
-      logger.log(TAG, "App alive check result:", res.data || res.errorText);
+      this.emit("appAliveCheck", "sent");
+      try {
+        const res = await fetchToServer("/debug/appAlive", {
+          deviceId: storageManagement.get("DEVICE_ID"),
+          pushToken,
+        });
+        logger.log(TAG, "App alive check result:", res.data || res.errorText);
+        this.emit("appAliveCheck", "result", res.data ?? null);
+      } catch (error) {
+        logger.error(
+          TAG,
+          "Error occurred while checking app alive status:",
+          error,
+        );
+        this.emit(
+          "appAliveCheck",
+          "error",
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      }
     },
   };
 
-  public toggleInterval = async (name: Intervals): Promise<boolean> => {
+  public toggleInterval = async (
+    name: keyof ListenersDebug,
+  ): Promise<boolean> => {
     const { setIntervalPolyfill, clearIntervalPolyfill, storageManagement } =
       await import("@utils");
 
@@ -82,13 +102,11 @@ class Debug {
     );
   };
 
-  private _init = async () => {
-    if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
+  override _init = async () => {
     const { storageManagement, logger, waitForTime } = await import("@utils");
 
     try {
-      await storageManagement.waitUntilLoaded();
+      await storageManagement.waitUntilInitialized();
       const data = storageManagement.get("DEBUG");
       if (!data) {
         storageManagement.save("DEBUG", this.#defaultSettings);
@@ -101,21 +119,19 @@ class Debug {
         "Error initializing Debug service",
         error instanceof Error ? error.message : String(error),
       );
-    } finally {
-      this.#initialized = true;
-      this.#initPromise = null;
     }
   };
 
-  public cleanup = async () => {
+  override async destroy() {
     const { clearIntervalPolyfill } = await import("@utils");
     Object.values(this.#intervals).forEach((interval) => {
       if (typeof interval === "number") clearIntervalPolyfill(interval);
     });
-  };
+    super.destroy();
+  }
 
   constructor() {
-    this.#initPromise = this._init();
+    super();
   }
 }
 

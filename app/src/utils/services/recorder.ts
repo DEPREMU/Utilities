@@ -21,7 +21,11 @@ import { storageManagement } from "./storage";
 import { NotificationAction } from "@types";
 import { notificationsManager } from "./notifications";
 import { Directory, File, Paths } from "expo-file-system";
-import { ExpectedUnsecureStorageTypes, wrapFunctionWithError } from "@common";
+import {
+  ExpectedUnsecureStorageTypes,
+  ServiceClass,
+  wrapFunctionWithError,
+} from "@common";
 
 type RecorderData = Exclude<
   ExpectedUnsecureStorageTypes["RECORDER_DATA"],
@@ -30,11 +34,6 @@ type RecorderData = Exclude<
 export type DataRecorder = RecorderData;
 
 type RecorderAction = "delete" | "select" | "save";
-
-type RecorderEvent =
-  | "data-change"
-  | "player-status-change"
-  | "status-message-change";
 
 export type AudioStatus = {
   isLoaded: boolean;
@@ -57,35 +56,18 @@ export type AudioPlayer = {
   remove: () => void;
 };
 
-type ArgsListener<T extends RecorderEvent> = T extends "data-change"
-  ? [data: DataRecorder]
-  : T extends "status-message-change"
-    ? [message: string]
-    : T extends "player-status-change"
-      ? [status: AudioStatus]
-      : never;
-
 type ListenersRecorder = {
-  [event in RecorderEvent]?: Record<
-    string,
-    (...args: ArgsListener<event>) => void
-  >;
+  "data-change": (data: DataRecorder) => void;
+  "player-status-change": (status: AudioStatus) => void;
+  "status-message-change": (message: string) => void;
 };
-
-type AddEventListener = <T extends RecorderEvent>(
-  event: T,
-  callback: (...args: ArgsListener<T>) => void,
-) => () => void;
-
-type EmitEvent = <T extends RecorderEvent>(
-  event: T,
-  ...args: ArgsListener<T>
-) => void;
 
 type EditDataRecorder = <T extends keyof DataRecorder | "infiniteRecord">(
   key: T,
   value: T extends keyof DataRecorder ? DataRecorder[T] : boolean,
 ) => Promise<void>;
+
+const TAG = "RECORDER";
 
 const INTERVAL_UPDATE_RECORD = 500;
 const INTERVAL_UPDATE_PLAYER = 250;
@@ -288,15 +270,9 @@ const getDefaultData = (): DataRecorder => ({
   shouldAutoStart: false,
 });
 
-class RecorderManager {
-  #i = 0;
-  #listeners: ListenersRecorder = {};
-
+class RecorderManager extends ServiceClass<ListenersRecorder> {
   #data: DataRecorder;
   #statusMessage = "";
-
-  #initialized = false;
-  #initPromise: Promise<void> | null = null;
 
   #audioRecorder: AudioRecorder | null = null;
   #player: AudioPlayer;
@@ -345,40 +321,6 @@ class RecorderManager {
     });
   };
 
-  private _emitEvent: EmitEvent = (event, ...args) => {
-    const listeners = this.#listeners[event];
-    if (!listeners) return;
-
-    Object.values(listeners).forEach((callback) => callback?.(...args));
-  };
-
-  public addEventListener: AddEventListener = (event, callback) => {
-    if (this.#i > 100) {
-      const count = Object.values(this.#listeners).reduce(
-        (acc, listeners) => acc + Object.keys(listeners || {}).length,
-        0,
-      );
-      if (count > 100) {
-        logger.warn(
-          "RECORDER_MANAGER",
-          "Too many recorder listeners, you may have a memory leak",
-        );
-      }
-    }
-
-    if (!this.#listeners[event]) this.#listeners[event] = {};
-    const id = `${this.#i++}`;
-    this.#listeners[event][id] = callback;
-    return () => {
-      delete this.#listeners[event]?.[id];
-    };
-  };
-
-  public removeAllListeners = (event?: RecorderEvent) => {
-    if (event) delete this.#listeners[event];
-    else this.#listeners = {};
-  };
-
   public getDataRecorder = () => {
     if (!this.#audioRecorder?.isRecording?.()) {
       this.#data.isRecording = false;
@@ -398,7 +340,7 @@ class RecorderManager {
   private setStatusMessage = (message: string) => {
     if (message === this.#statusMessage) return;
     this.#statusMessage = message;
-    this._emitEvent("status-message-change", this.#statusMessage);
+    this.emit("status-message-change", this.#statusMessage);
   };
 
   private saveDataStorage = (data: DataRecorder) => {
@@ -427,7 +369,7 @@ class RecorderManager {
 
     if (options?.shouldPersist !== false) this.saveDataStorage(resolved);
 
-    this._emitEvent("data-change", this.#data);
+    this.emit("data-change", this.#data);
   };
 
   private updatePlayerStatus = (force: boolean = false) => {
@@ -436,7 +378,7 @@ class RecorderManager {
     if (!force && areEqualValues(true, this.#statusPlayer, newStatus)) return;
 
     this.#statusPlayer = newStatus;
-    this._emitEvent("player-status-change", this.#statusPlayer);
+    this.emit("player-status-change", this.#statusPlayer);
   };
 
   private clearRecordInterval = () => {
@@ -574,14 +516,12 @@ class RecorderManager {
       this.updatePlayerStatus(true);
     }
 
-    this._emitEvent("data-change", this.#data);
+    this.emit("data-change", this.#data);
   };
 
-  private _init = async () => {
-    if (this.#initialized) return;
-
+  override _init = async () => {
     try {
-      await storageManagement.waitUntilLoaded();
+      await storageManagement.waitUntilInitialized();
 
       this.syncDataFromStorage();
 
@@ -636,9 +576,17 @@ class RecorderManager {
 
       this.setStatusMessage(tTyped("recorder.dataLoaded"));
       this.initPlayerInterval();
-    } finally {
-      this.#initialized = true;
-      this.#initPromise = null;
+    } catch (error) {
+      logger.error(
+        TAG,
+        "Error during initialization:",
+        error instanceof Error ? error.message : String(error),
+      );
+      modalRef.openSnackBar?.(
+        tTyped("recorder.failedToInitialize", {
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
     }
   };
 
@@ -893,10 +841,10 @@ class RecorderManager {
     await this.startRecording();
   };
 
-  public cleanup = () => {
+  override destroy() {
+    super.destroy();
     this.clearRecordInterval();
     this.clearPlayerInterval();
-    this.removeAllListeners();
     this.#notificationPauseSubscription?.remove();
     this.#notificationResumeSubscription?.remove();
     this.#notificationPauseSubscription = null;
@@ -906,25 +854,14 @@ class RecorderManager {
     });
     this.#player.remove();
     this.releaseRecorder();
-    this.#initialized = false;
-    this.#initPromise = null;
     this.#isStopping = false;
-  };
-
-  public waitUntilLoaded = async () => {
-    if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
-
-    this.#initPromise = this._init();
-    return this.#initPromise;
-  };
+  }
 
   constructor() {
+    super();
     this.#data = storageManagement.get("RECORDER_DATA");
     this.#player = createAudioPlayer({ uri: this.#data?.lastUri });
     this.#statusPlayer = this.#player.currentStatus;
-
-    this.#initPromise = this._init();
   }
 }
 

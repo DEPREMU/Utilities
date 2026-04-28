@@ -8,6 +8,7 @@ import {
   ALL_KEYS_STORAGE_KEYS,
   DO_NOT_DELETE_OR_SAVE,
   SECURE_KEYS_STORAGE_TYPE,
+  ServiceClass,
 } from "@common";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { REPLACERS } from "../TOP_LEVEL";
@@ -391,38 +392,18 @@ const cleanAllStorageData = wrapFunctionWithError(
   },
 );
 
-class StorageManagement {
+class StorageManagement extends ServiceClass<never> {
   #hasUI: boolean = false;
-
-  #initialized = false;
-  #initPromise: Promise<void> | null = null;
 
   public get hasUI() {
     return this.#hasUI;
   }
 
-  /**
-   * Waits until the storage data is fully loaded and ready for access.
-   *
-   * This method returns a promise that resolves when the storage data has been loaded
-   * and the `isLoaded` property is set to true. It periodically checks the loading status
-   * every 50 milliseconds until the data is ready.
-   *
-   * @returns A promise that resolves when the storage data is loaded and ready for use.
-   */
-  public waitUntilLoaded = async (): Promise<void> => {
-    if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
-
-    this.#initPromise = this.#init();
-    return this.#initPromise;
-  };
-
   public setHasUI = async (): Promise<void> => {
     this.#hasUI = true;
   };
 
-  #init = async () => {
+  override _init = async () => {
     try {
       await this.#loadData();
       const { waitForTime } = await import("@utils");
@@ -434,9 +415,10 @@ class StorageManagement {
         await waitForTime(50 + elapsed);
         if (elapsed > maxWaitTime) break;
       }
-    } finally {
-      this.#initialized = true;
-      this.#initPromise = null;
+    } catch (error) {
+      import("@utils").then(({ logger }) => {
+        logger.error("StorageManagement", "Initialization error:", error);
+      });
     }
   };
 
@@ -626,12 +608,16 @@ class StorageManagement {
    * @returns A promise that resolves when the data has been reloaded.
    */
   public reloadData = async (): Promise<void> => {
-    this.#initialized = false;
-    await this.#loadData();
+    this._reInit();
   };
 
+  override destroy(): void {
+    super.destroy();
+    
+  }
+
   constructor() {
-    this.#initPromise = this.#init();
+    super();
   }
 }
 

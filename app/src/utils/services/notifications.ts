@@ -21,7 +21,11 @@ import * as notifications from "expo-notifications";
 import { AppState, Falsy } from "react-native";
 import { storageManagement } from "../services/storage";
 import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
-import { reasonNotification, objByReasonNotification } from "@common";
+import {
+  reasonNotification,
+  objByReasonNotification,
+  ServiceClass,
+} from "@common";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -71,7 +75,7 @@ export const isNotificationsAlreadyInitialized = (
  * before any notifications are scheduled or managed.
  */
 const initializeNotificationsStorage = async (): Promise<Notifications> => {
-  await storageManagement.waitUntilLoaded();
+  await storageManagement.waitUntilInitialized();
   const notificationsData = storageManagement.get("NOTIFICATIONS");
 
   if (isNotificationsAlreadyInitialized(notificationsData))
@@ -272,19 +276,8 @@ export const getListenerNameDeviceInfo = (reason: ReasonNotification) => {
   }
 };
 
-class NotificationsManager {
-  #initialized = false;
-  #initPromise: Promise<void> | null = null;
-
+class NotificationsManager extends ServiceClass<never> {
   #notifications: Notifications = null as unknown as Notifications;
-
-  public waitUntilLoaded = async (): Promise<void> => {
-    if (this.#initialized) return;
-    if (this.#initPromise) return this.#initPromise;
-
-    this.#initPromise = this._init();
-    return this.#initPromise;
-  };
 
   public getNotifications = (): Notifications => {
     return cloneDeep(this.#notifications);
@@ -357,7 +350,7 @@ class NotificationsManager {
 
   public sendNotification: SendNotification = async (notification) => {
     try {
-      await storageManagement.waitUntilLoaded();
+      await storageManagement.waitUntilInitialized();
       const localNotification = this.getNotification(
         notification.reasonNotification,
       );
@@ -426,7 +419,7 @@ class NotificationsManager {
           const isDND = await NativeFunctionsModule.isDoNotDisturbEnabled();
 
           const { deviceInfo } = await import("@utils");
-          await deviceInfo.waitUntilLoaded();
+          await deviceInfo.waitUntilInitialized();
 
           if (
             localNotification.behavior.onlyWhenScreenOff &&
@@ -486,20 +479,15 @@ class NotificationsManager {
     }
   };
 
-  private _init = async () => {
-    if (this.#initialized) return;
-
+  override _init = async () => {
     const notificationsData = await initializeNotificationsStorage();
     this.#notifications = notificationsData;
-
-    this.#initialized = true;
-    this.#initPromise = null;
   };
 
   public toggleNotification = async <T extends ReasonNotification>(
     reason: T,
   ) => {
-    await deviceInfo.waitUntilLoaded();
+    await deviceInfo.waitUntilInitialized();
 
     const data = this.getNotification(reason);
     data.enabled = !data.enabled;
@@ -512,8 +500,12 @@ class NotificationsManager {
     else deviceInfo.removeListener(event);
   };
 
+  override destroy() {
+    super.destroy();
+  }
+
   constructor() {
-    this.#initPromise = this._init();
+    super();
   }
 }
 
