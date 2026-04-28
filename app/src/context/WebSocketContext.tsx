@@ -10,11 +10,11 @@ import React, {
   createContext,
 } from "react";
 import {
+  URLS,
   tTyped,
   logger,
   parseData,
   deviceInfo,
-  URL_WEB_SOCKET,
   sessionManager,
   EventsDeviceInfo,
   storageManagement,
@@ -74,7 +74,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const [socketURL, setSocketURL] = useState<string | null>(null);
 
   const socketRef = useRef<ReconnectingWebSocket>(
-    new ReconnectingWebSocket(URL_WEB_SOCKET, OPTIONS_RECONNECT_WS),
+    new ReconnectingWebSocket(URLS.ws, OPTIONS_RECONNECT_WS),
   );
 
   const sendMessageRef = useRef<SendMessageFunc>(async (message) => {
@@ -88,7 +88,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     setSocketURL(initialURL);
 
-    const removeListener = deviceInfo.addEventListener(
+    const isBackgroundListener = deviceInfo.addEventListener(
       EventsDeviceInfo.isBackgroundChange,
       (isBackground) => {
         if (isBackground) {
@@ -165,8 +165,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     };
 
     return () => {
-      removeListener();
-      sessionListener();
+      sessionListener.remove();
+      isBackgroundListener.remove();
     };
   }, []);
 
@@ -178,7 +178,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     const currentSocket = socketRef.current;
     currentSocket.shouldReconnect = isLoggedIn;
 
-    const targetURL = socketURL || URL_WEB_SOCKET;
+    const targetURL = socketURL || URLS.ws;
     currentSocket.url = targetURL;
   }, [socketURL]);
 

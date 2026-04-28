@@ -103,7 +103,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
   );
 
   useEffect(() => {
-    const remove = deviceInfo.addEventListener(
+    const listener = deviceInfo.addEventListener(
       EventsDeviceInfo.hasInternetChange,
       (hasInternet) => {
         Object.entries(timeControlsRef.current).forEach(([key, data]) => {
@@ -117,7 +117,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       },
     );
 
-    return () => remove();
+    return () => listener.remove();
   }, []);
 
   useEffect(() => {
@@ -146,7 +146,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
     let timeoutId: number | null = null;
 
-    const removeStatePhoneListener = deviceInfo.addEventListener(
+    const statePhoneListener = deviceInfo.addEventListener(
       EventsDeviceInfo.statePhoneChange,
       (statePhone) => {
         Object.entries(timeControlsRef.current).forEach(([key, data]) => {
@@ -162,7 +162,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       },
     );
 
-    const removeAppStateListener = deviceInfo.addEventListener(
+    const appStateListener = deviceInfo.addEventListener(
       EventsDeviceInfo.appStateChange,
       (newState) => {
         if (newState !== "active") {
@@ -181,8 +181,8 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
     return () => {
       if (timeoutId) clearTimeoutPolyfill(timeoutId);
-      removeAppStateListener();
-      removeStatePhoneListener();
+      appStateListener.remove();
+      statePhoneListener.remove();
     };
   }, []);
 

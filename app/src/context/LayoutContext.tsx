@@ -190,6 +190,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
       FAB: {
         right: 20,
         bottom: 20,
+        zIndex: 10,
         position: "absolute",
         borderWidth: 1,
         borderColor: colors.accent,
