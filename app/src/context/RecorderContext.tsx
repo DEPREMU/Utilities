@@ -98,7 +98,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     let isMounted = true;
 
-    const removeData = recorderManager.addEventListener(
+    const dataListener = recorderManager.addEventListener(
       "data-change",
       (data) => {
         if (!isMounted) return;
@@ -106,7 +106,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     );
 
-    const removeStatus = recorderManager.addEventListener(
+    const statusListener = recorderManager.addEventListener(
       "status-message-change",
       (message) => {
         if (!isMounted) return;
@@ -114,7 +114,7 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     );
 
-    const removePlayerStatus = recorderManager.addEventListener(
+    const playerStatusListener = recorderManager.addEventListener(
       "player-status-change",
       (status) => {
         if (!isMounted) return;
@@ -124,14 +124,14 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
 
     return () => {
       isMounted = false;
-      removeData();
-      removeStatus();
-      removePlayerStatus();
+      dataListener.remove();
+      statusListener.remove();
+      playerStatusListener.remove();
     };
   }, []);
 
   useEffect(() => {
-    const removeListener = deviceInfo.addEventListener(
+    const listener = deviceInfo.addEventListener(
       EventsDeviceInfo.screenChange,
       async (_, newScreen) => {
         if (newScreen !== "Recorder") return;
@@ -147,11 +147,11 @@ export const RecorderProvider: React.FC<{ children: React.ReactNode }> = ({
         setStatusMessage(recorderManager.getStatusMessage());
         setStatusPlayer(recorderManager.getPlayerStatus());
 
-        removeListener();
+        listener.remove();
       },
     );
 
-    return () => removeListener();
+    return () => listener.remove();
   }, []);
 
   const value: RecorderContextType = useMemo(

@@ -40,12 +40,12 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
   const isFinished = useRef(false);
 
   const functionsRef = useRef([
-    deviceInfo.waitUntilLoaded,
-    sessionManager.waitUntilLoaded,
-    recorderManager.waitUntilLoaded,
-    clipboardManager.waitUntilLoaded,
-    storageManagement.waitUntilLoaded,
-    notificationsManager.waitUntilLoaded,
+    deviceInfo.waitUntilInitialized,
+    sessionManager.waitUntilInitialized,
+    recorderManager.waitUntilInitialized,
+    clipboardManager.waitUntilInitialized,
+    storageManagement.waitUntilInitialized,
+    notificationsManager.waitUntilInitialized,
   ]);
 
   const onLoadEndImageRef = useRef(() => setIsLoadingImage(false));

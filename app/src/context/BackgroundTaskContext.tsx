@@ -291,7 +291,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
   }, []);
 
   useEffect(() => {
-    const removeListener = deviceInfo.addEventListener(
+    const listener = deviceInfo.addEventListener(
       EventsDeviceInfo.hasInternetChange,
       (hasInternet) => {
         if (executeWhenInternetRef.current.length === 0) return;
@@ -307,7 +307,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       },
     );
 
-    return () => removeListener();
+    return () => listener.remove();
   }, []);
 
   const valueRef = useRef<BackgroundTaskContextType>({
