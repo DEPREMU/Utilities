@@ -490,7 +490,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     };
   };
 
-  override _init = async () => {
+  override async _init(): Promise<void> {
     try {
       this._initAppState();
 
@@ -518,7 +518,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
         error instanceof Error ? error.message : String(error),
       );
     }
-  };
+  }
 
   public initListener = (event: EventsDeviceInfo) => {
     const l: Record<EventsDeviceInfo, () => Promise<void> | void> = {
@@ -560,6 +560,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
 
   constructor() {
     super();
+    this._reInit();
   }
 }
 

@@ -389,7 +389,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
     sessionToken: null,
   };
 
-  override _init = async () => {
+  override async _init(): Promise<void> {
     try {
       await this.refreshSession();
       const { setIntervalPolyfill, clearIntervalPolyfill } =
@@ -407,7 +407,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
         error instanceof Error ? error.message : String(error),
       );
     }
-  };
+  }
 
   private clearTimeoutNotLoggedIn = () => {
     if (!this.#timeoutIdNotLoggedIn) return;
@@ -606,6 +606,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
 
   constructor() {
     super();
+    this._reInit();
   }
 }
 

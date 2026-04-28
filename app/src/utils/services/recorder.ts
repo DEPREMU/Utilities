@@ -519,7 +519,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
     this.emit("data-change", this.#data);
   };
 
-  override _init = async () => {
+  override async _init(): Promise<void> {
     try {
       await storageManagement.waitUntilInitialized();
 
@@ -588,7 +588,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
         }),
       );
     }
-  };
+  }
 
   public startRecording = async () => {
     await this._init();
@@ -862,6 +862,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
     this.#data = storageManagement.get("RECORDER_DATA");
     this.#player = createAudioPlayer({ uri: this.#data?.lastUri });
     this.#statusPlayer = this.#player.currentStatus;
+    this._reInit();
   }
 }
 

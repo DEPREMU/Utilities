@@ -7,10 +7,10 @@ import {
   parseData,
   REPLACERS,
   navigation,
-  QR_LOGIN_WS_URL,
   storageManagement,
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
+  URLS,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import { View } from "react-native";
@@ -101,7 +101,7 @@ const ScanQRCode: React.FC = () => {
           return;
         }
 
-        ws = new ReconnectingWebSocket(QR_LOGIN_WS_URL, optionsWebSocket);
+        ws = new ReconnectingWebSocket(URLS.wsLoginQr, optionsWebSocket);
 
         const handleError = () => {
           setScannedData(null);

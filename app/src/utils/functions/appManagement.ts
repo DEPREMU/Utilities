@@ -1,7 +1,6 @@
 import {
   AlbumsImages,
   ReturnSelectImage,
-  LanguagesSupported,
   DownloadableMimeType,
   RequestChangeImageFormat,
 } from "@types";
@@ -14,13 +13,13 @@ import * as Sharing from "expo-sharing";
 import { REPLACERS } from "../TOP_LEVEL";
 import { Alert, Falsy } from "react-native";
 import _BackgroundTimer from "react-native-background-timer";
-import * as MediaLibrary from "expo-media-library";
 import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
+import * as MediaLibrary from "expo-media-library";
+import { stringifyData } from "../services/storage";
 import * as DocumentPicker from "expo-document-picker";
+import { wrapFunctionWithError } from "@common";
 import { Directory, File, Paths } from "expo-file-system";
-import { storageManagement, stringifyData } from "../services/storage";
-import { ExpectedStorageTypes, wrapFunctionWithError } from "@common";
 
 const URL_GOOGLE_204 = "https://www.google.com/generate_204";
 
@@ -52,46 +51,6 @@ export const getFormattedDate = (
 export const capitalize = (str: string): string => {
   if (!str) return str;
   return str.charAt(0).toUpperCase() + str.slice(1);
-};
-
-export const getCryptosFromDatabase = async (
-  lang: LanguagesSupported,
-  token: string,
-): Promise<ExpectedStorageTypes["SELECTED_CRYPTOS"]> => {
-  const deviceId = storageManagement.get("DEVICE_ID");
-
-  const response = await fetchToServer(
-    "/database/fetch",
-    {
-      lang,
-      table: "Cryptos",
-      deviceId,
-    },
-    token,
-  );
-
-  if (!response.ok) {
-    logger.error(
-      "Error fetching cryptos from Database:",
-      response.errorText || "Unknown error",
-    );
-    return null;
-  }
-
-  const cryptos = response.data?.data;
-
-  if (!cryptos) return null;
-
-  return cryptos.reduce(
-    (acc, crypto) => {
-      if (!acc) return acc;
-
-      if (crypto.id && crypto.currency)
-        acc[crypto.id + crypto.currency] = crypto;
-      return acc;
-    },
-    {} as ExpectedStorageTypes["SELECTED_CRYPTOS"],
-  );
 };
 
 export const setTimeoutPolyfill = (

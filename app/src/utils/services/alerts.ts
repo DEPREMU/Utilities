@@ -105,8 +105,8 @@ class Alerts {
     } = await import("@utils");
 
     await Promise.all([
-      storageManagement.waitUntilLoaded(),
-      notificationsManager.waitUntilLoaded(),
+      storageManagement.waitUntilInitialized(),
+      notificationsManager.waitUntilInitialized(),
     ]);
 
     if (!storageManagement.hasUI) return null as never;

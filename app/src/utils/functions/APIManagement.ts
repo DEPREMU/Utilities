@@ -76,7 +76,7 @@ const ROUTES: RoutesAPIWithItsMethod = {
  */
 export const getRouteAPI = async (route: RoutesAPI | UpdatesRoutes) => {
   let isOk: boolean = false;
-  await storageManagement.waitUntilLoaded();
+  await storageManagement.waitUntilInitialized();
   let apiUrl = storageManagement.get("API_URL");
 
   if (!apiUrl) {
@@ -161,7 +161,7 @@ type FetchToServer = <
 
 export const fetchToServer: FetchToServer = async (route, ...bodyAndToken) => {
   const { deviceInfo } = await import("@utils");
-  await deviceInfo?.waitUntilLoaded();
+  await deviceInfo?.waitUntilInitialized();
 
   const apiRoute = await getRouteAPI(route);
 

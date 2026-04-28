@@ -432,10 +432,10 @@ class ClipboardManager extends ServiceClass<ListenersClipboard> {
     };
   };
 
-  override _init = async () => {
+  override async _init(): Promise<void> {
     try {
       await Promise.all([
-        this.#clearTimers(),
+        this._clearTimers(),
         sessionManager.waitUntilInitialized(),
         storageManagement.waitUntilInitialized(),
       ]);
@@ -492,7 +492,7 @@ class ClipboardManager extends ServiceClass<ListenersClipboard> {
         this.#removeStatePhoneListener = deviceInfo.addEventListener(
           EventsDeviceInfo.statePhoneChange,
           (statePhone) => {
-            if (statePhone !== "suspended") this.resume();
+            if (statePhone === "resumed") this.resume();
             else this.suspend();
           },
         );
@@ -507,14 +507,14 @@ class ClipboardManager extends ServiceClass<ListenersClipboard> {
         error instanceof Error ? error.message : String(error),
       );
     }
-  };
+  }
 
   public suspend = () => {
     this.#shouldConnect = false;
 
     this.#clipboardSocket.close();
     this.emit("connection-status", false);
-    this.#clearTimers();
+    this._clearTimers();
   };
 
   public resume = () => {
@@ -540,7 +540,7 @@ class ClipboardManager extends ServiceClass<ListenersClipboard> {
     }
   };
 
-  #clearTimers = () => {
+  _clearTimers() {
     clearIntervalPolyfill(this.#intervalId);
     if (this.#listenerSession) {
       this.#listenerSession.remove();
@@ -562,10 +562,10 @@ class ClipboardManager extends ServiceClass<ListenersClipboard> {
       BackgroundModule.stopClipboardService();
       this.#isRunningNativeService = false;
     }
-  };
+  }
 
   override destroy = async () => {
-    this.#clearTimers();
+    this._clearTimers();
     this.#clipboardSocket?.close();
     super.destroy();
   };
@@ -579,6 +579,7 @@ class ClipboardManager extends ServiceClass<ListenersClipboard> {
   constructor() {
     super();
     this.#clipboardData = null as never;
+    this._reInit();
   }
 }
 

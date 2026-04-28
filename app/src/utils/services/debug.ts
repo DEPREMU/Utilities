@@ -102,7 +102,7 @@ class Debug extends ServiceClass<ListenersDebug> {
     );
   };
 
-  override _init = async () => {
+  override async _init(): Promise<void> {
     const { storageManagement, logger, waitForTime } = await import("@utils");
 
     try {
@@ -120,7 +120,7 @@ class Debug extends ServiceClass<ListenersDebug> {
         error instanceof Error ? error.message : String(error),
       );
     }
-  };
+  }
 
   override async destroy() {
     const { clearIntervalPolyfill } = await import("@utils");
@@ -132,6 +132,7 @@ class Debug extends ServiceClass<ListenersDebug> {
 
   constructor() {
     super();
+    this._reInit();
   }
 }
 

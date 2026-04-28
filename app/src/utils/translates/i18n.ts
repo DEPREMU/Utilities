@@ -32,7 +32,7 @@ i18n.use(initReactI18next).init({
  */
 export const getLanguageFromStorage =
   async (): Promise<LanguagesSupported | null> => {
-    await storageManagement.waitUntilLoaded();
+    await storageManagement.waitUntilInitialized();
     const data = storageManagement.get("LANGUAGE");
     if (!data) return null;
 

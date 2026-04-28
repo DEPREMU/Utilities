@@ -479,10 +479,10 @@ class NotificationsManager extends ServiceClass<never> {
     }
   };
 
-  override _init = async () => {
+  override async _init(): Promise<void> {
     const notificationsData = await initializeNotificationsStorage();
     this.#notifications = notificationsData;
-  };
+  }
 
   public toggleNotification = async <T extends ReasonNotification>(
     reason: T,
@@ -506,6 +506,7 @@ class NotificationsManager extends ServiceClass<never> {
 
   constructor() {
     super();
+    this._reInit();
   }
 }
 

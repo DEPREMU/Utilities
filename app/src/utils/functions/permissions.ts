@@ -354,7 +354,7 @@ export const askPermissions = async (): Promise<void> => {
 
   await permissionsData.initializing;
   const { storageManagement } = await import("@utils");
-  await storageManagement.waitUntilLoaded();
+  await storageManagement.waitUntilInitialized();
 
   const hasUi = storageManagement.hasUI;
   if (!hasUi) return;
