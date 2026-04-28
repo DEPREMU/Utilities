@@ -1,18 +1,17 @@
-import {
-  logger,
-  parseData,
-  QR_LOGIN_WS_URL,
-  storageManagement,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-} from "@utils";
-import { Text } from "react-native-paper";
-import { Image, View } from "react-native";
+import Animated, {
+  FadeInLeft,
+  FadeInRight,
+  FadeOutLeft,
+  FadeOutRight,
+  LinearTransition,
+} from "react-native-reanimated";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
+import { ReconnectingWebSocket } from "@/utils/reconnecting-websocket";
 import { MessageWebSocketQRLogin } from "@types";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { URLS, logger, storageManagement } from "@utils";
+import React, { useEffect, useRef, useState } from "react";
 
 interface LoginTypeQRProps {
   rememberMe: boolean;
@@ -26,11 +25,13 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
   const { dataRef } = useUserContext();
 
   const [qrData, setQRData] = useState<string | null>(null);
+  const [isValidQR, setIsValidQR] = useState<boolean>(false);
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
-  const [retryAttempt, setRetryAttempt] = useState<number>(0);
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const isValidQRRef = useRef<boolean | null>(false);
+  const wsRef =
+    useRef<ReconnectingWebSocket<MessageWebSocketQRLogin<"sentByApp">>>(
+      undefined,
+    );
 
   const handleCloseWebSocketRef = useRef((reason?: "timeout" | "error") => {
     if (!wsRef.current) return;
@@ -41,99 +42,126 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
       reason,
     );
     wsRef.current.close();
-    wsRef.current = null;
-    isValidQRRef.current = false;
+    setIsValidQR(false);
   });
 
-  const handleLoginWithQR = useCallback(() => {
-    logger.log(
-      TAG,
-      "Initializing WebSocket connection for QR login",
-      QR_LOGIN_WS_URL,
-    );
+  useEffect(() => {
+    const deviceId = storageManagement.get("DEVICE_ID");
 
     const handleError = (message: string) => {
-      setRetryAttempt(retryAttempt + 1);
-      handleLoginWithQR();
       logger.error(message);
       handleCloseWebSocketRef.current();
+      wsRef.current?.reconnect();
     };
 
-    const initWS = async () => {
-      const deviceId = storageManagement.get("DEVICE_ID");
+    wsRef.current = new ReconnectingWebSocket<
+      MessageWebSocketQRLogin<"sentByApp">
+    >(URLS.wsLoginQr);
 
-      wsRef.current = new WebSocket(QR_LOGIN_WS_URL);
+    wsRef.current.onOpen = () => {
+      wsRef.current?.send({
+        type: "init-web",
+        deviceId,
+        rememberMe: true,
+      });
+    };
 
-      wsRef.current.onopen = () => {
-        const message: MessageWebSocketQRLogin<"sentByApp"> = {
-          type: "init-web",
-          deviceId,
-          rememberMe,
-        };
-        wsRef.current?.send(JSON.stringify(message));
-      };
+    wsRef.current.onMessage = (event) => {
+      try {
+        const message: MessageWebSocketQRLogin<"sentByServer"> = JSON.parse(
+          event.data.toString(),
+        );
+        if (!message)
+          return handleError("Invalid message received" + event.data);
 
-      wsRef.current.onmessage = (event: MessageEvent) => {
-        try {
-          const message: MessageWebSocketQRLogin<"sentByServer"> | null =
-            parseData(event.data);
-          if (!message)
-            return handleError("Invalid message received" + event.data);
-
-          if (message.type !== "status") {
-            setQRData(message.dataURL);
-            isValidQRRef.current = true;
-            return;
-          }
-
-          switch (message.status) {
-            case "waiting":
-              setIsLoggingIn(true);
-              break;
-            case "error":
-            case "timeout":
-              handleError(message.status);
-              break;
-            case "authenticated":
-              dataRef.current.loginWithQR(message.response);
-              break;
-            default:
-              break;
-          }
-        } catch (error) {
-          logger.error("Error parsing WebSocket message for QR login", error);
-          handleError(
-            "Error parsing WebSocket message for QR login" +
-              (error instanceof Error ? ": " + error.message : String(error)),
-          );
+        if (message.type !== "status") {
+          setQRData(message.dataURL);
+          setIsValidQR(true);
+          return;
         }
-      };
+
+        switch (message.status) {
+          case "authenticating":
+            setIsLoggingIn(true);
+            break;
+          case "error":
+            handleError(message.status);
+            break;
+          case "authenticated":
+            dataRef.current.loginWithQR(message.response);
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        logger.error("Error parsing WebSocket message for QR login", error);
+        handleError(
+          "Error parsing WebSocket message for QR login" +
+            (error instanceof Error ? ": " + error.message : String(error)),
+        );
+      }
     };
 
-    const id = setTimeoutPolyfill(initWS, 500);
-
-    return () => {
-      clearTimeoutPolyfill(id);
-
-      handleCloseWebSocketRef.current();
+    const reconnect = () => {
+      wsRef.current?.reconnect();
     };
-  }, [rememberMe, dataRef, retryAttempt]);
 
-  useEffect(() => handleLoginWithQR(), [handleLoginWithQR]);
+    wsRef.current.onError = reconnect;
+    wsRef.current.onClose = reconnect;
+  }, [dataRef]);
+
+  useEffect(() => {
+    if (!wsRef.current) return;
+
+    setIsValidQR(false);
+    wsRef.current.send({
+      type: "remember-me",
+      rememberMe,
+    });
+  }, [rememberMe]);
 
   return (
-    <>
-      <Text style={styles.subtitle}>{t("scanQRCode")}</Text>
-      {qrData && isValidQRRef.current && (
-        <View style={styles.qrCodeContainer}>
-          <Image source={{ uri: qrData }} style={styles.qrCodeImage} />
-          {isLoggingIn && (
-            <Text style={styles.subtitle}>{t("loggingInWithQRCode")}</Text>
-          )}
-        </View>
+    <Animated.View
+      style={styles.loginTypeContainer}
+      layout={LinearTransition.duration(300).springify()}
+      exiting={FadeOutLeft.duration(200)}
+      entering={FadeInRight.duration(200)}
+    >
+      <Animated.Text style={styles.subtitle}>{t("scanQRCode")}</Animated.Text>
+
+      <Animated.View
+        style={styles.qrCodeContainer}
+        layout={LinearTransition.duration(200).springify()}
+      >
+        {qrData && isValidQR ? (
+          <Animated.Image
+            style={styles.qrCodeImage}
+            source={{ uri: qrData }}
+            exiting={FadeOutRight.duration(200)}
+            entering={FadeInLeft.duration(200)}
+          />
+        ) : (
+          <Animated.View
+            style={styles.qrCodeImage}
+            layout={LinearTransition.duration(200).springify()}
+            exiting={FadeOutRight.duration(200)}
+            entering={FadeInLeft.duration(200)}
+          />
+        )}
+
+        {isLoggingIn && (
+          <Animated.Text style={styles.subtitle}>
+            {t("loggingInWithQRCode")}
+          </Animated.Text>
+        )}
+      </Animated.View>
+
+      {!qrData && (
+        <Animated.Text style={styles.subtitle}>
+          {t("generatingQRCode")}
+        </Animated.Text>
       )}
-      {!qrData && <Text style={styles.subtitle}>{t("generatingQRCode")}</Text>}
-    </>
+    </Animated.View>
   );
 };
 

@@ -14,11 +14,10 @@ import {
   clearIntervalPolyfill,
 } from "../functions";
 import { cloneDeep } from "lodash";
-import { REPLACERS } from "../TOP_LEVEL";
 import { getRandomUUID } from "../cross";
 import { sessionManager } from "./session";
 import * as ExpoClipboard from "expo-clipboard";
-import { CLIPBOARD_WS_URL } from "../constants";
+import { REPLACERS, URLS } from "../TOP_LEVEL";
 import { storageManagement, parseData } from "./storage";
 import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
 import { DeviceEventEmitter, EmitterSubscription } from "react-native";
@@ -102,7 +101,7 @@ class ClipboardManager {
   #i = 0;
   #clipboardData: ClipboardStorage;
   #clipboardSocket: ReconnectingWebSocket = new ReconnectingWebSocket(
-    CLIPBOARD_WS_URL,
+    URLS.clipboard,
     OPTIONS_RECONNECT_WS,
   );
   #clipboardSocketURL: string | null = null;
@@ -282,7 +281,7 @@ class ClipboardManager {
       }
     };
 
-    this.#clipboardSocket.url = this.#clipboardSocketURL || CLIPBOARD_WS_URL;
+    this.#clipboardSocket.url = this.#clipboardSocketURL || URLS.clipboard;
     this.#clipboardSocket.shouldReconnect = this.#shouldConnect;
   };
 

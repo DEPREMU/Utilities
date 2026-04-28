@@ -46,7 +46,7 @@ const handleLoginWithQR = async (
     }
     const message: MessageWebSocketQRLogin<"sentByServer"> = {
       type: "status",
-      status: "waiting",
+      status: "authenticating",
     };
     wsWeb.send(JSON.stringify(message));
 
@@ -122,6 +122,27 @@ const handleLoginWithQR = async (
   wsMobile.send(JSON.stringify(messageToMobile));
 };
 
+const sendQrCode = async (
+  rememberMe: MessageWebSocketQRLogin<"sentByApp">["rememberMe"],
+  deviceId: string,
+  ws: WebSocket,
+) => {
+  const qrCodeURL = await getQRCode({
+    type: "scanned",
+    token: "",
+    deviceId,
+    rememberMe: !!rememberMe,
+  });
+
+  usersActive[deviceId].qrCode.dataURL = qrCodeURL;
+
+  const msg: MessageWebSocketQRLogin<"sentByServer"> = {
+    type: "qr-code",
+    dataURL: qrCodeURL,
+  };
+  ws.send(JSON.stringify(msg));
+};
+
 export const initWebSocketLoginQRCode = () => {
   const ws = new WebSocketServer({ noServer: true });
 
@@ -152,35 +173,13 @@ export const initWebSocketLoginQRCode = () => {
                 qrCode: { dataURL: "", timeoutId: null },
               };
 
-              if (parsedMsg.type === "init-web") {
-                const qrCodeURL = await getQRCode({
-                  type: "scanned",
-                  token: "",
-                  deviceId,
-                  rememberMe: !!parsedMsg.rememberMe,
-                });
-
-                usersActive[deviceId].qrCode.dataURL = qrCodeURL;
-                usersActive[deviceId].qrCode.timeoutId = setTimeout(
-                  () => {
-                    const message: MessageWebSocketQRLogin<"sentByServer"> = {
-                      type: "status",
-                      status: "timeout",
-                    };
-                    socket.send(JSON.stringify(message));
-                    socket.close();
-                    delete usersActive[deviceId];
-                  },
-                  2 * 60 * 1000,
-                );
-
-                const message: MessageWebSocketQRLogin<"sentByServer"> = {
-                  type: "qr-code",
-                  dataURL: qrCodeURL,
-                };
-                socket.send(JSON.stringify(message));
-              }
+              if (parsedMsg.type === "init-web")
+                sendQrCode(parsedMsg.rememberMe, deviceId, socket);
             }
+            break;
+          case "remember-me":
+            if (!deviceId) return;
+            sendQrCode(parsedMsg.rememberMe, deviceId, socket);
             break;
           default:
             break;

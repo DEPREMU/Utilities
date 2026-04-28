@@ -47,11 +47,15 @@ const LoginScreen: React.FC = () => {
   const { isLoggedIn } = useUserContext();
   const { styles, colors } = useStylesAuthScreens();
 
-  const [email, setEmail] = useState<string>("");
+  const [email, setEmail] = useState<string>(
+    REPLACERS.isDev ? "test@test.test" : "",
+  );
+  const [password, setPassword] = useState<string>(
+    REPLACERS.isDev ? "Test123!" : "",
+  );
   const [error, setError] = useState<string | null>(null);
-  const [password, setPassword] = useState<string>("");
   const [loggingIn, setLoggingIn] = useState<boolean>(false);
-  const [rememberMe, setRememberMe] = useState<boolean>(false);
+  const [rememberMe, setRememberMe] = useState<boolean>(REPLACERS.isWeb);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [typeLogin, setTypeLogin] = useState<"email" | "qr">(
     REPLACERS.isNative ? "email" : "qr",
@@ -73,7 +77,7 @@ const LoginScreen: React.FC = () => {
 
   const handleChangeTypeLoginRef = useRef(() => {
     setTypeLogin((prev) => (prev === "email" ? "qr" : "email"));
-    setPassword("");
+    setPassword(REPLACERS.isDev ? "Test123!" : "");
   });
 
   const setErrorMessage = useRef((message: string) => {
@@ -136,7 +140,12 @@ const LoginScreen: React.FC = () => {
               style={styles.content}
               layout={LinearTransition.duration(300).springify()}
             >
-              <Text style={styles.title}>{t("common.welcomeAgain")}</Text>
+              <Animated.Text
+                style={styles.title}
+                layout={LinearTransition.duration(200).springify()}
+              >
+                {t("common.welcomeAgain")}
+              </Animated.Text>
 
               {(REPLACERS.isWeb || REPLACERS.isDev) && (
                 <Animated.View
@@ -154,31 +163,22 @@ const LoginScreen: React.FC = () => {
                 </Animated.View>
               )}
 
-              <View style={styles.divider} />
+              <Animated.View style={styles.divider} />
 
-              <View style={styles.loginTypeContainer}>
-                {typeLogin === "email" && (
-                  <EmailAndPassword
-                    email={email}
-                    setEmail={setEmail}
-                    password={password}
-                    setPassword={setPassword}
-                    showPassword={showPassword}
-                    handleShowPassword={handleShowPasswordRef.current}
-                    showPasswordContainer
-                  />
-                )}
-                {typeLogin === "qr" && (REPLACERS.isWeb || REPLACERS.isDev) && (
-                  <Animated.View
-                    style={styles.loginTypeContainer}
-                    layout={LinearTransition.duration(300).springify()}
-                    exiting={FadeOutDown.duration(200)}
-                    entering={FadeInUp.duration(200)}
-                  >
-                    <LoginTypeQR rememberMe={rememberMe} />
-                  </Animated.View>
-                )}
-              </View>
+              {typeLogin === "email" && (
+                <EmailAndPassword
+                  email={email}
+                  setEmail={setEmail}
+                  password={password}
+                  setPassword={setPassword}
+                  showPassword={showPassword}
+                  handleShowPassword={handleShowPasswordRef.current}
+                  showPasswordContainer
+                />
+              )}
+              {typeLogin === "qr" && (REPLACERS.isWeb || REPLACERS.isDev) && (
+                <LoginTypeQR rememberMe={rememberMe} />
+              )}
 
               {!!error && (
                 <Animated.Text
@@ -218,17 +218,16 @@ const LoginScreen: React.FC = () => {
 
               <Animated.View
                 style={styles.linksContainer}
-                layout={LinearTransition.springify()}
                 exiting={FadeOutDown.duration(200)}
                 entering={FadeInUp.duration(200)}
               >
                 <View style={styles.rememberMeContainer}>
                   <Text style={styles.subtitle}>{t("auth.rememberMe")}</Text>
                   <Switch
+                    value={rememberMe}
                     color={colors.text}
                     trackColor={{ false: colors.primary, true: colors.text }}
                     thumbColor={!rememberMe ? colors.primary : colors.text}
-                    value={rememberMe}
                     onValueChange={setRememberMe}
                   />
                 </View>

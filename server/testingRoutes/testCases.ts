@@ -59,8 +59,8 @@ const addDataUser = async (response: ResponseAuth<"login"> | null) => {
 };
 
 const storeInsertedCryptoUid = async (response: any) => {
-  const uid = response?.data?.[0]?.uid;
-  if (typeof uid === "string" && uid.length > 0) cryptoUidNew = uid;
+  const id = response?.data?.[0]?.id;
+  if (typeof id === "string" && id.length > 0) cryptoUidNew = id;
 };
 
 const storeInsertedLogId = async (response: any) => {
@@ -171,21 +171,21 @@ export const routeTests: {
     {
       route: "/cryptoPrice",
       description: "Get crypto price - Bitcoin in USD",
-      body: { cryptoId: "BTC", currency: "USDT" },
-      expectedResponse: { priceUSD: expect.any(Number) },
+      body: { symbol: "BTCUSDT" },
+      expectedResponse: { price: expect.any(Number) },
       shouldSucceed: true,
     },
     {
       route: "/cryptoPrice",
       description: "Get crypto price - Ethereum in MXN",
-      body: { cryptoId: "ETH", currency: "MXN" },
-      expectedResponse: { priceUSD: expect.any(Number) },
+      body: { symbol: "ETHMXN" },
+      expectedResponse: { price: expect.any(Number) },
       shouldSucceed: true,
     },
     {
       route: "/cryptoPrice",
       description: "Get crypto price - invalid crypto should fail",
-      body: { cryptoId: "invalid-crypto-id", currency: "USDT" },
+      body: { symbol: "invalid-crypto-symbol" },
       expectedResponse: { error: expect.any(String) },
       shouldSucceed: false,
     },
@@ -491,11 +491,11 @@ export const routeTests: {
         lang: "en",
         table: "Cryptos",
         values: {
-          id: "BTC",
           amount: "0.5",
           symbol: "BTCUSDT",
           userId: getUserId(),
-          currency: "USDT",
+          baseCoin: "BTC",
+          quoteCoin: "USDT",
           datePurchased: new Date().toISOString(),
           firstPricePurchased: 50000,
         },
@@ -572,7 +572,7 @@ export const routeTests: {
       body: () => ({
         lang: "es",
         table: "Cryptos",
-        match: { userId: getUserId(), id: "BTC", currency: "USDT" },
+        match: { userId: getUserId(), baseCoin: "BTC", quoteCoin: "USDT" },
         values: { amount: "1.5" },
         deviceId: deviceIdNew,
       }),
@@ -615,7 +615,7 @@ export const routeTests: {
       body: () => ({
         lang: "es",
         table: "Cryptos",
-        match: { uid: getCryptoUid(), userId: getUserId() },
+        match: { id: getCryptoUid(), userId: getUserId() },
         deviceId: deviceIdNew,
       }),
       expectedResponse: { success: true },

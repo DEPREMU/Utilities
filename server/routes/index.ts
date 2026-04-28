@@ -16,11 +16,11 @@ import {
 import humanize from "humanize-duration";
 import { Router } from "express";
 import { translate } from "./translate.ts";
-import { handleAddLog, handleAppAliveCheck } from "./debug.ts";
 import { Response, Request } from "express";
 import { handleDoQueryDatabase } from "../dev/handleDoQuery.ts";
 import { decryptHandler, encryptHandler } from "./encryption.ts";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
+import { handleAddLog, handleAppAliveCheck } from "./debug.ts";
 import { handleGetCryptoPrice, handleGetCryptos } from "./cryptos.ts";
 import { ResponseHealth, Route, RoutesAPI, UpdatesRoutes } from "@types";
 import { handleChangeImageFormat, readImage, sendResponse } from "@common";
