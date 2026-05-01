@@ -266,7 +266,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     };
 
     const onBackPress = () => {
-      const currentScreen = navigation.getCurrentScreen();
+      const currentScreen = navigation.currentScreen;
       const isFirstScreen = currentScreen === "Home";
 
       alerts.showAlert(

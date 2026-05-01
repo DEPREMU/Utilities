@@ -11,11 +11,11 @@ import {
   ServiceClass,
 } from "@common";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { cloneDeep } from "lodash";
 import { REPLACERS } from "../TOP_LEVEL";
 import { windowModule } from "@modules";
 import * as SecureStore from "expo-secure-store";
 import { reloadAppAsync } from "expo";
-import { cloneDeep } from "lodash";
 
 type SaveDataStorage = {
   <T extends ALL_KEYS_STORAGE_TYPE>(
@@ -406,14 +406,14 @@ class StorageManagement extends ServiceClass<never> {
   override async _init() {
     try {
       await this.#loadData();
-      const { waitForTime } = await import("@utils");
+      const { waitForTime, elapsedTime } = await import("@utils");
 
       const t = Date.now();
       const maxWaitTime = 30 * 1000;
       while (!this.#hasUI) {
-        const elapsed = Date.now() - t;
-        await waitForTime(50 + elapsed);
-        if (elapsed > maxWaitTime) break;
+        const { elapsed, hasElapsed } = elapsedTime(t, maxWaitTime);
+        await waitForTime(Math.min(maxWaitTime - elapsed, 50 + elapsed));
+        if (hasElapsed) break;
       }
     } catch (error) {
       import("@utils").then(({ logger }) => {

@@ -15,6 +15,7 @@ import {
   memoDeep,
   createPdfFromImages,
   REPLACERS,
+  elapsedTime,
 } from "@utils";
 import {
   Menu,
@@ -201,7 +202,8 @@ const PDFConverter: React.FC = () => {
         <Pressable
           style={styles.image}
           onPress={(event) => {
-            if (Date.now() - time < 300) presses += 1;
+            const { hasElapsed } = elapsedTime(time, 300);
+            if (!hasElapsed) presses += 1;
             else presses = 1;
             time = Date.now();
             if (presses === 2) {

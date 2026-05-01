@@ -168,7 +168,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
         if (newState !== "active") {
           if (!timeoutId)
             timeoutId = setTimeoutPolyfill(() => {
-              const current = navigation.getCurrentScreen();
+              const current = navigation.currentScreen;
 
               if (current !== "Home") navigation.replace("Home");
             }, 60000);

@@ -44,10 +44,6 @@ type Screens = Record<
   }
 >;
 
-const initialRouteName: ScreensAvailable = REPLACERS.isDev
-  ? "ComputerControl"
-  : "Home";
-
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const ComponentToHome: React.FC = () => {
@@ -174,7 +170,7 @@ const AppNavigator: React.FC = () => {
 
   return (
     <NavigationContainer ref={navigation.ref} theme={navigationTheme}>
-      <Stack.Navigator initialRouteName={initialRouteName}>
+      <Stack.Navigator initialRouteName={navigation.currentScreen}>
         {allScreens}
       </Stack.Navigator>
     </NavigationContainer>

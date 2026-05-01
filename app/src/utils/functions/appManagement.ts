@@ -194,6 +194,37 @@ export const isServerAlive = async (): Promise<boolean> => {
 };
 
 /**
+ * Verifies if a specified amount of time has elapsed since a given timestamp.
+ * Calculates the elapsed time by comparing the current time with the provided timestamp and checks if it meets or exceeds the specified duration.
+ *
+ * @param time - The starting timestamp in milliseconds since the Unix epoch.
+ * @param compare - The duration in milliseconds to compare against the elapsed time.
+ * @returns An object containing:
+ *          - `elapsed`: The total elapsed time in milliseconds since the provided timestamp.
+ *          - `hasElapsed`: A boolean indicating whether the elapsed time is greater than or equal to the specified duration.
+ *
+ * @example
+ * const time = Date.now();
+ * await waitForTime(2000); // Wait for 2 seconds
+ * const result = elapsedTime(time, 3000);
+ * console.log(result); // { elapsed: 2000, hasElapsed: false, remaining: 1000 }
+ */
+export const elapsedTime = (
+  time: number,
+  compare: number,
+): { elapsed: number; hasElapsed: boolean; remaining: number } => {
+  const currentTime = Date.now();
+  const elapsed = currentTime - time;
+  const remaining = Math.max(0, compare - elapsed);
+
+  return {
+    elapsed,
+    hasElapsed: elapsed >= compare,
+    remaining,
+  };
+};
+
+/**
  * Creates a deeply memoized version of a React functional component.
  *
  * This function wraps a React functional component with `React.memo` using deep equality comparison
