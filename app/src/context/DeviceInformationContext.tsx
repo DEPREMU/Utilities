@@ -69,7 +69,7 @@ const getDeviceInformation = async (): Promise<DeviceInformation> => {
         >];
         let value = await DeviceInfo?.[funcTyped]?.();
 
-        if (key === "startupTime")
+        if (key === "startupTime" && value !== -1)
           value = getFormattedDate(new Date(value as number));
 
         return [key, value];
