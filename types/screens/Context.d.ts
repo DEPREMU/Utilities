@@ -13,3 +13,7 @@ export type EventClipboardNative =
     };
 
 export type ClipboardItem = { id: string; content: string };
+
+export type EventEmitterService = {
+  remove: () => void;
+};

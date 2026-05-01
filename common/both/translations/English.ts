@@ -545,6 +545,15 @@ export const enApp: typeLanguages = {
     saveAudioNumber: "Save Audio {{number}} Externally",
   },
   Cryptos: {
+    refreshIntervalError:
+      "Invalid refresh interval, please enter a number above {{min}} seconds.",
+    notifiInterval: "Notification Interval (seconds)",
+    notifiIntervalError:
+      "Invalid notification interval, please enter a number above {{min}} seconds.",
+    syncingSettingsDescription:
+      "Your settings are being synced with the server. Please wait a moment.",
+    currentCurrency: "Current currency: {{currency}}",
+    refreshIntervalSec: "Refresh Interval (seconds)",
     display: "Display",
     selection: "Selection",
     clearCache: "Clear Cache",
@@ -565,11 +574,14 @@ export const enApp: typeLanguages = {
       "No cryptocurrencies selected. Go to the selection tab to choose the cryptocurrencies you want to track and monitor their performance.",
     myCryptoPortfolio: "My Cryptocurrency Portfolio",
     noCryptocurrenciesSelected: "No cryptocurrencies selected",
-    cryptocurrenciesTracked: "Cryptocurrencies Tracked",
+    cryptocurrenciesTracked_one: "{{count}} Cryptocurrency Tracked",
+    cryptocurrenciesTracked_other: "{{count}} Cryptocurrencies Tracked",
   },
   cryptos: "Cryptocurrencies",
   common: {
+    refreshEvery: "Refresh every: {{humanizedText}}.",
     notAvailable: "Not Available",
+    syncing: "Syncing...",
     yes: "Yes",
     no: "No",
     notifications: "Notifications",

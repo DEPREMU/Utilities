@@ -100,7 +100,6 @@ export const addStreamer = getHandlerPost(
       const [, result] = await Promise.all([
         insertIntoTable("UserNotificationsConfig", {
           enabled: false,
-          interval: -1,
           paused: false,
           pauseTime: -1,
           userId,

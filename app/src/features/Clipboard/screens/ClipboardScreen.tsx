@@ -362,11 +362,6 @@ const ClipboardScreen: React.FC = () => {
     );
   }, [t, styles]);
 
-  const keyExtractor = useCallback(
-    (item: Tables["ClipboardSync"]) => String(item.id || Math.random()),
-    [],
-  );
-
   useEffect(() => {
     if (deleted === deletedRef.current) return;
 
@@ -436,7 +431,6 @@ const ClipboardScreen: React.FC = () => {
         data={searchData || clipboardData}
         onScroll={handleScrollRef.current}
         renderItem={renderItems}
-        keyExtractor={keyExtractor}
         scrollEnabled={!isLoading}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.scrollViewContentContainer}

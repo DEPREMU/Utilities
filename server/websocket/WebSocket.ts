@@ -1,17 +1,8 @@
-import {
-  Crypto,
-  Notification,
-  WebSocketMessage,
-  ReasonNotification,
-  LanguagesSupported,
-} from "@types";
 import chalk from "chalk";
-import { t } from "@common";
-import { dataBinance } from "../routes/cryptos.ts";
+import { updateInTable } from "../database/functions.ts";
 import { showError, showInfo } from "../functions/logger.ts";
-import { sendFCMNotification } from "../firebase/admin.ts";
 import WebSocket, { WebSocketServer } from "ws";
-import { updateInTable, fetchFromTable } from "../database/functions.ts";
+import { WebSocketMessage, ReasonNotification } from "@types";
 
 type Timeout = NodeJS.Timeout | number | null;
 
@@ -27,16 +18,6 @@ type UsersWS = {
 };
 
 const users: UsersWS = {};
-
-const getPercentGain = (priceUsd: number, cryptoData: Crypto) => {
-  if (!cryptoData.firstPricePurchased) return "0%";
-  const percentage =
-    ((priceUsd - cryptoData.firstPricePurchased) /
-      cryptoData.firstPricePurchased) *
-    100;
-
-  return `${percentage > 0 ? "+" : ""}${percentage.toFixed(2)}%`;
-};
 
 const handleInitWebSocket = (
   data: WebSocketMessage<"sentByApp">,
@@ -113,78 +94,6 @@ const handleClose = (userId: string, deviceId: string, ws: WebSocket) => {
   Object.values(intervalsId).forEach((intervalId) => {
     if (intervalId) clearInterval(intervalId);
   });
-};
-
-const getNotificationCrypto = async (
-  cryptos: Crypto[],
-  userId: string,
-): Promise<Notification | null> => {
-  try {
-    const id = Math.floor(Math.random() * 1000000);
-
-    const fetchedData = await fetchFromTable({
-      table: "UserConfig",
-      match: { userId },
-    });
-
-    const dataLang = fetchedData.data?.[0];
-    const language = (dataLang?.language || "en") as LanguagesSupported;
-
-    if (!cryptos || cryptos?.length === 0)
-      return {
-        title: t("notificationNotCryptosSelectedTitle", language),
-        message: t("notificationNotCryptosSelectedBody", language),
-        reasonNotification: "cryptos",
-        channelId: "cryptos",
-        id,
-        type: "info",
-        timestamp: new Date(),
-        overrideNotification: false,
-        data: {
-          screen: "Cryptos",
-        },
-      };
-
-    if (!dataBinance || !Array.isArray(dataBinance)) return null;
-    const prices = cryptos?.map((crypto) => {
-      const priceData = dataBinance?.find(
-        (item) => item.symbol === `${crypto.id}${crypto.currency}`,
-      );
-      return priceData ? priceData.price : 0;
-    });
-    const percentageGains = prices.map((price, index) =>
-      getPercentGain(price, cryptos[index]),
-    );
-    const message = cryptos
-      .map((crypto, index) =>
-        t("notificationCryptoBody", language, {
-          crypto: crypto.id,
-          price: prices[index],
-          gainPercent: percentageGains[index],
-        }),
-      )
-      .join("\n");
-
-    const notification: Notification = {
-      message,
-      reasonNotification: "cryptos",
-      channelId: "cryptos",
-      title: t("notificationCryptoTitle", language, {
-        cryptos: cryptos.map((crypto) => crypto.id).join(", "),
-      }),
-      id,
-      type: "info",
-      timestamp: new Date(),
-      overrideNotification: false,
-      data: {
-        screen: "Cryptos",
-      },
-    };
-    return notification;
-  } catch (error) {
-    showError(chalk.red("Error in getNotificationCrypto:"), error);
-    return null;
-  }
 };
 
 const connectionWss = (ws: WebSocket) => {

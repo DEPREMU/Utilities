@@ -45,8 +45,9 @@ export const sendFCMNotification = async (
     const message: admin.messaging.MulticastMessage = {
       tokens,
       notification: {
-        title: notification.title,
         body: notification.body,
+        title: notification.title,
+        imageUrl: notification.imageUrl,
       },
       ...(data && { data }),
       android: {

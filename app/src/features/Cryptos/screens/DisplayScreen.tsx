@@ -1,119 +1,134 @@
-import { useLanguage } from "@/context/LanguageContext";
-import { CryptoPrice } from "@/features/Cryptos/components/CryptoPrice";
-import SkeletonLoading from "@/common/components/SkeletonLoading";
-import { SelectedCryptos } from "@common";
-import { useStylesCryptoPrice } from "@/features/Cryptos/styles/useStylesCryptoPrice";
-import { View, Text, ScrollView } from "react-native";
-import { useStylesDisplayScreen } from "@/features/Cryptos/styles/useStylesDisplayScreen";
-import React, { useEffect, useMemo, useState } from "react";
-import { memoDeep, setTimeoutPolyfill, clearTimeoutPolyfill } from "@utils";
+import Animated, {
+  FadeInLeft,
+  FadeOutRight,
+  LinearTransition,
+} from "react-native-reanimated";
+import { Crypto } from "@types";
+import EmptyState from "../components/CryptoEmptyState";
+import { FAB, Text } from "react-native-paper";
+import { useLanguage } from "@context/LanguageContext";
+import { CryptoPrice } from "@screens/Cryptos/components/CryptoPrice";
+import { scheduleOnRN } from "react-native-worklets";
+import { useCryptoStore } from "../services/cryptoZustand";
+import { memoDeep, REPLACERS } from "@utils";
+import { useStylesDisplayScreen } from "@screens/Cryptos/styles/useStylesDisplayScreen";
+import { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 
-interface DisplayScreenProps {
-  selectedCryptos: SelectedCryptos;
-}
+const skeletonData = Array.from(
+  { length: 6 },
+  (_, i) => [i.toString(), {}] as [string, Crypto],
+);
 
-const DisplayScreen: React.FC<DisplayScreenProps> = ({ selectedCryptos }) => {
+const DisplayScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { styles } = useStylesDisplayScreen();
-  const { styles: cryptoPriceStyles } = useStylesCryptoPrice();
+  const { styles, colors } = useStylesDisplayScreen();
 
-  const [render, setRender] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
+  const loading = useCryptoStore((s) => s.loading);
+  const refreshing = useCryptoStore((s) => s.refreshing);
+  const selectedCryptos = useCryptoStore((s) => s.selectedCryptos);
+  const handleRefreshPrices = useCryptoStore((s) => s.refreshPrices);
 
-  const renderEmptyState = useMemo(
-    () =>
-      Object.keys(selectedCryptos).length === 0 &&
-      !loading && (
-        <View style={styles.emptyStateContainer}>
-          <Text style={styles.emptyStateIcon}>{t("Cryptos.icon")}</Text>
-          <Text style={styles.emptyStateTitle}>
-            {t("Cryptos.noCryptocurrenciesSelected")}
-          </Text>
-          <Text style={styles.emptyStateSubtitle}>
-            {t("Cryptos.goToSelectionTab")}
-          </Text>
-        </View>
-      ),
-    [loading, selectedCryptos, styles, t],
+  const [isFarFromTop, setIsFarFromTop] = useState(false);
+
+  const scrollRef = useRef<Animated.FlatList>(null);
+
+  const renderEmptyState = useCallback(() => <EmptyState />, []);
+
+  const renderCryptoItem = useCallback(
+    ({ item: [cryptoId, cryptoData] }: { item: [string, Crypto] }) => {
+      return <CryptoPrice key={cryptoId} cryptoData={cryptoData} />;
+    },
+    [],
   );
 
-  const renderCryptos = useMemo(
-    () =>
-      Object.keys(selectedCryptos).length === 0 ? (
-        <View style={styles.cryptoGrid}>
-          {Array.from({ length: 3 }).map((_, index) => (
-            <SkeletonLoading
-              key={index}
-              style={[cryptoPriceStyles.container, styles.padding0]}
-              showChildren={!loading}
-            >
-              <View />
-            </SkeletonLoading>
-          ))}
-        </View>
-      ) : (
-        <View style={styles.cryptoGrid}>
-          {Object.entries(selectedCryptos).map(([cryptoId, cryptoData]) => (
-            <CryptoPrice
-              key={cryptoId}
-              cryptoData={cryptoData}
-              ownedAmount={t("Cryptos.ownedAmount", {
-                amount: "{{amount}}",
-                cryptoName: "{{cryptoName}}",
-              })}
-              firstInvest={t("Cryptos.firstInvest", {
-                amount: "{{amount}}",
-                cryptoName: "{{cryptoName}}",
-                price: "{{price}}",
-              })}
-              gainAmount={t("Cryptos.gainAmount", {
-                currency: "{{currency}}",
-                gainAmount: "{{gainAmount}}",
-              })}
-              datePurchased={t("Cryptos.datePurchased", { date: "{{date}}" })}
-              currentPrice={t("Cryptos.currentPrice")}
-            />
-          ))}
-        </View>
-      ),
-    [loading, selectedCryptos, styles, t, cryptoPriceStyles.container],
-  );
+  const handleScrollToTop = useCallback(() => {
+    if (!scrollRef.current) return;
 
-  useEffect(() => {
-    const timeout = setTimeoutPolyfill(() => setRender((prev) => !prev), 10000);
-
-    return () => clearTimeoutPolyfill(timeout);
-  }, [render]);
-
-  useEffect(() => {
-    const id = setTimeoutPolyfill(() => setLoading(false), 2000);
-
-    return () => clearTimeoutPolyfill(id);
+    scrollRef.current.scrollToOffset({ offset: 0, animated: true });
   }, []);
 
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentOffset } = event.nativeEvent;
+      scheduleOnRN(setIsFarFromTop, contentOffset.y > 200);
+    },
+    [],
+  );
+
+  const entries = useMemo(
+    () => Object.entries(selectedCryptos),
+    [selectedCryptos],
+  );
+
   return (
-    <View style={styles.container}>
-      <View style={styles.headerGradient}>
-        <Text style={styles.headerTitle}>{t("Cryptos.myCryptoPortfolio")}</Text>
-        <Text style={styles.headerSubtitle}>
-          {Object.keys(selectedCryptos).length}{" "}
-          {t("Cryptos.cryptocurrenciesTracked")}
-        </Text>
-      </View>
-
-      <View style={styles.refreshIndicator}>
-        <Text style={styles.refreshText}>{t("common.autoRefresh")}</Text>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.contentScrollView}
-        showsVerticalScrollIndicator={false}
+    <Animated.View
+      style={styles.container}
+      layout={LinearTransition.duration(300).springify()}
+    >
+      <Animated.View
+        style={styles.sectionContainer}
+        layout={LinearTransition.duration(200).springify()}
       >
-        {renderEmptyState}
-        {renderCryptos}
-      </ScrollView>
-    </View>
+        <Text style={styles.title}>{t("Cryptos.myCryptoPortfolio")}</Text>
+        <Text style={styles.subtitle}>
+          {t("Cryptos.cryptocurrenciesTracked", {
+            count: Object.keys(selectedCryptos).length,
+          })}
+        </Text>
+      </Animated.View>
+
+      {isFarFromTop && (
+        <Animated.View
+          style={styles.FAB}
+          layout={LinearTransition.duration(200).springify()}
+          exiting={FadeOutRight.duration(200).springify()}
+          entering={FadeInLeft.duration(200).springify()}
+        >
+          <FAB
+            animated
+            icon={"arrow-up"}
+            style={styles.FAB}
+            color={colors.primary}
+            loading={refreshing}
+            onPress={handleScrollToTop}
+            disabled={refreshing}
+          />
+        </Animated.View>
+      )}
+
+      {!isFarFromTop && (
+        <Animated.View
+          style={styles.FAB}
+          layout={LinearTransition.duration(200).springify()}
+          exiting={FadeOutRight.duration(200).springify()}
+          entering={FadeInLeft.duration(200).springify()}
+        >
+          <FAB
+            animated
+            icon={refreshing ? "refresh" : "refresh-circle"}
+            style={styles.FAB}
+            color={colors.primary}
+            label={t("common.autoRefresh")}
+            loading={refreshing}
+            onPress={handleRefreshPrices}
+            disabled={refreshing}
+          />
+        </Animated.View>
+      )}
+
+      <Animated.FlatList
+        ref={scrollRef}
+        data={loading ? skeletonData : entries}
+        style={styles.flex}
+        layout={LinearTransition.duration(300).springify()}
+        onScroll={handleScroll}
+        renderItem={renderCryptoItem}
+        ListEmptyComponent={renderEmptyState}
+        contentContainerStyle={styles.contentScrollView}
+        showsVerticalScrollIndicator={REPLACERS.isWeb}
+      />
+    </Animated.View>
   );
 };
 

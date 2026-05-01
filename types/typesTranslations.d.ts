@@ -4,13 +4,39 @@ import { ReasonNotification } from "./typesNotifications";
 
 export type LanguagesSupported = "en" | "es";
 
-export type GetPlaceholders<T extends string> =
-  T extends `${string}{{${infer K}}}${infer Rest}`
-    ? K | GetPlaceholders<Rest>
+type PluralSuffix = "zero" | "one" | "two" | "few" | "many" | "other";
+
+type RemovePluralSuffix<K> = K extends `${infer Base}_${PluralSuffix}`
+  ? Base
+  : K;
+
+type Join<K, P> = K extends string
+  ? P extends string
+    ? `${K}.${P}`
+    : never
+  : never;
+
+type Prev = [never, 0, 1, 2, 3, 4, 5];
+
+type Paths<T, D extends number = 5> = [D] extends [never]
+  ? never
+  : T extends object
+    ? {
+        [K in keyof T]:
+          | (K & string)
+          | (Paths<T[K], Prev[D]> extends infer P
+              ? P extends string
+                ? `${K & string}.${P}`
+                : never
+              : never);
+      }[keyof T]
     : never;
 
-export type HasPlaceholder<T extends string> =
-  GetPlaceholders<T> extends never ? false : true;
+type NormalizePath<P extends string> = P extends `${infer A}.${infer B}`
+  ? `${A}.${NormalizePath<B>}`
+  : RemovePluralSuffix<P>;
+
+type NormalizeKeys<T> = NormalizePath<Paths<T>>;
 
 type ResolvePath<T, P extends string> = P extends `${infer Key}.${infer Rest}`
   ? Key extends keyof T
@@ -20,11 +46,36 @@ type ResolvePath<T, P extends string> = P extends `${infer Key}.${infer Rest}`
     ? T[P]
     : never;
 
-export type typeT = <K extends typeLanguagesKeys>(
+type ResolvePlural<T, K extends string> =
+  ResolvePath<T, `${K}_one`> extends never
+    ? ResolvePath<T, K>
+    : ResolvePath<T, `${K}_one`> | ResolvePath<T, `${K}_other`>;
+
+type HasPlural<T, K extends string> =
+  ResolvePath<T, `${K}_one`> extends never ? false : true;
+
+export type GetPlaceholders<T extends string> =
+  T extends `${string}{{${infer K}}}${infer Rest}`
+    ? K | GetPlaceholders<Rest>
+    : never;
+
+export type HasPlaceholder<T extends string> =
+  GetPlaceholders<T> extends never ? false : true;
+
+export type typeT<TLang = typeLanguages> = <K extends NormalizeKeys<TLang>>(
   key: K,
-  ...args: HasPlaceholder<ResolvePath<typeLanguages, K>> extends true
-    ? [options: Record<GetPlaceholders<ResolvePath<typeLanguages, K>>, string>]
-    : []
+  ...args: HasPlural<TLang, K> extends true
+    ? HasPlaceholder<ResolvePlural<TLang, K>> extends true
+      ? [
+          options: Record<
+            GetPlaceholders<ResolvePlural<TLang, K>> | "count",
+            string | number
+          >,
+        ]
+      : [options?: { count: number }]
+    : HasPlaceholder<ResolvePath<TLang, K>> extends true
+      ? [options: Record<GetPlaceholders<ResolvePath<TLang, K>>, string>]
+      : []
 ) => string;
 
 /**
@@ -389,8 +440,14 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       imageDownloadedInAlbumAlertMessage: `${string}{{albumName}}${string}`;
     };
     Cryptos: {
+      notifiInterval: string;
+      notifiIntervalError: `${string}{{min}}${string}`;
+      refreshIntervalError: `${string}{{min}}${string}`;
+      syncingSettingsDescription: string;
+      currentCurrency: `${string}{{currency}}${string}`;
       icon: string;
       display: string;
+      refreshIntervalSec: string;
       selection: string;
       currentPrice: string;
       price: `${string}{{currency}}${string}: $${string}{{price}}${string}`;
@@ -407,7 +464,8 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       goToSelectionTab: string;
       myCryptoPortfolio: string;
       noCryptocurrenciesSelected: string;
-      cryptocurrenciesTracked: string;
+      cryptocurrenciesTracked_one: `${string}{{count}}${string}`;
+      cryptocurrenciesTracked_other: `${string}{{count}}${string}`;
     };
     loadingScreen: {
       welcomeTo: string;
@@ -594,6 +652,8 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       notificationDetailsNoStreamers: string;
     };
     common: {
+      refreshEvery: `${string}{{humanizedText}}${string}`;
+      syncing: string;
       content: string;
       notAvailable: string;
       notifications: string;
@@ -691,7 +751,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       getSizeFromImageFiles: string;
       selectCurrentPaperSize: `${string}{{size}}${string}`;
     };
-  clipboard: {
+    clipboard: {
       contentLength: `${string}{{length}}${string}`;
       noClipboardData: string;
       clipboardEmptyDescription: string;
@@ -748,12 +808,6 @@ export type typeLanguagesServer = {
     invalidImageBuffer: string;
   };
 };
-
-type Paths<T, Prev extends string = ""> = {
-  [K in keyof T]: T[K] extends object
-    ? Paths<T[K], `${Prev}${K & string}.`>
-    : `${Prev}${K & string}`;
-}[keyof T];
 
 export type typeLanguagesKeys = Paths<typeLanguages>;
 export type typeLanguagesServerKeys = Paths<typeLanguagesServer>;

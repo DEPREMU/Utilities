@@ -387,6 +387,15 @@ export const esApp: typeLanguages = {
     emptyPreview: "Nota vacía",
   },
   Cryptos: {
+    refreshIntervalError:
+      "Intervalo de actualización inválido, por favor ingresa un número mayor a {{min}} segundos.",
+    notifiInterval: "Intervalo de notificación (segundos)",
+    notifiIntervalError:
+      "Intervalo de notificación inválido, por favor ingresa un número mayor a {{min}} segundos.",
+    syncingSettingsDescription:
+      "Tus configuraciones se están sincronizando con el servidor. Por favor, espera un momento.",
+    refreshIntervalSec: "Intervalo de actualización (segundos)",
+    currentCurrency: "Moneda actual: {{currency}}",
     display: "Mostrar",
     selection: "Selección",
     clearCache: "Limpiar caché",
@@ -407,7 +416,8 @@ export const esApp: typeLanguages = {
       "No hay criptomonedas seleccionadas. Ve a la pestaña de selección para elegir las que quieras seguir.",
     myCryptoPortfolio: "Mi portafolio de criptomonedas",
     noCryptocurrenciesSelected: "No hay criptomonedas seleccionadas",
-    cryptocurrenciesTracked: "Criptomonedas rastreadas",
+    cryptocurrenciesTracked_one: "{{count}} Criptomoneda rastreada",
+    cryptocurrenciesTracked_other: "{{count}} Criptomonedas rastreadas",
   },
   recorder: {
     lossless: "Sin pérdida",
@@ -594,6 +604,8 @@ export const esApp: typeLanguages = {
     title: "IP Query",
   },
   common: {
+    refreshEvery: "Actualizar cada: {{humanizedText}}.",
+    syncing: "Sincronizando...",
     yes: "Sí",
     no: "No",
     notAvailable: "No disponible",

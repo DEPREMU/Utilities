@@ -19,6 +19,7 @@ import {
   clearTimeoutPolyfill,
   notificationsManager,
   REPLACERS,
+  elapsedTime,
 } from "@utils";
 import { ProgressBar } from "react-native-paper";
 import { useStylesLoadingScreen } from "@screens/Loading/styles";
@@ -151,13 +152,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
       };
 
       if (idTimeout.current) clearTimeoutPolyfill(idTimeout.current);
-      const remainingTime = 3000 - (Date.now() - startTime);
-      if (remainingTime <= 0 || REPLACERS.isDev) {
+      const { remaining, hasElapsed } = elapsedTime(startTime, 3000);
+      if (hasElapsed || REPLACERS.isDev) {
         onFinished();
         return;
       }
 
-      idTimeout.current = setTimeoutPolyfill(onFinished, remainingTime);
+      idTimeout.current = setTimeoutPolyfill(onFinished, remaining);
     };
 
     const executeWaiting = async (fun: () => Promise<void>) => {

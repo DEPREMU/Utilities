@@ -1,93 +1,82 @@
-import {
-  logger,
-  memoDeep,
-  fetchToServer,
-  getFormattedDate,
-  setTimeoutPolyfill,
-  setIntervalPolyfill,
-  clearIntervalPolyfill,
-} from "@utils";
+import { Divider } from "react-native-paper";
 import { View, Text } from "react-native";
-import { useLanguage } from "@/context/LanguageContext";
-import SkeletonLoading from "@/common/components/SkeletonLoading";
+import { useLanguage } from "@context/LanguageContext";
+import SkeletonLoading from "@components/SkeletonLoading";
+import { CryptoManager } from "../services";
+import { useCryptoStore } from "../services/cryptoZustand";
 import { SelectedCryptos } from "@common";
-import { useStylesCryptoPrice } from "@/features/Cryptos/styles/useStylesCryptoPrice";
-import React, { useState, useEffect } from "react";
+import { useStylesCryptoPrice } from "@screens/Cryptos/styles/useStylesCryptoPrice";
+import { memoDeep, waitForTime, getFormattedDate } from "@utils";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 
 type CryptoPriceProps = {
-  cryptoData: SelectedCryptos[string];
-  ownedAmount: string;
-  firstInvest: string;
-  gainAmount: string;
-  datePurchased: string;
-  currentPrice: string;
+  cryptoData: Partial<SelectedCryptos[string]>;
 };
 
 const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
   const { t } = useLanguage();
   const { styles } = useStylesCryptoPrice();
+  const prices = useCryptoStore((s) => s.prices);
 
+  const [price, setPrice] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [priceUsd, setPriceUsd] = useState<number | null>(null);
   const [priceMxn, setPriceMxn] = useState<number | null>(null);
-  const gainPercent =
-    (
-      (((priceUsd || 0) - cryptoData.firstPricePurchased) /
-        cryptoData.firstPricePurchased) *
-      100
-    ).toFixed(2) + "%";
+
+  const serviceRef = useRef(CryptoManager.instance);
 
   useEffect(() => {
-    const fetchPrice = async () => {
-      try {
-        const res = await fetchToServer("/cryptoPrice", {
-          cryptoId: cryptoData.id,
-          currency: cryptoData.currency,
-        });
-        const data = res.data;
-        const { priceUSD, error, priceUSDTMXN } = data || {
-          error: res.errorText || "No data served",
-        };
+    const fetch = async () => {
+      setLoading(true);
+      if (prices.length === 0 || !cryptoData.symbol) return;
 
-        if (error) {
-          setPriceUsd(null);
-          setPriceMxn(null);
-          logger.error(error);
-          return;
-        }
-        setPriceUsd(priceUSD || null);
-        if (!priceUSD || !priceUSDTMXN) return;
-        setPriceMxn(priceUSDTMXN * priceUSD);
-      } catch (error) {
-        logger.error(error);
-      }
-    };
-
-    const handleShow = () =>
-      fetchPrice().finally(() =>
-        setTimeoutPolyfill(() => setLoading?.(false), 1500),
+      const priceInfo = serviceRef.current.getCryptoBySymbol(
+        cryptoData.symbol || "",
+      );
+      const mxnPriceInfo = serviceRef.current.getCryptoBySymbol(
+        `${cryptoData.quoteCoin}MXN`,
       );
 
-    const id = setIntervalPolyfill(handleShow, 9999);
-    handleShow();
-    return () => clearIntervalPolyfill(id);
-  }, [cryptoData]);
+      if (!priceInfo) {
+        setPrice(null);
+        setLoading(false);
+        setPriceMxn(null);
+
+        return;
+      }
+      await waitForTime(500);
+
+      setLoading(false);
+      setPrice(priceInfo.price);
+      setPriceMxn(
+        mxnPriceInfo?.price ? priceInfo.price * mxnPriceInfo.price : null,
+      );
+    };
+    fetch();
+  }, [prices, cryptoData]);
+
+  const gainPercent = useMemo(() => {
+    const firstPrice = cryptoData.firstPricePurchased;
+    if (!price || !firstPrice) return "N/A";
+
+    const gain = ((price - firstPrice) / firstPrice) * 100;
+    return `${gain >= 0 ? "+" : ""}${gain.toFixed(2)}%`;
+  }, [price, cryptoData.firstPricePurchased]);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.sectionContainer}>
       <View style={styles.cryptoHeader}>
         <SkeletonLoading
           style={[styles.cryptoName, styles.padding0]}
           showChildren={!loading}
         >
-          <Text style={styles.cryptoName}>{cryptoData.id}</Text>
+          <Text style={styles.cryptoName}>{cryptoData.baseCoin}</Text>
         </SkeletonLoading>
         <SkeletonLoading
           style={[styles.cryptoCurrencyContainer, styles.padding0]}
           showChildren={!loading}
         >
           <View style={styles.cryptoCurrencyContainer}>
-            <Text style={styles.cryptoCurrency}>{cryptoData.currency}</Text>
+            <Text style={styles.cryptoCurrency}>{cryptoData.quoteCoin}</Text>
           </View>
         </SkeletonLoading>
       </View>
@@ -101,10 +90,12 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
           <View style={styles.pricesContainer}>
             <Text style={styles.price}>
               {t("Cryptos.price", {
-                currency: cryptoData.currency,
-                price: priceUsd ? priceUsd.toFixed(2) : "N/A",
+                currency: cryptoData.quoteCoin || "",
+                price: typeof price === "number" ? price.toFixed(2) : "N/A",
               })}
-              {priceMxn !== null &&
+            </Text>
+            <Text style={styles.price}>
+              {typeof priceMxn === "number" &&
                 t("Cryptos.price", {
                   currency: "MXN",
                   price: priceMxn.toFixed(2),
@@ -121,8 +112,8 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
         >
           <Text style={styles.ownedText}>
             {t("Cryptos.owned", {
-              amount: cryptoData.amount,
-              cryptoName: cryptoData.id || "",
+              amount: cryptoData.amount || "0",
+              cryptoName: cryptoData.baseCoin || "",
             })}
           </Text>
         </SkeletonLoading>
@@ -132,8 +123,8 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
         >
           <Text style={styles.ownedAmount}>
             {/* eslint-disable-next-line react/jsx-no-literals */}
-            {cryptoData.currency}: $
-            {(parseFloat(cryptoData.amount) * (priceUsd || 0)).toFixed(2)}
+            {cryptoData.quoteCoin}: $
+            {(parseFloat(cryptoData.amount || "0") * (price || 0)).toFixed(2)}
           </Text>
         </SkeletonLoading>
         <SkeletonLoading
@@ -144,14 +135,16 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
             <Text style={styles.ownedAmount}>
               {t("Cryptos.price", {
                 currency: "MXN",
-                price: (parseFloat(cryptoData.amount) * priceMxn).toFixed(2),
+                price: (
+                  parseFloat(cryptoData.amount || "0") * priceMxn
+                ).toFixed(2),
               })}
             </Text>
           )}
         </SkeletonLoading>
       </View>
 
-      <View style={styles.divider} />
+      <Divider style={styles.divider} />
 
       <SkeletonLoading
         style={[styles.firstInvest, styles.padding0]}
@@ -159,9 +152,9 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
       >
         <Text style={styles.firstInvest}>
           {t("Cryptos.firstInvest", {
-            cryptoName: cryptoData.id || "",
-            amount: Number(cryptoData.amount).toString(),
-            price: cryptoData.firstPricePurchased.toString(),
+            price: cryptoData.firstPricePurchased?.toString() || "N/A",
+            amount: Number(cryptoData.amount || "0").toString(),
+            cryptoName: cryptoData.baseCoin || "",
           })}
         </Text>
       </SkeletonLoading>
@@ -175,11 +168,12 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
             {t("Cryptos.gainAmount", {
               gainAmount: String(
                 (
-                  Number(cryptoData.amount) * (priceUsd || 0) -
-                  cryptoData.firstPricePurchased * Number(cryptoData.amount)
+                  Number(cryptoData.amount || "0") * (price || 0) -
+                  (cryptoData.firstPricePurchased || 0) *
+                    Number(cryptoData.amount || "0")
                 ).toFixed(2),
               ),
-              currency: cryptoData.currency,
+              currency: cryptoData.quoteCoin || "",
             })}
           </Text>
         </SkeletonLoading>

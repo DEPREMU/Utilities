@@ -6,6 +6,7 @@ import {
   NotesSettings,
   Notifications,
   VaultSettings,
+  CryptosSettings,
   SerializableTask,
   AvailableFunctions,
   LanguagesSupported,
@@ -29,11 +30,15 @@ export type Command = {
 };
 
 export type PriceBinanceAPI = {
-  symbol: string;
   price: number;
+  symbol: string;
+  baseCoin: string;
+  quoteCoin: string;
 }[];
 
-export type SelectedCryptos = Record<string, Crypto>;
+export type SelectedCryptos = {
+  [symbol: string]: Crypto;
+};
 
 export type ClipboardStorage = {
   enabled: boolean;
@@ -56,7 +61,6 @@ export type DataPermission = {
   lastAsked: number | null;
   doNotAskAgain: boolean;
 };
-
 export type NetworkSettings = {
   fetchWithCellularData: boolean;
 };
@@ -76,7 +80,7 @@ export type ExpectedSecureStorageTypes = {
   NOTES_PASSWORD: string | null;
   VAULT_PASSWORD: { [folder: string]: string } | null;
   VAULT_DIRECTORY: string | null;
-  SELECTED_CRYPTOS: SelectedCryptos | null;
+  CRYPTOS_SETTINGS: CryptosSettings | null;
   NETWORK_SETTINGS: NetworkSettings | null;
   PERMISSIONS_DATA: PermissionsData | null;
   LAST_UPDATE_CHECK: number | null;
@@ -130,7 +134,7 @@ export const SECURE_KEYS_STORAGE: Record<
   VAULT_PASSWORD: "_vaultPassword",
   NOTES_PASSWORD: "_notesPassword",
   VAULT_DIRECTORY: "_vaultDirectory",
-  SELECTED_CRYPTOS: "_selectedCryptos",
+  CRYPTOS_SETTINGS: "_cryptosSettings",
   PERMISSIONS_DATA: "_permissionsData",
   NETWORK_SETTINGS: "_networkSettings",
   LAST_UPDATE_CHECK: "_lastUpdateCheck",

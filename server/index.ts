@@ -1,7 +1,14 @@
 import "./dev/monitor.ts";
 import "./database/initDB.ts";
 
+import {
+  initWebSocket,
+  initWebSocketCryptos,
+  initWebSocketClipboard,
+  initWebSocketLoginQRCode,
+} from "./websocket/index.ts";
 import cors from "cors";
+import path from "path";
 import http from "http";
 import chalk from "chalk";
 import helmet from "helmet";
@@ -13,14 +20,12 @@ import compression from "compression";
 import routerUpdates from "./updates/index.ts";
 import { runAllTests } from "./testingRoutes/index.ts";
 import { handleInitDB } from "./database/postgres.ts";
-import { WebSocketPathname } from "@types";
+import { deleteInTable } from "./database/functions.ts";
 import { showError, showInfo } from "./functions/logger.ts";
-import { host, port, serverPath } from "./config.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
-import { initWebSocketLoginQRCode } from "./websocket/WebSocketQRLogin.ts";
 import { validateServerEnv, getEnvValue } from "./env.ts";
-import { initWebSocket, initWebSocketClipboard } from "./websocket/index.ts";
-import path from "path";
+import { executeFunctions, host, port, serverPath } from "./config.ts";
+import { RequestAuth, RoutesAPI, WebSocketPathname } from "@types";
 
 const app = express();
 
@@ -78,6 +83,7 @@ app.use(
 );
 
 const server = http.createServer(app);
+const cryptoWss = initWebSocketCryptos();
 const generalWss = initWebSocket();
 const clipboardWss = initWebSocketClipboard();
 const webSocketLoginQRCode = initWebSocketLoginQRCode();
@@ -94,11 +100,19 @@ server.on("upgrade", (request, socket, head) => {
     `${sourceProtocol}://${request.headers.host}`,
   ).pathname as WebSocketPathname;
 
-  let wsCalled: typeof clipboardWss | null = null;
+  let wsCalled:
+    | typeof cryptoWss
+    | typeof generalWss
+    | typeof clipboardWss
+    | typeof webSocketLoginQRCode
+    | null = null;
 
   switch (pathname) {
     case "/clipboard":
       wsCalled = clipboardWss;
+      break;
+    case "/ws-cryptos":
+      wsCalled = cryptoWss;
       break;
     case "/ws":
       wsCalled = generalWss;
@@ -127,7 +141,7 @@ server.on("upgrade", (request, socket, head) => {
 });
 
 handleInitDB().then(() => {
-  server.listen(port, host, () => {
+  server.listen(port, host, async () => {
     showInfo(
       "",
       chalk.green(`Server is running on ${sourceProtocol}://${host}:${port}`),
@@ -140,6 +154,33 @@ handleInitDB().then(() => {
         `Clipboard WebSocket is running on ${sourceProtocolWs}://${host}:${port}/clipboard`,
       ),
     );
-    if (getEnvValue("__DEV__")) runAllTests(true);
+    if (getEnvValue("__DEV__")) {
+      const user: RequestAuth<"signup"> = {
+        lang: "en",
+        email: "test@test.test",
+        password: "Test123!",
+      };
+      await deleteInTable("", "Users", {
+        email: user.email,
+      });
+
+      const route: RoutesAPI = "/auth/signup";
+      await fetch(`http://${host}:${port}/api${route}`, {
+        body: JSON.stringify(user),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          showInfo(chalk.blue("Test user signup response:"), data);
+        })
+        .catch((error) => {
+          showError(chalk.red("Error during test user signup:"), error);
+        });
+
+      await runAllTests(true);
+    }
+
+    await executeFunctions();
   });
 });

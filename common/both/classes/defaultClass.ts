@@ -52,7 +52,5 @@ export abstract class ServiceClass<
 
   constructor() {
     super();
-
-    this._reInit();
   }
 }

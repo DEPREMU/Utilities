@@ -8,6 +8,10 @@ import {
 import { logger } from "../functions/debug";
 import type WebSocketType from "ws";
 
+type FunctionOnOpenMessage<T = string> = (
+  instance: ReconnectingWebSocket<T>,
+) => Promise<T | null> | T | null;
+
 export type OptionsReconnectingWS<T = string> = {
   /**
    * The maximum number of reconnection attempts before giving up, negatives mean infinite.
@@ -25,10 +29,10 @@ export type OptionsReconnectingWS<T = string> = {
    */
   startClosed?: boolean;
   /**
-   * A string or a function that returns a string (or a Promise that resolves to a string) to be sent immediately after the WebSocket connection is opened. This can be used for authentication or initialization purposes, every time the connection is established, this value will be sent.
+   * A value or a function that returns a T value (or a Promise that resolves to a T value) to be converted in string and be sent immediately after the WebSocket connection is opened. This can be used for authentication or initialization purposes, every time the connection is established, this value will be sent. If a function is provided, and the function returns a falsy value or null, no message will be sent.
    * @default undefined // meaning no message will be sent after opening the connection.
    */
-  messagesAfterOpen?: (T | (() => Promise<T> | T))[];
+  messagesAfterOpen?: (T | FunctionOnOpenMessage<T>)[];
   /**
    * Optional subprotocols parameter to specify the WebSocket subprotocols. This can be a single string or an array of strings, depending on the server's requirements.
    * @default undefined // meaning no subprotocols will be specified.
@@ -82,7 +86,7 @@ const TAG = "ReconnectingWebSocket";
 export class ReconnectingWebSocket<T = string> {
   #url: string;
   #options: OptionsReconnectingWS<T> = {
-    ...(DEFAULT_OPTIONS as OptionsReconnectingWS<T>),
+    ...(DEFAULT_OPTIONS as unknown as OptionsReconnectingWS<T>),
   };
   #ws: WebSocket | null = null;
   #retries = 0;
@@ -135,11 +139,11 @@ export class ReconnectingWebSocket<T = string> {
   }
 
   public get isConnecting() {
-    return this.#connecting;
+    return this.#connecting && this.#ws?.readyState === WebSocket.CONNECTING;
   }
 
   public get isConnected() {
-    return this.#connected;
+    return this.#connected && this.#ws?.readyState === WebSocket.OPEN;
   }
 
   public send = (data: T, doNotQueue?: boolean) => {
@@ -245,15 +249,16 @@ export class ReconnectingWebSocket<T = string> {
             ) {
               const messageOrFunc = this.#options.messagesAfterOpen?.[i];
               const message =
-                typeof messageOrFunc === "function"
-                  ? await (messageOrFunc as () => Promise<T> | T)()
-                  : messageOrFunc;
+                typeof messageOrFunc !== "function"
+                  ? messageOrFunc
+                  : await (messageOrFunc as FunctionOnOpenMessage<T>)?.(this);
 
               if (!message) continue;
               this.#ws.send(
                 typeof message === "string" ? message : JSON.stringify(message),
               );
             }
+
             if (this.#onOpen) this.#onOpen.call(this.#ws, event as never);
             this.#handlePingPong();
             this.#unQueueMessages();
@@ -367,7 +372,9 @@ export class ReconnectingWebSocket<T = string> {
       this.#pongSettings.timeoutId = null;
     }
 
-    if (!alreadyClosed) ws.close();
+    if (alreadyClosed) return;
+
+    ws.close();
   };
 
   /**

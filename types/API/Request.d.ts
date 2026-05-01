@@ -38,8 +38,7 @@ export type ResponseFetch<
 };
 
 export type RequestCryptoPrice = {
-  cryptoId: string;
-  currency: string;
+  symbol: string;
 };
 
 export type RequestCryptos = {
