@@ -81,6 +81,7 @@ const config: ConfigFunction = (api) => {
       "babel-plugin-transform-remove-undefined",
       "babel-plugin-minify-guarded-expressions",
       "babel-plugin-minify-dead-code-elimination",
+      "@babel/plugin-transform-export-namespace-from",
       "react-native-reanimated/plugin",
     ],
   };
