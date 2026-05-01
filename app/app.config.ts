@@ -82,8 +82,9 @@ export default (
     plugins: [
       "./plugins/handleCreateFiles.js",
       "expo-font",
+      "expo-asset",
       "expo-audio",
-      "expo-video",
+      "expo-video",    
       "expo-camera",
       "expo-sharing",
       "expo-system-ui",
