@@ -1,61 +1,97 @@
-import { View } from "react-native";
-import { Cryptos } from "@types";
+import Animated, {
+  FadeInLeft,
+  FadeInRight,
+  FadeOutLeft,
+  FadeOutRight,
+  LinearTransition,
+} from "react-native-reanimated";
+import TextInput from "@components/TextInput";
+import { Crypto } from "@types";
 import { memoDeep } from "@utils";
+import { useCryptoStore } from "../services";
 import { PriceBinanceAPI } from "@common";
-import useStylesCryptoItem from "@/features/Cryptos/styles/useStylesCryptoItem";
+import { Checkbox, Divider } from "react-native-paper";
 import React, { useCallback } from "react";
-import { Checkbox, TextInput, Text } from "react-native-paper";
+import { useStylesCryptoItem } from "@screens/Cryptos/styles/useStylesCryptoItem";
 
 interface CryptoItemProps {
   item: PriceBinanceAPI[0];
+  crypto: Crypto;
   isSelected: boolean;
-  crypto: Cryptos;
   onCheckBoxChange: (symbol: string) => void;
-  onAmountChange: (amount: string, symbol: string) => void;
 }
 
 const CryptoItem: React.FC<CryptoItemProps> = ({
   item,
-  isSelected,
   crypto,
+  isSelected,
   onCheckBoxChange,
-  onAmountChange,
 }) => {
-  const { styles, primary, accent } = useStylesCryptoItem();
+  const { styles, colors } = useStylesCryptoItem();
+  const setIsWriting = useCryptoStore((s) => s.setIsWriting);
+  const handleTextInputAmount = useCryptoStore((s) => s.handleTextInputAmount);
+
+  const handleBlur = useCallback(() => {
+    setIsWriting(false);
+  }, [setIsWriting]);
 
   const handlePress = useCallback(() => {
     onCheckBoxChange(item.symbol);
-  }, [onCheckBoxChange, item.symbol]);
+    if (isSelected) handleBlur();
+  }, [onCheckBoxChange, item.symbol, handleBlur, isSelected]);
 
   const handleTextChange = useCallback(
     (text: string) => {
-      onAmountChange(text, item.symbol);
+      handleTextInputAmount(text, item.baseCoin, item.quoteCoin);
+      setIsWriting(true);
     },
-    [onAmountChange, item.symbol],
+    [handleTextInputAmount, item.baseCoin, item.quoteCoin, setIsWriting],
   );
 
   return (
-    <View style={styles.checkBoxRow}>
-      <Checkbox
-        status={isSelected ? "checked" : "unchecked"}
-        onPress={handlePress}
-        color={primary}
-        uncheckedColor={accent}
-      />
+    <Animated.View
+      style={styles.crypto}
+      layout={LinearTransition.duration(200).springify()}
+      exiting={FadeOutLeft.duration(200).springify()}
+      entering={FadeInRight.duration(200).springify()}
+    >
+      <Animated.View
+        style={styles.check}
+        layout={LinearTransition.duration(300).springify()}
+      >
+        <Animated.Text
+          style={styles.h3}
+          layout={LinearTransition.duration(200).springify()}
+        >
+          {item.symbol}
+        </Animated.Text>
 
-      <Text style={styles.text}>{item.symbol}</Text>
+        <Checkbox
+          color={colors.primary}
+          status={isSelected ? "checked" : "unchecked"}
+          onPress={handlePress}
+          uncheckedColor={colors.accent}
+        />
+      </Animated.View>
 
       {isSelected && (
-        <TextInput
-          style={styles.inputAmount}
-          keyboardType="numeric"
-          placeholder="0.00"
-          value={String(crypto?.amount || 0)}
-          textColor="#f0f0f0"
-          onChangeText={handleTextChange}
-        />
+        <Animated.View
+          layout={LinearTransition.duration(200).springify()}
+          exiting={FadeOutRight.duration(200).springify()}
+          entering={FadeInLeft.duration(200).springify()}
+        >
+          <Divider style={styles.divider} />
+
+          <TextInput
+            value={String(crypto?.amount ?? 0)}
+            onBlur={handleBlur}
+            placeholder="0.00"
+            keyboardType="numeric"
+            onChangeText={handleTextChange}
+          />
+        </Animated.View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 

@@ -99,7 +99,7 @@ const askLocationPermission = async (
 };
 
 export const waitForAppToBeActive = async (): Promise<void> => {
-  const { logger, waitForTime } = await import("@utils");
+  const { logger, waitForTime, elapsedTime } = await import("@utils");
 
   await waitForTime(500);
 
@@ -108,7 +108,8 @@ export const waitForAppToBeActive = async (): Promise<void> => {
   const startTime = Date.now();
 
   while (step !== "done") {
-    if (Date.now() - startTime > 60000) {
+    const { hasElapsed } = elapsedTime(startTime, 60000);
+    if (hasElapsed) {
       logger.warn(TAG, "User did not return to the app within 60 seconds.");
       break;
     }

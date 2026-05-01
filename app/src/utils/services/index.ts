@@ -20,17 +20,23 @@ export * from "./navigation";
 export * from "./notifications";
 
 export const cleanupServices = async () => {
-  import("@screens/Vault/services/vaultDomain").then(
-    ({ vaultDomainServiceManager }) => {
-      vaultDomainServiceManager.destroy();
-    },
-  );
+  const [vaultManager, cryptoManager] = await Promise.all([
+    import("@screens/Vault/services/vaultDomain").then(
+      ({ vaultDomainServiceManager }) => vaultDomainServiceManager,
+    ),
+    import("@screens/Cryptos/services/index").then(
+      ({ CryptoManager }) => CryptoManager,
+    ),
+  ]);
+  
 
   await Promise.all([
     debug?.destroy(),
     updates?.destroy(),
     deviceInfo?.destroy(),
     navigation?.destroy(),
+    vaultManager?.destroy(),
+    cryptoManager?.destroy(),
     sessionManager?.destroy(),
     recorderManager?.destroy(),
     clipboardManager?.destroy(),

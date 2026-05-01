@@ -13,12 +13,12 @@ export type Logs = {
 };
 
 export type Crypto = {
-  uid?: string;
-  id: string;
+  id?: string;
   symbol: string;
   amount: string;
   userId: string;
-  currency: string;
+  baseCoin: string;
+  quoteCoin: string;
   datePurchased: string;
   firstPricePurchased: number;
 };
@@ -38,7 +38,6 @@ export type UserNotificationsConfig = {
   paused: boolean;
   pauseTime: -1 | number;
   enabled: boolean;
-  interval: -1 | number;
   updatedAt: string;
   createdAt?: string;
 };
@@ -127,6 +126,22 @@ export type Notes = {
   updatedAt: string;
 };
 
+export type CryptosSettings = {
+  id?: string;
+  userId: string;
+  updatedAt: string;
+  createdAt?: string;
+  defaultCurrency: string;
+  autoRefresh: {
+    valueMs: number;
+    enabled: boolean;
+  };
+  notifications: {
+    valueMs: number;
+    enabled: boolean;
+  };
+};
+
 export type Tables = {
   Logs: Logs;
   Notes: Notes;
@@ -138,6 +153,7 @@ export type Tables = {
   DownDetector: DownDetector;
   UserSessions: UserSessions;
   ClipboardSync: ClipboardSync;
+  CryptosSettings: CryptosSettings;
   UserNotificationsConfig: UserNotificationsConfig;
 };
 

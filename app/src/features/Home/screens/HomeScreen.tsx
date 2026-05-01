@@ -182,13 +182,15 @@ const HomeScreen: React.FC = () => {
   ]);
 
   useEffect(() => {
-    const removeListener = deviceInfo.addEventListener(
+    const hasInternetListener = deviceInfo.addEventListener(
       EventsDeviceInfo.hasInternetChange,
       (newState) => setHasInternet(newState),
     );
     hasInternetConnection().then(setHasInternet);
 
-    return () => removeListener();
+    return () => {
+      hasInternetListener.remove();
+    };
   }, []);
 
   return (

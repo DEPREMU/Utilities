@@ -15,7 +15,6 @@ import {
   sendResponse,
   isValidEmail,
   isValidPassword,
-  SelectedCryptos,
   reasonNotification,
   ExpectedStorageTypes,
 } from "@common";
@@ -24,7 +23,12 @@ import bcrypt from "bcryptjs";
 import { showError } from "../functions/logger.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { NextFunction, Request, Response } from "express";
-import { Tables, UserData, LanguagesSupported } from "@types";
+import {
+  Tables,
+  UserData,
+  LanguagesSupported,
+  UserNotificationsConfig,
+} from "@types";
 
 /**
  * Inserts a push token into the database for a specific user.
@@ -70,19 +74,16 @@ export const getStorageData = async (
   try {
     const [
       usersData,
-      cryptosData,
       userConfigData,
       streamersUserData,
       userNotificationsConfigData,
     ] = await Promise.all([
       fetchFromTable({ table: "Users", match: { userId } }),
-      fetchFromTable({ table: "Cryptos", match: { userId } }),
       fetchFromTable({ table: "UserConfig", match: { userId } }),
       fetchFromTable({ table: "Streamers", match: { userId } }),
       fetchFromTable({ table: "UserNotificationsConfig", match: { userId } }),
     ]);
 
-    const cryptos = cryptosData.data;
     const userData = usersData.data?.[0];
     const userConfig = userConfigData.data?.[0];
     const streamersUser = streamersUserData.data;
@@ -94,12 +95,6 @@ export const getStorageData = async (
     const user: Partial<UserData> = { ...userData };
 
     delete user["password"];
-
-    const cryptosToSave: SelectedCryptos =
-      cryptos?.reduce((acc, crypto) => {
-        acc[crypto.id + crypto.currency] = crypto;
-        return acc;
-      }, {} as SelectedCryptos) || {};
 
     const userConfigToSave: Tables["UserConfig"] = {
       userId,
@@ -115,7 +110,6 @@ export const getStorageData = async (
 
     const storageData: Partial<ExpectedStorageTypes<"BOTH">> = {
       SESSION_EXPIRY: date,
-      SELECTED_CRYPTOS: cryptosToSave,
       LAST_UPDATE_CHECK: Date.now(),
       USER_SESSION_TOKEN_STORAGE: token,
       HAS_ADMIN_ACCESS: userConfigToSave.hasAdmin,
@@ -155,11 +149,10 @@ export const initializeTables = async (
       updatedAt,
     };
 
-    const commonValuesNotifications = {
+    const commonValuesNotifications: Omit<UserNotificationsConfig, "reason"> = {
       ...commonValues,
       paused: false,
       enabled: false,
-      interval: -1,
       pauseTime: -1,
     };
 
@@ -175,7 +168,6 @@ export const initializeTables = async (
         reasonNotification.map((reason) => ({
           ...commonValuesNotifications,
           reason,
-          ...(reason === "cryptos" ? { interval: 600000 } : {}),
         })),
       ),
     ]);

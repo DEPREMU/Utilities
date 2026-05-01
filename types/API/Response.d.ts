@@ -30,9 +30,9 @@ export type ResponseSignOut = {
 
 export type ResponseCryptoPrice = {
   error?: string;
+  price?: number;
   success: boolean;
-  priceUSD?: number;
-  priceUSDTMXN?: number;
+  priceMXN?: number;
 };
 
 export type ResponseCryptos = {

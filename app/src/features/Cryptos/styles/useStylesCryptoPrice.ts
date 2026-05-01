@@ -4,21 +4,20 @@ import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@/context/LayoutContext";
 
 export const useStylesCryptoPrice = () => {
+  const { colors } = useTheme();
   const { getResponsiveValue, getCommonStyles } = useResponsiveLayout();
-  const { text, primary, secondary, accent } = useTheme();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
-          ...getCommonStyles(["shadow", "mainContainer"], {
-            copyInsets: false,
-          }),
-          backgroundColor: secondary,
+          ...getCommonStyles("container").container,
+          ...getCommonStyles("shadow").shadow,
+          backgroundColor: colors.secondary,
           padding: getResponsiveValue(20, 24, 28, 32),
           borderRadius: getResponsiveValue(16, 18, 20, 24),
           borderWidth: 2,
-          borderColor: primary,
+          borderColor: colors.primary,
           minHeight: getResponsiveValue(500, 550, 600, 650),
           minWidth: 300,
         },
@@ -30,14 +29,14 @@ export const useStylesCryptoPrice = () => {
           marginBottom: getResponsiveValue(16, 18, 20, 24),
           paddingBottom: getResponsiveValue(12, 14, 16, 20),
           borderBottomWidth: 2,
-          borderBottomColor: primary,
+          borderBottomColor: colors.primary,
           width: "100%",
         },
         cryptoCurrency: {
           fontSize: getResponsiveValue(14, 15, 16, 18),
           fontWeight: "600",
           textAlign: "center",
-          color: accent,
+          color: colors.accent,
         },
         cryptoName: {
           fontSize: getResponsiveValue(24, 26, 28, 32),
@@ -45,7 +44,7 @@ export const useStylesCryptoPrice = () => {
           minHeight: 30,
           maxWidth: "30%",
           fontWeight: "800",
-          color: text,
+          color: colors.text,
           flex: 1,
           textTransform: "uppercase",
           letterSpacing: 1,
@@ -57,7 +56,7 @@ export const useStylesCryptoPrice = () => {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: primary,
+          backgroundColor: colors.primary,
           padding: getResponsiveValue(8, 9, 10, 12),
           borderRadius: getResponsiveValue(6, 7, 8, 9),
         },
@@ -66,20 +65,20 @@ export const useStylesCryptoPrice = () => {
         },
         text: {
           fontSize: getResponsiveValue(16, 17, 18, 20),
-          color: text,
+          color: colors.text,
           marginBottom: getResponsiveValue(8, 9, 10, 12),
           fontWeight: "500",
           lineHeight: getResponsiveValue(22, 23, 24, 26),
         },
         pricesContainer: {
-          flexDirection: "row",
+          flexDirection: getResponsiveValue("column", "row", "row", "row"),
           justifyContent: "center",
           minHeight: 50,
           alignItems: "center",
           gap: getResponsiveValue(8, 9, 10, 12),
         },
         priceContainer: {
-          backgroundColor: primary,
+          backgroundColor: colors.primary,
           minWidth: 200,
           borderRadius: getResponsiveValue(12, 13, 14, 16),
           padding: getResponsiveValue(16, 17, 18, 20),
@@ -88,13 +87,13 @@ export const useStylesCryptoPrice = () => {
         price: {
           fontSize: getResponsiveValue(20, 22, 24, 28),
           fontWeight: "700",
-          color: accent,
+          color: colors.accent,
           textAlign: "center",
           lineHeight: getResponsiveValue(28, 30, 32, 36),
         },
         priceLabel: {
           fontSize: getResponsiveValue(12, 13, 14, 16),
-          color: text,
+          color: colors.text,
           minHeight: 20,
           textAlign: "center",
           marginBottom: getResponsiveValue(8, 9, 10, 12),
@@ -110,7 +109,7 @@ export const useStylesCryptoPrice = () => {
         },
         ownedText: {
           fontSize: getResponsiveValue(16, 17, 18, 20),
-          color: text,
+          color: colors.text,
           minHeight: 20,
           minWidth: 150,
           marginBottom: getResponsiveValue(6, 7, 8, 10),
@@ -123,11 +122,11 @@ export const useStylesCryptoPrice = () => {
           textAlign: "center",
           minWidth: 150,
           minHeight: 25,
-          color: accent,
+          color: colors.accent,
         },
         firstInvest: {
           fontSize: getResponsiveValue(15, 16, 17, 19),
-          color: text,
+          color: colors.text,
           minHeight: 20,
           width: "100%",
           marginBottom: getResponsiveValue(12, 14, 16, 20),
@@ -135,7 +134,7 @@ export const useStylesCryptoPrice = () => {
           fontWeight: "400",
         },
         gainContainer: {
-          backgroundColor: primary,
+          backgroundColor: colors.primary,
           borderRadius: getResponsiveValue(10, 11, 12, 14),
           padding: getResponsiveValue(12, 13, 14, 16),
           flexDirection: "row",
@@ -147,7 +146,7 @@ export const useStylesCryptoPrice = () => {
         gainAmount: {
           fontSize: getResponsiveValue(16, 17, 18, 20),
           fontWeight: "600",
-          color: text,
+          color: colors.text,
           minHeight: 20,
           minWidth: 150,
         },
@@ -160,7 +159,7 @@ export const useStylesCryptoPrice = () => {
         },
         datePurchasedText: {
           fontSize: getResponsiveValue(14, 15, 16, 18),
-          color: text,
+          color: colors.text,
           marginTop: getResponsiveValue(14, 16, 18, 20),
           textAlign: "center",
           minHeight: 25,
@@ -170,28 +169,22 @@ export const useStylesCryptoPrice = () => {
           letterSpacing: 0.5,
         },
         colorGreen: {
-          color: accent,
-          backgroundColor: primary,
+          color: colors.accent,
+          backgroundColor: colors.primary,
         },
         colorRed: {
-          color: accent,
-          backgroundColor: primary,
-        },
-        divider: {
-          height: 2,
-          backgroundColor: primary,
-          marginVertical: getResponsiveValue(12, 14, 16, 20),
-          opacity: 0.8,
+          color: colors.accent,
+          backgroundColor: colors.primary,
         },
         statusIndicator: {
           width: getResponsiveValue(8, 9, 10, 12),
           height: getResponsiveValue(8, 9, 10, 12),
           borderRadius: getResponsiveValue(4, 4.5, 5, 6),
-          backgroundColor: accent,
+          backgroundColor: colors.accent,
           marginRight: getResponsiveValue(8, 9, 10, 12),
         },
         loadingContainer: {
-          backgroundColor: secondary,
+          backgroundColor: colors.secondary,
           borderRadius: getResponsiveValue(16, 18, 20, 24),
           padding: getResponsiveValue(20, 24, 28, 32),
           marginHorizontal: getResponsiveValue(12, 16, 20, 24),
@@ -201,13 +194,15 @@ export const useStylesCryptoPrice = () => {
           minHeight: getResponsiveValue(120, 130, 140, 160),
         },
         loadingText: {
-          color: text,
+          color: colors.text,
           fontSize: getResponsiveValue(16, 17, 18, 20),
           marginTop: getResponsiveValue(12, 14, 16, 20),
           fontWeight: "500",
         },
+        ...getCommonStyles("divider"),
+        ...getCommonStyles("sectionContainer"),
       }),
-    [getResponsiveValue, accent, getCommonStyles, primary, secondary, text],
+    [getResponsiveValue, colors, getCommonStyles],
   );
 
   return { styles };

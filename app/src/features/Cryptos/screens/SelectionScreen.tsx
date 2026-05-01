@@ -1,172 +1,170 @@
 import {
-  logger,
-  memoDeep,
-  cleanFloat,
-  fetchToServer,
-  stringifyData,
-  sessionManager,
-  storageManagement,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-  getCryptosFromDatabase,
-} from "@utils";
-import Button from "@/common/components/Button/screens";
+  KeyboardGestureArea,
+  KeyboardAvoidingView,
+} from "react-native-keyboard-controller";
+import { View } from "react-native";
+import { create } from "zustand";
 import CryptoItem from "@screens/Cryptos/components/CryptoItem";
-import { TablesKeys } from "@types";
+import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
-import SkeletonLoading from "@/common/components/SkeletonLoading";
-import { View, FlatList } from "react-native";
-import { Text, TextInput } from "react-native-paper";
-import useStylesCryptoItem from "@screens/Cryptos/styles/useStylesCryptoItem";
-import { useBackgroundTask } from "@context/BackgroundTaskContext";
-import useStylesSelectionScreen from "@screens/Cryptos/styles/useStylesSelectionScreen";
-import { SelectedCryptos, PriceBinanceAPI } from "@common";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import SkeletonLoading from "@components/SkeletonLoading";
+import { useCryptoStore } from "../services/cryptoZustand";
+import { useUserContext } from "@context/UserContext";
+import { GetStatesZustand } from "@types";
+import { useStylesCryptoItem } from "@screens/Cryptos/styles/useStylesCryptoItem";
+import { useStylesSelectionScreen } from "@screens/Cryptos/styles/useStylesSelectionScreen";
+import Animated, { LinearTransition } from "react-native-reanimated";
+import { Text, Button, Searchbar, FAB } from "react-native-paper";
+import { getValueState, PriceBinanceAPI } from "@common";
+import React, { useMemo, useEffect, useCallback } from "react";
+import { deviceInfo, memoDeep, navigation, REPLACERS } from "@utils";
 
-interface SelectionScreenProps {
-  setSelectedCryptos: React.Dispatch<React.SetStateAction<SelectedCryptos>>;
-  selectedCryptos: SelectedCryptos;
-}
+type States = GetStatesZustand<{
+  loading: boolean;
+  iconFab: "delete" | "delete-alert" | "delete-empty";
+  filterText: string;
+  searchQuery: string;
+  showSelected: boolean;
+}>;
 
-const SelectionScreen: React.FC<SelectionScreenProps> = ({
-  setSelectedCryptos,
-  selectedCryptos,
-}) => {
+type Actions = {
+  handleChangeText: (text: string) => void;
+  handleShowSelected: () => void;
+  handlePressClearCache: () => void;
+};
+
+const useSelectionStore = create<States & Actions>((set, get) => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const cleanTimeout = () => {
+    if (!timeoutId) return;
+
+    clearTimeout(timeoutId);
+    timeoutId = null;
+  };
+
+  const clearCacheData = {
+    presses: 0,
+    timeoutId: null as ReturnType<typeof setTimeout> | null,
+  };
+
+  const cleanTimeoutClearCache = () => {
+    if (!clearCacheData.timeoutId) return;
+
+    clearTimeout(clearCacheData.timeoutId);
+    clearCacheData.timeoutId = null;
+  };
+
+  const resetCacheData = () => {
+    cleanTimeoutClearCache();
+    clearCacheData.presses = 0;
+    get().setIconFab("delete");
+  };
+
+  return {
+    handlePressClearCache: () => {
+      cleanTimeoutClearCache();
+
+      clearCacheData.presses += 1;
+      const { setIconFab } = get();
+      if (clearCacheData.presses === 1) {
+        setIconFab("delete-alert");
+      } else if (clearCacheData.presses >= 2) {
+        setIconFab("delete-empty");
+        useCryptoStore.getState().clearCache();
+      }
+
+      clearCacheData.timeoutId = setTimeout(() => {
+        resetCacheData();
+      }, 2500);
+    },
+
+    iconFab: "delete",
+    setIconFab: (v) => set({ iconFab: getValueState(v, () => get().iconFab) }),
+
+    loading: true,
+    setLoading: (v) => set({ loading: getValueState(v, () => get().loading) }),
+
+    filterText: "",
+    setFilterText: (v) =>
+      set({ filterText: getValueState(v, () => get().filterText) }),
+
+    searchQuery: "",
+    setSearchQuery: (v) =>
+      set({ searchQuery: getValueState(v, () => get().searchQuery) }),
+
+    showSelected: false,
+    setShowSelected: (v) =>
+      set({ showSelected: getValueState(v, () => get().showSelected) }),
+
+    handleShowSelected: () =>
+      set((state) => ({ showSelected: !state.showSelected })),
+
+    handleChangeText: (text: string) => {
+      const cleanedText = text.trim().toLowerCase();
+
+      const { setSearchQuery, setFilterText } = get();
+      setSearchQuery(cleanedText);
+
+      cleanTimeout();
+
+      timeoutId = setTimeout(() => {
+        setFilterText(cleanedText);
+        cleanTimeout();
+      }, 300);
+    },
+  };
+});
+
+const SelectionScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { styles } = useStylesSelectionScreen();
-  const { addTaskQueueRef } = useBackgroundTask();
+  const { isLoggedIn } = useUserContext();
+  const { styles, colors } = useStylesSelectionScreen();
   const { styles: stylesCryptoItem } = useStylesCryptoItem();
 
-  const [loading, setLoading] = useState<boolean>(true);
-  const [cryptos, setCryptos] = useState<PriceBinanceAPI | null>(null);
-  const [currency, setCurrency] = useState<string>("USDT");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [showSelected, setShowSelected] = useState<boolean>(false);
-  const [ownedCryptos, setOwnedCryptos] =
-    useState<SelectedCryptos>(selectedCryptos);
+  const prices = useCryptoStore((s) => s.prices);
+  const currency = useCryptoStore((s) => s.currency);
+  const selectedCryptos = useCryptoStore((s) => s.selectedCryptos);
+  const handleCheckBoxChange = useCryptoStore((s) => s.handleCheckBoxChange);
 
-  const handleClearCacheRef = useRef(async () => {
-    storageManagement.remove("SELECTED_CRYPTOS");
-    setShowSelected(false);
-    setOwnedCryptos({});
-  });
-
-  const handleShowSelectedRef = useRef(() => {
-    setShowSelected((prev) => !prev);
-  });
-
-  const handleKeyExtractorRef = useRef(
-    (item: PriceBinanceAPI[0]) => item.symbol,
-  );
-
-  const getDataFlatList = useCallback((): PriceBinanceAPI => {
-    if (!cryptos) return [];
-
-    if (showSelected) {
-      const keys = Object.keys(selectedCryptos).map((key) => key.toLowerCase());
-      if (!searchQuery.trim())
-        return cryptos.filter((crypto) =>
-          keys.includes(crypto.symbol.toLowerCase()),
-        );
-
-      const filtered = keys.filter((cryptoId) =>
-        cryptoId.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
-      return cryptos.filter((crypto) =>
-        filtered.includes(crypto.symbol.toLowerCase()),
-      );
-    }
-    if (!searchQuery.trim()) return cryptos;
-
-    return cryptos?.filter((cryptoId) =>
-      cryptoId.symbol.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }, [cryptos, searchQuery, selectedCryptos, showSelected]);
-
-  const handleCheckBoxChange = useCallback(
-    (cryptoId: string) => {
-      if (!ownedCryptos) return;
-
-      const { userData } = sessionManager.getSessionData();
-
-      const isSelected = ownedCryptos[cryptoId];
-      if (isSelected) {
-        setOwnedCryptos((prevOwned) => {
-          const newOwned = { ...prevOwned };
-          delete newOwned[cryptoId];
-          return newOwned;
-        });
-      } else {
-        setOwnedCryptos((prevOwned) => ({
-          ...prevOwned,
-          [cryptoId]: {
-            id: cryptoId.replace(currency, ""),
-            amount: "0",
-            firstPricePurchased:
-              cryptos?.find((c) => c.symbol === cryptoId)?.price || 0,
-            datePurchased: new Date().toISOString(),
-            currency,
-            userId: userData?.userId || "",
-          },
-        }));
-      }
-    },
-    [currency, ownedCryptos, cryptos],
-  );
-
-  const handleTextInputAmount = useCallback(
-    async (text: string, id: string) => {
-      const { userData } = sessionManager.getSessionData();
-      if (!userData?.userId) return;
-
-      const userId = userData?.userId;
-      if (!userId) return;
-      setOwnedCryptos((prev) => {
-        const newOwned = { ...prev };
-
-        newOwned[id] = {
-          id: id.replace(currency, ""),
-          currency,
-          firstPricePurchased:
-            cryptos?.find((c) => c.symbol === id)?.price || 0,
-          datePurchased: new Date().toISOString(),
-          amount: cleanFloat(text),
-          userId,
-        };
-        return newOwned;
-      });
-    },
-    [cryptos, currency],
+  const iconFab = useSelectionStore((s) => s.iconFab);
+  const loading = useSelectionStore((s) => s.loading);
+  const setLoading = useSelectionStore((s) => s.setLoading);
+  const filterText = useSelectionStore((s) => s.filterText);
+  const searchQuery = useSelectionStore((s) => s.searchQuery);
+  const showSelected = useSelectionStore((s) => s.showSelected);
+  const handleChangeText = useSelectionStore((s) => s.handleChangeText);
+  const handleShowSelected = useSelectionStore((s) => s.handleShowSelected);
+  const handlePressClearCache = useSelectionStore(
+    (s) => s.handlePressClearCache,
   );
 
   const renderItem = useCallback(
     ({ item }: { item: PriceBinanceAPI[0] }) => {
-      const crypto = ownedCryptos?.[item.symbol];
+      const crypto = selectedCryptos?.[item.symbol];
       const isSelected = !!crypto;
 
       return (
         <CryptoItem
           item={item}
-          isSelected={isSelected}
           crypto={crypto}
+          isSelected={isSelected}
           onCheckBoxChange={handleCheckBoxChange}
-          onAmountChange={handleTextInputAmount}
         />
       );
     },
-    [handleCheckBoxChange, handleTextInputAmount, ownedCryptos],
+    [selectedCryptos, handleCheckBoxChange],
   );
 
   const handleEmptyList = useCallback(() => {
-    const lengthCryptos = Object.keys(
-      showSelected ? ownedCryptos : cryptos || {},
-    ).length;
+    const lengthCryptos = (showSelected ? Object.keys(selectedCryptos) : prices)
+      .length;
 
     return (
       <>
         {!loading && lengthCryptos === 0 && (
-          <View style={stylesCryptoItem.checkBoxRow}>
-            <Text style={stylesCryptoItem.text}>
+          <View style={stylesCryptoItem.crypto}>
+            <Text style={stylesCryptoItem.subtitle}>
               {t("Cryptos.noCryptosFound")}
             </Text>
           </View>
@@ -175,8 +173,8 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
           Array.from({ length: 10 }).map((_, index) => (
             <SkeletonLoading
               key={index}
+              style={[stylesCryptoItem.crypto, stylesCryptoItem.padding0]}
               showChildren={false}
-              style={[stylesCryptoItem.checkBoxRow, stylesCryptoItem.padding0]}
             >
               <View />
             </SkeletonLoading>
@@ -185,239 +183,115 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({
     );
   }, [
     t,
-    cryptos,
+    prices,
     loading,
-    ownedCryptos,
     showSelected,
-    stylesCryptoItem.text,
+    selectedCryptos,
+    stylesCryptoItem.crypto,
+    stylesCryptoItem.subtitle,
     stylesCryptoItem.padding0,
-    stylesCryptoItem.checkBoxRow,
   ]);
 
   useEffect(() => {
-    const fetchOwnedCryptos = async () => {
-      const { userData, sessionToken } = sessionManager.getSessionData();
-      const language = storageManagement.get("LANGUAGE");
+    if (prices) return setLoading(false);
 
-      const owned = storageManagement.get("SELECTED_CRYPTOS", {});
-      const lengthOwned = Object.keys(owned).length;
-      if (owned && lengthOwned < 25 && lengthOwned > 0)
-        return setOwnedCryptos(owned);
-      if (!userData?.userId || !sessionToken) return;
+    if (!deviceInfo.hasInternet)
+      modalRef.openModal?.(
+        t("noInternetConnection"),
+        t("common.PleaseCheckInternetConnection"),
+        <Button mode="contained" onPress={() => navigation.replace("Home")}>
+          <Text style={styles.h3}>{t("common.back")}</Text>
+        </Button>,
+      );
+  }, [t, prices, styles.h3, setLoading]);
 
-      const newOwned = await getCryptosFromDatabase(language, sessionToken);
-      if (newOwned) setOwnedCryptos(newOwned);
+  useEffect(() => {
+    return () => {
+      handleChangeText("");
     };
+  }, [handleChangeText]);
 
-    fetchOwnedCryptos();
-  }, []);
+  const dataFlatList = useMemo((): PriceBinanceAPI => {
+    if (!prices) return [];
 
-  useEffect(() => {
-    const id = setTimeoutPolyfill(() => {
-      const loadCryptos = async () => {
-        const response = await fetchToServer("/cryptos", {
-          currency,
-        });
-        const data = response.data;
-        if (!data || data?.error || !response.ok) {
-          logger.error(
-            "Error fetching cryptos:",
-            data?.error || response.errorText || "Unknown error",
-          );
-          setCryptos(null);
-          return;
-        }
-        if (data.cryptos) setCryptos(data.cryptos);
-      };
+    const isSearchQueryValid = filterText.length >= 2;
+    const search = filterText;
 
-      loadCryptos();
-    }, 1000);
-
-    return () => clearTimeoutPolyfill(id);
-  }, [currency]);
-
-  useEffect(() => {
-    const save = async () => {
-      const language = storageManagement.get("LANGUAGE");
-      const { userData, sessionToken } = sessionManager.getSessionData();
-
-      const userId = userData?.userId;
-      if (!userId || !sessionToken) return;
-      const cryptosFromDatabase = await getCryptosFromDatabase(
-        language,
-        sessionToken,
+    if (showSelected) {
+      const keys = new Set(
+        Object.keys(selectedCryptos).map((key) => key.toLowerCase()),
       );
 
-      const cryptosToUpdate = Object.values(ownedCryptos).filter((crypto) => {
-        return (
-          !!cryptosFromDatabase?.[`${crypto.id}${crypto.currency}`] &&
-          stringifyData(
-            cryptosFromDatabase?.[`${crypto.id}${crypto.currency}`],
-          ) !==
-            stringifyData({
-              ...crypto,
-              firstPricePurchased: Number(crypto.firstPricePurchased),
-              uid: cryptosFromDatabase?.[`${crypto.id}${crypto.currency}`]?.uid,
-            })
-        );
-      });
-      if (cryptosToUpdate && cryptosToUpdate.length > 0 && sessionToken) {
-        const id = "updateCryptos";
-        addTaskQueueRef.current(
-          {
-            requiresInternet: true,
-            func: async () => {
-              const deviceId = storageManagement.get("DEVICE_ID");
+      if (!isSearchQueryValid)
+        return prices.filter((crypto) => keys.has(crypto.symbol.toLowerCase()));
 
-              fetchToServer(
-                "/database/update",
-                {
-                  lang: language,
-                  table: "Cryptos",
-                  values: cryptosToUpdate,
-                  deviceId,
-                },
-                sessionToken,
-              );
-            },
-          },
-          {
-            id,
-            functionName: "updateFromDatabase",
-            args: ["Cryptos", cryptosToUpdate, null],
-          },
-        );
-      }
-
-      const cryptosToAdd = Object.values(ownedCryptos).filter(
-        (crypto) => !cryptosFromDatabase?.[`${crypto.id}${crypto.currency}`],
+      const filtered = new Set(
+        [...keys].filter((symbol) => symbol.includes(search)),
       );
-      if (cryptosToAdd && cryptosToAdd.length > 0 && sessionToken) {
-        const id = "insertCryptos";
-        const table: TablesKeys = "Cryptos";
-        addTaskQueueRef.current(
-          {
-            requiresInternet: true,
-            func: async () => {
-              const deviceId = storageManagement.get("DEVICE_ID");
+      return prices.filter((crypto) =>
+        filtered.has(crypto.symbol.toLowerCase()),
+      );
+    }
 
-              fetchToServer(
-                "/database/insert",
-                {
-                  lang: language,
-                  table,
-                  values: cryptosToAdd,
-                  deviceId,
-                },
-                sessionToken,
-              );
-            },
-          },
-          {
-            id,
-            functionName: "insertIntoDatabase",
-            args: [table, cryptosToAdd],
-          },
-          id,
-        );
-      }
+    if (!isSearchQueryValid)
+      return prices.filter((crypto) => crypto.symbol.endsWith(currency));
 
-      const cryptosToDelete = Object.values(cryptosFromDatabase || {})
-        .filter((crypto) => !ownedCryptos?.[`${crypto.id}${crypto.currency}`])
-        .map((c) => c.uid as string);
+    return prices.filter((crypto) =>
+      crypto.symbol.toLowerCase().includes(search),
+    );
+  }, [prices, filterText, selectedCryptos, showSelected, currency]);
 
-      if (cryptosToDelete && cryptosToDelete.length > 0) {
-        const deviceId = storageManagement.get("DEVICE_ID");
-
-        cryptosToDelete.map((uid) =>
-          addTaskQueueRef.current(
-            {
-              requiresInternet: true,
-              func: async () => {
-                fetchToServer(
-                  "/database/delete",
-                  {
-                    lang: language,
-                    match: { uid },
-                    table: "Cryptos",
-                    deviceId,
-                  },
-                  sessionToken,
-                );
-              },
-            },
-            {
-              id: `deleteCrypto${uid}`,
-              functionName: "deleteFromDatabase",
-              args: ["Cryptos", { uid }],
-            },
-          ),
-        );
-      }
-
-      setSelectedCryptos(ownedCryptos);
-      storageManagement.save("SELECTED_CRYPTOS", ownedCryptos);
-    };
-
-    save();
-  }, [ownedCryptos, addTaskQueueRef, setSelectedCryptos]);
-
-  useEffect(() => {
-    if (!cryptos) return;
-
-    setLoading(false);
-  }, [cryptos]);
+  const disabled = !prices || prices.length === 0 || loading || !isLoggedIn;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TextInput
-          style={styles.input}
-          label={t("Cryptos.selectCurrency")}
-          value={currency}
-          textColor="#f0f0f0"
-          onChangeText={(t) => setCurrency(t.toUpperCase())}
-        />
-        <TextInput
-          style={styles.input}
-          textColor="#f0f0f0"
-          label={t("Cryptos.searchCrypto")}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+    <KeyboardGestureArea style={styles.flex} interpolator="ios">
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior="padding"
+        keyboardVerticalOffset={50}
+      >
+        <View style={styles.sectionContainer}>
+          <Searchbar
+            value={searchQuery}
+            placeholder={t("Cryptos.searchCrypto")}
+            onChangeText={handleChangeText}
+          />
 
-      <FlatList
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContentContainer}
-        data={getDataFlatList()}
-        keyExtractor={handleKeyExtractorRef.current}
-        showsVerticalScrollIndicator={false}
-        renderItem={renderItem}
-        ListEmptyComponent={handleEmptyList}
-      />
+          <View style={styles.buttonsContainer}>
+            <Button
+              onPress={handleShowSelected}
+              disabled={disabled}
+              contentStyle={styles.showSelectedButton}
+            >
+              <Text style={styles.h3}>
+                {showSelected ? t("common.showAll") : t("common.showSelected")}
+              </Text>
+            </Button>
+          </View>
+        </View>
 
-      <View style={styles.buttonsBottom}>
-        <Button
-          handlePress={handleClearCacheRef.current}
-          label={t("Cryptos.clearCache")}
-          touchableOpacity
-          replaceStyles={{
-            button: styles.clearCacheButton,
-            textButton: styles.buttonText,
-          }}
+        <Animated.View style={styles.FAB}>
+          <FAB
+            animated
+            icon={iconFab}
+            style={styles.FAB}
+            color={colors.primary}
+            onPress={handlePressClearCache}
+          />
+        </Animated.View>
+
+        <Animated.FlatList
+          data={dataFlatList}
+          style={styles.sectionContainer}
+          layout={LinearTransition.duration(300).springify()}
+          renderItem={renderItem}
+          scrollEnabled={!loading && dataFlatList.length > 0}
+          ListEmptyComponent={handleEmptyList}
+          contentContainerStyle={styles.scrollViewContentContainer}
+          showsVerticalScrollIndicator={REPLACERS.isWeb}
         />
-        <Button
-          handlePress={handleShowSelectedRef.current}
-          label={showSelected ? t("common.showAll") : t("common.showSelected")}
-          touchableOpacity
-          replaceStyles={{
-            button: styles.showSelectedButton,
-            textButton: styles.buttonText,
-          }}
-        />
-      </View>
-    </View>
+      </KeyboardAvoidingView>
+    </KeyboardGestureArea>
   );
 };
 

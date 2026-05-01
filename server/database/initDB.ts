@@ -4,10 +4,10 @@ import chalk from "chalk";
 import { pool } from "./postgres";
 import DataJSON from "./data.json";
 import { getEnvValue } from "../env.ts";
-import { deleteOldSessions } from "./functions.ts";
 import { showError, showInfo } from "../functions/logger.ts";
 import { wrapFunctionWithError } from "@common";
 import { serverPath, TABLE_MAP } from "../config.ts";
+import { deleteOldSessions, getValidValueDB } from "./functions.ts";
 
 const getTableFilePath = (tableName: string) =>
   path.join(serverPath, "database", tableName + "_data.dbjson");
@@ -36,8 +36,16 @@ if (!fs.existsSync(fileDataPath)) {
 let intervalIdDeleteOldSessions: number | NodeJS.Timeout | null = null;
 
 export const initDB = async () => {
+  const client = await pool.connect();
+
   const fileSQL = fs.readFileSync(fileSQLPath, "utf-8");
   const fileVersion = fileSQL.split("\n")[1].split("Version: ")[1].trim();
+
+  try {
+    await client.query(fileSQL);
+  } catch {
+    // Ignore
+  }
 
   const dataFile = fs.readFileSync(fileDataPath, "utf-8");
   const dataJSON: typeof DataJSON = JSON.parse(dataFile || "{}");
@@ -49,14 +57,17 @@ export const initDB = async () => {
 
   if (dataJSON.prevVersionSQL === fileVersion) return;
 
-  const client = await pool.connect();
   await client.query("BEGIN");
 
-  const tableNames = Object.values(TABLE_MAP);
+  const tableNames = Object.entries(TABLE_MAP);
 
   await wrapFunctionWithError(
     async () => {
-      for (const tableName of tableNames) {
+      //? Create tables if not exist
+      await client.query(fileSQL);
+
+      //? Backup data from existing tables to files
+      for (const [, tableName] of tableNames) {
         if (tableName === TABLE_MAP.Logs) continue;
 
         const querySelect = `SELECT * FROM "${tableName}";`;
@@ -71,7 +82,8 @@ export const initDB = async () => {
         );
       }
 
-      for (const tableName of tableNames) {
+      //? Drop existing tables
+      for (const [, tableName] of tableNames) {
         if (tableName === TABLE_MAP.Users) continue;
 
         const queryDelete = `DROP TABLE IF EXISTS "${tableName}";`;
@@ -85,18 +97,31 @@ export const initDB = async () => {
 
       await client.query(fileSQL);
 
-      for (const tableName of tableNames) {
+      //? Restore data from files to new tables
+      for (const [key, tableName] of tableNames) {
         if (tableName === TABLE_MAP.Logs) continue;
 
         const tableFilePath = getTableFilePath(tableName);
         if (!fs.existsSync(tableFilePath)) continue;
 
         const fileData = fs.readFileSync(tableFilePath, "utf-8");
-        const rows: object[] = JSON.parse(fileData);
+        const func = getValidValueDB?.[key as keyof typeof getValidValueDB];
+
+        let rows: object[] = JSON.parse(fileData);
+        rows = rows.map((row) => func?.(row)).filter((row) => row !== null);
         if (rows.length === 0) continue;
 
         const chunkSize = 500;
         const columns = Object.keys(rows[0]).map((c) => `"${c}"`);
+
+        if (!func) {
+          showError(
+            chalk.red(
+              `No valid value function found for table "${tableName}". Data might not be restored correctly.`,
+            ),
+          );
+          continue;
+        }
 
         for (let i = 0; i < rows.length; i += chunkSize) {
           const chunk = rows.slice(i, i + chunkSize);
@@ -122,7 +147,7 @@ export const initDB = async () => {
           "utf-8",
         );
 
-      for (const tableName of tableNames) {
+      for (const [, tableName] of tableNames) {
         const tableFilePath = getTableFilePath(tableName);
         if (!fs.existsSync(tableFilePath)) continue;
         showInfo(`Removing file: ${tableFilePath}`);
@@ -135,8 +160,12 @@ export const initDB = async () => {
       }
 
       await client.query("COMMIT");
+      showInfo(
+        chalk.green("Database initialized successfully with version:"),
+        fileVersion,
+      );
     },
-    async (_, errorMessage) => {
+    async (err, errorMessage) => {
       showError(chalk.red("Error while updating the DB", errorMessage));
       await client.query("ROLLBACK");
     },

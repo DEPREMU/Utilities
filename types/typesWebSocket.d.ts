@@ -5,9 +5,11 @@ import type {
   ReasonNotification,
   Notifications as typeNotifications,
 } from "./typesNotifications";
-import { WebSocket } from "ws";
-import { ResponseAuth } from "./API";
+import type { WebSocket } from "ws";
+import type { ResponseAuth } from "./API";
+import type { CryptosSettings } from "@types";
 import type { LanguagesSupported } from "./typesTranslations";
+import { SelectedCryptos } from "@common";
 
 export type WebSocketMessage<T extends "sentByApp" | "sentByServer"> =
   T extends "sentByApp"
@@ -60,7 +62,52 @@ export type ClipboardWebSocketMessage<T extends "sentByApp" | "sentByServer"> =
           }
         | { type: "ping" };
 
-export type WebSocketPathname = "/ws" | "/clipboard" | "/ws-login-qr";
+export type CryptosWebSocketMessage<T extends "sentByApp" | "sentByServer"> =
+  T extends "sentByApp"
+    ?
+        | {
+            type: "init";
+            userId: string;
+            deviceId: string;
+          }
+        | {
+            type: "sync-settings";
+            settings?: CryptosSettings;
+          }
+        | {
+            type: "add-crypto";
+            crypto: Omit<
+              SelectedCryptos[string],
+              "id" | "datePurchased" | "userId"
+            >;
+          }
+        | {
+            type: "update-crypto";
+            crypto: Partial<SelectedCryptos[string]>;
+          }
+        | {
+            type: "delete-crypto";
+            symbol: string;
+          }
+        | { type: "pong" }
+        | { type: "get-cryptos" }
+    :
+        | { type: "ping" }
+        | { type: "init-success" }
+        | {
+            type: "synced";
+            settings?: CryptosSettings;
+          }
+        | {
+            type: "cryptos";
+            cryptos: SelectedCryptos[string][];
+          };
+
+export type WebSocketPathname =
+  | "/ws"
+  | "/clipboard"
+  | "/ws-cryptos"
+  | "/ws-login-qr";
 
 type UsersWebSocketQR = {
   [deviceId: string]: {
@@ -88,10 +135,14 @@ export type MessageWebSocketQRLogin<T extends "sentByApp" | "sentByServer"> =
             deviceId: string;
             rememberMe?: boolean;
           }
+        | {
+            type: "remember-me";
+            rememberMe: boolean;
+          }
     :
         | {
             type: "status";
-            status: "error" | "timeout" | "waiting" | "authenticated-web";
+            status: "error" | "authenticating" | "authenticated-web";
           }
         | {
             type: "status";

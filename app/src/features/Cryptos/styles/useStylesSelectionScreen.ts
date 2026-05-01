@@ -1,127 +1,55 @@
 import { useMemo } from "react";
-import { useTheme } from "@/context/ThemeContext";
-import { useResponsiveLayout } from "@/context/LayoutContext";
-import { DimensionValue, StyleSheet } from "react-native";
+import { useTheme } from "@context/ThemeContext";
+import { useResponsiveLayout } from "@context/LayoutContext";
+import { StyleSheet, ViewStyle } from "react-native";
 
-const useStylesSelectionScreen = () => {
-  const colors = useTheme();
-  const { getResponsiveValue, getCommonStyles } = useResponsiveLayout();
-  const { background, text, primary, error, secondary, accent } = colors;
+export const useStylesSelectionScreen = () => {
+  const { colors } = useTheme();
+  const { getResponsiveValue, getCommonStyles, texts } = useResponsiveLayout();
+
+  const bottomButton: ViewStyle = useMemo(
+    () => ({
+      ...getCommonStyles("shadow").shadow,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: getResponsiveValue(6, 8, 10, 12),
+      borderColor: colors.accent,
+      borderRadius: getResponsiveValue(12, 14, 16, 18),
+      marginHorizontal: getResponsiveValue(6, 7, 8, 10),
+    }),
+    [colors, getCommonStyles, getResponsiveValue],
+  );
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          paddingTop: 5,
-          alignItems: undefined,
-          backgroundColor: background,
-        },
-        header: {
-          marginBottom: getResponsiveValue(20, 25, 30, 35),
-          ...getCommonStyles(["shadow", "mainContainer"], {
-            copyInsets: false,
-          }),
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: secondary,
-          paddingVertical: getResponsiveValue(20, 24, 28, 32),
-          paddingHorizontal: getResponsiveValue(16, 20, 24, 32),
-          borderBottomLeftRadius: getResponsiveValue(20, 22, 24, 28),
-          borderBottomRightRadius: getResponsiveValue(20, 22, 24, 28),
-          gap: getResponsiveValue(10, 12, 14, 16),
-          elevation: 8,
-          maxHeight: getResponsiveValue(150, 120, 140, 160),
-          borderWidth: 2,
-          borderColor: primary,
-        },
-        scrollContainer: {
-          flex: 1,
-          marginBottom: getResponsiveValue(70, 80, 90, 100),
-          paddingHorizontal: getResponsiveValue(8, 20, 24, 32),
-        },
-        scrollContentContainer: {
-          justifyContent: "center",
-        },
-        buttonText: {
-          color: text,
-          fontSize: getResponsiveValue(16, 17, 18, 20),
-          textAlign: "center",
-          fontWeight: "700",
-          letterSpacing: 0.5,
-        },
         clearCacheButton: {
-          ...getCommonStyles(["shadow", "mainContainer"], {
-            copyInsets: false,
-          }),
-          padding: getResponsiveValue(12, 15, 18, 21),
-          backgroundColor: error,
-          borderRadius: getResponsiveValue(12, 14, 16, 18),
-          marginHorizontal: getResponsiveValue(6, 7, 8, 10),
-          borderWidth: 2,
-          borderColor: accent,
+          ...bottomButton,
+          backgroundColor: colors.error,
         },
         showSelectedButton: {
-          ...getCommonStyles(["shadow", "mainContainer"], {
-            copyInsets: false,
-          }),
-          backgroundColor: primary,
-          width: "auto",
-          borderRadius: getResponsiveValue(12, 14, 16, 18),
-          padding: getResponsiveValue(12, 15, 18, 21),
-          marginHorizontal: getResponsiveValue(6, 7, 8, 10),
-          borderWidth: 2,
-          borderColor: secondary,
+          ...bottomButton,
+          backgroundColor: colors.primary,
         },
-        buttonsBottom: {
-          position: "absolute",
-          bottom: 0,
+        buttonsContainer: {
+          gap: getResponsiveValue(8, 10, 12, 16),
           flexDirection: "row",
-          paddingHorizontal: getResponsiveValue(8, 10, 12, 16),
           paddingVertical: getResponsiveValue(12, 14, 16, 20),
-          backgroundColor: background,
-          borderWidth: 2,
-          borderBottomWidth: 0,
-          borderColor: primary,
-          maxWidth: getResponsiveValue<DimensionValue>(
-            "100%",
-            "100%",
-            "90%",
-            1200,
-          ),
+          backgroundColor: colors.background,
+          paddingHorizontal: getResponsiveValue(8, 10, 12, 16),
           alignSelf: "center",
           width: "100%",
+          justifyContent: "center",
         },
-        input: {
-          ...getCommonStyles("shadow"),
-          backgroundColor: background,
-          color: text,
-          fontSize: getResponsiveValue(16, 17, 18, 20),
-          textAlign: "center",
-          borderColor: primary,
-          borderWidth: 2,
-          borderRadius: getResponsiveValue(10, 11, 12, 14),
-          width: getResponsiveValue<DimensionValue>(
-            "100%",
-            "100%",
-            "100%",
-            "80%",
-          ),
-        },
+        ...texts,
+        ...getCommonStyles("FAB"),
+        ...getCommonStyles("flex"),
+        ...getCommonStyles("container"),
+        ...getCommonStyles("scrollView"),
+        ...getCommonStyles("sectionContainer"),
       }),
-    [
-      text,
-      error,
-      accent,
-      primary,
-      secondary,
-      background,
-      getCommonStyles,
-      getResponsiveValue,
-    ],
+    [colors, getCommonStyles, getResponsiveValue, texts, bottomButton],
   );
 
-  return { styles, ...colors };
+  return { styles, colors };
 };
-
-export default useStylesSelectionScreen;

@@ -1,6 +1,7 @@
 export * from "./API";
 export * from "./env";
 export * from "./screens";
+export * from "./zustand";
 export * from "./typesVault";
 export * from "./typesNotes";
 export * from "./database/index";

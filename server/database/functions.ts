@@ -95,11 +95,12 @@ const getKeysQuery = <T extends TablesKeys>(
           .join(", "),
         values: Object.values(data),
       };
+    default:
+      return {
+        query: "",
+        values: [],
+      };
   }
-  return {
-    query: "",
-    values: [],
-  };
 };
 
 const getQuerySearch = (
@@ -436,4 +437,225 @@ export const deleteOldSessions = async () => {
   } catch (error) {
     showError(chalk.red("Error deleting old sessions:"), error);
   }
+};
+
+type GetValidValueDB = {
+  [T in TablesKeys]: (
+    value: Partial<Tables[T]>,
+    _?: Tables[T],
+  ) => { [K in keyof Tables[T]]-?: Tables[T][K] } | null;
+};
+
+export const getValidValueDB: GetValidValueDB = {
+  CryptosSettings: (value, _) => {
+    if (!value.id || !value.userId || !value.createdAt) return null;
+
+    return {
+      id: value.id,
+      userId: value.userId,
+      createdAt: value.createdAt,
+      updatedAt: value.updatedAt ?? value.createdAt,
+      defaultCurrency: value.defaultCurrency || "USDT",
+      autoRefresh: {
+        enabled: value.autoRefresh?.enabled ?? true,
+        valueMs: value.autoRefresh?.valueMs ?? 60000,
+      },
+      notifications: {
+        enabled: value.notifications?.enabled ?? false,
+        valueMs: value.notifications?.valueMs ?? 60000,
+      },
+    };
+  },
+  ClipboardSync: (value, _) => {
+    if (
+      !value ||
+      !value.id ||
+      !value.userId ||
+      !value.deviceId ||
+      !value.createdAt
+    )
+      return null;
+
+    return {
+      id: value.id,
+      userId: value.userId,
+      content: value.content || "",
+      deleted: value.deleted ?? false,
+      deviceId: value.deviceId,
+      createdAt: value.createdAt,
+    };
+  },
+  Cryptos: (value, _) => {
+    if (
+      !value.id ||
+      !value.userId ||
+      !value.symbol ||
+      !value.baseCoin ||
+      !value.quoteCoin ||
+      !value.datePurchased
+    )
+      return null;
+
+    return {
+      id: value.id,
+      amount: value.amount || "0",
+      symbol: value.symbol,
+      userId: value.userId,
+      baseCoin: value.baseCoin,
+      quoteCoin: value.quoteCoin,
+      datePurchased: value.datePurchased,
+      firstPricePurchased: value.firstPricePurchased ?? 0,
+    };
+  },
+  DownDetector: (value, _) => {
+    if (!value.id || !value.url || !value.userId || !value.createdAt)
+      return null;
+
+    return {
+      id: value.id,
+      url: value.url,
+      userId: value.userId,
+      createdAt: value.createdAt,
+      sendNotification: value.sendNotification ?? false,
+    };
+  },
+  Logs: (value, _) => {
+    if (
+      !value.id ||
+      !value.type ||
+      !value.userId ||
+      !value.message ||
+      !value.deviceId ||
+      !value.timestamp ||
+      !value.deviceName
+    )
+      return null;
+
+    return {
+      id: value.id,
+      type: value.type,
+      userId: value.userId,
+      message: value.message,
+      deviceId: value.deviceId,
+      timestamp: value.timestamp,
+      deviceName: value.deviceName,
+    };
+  },
+  Notes: (value, _) => {
+    if (
+      !value.id ||
+      !value.userId ||
+      !value.createdAt ||
+      (!value.title && !value.content)
+    )
+      return null;
+
+    return {
+      id: value.id,
+      title: value.title || "",
+      userId: value.userId,
+      content: value.content || "",
+      sources: value.sources ? value.sources : null,
+      folderId: value.folderId || null,
+      isPinned: value.isPinned ?? false,
+      isHidden: value.isHidden ?? false,
+      createdAt: value.createdAt,
+      updatedAt: value.updatedAt ?? value.createdAt,
+      richTextRuns: value.richTextRuns ? value.richTextRuns : null,
+    };
+  },
+  PushTokens: (value, _) => {
+    if (!value.id || !value.token || !value.userId || !value.createdAt)
+      return null;
+
+    return {
+      id: value.id,
+      token: value.token,
+      userId: value.userId,
+      createdAt: value.createdAt,
+    };
+  },
+  Streamers: (value, _) => {
+    if (!value.id || !value.name || !value.userId || !value.createdAt)
+      return null;
+
+    return {
+      id: value.id,
+      name: value.name,
+      userId: value.userId,
+      createdAt: value.createdAt,
+      linkImage: value.linkImage || null,
+    };
+  },
+  UserConfig: (value, _) => {
+    if (!value.id || !value.userId || !value.createdAt) return null;
+
+    return {
+      id: value.id,
+      theme: value.theme || "dark",
+      userId: value.userId,
+      API_URL: value.API_URL || "",
+      language: value.language || "en",
+      hasAdmin: value.hasAdmin ?? false,
+      createdAt: value.createdAt,
+      updatedAt: value.updatedAt ?? value.createdAt,
+      webSocketURL: value.webSocketURL || "",
+    };
+  },
+  UserNotificationsConfig: (value, _) => {
+    if (
+      !value.id ||
+      !value.userId ||
+      !value.reason ||
+      !value.createdAt ||
+      (typeof value.streamer === "string" && !value.streamer)
+    )
+      return null;
+
+    return {
+      id: value.id,
+      reason: value.reason,
+      userId: value.userId,
+      paused: value.paused ?? false,
+      enabled: value.enabled ?? false,
+      streamer: value.streamer ?? null,
+      createdAt: value.createdAt,
+      updatedAt: value.updatedAt ?? value.createdAt,
+      pauseTime: value.pauseTime ?? -1,
+    };
+  },
+  Users: (value, _) => {
+    if (!value.userId || !value.createdAt || !value.email || !value.password)
+      return null;
+
+    return {
+      name: value.name || "",
+      email: value.email,
+      phone: value.phone || "",
+      userId: value.userId,
+      password: value.password,
+      createdAt: value.createdAt,
+      updatedAt: value.updatedAt ?? value.createdAt,
+      description: value.description || "",
+    };
+  },
+  UserSessions: (value, _) => {
+    if (
+      !value.id ||
+      !value.token ||
+      !value.userId ||
+      !value.deviceId ||
+      !value.createdAt
+    )
+      return null;
+
+    return {
+      id: value.id,
+      token: value.token,
+      userId: value.userId,
+      deviceId: value.deviceId,
+      createdAt: value.createdAt,
+      updatedAt: value.updatedAt ?? value.createdAt,
+    };
+  },
 };
