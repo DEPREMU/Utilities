@@ -1,3 +1,4 @@
+import { REPLACERS } from "../TOP_LEVEL";
 import { ServiceClass } from "@common";
 import { ScreensAvailable } from "@types";
 import { RootStackParamList } from "@/app/AppNavigator";
@@ -10,21 +11,26 @@ type ListenersNavigation = {
 const TAG = "NAVIGATION";
 
 class Navigation extends ServiceClass<ListenersNavigation> {
+  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Cryptos" : "Home";
+
   public ref: ReturnType<
     typeof createNavigationContainerRef<RootStackParamList>
   >;
 
-  public getCurrentScreen = (): ScreensAvailable => {
-    return this.ref.getCurrentRoute()?.name ?? "Home";
-  };
+  public get currentScreen(): ScreensAvailable {
+    return this.#currentScreen;
+  }
 
   #emitScreenChange = (name: ScreensAvailable) => {
-    const currentScreen = this.getCurrentScreen();
-    if (currentScreen === name) return;
+    if (this.#currentScreen === name) return;
+
+    this.#currentScreen = name;
     this.emit("screenChange", name);
   };
 
   public navigate = (name: ScreensAvailable, params?: object) => {
+    if (name === this.#currentScreen) return;
+
     this.#emitScreenChange(name);
     this.ref.navigate(...([name, params] as never));
   };
