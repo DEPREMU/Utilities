@@ -10,38 +10,29 @@ import {
   CryptosSettings,
   LanguagesSupported,
   CryptosWebSocketMessage,
+  CommonUserDataWS,
 } from "@types";
 import chalk from "chalk";
+import { Users } from "./WebSocketHandling.ts";
 import { cryptos } from "../routes/cryptos.ts";
 import { showError } from "../functions/logger.ts";
 import { SelectedCryptos, t } from "@common";
+import { sendFCMNotification } from "../firebase/admin.ts";
 import { executeFunctionAfterInit } from "../config.ts";
 import WebSocket, { WebSocketServer } from "ws";
-import { sendFCMNotification } from "../firebase/admin.ts";
 
-type UserData = {
-  userId: string;
-  deviceId: string;
-};
-
-type Users = {
-  [userId: string]: {
-    notificationInterval?: {
-      id: ReturnType<typeof setInterval> | null;
-      valueMs: number;
+const users = new Users<
+  {
+    cryptoSettings?: {
+      [userId: string]: CryptosSettings;
     };
-    cryptoSettings: CryptosSettings;
-    devices?: {
-      [deviceId: string]: {
-        ws: WebSocket;
-        pingTimeout: ReturnType<typeof setTimeout> | null;
-        pingInterval: ReturnType<typeof setInterval> | null;
-      };
-    };
-  };
-};
+  },
+  CryptosWebSocketMessage<"sentByServer">
+>();
 
-const getDefaultCryptoSettings = (userData: UserData): CryptosSettings => {
+const getDefaultCryptoSettings = (
+  userData: CommonUserDataWS,
+): CryptosSettings => {
   const now = new Date().toISOString();
 
   return {
@@ -162,8 +153,6 @@ const handleSendNotification = async (userId: string) => {
   );
 };
 
-const users: Users = {};
-
 const initUserInterval = async (userId: string) => {
   try {
     const [notification, userSettings] = await Promise.all([
@@ -191,26 +180,17 @@ const initUserInterval = async (userId: string) => {
     if (!settings) return;
 
     const notifi = notification.data[0];
-
-    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const id = "notification-interval-" + userId;
 
     if (notifi.enabled) {
-      intervalId = setInterval(
+      users.setInterval(
         () => handleSendNotification(userId),
         settings.notifications.valueMs,
+        id,
       );
-    } else if (users[userId]?.notificationInterval?.id) {
-      clearInterval(users[userId].notificationInterval.id);
+    } else {
+      users.clearInterval(id);
     }
-
-    users[userId] = {
-      ...(users[userId] || {}),
-      cryptoSettings: settings,
-      notificationInterval: {
-        id: intervalId,
-        valueMs: settings.notifications.valueMs,
-      },
-    };
   } catch (error) {
     showError(
       "Failed to initialize user notification interval for WebSocketCryptos:",
@@ -221,13 +201,13 @@ const initUserInterval = async (userId: string) => {
 
 const initUsersInterval = async () => {
   try {
-    const users = await fetchFromTable({
+    const { data } = await fetchFromTable({
       table: "Users",
     });
 
-    if (!users.data) return;
+    if (!data) return;
 
-    users.data.forEach((user) => {
+    data.forEach((user) => {
       if (!user.userId) return;
 
       initUserInterval(user.userId);
@@ -240,90 +220,6 @@ const initUsersInterval = async () => {
   }
 };
 executeFunctionAfterInit(initUsersInterval);
-
-const sendMessage = (
-  message: CryptosWebSocketMessage<"sentByServer">,
-  userId: string,
-  deviceId?: string,
-) => {
-  const userDevices = users[userId];
-  if (!userDevices) {
-    showError(`No devices found for userId: ${userId}`);
-    return;
-  }
-
-  const msg = JSON.stringify(message);
-
-  if (deviceId) {
-    const device = userDevices.devices?.[deviceId];
-    if (!device) return;
-
-    if (device.ws.readyState === WebSocket.OPEN) {
-      device.ws.send(msg);
-    } else {
-      handleClose(device.ws, { userId, deviceId });
-    }
-  } else {
-    Object.entries(userDevices.devices || {}).forEach(([deviceId, device]) => {
-      if (!device) return;
-      const { ws } = device;
-
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(msg);
-      } else {
-        handleClose(ws, { userId, deviceId });
-      }
-    });
-  }
-};
-
-const isValidUserData = (data: Record<string, unknown>): data is UserData => {
-  return (
-    data !== null &&
-    typeof data === "object" &&
-    typeof data.userId === "string" &&
-    typeof data.deviceId === "string"
-  );
-};
-
-const handleClose = (ws: WebSocket, userData: UserData) => {
-  clearTimeouts(userData);
-
-  if (!isValidUserData(userData)) {
-    showError("Invalid user data on close:", userData);
-    return;
-  }
-
-  const { userId, deviceId } = userData;
-
-  if (users[userId] && users[userId].devices?.[deviceId]) {
-    delete users[userId].devices[deviceId];
-  }
-
-  ws.removeAllListeners();
-  ws.close();
-};
-
-const clearTimeouts = (userData: UserData, clear?: "interval" | "timeout") => {
-  if (!isValidUserData(userData)) {
-    showError("Invalid user data for clearing timeouts:", userData);
-    return;
-  }
-  const { userId, deviceId } = userData;
-
-  const device = users[userId]?.devices?.[deviceId];
-  if (!device) return;
-
-  if (device.pingTimeout && (!clear || clear === "timeout")) {
-    clearTimeout(device.pingTimeout);
-    device.pingTimeout = null;
-  }
-
-  if (device.pingInterval && (!clear || clear === "interval")) {
-    clearInterval(device.pingInterval);
-    device.pingInterval = null;
-  }
-};
 
 const isCrypto = (
   data: Record<string, unknown>,
@@ -355,25 +251,41 @@ const getDiff = <T extends Record<string, unknown>>(
   return diff;
 };
 
-const sendCryptos = async (userData: UserData, onlyDeviceId?: boolean) => {
+const sendCryptos = async (
+  userDevice: NonNullable<ReturnType<typeof users.getUser>>,
+  onlyDeviceId?: boolean,
+) => {
   try {
     const { data: cryptos } = await fetchFromTable({
-      match: { userId: userData.userId },
+      match: { userId: userDevice.userId },
       table: "Cryptos",
     });
 
-    sendMessage(
-      {
+    if (onlyDeviceId) {
+      userDevice.sendMessage({
         type: "cryptos",
         cryptos: cryptos ?? [],
+      });
+      return;
+    }
+
+    users.setTimeout(
+      () => {
+        users.sendMessageToUser(
+          {
+            type: "cryptos",
+            cryptos: cryptos ?? [],
+          },
+          userDevice.userId,
+        );
       },
-      userData.userId,
-      ...(onlyDeviceId ? [userData.deviceId] : []),
+      500,
+      "send-cryptos-timeout-" + userDevice.userId,
     );
   } catch (error) {
     showError(
       "Failed to fetch cryptos for user:",
-      userData.userId,
+      userDevice.userId,
       "error:",
       error instanceof Error ? error.message : error,
     );
@@ -382,54 +294,67 @@ const sendCryptos = async (userData: UserData, onlyDeviceId?: boolean) => {
 
 const handleSyncSettings = async (
   message: CryptosWebSocketMessage<"sentByApp">,
-  userData: UserData,
+  userDevice: NonNullable<ReturnType<typeof users.getUser>>,
 ) => {
   if (message.type !== "sync-settings") return;
+  const userId = userDevice.userId;
 
-  {
-    const msg: CryptosWebSocketMessage<"sentByServer"> = {
-      type: "synced",
-    };
+  let existing = users.getAdditionalData("cryptoSettings")?.[userId];
 
-    for (let i = 0; i < 3; i++) {
-      if (users[userData.userId]?.cryptoSettings) break;
+  if (!existing) {
+    const { data } = await fetchFromTable({
+      table: "CryptosSettings",
+      match: { userId },
+    });
 
-      await new Promise((res) => setTimeout(res, 500));
-    }
+    existing =
+      data?.[0] ??
+      getDefaultCryptoSettings({ userId, deviceId: userDevice.deviceId });
 
-    const existing = users[userData.userId]?.cryptoSettings;
+    users.setAdditionalData("cryptoSettings", (prev) => {
+      return { ...prev, [userId]: existing } as typeof prev;
+    });
+  }
 
-    const existingDate = existing ? new Date(existing.updatedAt).getTime() : 0;
-    const incomingDate = message.settings?.updatedAt
-      ? new Date(message.settings.updatedAt).getTime()
-      : 0;
+  const existingDate = new Date(existing.updatedAt).getTime();
+  const incomingDate = message.settings?.updatedAt
+    ? new Date(message.settings.updatedAt).getTime()
+    : 0;
 
-    if (existingDate > incomingDate) {
-      msg.settings = existing;
-    } else if (incomingDate > existingDate && message.settings) {
-      const diff = getDiff(existing, message.settings);
+  if (existingDate > incomingDate) {
+    message.settings = existing;
+  } else if (incomingDate > existingDate && message.settings) {
+    const diff = getDiff(existing, message.settings);
 
-      if (Object.keys(diff).length >= 0)
-        await updateInTable("CryptosSettings", diff);
-    }
+    if (Object.keys(diff).length >= 0)
+      await updateInTable("CryptosSettings", diff);
+  }
 
-    sendMessage(msg, userData.userId);
+  users.setTimeout(
+    () => {
+      users.sendMessageToUser(
+        { type: "synced", settings: message.settings },
+        userId,
+      );
+    },
+    500,
+    "sync-settings-timeout-" + userId,
+  );
 
-    const existingNotifi =
-      users[userData.userId]?.cryptoSettings?.notifications;
-    const incomingNotifi = message.settings?.notifications;
+  const existingNotifi =
+    users.getAdditionalData("cryptoSettings")?.[userId]?.notifications;
+  const incomingNotifi = message.settings?.notifications;
 
-    if (!existingNotifi || !incomingNotifi) return;
+  if (!existingNotifi || !incomingNotifi) return;
 
-    if (Object.keys(getDiff(existingNotifi, incomingNotifi)).length > 0) {
-      initUserInterval(userData.userId);
-    }
+  if (Object.keys(getDiff(existingNotifi, incomingNotifi)).length > 0) {
+    // initUserInterval(userId);
   }
 };
 
 const handleAddCrypto = async (
   message: CryptosWebSocketMessage<"sentByApp">,
-  userData: UserData,
+  userData: ReturnType<(typeof users)["createUser"]>,
 ) => {
   if (message.type !== "add-crypto") return;
 
@@ -488,13 +413,13 @@ const handleAddCrypto = async (
 
 const handleUpdateCrypto = async (
   message: CryptosWebSocketMessage<"sentByApp">,
-  userData: UserData,
+  userDevice: NonNullable<ReturnType<typeof users.getUser>>,
 ) => {
   if (message.type !== "update-crypto") return;
 
   try {
     const { data: cryptos } = await fetchFromTable({
-      match: { userId: userData.userId },
+      match: { userId: userDevice.userId },
       table: "Cryptos",
     });
 
@@ -514,15 +439,15 @@ const handleUpdateCrypto = async (
             ? existing.datePurchased
             : new Date().toISOString(),
       },
-      { id: existing.id, userId: userData.userId },
+      { id: existing.id, userId: userDevice.userId },
     );
     if (Array.isArray(res.data) && res.data.length === 0) return;
 
-    sendCryptos(userData);
+    sendCryptos(userDevice);
   } catch (error) {
     showError(
       "Failed to update crypto for user:",
-      userData.userId,
+      userDevice.userId,
       "crypto:",
       message.crypto,
       "error:",
@@ -533,23 +458,23 @@ const handleUpdateCrypto = async (
 
 const handleDeleteCrypto = async (
   message: CryptosWebSocketMessage<"sentByApp">,
-  userData: UserData,
+  userDevice: NonNullable<ReturnType<typeof users.getUser>>,
 ) => {
   if (message.type !== "delete-crypto") return;
 
   try {
-    const res = await deleteInTable(userData.userId, "Cryptos", {
+    const res = await deleteInTable(userDevice.userId, "Cryptos", {
       symbol: message.symbol,
-      userId: userData.userId,
+      userId: userDevice.userId,
     });
 
     if (!res.success) return;
 
-    sendCryptos(userData);
+    sendCryptos(userDevice);
   } catch (error) {
     showError(
       "Failed to delete crypto for user:",
-      userData.userId,
+      userDevice.userId,
       "symbol:",
       message.symbol,
       "error:",
@@ -559,20 +484,16 @@ const handleDeleteCrypto = async (
 };
 
 const handleMessage = async (
-  ws: WebSocket,
   message: string,
-  userData: UserData,
+  userDevice: ReturnType<(typeof users)["createUser"]>,
 ) => {
   try {
     const parsedMessage: CryptosWebSocketMessage<"sentByApp"> =
       JSON.parse(message);
 
-    if (
-      parsedMessage.type !== "init" &&
-      (!userData.userId || !userData.deviceId)
-    ) {
+    if (parsedMessage.type !== "init" && !userDevice.isValidUserData()) {
       showError("Received message before initialization:", message);
-      ws.close(4001, "Initialization required");
+      userDevice.handleClose(4001, "Initialization required");
       return;
     }
 
@@ -585,78 +506,34 @@ const handleMessage = async (
               "Initialization message missing userId or deviceId:",
               message,
             );
-            ws.close(4002, "Invalid initialization data");
+            userDevice.handleClose(4002, "Invalid initialization data");
             return;
           }
 
-          userData.userId = userId;
-          userData.deviceId = deviceId;
-          clearTimeouts(userData);
+          userDevice.setUserData({ userId, deviceId });
+          users.addDeviceUser(userDevice);
 
-          const pingInterval = setInterval(() => {
-            if (ws.readyState !== WebSocket.OPEN)
-              return handleClose(ws, userData);
-
-            const device = users[userId]?.devices?.[deviceId];
-            if (!device) {
-              handleClose(ws, userData);
-              clearInterval(pingInterval);
-              return;
-            }
-
-            sendMessage({ type: "ping" }, userId, deviceId);
-            device.pingTimeout = setTimeout(
-              () => handleClose(ws, userData),
-              10000,
-            );
-          }, 30000);
-
-          const device = users[userId]?.devices?.[deviceId];
-          if (device && device.ws !== ws) device.ws.terminate();
-
-          const { data: settings } = await fetchFromTable({
-            table: "CryptosSettings",
-            match: { userId: userData.userId },
-          });
-
-          users[userId] = {
-            ...(users[userId] || {}),
-            cryptoSettings:
-              settings?.[0] ??
-              users[userId]?.cryptoSettings ??
-              getDefaultCryptoSettings(userData),
-          };
-
-          users[userId].devices = {
-            ...(users[userId].devices || {}),
-            [deviceId]: {
-              ws,
-              pingInterval,
-              pingTimeout: null,
-            },
-          };
-
-          sendMessage({ type: "init-success" }, userId, deviceId);
+          userDevice.sendMessage({ type: "init-success" });
         }
         break;
 
       case "sync-settings":
-        handleSyncSettings(parsedMessage, userData);
+        handleSyncSettings(parsedMessage, userDevice);
         break;
       case "pong":
-        clearTimeouts(userData, "timeout");
+        userDevice.pongReceived();
         break;
       case "add-crypto":
-        handleAddCrypto(parsedMessage, userData);
+        handleAddCrypto(parsedMessage, userDevice);
         break;
       case "update-crypto":
-        handleUpdateCrypto(parsedMessage, userData);
+        handleUpdateCrypto(parsedMessage, userDevice);
         break;
       case "delete-crypto":
-        handleDeleteCrypto(parsedMessage, userData);
+        handleDeleteCrypto(parsedMessage, userDevice);
         break;
       case "get-cryptos":
-        sendCryptos(userData, true);
+        sendCryptos(userDevice, true);
         break;
     }
   } catch (error) {
@@ -668,13 +545,10 @@ const handleMessage = async (
 };
 
 const handleConnection = (ws: WebSocket) => {
-  const userData = {
-    userId: "",
-    deviceId: "",
-  };
+  const user = users.createUser(ws);
 
   ws.on("message", (message) => {
-    handleMessage(ws, message.toString(), userData);
+    handleMessage(message.toString(), user);
   });
 };
 

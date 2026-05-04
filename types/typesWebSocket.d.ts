@@ -11,6 +11,12 @@ import type { CryptosSettings } from "@types";
 import type { LanguagesSupported } from "./typesTranslations";
 import { SelectedCryptos } from "@common";
 
+export type CommonUserDataWS = {
+  userId: string;
+  deviceId: string;
+  isClosing?: boolean;
+};
+
 export type WebSocketMessage<T extends "sentByApp" | "sentByServer"> =
   T extends "sentByApp"
     ?
@@ -28,7 +34,6 @@ export type WebSocketMessage<T extends "sentByApp" | "sentByServer"> =
     :
         | {
             type: "init-success" | "init-failure";
-            message: string;
           }
         | {
             type: "not-user-id";
