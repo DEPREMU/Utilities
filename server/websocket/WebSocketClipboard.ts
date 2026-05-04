@@ -1,70 +1,161 @@
-import chalk from "chalk";
-import { showError, showInfo } from "../functions/logger.ts";
-import { WebSocket, WebSocketServer } from "ws";
 import {
+  updateInTable,
   fetchFromTable,
   insertIntoTable,
-  updateInTable,
 } from "../database/functions.ts";
+import chalk from "chalk";
+import { Users } from "./WebSocketHandling.ts";
+import { showError, showInfo } from "../functions/logger.ts";
+import { WebSocket, WebSocketServer } from "ws";
 import { ClipboardSync, ClipboardWebSocketMessage } from "@types";
-
-type DataUser = {
-  userId: string;
-  deviceId: string;
-  isClosing: boolean;
-};
 
 let idIntervalClipboard: NodeJS.Timeout | number | null = null;
 
-const usersClipboard: {
-  [userId: string]: {
-    [deviceId: string]: {
-      ws: WebSocket;
-      lastContent: string | null;
-      pingTimeoutId: NodeJS.Timeout | number | null;
-      pingIntervalId: NodeJS.Timeout | number | null;
-    };
-  };
-} = {};
+const usersClipboard = new Users<
+  Record<string, unknown>,
+  ClipboardWebSocketMessage<"sentByServer">,
+  { lastItem: string }
+>();
 
-const deleteDevice = (data: { userId: string; deviceId: string }) => {
-  if (!usersClipboard[data.userId]) return;
+const handleInit = (
+  message: ClipboardWebSocketMessage<"sentByApp">,
+  userDevice: NonNullable<ReturnType<typeof usersClipboard.getUser>>,
+) => {
+  if (message.type !== "init") return;
 
-  delete usersClipboard[data.userId]?.[data.deviceId];
-  if (Object.keys(usersClipboard[data.userId]).length > 0) return;
+  if (!message.userId || !message.deviceId) {
+    userDevice.handleClose(1000, "Invalid init data");
+    return;
+  }
+  userDevice.setUserData({
+    userId: message.userId,
+    deviceId: message.deviceId,
+  });
+  usersClipboard.addDeviceUser(userDevice);
 
-  delete usersClipboard[data.userId];
+  showInfo(
+    chalk.green("New clipboard client connected:"),
+    chalk.yellow(userDevice.userId),
+    chalk.green("Device ID:"),
+    chalk.yellow(userDevice.deviceId),
+  );
 };
 
-const cleanDeviceUserData = (data: DataUser) => {
-  if (!usersClipboard[data.userId]?.[data.deviceId]) return;
+const handleAddNewItem = async (
+  message: ClipboardWebSocketMessage<"sentByApp">,
+  userDevice: NonNullable<ReturnType<typeof usersClipboard.getUser>>,
+) => {
+  if (message.type !== "add-new-item") return;
 
-  const pingIntervalId =
-    usersClipboard[data.userId][data.deviceId].pingIntervalId;
-  if (pingIntervalId) clearInterval(pingIntervalId);
-
-  const pingTimeoutId =
-    usersClipboard[data.userId][data.deviceId].pingTimeoutId;
-  if (pingTimeoutId) clearTimeout(pingTimeoutId);
-
-  usersClipboard[data.userId][data.deviceId].pingTimeoutId = null;
-  usersClipboard[data.userId][data.deviceId].pingIntervalId = null;
-};
-
-const handleClose = (data: DataUser, ws?: WebSocket) => {
   try {
-    if (ws && ws.readyState !== WebSocket.CLOSED && !data.isClosing) {
-      data.isClosing = true;
-      ws.close();
-      ws.removeAllListeners();
+    const value: ClipboardSync = {
+      userId: userDevice.userId,
+      deleted: false,
+      content: message.content,
+      deviceId: userDevice.deviceId,
+      createdAt: new Date().toISOString(),
+    };
+
+    const { data: existsData } = await fetchFromTable({
+      table: "ClipboardSync",
+      match: {
+        userId: userDevice.userId,
+        content: message.content,
+        deviceId: userDevice.deviceId,
+      },
+      limit: 1,
+      orderBy: "createdAt",
+      orderDirection: "DESC",
+    });
+    let id = existsData?.[0].id as string;
+
+    if (id) {
+      updateInTable(
+        "ClipboardSync",
+        { deleted: false, createdAt: new Date().toISOString() },
+        { id },
+      );
+    } else {
+      const { data: insertedData } = await insertIntoTable(
+        "ClipboardSync",
+        value,
+      );
+      if (!insertedData || !insertedData.length) return;
+      id = insertedData[0].id as string;
     }
+
+    usersClipboard.sendMessageToUser(
+      {
+        id,
+        type: "new-clipboard-item",
+        content: message.content,
+      },
+      userDevice.userId,
+      (device) => {
+        device.setAdditionalData("lastItem", message.content);
+
+        return true;
+      },
+    );
   } catch {
     // Ignore
   }
+};
 
-  cleanDeviceUserData(data);
+const onMessage = async (
+  buffer: WebSocket.RawData,
+  userDevice: NonNullable<ReturnType<typeof usersClipboard.getUser>>,
+) => {
+  try {
+    const message = JSON.parse(
+      buffer.toString(),
+    ) as ClipboardWebSocketMessage<"sentByApp">;
 
-  deleteDevice(data);
+    if (!userDevice.userId && message.type !== "init")
+      userDevice.handleClose(1000, "Must initialize first");
+
+    switch (message.type) {
+      case "init":
+        handleInit(message, userDevice);
+        break;
+      case "add-new-item":
+        handleAddNewItem(message, userDevice);
+        break;
+      case "pong": {
+        userDevice.pongReceived();
+        break;
+      }
+      default:
+        showInfo(chalk.yellow("Unknown clipboard message type:"), message);
+        break;
+    }
+  } catch (error) {
+    showError(chalk.red("Error handling Clipboard WebSocket message:"), error);
+  }
+};
+
+const onConnection = (wsClipboard: WebSocket) => {
+  const userDevice = usersClipboard.createUser(wsClipboard);
+
+  wsClipboard.on("message", (buffer) => onMessage(buffer, userDevice));
+
+  wsClipboard.on("close", () => {
+    showInfo(
+      chalk.red("Clipboard client disconnected:"),
+      chalk.yellow(userDevice.userId),
+      chalk.green("Device ID:"),
+      chalk.yellow(userDevice.deviceId),
+    );
+    userDevice.handleClose();
+  });
+
+  wsClipboard.on("error", (error) => {
+    showInfo(
+      "Clipboard WebSocket error:",
+      error instanceof Error ? error.message : error,
+    );
+    userDevice.handleClose(1000, "WebSocket error");
+  });
 };
 
 export const initWebSocketClipboard = () => {
@@ -72,43 +163,39 @@ export const initWebSocketClipboard = () => {
     const wss = new WebSocketServer({ noServer: true });
 
     if (idIntervalClipboard) clearInterval(idIntervalClipboard);
-    idIntervalClipboard = setInterval(() => {
-      const users = Object.entries(usersClipboard || {});
+    idIntervalClipboard = setInterval(async () => {
+      const users = Object.entries(usersClipboard.getAllUsers());
 
-      users?.forEach(async ([userId, devices]) => {
+      users?.forEach(async ([userId, data]) => {
         try {
+          if (Object.keys(data.devices).length === 0) return;
+
           const fetchedData = await fetchFromTable({
             limit: 1,
             table: "ClipboardSync",
-            match: { userId, deleted: false },
+            match: { userId: userId, deleted: false },
             orderBy: "createdAt",
             orderDirection: "DESC",
           });
-          const dataLang = fetchedData?.data;
-          if (!dataLang || dataLang.length === 0) return;
 
-          const lastItem: ClipboardSync = dataLang[0];
-
+          const lastItem = fetchedData?.data?.[0];
           if (!lastItem) return;
 
-          Object.entries(devices).forEach(([deviceId, device]) => {
-            try {
-              if (device.lastContent === lastItem.content) return;
-              if (device.ws.readyState !== WebSocket.OPEN) {
-                deleteDevice({ userId, deviceId });
-                return;
-              }
-              const message: ClipboardWebSocketMessage<"sentByServer"> = {
-                id: lastItem.id as string,
-                type: "new-clipboard-item",
-                content: lastItem.content,
-              };
-              device.ws.send(JSON.stringify(message));
-              usersClipboard[userId][deviceId].lastContent = lastItem.content;
-            } catch {
-              // Ignore
-            }
-          });
+          usersClipboard.sendMessageToUser(
+            {
+              id: lastItem.id as string,
+              type: "new-clipboard-item",
+              content: lastItem.content,
+            },
+            userId,
+            (device) => {
+              if (device.getAdditionalData("lastItem") === lastItem.content)
+                return false;
+
+              device.setAdditionalData("lastItem", lastItem.content);
+              return true;
+            },
+          );
         } catch (error) {
           showError(
             chalk.red("Error sending clipboard data via WebSocket:"),
@@ -116,186 +203,9 @@ export const initWebSocketClipboard = () => {
           );
         }
       });
-    }, 1000);
+    }, 750);
 
-    wss.on("connection", (connectionClipboard) => {
-      let data: DataUser = {
-        userId: "",
-        deviceId: "",
-        isClosing: false,
-      };
-
-      connectionClipboard.on("message", async (buffer) => {
-        try {
-          const message = JSON.parse(
-            buffer.toString(),
-          ) as ClipboardWebSocketMessage<"sentByApp">;
-
-          switch (message.type) {
-            case "init": {
-              if (!message.userId || !message.deviceId) {
-                handleClose(data, connectionClipboard);
-                return;
-              }
-              data = {
-                userId: message.userId,
-                deviceId: message.deviceId,
-                isClosing: false,
-              };
-
-              showInfo(
-                chalk.green("New clipboard client connected:"),
-                chalk.yellow(data.userId),
-                chalk.green("Device ID:"),
-                chalk.yellow(data.deviceId),
-              );
-
-              const existingDevice =
-                usersClipboard[data.userId]?.[data.deviceId];
-              if (existingDevice) {
-                cleanDeviceUserData(data);
-
-                if (existingDevice.ws !== connectionClipboard)
-                  existingDevice.ws.terminate();
-              }
-
-              const pingIntervalId = setInterval(() => {
-                if (!usersClipboard[data.userId]?.[data.deviceId]) {
-                  clearInterval(pingIntervalId);
-                  return;
-                }
-
-                usersClipboard[data.userId][data.deviceId].pingTimeoutId =
-                  setTimeout(() => {
-                    showInfo(
-                      chalk.red("Terminating unresponsive clipboard client:"),
-                      chalk.yellow(data.userId),
-                      chalk.green("-"),
-                      chalk.yellow(data.deviceId),
-                    );
-                    handleClose(data, connectionClipboard);
-                  }, 10000);
-                connectionClipboard.send(JSON.stringify({ type: "ping" }));
-              }, 30000);
-
-              usersClipboard[data.userId] = {
-                ...usersClipboard[data.userId],
-                [data.deviceId]: {
-                  ws: connectionClipboard,
-                  lastContent: null,
-                  pingTimeoutId: null,
-                  pingIntervalId,
-                },
-              };
-              break;
-            }
-            case "add-new-item": {
-              const value: ClipboardSync = {
-                userId: data.userId,
-                deleted: false,
-                content: message.content,
-                deviceId: data.deviceId,
-                createdAt: new Date().toISOString(),
-              };
-
-              const { data: existsData } = await fetchFromTable({
-                table: "ClipboardSync",
-                match: {
-                  userId: data.userId,
-                  deviceId: data.deviceId,
-                  content: message.content,
-                },
-                limit: 1,
-                orderBy: "createdAt",
-                orderDirection: "DESC",
-              });
-              let id = existsData?.[0].id as string;
-
-              if (id) {
-                updateInTable(
-                  "ClipboardSync",
-                  {
-                    createdAt: new Date().toISOString(),
-                  },
-                  {
-                    id,
-                  },
-                );
-              } else {
-                const { data: insertedData } = await insertIntoTable(
-                  "ClipboardSync",
-                  value,
-                );
-                if (!insertedData || !insertedData.length) break;
-                id = insertedData[0].id as string;
-              }
-
-              const devices = usersClipboard[data.userId] || {};
-
-              Object.entries(devices).forEach(([deviceId, device]) => {
-                try {
-                  if (device.lastContent === message.content) return;
-                  if (device.ws.readyState !== WebSocket.OPEN) {
-                    deleteDevice({ userId: data.userId, deviceId });
-                    return;
-                  }
-                  const msg: ClipboardWebSocketMessage<"sentByServer"> = {
-                    id,
-                    type: "new-clipboard-item",
-                    content: message.content,
-                  };
-                  device.ws.send(JSON.stringify(msg));
-                } catch {
-                  // Ignore
-                }
-              });
-              devices[data.deviceId].lastContent = message.content;
-
-              break;
-            }
-            case "pong": {
-              if (!usersClipboard[data.userId]) break;
-              if (!usersClipboard[data.userId][data.deviceId]) break;
-
-              const timeoutId =
-                usersClipboard[data.userId][data.deviceId].pingTimeoutId;
-              if (timeoutId) clearTimeout(timeoutId);
-
-              usersClipboard[data.userId][data.deviceId].pingTimeoutId = null;
-              break;
-            }
-            default:
-              showInfo(
-                chalk.yellow("Unknown clipboard message type:"),
-                message,
-              );
-              break;
-          }
-        } catch (error) {
-          showError(
-            chalk.red("Error handling Clipboard WebSocket message:"),
-            error,
-          );
-        }
-      });
-
-      connectionClipboard.on("close", () => {
-        showInfo(
-          chalk.red("Clipboard client disconnected:"),
-          chalk.yellow(data.userId),
-          chalk.green("Device ID:"),
-          chalk.yellow(data.deviceId),
-        );
-      });
-
-      connectionClipboard.on("error", (error) => {
-        showInfo(
-          "Clipboard WebSocket error:",
-          error instanceof Error ? error.message : error,
-        );
-        handleClose(data, connectionClipboard);
-      });
-    });
+    wss.on("connection", onConnection);
 
     return wss;
   } catch (error) {

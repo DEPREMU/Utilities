@@ -1,172 +1,112 @@
 import chalk from "chalk";
+import { Users } from "./WebSocketHandling.ts";
 import { updateInTable } from "../database/functions.ts";
+import { WebSocketMessage } from "@types";
 import { showError, showInfo } from "../functions/logger.ts";
 import WebSocket, { WebSocketServer } from "ws";
-import { WebSocketMessage, ReasonNotification } from "@types";
 
-type Timeout = NodeJS.Timeout | number | null;
-
-type UsersWS = {
-  [userId: string]: {
-    [deviceId: string]: {
-      ws: WebSocket;
-      intervalsId: Record<ReasonNotification, Timeout> | null;
-      pingTimeoutId: Timeout;
-      pingIntervalId: Timeout;
-    };
-  };
-};
-
-const users: UsersWS = {};
+const users = new Users<
+  Record<string, unknown>,
+  WebSocketMessage<"sentByServer">
+>();
 
 const handleInitWebSocket = (
   data: WebSocketMessage<"sentByApp">,
-  ws: WebSocket,
+  userDevice: NonNullable<ReturnType<typeof users.getUser>>,
 ): void => {
   if (data.type !== "init") return;
 
   try {
-    const pingIntervalIdOld =
-      users[data.userId]?.[data.deviceId]?.pingIntervalId;
-    if (pingIntervalIdOld) clearInterval(pingIntervalIdOld);
+    userDevice.clearAllTimers();
 
-    const pingIntervalId = setInterval(() => {
-      users[data.userId][data.deviceId].pingTimeoutId = setTimeout(() => {
-        showInfo(
-          chalk.red("Terminating unresponsive client:"),
-          chalk.yellow(data.userId),
-        );
-        ws.close?.();
-      }, 10000);
-      ws.send(JSON.stringify({ type: "ping" }));
-    }, 30000);
+    userDevice.setUserData({
+      userId: data.userId,
+      deviceId: data.deviceId,
+    });
+    users.addDeviceUser(userDevice);
 
-    if (!users[data.userId] || !users[data.userId][data.deviceId]) {
-      users[data.userId] = {
-        ...(users[data.userId] || {}),
-        [data.deviceId]: {
-          ws,
-          intervalsId: null,
-          pingTimeoutId: null,
-          pingIntervalId,
-        },
-      };
-    } else {
-      users[data.userId][data.deviceId].pingIntervalId = pingIntervalId;
-      if (users[data.userId][data.deviceId].pingTimeoutId) {
-        clearTimeout(users[data.userId][data.deviceId].pingTimeoutId as number);
-      }
-    }
-
-    if (users[data.userId][data.deviceId].ws !== ws) {
-      users[data.userId][data.deviceId].ws.terminate();
-      users[data.userId][data.deviceId].ws = ws;
-    }
-
-    const message: WebSocketMessage<"sentByServer"> = {
-      type: "init-success",
-      message: "WebSocket initialized successfully",
-    };
-    ws.send(JSON.stringify(message));
+    userDevice.sendMessage({ type: "init-success" });
   } catch (error) {
-    showError(chalk.red("Error in handleInitWebSocket:"), error);
+    showError(
+      chalk.red("Error in handleInitWebSocket:"),
+      error instanceof Error ? error.message : error,
+    );
   }
 };
 
-const handleClose = (userId: string, deviceId: string, ws: WebSocket) => {
-  ws.removeAllListeners();
+const onMessage = (
+  buffer: WebSocket.RawData,
+  userDevice: NonNullable<ReturnType<typeof users.getUser>>,
+) => {
+  try {
+    const message = JSON.parse(
+      buffer.toString(),
+    ) as WebSocketMessage<"sentByApp">;
 
-  const deviceObj = users[userId]?.[deviceId];
-  if (!deviceObj) return;
-
-  const pingTimeoutId = deviceObj.pingTimeoutId;
-  deviceObj.pingTimeoutId = null;
-  if (pingTimeoutId) clearTimeout(pingTimeoutId);
-
-  const pingIntervalId = deviceObj.pingIntervalId;
-  deviceObj.pingIntervalId = null;
-  if (pingIntervalId) clearInterval(pingIntervalId);
-
-  const intervalsId = deviceObj.intervalsId;
-  deviceObj.intervalsId = null;
-  if (!intervalsId) return;
-
-  Object.values(intervalsId).forEach((intervalId) => {
-    if (intervalId) clearInterval(intervalId);
-  });
+    switch (message.type) {
+      case "init":
+        handleInitWebSocket(message, userDevice);
+        break;
+      case "language-change":
+        updateInTable(
+          "UserConfig",
+          { language: message.language },
+          { userId: userDevice.userId },
+        );
+        break;
+      case "pong":
+        userDevice.pongReceived();
+        break;
+      default:
+        showInfo(chalk.yellow("Unknown message type:"), message);
+        break;
+    }
+  } catch (error) {
+    showError(
+      chalk.red("Error handling WebSocket message:"),
+      error instanceof Error ? error.message : error,
+    );
+  }
 };
 
 const connectionWss = (ws: WebSocket) => {
   let isErrorClose = false;
+  const userDevice = users.createUser(ws);
 
-  let userId: string;
-  let deviceId: string;
   showInfo(chalk.green("New client connected"));
 
   try {
-    ws.on("message", (message) => {
-      try {
-        const data = JSON.parse(
-          message.toString(),
-        ) as WebSocketMessage<"sentByApp">;
-
-        switch (data.type) {
-          case "init":
-            handleInitWebSocket(data, ws);
-            userId = data.userId;
-            deviceId = data.deviceId;
-
-            break;
-          case "language-change":
-            if (!users[userId]) return;
-            updateInTable(
-              "UserConfig",
-              { language: data.language },
-              { userId },
-            );
-            break;
-          case "pong": {
-            if (!users[userId] || !users[userId][deviceId]) return ws.close();
-
-            const timeoutId = users[userId][deviceId].pingTimeoutId;
-            users[userId][deviceId].pingTimeoutId = null;
-            if (timeoutId) clearTimeout(timeoutId);
-
-            break;
-          }
-          default:
-            showInfo(chalk.yellow("Unknown message type:"), data);
-            break;
-        }
-      } catch (error) {
-        showError(chalk.red("Error handling WebSocket message:"), error);
-      }
+    ws.on("message", (buffer) => {
+      onMessage(buffer, userDevice);
     });
 
     ws.on("close", (code, reason) => {
       if (!isErrorClose)
         showInfo(
           chalk.red("Client"),
-          chalk.yellow(userId),
+          chalk.yellow(userDevice.userId),
           chalk.red("disconnected:"),
           code,
           chalk.yellow(reason.toString()),
         );
-      handleClose(userId, deviceId, ws);
+      userDevice.handleClose(code, reason.toString());
     });
 
     ws.on("error", (error) => {
       isErrorClose = true;
       showInfo(
         chalk.red("WebSocket error for client:"),
-        chalk.yellow(userId),
+        chalk.yellow(userDevice.userId),
         chalk.red("-"),
         error,
       );
       ws.close();
     });
   } catch (error) {
-    showError(chalk.red("Error in connectionWss:"), error);
+    showError(
+      chalk.red("Error in connectionWss:"),
+      error instanceof Error ? error.message : error,
+    );
   }
 };
 
