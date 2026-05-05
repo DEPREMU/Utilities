@@ -89,6 +89,11 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     youAreNotLoggedInMessage: string;
     loadMore: string;
     user: string;
+    DownDetector: {
+      title: string;
+      noDataAvailable: string;
+      emptyDescription: string;
+    };
     network: {
       networkInfo: {
         title: string;
@@ -233,10 +238,6 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     noUpdates: string;
     downDetector: string;
     addNewWebPage: string;
-    downDetectorTitle: string;
-    visitWebsite: string;
-    downDetectorEmptyDescription: string;
-    noDownDetectorData: string;
     placeholderNewWebPage: string;
     sendNotification: string;
     pleaseEnterWebPageURL: string;
@@ -652,6 +653,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       notificationDetailsNoStreamers: string;
     };
     common: {
+      visitWebsite: string;
       refreshEvery: `${string}{{humanizedText}}${string}`;
       syncing: string;
       content: string;

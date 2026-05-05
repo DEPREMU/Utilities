@@ -7,6 +7,7 @@ import {
   ImageStyle,
   LayoutRectangle,
   LayoutChangeEvent,
+  DimensionValue,
 } from "react-native";
 import Animated, {
   Easing,
@@ -18,27 +19,38 @@ import Animated, {
 } from "react-native-reanimated";
 import { memoDeep } from "@utils";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 
 interface SkeletonLoadingProps {
   showChildren: boolean;
   style?: StyleProp<ViewStyle | TextStyle | ImageStyle>;
+  width?: DimensionValue;
+  height?: DimensionValue;
   children?: React.ReactNode;
   duration?: number;
 }
 
 const SkeletonLoading: React.FC<SkeletonLoadingProps> = ({
   style,
+  width,
+  height,
   children,
   showChildren,
   duration = 1000,
 }) => {
-  const progress = useSharedValue<number>(-100);
+  const progress = useSharedValue<number>(-(height || 100));
   const [layout, setLayout] = useState<LayoutRectangle | null>(null);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: progress.value }],
   }));
+
+  const dimensionStyle = useMemo(() => {
+    const dimensionStyles: StyleProp<ViewStyle> = {};
+    if (width) dimensionStyles.width = width;
+    if (height) dimensionStyles.height = height;
+    return dimensionStyles;
+  }, [width, height]);
 
   const changeLayoutRef = useRef((event: LayoutChangeEvent) => {
     const layoutLocal = event.nativeEvent.layout;
@@ -71,7 +83,7 @@ const SkeletonLoading: React.FC<SkeletonLoadingProps> = ({
   if (!layout) return <View style={style} onLayout={changeLayoutRef.current} />;
 
   return (
-    <View style={[styles.overflowHidden, style]}>
+    <View style={[styles.overflowHidden, dimensionStyle, style]}>
       <Animated.View style={[styles.container, animatedStyle]}>
         <LinearGradient
           colors={[
@@ -96,6 +108,4 @@ const styles = StyleSheet.create({
   overflowHidden: { overflow: "hidden", minHeight: 10 },
 });
 
-const SkeletonLoadingMemo = memoDeep(SkeletonLoading);
-
-export default SkeletonLoadingMemo;
+export default memoDeep(SkeletonLoading);

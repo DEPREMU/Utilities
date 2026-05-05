@@ -1,51 +1,15 @@
 import { useMemo } from "react";
-import { useTheme } from "@/context/ThemeContext";
-import { useResponsiveLayout } from "@/context/LayoutContext";
-import { DimensionValue, StyleSheet } from "react-native";
+import { useTheme } from "@context/ThemeContext";
+import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
-const useStylesDownDetectorScreen = () => {
-  const { getCommonStyles, getResponsiveValue } = useResponsiveLayout();
+export const useStylesDownDetectorScreen = () => {
   const { colors } = useTheme();
+  const { getCommonStyles, getResponsiveValue, texts } = useResponsiveLayout();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          maxWidth: 1000,
-          alignSelf: "center",
-        },
-        containerFlatList: {
-          flex: 1,
-          width: "100%",
-        },
-        contentContainer: {
-          padding: getResponsiveValue(8, 12, 16, 20),
-          gap: getResponsiveValue(12, 16, 20, 24),
-          paddingBottom: getResponsiveValue(20, 30, 40, 50),
-        },
-        card: {
-          ...getCommonStyles(["shadow", "mainContainer"]),
-          marginVertical: getResponsiveValue(4, 6, 8, 10),
-          marginHorizontal: getResponsiveValue(2, 4, 6, 8),
-          borderRadius: getResponsiveValue(8, 10, 12, 16),
-          backgroundColor: colors.background,
-          borderWidth: 1,
-          alignSelf: "center",
-          width: getResponsiveValue<DimensionValue>("95%", "95%", "95%", "80%"),
-          alignItems: undefined,
-          borderColor: colors.border + "40",
-        },
-        titleCard: {
-          minHeight: getResponsiveValue(30, 40, 50, 60),
-          paddingBottom: getResponsiveValue(8, 10, 12, 14),
-          minWidth: getResponsiveValue(80, 100, 120, 140),
-        },
-        contentCard: {
-          width: "100%",
-          minHeight: getResponsiveValue(80, 100, 130, 170),
-          padding: 0,
-        },
         contentText: {
           lineHeight: getResponsiveValue(20, 22, 24, 26),
           color: colors.text,
@@ -80,16 +44,20 @@ const useStylesDownDetectorScreen = () => {
           justifyContent: "space-between",
           alignItems: "center",
         },
-        buttonText: {
-          textAlign: "center",
-          fontSize: getResponsiveValue(14, 16, 18, 20),
-          color: colors.background,
+        deleteFab: {
+          ...getCommonStyles("FAB").FAB,
+          top: 5,
+          right: 5,
+          bottom: undefined,
         },
+        ...texts,
+        ...getCommonStyles("container"),
+        ...getCommonStyles("scrollView"),
+        ...getCommonStyles("rowSwitchText"),
+        ...getCommonStyles("sectionContainer"),
       }),
-    [getCommonStyles, getResponsiveValue, colors],
+    [getCommonStyles, getResponsiveValue, colors, texts],
   );
 
   return { styles, colors };
 };
-
-export default useStylesDownDetectorScreen;

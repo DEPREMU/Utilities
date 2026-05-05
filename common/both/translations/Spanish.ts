@@ -477,11 +477,12 @@ export const esApp: typeLanguages = {
   },
   downDetector: "Detector de caídas",
   addNewWebPage: "Agregar nueva página web",
-  downDetectorTitle: "Detector de caídas",
-  visitWebsite: "Visitar sitio web",
-  downDetectorEmptyDescription:
-    "No se encontraron sitios web monitorizados. Agrega una nueva página web para comenzar a monitorear su estado.",
-  noDownDetectorData: "No hay datos del Detector de caídas disponibles",
+  DownDetector: {
+    title: "Detector de caídas",
+    emptyDescription:
+      "No se encontraron sitios web monitorizados. Agrega una nueva página web para comenzar a monitorear su estado.",
+    noDataAvailable: "No hay datos del Detector de caídas disponibles",
+  },
   sendNotification: "Enviar notificación",
   placeholderNewWebPage: "Ingresa la URL de la página web a monitorizar",
   pleaseEnterWebPageURL: "Por favor, ingresa la URL de la página web",
@@ -605,6 +606,7 @@ export const esApp: typeLanguages = {
   },
   common: {
     refreshEvery: "Actualizar cada: {{humanizedText}}.",
+    visitWebsite: "Visitar sitio web",
     syncing: "Sincronizando...",
     yes: "Sí",
     no: "No",
