@@ -1,121 +1,114 @@
-import Button from "@/common/components/Button/screens";
-import { View } from "react-native";
-import { Tables } from "@types";
-import { modalRef } from "@refs";
+import Animated, {
+  FadeOutUp,
+  FadeInDown,
+  FadeInLeft,
+  FadeOutRight,
+  LinearTransition,
+} from "react-native-reanimated";
+import {
+  Text,
+  Button,
+  Switch,
+  TextInput,
+  ActivityIndicator,
+} from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
-import useStylesAddNewWebPage from "@screens/DownDetector/styles/useStylesAddNewWebPage";
-import { Switch, Text, TextInput } from "react-native-paper";
-import React, { useCallback, useRef, useState } from "react";
-import { fetchToServer, sessionManager, storageManagement } from "@utils";
+import { useDownDetector } from "../services/zustand";
+import { useStylesAddNewWebPage } from "@screens/DownDetector/styles/useStylesAddNewWebPage";
+import React, { useCallback, useMemo } from "react";
 
-interface AddNewWebPageScreenProps {
-  addNewItem: (item: Tables["DownDetector"]) => void;
-  downDetectorData: Tables["DownDetector"][] | null;
-}
-
-const tableName: keyof Tables = "DownDetector";
-const AddNewWebPageScreen: React.FC<AddNewWebPageScreenProps> = ({
-  addNewItem,
-  downDetectorData,
-}) => {
+const AddNewWebPageScreen: React.FC = () => {
+  const { t } = useLanguage();
   const { styles } = useStylesAddNewWebPage();
-  const { t, language } = useLanguage();
 
-  const [inputText, setInputText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [sendNotification, setSendNotification] = useState(true);
+  const data = useDownDetector((s) => s.data);
+  const isLoading = useDownDetector((s) => s.isLoading);
+  const addNewItem = useDownDetector((s) => s.addItem);
 
-  const handleNewSendNotificationRef = useRef(() => {
+  const inputText = useDownDetector((s) => s.inputNewWebPage);
+  const sendNotification = useDownDetector((s) => s.sendNotification);
+  const setInputNewWebPage = useDownDetector((s) => s.setInputNewWebPage);
+  const setSendNotification = useDownDetector((s) => s.setSendNotification);
+
+  const toggleSendNotification = useCallback(() => {
     setSendNotification((prev) => !prev);
-  });
+  }, [setSendNotification]);
 
-  const handleAddToDatabase = useCallback(async () => {
-    const { sessionToken, userData } = sessionManager.getSessionData();
+  const disabled: boolean = useMemo(() => {
+    const lowered = inputText.toLowerCase().trim();
+    if (!lowered) return true;
+    if (!/^(http|https):\/\//.test(lowered)) return true;
 
-    if (!userData?.userId)
-      return modalRef.openSnackBar?.(t("youAreNotLoggedIn"));
-
-    if (!inputText.trim())
-      return modalRef.openSnackBar?.(t("pleaseEnterWebPageURL"));
-    if (!inputText.trim().startsWith("http"))
-      return modalRef.openSnackBar?.(t("webPageMustStartWithHTTP"));
-
-    if (!sessionToken) return modalRef.openSnackBar?.(t("youAreNotLoggedIn"));
-
-    setIsLoading(true);
-    try {
-      const deviceId = storageManagement.get("DEVICE_ID");
-
-      const res = await fetchToServer(
-        "/database/insert",
-        {
-          lang: language,
-          table: tableName,
-          deviceId,
-          values: {
-            createdAt: new Date().toISOString(),
-            userId: userData?.userId,
-            url: inputText.trim(),
-            sendNotification,
-          },
-        },
-        sessionToken,
-      );
-      const { data, error } = res.data || {
-        error: res.errorText || "Unknown error",
-      };
-
-      if (error) modalRef.openSnackBar?.(t("errorOccurred", { error }));
-      else {
-        modalRef.openSnackBar?.(t("webPageAddedSuccessfully"));
-        setInputText("");
-        if (!data) return;
-        if (Array.isArray(data)) data.forEach((item) => addNewItem(item));
-        else addNewItem(data);
-      }
-    } catch {
-      modalRef.openSnackBar?.(t("failedToAddTextToDatabase"));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [t, language, inputText, addNewItem, sendNotification]);
+    return !!data.find((item) => item.url.toLowerCase() === lowered);
+  }, [data, inputText]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{t("addNewWebPage")}</Text>
-
-      <TextInput
-        style={styles.textInput}
-        label={t("placeholderNewWebPage")}
-        value={inputText}
-        onChangeText={setInputText}
-      />
-
-      <Button
-        handlePress={handleNewSendNotificationRef.current}
-        replaceStyles={{ button: styles.switchContainer, textButton: {} }}
+    <Animated.View
+      style={styles.container}
+      layout={LinearTransition.duration(300).springify()}
+      exiting={FadeOutRight.duration(200).springify()}
+      entering={FadeInLeft.duration(200).springify()}
+    >
+      <Animated.View
+        style={styles.sectionContainer}
+        layout={LinearTransition.duration(300).springify()}
       >
-        <Text style={styles.switchLabel}>{t("sendNotification")}</Text>
-        <Switch
-          value={sendNotification}
-          onValueChange={handleNewSendNotificationRef.current}
-          style={styles.switch}
-        />
-      </Button>
+        <Animated.Text
+          style={styles.title}
+          layout={LinearTransition.duration(200).springify()}
+        >
+          {t("addNewWebPage")}
+        </Animated.Text>
 
-      <Button
-        replaceStyles={{ button: styles.button, textButton: {} }}
-        handlePress={handleAddToDatabase}
-        disabled={
-          isLoading ||
-          JSON.stringify(downDetectorData || [])?.includes(inputText.trim())
-        }
-      >
-        <Text style={styles.textButton}>
-          {t(isLoading ? "adding" : "addToDatabase")}
-        </Text>
-      </Button>
-    </View>
+        <Animated.View style={styles.divider} />
+
+        <Animated.View layout={LinearTransition.duration(200).springify()}>
+          <TextInput
+            value={inputText}
+            label={t("placeholderNewWebPage")}
+            onChangeText={setInputNewWebPage}
+          />
+        </Animated.View>
+
+        <Animated.View style={styles.divider} />
+
+        <Animated.View
+          style={[styles.rowSwitchText, styles.sectionContainer]}
+          layout={LinearTransition.duration(200).springify()}
+        >
+          <Animated.Text style={styles.subtitle}>
+            {t("sendNotification")}
+          </Animated.Text>
+
+          <Switch
+            value={sendNotification}
+            onValueChange={toggleSendNotification}
+          />
+        </Animated.View>
+
+        {!disabled && (
+          <Animated.View
+            layout={LinearTransition.duration(200).springify()}
+            exiting={FadeOutUp.duration(200).springify()}
+            entering={FadeInDown.duration(200).springify()}
+          >
+            <Button mode="contained" onPress={addNewItem}>
+              <Text style={styles.subtitle}>{t("addToDatabase")}</Text>
+            </Button>
+          </Animated.View>
+        )}
+
+        {isLoading && (
+          <Animated.View
+            layout={LinearTransition.duration(200).springify()}
+            exiting={FadeOutUp.duration(200).springify()}
+            entering={FadeInDown.duration(200).springify()}
+          >
+            <ActivityIndicator animating size="small" />
+          </Animated.View>
+        )}
+      </Animated.View>
+    </Animated.View>
   );
 };
 

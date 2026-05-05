@@ -1,61 +1,37 @@
 import { Text } from "react-native-paper";
-import { openURL } from "@utils";
-import { useLanguage } from "@/context/LanguageContext";
-import { FlatList, View } from "react-native";
-import React, { useCallback, useRef } from "react";
-import { Tables, DownDetector } from "@types";
-import RenderDownDetectorItemMemo from "@/features/DownDetector/components/RenderDownDetectorItem";
-import useStylesDownDetectorScreen from "@/features/DownDetector/styles/useStylesDownDetectorScreen";
-
-interface DownDetectorScreenProps {
-  downDetectorData?: DownDetector[] | null;
-  deleteDownDetectorItem: (id: string) => void;
-  handleSendNotification: (id: string) => void;
-}
+import { View } from "react-native";
+import { Tables } from "@types";
+import { useLanguage } from "@context/LanguageContext";
+import { useDownDetector } from "../services/zustand";
+import React, { useCallback } from "react";
+import RenderDownDetectorItemMemo from "@screens/DownDetector/components/RenderDownDetectorItem";
+import Animated, { LinearTransition } from "react-native-reanimated";
+import { useStylesDownDetectorScreen } from "@screens/DownDetector/styles/useStylesDownDetectorScreen";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const tableName: keyof Tables = "DownDetector";
-const DownDetectorScreen: React.FC<DownDetectorScreenProps> = ({
-  downDetectorData,
-  deleteDownDetectorItem,
-  handleSendNotification,
-}) => {
+const DownDetectorScreen: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesDownDetectorScreen();
 
-  const visitWebsiteRef = useRef(async (url: string) => {
-    if (!url) return;
-    openURL(url);
-  });
+  const data = useDownDetector((s) => s.data);
 
   const renderItems = useCallback(
     ({ item }: { item: Tables[typeof tableName] }) => (
-      <RenderDownDetectorItemMemo
-        key={item.id || Math.random().toString()}
-        item={item}
-        title={t("downDetectorTitle")}
-        removeLabel={t("remove")}
-        deleteItem={deleteDownDetectorItem}
-        visitWebsite={visitWebsiteRef.current}
-        handleSendNotification={handleSendNotification}
-        visitWebsiteLabel={t("visitWebsite")}
-      />
+      <RenderDownDetectorItemMemo item={item} />
     ),
-    [t, deleteDownDetectorItem, handleSendNotification],
+    [],
   );
 
   const renderEmptyComponent = useCallback(() => {
     return (
       <View style={styles.container}>
-        <View style={styles.card}>
-          <View style={styles.titleCard}>
-            <Text style={styles.buttonText}>{t("noDownDetectorData")}</Text>
-          </View>
-          <View style={styles.contentCard}>
-            <Text style={styles.contentText}>
-              {t("downDetectorEmptyDescription")}
-            </Text>
-          </View>
+        <View style={styles.sectionContainer}>
+          <Text style={styles.title}>{t("DownDetector.noDataAvailable")}</Text>
+
+          <Text style={styles.contentText}>
+            {t("DownDetector.emptyDescription")}
+          </Text>
         </View>
       </View>
     );
@@ -63,13 +39,17 @@ const DownDetectorScreen: React.FC<DownDetectorScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <FlatList
-        style={styles.containerFlatList}
-        contentContainerStyle={styles.contentContainer}
-        data={downDetectorData}
-        keyExtractor={(item) => String(item.id || Math.random())}
+      <Animated.Text style={styles.title}>
+        {t("DownDetector.title")}
+      </Animated.Text>
+
+      <Animated.FlatList
+        data={data}
+        style={styles.scrollViewContainer}
+        layout={LinearTransition.duration(300).springify()}
         renderItem={renderItems}
         ListEmptyComponent={renderEmptyComponent}
+        contentContainerStyle={styles.scrollViewContentContainer}
       />
     </View>
   );

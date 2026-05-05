@@ -298,12 +298,13 @@ export const enApp: typeLanguages = {
   updateNow: "Update Now",
   noUpdates: "No Updates Available",
   downDetector: "Down Detector",
+  DownDetector: {
+    title: "Down Detector",
+    emptyDescription:
+      "No monitored websites found. Add a new web page to start monitoring its status.",
+    noDataAvailable: "No down detector data available",
+  },
   addNewWebPage: "Add New Web Page",
-  downDetectorTitle: "Down Detector",
-  visitWebsite: "Visit Website",
-  downDetectorEmptyDescription:
-    "No monitored websites found. Add a new web page to start monitoring its status.",
-  noDownDetectorData: "No Down Detector Data Available",
   sendNotification: "Send Notification",
   placeholderNewWebPage: "Enter the URL of the web page to monitor",
   pleaseEnterWebPageURL: "Please enter the web page URL",
@@ -579,6 +580,7 @@ export const enApp: typeLanguages = {
   },
   cryptos: "Cryptocurrencies",
   common: {
+    visitWebsite: "Visit Website",
     refreshEvery: "Refresh every: {{humanizedText}}.",
     notAvailable: "Not Available",
     syncing: "Syncing...",
