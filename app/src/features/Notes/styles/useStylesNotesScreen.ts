@@ -10,13 +10,6 @@ const useStylesNotesScreen = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          alignItems: undefined,
-          justifyContent: "flex-start",
-          paddingHorizontal: 14,
-          paddingTop: 12,
-        },
         searchInput: {
           backgroundColor: colors.secondary,
           borderRadius: 12,
@@ -295,7 +288,7 @@ const useStylesNotesScreen = () => {
           opacity: 0.8,
         },
         hiddenModalFull: {
-          ...getCommonStyles("mainContainer"),
+          ...getCommonStyles("container").container,
           alignSelf: "center",
           backgroundColor: colors.background,
           borderColor: colors.border,
@@ -752,7 +745,7 @@ const useStylesNotesScreen = () => {
           opacity: 0.9,
         },
         viewerContainer: {
-          ...getCommonStyles("mainContainer"),
+          ...getCommonStyles("container").container,
           alignItems: undefined,
           justifyContent: "flex-start",
           gap: 10,
@@ -760,14 +753,14 @@ const useStylesNotesScreen = () => {
           paddingTop: 10,
         },
         emptyContainerViewer: {
-          ...getCommonStyles("mainContainer"),
+          ...getCommonStyles("container").container,
           alignItems: "center",
           gap: 12,
           justifyContent: "center",
           paddingHorizontal: 20,
         },
         settingsScreenContainer: {
-          ...getCommonStyles("mainContainer"),
+          ...getCommonStyles("container").container,
           alignItems: undefined,
           justifyContent: "flex-start",
           paddingHorizontal: 12,
@@ -794,6 +787,7 @@ const useStylesNotesScreen = () => {
           fontSize: 12,
           opacity: 0.75,
         },
+        ...getCommonStyles("container"),
       }),
     [getCommonStyles, colors],
   );

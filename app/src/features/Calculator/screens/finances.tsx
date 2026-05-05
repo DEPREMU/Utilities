@@ -11,7 +11,7 @@ const Finances: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("finances")}</Text>
+      <Text style={styles.title}>{t("calculator.finances")}</Text>
     </View>
   );
 };

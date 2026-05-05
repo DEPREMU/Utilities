@@ -110,16 +110,16 @@ const LoginScreen: React.FC = () => {
   }, [email, password, loggingIn, rememberMe]);
 
   const buttons = useMemo(() => {
-    // if (REPLACERS.isNative) return [];
+    if (REPLACERS.isNative && !REPLACERS.isDev) return [];
 
     return [
       {
         value: "qr",
-        label: t("QR.title"),
+        label: t("qr.title"),
       },
       {
         value: "email",
-        label: "Email",
+        label: t("auth.email"),
       },
     ];
   }, [t]);

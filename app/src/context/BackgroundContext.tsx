@@ -137,8 +137,8 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       if (!BackgroundModule.start) return reloadAppAsync();
 
       BackgroundModule?.start?.(
-        tTyped("foregroundNotificationTitle"),
-        tTyped("foregroundNotificationMessage"),
+        tTyped("notifications.foregroundNotificationTitle"),
+        tTyped("notifications.foregroundNotificationMessage"),
       );
     };
 

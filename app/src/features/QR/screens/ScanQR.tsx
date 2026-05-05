@@ -154,7 +154,7 @@ const ScanQR = () => {
         const { status } = await Camera.requestCameraPermissionsAsync();
         if (status === "granted") setLoading(false);
         else {
-          modalRef.openSnackBar?.(tTyped("noCameraPermission"));
+          modalRef.openSnackBar?.(tTyped("permissions.noCameraPermission"));
           navigation.replace("QR");
         }
       },
@@ -172,15 +172,11 @@ const ScanQR = () => {
           onPress={() => setScanningType("camera")}
           style={styles.button}
         >
-          {t("scanQRCode")}
+          {t("common.scanQR")}
         </Button>
         {!REPLACERS.isWeb && (
-          <Button
-            mode="contained"
-            onPress={() => setScanningType("image")}
-            style={styles.button}
-          >
-            {t("QR.scanFromImage")}
+          <Button mode="contained" onPress={() => setScanningType("image")}>
+            {t("qr.scanFromImage")}
           </Button>
         )}
       </View>
@@ -210,14 +206,14 @@ const ScanQR = () => {
             onPress={handlePressResetCameraRef.current}
             style={styles.button}
           >
-            {t("QR.resetCamera")}
+            {t("qr.resetCamera")}
           </Button>
         </View>
       )}
       {!REPLACERS.isWeb && scanningType === "image" && (
         <View style={styles.container}>
           <Button mode="contained" onPress={handlePressSelectImageRef.current}>
-            {t("QR.selectImage")}
+            {t("qr.selectImage")}
           </Button>
           {uriFile && (
             <Image source={{ uri: uriFile }} style={styles.imageQR} />
@@ -238,7 +234,7 @@ const ScanQR = () => {
             textColor={colors.text}
             onPress={() => setClipboardTextRef.current(result.data ?? "")}
           >
-            {t("addTextToClipboard")}
+            {t("clipboard.addTextToClipboard")}
           </Button>
         </View>
       )}
@@ -248,7 +244,7 @@ const ScanQR = () => {
           style={styles.button}
           onPress={() => openURL(result.data ?? "")}
         >
-          {t("openURL")}
+          {t("common.openURL")}
         </Button>
       )}
       {result?.extra?.type === "email" && (

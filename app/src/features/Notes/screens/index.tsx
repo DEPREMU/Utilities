@@ -36,7 +36,7 @@ const createRoutesNavigator = (t: ReturnType<typeof useLanguage>["t"]) => [
 
 const NotesNavigator = () => {
   const { t } = useLanguage();
-  const { styles, colors } = useStylesBottomNavigator();
+  const { colors } = useStylesBottomNavigator();
 
   const [index, setIndex] = useState<number>(0);
 
@@ -90,7 +90,6 @@ const NotesNavigator = () => {
       <BottomNavigation
         shifting
         sceneAnimationEnabled
-        style={styles.tabBar}
         barStyle={{ backgroundColor: colors.primary }}
         renderScene={renderSceneRef.current}
         activeColor={colors.background}

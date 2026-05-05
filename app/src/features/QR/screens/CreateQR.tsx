@@ -117,7 +117,7 @@ const CreateQR = () => {
   return (
     <View style={styles.container}>
       <Portal>
-        <Animated.View style={[styles.containerModal, animatedStyle]}>
+        <Animated.View style={[styles.container, animatedStyle]}>
           <ColorPicker
             value={selecting === "color" ? color : bgColor}
             sliderThickness={20}
@@ -146,7 +146,7 @@ const CreateQR = () => {
       </Portal>
 
       <TextInput
-        label={t("QR.writeData")}
+        label={t("qr.writeData")}
         value={valueQR}
         onChangeText={setValueQR}
         style={styles.textInput}
@@ -190,7 +190,7 @@ const CreateQR = () => {
       <Divider style={styles.divider} />
 
       <QR
-        value={valueQR || t("default")}
+        value={valueQR || t("common.unknown")}
         size={300}
         getRef={(r) => (svgRef.current = r)}
         color={color}

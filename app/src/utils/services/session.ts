@@ -421,8 +421,12 @@ class SessionManager extends ServiceClass<ListenersSession> {
     this.#timeoutIdNotLoggedIn = setTimeoutPolyfill(async () => {
       this.clearTimeoutNotLoggedIn();
       const actions: NotificationAction[] = [
-        { actionId: "dismiss", title: tTyped("dismiss"), icon: "delete" },
-        { actionId: "stop", title: tTyped("stop"), icon: "stop" },
+        {
+          actionId: "dismiss",
+          title: tTyped("labels.dismiss"),
+          icon: "delete",
+        },
+        { actionId: "stop", title: tTyped("labels.stop"), icon: "stop" },
       ];
       if (
         REPLACERS.isNative &&
@@ -430,16 +434,16 @@ class SessionManager extends ServiceClass<ListenersSession> {
       ) {
         actions.push({
           actionId: "pause",
-          title: tTyped("pause"),
+          title: tTyped("labels.pause"),
           icon: "pause",
         });
       }
 
       notificationsManager.sendNotification({
         type: "info",
-        title: tTyped("youAreNotLoggedIn"),
+        title: tTyped("auth.youAreNotLoggedIn"),
         actions,
-        message: tTyped("youAreNotLoggedInMessage"),
+        message: tTyped("auth.youAreNotLoggedInMessage"),
         channelId: "loggedInStatusChannel",
         reasonNotification: "loggedInStatusChannel",
         overrideNotification: false,

@@ -144,11 +144,11 @@ const Minesweeper: React.FC = () => {
 
   const getStatus = useCallback(() => {
     if (finishGame.isFinished)
-      return finishGame.isWin ? t("youWin") : t("youLose");
+      return finishGame.isWin ? t("games.youWin") : t("games.youLose");
     if (finishGame.isPlaying)
-      return `${t("youArePlaying")}: \n${t("flagsRemaining", { count: String(numFlags) })}`;
+      return `${t("games.youArePlaying")}: \n${t("games.minesweeper.flagsRemaining", { count: String(numFlags) })}`;
 
-    return t("flagsRemaining", { count: String(numFlags) });
+    return t("games.minesweeper.flagsRemaining", { count: String(numFlags) });
   }, [finishGame, numFlags, t]);
 
   const handleStartGame = useCallback(() => {

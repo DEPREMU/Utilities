@@ -73,8 +73,8 @@ const askLocationPermission = async (
   await waitForTime(500);
 
   granted = !!(await alerts.showAlert(
-    "locationPermission",
-    "locationPermissionMessage",
+    "permissions.locationPermission",
+    "permissions.locationPermissionMessage",
     async (doNotAskAgain, accepted) => {
       permissionsData.permissions.location.doNotAskAgain = doNotAskAgain;
       if (accepted) {
@@ -153,8 +153,8 @@ const askDisplayOverOtherAppsPermission = async (
   const { logger } = await import("@utils");
 
   const granted = await alerts.showAlert(
-    "overlayPermission",
-    "overlayPermissionMessage",
+    "permissions.overlayPermission",
+    "permissions.overlayPermissionMessage",
     async (doNotAskAgain, accepted) => {
       permissionsData.permissions.overlay.doNotAskAgain = doNotAskAgain;
       return accepted;
@@ -222,8 +222,8 @@ const askBatteryOptimizationPermission = async (
   await waitForTime(500);
 
   const accepted = await alerts.showAlert(
-    "batteryOptimizationPermission",
-    "batteryOptimizationPermissionMessage",
+    "permissions.batteryOptimizationPermission",
+    "permissions.batteryOptimizationPermissionMessage",
     async (doNotAskAgain, accepted) => {
       permissionsData.permissions.batteryOptimization.doNotAskAgain =
         doNotAskAgain;
@@ -282,8 +282,8 @@ const askAutoStartPermission = async (
   const { logger } = await import("@utils");
 
   const accepted = await alerts.showAlert(
-    "autoStartPermission",
-    "autoStartPermissionMessage",
+    "permissions.autoStartPermission",
+    "permissions.autoStartPermissionMessage",
     async (doNotAskAgain, accepted) => {
       permissionsData.permissions.autoStart.doNotAskAgain = doNotAskAgain;
       return accepted;
@@ -321,8 +321,8 @@ const askDoNotDisturbPermission = async (): Promise<void> => {
     return;
 
   const accepted = await alerts.showAlert(
-    "doNotDisturbPermission",
-    "doNotDisturbPermissionMessage",
+    "permissions.doNotDisturbPermission",
+    "permissions.doNotDisturbPermissionMessage",
     async (doNotAskAgain, accepted) => {
       permissionsData.permissions.doNotDisturb.doNotAskAgain = doNotAskAgain;
       return accepted;

@@ -70,9 +70,9 @@ const DisplayScreen: React.FC = () => {
         style={styles.sectionContainer}
         layout={LinearTransition.duration(200).springify()}
       >
-        <Text style={styles.title}>{t("Cryptos.myCryptoPortfolio")}</Text>
+        <Text style={styles.title}>{t("cryptos.myCryptoPortfolio")}</Text>
         <Text style={styles.subtitle}>
-          {t("Cryptos.cryptocurrenciesTracked", {
+          {t("cryptos.cryptocurrenciesTracked", {
             count: Object.keys(selectedCryptos).length,
           })}
         </Text>

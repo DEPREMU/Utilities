@@ -10,19 +10,10 @@ const useStylesTranslator = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          backgroundColor: colors.background,
-          padding: getResponsiveValue(20, 24, 28, 32),
-          alignSelf: "center",
-          maxWidth: 800,
-        },
         header: {
-          ...getCommonStyles(["shadow", "mainContainer"]),
+          ...getCommonStyles("shadow").shadow,
+          ...getCommonStyles("container").container,
           padding: 0,
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
         },
@@ -116,6 +107,7 @@ const useStylesTranslator = () => {
           textAlign: "center",
           letterSpacing: 0.5,
         },
+        ...getCommonStyles("container"),
       }),
     [getCommonStyles, getResponsiveValue, colors],
   );

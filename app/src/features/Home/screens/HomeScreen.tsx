@@ -1,4 +1,10 @@
+import Animated, {
+  FadeInRight,
+  FadeOutLeft,
+  LinearTransition,
+} from "react-native-reanimated";
 import {
+  memoDeep,
   REPLACERS,
   deviceInfo,
   navigation,
@@ -7,38 +13,35 @@ import {
   EventsDeviceInfo,
   hasInternetConnection,
 } from "@utils";
-import Button from "@/common/components/Button/screens";
-import { List, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
+import { Text, Button } from "react-native-paper";
 import { useUserContext } from "@context/UserContext";
-import { ScrollView, View } from "react-native";
 import { useStylesHomeScreen } from "@screens/Home/styles/useStylesHomeScreen";
-import { ScreensAvailable, typeLanguagesKeys } from "@types";
-import React, { useRef, useMemo, useState, useEffect } from "react";
-
-type ButtonType = {
-  label: typeLanguagesKeys;
-  screen: ScreensAvailable;
-  noNeedsSession?: boolean;
-  noNeedsInternet?: boolean;
-};
+import RenderScreen, { ButtonType } from "../components/RenderScreen";
+import React, { useState, useEffect, useCallback } from "react";
 
 const buttonsNative: ButtonType[] = [
   {
-    label: "computerControl",
+    label: "computerControl.title",
     screen: "ComputerControl",
-    noNeedsInternet: true,
+    keyWords: "computerControl.keyWords",
+    description: "computerControl.description",
     noNeedsSession: true,
+    noNeedsInternet: true,
   },
   {
     label: "recorder.label",
     screen: "Recorder",
-    noNeedsInternet: true,
+    keyWords: "recorder.keyWords",
+    description: "recorder.description",
     noNeedsSession: true,
+    noNeedsInternet: true,
   },
   {
     label: "notes.title",
     screen: "Notes",
+    keyWords: "notes.keyWords",
+    description: "notes.description",
     noNeedsSession: true,
     noNeedsInternet: true,
   },
@@ -46,10 +49,12 @@ const buttonsNative: ButtonType[] = [
 
 const buttonsWeb: ButtonType[] = [
   {
-    label: "terminalCommands",
+    label: "terminalCommands.title",
     screen: "TerminalCommands",
-    noNeedsInternet: true,
+    keyWords: "terminalCommands.keyWords",
+    description: "terminalCommands.description",
     noNeedsSession: true,
+    noNeedsInternet: true,
   },
 ];
 
@@ -57,70 +62,114 @@ const buttonsDev: ButtonType[] = [
   {
     label: "test",
     screen: "Test",
+    keyWords: "test",
+    description: "test",
     noNeedsInternet: true,
   },
 ];
 
 const buttons: ButtonType[] = [
-  { label: "common.settings", screen: "Settings", noNeedsSession: true },
+  {
+    label: "common.settings",
+    screen: "Settings",
+    keyWords: "settings.keyWords",
+    description: "settings.description",
+    noNeedsSession: true,
+  },
   {
     label: "network.networkInfo.title",
     screen: "Network",
+    keyWords: "network.keyWords",
+    description: "network.description",
     noNeedsSession: true,
   },
-  { label: "cryptoInfo", screen: "Cryptos" },
   {
-    label: "calculator",
+    label: "cryptos.title",
+    screen: "Cryptos",
+    keyWords: "cryptos.keyWords",
+    description: "cryptos.description",
+  },
+  {
+    label: "calculator.title",
     screen: "Calculator",
-    noNeedsInternet: false,
+    keyWords: "calculator.keyWords",
+    description: "calculator.description",
     noNeedsSession: true,
   },
   {
     label: "games.title",
     screen: "Games",
-    noNeedsInternet: false,
+    keyWords: "games.keyWords",
+    description: "games.description",
     noNeedsSession: true,
   },
-  { label: "labels.clipboard", screen: "Clipboard" },
-  { label: "translator", screen: "Translator" },
-  { label: "socialMedia", screen: "SocialMedia" },
+  {
+    label: "labels.clipboard",
+    screen: "Clipboard",
+    keyWords: "clipboard.keyWords",
+    description: "clipboard.description",
+  },
+  {
+    label: "translator.title",
+    screen: "Translator",
+    keyWords: "translator.keyWords",
+    description: "translator.description",
+  },
+  {
+    label: "socialMedia.title",
+    screen: "SocialMedia",
+    keyWords: "socialMedia.keyWords",
+    description: "socialMedia.description",
+  },
   {
     label: "deviceInformation.title",
     screen: "DeviceInformation",
-    noNeedsInternet: false,
+    keyWords: "deviceInformation.keyWords",
+    description: "deviceInformation.description",
     noNeedsSession: true,
   },
   {
-    label: "markdownViewer",
+    label: "markdown.title",
     screen: "MarkdownViewer",
-    noNeedsInternet: false,
+    keyWords: "markdown.keyWords",
+    description: "markdown.description",
     noNeedsSession: true,
   },
   {
-    label: "downDetector",
+    label: "downDetector.title",
     screen: "DownDetector",
+    keyWords: "downDetector.keyWords",
+    description: "downDetector.description",
   },
   {
     label: "images.labelImages",
     screen: "Images",
+    keyWords: "images.keyWords",
+    description: "images.description",
     noNeedsSession: true,
     noNeedsInternet: REPLACERS.isWeb,
   },
   {
     label: "vault.title",
     screen: "Vault",
+    keyWords: "vault.keyWords",
+    description: "vault.description",
     noNeedsSession: true,
     noNeedsInternet: true,
   },
   {
-    label: "PDF.lover",
+    label: "pdf.lover",
     screen: "PDF",
+    keyWords: "pdf.keyWords",
+    description: "pdf.description",
     noNeedsSession: true,
     noNeedsInternet: true,
   },
   {
-    label: "QR.title",
+    label: "qr.title",
     screen: "QR",
+    keyWords: "qr.keyWords",
+    description: "qr.description",
     noNeedsSession: true,
     noNeedsInternet: true,
   },
@@ -131,15 +180,15 @@ const buttons: ButtonType[] = [
 
 const HomeScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { styles, colors } = useStylesHomeScreen();
+  const { styles } = useStylesHomeScreen();
   const { isLoggedIn, loggingIn } = useUserContext();
 
   const [hasInternet, setHasInternet] = useState(deviceInfo.hasInternet);
 
-  const handleLoginPressRef = useRef(() => navigation.replace("Login"));
+  const handleLoginPress = useCallback(() => navigation.replace("Login"), []);
 
-  const renderButtons = useMemo(() => {
-    return buttons.map((button, i) => {
+  const renderItem = useCallback(
+    ({ item: button }: { item: ButtonType }) => {
       if (
         REPLACERS.isWeb &&
         button.screen === "Vault" &&
@@ -147,39 +196,10 @@ const HomeScreen: React.FC = () => {
       )
         return null;
 
-      const loggedIn = button.noNeedsSession || isLoggedIn;
-      const internet = button.noNeedsInternet || hasInternet;
-      const isValidScreen = button.label === "common.settings";
-
-      return (
-        <View style={styles.buttonContainer} key={i}>
-          <List.Icon
-            color={colors.background}
-            style={styles.leftIcon}
-            icon={
-              (internet || isValidScreen) && loggedIn
-                ? "check-circle"
-                : "cancel"
-            }
-          />
-          <Button
-            touchableOpacity
-            label={t(button.label)}
-            disabled={(!internet && !isValidScreen) || !loggedIn}
-            handlePress={navigation.replace}
-            argsFuncHandlePress={[button.screen]}
-          />
-        </View>
-      );
-    });
-  }, [
-    t,
-    isLoggedIn,
-    hasInternet,
-    styles.leftIcon,
-    styles.buttonContainer,
-    colors.background,
-  ]);
+      return <RenderScreen button={button} hasInternet={hasInternet} />;
+    },
+    [hasInternet],
+  );
 
   useEffect(() => {
     const hasInternetListener = deviceInfo.addEventListener(
@@ -194,48 +214,73 @@ const HomeScreen: React.FC = () => {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <Animated.View
+      style={styles.container}
+      layout={LinearTransition.duration(300).springify()}
+    >
       {isLoggedIn && (
-        <Button
-          label={t("common.logout")}
-          handlePress={sessionManager.logout}
-        />
+        <Animated.View
+          layout={LinearTransition.duration(200).springify()}
+          exiting={FadeOutLeft.duration(200).springify()}
+          entering={FadeInRight.duration(200).springify()}
+        >
+          <Button mode="contained" onPress={sessionManager.logout}>
+            <Text style={styles.subtitle}>{t("common.logout")}</Text>
+          </Button>
+        </Animated.View>
       )}
+
       {(!isLoggedIn || loggingIn) && (
-        <Button
-          label={t(`auth.${loggingIn ? "loggingIn" : "loginButton"}`)}
-          handlePress={handleLoginPressRef.current}
-        />
+        <Animated.View
+          layout={LinearTransition.duration(200).springify()}
+          exiting={FadeOutLeft.duration(200).springify()}
+          entering={FadeInRight.duration(200).springify()}
+        >
+          <Button mode="contained" onPress={handleLoginPress}>
+            <Text style={styles.subtitle}>
+              {t(`auth.${loggingIn ? "loggingIn" : "loginButton"}`)}
+            </Text>
+          </Button>
+        </Animated.View>
       )}
+
       {!hasInternet && (
-        <Text style={styles.doesNotHaveInternet}>
+        <Animated.Text
+          style={styles.doesNotHaveInternet}
+          exiting={FadeOutLeft.duration(200).springify()}
+          entering={FadeInRight.duration(200).springify()}
+        >
           {t("common.NoInternetConnection")}
           {"\n"}
           {t("common.PleaseCheckInternetConnection")}
-        </Text>
+        </Animated.Text>
       )}
 
-      <Text style={styles.title}>
-        {t("welcomeUser", {
+      <Animated.Text
+        style={styles.title}
+        layout={LinearTransition.duration(200).springify()}
+      >
+        {t("user.welcomeUser", {
           user: sessionManager.getSessionData().userData?.name || t("user"),
         })}
-      </Text>
-      <ScrollView
+      </Animated.Text>
+
+      <Animated.FlatList
+        data={buttons}
         style={styles.scrollViewContainer}
+        renderItem={renderItem}
         contentContainerStyle={styles.scrollViewContentContainer}
-      >
-        {renderButtons}
-      </ScrollView>
+      />
 
       {REPLACERS.isWeb && (
-        <Text style={styles.footer}>
-          {t("appVersion", {
+        <Animated.Text style={styles.footer}>
+          {t("appInfo.appVersion", {
             version: DATA_PLATFORM.version,
           })}
-        </Text>
+        </Animated.Text>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
-export default HomeScreen;
+export default memoDeep(HomeScreen);

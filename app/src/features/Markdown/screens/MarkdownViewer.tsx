@@ -13,13 +13,13 @@ const MarkdownViewer = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("markdownViewer")}</Text>
+      <Text style={styles.title}>{t("markdown.title")}</Text>
       <TextInput
         style={styles.input}
         contentStyle={styles.contentStyle}
         value={content}
         onChangeText={setContent}
-        placeholder={t("markdownPlaceholder")}
+        placeholder={t("markdown.placeholder")}
         multiline
       />
       <ScrollView style={styles.scrollView}>

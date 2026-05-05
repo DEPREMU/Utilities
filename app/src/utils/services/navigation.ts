@@ -11,7 +11,7 @@ type ListenersNavigation = {
 const TAG = "NAVIGATION";
 
 class Navigation extends ServiceClass<ListenersNavigation> {
-  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "DownDetector" : "Home";
+  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Home" : "Home";
 
   public ref: ReturnType<
     typeof createNavigationContainerRef<RootStackParamList>

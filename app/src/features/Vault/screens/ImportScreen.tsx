@@ -13,10 +13,10 @@ import { useLanguage } from "@context/LanguageContext";
 import { VaultScreenProps } from "./";
 import { ScrollView, View, Image } from "react-native";
 import React, { useCallback, useState } from "react";
-import { DownloadableMimeType, typeLanguagesKeys } from "@types";
+import { DownloadableMimeType, AppTranslationsKeys, Function } from "@types";
 
 type Item = {
-  title: typeLanguagesKeys;
+  title: AppTranslationsKeys;
   flag: "files" | "folders";
 };
 
@@ -89,7 +89,7 @@ const ImportScreen: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
         {ITEMS_IMPORT.map((item) => (
           <List.Item
             key={item.flag}
-            title={t(item.title)}
+            title={(t as Function<[AppTranslationsKeys], string>)(item.title)}
             onPress={() => setPreflight(item.flag)}
             right={() => (
               <RadioButton

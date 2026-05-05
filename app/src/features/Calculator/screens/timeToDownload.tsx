@@ -64,8 +64,8 @@ const TimeToDownload = () => {
     const alarmTime = Date.now() + timeMS;
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: tTyped("timeToDownloadFinished"),
-        body: tTyped("timeToDownloadFinishedMessage", {
+        title: tTyped("calculator.timeToDownload.finished"),
+        body: tTyped("calculator.timeToDownload.finishedMessage", {
           time: humanizeDuration(timeMS, { language }),
         }),
         categoryIdentifier: "timeToDownload",
@@ -131,7 +131,9 @@ const TimeToDownload = () => {
             style={styles.container}
             layout={LinearTransition.duration(200).springify()}
           >
-            <Text style={styles.title}>{t("timeToDownload")}</Text>
+            <Text style={styles.title}>
+              {t("calculator.timeToDownload.title")}
+            </Text>
 
             <Animated.View
               style={styles.sectionContainer}
@@ -139,7 +141,9 @@ const TimeToDownload = () => {
             >
               <TextInput
                 style={styles.input}
-                label={t("fileSize")}
+                label={t("common.fileSize", {
+                  size: fileSize,
+                })}
                 value={fileSize}
                 keyboardType="numeric"
                 onChangeText={setFileSize}
@@ -153,7 +157,7 @@ const TimeToDownload = () => {
               layout={LinearTransition.duration(200).springify()}
             >
               <List.Accordion
-                title={t("scale", { scale })}
+                title={t("calculator.timeToDownload.scale", { scale })}
                 onPress={handlePressAccordionRef.current}
                 expanded={accordionExpanded}
               >
@@ -167,7 +171,7 @@ const TimeToDownload = () => {
             >
               <TextInput
                 style={styles.input}
-                label={t("internetSpeedMbps")}
+                label={t("calculator.timeToDownload.internetSpeedMbps")}
                 value={speedMbps}
                 keyboardType="numeric"
                 onChangeText={setSpeedMbps}
@@ -183,7 +187,7 @@ const TimeToDownload = () => {
               style={styles.resultContainer}
             >
               <Text style={styles.resultLabel}>
-                {t("timeToDownloadResult")}
+                {t("calculator.timeToDownload.result")}
               </Text>
 
               <Text style={styles.resultValue} selectable>
@@ -200,7 +204,9 @@ const TimeToDownload = () => {
                   >
                     <Button mode="contained" onPress={handleSetAlarm}>
                       <Text style={styles.h3}>
-                        {t("setAlarmWhenDone", { time: timeText })}
+                        {t("calculator.timeToDownload.setAlarmWhenDone", {
+                          time: timeText,
+                        })}
                       </Text>
                     </Button>
                   </Animated.View>

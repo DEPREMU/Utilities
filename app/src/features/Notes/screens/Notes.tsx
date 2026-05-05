@@ -141,7 +141,7 @@ const Notes: React.FC<NotesProps> = ({ onSelectedNote }) => {
         }}
       />,
       <>
-        <Button label={tTyped("notes.cancel")} handlePress={handleClose} />
+        <Button label={tTyped("labels.cancel")} handlePress={handleClose} />
         <Button
           label={tTyped("notes.create")}
           handlePress={async () => {
@@ -184,7 +184,7 @@ const Notes: React.FC<NotesProps> = ({ onSelectedNote }) => {
         />
       </>,
       <>
-        <Button label={tTyped("notes.cancel")} handlePress={handleClose} />
+        <Button label={tTyped("labels.cancel")} handlePress={handleClose} />
         <Button
           label={tTyped("notes.continue")}
           handlePress={() => {
@@ -257,7 +257,7 @@ const Notes: React.FC<NotesProps> = ({ onSelectedNote }) => {
           />
         ))}
       </ScrollView>,
-      <Button label={tTyped("notes.cancel")} handlePress={handleClose} />,
+      <Button label={tTyped("labels.cancel")} handlePress={handleClose} />,
     );
   }, [bulkMove, folders, styles.hiddenListContent, styles.moveFoldersScroll]);
 
@@ -268,9 +268,9 @@ const Notes: React.FC<NotesProps> = ({ onSelectedNote }) => {
         count: selectedCount.toString(),
       }),
       [
-        { text: tTyped("notes.cancel"), style: "cancel" },
+        { text: tTyped("labels.cancel"), style: "cancel" },
         {
-          text: tTyped("notes.delete"),
+          text: tTyped("common.delete"),
           style: "destructive",
           onPress: () => bulkDelete(),
         },
@@ -402,11 +402,11 @@ const Notes: React.FC<NotesProps> = ({ onSelectedNote }) => {
           >
             <TextInput
               mode="outlined"
-              placeholder={t("notes.searchPlaceholder")}
-              value={query}
-              onChangeText={setQuery}
-              style={styles.searchInput}
               left={<TextInput.Icon icon="magnify" />}
+              value={query}
+              style={styles.searchInput}
+              placeholder={t("labels.search")}
+              onChangeText={setQuery}
             />
           </Animated.View>
         )}

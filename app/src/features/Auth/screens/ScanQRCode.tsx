@@ -62,10 +62,10 @@ const ScanQRCode: React.FC = () => {
     if (hasPermission !== "denied") return;
 
     modalRef.openModal?.(
-      t("noCameraPermission"),
-      t("needsCameraPermission"),
+      t("permissions.noCameraPermission"),
+      t("permissions.needsCameraPermission"),
       <Button
-        label={t("accept")}
+        label={t("labels.accept")}
         handlePress={() => {
           modalRef.closeModal?.();
           navigation.replace("Home");
@@ -107,10 +107,10 @@ const ScanQRCode: React.FC = () => {
           setScannedData(null);
           clearIdTimeout();
           modalRef.openModal?.(
-            t("qrLoginErrorTitle"),
-            t("qrLoginErrorMessage"),
+            t("auth.qr.qrLoginErrorTitle"),
+            t("auth.qr.qrLoginErrorMessage"),
             <Button
-              label={t("accept")}
+              label={t("labels.accept")}
               handlePress={() => {
                 modalRef.closeModal?.();
                 navigation.replace("Home");
@@ -149,10 +149,10 @@ const ScanQRCode: React.FC = () => {
               case "authenticated-web":
                 clearIdTimeout();
                 modalRef.openModal?.(
-                  t("qrLoginSuccessTitle"),
-                  t("qrLoginSuccessMessage"),
+                  t("auth.qr.loginSuccessTitle"),
+                  t("auth.qr.loginSuccessMessage"),
                   <Button
-                    label={t("accept")}
+                    label={t("labels.accept")}
                     handlePress={() => {
                       modalRef.closeModal?.();
                       navigation.replace("Home");
@@ -197,20 +197,26 @@ const ScanQRCode: React.FC = () => {
   return (
     <View style={styles.container}>
       {!hasPermission && (
-        <Text style={styles.title}>{t("requestingCameraPermission")}</Text>
+        <Text style={styles.title}>
+          {t("permissions.requestingCameraPermission")}
+        </Text>
       )}
       {hasPermission === "granted" && !scannedData && (
         <>
-          <Text style={styles.subtitle}>{t("scanQRCodeInstructions")}</Text>
+          <Text style={styles.subtitle}>
+            {t("auth.qr.scanQRCodeInstructions")}
+          </Text>
           <CameraView
             style={styles.cameraView}
             onBarcodeScanned={handleScannedBarcodeRef.current}
           />
         </>
       )}
-      {scannedData && <Text style={styles.title}>{t("processingQRCode")}</Text>}
+      {scannedData && (
+        <Text style={styles.title}>{t("auth.qr.processingQRCode")}</Text>
+      )}
       {hasPermission === "denied" && (
-        <Text style={styles.title}>{t("noCameraPermission")}</Text>
+        <Text style={styles.title}>{t("permissions.noCameraPermission")}</Text>
       )}
     </View>
   );

@@ -42,12 +42,6 @@ export const useStylesStreamers = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          backgroundColor: colors.background,
-          padding: getResponsiveValue(20, 24, 28, 32),
-          alignItems: "center",
-        },
         title: {
           fontSize: getResponsiveValue(28, 32, 36, 40),
           fontWeight: "800",
@@ -184,6 +178,7 @@ export const useStylesStreamers = () => {
           color: colors.text,
           letterSpacing: 0.5,
         },
+        ...getCommonStyles("container"),
       }),
     [colors, getCommonStyles, getResponsiveValue, liveStreamer, buttonStyle],
   );

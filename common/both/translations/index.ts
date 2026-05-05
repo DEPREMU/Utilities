@@ -1,7 +1,7 @@
 import type {
   LanguagesSupported,
-  typeLanguagesServer,
-  typeLanguagesServerKeys,
+  ServerTranslations,
+  ServerTranslationsKeys,
 } from "@types";
 import { esServer } from "./Spanish.ts";
 import { enServer } from "./English.ts";
@@ -14,10 +14,10 @@ import { enServer } from "./English.ts";
  * @param replace - An optional object containing placeholders and their replacement values.
  * @returns The translated string, with placeholders replaced by their corresponding values.
  */
-export const t = <T extends typeLanguagesServerKeys>(
+export const t = <T extends ServerTranslationsKeys>(
   key: T,
   lang: LanguagesSupported,
-  replace?: object
+  replace?: object,
 ): string => {
   if (!key || !lang) return "";
   let value: string;
@@ -25,7 +25,7 @@ export const t = <T extends typeLanguagesServerKeys>(
     case "en":
     default:
       if (!key.includes("."))
-        value = enServer[key as keyof typeLanguagesServer] as string;
+        value = enServer[key as keyof ServerTranslations] as string;
       else {
         const keys = key.split(".");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,14 +37,14 @@ export const t = <T extends typeLanguagesServerKeys>(
         if (typeof temp === "string") value = temp;
         else {
           throw new Error(
-            `Missing translation for key "${key}" in language "${lang}"`
+            `Missing translation for key "${key}" in language "${lang}"`,
           );
         }
       }
       break;
     case "es":
       if (!key.includes("."))
-        value = enServer[key as keyof typeLanguagesServer] as string;
+        value = esServer[key as keyof ServerTranslations] as string;
       else {
         const keys = key.split(".");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,7 +56,7 @@ export const t = <T extends typeLanguagesServerKeys>(
         if (temp && typeof temp === "string") value = temp;
         else {
           throw new Error(
-            `Missing translation for key "${key}" in language "${lang}"`
+            `Missing translation for key "${key}" in language "${lang}"`,
           );
         }
       }

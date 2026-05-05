@@ -86,9 +86,9 @@ const PDFConverter: React.FC = () => {
     () =>
       PAPER_SIZES.map((size) => {
         let title: string = size;
-        if (size === "CUSTOM") title = t("PDF.customSize");
+        if (size === "CUSTOM") title = t("pdf.customSize");
         else if (size === "GET_FROM_IMAGE")
-          title = t("PDF.getSizeFromImageFiles");
+          title = t("pdf.getSizeFromImageFiles");
 
         return (
           <Menu.Item
@@ -278,12 +278,12 @@ const PDFConverter: React.FC = () => {
         onPress={onPressSelectSizeRef.current}
         style={styles.menuAnchor}
       >
-        {t(`PDF.selectCurrentPaperSize`, {
+        {t(`pdf.selectCurrentPaperSize`, {
           size:
             sizePdf === "CUSTOM"
-              ? t("PDF.customSize")
+              ? t("pdf.customSize")
               : sizePdf === "GET_FROM_IMAGE"
-                ? t("PDF.getSizeFromImageFiles")
+                ? t("pdf.getSizeFromImageFiles")
                 : sizePdf,
         })}
       </Button>
@@ -293,7 +293,7 @@ const PDFConverter: React.FC = () => {
           <TextInput
             value={String(customSize.width)}
             style={styles.textInput}
-            label={t("PDF.customWidth", { width: String(customSize.width) })}
+            label={t("pdf.customWidth", { width: String(customSize.width) })}
             onChangeText={(text) =>
               !isNaN(Number(text)) &&
               setCustomSize((prev) => ({ ...prev, width: Number(text) }))
@@ -303,7 +303,7 @@ const PDFConverter: React.FC = () => {
           <TextInput
             value={String(customSize.height)}
             style={styles.textInput}
-            label={t("PDF.customHeight", { height: String(customSize.height) })}
+            label={t("pdf.customHeight", { height: String(customSize.height) })}
             onChangeText={(text) =>
               !isNaN(Number(text)) &&
               setCustomSize((prev) => ({ ...prev, height: Number(text) }))
@@ -325,7 +325,7 @@ const PDFConverter: React.FC = () => {
       <TextInput
         value={maxSizePdf === -1 ? "" : String(maxSizePdf)}
         style={styles.textInput}
-        label={t("PDF.maxPdfSizeInMB", {
+        label={t("pdf.maxPdfSizeInMB", {
           size: maxSizePdf === -1 ? t("common.unlimited") : String(maxSizePdf),
         })}
         onChangeText={handleChangeMaxSizeRef.current}
@@ -333,7 +333,7 @@ const PDFConverter: React.FC = () => {
       />
 
       <Button mode="contained" onPress={handlePressSelectImagesRef.current}>
-        {t("PDF.selectImagesToConvert")}
+        {t("pdf.selectImagesToConvert")}
       </Button>
 
       {converting && <ProgressBar style={styles.divider} progress={progress} />}
@@ -377,7 +377,7 @@ const PDFConverter: React.FC = () => {
           disabled={!images.length || converting}
         >
           {!converting ? (
-            t("PDF.convertToPdf")
+            t("pdf.convertToPdf")
           ) : (
             <ActivityIndicator size="small" color="white" animating />
           )}

@@ -82,21 +82,21 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
       </View>
 
       <View style={styles.priceContainer}>
-        <Text style={styles.priceLabel}>{t("Cryptos.currentPrice")}</Text>
+        <Text style={styles.priceLabel}>{t("cryptos.currentPrice")}</Text>
         <SkeletonLoading
           style={[styles.pricesContainer, styles.padding0]}
           showChildren={!loading}
         >
           <View style={styles.pricesContainer}>
             <Text style={styles.price}>
-              {t("Cryptos.price", {
+              {t("cryptos.price", {
                 currency: cryptoData.quoteCoin || "",
                 price: typeof price === "number" ? price.toFixed(2) : "N/A",
               })}
             </Text>
             <Text style={styles.price}>
               {typeof priceMxn === "number" &&
-                t("Cryptos.price", {
+                t("cryptos.price", {
                   currency: "MXN",
                   price: priceMxn.toFixed(2),
                 })}
@@ -111,7 +111,7 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
           showChildren={!loading}
         >
           <Text style={styles.ownedText}>
-            {t("Cryptos.owned", {
+            {t("cryptos.owned", {
               amount: cryptoData.amount || "0",
               cryptoName: cryptoData.baseCoin || "",
             })}
@@ -133,7 +133,7 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
         >
           {priceMxn !== null && !loading && (
             <Text style={styles.ownedAmount}>
-              {t("Cryptos.price", {
+              {t("cryptos.price", {
                 currency: "MXN",
                 price: (
                   parseFloat(cryptoData.amount || "0") * priceMxn
@@ -151,7 +151,7 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
         showChildren={!loading}
       >
         <Text style={styles.firstInvest}>
-          {t("Cryptos.firstInvest", {
+          {t("cryptos.firstInvest", {
             price: cryptoData.firstPricePurchased?.toString() || "N/A",
             amount: Number(cryptoData.amount || "0").toString(),
             cryptoName: cryptoData.baseCoin || "",
@@ -165,7 +165,7 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
           showChildren={!loading}
         >
           <Text style={styles.gainAmount}>
-            {t("Cryptos.gainAmount", {
+            {t("cryptos.gainAmount", {
               gainAmount: String(
                 (
                   Number(cryptoData.amount || "0") * (price || 0) -
@@ -198,7 +198,7 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
           showChildren={!loading}
         >
           <Text style={styles.datePurchasedText}>
-            {t("Cryptos.datePurchased", {
+            {t("cryptos.datePurchased", {
               date: getFormattedDate(
                 new Date(cryptoData.datePurchased),
                 undefined,

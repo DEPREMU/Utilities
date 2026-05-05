@@ -9,7 +9,8 @@ import {
   IPQueryRisk,
   dataIPQueryJSON,
   IPQueryLocation,
-  typeLanguagesKeys,
+  AppTranslationsKeys,
+  Function,
 } from "@types";
 import { View, Text } from "react-native";
 // import MapView, { Marker } from "react-native-maps";
@@ -24,10 +25,10 @@ interface IPQueryProps {
 
 const keysTranslated: Record<
   keyof dataIPQueryJSON,
-  | typeLanguagesKeys
-  | Record<keyof IPQueryISP, typeLanguagesKeys>
-  | Record<keyof IPQueryLocation, typeLanguagesKeys>
-  | Record<keyof IPQueryRisk, typeLanguagesKeys>
+  | AppTranslationsKeys
+  | Record<keyof IPQueryISP, AppTranslationsKeys>
+  | Record<keyof IPQueryLocation, AppTranslationsKeys>
+  | Record<keyof IPQueryRisk, AppTranslationsKeys>
 > = {
   ip: "network.yourIP",
   isp: {
@@ -79,7 +80,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
         const translationKey = (
           keysTranslated[key as keyof Omit<dataIPQueryJSON, "ip">] as Record<
             string,
-            typeLanguagesKeys
+            AppTranslationsKeys
           >
         )[subKey];
 
@@ -96,8 +97,10 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
 
         return (
           <View key={`${key}-${subKey}`} style={styles.containerEachValue}>
-            {/* eslint-disable-next-line react/jsx-no-literals */}
-            <Text style={styles.textKey}>{t(translationKey)}:</Text>
+            <Text style={styles.textKey}>
+              {/* eslint-disable-next-line react/jsx-no-literals */}
+              {(t as Function<[AppTranslationsKeys], string>)(translationKey)}:
+            </Text>
             <SkeletonLoading
               showChildren={dataIP?.ip !== "yourIP"}
               style={styles.skeletonValue}
@@ -142,7 +145,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.textIP}>{t("IPQuery.title")}</Text>
+      <Text style={styles.textIP}>{t("iPQuery.title")}</Text>
 
       <View style={styles.containerIP}>
         <Text style={styles.textKey}>{t("network.yourIP", { ip: "" })}</Text>

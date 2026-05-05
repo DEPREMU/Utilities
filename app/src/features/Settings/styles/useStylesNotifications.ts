@@ -1,18 +1,15 @@
-import { useTheme } from "@/context/ThemeContext";
-import { StyleSheet } from "react-native";
-import { useResponsiveLayout } from "@/context/LayoutContext";
 import { useMemo } from "react";
+import { useTheme } from "@context/ThemeContext";
+import { StyleSheet } from "react-native";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
-const useStylesNotifications = () => {
+export const useStylesNotifications = () => {
   const { colors } = useTheme();
   const { getCommonStyles, getResponsiveValue } = useResponsiveLayout();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-        },
         containerFlatList: {
           ...getCommonStyles("shadow"),
           padding: getResponsiveValue(16, 20, 24),
@@ -126,11 +123,10 @@ const useStylesNotifications = () => {
           padding: 12,
           marginBottom: 12,
         },
+        ...getCommonStyles("container"),
       }),
     [getCommonStyles, getResponsiveValue, colors],
   );
 
   return { styles };
 };
-
-export default useStylesNotifications;

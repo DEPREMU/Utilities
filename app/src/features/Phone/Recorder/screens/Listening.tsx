@@ -12,15 +12,15 @@ import {
 } from "react-native-paper";
 import Slider from "@react-native-community/slider";
 import * as Haptics from "expo-haptics";
-import { useTheme } from "@/context/ThemeContext";
+import { useTheme } from "@context/ThemeContext";
 import * as FileSystem from "expo-file-system";
-import { useLanguage } from "@/context/LanguageContext";
-import { useRecorder } from "@/context/RecorderContext";
+import { useLanguage } from "@context/LanguageContext";
+import { useRecorder } from "@context/RecorderContext";
 import { StyleSheet, View } from "react-native";
 import { Svg, Rect, Circle } from "react-native-svg";
 import { createAudioPlayer } from "expo-audio";
-import { getFormattedDate, setTimeoutPolyfill } from "@/utils";
-import useStylesRecorderScreen from "@/features/Phone/Recorder/styles/useStylesRecorderScreen";
+import { useStylesRecorderScreen } from "@screens/Phone/Recorder/styles/useStylesRecorderScreen";
+import { getFormattedDate, setTimeoutPolyfill } from "@utils";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 const formatSeconds = (value?: number | null) => {

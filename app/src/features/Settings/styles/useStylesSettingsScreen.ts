@@ -35,8 +35,7 @@ const useStylesSettingsScreen = () => {
     () =>
       StyleSheet.create({
         container: {
-          ...getCommonStyles("mainContainer"),
-          backgroundColor: colors.background,
+          ...getCommonStyles("container").container,
           alignItems: getResponsiveValue("center", "center", "stretch"),
         },
         contentWrapper: {

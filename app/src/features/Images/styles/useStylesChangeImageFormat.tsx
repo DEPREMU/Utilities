@@ -11,11 +11,9 @@ const useStylesChangeImageFormat = () => {
     () =>
       StyleSheet.create({
         container: {
-          ...getCommonStyles("mainContainer"),
+          ...getCommonStyles("container").container,
           alignItems: "center",
           justifyContent: "flex-start",
-          backgroundColor: colors.background,
-          flex: 1,
         },
         header: {
           width: "100%",
@@ -45,7 +43,7 @@ const useStylesChangeImageFormat = () => {
           marginBottom: getResponsiveValue(12, 16, 18, 18),
         },
         selectedImageItem: {
-          ...getCommonStyles("shadow"),
+          ...getCommonStyles("shadow").shadow,
           width: "100%",
           maxWidth: getResponsiveValue(520, 720, 860, 980),
           backgroundColor: colors.secondary,

@@ -14,13 +14,13 @@ const Navigator = GetBottomNavigation(
   [
     {
       key: "DisplayScreen" as const,
-      title: "Cryptos.display",
+      title: "cryptos.display",
       focusedIcon: "view-dashboard",
       unfocusedIcon: "view-dashboard-outline",
     },
     {
       key: "SelectionScreen" as const,
-      title: "Cryptos.selection",
+      title: "cryptos.selection",
       focusedIcon: "format-list-checks",
       unfocusedIcon: "format-list-bulleted",
     },
@@ -58,7 +58,7 @@ const CryptosNavigator = () => {
       {loading && (
         <SyncScreen
           visible
-          description={t("Cryptos.syncingSettingsDescription")}
+          description={t("cryptos.syncingSettingsDescription")}
         />
       )}
       <Navigator />

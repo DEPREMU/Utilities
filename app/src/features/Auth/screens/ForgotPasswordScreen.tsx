@@ -73,7 +73,7 @@ const ForgotPasswordScreen: React.FC = () => {
 
       setSendingEmail(false);
       setEmailSent(true);
-      modalRef.openSnackBar?.(t("successForgotPasswordMessage"), 8000, {
+      modalRef.openSnackBar?.(t("auth.successForgotPasswordMessage"), 8000, {
         label: t("common.close"),
       });
     });

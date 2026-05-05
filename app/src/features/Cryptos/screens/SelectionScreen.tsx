@@ -165,7 +165,7 @@ const SelectionScreen: React.FC = () => {
         {!loading && lengthCryptos === 0 && (
           <View style={stylesCryptoItem.crypto}>
             <Text style={stylesCryptoItem.subtitle}>
-              {t("Cryptos.noCryptosFound")}
+              {t("cryptos.noCryptosFound")}
             </Text>
           </View>
         )}
@@ -197,7 +197,7 @@ const SelectionScreen: React.FC = () => {
 
     if (!deviceInfo.hasInternet)
       modalRef.openModal?.(
-        t("noInternetConnection"),
+        t("common.NoInternetConnection"),
         t("common.PleaseCheckInternetConnection"),
         <Button mode="contained" onPress={() => navigation.replace("Home")}>
           <Text style={styles.h3}>{t("common.back")}</Text>
@@ -253,7 +253,7 @@ const SelectionScreen: React.FC = () => {
         <View style={styles.sectionContainer}>
           <Searchbar
             value={searchQuery}
-            placeholder={t("Cryptos.searchCrypto")}
+            placeholder={t("labels.search")}
             onChangeText={handleChangeText}
           />
 

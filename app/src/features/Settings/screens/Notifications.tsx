@@ -1,8 +1,3 @@
-import {
-  Notifications,
-  ReasonNotification,
-  RequestDatabaseUpdate,
-} from "@types";
 import React, {
   useRef,
   useMemo,
@@ -14,25 +9,22 @@ import {
   memoDeep,
   REPLACERS,
   navigation,
-  fetchToServer,
   DATA_PLATFORM,
   sessionManager,
   getFormattedDate,
-  storageManagement,
   askForPermission,
-  getDefaultMinutes,
   setTimeoutPolyfill,
   notificationsManager,
   clearTimeoutPolyfill,
 } from "@utils";
-import Button from "@/common/components/Button/screens";
-import { useLanguage } from "@/context/LanguageContext";
-import { useWebSocket } from "@/context/WebSocketContext";
+import Button from "@components/Button/screens";
+import { useLanguage } from "@context/LanguageContext";
+import { useWebSocket } from "@context/WebSocketContext";
 import { FlatList, View } from "react-native";
 import { useUserContext } from "@context/UserContext";
-import { useBackgroundTask } from "@context/BackgroundTaskContext";
-import useStylesNotifications from "@screens/Settings/styles/useStylesNotifications";
+import { useStylesNotifications } from "@screens/Settings/styles/useStylesNotifications";
 import { Switch, Text, TextInput } from "react-native-paper";
+import { Notifications, ReasonNotification } from "@types";
 
 type typeMinutes = Record<ReasonNotification, number | null> | null;
 
@@ -46,7 +38,6 @@ const NotificationsScreen: React.FC = () => {
   const { styles } = useStylesNotifications();
   const { isLoggedIn } = useUserContext();
   const { sendMessageRef } = useWebSocket();
-  const { addTaskQueueRef } = useBackgroundTask();
 
   const [minutes, setMinutes] = useState<typeMinutes>();
   const [notifications, setNotifications] = useState<Notifications | null>(
@@ -168,64 +159,6 @@ const NotificationsScreen: React.FC = () => {
     },
   );
 
-  const handleChangeNotificationIntervalRef = useRef(
-    async (id: ReasonNotification, value: string) => {
-      const { sessionToken, userData } = sessionManager.getSessionData();
-
-      if (!sessionToken) return navigation.replace("Login");
-      if (!userData?.userId) return;
-
-      let interval = parseFloat(value);
-      if (isNaN(interval)) interval = getDefaultMinutes(id);
-
-      setMinutes((prev) => {
-        const updated = {
-          ...prev,
-          [id]: interval,
-        } as typeMinutes;
-
-        if (interval <= 0) return updated;
-
-        const deviceId = storageManagement.get("DEVICE_ID");
-        const taskId =
-          Date.now().toString() + Math.random().toString(36).substring(2, 8);
-        const values: RequestDatabaseUpdate["values"] = {
-          interval: interval > 0 ? interval * 60 * 1000 : -1,
-        };
-        const match: RequestDatabaseUpdate["match"] = {
-          userId: userData.userId,
-          reason: id,
-        };
-        addTaskQueueRef.current(
-          {
-            requiresInternet: true,
-            func: async () => {
-              fetchToServer(
-                "/database/update",
-                {
-                  match,
-                  deviceId,
-                  table: "UserNotificationsConfig",
-                  values,
-                  lang: storageManagement.get("LANGUAGE"),
-                },
-                sessionToken,
-              );
-            },
-          },
-          {
-            id: taskId,
-            args: ["UserNotificationsConfig", values, match],
-            functionName: "updateFromDatabase",
-          },
-          taskId,
-        );
-
-        return updated;
-      });
-    },
-  );
-
   const notificationData: NotificationsData = useMemo(() => {
     return Object.keys(notifications || notificationsManager.getNotifications())
       .reduce(
@@ -262,12 +195,6 @@ const NotificationsScreen: React.FC = () => {
         }
       }
 
-      const defaultMinutes = getDefaultMinutes(item.id);
-      let minutesItem = defaultMinutes;
-      if (defaultMinutes !== -1 && (minutes?.[item.id] || -1) > -1) {
-        minutesItem = minutes?.[item.id] || defaultMinutes;
-      }
-
       const behavior = item.data.behavior;
       const paused = item.data.paused;
       const intervalMinutes =
@@ -297,29 +224,21 @@ const NotificationsScreen: React.FC = () => {
             replaceStyles={{ button: styles.notificationItem, textButton: {} }}
             disabled={item.id === "cryptos" && !isLoggedIn}
           >
-            <Text style={styles.notificationKey}>{t(item.id)}</Text>
+            <Text style={styles.notificationKey}>
+              {t(`notifications.${item.id}`)}
+            </Text>
             <Switch
               value={item.data.enabled}
               disabled={item.id === "cryptos" && !isLoggedIn}
               onChange={() => handleChangeNotificationRef.current(item.id)}
             />
           </Button>
-          {item.data.enabled && minutesItem > -1 && (
-            <TextInput
-              value={minutesItem?.toString()}
-              onChangeText={(text) =>
-                handleChangeNotificationIntervalRef.current(item.id, text)
-              }
-              keyboardType="numeric"
-              label={t("settings.notificationInterval")}
-              style={styles.notificationInput}
-            />
-          )}
+
           {item.data.enabled && (
             <View style={styles.detailsContainer}>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>
-                  {t("settings.notificationDetailsEnabled")}
+                  {t("settings.notificationDetails.enabled")}
                 </Text>
                 <Text style={styles.detailValue}>
                   {formatBoolean(item.data.enabled)}
@@ -327,7 +246,7 @@ const NotificationsScreen: React.FC = () => {
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>
-                  {t("settings.notificationDetailsInterval")}
+                  {t("settings.notificationDetails.interval")}
                 </Text>
                 <Text style={styles.detailValue}>
                   {typeof intervalMinutes === "number" && intervalMinutes >= 0
@@ -337,7 +256,7 @@ const NotificationsScreen: React.FC = () => {
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>
-                  {t("settings.notificationDetailsPaused")}
+                  {t("settings.notificationDetails.paused")}
                 </Text>
                 <Text style={styles.detailValue}>
                   {formatBoolean(paused.isPaused)}
@@ -345,7 +264,7 @@ const NotificationsScreen: React.FC = () => {
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>
-                  {t("settings.notificationDetailsPausedUntil")}
+                  {t("settings.notificationDetails.pausedUntil")}
                 </Text>
                 <Text style={styles.detailValue}>{formatPausedUntil()}</Text>
               </View>
@@ -354,12 +273,12 @@ const NotificationsScreen: React.FC = () => {
                 item.id !== "recorderNotification" && (
                   <View style={styles.detailSection}>
                     <Text style={styles.detailSectionTitle}>
-                      {t("settings.notificationDetailsBehavior")}
+                      {t("settings.notificationDetails.behavior")}
                     </Text>
                     {REPLACERS.isNative && (
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>
-                          {t("settings.notificationDetailsOnlyWhenScreenOff")}
+                          {t("settings.notificationDetails.onlyWhenScreenOff")}
                         </Text>
                         <Switch
                           value={behavior.onlyWhenScreenOff}
@@ -375,7 +294,7 @@ const NotificationsScreen: React.FC = () => {
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>
                         {t(
-                          "settings.notificationDetailsOnlyWhenAppInBackground",
+                          "settings.notificationDetails.onlyWhenAppInBackground",
                         )}
                       </Text>
                       <Switch
@@ -393,7 +312,7 @@ const NotificationsScreen: React.FC = () => {
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>
                           {t(
-                            "settings.notificationDetailsOnlyWhenConnectedToPower",
+                            "settings.notificationDetails.onlyWhenConnectedToPower",
                           )}
                         </Text>
                         <Switch
@@ -412,7 +331,7 @@ const NotificationsScreen: React.FC = () => {
                         <View style={styles.detailRow}>
                           <Text style={styles.detailLabel}>
                             {t(
-                              "settings.notificationDetailsOnlyWhenNotInDoNotDisturb",
+                              "settings.notificationDetails.onlyWhenNotInDoNotDisturb",
                             )}
                           </Text>
                           <Switch
@@ -428,7 +347,7 @@ const NotificationsScreen: React.FC = () => {
                         <View style={styles.detailRow}>
                           <Text style={styles.detailLabel}>
                             {t(
-                              "settings.notificationDetailsBypassDoNotDisturb",
+                              "settings.notificationDetails.bypassDoNotDisturb",
                             )}
                           </Text>
                           <Switch
@@ -446,7 +365,7 @@ const NotificationsScreen: React.FC = () => {
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>
                         {t(
-                          "settings.notificationDetailsOnlyDuringSpecificHours",
+                          "settings.notificationDetails.onlyDuringSpecificHours",
                         )}
                       </Text>
                       <Switch
@@ -470,7 +389,7 @@ const NotificationsScreen: React.FC = () => {
                             )
                           }
                           keyboardType="numeric"
-                          label={t("settings.notificationDetailsStartHour")}
+                          label={t("settings.notificationDetails.startHour")}
                           style={styles.detailInput}
                         />
                         <TextInput
@@ -485,7 +404,7 @@ const NotificationsScreen: React.FC = () => {
                             )
                           }
                           keyboardType="numeric"
-                          label={t("settings.notificationDetailsEndHour")}
+                          label={t("settings.notificationDetails.endHour")}
                           style={styles.detailInput}
                         />
                       </View>
@@ -495,7 +414,7 @@ const NotificationsScreen: React.FC = () => {
               {item.id === "streamers" && (
                 <View style={styles.detailSection}>
                   <Text style={styles.detailSectionTitle}>
-                    {t("settings.notificationDetailsStreamers")}
+                    {t("settings.notificationDetails.streamers")}
                   </Text>
                   {streamersList.length ? (
                     streamersList.map((streamer) => (
@@ -514,7 +433,7 @@ const NotificationsScreen: React.FC = () => {
                     ))
                   ) : (
                     <Text style={styles.detailValue}>
-                      {t("settings.notificationDetailsNoStreamers")}
+                      {t("settings.notificationDetails.noStreamers")}
                     </Text>
                   )}
                 </View>

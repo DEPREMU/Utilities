@@ -72,8 +72,7 @@ export const useStylesMinesweeper = () => {
     () =>
       StyleSheet.create({
         container: {
-          ...getCommonStyles("mainContainer"),
-          backgroundColor: colors.background,
+          ...getCommonStyles("container").container,
           justifyContent: "flex-start",
           padding: spacing.md,
         },
@@ -131,9 +130,8 @@ export const useStylesMinesweeper = () => {
           letterSpacing: 0.3,
         },
         containerMinesweeper: {
-          ...getCommonStyles(["shadow", "mainContainer"], {
-            copyInsets: false,
-          }),
+          ...getCommonStyles("container").container,
+          ...getCommonStyles("shadow").shadow,
           width: "auto",
           flex: undefined,
           backgroundColor: colors.secondary,

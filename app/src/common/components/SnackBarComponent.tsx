@@ -24,7 +24,7 @@ const SnackBarComponent: React.FC<SnackBarComponentProps> = ({
 
   const actionFallback: SnackbarProps["action"] = useMemo(
     () => ({
-      label: t("undo"),
+      label: t("labels.undo"),
       onPress: onDismissCall,
       labelStyle: styles.actionText,
     }),

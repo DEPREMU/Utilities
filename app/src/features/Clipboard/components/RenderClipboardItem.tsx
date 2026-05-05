@@ -173,7 +173,7 @@ const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
             entering={FadeInLeft.duration(200)}
           >
             <Button mode="contained" onPress={getMoreContent}>
-              <Text style={styles.h3}>{t("loadMore")}</Text>
+              <Text style={styles.h3}>{t("common.loadMore")}</Text>
             </Button>
           </Animated.View>
         )}
@@ -184,7 +184,7 @@ const RenderClipboardItem: React.FC<RenderClipboardItemProps> = ({
           disabled={!showChildren}
         >
           <Text style={styles.h3}>
-            {t(isMarkdown ? "showAsPlainText" : "showAsMarkdown")}
+            {t(`markdown.${isMarkdown ? "showAsPlainText" : "showAsMarkdown"}`)}
           </Text>
         </Button>
       </Animated.View>

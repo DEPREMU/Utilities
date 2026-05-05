@@ -13,15 +13,20 @@ import {
   setIntervalPolyfill,
   clearIntervalPolyfill,
 } from "../functions";
+import {
+  parseData,
+  ServiceClass,
+  ClipboardStorage,
+  wrapFunctionWithError,
+} from "@common";
 import { cloneDeep } from "lodash";
 import { getRandomUUID } from "../cross";
 import { sessionManager } from "./session";
 import * as ExpoClipboard from "expo-clipboard";
 import { REPLACERS, URLS } from "../TOP_LEVEL";
-import { storageManagement, parseData } from "./storage";
+import { storageManagement } from "./storage";
 import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
 import { DeviceEventEmitter, EmitterSubscription } from "react-native";
-import { wrapFunctionWithError, ClipboardStorage, ServiceClass } from "@common";
 import { windowModule, keyboardModule, BackgroundModule } from "@modules";
 
 const TAG = "CLIPBOARD_MANAGER";

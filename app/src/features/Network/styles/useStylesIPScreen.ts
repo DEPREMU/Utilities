@@ -10,9 +10,6 @@ const useStylesIPScreen = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-        },
         containerScrollView: {
           flex: 1,
           width: "100%",
@@ -28,6 +25,7 @@ const useStylesIPScreen = () => {
           width: "90%",
           marginVertical: isPhone ? 14 : 18,
         },
+        ...getCommonStyles("container"),
       }),
     [accent, getCommonStyles, isPhone],
   );

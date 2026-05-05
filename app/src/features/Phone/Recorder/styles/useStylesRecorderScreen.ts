@@ -3,16 +3,13 @@ import { useTheme } from "@/context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@/context/LayoutContext";
 
-const useStylesRecorderScreen = () => {
+export const useStylesRecorderScreen = () => {
   const { getCommonStyles, getResponsiveValue } = useResponsiveLayout();
   const { colors } = useTheme();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-        },
         containerScrollView: {
           flex: 1,
           width: "100%",
@@ -453,11 +450,10 @@ const useStylesRecorderScreen = () => {
           color: colors.text,
           fontWeight: "700",
         },
+        ...getCommonStyles("container"),
       }),
     [getCommonStyles, getResponsiveValue, colors],
   );
 
   return { styles };
 };
-
-export default useStylesRecorderScreen;
