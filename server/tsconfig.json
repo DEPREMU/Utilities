@@ -1,12 +1,10 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "es2022",
-    "moduleResolution": "bundler",
     "strict": true,
     "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
     "skipLibCheck": true,
     "paths": {
       "@types": ["../types/index.d.ts"],

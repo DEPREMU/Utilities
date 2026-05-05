@@ -16,10 +16,9 @@ import _BackgroundTimer from "react-native-background-timer";
 import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
 import * as MediaLibrary from "expo-media-library";
-import { stringifyData } from "../services/storage";
 import * as DocumentPicker from "expo-document-picker";
-import { wrapFunctionWithError } from "@common";
 import { Directory, File, Paths } from "expo-file-system";
+import { stringifyData, wrapFunctionWithError } from "@common";
 
 const URL_GOOGLE_204 = "https://www.google.com/generate_204";
 
