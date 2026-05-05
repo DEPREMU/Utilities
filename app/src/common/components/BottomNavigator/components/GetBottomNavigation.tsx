@@ -1,12 +1,12 @@
 import { useLanguage } from "@context/LanguageContext";
 import { BottomNavigation } from "react-native-paper";
-import { typeLanguagesKeys } from "@types";
+import { AppTranslationsKeys } from "@types";
 import useStylesBottomNavigator from "@components/BottomNavigator/styles/useStylesBottomNavigator";
 import React, { useMemo, useState } from "react";
 
 export type Route = {
   key: string;
-  title: typeLanguagesKeys;
+  title: AppTranslationsKeys;
   focusedIcon: string;
   unfocusedIcon?: string;
 };

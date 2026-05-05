@@ -21,6 +21,7 @@ import useStylesBottomNavigator from "@/common/components/BottomNavigator/styles
 import { BottomNavigation, Text } from "react-native-paper";
 import { useVault, VaultProvider } from "@screens/Vault/context/VaultContext";
 import React, { useMemo, useState, useEffect, useRef } from "react";
+import { AppTranslationsKeys, Function } from "@types";
 
 const routes: Route[] = [
   {
@@ -58,7 +59,7 @@ const VaultNavigator = () => {
   const { t } = useLanguage();
   const returnUseStyles = useStylesVaultScreen();
   const { functionsRef } = useVault();
-  const { styles, colors } = useStylesBottomNavigator();
+  const { colors } = useStylesBottomNavigator();
 
   const [index, setIndex] = useState<number>(-1);
 
@@ -74,7 +75,7 @@ const VaultNavigator = () => {
     () =>
       routes.map((route) => ({
         ...route,
-        title: t(route.title),
+        title: (t as Function<[AppTranslationsKeys], string>)(route.title),
       })),
     [t],
   );
@@ -98,7 +99,7 @@ const VaultNavigator = () => {
   useEffect(() => {
     functionsRef.current.unlock(callbackUnlockRef.current);
 
-    const removeListener = deviceInfo.addEventListener(
+    const isBackgroundListener = deviceInfo.addEventListener(
       EventsDeviceInfo.isBackgroundChange,
       (isBackground) => {
         if (isBackground) functionsRef.current.lock(() => setIndex(-1));
@@ -107,7 +108,7 @@ const VaultNavigator = () => {
     );
 
     return () => {
-      removeListener();
+      isBackgroundListener.remove();
       // eslint-disable-next-line react-hooks/exhaustive-deps
       functionsRef.current.lock();
     };
@@ -122,7 +123,7 @@ const VaultNavigator = () => {
 
   if (index === -1)
     return (
-      <View style={returnUseStyles.styles.lockedScreen}>
+      <View style={returnUseStyles.styles.container}>
         <Text style={returnUseStyles.styles.lockedTitle}>
           {t("auth.authenticate")}
         </Text>
@@ -143,7 +144,6 @@ const VaultNavigator = () => {
     <BottomNavigation
       shifting
       sceneAnimationEnabled
-      style={styles.tabBar}
       barStyle={{ backgroundColor: colors.primary }}
       renderScene={renderScene}
       activeColor={colors.background}

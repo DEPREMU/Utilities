@@ -85,8 +85,8 @@ const verifyLocation = async () => {
   const { notificationsManager } = await import("@utils");
 
   notificationsManager.sendNotification({
-    title: tTyped("LocationServicesEnabled"),
-    message: tTyped("LocationServicesEnabledMessage"),
+    title: tTyped("notifications.LocationServicesEnabled"),
+    message: tTyped("notifications.LocationServicesEnabledMessage"),
     type: "info",
     channelId: "locationEnabled",
     reasonNotification: "locationEnabled",
@@ -94,12 +94,12 @@ const verifyLocation = async () => {
     actions: [
       {
         actionId: "dismiss",
-        title: tTyped("dismiss"),
+        title: tTyped("labels.dismiss"),
         icon: "delete",
       },
       {
         actionId: "pause",
-        title: tTyped("pause"),
+        title: tTyped("labels.pause"),
         icon: "pause",
       },
     ],
@@ -172,8 +172,6 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       await import("@utils");
 
     await notificationsManager.waitUntilInitialized();
-    const notification = notificationsManager.getNotification(reason);
-    if (!notification.enabled) return;
 
     const hasInternetId = setIntervalPolyfill(
       async () => {
@@ -188,24 +186,27 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
         if (REPLACERS.isNative)
           NotificationModule.cancelPreviousReasonNotification(reason);
 
-        if (prev && !current) {
-          notificationsManager.sendNotification({
-            type: "warning",
-            title: tTyped("common.NoInternetConnection"),
-            message: tTyped("common.PleaseCheckInternetConnection"),
-            channelId: reason,
-            reasonNotification: reason,
-            overrideNotification: false,
-          });
-        } else {
-          notificationsManager.sendNotification({
-            type: "info",
-            title: tTyped("InternetConnectionRestored"),
-            message: tTyped("YouAreBackOnline"),
-            channelId: reason,
-            reasonNotification: reason,
-            overrideNotification: false,
-          });
+        const notification = notificationsManager.getNotification(reason);
+        if (notification.enabled) {
+          if (prev && !current) {
+            notificationsManager.sendNotification({
+              type: "warning",
+              title: tTyped("common.NoInternetConnection"),
+              message: tTyped("common.PleaseCheckInternetConnection"),
+              channelId: reason,
+              reasonNotification: reason,
+              overrideNotification: false,
+            });
+          } else {
+            notificationsManager.sendNotification({
+              type: "info",
+              title: tTyped("appInfo.InternetConnectionRestored"),
+              message: tTyped("appInfo.YouAreBackOnline"),
+              channelId: reason,
+              reasonNotification: reason,
+              overrideNotification: false,
+            });
+          }
         }
 
         this.#data.hasInternet = current;
@@ -377,14 +378,18 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
 
     const handleBatteryNotifications = async () => {
       const actions: NotificationAction[] = [
-        { actionId: "dismiss", title: tTyped("dismiss"), icon: "delete" },
+        {
+          actionId: "dismiss",
+          title: tTyped("labels.dismiss"),
+          icon: "delete",
+        },
       ];
 
       if (REPLACERS.isNative) {
         if (await NativeFunctionsModule.checkOverlayPermission()) {
           actions.push({
             actionId: "pause",
-            title: tTyped("pause"),
+            title: tTyped("labels.pause"),
             icon: "pause",
           });
         }
@@ -398,8 +403,8 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
         if (batteryLevel <= 0.8) return;
 
         notificationsManager.sendNotification({
-          title: tTyped("BatteryFullyCharged"),
-          message: tTyped("YouCanUnplugYourDevice"),
+          title: tTyped("batteryState.BatteryFullyCharged"),
+          message: tTyped("batteryState.YouCanUnplugYourDevice"),
           type: "info",
           channelId: "batteryAlerts",
           reasonNotification,
@@ -410,15 +415,15 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       } else if (batteryLevel >= 0.3) return;
 
       notificationsManager.sendNotification({
-        title: tTyped("BatteryLow"),
-        message: tTyped("YourBatteryIsLow"),
+        title: tTyped("batteryState.BatteryLow"),
+        message: tTyped("batteryState.YourBatteryIsLow"),
         type: "warning",
         channelId: "batteryAlerts",
         overrideNotification: false,
         reasonNotification,
         actions: [
           ...actions,
-          { actionId: "stop", title: tTyped("stop"), icon: "stop" },
+          { actionId: "stop", title: tTyped("labels.stop"), icon: "stop" },
         ],
       });
     };

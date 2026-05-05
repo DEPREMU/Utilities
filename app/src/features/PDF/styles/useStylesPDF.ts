@@ -10,11 +10,6 @@ export const useStylesPDF = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          alignItems: undefined,
-          justifyContent: "flex-start",
-        },
         pdf: {
           flex: 1,
           width: "100%",
@@ -76,6 +71,7 @@ export const useStylesPDF = () => {
           marginHorizontal: getResponsiveValue(10, 20, 30),
           marginBottom: getResponsiveValue(5, 10, 15),
         },
+        ...getCommonStyles("container"),
       }),
     [colors, getCommonStyles, getResponsiveValue, width],
   );

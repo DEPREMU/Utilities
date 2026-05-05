@@ -90,6 +90,17 @@ export class Cryptos extends EventHandler<Listeners> {
     return this.#pricesData;
   }
 
+  /**
+   * Set new prices data and emit an update event. This should be used carefully, as it will trigger the update event for all listeners.
+   *
+   * @param newPrices - The new prices data to set.
+   * @remarks This method is intended for internal use and should be used with caution, as it will trigger the update event for all listeners. Consider using fetchDataBinance for fetching and updating prices instead.
+   */
+  public set prices(newPrices: PriceBinanceAPI) {
+    this.#pricesData = newPrices;
+    this.emit(CryptoEvents.UPDATE, newPrices);
+  }
+
   public getCryptoBySymbol(symbol: string): PriceBinanceAPI[0] | null {
     try {
       const cryptoData = this.#pricesData.find((c) => c.symbol === symbol);

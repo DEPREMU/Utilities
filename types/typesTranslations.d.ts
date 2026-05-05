@@ -1,6 +1,6 @@
-import { DeviceInformation } from "./screens";
 import type { BatteryState } from "react-native-device-info/src/internal/types";
-import { ReasonNotification } from "./typesNotifications";
+import type { DeviceInformation } from "./screens";
+import type { ReasonNotification } from "./typesNotifications";
 
 export type LanguagesSupported = "en" | "es";
 
@@ -16,7 +16,7 @@ type Join<K, P> = K extends string
     : never
   : never;
 
-type Prev = [never, 0, 1, 2, 3, 4, 5];
+type Prev = [never, 0, 1, 2, 3, 4, 5, 6];
 
 type Paths<T, D extends number = 5> = [D] extends [never]
   ? never
@@ -62,7 +62,7 @@ export type GetPlaceholders<T extends string> =
 export type HasPlaceholder<T extends string> =
   GetPlaceholders<T> extends never ? false : true;
 
-export type typeT<TLang = typeLanguages> = <K extends NormalizeKeys<TLang>>(
+export type typeT<TLang = AppTranslations> = <K extends NormalizeKeys<TLang>>(
   key: K,
   ...args: HasPlural<TLang, K> extends true
     ? HasPlaceholder<ResolvePlural<TLang, K>> extends true
@@ -78,23 +78,55 @@ export type typeT<TLang = typeLanguages> = <K extends NormalizeKeys<TLang>>(
       : []
 ) => string;
 
-/**
- * Represents the structure of language translations.
- *
- * @property key - The key for the translation.
- */
-export type typeLanguages = Record<ReasonNotification, string> & {
-  deviceInformation: Record<keyof DeviceInformation | "title", string>;
-} & Record<Exclude<BatteryState, "unknown">, string> & {
-    youAreNotLoggedInMessage: string;
-    loadMore: string;
-    user: string;
-    DownDetector: {
+type DeviceInformationTranslations = {
+  deviceInformation: Record<
+    keyof DeviceInformation | "title" | "keyWords" | "description",
+    string
+  >;
+};
+
+type BatteryStateTranslations = {
+  batteryState: Record<
+    | Exclude<BatteryState, "unknown">
+    | "BatteryLow"
+    | "YourBatteryIsLow"
+    | "BatteryFullyCharged"
+    | "YouCanUnplugYourDevice",
+    string
+  >;
+};
+
+type NotificationsTranslations = {
+  notifications: Record<
+    | ReasonNotification
+    | "sendNotification"
+    | "foregroundService"
+    | "LocationServicesEnabled"
+    | "foregroundNotificationTitle"
+    | "foregroundNotificationMessage"
+    | "LocationServicesEnabledMessage",
+    string
+  >;
+};
+
+export type AppTranslations = BatteryStateTranslations &
+  NotificationsTranslations &
+  DeviceInformationTranslations & {
+    downDetector: {
       title: string;
+      keyWords: string;
+      description: string;
+      addNewWebPage: string;
       noDataAvailable: string;
       emptyDescription: string;
+      placeholderNewWebPage: string;
+      pleaseEnterWebPageURL: string;
+      webPageMustStartWithHTTP: string;
+      webPageAddedSuccessfully: string;
     };
     network: {
+      keyWords: string;
+      description: string;
       networkInfo: {
         title: string;
         refresh: string;
@@ -138,183 +170,171 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       isHosting: string;
       status: string;
     };
-    dearUser: string;
-    cryptoInfo: string;
-    welcomeUser: `${string}{{user}}${string}`;
-    adminSection: string;
-    passwordAdminSection: string;
-    checkPassword: string;
-    save: string;
-    calculate: string;
-    syntaxError: string;
-    calculator: string;
-    finances: string;
-    currentPrice: string;
-    flagsRemaining: `${string}{{count}}${string}`;
-    youWin: string;
-    youLose: string;
-    youArePlaying: string;
-    successForgotPasswordMessage: string;
-    undo: string;
-    remove: string;
-    copy: string;
-    languageTarget: string;
-    enterText: string;
-    English: string;
-    Spanish: string;
-    French: string;
-    German: string;
-    Italian: string;
-    Japanese: string;
-    Chinese: string;
-    translate: string;
-    translation: string;
-    translator: string;
-    youAreNotLoggedIn: string;
-    error: string;
-    default: string;
-    foregroundService: string;
-    streamers: string;
-    errorLoadingStreamers: string;
-    streamerAlreadyAdded: `${string}{{name}}${string}`;
-    askAddStreamerTitle: string;
-    askAddStreamerBody: `${string}{{name}}${string}`;
-    askDeleteStreamer: string;
-    askDeleteStreamerBody: `${string}{{name}}${string}`;
-    delete: string;
-    errorDeletingStreamer: `${string}{{error}}${string}`;
-    addStreamer: string;
-    yourStreamers: string;
-    askOpenURL: `${string}{{url}}${string}`;
-    openURL: string;
-    Live: string;
-    Offline: string;
-    socialMedia: string;
-    BatteryFullyCharged: string;
-    YouCanUnplugYourDevice: string;
-    BatteryLow: string;
-    YourBatteryIsLow: string;
-    sync: string;
-    addToDatabase: string;
-    adding: string;
-    enterYourTextHere: string;
-    errorOccurred: `${string}{{error}}${string}`;
-    failedToAddTextToDatabase: string;
-    textAddedToDatabase: string;
-    test: string;
-    pleaseEnterSomeText: string;
-    retry: string;
-    foregroundNotificationTitle: string;
-    foregroundNotificationMessage: string;
-    LocationServicesEnabled: string;
-    LocationServicesEnabledMessage: string;
-    pause: string;
-    play: string;
-    playing: string;
-    paused: string;
-    stop: string;
-    dismiss: string;
-    locationPermission: string;
-    locationPermissionMessage: string;
-    doNotDisturbPermission: string;
-    doNotDisturbPermissionMessage: string;
-    accept: string;
-    InternetConnectionRestored: string;
-    YouAreBackOnline: string;
-    overlayPermission: string;
-    overlayPermissionMessage: string;
-    markdownViewer: string;
-    markdownPlaceholder: string;
-    batteryOptimizationPermission: string;
-    batteryOptimizationPermissionMessage: string;
-    autoStartPermission: string;
-    autoStartPermissionMessage: string;
-    lastUpdateCheck: string;
-    checkForUpdates: string;
-    updateAvailable: string;
-    updateAvailableMessage: string;
-    later: string;
-    updateNow: string;
-    noUpdates: string;
-    downDetector: string;
-    addNewWebPage: string;
-    placeholderNewWebPage: string;
-    sendNotification: string;
-    pleaseEnterWebPageURL: string;
-    webPageMustStartWithHTTP: string;
-    webPageAddedSuccessfully: string;
-    computerControl: string;
-    turnOffComputer: string;
-    restartComputer: string;
-    noDevices: string;
-    searchingDevices: string;
-    computerControlTitle: string;
-    scanning: string;
-    search: string;
-    turnOffCommandSent: string;
-    turnOffCommandFailed: string;
-    restartCommandSent: string;
-    restartCommandFailed: string;
-    terminalCommands: string;
-    command: string;
-    enterCommand: string;
-    "executeOnStart-up": string;
-    "executeOnShut-down": string;
-    addCommand: string;
-    noCommandsAdded: string;
-    commandSentSuccessfully: string;
-    commandFailed: string;
-    commandExecutionFailed: string;
-    commandExecuted: string;
-    commandOutput: string;
-    askExecuteCommand: string;
-    confirmExecuteCommand: string;
-    execute: string;
-    executingCommand: string;
-    noOutput: string;
-    currentVersion: `${string}{{version}}${string}`;
-    appUpdates: string;
-    appUpdatesExplanation: string;
-    openUpdatesWebPage: string;
-    ourUpdatesWebPage: string;
-    requestingCameraPermission: string;
-    noCameraPermission: string;
-    needsCameraPermission: string;
-    qrLoginSuccessTitle: string;
-    qrLoginSuccessMessage: string;
-    scanQRCode: string;
-    loginWithEmail: string;
-    loginWithQR: string;
-    generatingQRCode: string;
-    loggingInWithQRCode: string;
-    scanQRCodeInstructions: string;
-    processingQRCode: string;
-    qrLoginErrorTitle: string;
-    qrLoginErrorMessage: string;
-    noMoreData: string;
-    showDeleted: string;
-    restoreAll: string;
-    deleteAll: string;
-    restore: string;
-    timeToDownload: string;
-    internetSpeedMbps: string;
-    timeToDownloadResult: string;
-    fileSize: string;
-    setAlarmWhenDone: `${string}{{time}}${string}`;
-    timeToDownloadFinished: string;
-    timeToDownloadFinishedMessage: `${string}{{time}}${string}`;
-    scale: `${string}{{scale}}${string}`;
-    small: string;
-    loginWithQRExplanation: string;
-    scaleFactor: string;
-    showAsPlainText: string;
-    millis: string;
-    seconds: string;
-    minutes: string;
-    hours: string;
-    appVersion: `${string}{{version}}${string}`;
-    showAsMarkdown: string;
+    calculator: {
+      title: string;
+      keyWords: string;
+      finances: {
+        title: string;
+      };
+      calculate: string;
+      description: string;
+      syntaxError: string;
+      timeToDownload: {
+        scale: `${string}{{scale}}${string}`;
+        title: string;
+        result: string;
+        fileSize: string;
+        finished: string;
+        scaleFactor: string;
+        finishedMessage: `${string}{{time}}${string}`;
+        setAlarmWhenDone: `${string}{{time}}${string}`;
+        internetSpeedMbps: string;
+      };
+    };
+    languages: {
+      English: string;
+      Spanish: string;
+      French: string;
+      German: string;
+      Italian: string;
+      Japanese: string;
+      Chinese: string;
+    };
+    translator: {
+      title: string;
+      keyWords: string;
+      enterText: string;
+      translate: string;
+      description: string;
+      translation: string;
+      languageTarget: string;
+    };
+    user: {
+      label: string;
+      dearUser: string;
+      welcomeUser: `${string}{{user}}${string}`;
+    };
+    streamers: {
+      addStreamer: string;
+      yourStreamers: string;
+      Live: string;
+      Offline: string;
+      title: string;
+      errorLoadingStreamers: string;
+      streamerAlreadyAdded: `${string}{{name}}${string}`;
+      askAddStreamerTitle: string;
+      askAddStreamerBody: `${string}{{name}}${string}`;
+      askDeleteStreamer: string;
+      askDeleteStreamerBody: `${string}{{name}}${string}`;
+    };
+    socialMedia: {
+      title: string;
+      keyWords: string;
+      description: string;
+    };
+    test: {
+      title: string;
+    };
+    verifications: {
+      pleaseEnterSomeText: string;
+    };
+    markdown: {
+      title: string;
+      keyWords: string;
+      description: string;
+      placeholder: string;
+      showAsMarkdown: string;
+      showAsPlainText: string;
+    };
+    computerControl: {
+      title: string;
+      keyWords: string;
+      scanning: string;
+      noDevices: string;
+      description: string;
+      searchingDevices: string;
+    };
+    terminalCommands: {
+      turnOffComputer: string;
+      restartComputer: string;
+      keyWords: string;
+      description: string;
+      turnOffCommandSent: string;
+      turnOffCommandFailed: string;
+      restartCommandSent: string;
+      restartCommandFailed: string;
+      title: string;
+      command: string;
+      enterCommand: string;
+      "executeOnStart-up": string;
+      "executeOnShut-down": string;
+      addCommand: string;
+      noCommandsAdded: string;
+      commandSentSuccessfully: string;
+      commandFailed: string;
+      commandExecutionFailed: string;
+      commandExecuted: string;
+      commandOutput: string;
+      askExecuteCommand: string;
+      confirmExecuteCommand: string;
+      execute: string;
+      executingCommand: string;
+      noOutput: string;
+    };
+    appInfo: {
+      appUpdates: string;
+      appVersion: `${string}{{version}}${string}`;
+      currentVersion: `${string}{{version}}${string}`;
+      YouAreBackOnline: string;
+      appUpdatesExplanation: string;
+      InternetConnectionRestored: string;
+    };
+    updates: {
+      updateNow: string;
+      noUpdates: string;
+      checkForUpdates: string;
+      lastUpdateCheck: string;
+      updateAvailable: string;
+      ourUpdatesWebPage: string;
+      openUpdatesWebPage: string;
+      updateAvailableMessage: string;
+    };
+    permissions: {
+      overlayPermission: string;
+      noCameraPermission: string;
+      locationPermission: string;
+      autoStartPermission: string;
+      needsCameraPermission: string;
+      doNotDisturbPermission: string;
+      overlayPermissionMessage: string;
+      locationPermissionMessage: string;
+      autoStartPermissionMessage: string;
+      requestingCameraPermission: string;
+      batteryOptimizationPermission: string;
+      doNotDisturbPermissionMessage: string;
+      batteryOptimizationPermissionMessage: string;
+    };
+    times: {
+      millis: string;
+      seconds: string;
+      minutes: string;
+      hours: string;
+    };
     labels: {
+      sync: string;
+      play: string;
+      stop: string;
+      copy: string;
+      undo: string;
+      later: string;
+      retry: string;
+      pause: string;
+      accept: string;
+      paused: string;
+      remove: string;
+      restore: string;
+      playing: string;
+      dismiss: string;
       toggle: string;
       doNotAskAgain: string;
       fileSavedSuccessTitle: string;
@@ -329,8 +349,11 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       fileInfo: string;
       deselect: string;
       clipboard: string;
+      search: string;
     };
     notes: {
+      keyWords: string;
+      description: string;
       title: string;
       listTab: string;
       viewerTab: string;
@@ -345,8 +368,6 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       hide: string;
       pin: string;
       moveTo: string;
-      delete: string;
-      cancel: string;
       createFolderTitle: string;
       create: string;
       unlockTitle: string;
@@ -360,10 +381,8 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       document: string;
       text: string;
       select: string;
-      save: string;
       edit: string;
       openFile: string;
-      searchPlaceholder: string;
       folderNamePlaceholder: string;
       passwordPlaceholder: string;
       draftPlaceholder: string;
@@ -381,6 +400,8 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       emptyPreview: string;
     };
     recorder: {
+      keyWords: string;
+      description: string;
       infiniteRecord: string;
       permissionDenied: string;
       saved: `${string}{{uri}}${string}`;
@@ -420,6 +441,8 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       maxFilesToKeep: `${string}{{maxFiles}}${string}`;
     };
     images: {
+      keyWords: string;
+      description: string;
       imageSize: `${string}{{size}}${string}`;
       imageType: `${string}{{type}}${string}`;
       labelImages: string;
@@ -440,7 +463,10 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       errorWhileSavingImageAlertMessage: `${string}{{imageName}}${string}`;
       imageDownloadedInAlbumAlertMessage: `${string}{{albumName}}${string}`;
     };
-    Cryptos: {
+    cryptos: {
+      title: string;
+      keyWords: string;
+      description: string;
       notifiInterval: string;
       notifiIntervalError: `${string}{{min}}${string}`;
       refreshIntervalError: `${string}{{min}}${string}`;
@@ -455,7 +481,6 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       owned: `${string}{{amount}}${string} (${string}{{cryptoName}}${string})`;
       priceOfCrypto: `${string}{{cryptoName}}${string}`;
       clearCache: string;
-      searchCrypto: string;
       ownedAmount: `${string}{{amount}}${string}{{cryptoName}}${string}`;
       firstInvest: `${string}{{amount}}${string}{{cryptoName}}${string}${string}{{price}}${string}`;
       gainAmount: `${string}{{gainAmount}}${string}{{currency}}${string}`;
@@ -472,6 +497,24 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       welcomeTo: string;
     };
     auth: {
+      email: string;
+      checkPassword: string;
+      youAreNotLoggedIn: string;
+      youAreNotLoggedInMessage: string;
+      qr: {
+        loginWithQRExplanation: string;
+        loginSuccessTitle: string;
+        loginSuccessMessage: string;
+        scanQRCode: string;
+        loginWithEmail: string;
+        loginWithQR: string;
+        generatingQRCode: string;
+        loggingInWithQRCode: string;
+        scanQRCodeInstructions: string;
+        processingQRCode: string;
+        qrLoginErrorTitle: string;
+        qrLoginErrorMessage: string;
+      };
       errorNoSession: string;
       errorNoSessionMessage: string;
       successSignUp: string;
@@ -493,18 +536,27 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       successLoginMessage: string;
       authenticate: string;
       authenticateMessage: string;
+      successForgotPasswordMessage: string;
     };
     games: {
+      youWin: string;
+      youLose: string;
+      youArePlaying: string;
       title: string;
+      keyWords: string;
+      description: string;
       startGame: string;
       minesweeper: {
-        title: string;
         easy: `${string}{{size}}${string}`;
-        medium: `${string}{{size}}${string}`;
         hard: `${string}{{size}}${string}`;
+        title: string;
+        medium: `${string}{{size}}${string}`;
+        flagsRemaining: `${string}{{count}}${string}`;
       };
     };
     vault: {
+      keyWords: string;
+      description: string;
       title: string;
       subtitle: string;
       unlock: string;
@@ -621,9 +673,13 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     };
     settings: {
       apiURL: string;
-      setApiURL: string;
+      keyWords: string;
       language: string;
+      setApiURL: string;
+      description: string;
       setLanguage: string;
+      adminSection: string;
+      passwordAdminSection: string;
       toggleFetchCellularData: string;
       toggleFetchCellularDataExplanation: string;
       setNotifications: string;
@@ -636,25 +692,38 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       light: string;
       dark: string;
       setTheme: string;
-      notificationDetailsEnabled: string;
-      notificationDetailsInterval: string;
-      notificationDetailsPaused: string;
-      notificationDetailsPausedUntil: string;
-      notificationDetailsBehavior: string;
-      notificationDetailsOnlyWhenScreenOff: string;
-      notificationDetailsOnlyWhenAppInBackground: string;
-      notificationDetailsOnlyWhenConnectedToPower: string;
-      notificationDetailsOnlyWhenNotInDoNotDisturb: string;
-      notificationDetailsOnlyDuringSpecificHours: string;
-      notificationDetailsStartHour: string;
-      notificationDetailsEndHour: string;
-      notificationDetailsBypassDoNotDisturb: string;
-      notificationDetailsStreamers: string;
-      notificationDetailsNoStreamers: string;
+      notificationDetails: {
+        enabled: string;
+        interval: string;
+        paused: string;
+        pausedUntil: string;
+        behavior: string;
+        onlyWhenScreenOff: string;
+        onlyWhenAppInBackground: string;
+        onlyWhenConnectedToPower: string;
+        onlyWhenNotInDoNotDisturb: string;
+        onlyDuringSpecificHours: string;
+        startHour: string;
+        endHour: string;
+        bypassDoNotDisturb: string;
+        streamers: string;
+        noStreamers: string;
+      };
     };
     common: {
+      error: string;
+      textAddedToDatabase: string;
+      failedToAddTextToDatabase: string;
+      errorOccurred: `${string}{{error}}${string}`;
+      askOpenURL: `${string}{{url}}${string}`;
+      openURL: string;
+      loadMore: string;
+      adding: string;
+      noMoreData: string;
+      showDeleted: string;
       visitWebsite: string;
       refreshEvery: `${string}{{humanizedText}}${string}`;
+      addToDatabase: string;
       syncing: string;
       content: string;
       notAvailable: string;
@@ -697,6 +766,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       hard: string;
       unlimited: string;
       deleteAll: string;
+      restoreAll: string;
       loading: string;
       openWith: string;
       folders: string;
@@ -724,20 +794,24 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       selectColor: string;
       setDefaults: string;
     };
-    QR: {
+    qr: {
       title: string;
+      keyWords: string;
+      description: string;
       writeData: string;
       selectImage: string;
       resetCamera: string;
       scanFromImage: string;
     };
-    IPQuery: {
+    iPQuery: {
       title: string;
     };
-    IP_API: {
+    iP_API: {
       title: string;
     };
-    PDF: {
+    pdf: {
+      keyWords: string;
+      description: string;
       open: string;
       close: string;
       lover: string;
@@ -754,6 +828,9 @@ export type typeLanguages = Record<ReasonNotification, string> & {
       selectCurrentPaperSize: `${string}{{size}}${string}`;
     };
     clipboard: {
+      enterYourTextHere: string;
+      keyWords: string;
+      description: string;
       contentLength: `${string}{{length}}${string}`;
       noClipboardData: string;
       clipboardEmptyDescription: string;
@@ -769,7 +846,7 @@ export type typeLanguages = Record<ReasonNotification, string> & {
     };
   };
 
-export type typeLanguagesServer = {
+export type ServerTranslations = {
   internalError: string;
   notificationCryptoBody: string;
   notificationCryptoTitle: string;
@@ -811,5 +888,5 @@ export type typeLanguagesServer = {
   };
 };
 
-export type typeLanguagesKeys = Paths<typeLanguages>;
-export type typeLanguagesServerKeys = Paths<typeLanguagesServer>;
+export type AppTranslationsKeys = Paths<AppTranslations>;
+export type ServerTranslationsKeys = Paths<ServerTranslations>;

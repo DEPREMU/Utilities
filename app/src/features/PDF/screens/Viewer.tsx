@@ -82,7 +82,7 @@ const Viewer: React.FC<ViewerProps> = ({ uri }) => {
   return (
     <View style={styles.container}>
       <Button mode="contained" onPress={handlePressButton}>
-        {t(uriState ? "PDF.close" : "PDF.open")}
+        {t(uriState ? "pdf.close" : "pdf.open")}
       </Button>
 
       <Divider style={styles.divider} />

@@ -182,7 +182,7 @@ const configureNotificationChannel = async () => {
 
   const channels: Record<ChannelsId, notifications.NotificationChannelInput> = {
     updateAvailable: {
-      name: tTyped("updateAvailable"),
+      name: tTyped("updates.updateAvailable"),
       importance: notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#00ff00",
@@ -200,31 +200,31 @@ const configureNotificationChannel = async () => {
       lightColor: "#8400ff7c",
     },
     default: {
-      name: tTyped("default"),
+      name: tTyped("common.notifications"),
       importance: notifications.AndroidImportance.DEFAULT,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffffff",
     },
     locationEnabled: {
-      name: tTyped("locationEnabled"),
+      name: tTyped("notifications.LocationServicesEnabled"),
       importance: notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ff0000",
     },
     batteryAlerts: {
-      name: tTyped("batteryAlerts"),
+      name: tTyped("batteryState.BatteryLow"),
       importance: notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#00ff00",
     },
     noInternetConnection: {
-      name: tTyped("noInternetConnection"),
+      name: tTyped("common.NoInternetConnection"),
       importance: notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffff00",
     },
     ForegroundServiceChannel: {
-      name: tTyped("foregroundService"),
+      name: tTyped("notifications.foregroundService"),
       importance: notifications.AndroidImportance.LOW,
       sound: null,
       vibrationPattern: null,
@@ -236,19 +236,19 @@ const configureNotificationChannel = async () => {
       lightColor: "#ff00ff",
     },
     loggedInStatusChannel: {
-      name: tTyped("loggedInStatusChannel"),
+      name: tTyped("auth.youAreNotLoggedIn"),
       importance: notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#00ffff",
     },
     timeToDownload: {
-      name: tTyped("timeToDownload"),
+      name: tTyped("calculator.timeToDownload.title"),
       importance: notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffa500",
     },
     recorderNotification: {
-      name: tTyped("recorderNotification"),
+      name: tTyped("recorder.label"),
       importance: notifications.AndroidImportance.LOW,
       sound: null,
       vibrationPattern: null,

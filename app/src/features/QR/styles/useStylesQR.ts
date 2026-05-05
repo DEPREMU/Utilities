@@ -11,10 +11,6 @@ export const useStylesQR = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          justifyContent: "flex-start",
-        },
         textInput: {
           width: getResponsiveValue("90%", "80%", "70%"),
           marginBottom: 10,
@@ -40,9 +36,6 @@ export const useStylesQR = () => {
           height: "70%",
           alignSelf: "center",
           borderRadius: 10,
-        },
-        containerModal: {
-          ...getCommonStyles("mainContainer"),
         },
         containerButtons: {
           flexDirection: "row",
@@ -82,6 +75,7 @@ export const useStylesQR = () => {
           width: "100%",
           position: "relative",
         },
+        ...getCommonStyles("container"),
       }),
     [getCommonStyles, colors, getResponsiveValue],
   );

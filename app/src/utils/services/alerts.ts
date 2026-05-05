@@ -1,9 +1,9 @@
 import { Alert } from "react-native";
-import { typeLanguagesKeys, typeT } from "@types";
+import { AppTranslationsKeys, typeT } from "@types";
 
 type AskPermission = <R>(
-  title: typeLanguagesKeys,
-  message: typeLanguagesKeys,
+  title: AppTranslationsKeys,
+  message: AppTranslationsKeys,
   callback: (doNotAskAgain: boolean, success: boolean) => Promise<R>,
   options?: {
     timeout?: number;

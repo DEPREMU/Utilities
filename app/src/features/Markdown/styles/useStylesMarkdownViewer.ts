@@ -1,25 +1,13 @@
 import { useMemo } from "react";
-import { useTheme } from "@/context/ThemeContext";
 import { StyleSheet } from "react-native";
-import { useResponsiveLayout } from "@/context/LayoutContext";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
 export const useStylesMarkdownViewer = () => {
-  const { colors } = useTheme();
-  const { getResponsiveValue, getCommonStyles } = useResponsiveLayout();
+  const { getResponsiveValue, getCommonStyles, texts } = useResponsiveLayout();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          backgroundColor: colors.background,
-        },
-        title: {
-          fontSize: 24,
-          fontWeight: "bold",
-          color: colors.text,
-          marginBottom: 16,
-        },
         scrollView: {
           flex: 1,
           width: "100%",
@@ -39,8 +27,10 @@ export const useStylesMarkdownViewer = () => {
         contentStyle: {
           fontSize: 16,
         },
+        ...texts,
+        ...getCommonStyles("container"),
       }),
-    [colors, getCommonStyles, getResponsiveValue],
+    [texts, getCommonStyles, getResponsiveValue],
   );
 
   return { styles };

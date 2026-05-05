@@ -1,7 +1,7 @@
 import { View, Text } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesIP_API from "@screens/Network/styles/useStylesIP_API";
-import { dataIP_API_JSON, typeLanguagesKeys } from "@types";
+import { dataIP_API_JSON, AppTranslationsKeys, Function } from "@types";
 import React, { useEffect, useMemo, useState } from "react";
 import { memoDeep, setTimeoutPolyfill, clearTimeoutPolyfill } from "@utils";
 
@@ -36,7 +36,7 @@ interface IP_ApiProps {
   data: dataIP_API_JSON | null;
 }
 
-const keysTranslated: Record<keyof dataIP_API_JSON, typeLanguagesKeys> = {
+const keysTranslated: Record<keyof dataIP_API_JSON, AppTranslationsKeys> = {
   status: "network.status",
   continent: "network.continent",
   continentCode: "network.continentCode",
@@ -104,7 +104,11 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
 
         return (
           <View key={key} style={styles.containerEachValue}>
-            <Text style={styles.textKey}>{t(keysTranslated[keyTyped])}</Text>
+            <Text style={styles.textKey}>
+              {(t as Function<[AppTranslationsKeys], string>)(
+                keysTranslated[keyTyped],
+              )}
+            </Text>
             <Text style={styles.value}>
               {valueToShow || t("common.notAvailable")}
             </Text>
@@ -118,7 +122,7 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.textIP}>{t("IP_API.title")}</Text>
+      <Text style={styles.textIP}>{t("iP_API.title")}</Text>
 
       <View style={styles.containerIP}>
         <Text style={styles.textKey}>{t("network.yourIP", { ip: "" })}</Text>

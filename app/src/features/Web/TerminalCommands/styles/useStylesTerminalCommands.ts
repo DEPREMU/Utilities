@@ -11,7 +11,7 @@ export const useStylesTerminalCommands = () => {
     () =>
       StyleSheet.create({
         mainContainer: {
-          ...getCommonStyles("mainContainer"),
+          ...getCommonStyles("container").container,
           alignSelf: "center",
           alignItems: undefined,
           maxWidth: 800,
@@ -38,7 +38,7 @@ export const useStylesTerminalCommands = () => {
           maxWidth: 600,
           alignSelf: "center",
           borderRadius: 16,
-          ...getCommonStyles("shadow", { shadowColor: colors.primary }),
+          ...getCommonStyles("shadow").shadow,
         },
         cardContent: {
           padding: getResponsiveValue(16, 20, 24),
@@ -88,7 +88,7 @@ export const useStylesTerminalCommands = () => {
           borderRadius: 16,
           width: "100%",
           overflow: "hidden",
-          ...getCommonStyles("shadow", { shadowColor: colors.accent }),
+          ...getCommonStyles("shadow").shadow,
         },
         commandCardContent: {
           padding: getResponsiveValue(16, 20, 24),
@@ -103,7 +103,7 @@ export const useStylesTerminalCommands = () => {
           paddingHorizontal: getResponsiveValue(12, 14, 16),
           paddingVertical: getResponsiveValue(6, 8, 10),
           borderRadius: 20,
-          ...getCommonStyles("shadow", { shadowColor: colors.primary }),
+          ...getCommonStyles("shadow").shadow,
         },
         commandBadgeText: {
           color: colors.background,
@@ -137,7 +137,7 @@ export const useStylesTerminalCommands = () => {
           alignItems: "center",
           width: "90%",
           maxWidth: 400,
-          ...getCommonStyles("shadow", { shadowColor: colors.primary }),
+          ...getCommonStyles("shadow").shadow,
         },
         emptyText: {
           color: colors.text,

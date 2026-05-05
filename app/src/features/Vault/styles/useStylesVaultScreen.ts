@@ -15,11 +15,6 @@ const useStylesVaultScreen = () => {
         content: {
           paddingHorizontal: 8,
         },
-        container: {
-          ...getCommonStyles("mainContainer"),
-          alignItems: undefined,
-          justifyContent: "flex-start",
-        },
         title: {
           fontSize: getResponsiveValue(24, 28, 32),
           fontWeight: "bold",
@@ -44,9 +39,6 @@ const useStylesVaultScreen = () => {
         margin8: {
           marginTop: 8,
           marginBottom: 8,
-        },
-        lockedScreen: {
-          ...getCommonStyles("mainContainer"),
         },
         lockedTitle: {
           fontSize: getResponsiveValue(20, 24, 28),
@@ -217,6 +209,7 @@ const useStylesVaultScreen = () => {
         absolute: {
           position: "absolute",
         },
+        ...getCommonStyles("container"),
       }),
     [colors, getCommonStyles, getResponsiveValue, width, height],
   );

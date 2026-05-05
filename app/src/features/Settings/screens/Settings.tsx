@@ -3,7 +3,6 @@ import {
   alerts,
   logger,
   openURL,
-  API_URL,
   updates,
   memoDeep,
   REPLACERS,
@@ -20,6 +19,7 @@ import {
   storageManagement,
   setTimeoutPolyfill,
   getDevicePushToken,
+  URLS,
 } from "@utils";
 import Button from "@/common/components/Button/screens";
 import ThemePicker from "@screens/Settings/components/ThemePicker";
@@ -29,20 +29,20 @@ import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
-import { typeLanguagesKeys } from "@types";
+import { AppTranslationsKeys, Function } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
 import { ActivityIndicator, Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type Section = {
-  subtitle: typeLanguagesKeys;
-  labelTextInput: typeLanguagesKeys;
+  subtitle: AppTranslationsKeys;
+  labelTextInput: AppTranslationsKeys;
   value: string | null;
   onChangeText: (text: string) => void;
   placeholder?: string;
   handlePress: () => void;
-  labelButton: typeLanguagesKeys;
+  labelButton: AppTranslationsKeys;
 };
 
 type UpdatesData = {
@@ -68,7 +68,7 @@ const DebugComponent: React.FC = memoDeep(() => {
     const pushToken = await getDevicePushToken();
     if (!pushToken) {
       alerts.showAlert(
-        "error",
+        "common.error",
         "Unable to get device push token. App alive state cannot be toggled." as never,
         async () => {},
       );
@@ -84,8 +84,8 @@ const DebugComponent: React.FC = memoDeep(() => {
     });
 
     alerts.showAlert(
-      "Debug state changed" as never,
-      `App alive state is now ${!exists ? "disabled" : "enabled"}.` as never,
+      "common.debugStateChanged" as never,
+      `common.appAliveState${!exists ? "Disabled" : "Enabled"}` as never,
       async () => {},
     );
   });
@@ -169,7 +169,7 @@ const SettingsScreen: React.FC = () => {
   });
 
   const openUrlUpdatesWebPageRef = useRef(async () => {
-    const updatesWebPageUrl = API_URL.replace("api", "updates/web-page");
+    const updatesWebPageUrl = URLS.api.replace("api", "updates/web-page");
     logger.log("Opening updates web page URL:", updatesWebPageUrl);
     openURL(updatesWebPageUrl);
   });
@@ -302,7 +302,7 @@ const SettingsScreen: React.FC = () => {
         onChangeText: setApiURL,
         placeholder: "https://api.example.com",
         handlePress: saveApiURL,
-        labelButton: "save",
+        labelButton: "labels.save",
       },
       {
         subtitle: "settings.setWebSocketURL",
@@ -311,15 +311,19 @@ const SettingsScreen: React.FC = () => {
         onChangeText: setSocketURLState,
         placeholder: "wss://socket.example.com",
         handlePress: saveSocketURL,
-        labelButton: "save",
+        labelButton: "labels.save",
       },
     ];
 
     return sections.map((section, index) => (
       <View style={styles.section} key={index}>
-        <Text style={styles.subtitle}>{t(section.subtitle)}</Text>
+        <Text style={styles.subtitle}>
+          {(t as Function<[AppTranslationsKeys], string>)(section.subtitle)}
+        </Text>
         <TextInput
-          label={t(section.labelTextInput)}
+          label={(t as Function<[AppTranslationsKeys], string>)(
+            section.labelTextInput,
+          )}
           value={section.value || ""}
           onChangeText={section.onChangeText}
           mode="outlined"
@@ -333,7 +337,9 @@ const SettingsScreen: React.FC = () => {
             }}
             touchableOpacity
             handlePress={section.handlePress}
-            label={t(section.labelButton)}
+            label={(t as Function<[AppTranslationsKeys], string>)(
+              section.labelButton,
+            )}
           />
         </View>
       </View>
@@ -341,12 +347,14 @@ const SettingsScreen: React.FC = () => {
   }, [apiURL, socketURL, styles, t, saveApiURL, saveSocketURL]);
 
   useEffect(() => {
-    const removeListener = deviceInfo.addEventListener(
+    const hasInternetListener = deviceInfo.addEventListener(
       EventsDeviceInfo.hasInternetChange,
       (hasInternet) => setHasInternet(hasInternet),
     );
 
-    return () => removeListener();
+    return () => {
+      hasInternetListener.remove();
+    };
   }, []);
 
   return (
@@ -366,15 +374,19 @@ const SettingsScreen: React.FC = () => {
 
           <View style={styles.section}>
             <Text style={styles.subtitle}>
-              {t(REPLACERS.isNative ? "lastUpdateCheck" : "appUpdates")}
+              {t(
+                REPLACERS.isNative
+                  ? "updates.lastUpdateCheck"
+                  : "appInfo.appUpdates",
+              )}
             </Text>
             <Text style={styles.dateText}>
-              {t("currentVersion", { version: APP_VERSION })}
+              {t("appInfo.currentVersion", { version: APP_VERSION })}
             </Text>
             <Text style={styles.dateText}>
               {REPLACERS.isNative
                 ? getFormattedDate(updatesData?.lastUpdateCheck || new Date())
-                : t("appUpdatesExplanation")}
+                : t("appInfo.appUpdatesExplanation")}
             </Text>
             {REPLACERS.isNative && (
               <Button
@@ -391,25 +403,33 @@ const SettingsScreen: React.FC = () => {
                     color={colors.background}
                   />
                 ) : updatesData?.updateState === "NO_UPDATES" ? (
-                  <Text style={styles.buttonLabel}>{t("noUpdates")}</Text>
+                  <Text style={styles.buttonLabel}>
+                    {t("updates.noUpdates")}
+                  </Text>
                 ) : updatesData?.updateState === "NOT_VERIFIED" ? (
-                  <Text style={styles.buttonLabel}>{t("checkForUpdates")}</Text>
+                  <Text style={styles.buttonLabel}>
+                    {t("updates.checkForUpdates")}
+                  </Text>
                 ) : updatesData?.updateState === "UPDATE_AVAILABLE" ? (
-                  <Text style={styles.buttonLabel}>{t("updateAvailable")}</Text>
+                  <Text style={styles.buttonLabel}>
+                    {t("updates.updateAvailable")}
+                  </Text>
                 ) : null}
               </Button>
             )}
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.subtitle}>{t("ourUpdatesWebPage")}</Text>
+            <Text style={styles.subtitle}>
+              {t("updates.ourUpdatesWebPage")}
+            </Text>
             <Button
               customStyles={{
                 button: styles.button,
                 textButton: styles.buttonLabel,
               }}
               handlePress={openUrlUpdatesWebPageRef.current}
-              label={t("openUpdatesWebPage")}
+              label={t("updates.openUpdatesWebPage")}
             />
           </View>
 
@@ -431,12 +451,14 @@ const SettingsScreen: React.FC = () => {
 
           {REPLACERS.isNative && isLoggedIn && (
             <View style={styles.section}>
-              <Text style={styles.subtitle}>{t("loginWithQR")}</Text>
+              <Text style={styles.subtitle}>{t("auth.qr.loginWithQR")}</Text>
 
-              <Text style={styles.infoText}>{t("loginWithQRExplanation")}</Text>
+              <Text style={styles.infoText}>
+                {t("auth.qr.loginWithQRExplanation")}
+              </Text>
 
               <Button
-                label={t("loginWithQR")}
+                label={t("auth.qr.loginWithQR")}
                 handlePress={() => navigation.replace("ScanQRCode")}
               />
             </View>
@@ -446,10 +468,10 @@ const SettingsScreen: React.FC = () => {
 
           {!hasAdmin && (
             <View style={styles.section}>
-              <Text style={styles.subtitle}>{t("adminSection")}</Text>
+              <Text style={styles.subtitle}>{t("settings.adminSection")}</Text>
               <View style={styles.inputContainer}>
                 <TextInput
-                  label={t("passwordAdminSection")}
+                  label={t("settings.passwordAdminSection")}
                   onChangeText={setPassword}
                   value={password}
                   secureTextEntry
@@ -463,7 +485,7 @@ const SettingsScreen: React.FC = () => {
                     textButton: styles.buttonLabel,
                   }}
                   handlePress={handleCheckPasswordAdminSection}
-                  label={t("checkPassword")}
+                  label={t("auth.checkPassword")}
                 />
               </View>
             </View>

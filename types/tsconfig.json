@@ -3,6 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "strict": true,
+    "allowImportingTsExtensions": true,
     "lib": ["esnext"],
     "types": ["node"],
     "typeRoots": ["../node_modules/@types"],

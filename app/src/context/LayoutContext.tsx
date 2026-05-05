@@ -250,6 +250,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
         width: "100%",
       },
       scrollViewContentContainer: {
+        gap: getResponsiveValue(10, 12, 14, 16),
         flexGrow: 1,
         paddingVertical: getResponsiveValue(6, 8, 10, 12),
         paddingHorizontal: getResponsiveValue(8, 10, 12, 14),

@@ -63,7 +63,7 @@ const ComputerItem: React.FC<{
             />
 
             <List.Item
-              title={t("turnOffComputer")}
+              title={t("terminalCommands.turnOffComputer")}
               description={item.url}
               left={(props) =>
                 pressedCommand === "turn-off" ? (
@@ -77,7 +77,7 @@ const ComputerItem: React.FC<{
             />
 
             <List.Item
-              title={t("restartComputer")}
+              title={t("terminalCommands.restartComputer")}
               description={item.url}
               left={(props) =>
                 pressedCommand === "restart" ? (

@@ -10,10 +10,6 @@ export const useStylesNetworkInfo = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          ...getCommonStyles("mainContainer"),
-          backgroundColor: colors.background,
-        },
         containerScrollView: {
           flex: 1,
           width: "100%",
@@ -72,9 +68,8 @@ export const useStylesNetworkInfo = () => {
           fontWeight: "600",
         },
         valueContainer: {
-          ...getCommonStyles(["mainContainer", "shadow"], {
-            copyInsets: false,
-          }),
+          ...getCommonStyles("shadow").shadow,
+          ...getCommonStyles("container").container,
           borderLeftWidth: 3,
           borderLeftColor: colors.primary,
           borderRadius: getResponsiveValue(8, 10, 12),
@@ -92,6 +87,7 @@ export const useStylesNetworkInfo = () => {
           opacity: 0.75,
           paddingVertical: getResponsiveValue(8, 10, 12),
         },
+        ...getCommonStyles("container"),
       }),
     [colors, getCommonStyles, getResponsiveValue],
   );

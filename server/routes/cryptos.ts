@@ -1,10 +1,23 @@
+import fs from "fs";
 import chalk from "chalk";
-import { Cryptos } from "@common";
 import { showError } from "../functions/logger.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
+import { CryptoEvents, Cryptos, PriceBinanceAPI } from "@common";
+import path from "path";
+import { serverPath } from "../config.ts";
+import { getEnvValue } from "../env.ts";
+
+const cryptosFilePath = path.join(serverPath, "dev", "cryptos.json");
 
 export const cryptos = new Cryptos(500);
 void cryptos.fetchDataBinance(true);
+if (getEnvValue("__DEV__")) {
+  cryptos.addEventListener(CryptoEvents.UPDATE, async (d) => {
+    void fs.promises.writeFile(cryptosFilePath, JSON.stringify(d), {
+      encoding: "utf-8",
+    });
+  });
+}
 
 export const handleGetCryptoPrice = getHandlerPost(
   "/cryptoPrice",
@@ -13,12 +26,23 @@ export const handleGetCryptoPrice = getHandlerPost(
     try {
       const { symbol } = body;
 
-      const dataCrypto = cryptos.getCryptoBySymbol(symbol);
-      if (!dataCrypto)
-        return sendResponse("NOT_FOUND", {
-          success: false,
-          error: "Crypto not found",
-        });
+      let dataCrypto = cryptos.getCryptoBySymbol(symbol);
+      if (!dataCrypto) {
+        if (getEnvValue("__DEV__")) {
+          const dataFromFile = await fs.promises.readFile(cryptosFilePath, {
+            encoding: "utf-8",
+          });
+          const dataParsed = JSON.parse(dataFromFile) as PriceBinanceAPI;
+          cryptos.prices = dataParsed;
+          dataCrypto = cryptos.getCryptoBySymbol(symbol);
+        }
+
+        if (!dataCrypto)
+          return sendResponse("NOT_FOUND", {
+            success: false,
+            error: "Crypto not found",
+          });
+      }
 
       const price = dataCrypto.price;
       const priceMXN: number | undefined = cryptos.getCryptoByBase(

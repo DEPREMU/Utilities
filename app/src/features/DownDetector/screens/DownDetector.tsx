@@ -27,10 +27,10 @@ const DownDetectorScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <View style={styles.sectionContainer}>
-          <Text style={styles.title}>{t("DownDetector.noDataAvailable")}</Text>
+          <Text style={styles.title}>{t("downDetector.noDataAvailable")}</Text>
 
           <Text style={styles.contentText}>
-            {t("DownDetector.emptyDescription")}
+            {t("downDetector.emptyDescription")}
           </Text>
         </View>
       </View>
@@ -40,7 +40,7 @@ const DownDetectorScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Animated.Text style={styles.title}>
-        {t("DownDetector.title")}
+        {t("downDetector.title")}
       </Animated.Text>
 
       <Animated.FlatList

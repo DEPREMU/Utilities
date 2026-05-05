@@ -38,14 +38,14 @@ const EmptyState: React.FC = () => {
   return (
     <Animated.View style={[styles.sectionContainer, animatedStyle]}>
       <Animated.Text style={[styles.emptyStateIcon, animatedStyleIcon]}>
-        {t("Cryptos.icon")}
+        {t("cryptos.icon")}
       </Animated.Text>
 
       <Text style={styles.title}>
-        {t("Cryptos.noCryptocurrenciesSelected")}
+        {t("cryptos.noCryptocurrenciesSelected")}
       </Text>
 
-      <Text style={styles.subtitle}>{t("Cryptos.goToSelectionTab")}</Text>
+      <Text style={styles.subtitle}>{t("cryptos.goToSelectionTab")}</Text>
     </Animated.View>
   );
 };

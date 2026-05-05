@@ -335,7 +335,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
           const handlePressSelectFolder = async (errorInDefault?: boolean) => {
             if (errorInDefault) {
               alerts.showAlert(
-                "error",
+                "common.error",
                 "vault.noDefaultFolder",
                 async () => {},
                 { showCancelButton: false },
@@ -406,7 +406,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
           };
 
           modalRef.openModal?.(
-            tTyped("error"),
+            tTyped("common.error"),
             tTyped("vault.noPasswordAssigned", {
               folderName:
                 this.#state.currentFolderId ||
@@ -598,7 +598,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
 
         if (errFiles && errFiles.length > 0) {
           modalRef.openModal?.(
-            tTyped("error"),
+            tTyped("common.error"),
             tTyped("vault.encryptFilesErrorMessage", {
               count: String(errFiles.length),
               filenames: errFiles.map((f) => f.name).join(", "),
@@ -615,7 +615,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
           this.#functions.unlockFolder();
         } else {
           alerts.showAlert(
-            "error",
+            "common.error",
             tTyped("vault.encryptFilesErrorMessage", {
               filenames: files.map((f) => f.name).join(", "),
               count: String(files.length),
@@ -734,7 +734,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
 
                 if (pass !== correctPassword) {
                   alerts.showAlert(
-                    "error",
+                    "common.error",
                     "auth.incorrectPassword",
                     async () => {},
                     { showCancelButton: false },

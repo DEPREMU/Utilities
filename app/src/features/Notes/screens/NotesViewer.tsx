@@ -318,7 +318,10 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
 
     const stopResult = recorder.stop();
     if (stopResult.status === "error") {
-      Alert.alert(tTyped("error"), stopResult.message);
+      Alert.alert(
+        tTyped("common.errorOccurred", { error: "" }),
+        stopResult.message,
+      );
       return;
     }
 
@@ -348,7 +351,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
   const chooseRecordAudioRef = useRef(async () => {
     const permission = await AudioModule.requestRecordingPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(tTyped("error"), tTyped("recorder.permissionDenied"));
+      Alert.alert(tTyped("common.error"), tTyped("recorder.permissionDenied"));
       return;
     }
 
@@ -555,7 +558,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
       });
 
       if (result.status === "error") {
-        Alert.alert(tTyped("error"), result.message);
+        Alert.alert(tTyped("common.error"), result.message);
         return;
       }
       audioRecorderRef.current = recorder;
@@ -563,7 +566,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
 
     const startResult = recorder.start();
     if (startResult.status === "error") {
-      Alert.alert(tTyped("error"), startResult.message);
+      Alert.alert(tTyped("common.error"), startResult.message);
       return;
     }
 
@@ -1263,7 +1266,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
               </Pressable>
             }
           >
-            <Menu.Item title={t("notes.save")} onPress={handleMenuSave} />
+            <Menu.Item title={t("labels.save")} onPress={handleMenuSave} />
             <Menu.Item title={t("notes.hide")} onPress={handleMenuHide} />
             <Menu.Item title={t("notes.pin")} onPress={handleMenuPin} />
           </Menu>
@@ -1607,7 +1610,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
 
       <Pressable style={styles.saveButton} onPress={handleEditorSaveToggle}>
         <Text style={styles.saveButtonText}>
-          {isPreviewMode ? t("notes.edit") : t("notes.save")}
+          {isPreviewMode ? t("notes.edit") : t("labels.save")}
         </Text>
       </Pressable>
 
@@ -1663,7 +1666,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
                   <View style={styles.attachmentPreviewError}>
                     <Icon source="image-off" size={42} color={colors.text} />
                     <Text style={styles.attachmentPreviewErrorText}>
-                      {t("error")}
+                      {t("common.error")}
                     </Text>
                     <Button mode="contained" onPress={handleShareAttachment}>
                       {t("notes.openFile")}

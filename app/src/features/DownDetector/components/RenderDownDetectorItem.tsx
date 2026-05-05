@@ -72,7 +72,9 @@ const RenderDownDetectorItem: React.FC<RenderDownDetectorItemProps> = ({
         style={[styles.rowSwitchText, styles.sectionContainer]}
         layout={LinearTransition.duration(300).springify()}
       >
-        <Text style={styles.subtitle}>{t("sendNotification")}</Text>
+        <Text style={styles.subtitle}>
+          {t("notifications.sendNotification")}
+        </Text>
 
         <Switch
           value={item.sendNotification}

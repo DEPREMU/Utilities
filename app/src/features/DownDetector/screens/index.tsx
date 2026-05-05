@@ -9,12 +9,12 @@ const Navigator = GetBottomNavigation(
   [
     {
       key: "DownDetector" as const,
-      title: "downDetector",
+      title: "downDetector.title",
       focusedIcon: "cloud-alert",
     },
     {
       key: "AddNewWebPage" as const,
-      title: "addNewWebPage",
+      title: "downDetector.addNewWebPage",
       focusedIcon: "sync",
     },
   ],

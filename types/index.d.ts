@@ -34,3 +34,7 @@ export type Colors =
   | "info"
   | "overlay"
   | "shadow";
+
+export type Function<Args extends unknown[] = unknown[], Return = void> = (
+  ...args: Args
+) => Return;

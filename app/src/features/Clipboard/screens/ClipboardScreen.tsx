@@ -399,12 +399,12 @@ const ClipboardScreen: React.FC = () => {
           value={searchText}
           style={styles.searchBar}
           editable={!isLoading}
-          placeholder={t("search")}
+          placeholder={t("labels.search")}
           onChangeText={handleSearchingRef.current}
         />
 
         <View style={styles.showDeletedContainer}>
-          <Text style={styles.switchLabel}>{t("showDeleted")}</Text>
+          <Text style={styles.switchLabel}>{t("common.showDeleted")}</Text>
           <Switch
             value={deleted}
             color={colors.primary}
@@ -420,7 +420,7 @@ const ClipboardScreen: React.FC = () => {
           disabled={isLoading || !clipboardData || clipboardData.length === 0}
         >
           <Text style={styles.subtitle}>
-            {deleted ? t("restoreAll") : t("deleteAll")}
+            {t(`common.${deleted ? "restoreAll" : "deleteAll"}`)}
           </Text>
         </Button>
       </Animated.View>
@@ -449,7 +449,7 @@ const ClipboardScreen: React.FC = () => {
           exiting={FadeOutDown.duration(200)}
           entering={FadeInDown.duration(200)}
         >
-          <Text style={styles.noMoreDataText}>{t("noMoreData")}</Text>
+          <Text style={styles.noMoreDataText}>{t("common.noMoreData")}</Text>
         </Animated.View>
       )}
 

@@ -107,7 +107,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     const handleInitSuccessWebSocket = () => {
       const { userData } = sessionManager.getSessionData();
       modalRef.openSnackBar?.(
-        tTyped("welcomeUser", { user: userData?.name || tTyped("dearUser") }),
+        tTyped("user.welcomeUser", {
+          user: userData?.name || tTyped("user.dearUser"),
+        }),
         3000,
         {
           label: tTyped("common.close"),

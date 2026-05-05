@@ -12,13 +12,13 @@ const Translator: React.FC = () => {
 
   const languages = useMemo(
     () => [
-      { label: t("English"), value: "EN" },
-      { label: t("Spanish"), value: "ES" },
-      { label: t("French"), value: "FR" },
-      { label: t("German"), value: "DE" },
-      { label: t("Italian"), value: "IT" },
-      { label: t("Japanese"), value: "JA" },
-      { label: t("Chinese"), value: "ZH" },
+      { label: t("languages.English"), value: "EN" },
+      { label: t("languages.Spanish"), value: "ES" },
+      { label: t("languages.French"), value: "FR" },
+      { label: t("languages.German"), value: "DE" },
+      { label: t("languages.Italian"), value: "IT" },
+      { label: t("languages.Japanese"), value: "JA" },
+      { label: t("languages.Chinese"), value: "ZH" },
     ],
     [t],
   );
@@ -42,7 +42,7 @@ const Translator: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t("translator")}</Text>
+        <Text style={styles.title}>{t("translator.title")}</Text>
         {!!translatedText && (
           <Text style={styles.translatedText}>{translatedText}</Text>
         )}
@@ -52,13 +52,13 @@ const Translator: React.FC = () => {
         <TextInput
           value={inputText}
           onChangeText={setInputText}
-          label={t("enterText")}
+          label={t("translator.enterText")}
           style={styles.textInput}
         />
 
         <List.Accordion
           style={styles.list}
-          title={languageToLabel || t("languageTarget")}
+          title={languageToLabel || t("translator.languageTarget")}
           left={() => <List.Icon icon="translate" />}
         >
           {languages.map((lang) => {
@@ -77,7 +77,7 @@ const Translator: React.FC = () => {
         </List.Accordion>
 
         <Button
-          label={t("translate")}
+          label={t("translator.translate")}
           handlePress={translateText}
           disabled={!inputText}
           touchableOpacity

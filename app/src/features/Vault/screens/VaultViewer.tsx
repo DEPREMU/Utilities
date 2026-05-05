@@ -100,7 +100,7 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
   const renderEmptyOrLocked = useCallback(() => {
     if (folders[currentFolderId] === "locked") {
       return (
-        <View style={styles.lockedScreen}>
+        <View style={styles.container}>
           <Text style={styles.lockedTitle}>
             {t("vault.viewer.lockedTitle")}
           </Text>
@@ -111,7 +111,7 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
       );
     } else {
       return (
-        <View style={styles.lockedScreen}>
+        <View style={styles.container}>
           <Text style={styles.lockedMessage}>{t("common.empty")}</Text>
         </View>
       );

@@ -54,8 +54,8 @@ const Streamers: React.FC = () => {
     if (error) {
       logger.error(error);
       modalRef.openModal?.(
-        tTyped("error"),
-        tTyped("errorDeletingStreamer", { error }),
+        tTyped("common.error"),
+        tTyped("common.errorOccurred", { error }),
         <Button
           label={tTyped("common.close")}
           handlePress={() => modalRef.closeModal?.()}
@@ -107,8 +107,8 @@ const Streamers: React.FC = () => {
 
     const streamerName = capitalize(streamer.name || streamer.id || "");
     modalRef.openModal?.(
-      t("askDeleteStreamer"),
-      t("askDeleteStreamerBody", { name: streamerName }),
+      t("streamers.askDeleteStreamer"),
+      t("streamers.askDeleteStreamerBody", { name: streamerName }),
       <>
         <Button
           label={tTyped("common.yes")}
@@ -135,8 +135,8 @@ const Streamers: React.FC = () => {
 
     const url = `https://www.twitch.tv/${name?.toLowerCase()}`;
     modalRef.openModal?.(
-      t("openURL"),
-      t("askOpenURL", { url }),
+      t("common.openURL"),
+      t("common.askOpenURL", { url }),
       <>
         <Button
           label={tTyped("common.yes")}
@@ -203,8 +203,8 @@ const Streamers: React.FC = () => {
       )
     ) {
       modalRef.openModal?.(
-        t("error"),
-        t("streamerAlreadyAdded", { name: streamer }),
+        t("common.error"),
+        t("streamers.streamerAlreadyAdded", { name: streamer }),
         <Button
           label={t("common.close")}
           handlePress={() => modalRef.closeModal?.()}
@@ -257,8 +257,8 @@ const Streamers: React.FC = () => {
 
     const streamerName = capitalize(streamer);
     modalRef.openModal?.(
-      t("askAddStreamerTitle"),
-      t("askAddStreamerBody", { name: streamerName }),
+      t("streamers.askAddStreamerTitle"),
+      t("streamers.askAddStreamerBody", { name: streamerName }),
       <>
         <Button
           label={t("common.yes")}
@@ -284,8 +284,8 @@ const Streamers: React.FC = () => {
 
     if (!userData?.userId || !deviceInfo.hasInternet) {
       modalRef.openModal?.(
-        tTyped("error"),
-        tTyped("youAreNotLoggedIn"),
+        tTyped("common.error"),
+        tTyped("auth.youAreNotLoggedIn"),
         <Button
           label={tTyped("common.close")}
           handlePress={() => modalRef.closeModal?.()}
@@ -317,8 +317,8 @@ const Streamers: React.FC = () => {
         if (error) {
           logger.error(error);
           modalRef.openModal?.(
-            tTyped("error"),
-            tTyped("errorLoadingStreamers"),
+            tTyped("common.error"),
+            tTyped("streamers.errorLoadingStreamers"),
             <Button
               label={tTyped("common.close")}
               handlePress={() => modalRef.closeModal?.()}
@@ -336,8 +336,8 @@ const Streamers: React.FC = () => {
         if (data && data.length === 0) return;
         if (!data) {
           modalRef.openModal?.(
-            tTyped("error"),
-            tTyped("errorLoadingStreamers"),
+            tTyped("common.error"),
+            tTyped("streamers.errorLoadingStreamers"),
             <Button
               label={tTyped("common.close")}
               handlePress={() => modalRef.closeModal?.()}
@@ -384,12 +384,12 @@ const Streamers: React.FC = () => {
       <View style={styles.containerAdd}>
         <TextInput
           style={styles.textInput}
-          placeholder={t("addStreamer")}
+          placeholder={t("streamers.addStreamer")}
           onChangeText={setStreamer}
           value={streamer}
         />
         <Button
-          label={t("addStreamer")}
+          label={t("streamers.addStreamer")}
           handlePress={askAddStreamer}
           disabled={streamer.trim() === ""}
           touchableOpacity
@@ -399,7 +399,7 @@ const Streamers: React.FC = () => {
           }}
         />
       </View>
-      <Text style={styles.yourStreamers}>{t("yourStreamers")}</Text>
+      <Text style={styles.yourStreamers}>{t("streamers.yourStreamers")}</Text>
       <ScrollView
         style={styles.containerScrollView}
         contentContainerStyle={styles.contentContainer}
@@ -437,12 +437,12 @@ const Streamers: React.FC = () => {
                         : styles.isNotLiveStreamer
                     }
                   >
-                    {streamer.isLive ? t("Live") : t("Offline")}
+                    {t(`streamers.${streamer.isLive ? "Live" : "Offline"}`)}
                   </Text>
 
                   <View style={styles.containerButtons}>
                     <Button
-                      label={t("openURL")}
+                      label={t("common.openURL")}
                       argsFuncHandlePress={[streamer.name]}
                       handlePress={openURLStreamerRef.current}
                       touchableOpacity
@@ -453,7 +453,7 @@ const Streamers: React.FC = () => {
                     />
 
                     <Button
-                      label={t("delete")}
+                      label={t("common.delete")}
                       argsFuncHandlePress={[streamer]}
                       handlePress={askDeleteStreamerRef.current}
                       touchableOpacity

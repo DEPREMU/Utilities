@@ -10,10 +10,10 @@ import {
 } from "react-native-paper";
 import { View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useRecorder } from "@/context/RecorderContext";
-import { useLanguage } from "@/context/LanguageContext";
-import useStylesRecorderScreen from "@/features/Phone/Recorder/styles/useStylesRecorderScreen";
+import { useRecorder } from "@context/RecorderContext";
+import { useLanguage } from "@context/LanguageContext";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useStylesRecorderScreen } from "@screens/Phone/Recorder/styles/useStylesRecorderScreen";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 
 const qualities = ["low", "medium", "high", "lossless"] as const;
@@ -93,7 +93,7 @@ const RecorderSettings: React.FC = () => {
   const [maxFiles, setMaxFiles] = useState<number>(dataRecorder.maxXUris);
 
   const intervalDisplay = useMemo(
-    () => `${timeInterval || 0} ${t(typeTimeRendered)}`,
+    () => `${timeInterval || 0} ${t(`times.${typeTimeRendered}`)}`,
     [t, timeInterval, typeTimeRendered],
   );
 
@@ -134,7 +134,7 @@ const RecorderSettings: React.FC = () => {
             });
             setMenus((prev) => ({ ...prev, interval: false }));
           }}
-          title={t(type)}
+          title={t(`times.${type}`)}
         />
       )),
     [t],

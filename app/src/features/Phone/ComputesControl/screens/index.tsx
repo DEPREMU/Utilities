@@ -207,7 +207,9 @@ const ComputerControl: React.FC = () => {
 
       modalRef.openSnackBar?.(
         tTyped(
-          success ? `${translate}CommandSent` : `${translate}CommandFailed`,
+          success
+            ? `terminalCommands.${translate}CommandSent`
+            : `terminalCommands.${translate}CommandFailed`,
         ),
         5000,
       );
@@ -229,11 +231,15 @@ const ComputerControl: React.FC = () => {
       return (
         <View style={styles.flexCenter}>
           <ActivityIndicator animating size="large" />
-          <Text style={styles.subtitle}>{t("searchingDevices")}</Text>
+          <Text style={styles.subtitle}>
+            {t("computerControl.searchingDevices")}
+          </Text>
         </View>
       );
 
-    return <Text style={styles.subtitle}>{t("noDevices")}</Text>;
+    return (
+      <Text style={styles.subtitle}>{t("computerControl.noDevices")}</Text>
+    );
   }, [styles.subtitle, t, scanning, loading, styles.flexCenter]);
 
   const keyExtractor = useCallback((item: Device) => item.name, []);
@@ -276,7 +282,10 @@ const ComputerControl: React.FC = () => {
             TAG,
             "Location permissions not granted, cannot scan for devices",
           );
-          modalRef.openSnackBar?.(tTyped("locationPermissionMessage"), 3000);
+          modalRef.openSnackBar?.(
+            tTyped("permissions.locationPermissionMessage"),
+            3000,
+          );
         }
 
         return isGranted;
@@ -339,7 +348,7 @@ const ComputerControl: React.FC = () => {
       zeroconfRef.current.stop("DNSSD");
     });
 
-    const removeListener = deviceInfo.addEventListener(
+    const appStateListener = deviceInfo.addEventListener(
       EventsDeviceInfo.appStateChange,
       (newState) => {
         if (newState === "active" && !scanningRef.current) {
@@ -354,7 +363,7 @@ const ComputerControl: React.FC = () => {
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
       clearRescanTimersRef.current();
-      removeListener();
+      appStateListener.remove();
       // eslint-disable-next-line react-hooks/exhaustive-deps
       const currentZeroconf = zeroconfRef.current;
       currentZeroconf.stop("DNSSD");
@@ -366,7 +375,7 @@ const ComputerControl: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text variant="headlineMedium" style={styles.title}>
-        {t("computerControlTitle")}
+        {t("computerControl.title")}
       </Text>
 
       <Animated.FlatList
@@ -384,7 +393,7 @@ const ComputerControl: React.FC = () => {
         icon={scanning ? "refresh" : "magnify"}
         style={styles.FAB}
         color={colors.primary}
-        label={t(scanning ? "scanning" : "search")}
+        label={scanning ? t("computerControl.scanning") : t("labels.search")}
         loading={scanning}
         onPress={scanNetworkRef.current}
       />

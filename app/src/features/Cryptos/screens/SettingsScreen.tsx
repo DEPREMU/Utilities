@@ -116,7 +116,7 @@ const CryptosSettingsScreen: React.FC = () => {
   const renderCurrentCurrency = useCallback(
     () => (
       <Text style={styles.subtitle}>
-        {t("Cryptos.currentCurrency", { currency })}
+        {t("cryptos.currentCurrency", { currency })}
       </Text>
     ),
     [t, styles.subtitle, currency],
@@ -196,7 +196,7 @@ const CryptosSettingsScreen: React.FC = () => {
         style={styles.sectionContainer}
         layout={LinearTransition.duration(300).springify()}
       >
-        <Text style={styles.title}>{t("Cryptos.selectCurrency")}</Text>
+        <Text style={styles.title}>{t("cryptos.selectCurrency")}</Text>
 
         <Divider style={styles.divider} />
 
@@ -239,7 +239,7 @@ const CryptosSettingsScreen: React.FC = () => {
             >
               <TextInput
                 value={valueStrAutoRefresh}
-                label={t("Cryptos.refreshIntervalSec")}
+                label={t("cryptos.refreshIntervalSec")}
                 keyboardType="numeric"
                 onChangeText={onChangeTextAutoRefresh}
               />
@@ -261,7 +261,7 @@ const CryptosSettingsScreen: React.FC = () => {
                 exiting={FadeOutUp.duration(200).springify()}
                 entering={FadeInDown.duration(200).springify()}
               >
-                {t("Cryptos.refreshIntervalError", {
+                {t("cryptos.refreshIntervalError", {
                   min: MIN_AUTO_REFRESH.toString(),
                 })}
               </Animated.Text>
@@ -301,7 +301,7 @@ const CryptosSettingsScreen: React.FC = () => {
               >
                 <TextInput
                   value={valueStrNotifications}
-                  label={t("Cryptos.notifiInterval")}
+                  label={t("cryptos.notifiInterval")}
                   keyboardType="numeric"
                   onChangeText={onChangeTextNotifications}
                 />
@@ -323,7 +323,7 @@ const CryptosSettingsScreen: React.FC = () => {
                   exiting={FadeOutUp.duration(200).springify()}
                   entering={FadeInDown.duration(200).springify()}
                 >
-                  {t("Cryptos.notifiIntervalError", {
+                  {t("cryptos.notifiIntervalError", {
                     min: MIN_NOTIFI_INTERVAL.toString(),
                   })}
                 </Animated.Text>

@@ -5,9 +5,9 @@ import { navigation } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import React, { useMemo } from "react";
 import { useStylesGamesNavigator } from "@screens/Games/styles/useStylesGamesNavigator";
-import { ScreensAvailable, typeLanguagesKeys } from "@types";
+import { ScreensAvailable, AppTranslationsKeys, Function } from "@types";
 
-const buttons: { label: typeLanguagesKeys; screen: ScreensAvailable }[] = [
+const buttons: { label: AppTranslationsKeys; screen: ScreensAvailable }[] = [
   { label: "games.minesweeper.title", screen: "Minesweeper" },
 ];
 
@@ -21,7 +21,7 @@ const GamesNavigator: React.FC = () => {
         <Button
           touchableOpacity
           key={button.label}
-          label={t(button.label)}
+          label={(t as Function<[AppTranslationsKeys], string>)(button.label)}
           handlePress={navigation.replace}
           argsFuncHandlePress={[button.screen]}
         />

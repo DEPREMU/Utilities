@@ -16,10 +16,10 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { REPLACERS } from "@utils";
-import { useRecorder } from "@/context/RecorderContext";
-import { useLanguage } from "@/context/LanguageContext";
+import { useRecorder } from "@context/RecorderContext";
+import { useLanguage } from "@context/LanguageContext";
 import humanizeDuration from "humanize-duration";
-import useStylesRecorderScreen from "@/features/Phone/Recorder/styles/useStylesRecorderScreen";
+import { useStylesRecorderScreen } from "@screens/Phone/Recorder/styles/useStylesRecorderScreen";
 import { StyleProp, View, ViewStyle } from "react-native";
 import React, { useCallback, useEffect, useMemo } from "react";
 

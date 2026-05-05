@@ -23,6 +23,13 @@ export const useStylesHomeScreen = () => {
           zIndex: 10,
           marginRight: getResponsiveValue(10, 15, 20, 25),
         },
+        rightIcon: {
+          position: "absolute",
+          alignSelf: "center",
+          right: getResponsiveValue(10, 15, 20, 25),
+          zIndex: 10,
+          marginRight: getResponsiveValue(10, 15, 20, 25),
+        },
         doesNotHaveInternet: {
           fontSize: getResponsiveValue(14, 16, 18),
           fontWeight: "600",
@@ -32,13 +39,8 @@ export const useStylesHomeScreen = () => {
           letterSpacing: 0.5,
         },
         footer: {
-          fontSize: getResponsiveValue(12, 14, 16),
-          fontWeight: "400",
-          color: colors.text,
+          ...texts.h3,
           textAlign: "right",
-          marginVertical: 10,
-          letterSpacing: 0.5,
-          width: "100%",
         },
         ...texts,
         ...getCommonStyles("container"),

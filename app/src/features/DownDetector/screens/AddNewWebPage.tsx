@@ -57,7 +57,7 @@ const AddNewWebPageScreen: React.FC = () => {
           style={styles.title}
           layout={LinearTransition.duration(200).springify()}
         >
-          {t("addNewWebPage")}
+          {t("downDetector.addNewWebPage")}
         </Animated.Text>
 
         <Animated.View style={styles.divider} />
@@ -65,7 +65,7 @@ const AddNewWebPageScreen: React.FC = () => {
         <Animated.View layout={LinearTransition.duration(200).springify()}>
           <TextInput
             value={inputText}
-            label={t("placeholderNewWebPage")}
+            label={t("downDetector.placeholderNewWebPage")}
             onChangeText={setInputNewWebPage}
           />
         </Animated.View>
@@ -77,7 +77,7 @@ const AddNewWebPageScreen: React.FC = () => {
           layout={LinearTransition.duration(200).springify()}
         >
           <Animated.Text style={styles.subtitle}>
-            {t("sendNotification")}
+            {t("notifications.sendNotification")}
           </Animated.Text>
 
           <Switch
@@ -93,7 +93,7 @@ const AddNewWebPageScreen: React.FC = () => {
             entering={FadeInDown.duration(200).springify()}
           >
             <Button mode="contained" onPress={addNewItem}>
-              <Text style={styles.subtitle}>{t("addToDatabase")}</Text>
+              <Text style={styles.subtitle}>{t("common.addToDatabase")}</Text>
             </Button>
           </Animated.View>
         )}

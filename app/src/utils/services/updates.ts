@@ -65,22 +65,22 @@ class Updates extends ServiceClass<never> {
         if (deviceInfo.isBackground) {
           notificationsManager.sendNotification({
             type: "info",
-            title: tTyped("updateAvailable"),
-            message: tTyped("updateAvailableMessage"),
+            title: tTyped("updates.updateAvailable"),
+            message: tTyped("updates.updateAvailableMessage"),
             channelId: "updateAvailable",
             reasonNotification: "updateAvailable",
             overrideNotification: false,
             actions: [
               {
-                title: tTyped("updateNow"),
+                title: tTyped("updates.updateNow"),
                 actionId: "settings",
               },
             ],
           });
         } else {
           await alerts.showAlert(
-            "updateAvailable",
-            "updateAvailableMessage",
+            "updates.updateAvailable",
+            "updates.updateAvailableMessage",
             async (_, accepted) => {
               if (!accepted) return;
 
@@ -109,8 +109,8 @@ class Updates extends ServiceClass<never> {
 
       if (!deviceInfo.isBackground) {
         alerts.showAlert(
-          "updateAvailable",
-          "updateAvailableMessage",
+          "updates.updateAvailable",
+          "updates.updateAvailableMessage",
           async (_, accepted) => {
             if (!accepted) return;
 
@@ -120,8 +120,8 @@ class Updates extends ServiceClass<never> {
         );
       } else {
         notificationsManager.sendNotification({
-          title: tTyped("updateAvailable"),
-          message: tTyped("updateAvailableMessage"),
+          title: tTyped("updates.updateAvailable"),
+          message: tTyped("updates.updateAvailableMessage"),
           type: "info",
           channelId: "updateAvailable",
           reasonNotification: "updateAvailable",
@@ -129,7 +129,7 @@ class Updates extends ServiceClass<never> {
           actions: [
             {
               actionId: "settings",
-              title: tTyped("updateNow"),
+              title: tTyped("updates.updateNow"),
             },
           ],
         });

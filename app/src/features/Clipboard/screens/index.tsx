@@ -13,7 +13,7 @@ const ClipboardNavigator = GetBottomNavigation(
     },
     {
       key: "sync" as const,
-      title: "sync",
+      title: "labels.sync",
       focusedIcon: "sync",
     },
     {

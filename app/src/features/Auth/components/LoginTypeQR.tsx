@@ -127,7 +127,9 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
       exiting={FadeOutLeft.duration(200)}
       entering={FadeInRight.duration(200)}
     >
-      <Animated.Text style={styles.subtitle}>{t("scanQRCode")}</Animated.Text>
+      <Animated.Text style={styles.subtitle}>
+        {t("auth.qr.scanQRCode")}
+      </Animated.Text>
 
       <Animated.View
         style={styles.qrCodeContainer}
@@ -151,14 +153,14 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
 
         {isLoggingIn && (
           <Animated.Text style={styles.subtitle}>
-            {t("loggingInWithQRCode")}
+            {t("auth.qr.loggingInWithQRCode")}
           </Animated.Text>
         )}
       </Animated.View>
 
       {!qrData && (
         <Animated.Text style={styles.subtitle}>
-          {t("generatingQRCode")}
+          {t("auth.qr.generatingQRCode")}
         </Animated.Text>
       )}
     </Animated.View>

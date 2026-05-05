@@ -21,12 +21,12 @@ const PDFNavigator: React.FC<ViewerProps> = ({ route }) => {
         [
           {
             key: "pdfViewer" as const,
-            title: "PDF.viewer",
+            title: "pdf.viewer",
             focusedIcon: "file-pdf-box",
           },
           {
             key: "pdfConverter" as const,
-            title: "PDF.converter",
+            title: "pdf.converter",
             focusedIcon: "file-cog",
           },
         ],

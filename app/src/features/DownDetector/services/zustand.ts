@@ -57,14 +57,18 @@ export const useDownDetector = create<States & Actions>((set, get) => {
       const { sessionToken, userData } = sessionManager.getSessionData();
 
       if (!sessionToken || !userData?.userId)
-        return modalRef.openSnackBar?.(tTyped("youAreNotLoggedIn"));
+        return modalRef.openSnackBar?.(tTyped("auth.youAreNotLoggedIn"));
 
       const text = get().inputNewWebPage.trim();
 
       if (!text)
-        return modalRef.openSnackBar?.(tTyped("pleaseEnterWebPageURL"));
+        return modalRef.openSnackBar?.(
+          tTyped("downDetector.pleaseEnterWebPageURL"),
+        );
       if (!text.startsWith("http"))
-        return modalRef.openSnackBar?.(tTyped("webPageMustStartWithHTTP"));
+        return modalRef.openSnackBar?.(
+          tTyped("downDetector.webPageMustStartWithHTTP"),
+        );
 
       set({ isLoading: true });
       try {
@@ -90,9 +94,12 @@ export const useDownDetector = create<States & Actions>((set, get) => {
           error: res.errorText || "Unknown error",
         };
 
-        if (error) modalRef.openSnackBar?.(tTyped("errorOccurred", { error }));
+        if (error)
+          modalRef.openSnackBar?.(tTyped("common.errorOccurred", { error }));
         else {
-          modalRef.openSnackBar?.(tTyped("webPageAddedSuccessfully"));
+          modalRef.openSnackBar?.(
+            tTyped("downDetector.webPageAddedSuccessfully"),
+          );
           set({
             inputNewWebPage: "",
             sendNotification: false,
@@ -111,7 +118,7 @@ export const useDownDetector = create<States & Actions>((set, get) => {
           storageManagement.save("DOWN_DETECTOR_DATA", newData);
         }
       } catch {
-        modalRef.openSnackBar?.(tTyped("failedToAddTextToDatabase"));
+        modalRef.openSnackBar?.(tTyped("common.failedToAddTextToDatabase"));
       } finally {
         setTimeout(() => {
           set({ isLoading: false });

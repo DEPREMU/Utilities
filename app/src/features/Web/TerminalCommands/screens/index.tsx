@@ -58,11 +58,13 @@ const TerminalCommands: React.FC = () => {
         const result = await windowModule.executeCommand(command);
         setExecuting(false);
         modalRef.openModal?.(
-          t("commandExecuted"),
-          t("commandOutput") + ":\n" + (result || t("noOutput")),
+          t("terminalCommands.commandExecuted"),
+          t("terminalCommands.commandOutput") +
+            ":\n" +
+            (result || t("terminalCommands.noOutput")),
           <Button
             handlePress={handleAddCommand}
-            label={t("addCommand")}
+            label={t("terminalCommands.addCommand")}
             replaceStyles={{
               button: styles.executeButton,
               textButton: styles.executeButtonLabel,
@@ -74,8 +76,8 @@ const TerminalCommands: React.FC = () => {
         const message = error instanceof Error ? error.message : String(error);
 
         modalRef.openModal?.(
-          t("error"),
-          t("commandExecutionFailed") + ":\n" + message,
+          t("common.errorOccurred", { error: "" }),
+          t("terminalCommands.commandExecutionFailed") + ":\n" + message,
           <Button
             handlePress={() => modalRef.closeModal?.()}
             label={t("common.close")}
@@ -93,8 +95,8 @@ const TerminalCommands: React.FC = () => {
   const handleAskAddCommand = useCallback(async () => {
     if (!newCommand.command.trim()) return;
     modalRef.openModal?.(
-      t("askExecuteCommand"),
-      t("confirmExecuteCommand"),
+      t("terminalCommands.askExecuteCommand"),
+      t("terminalCommands.confirmExecuteCommand"),
       <>
         <Button
           handlePress={() => modalRef.closeModal?.()}
@@ -106,7 +108,7 @@ const TerminalCommands: React.FC = () => {
         />
         <Button
           handlePress={handleExecuteCommand}
-          label={t("execute")}
+          label={t("terminalCommands.execute")}
           replaceStyles={{
             button: styles.executeButton,
             textButton: styles.executeButtonLabel,
@@ -172,7 +174,7 @@ const TerminalCommands: React.FC = () => {
               />
             </View>
             <Text variant="titleMedium" style={styles.emptyText}>
-              {t("noCommandsAdded")}
+              {t("terminalCommands.noCommandsAdded")}
             </Text>
           </Card.Content>
         </Card>
@@ -184,15 +186,15 @@ const TerminalCommands: React.FC = () => {
     <ScrollView style={styles.container}>
       <View style={styles.mainContainer}>
         <Text variant="headlineMedium" style={styles.title}>
-          {t("terminalCommands")}
+          {t("terminalCommands.title")}
         </Text>
 
         <Card style={styles.card} elevation={4}>
           <Card.Content style={styles.cardContent}>
             <TextInput
               mode="outlined"
-              label={t("command")}
-              placeholder={t("enterCommand")}
+              label={t("terminalCommands.command")}
+              placeholder={t("terminalCommands.enterCommand")}
               style={styles.input}
               value={newCommand.command}
               onChangeText={handleAddTextRef.current}
@@ -204,7 +206,7 @@ const TerminalCommands: React.FC = () => {
 
             <View style={styles.switchRow}>
               <Text variant="bodyLarge" style={styles.switchLabel}>
-                {t(`executeOn${newCommand.when}`)}
+                {t(`terminalCommands.executeOn${newCommand.when}`)}
               </Text>
               <Switch
                 value={newCommand.when === "Start-up"}
@@ -219,7 +221,9 @@ const TerminalCommands: React.FC = () => {
                 button: styles.addButton,
                 textButton: styles.addButtonLabel,
               }}
-              label={executing ? t("executingCommand") : t("addCommand")}
+              label={t(
+                `terminalCommands.${executing ? "executingCommand" : "addCommand"}`,
+              )}
             >
               <ActivityIndicator
                 animating={executing}

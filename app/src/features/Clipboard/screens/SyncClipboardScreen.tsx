@@ -28,11 +28,12 @@ const SyncClipboardScreen: React.FC = () => {
     const { userData, sessionToken } = sessionManager.getSessionData();
 
     if (!userData?.userId)
-      return modalRef.openSnackBar?.(t("youAreNotLoggedIn"));
+      return modalRef.openSnackBar?.(t("auth.youAreNotLoggedIn"));
 
     if (!inputText.trim())
-      return modalRef.openSnackBar?.(t("pleaseEnterSomeText"));
-    if (!sessionToken) return modalRef.openSnackBar?.(t("youAreNotLoggedIn"));
+      return modalRef.openSnackBar?.(t("verifications.pleaseEnterSomeText"));
+    if (!sessionToken)
+      return modalRef.openSnackBar?.(t("auth.youAreNotLoggedIn"));
 
     setIsLoading(true);
     try {
@@ -57,13 +58,13 @@ const SyncClipboardScreen: React.FC = () => {
         error: res.errorText || "Unknown error",
       };
 
-      if (error) modalRef.openSnackBar?.(t("errorOccurred", { error }));
+      if (error) modalRef.openSnackBar?.(t("common.errorOccurred", { error }));
       else {
-        modalRef.openSnackBar?.(t("textAddedToDatabase"));
+        modalRef.openSnackBar?.(t("common.textAddedToDatabase"));
         setInputText("");
       }
     } catch {
-      modalRef.openSnackBar?.(t("failedToAddTextToDatabase"));
+      modalRef.openSnackBar?.(t("common.failedToAddTextToDatabase"));
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +106,7 @@ const SyncClipboardScreen: React.FC = () => {
               value={inputText}
               style={styles.textInput}
               textColor={colors.text}
-              placeholder={t("enterYourTextHere")}
+              placeholder={t("clipboard.enterYourTextHere")}
               onChangeText={setInputText}
               outlineColor={colors.border}
               selectionColor={colors.primary}
@@ -132,7 +133,7 @@ const SyncClipboardScreen: React.FC = () => {
                   disabled={isLoading || !inputText.trim()}
                 >
                   <Text style={styles.h3}>
-                    {t(isLoading ? "adding" : "addToDatabase")}
+                    {isLoading ? t("common.adding") : t("common.addToDatabase")}
                   </Text>
                 </Button>
               </Animated.View>

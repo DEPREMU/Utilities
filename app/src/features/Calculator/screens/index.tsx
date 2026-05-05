@@ -13,12 +13,12 @@ const CalculatorNavigator = GetBottomNavigation(
     },
     {
       key: "TimeToDownload" as const,
-      title: "timeToDownload",
+      title: "calculator.timeToDownload.title",
       focusedIcon: "download",
     },
     {
       key: "Finances" as const,
-      title: "finances",
+      title: "calculator.finances.title",
       focusedIcon: "finance",
     },
   ],
