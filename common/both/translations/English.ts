@@ -158,6 +158,7 @@ export const enApp: AppTranslations = {
     setDefaults: "Set Defaults",
   },
   common: {
+    available: "Available",
     showDeleted: "Show Deleted",
     error: "Error",
     textAddedToDatabase: "Text added to database",
@@ -344,6 +345,14 @@ export const enApp: AppTranslations = {
     youArePlaying: "You Are Playing",
     youLose: "You Lose!",
     youWin: "You Win!",
+  },
+  homeScreen: {
+    help: "Press {{commandToHome}} to return to the home screen from anywhere in the app.",
+    keyWords: "Keywords: {{keyWords}}",
+    needsInternet: "{{featureName}} requires internet connection",
+    noNeedsInternet: "{{featureName}} does not require internet connection",
+    needSession: "{{featureName}} requires logged in session",
+    noNeedsSession: "{{featureName}} does not require logged in session",
   },
   iPQuery: { title: "IP Query Information" },
   iP_API: { title: "IP API Information" },

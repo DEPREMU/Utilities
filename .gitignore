@@ -53,5 +53,7 @@ test.*
 uploads/
 *.dbjson
 .temp/
+*.sql.gpg
 
 android/
+cryptos.json

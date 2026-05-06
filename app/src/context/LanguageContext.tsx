@@ -32,17 +32,21 @@ const LanguageContext = createContext<LanguageContextProps | undefined>(
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({
   children,
 }) => {
-  const [language, setLanguage] = useState<LanguagesSupported>("en");
   const { t: i18nextT } = useTranslation();
+
+  const [language, setLanguage] = useState<LanguagesSupported>("en");
 
   const t: typeT = useCallback(
     (key, ...args) => {
-      const translation = i18nextT(key, ...(args as []));
+      const translation = i18nextT(
+        key,
+        ...((args.length === 0 ? [{ returnObjects: true }] : args) as never),
+      );
 
       if (REPLACERS.isDev && translation === key)
         throw new Error(`Missing translation for key: "${key}"`);
 
-      return translation;
+      return translation as never;
     },
     [i18nextT],
   );

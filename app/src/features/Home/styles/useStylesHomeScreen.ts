@@ -39,10 +39,11 @@ export const useStylesHomeScreen = () => {
           letterSpacing: 0.5,
         },
         footer: {
-          ...texts.h3,
-          textAlign: "right",
+          ...getCommonStyles("rowSwitchText").rowSwitchText,
+          padding: undefined,
         },
         ...texts,
+        ...getCommonStyles("divider"),
         ...getCommonStyles("container"),
         ...getCommonStyles("scrollView"),
       }),
