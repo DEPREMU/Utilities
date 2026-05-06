@@ -2,22 +2,24 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import crypto from "crypto";
+import { exec } from "child_process";
 import { pool } from "../postgres.ts";
-import { execSync } from "child_process";
 import { getEnvValue } from "../../env.ts";
 import { showError, showInfo } from "../../functions/logger.ts";
 
 const backupPath = path.join(path.resolve("."), "database", "backups");
 const timeIntervalBackup = 1 * 60 * 60 * 1000;
+const encryptedExtension = ".sql.gpg";
 
 export const getInterval = () => {
   showInfo("Starting database backup interval...");
 
+  handleBackupDatabase();
   return setInterval(handleBackupDatabase, timeIntervalBackup);
 };
 
-export const encryptFile = (filePath: string, password: string) => {
-  const data = fs.readFileSync(filePath);
+export const encryptFile = async (filePath: string, password: string) => {
+  const data = await fs.promises.readFile(filePath);
 
   const salt = crypto.randomBytes(16);
   const iv = crypto.randomBytes(12);
@@ -30,13 +32,13 @@ export const encryptFile = (filePath: string, password: string) => {
   const tag = cipher.getAuthTag();
 
   const output = Buffer.concat([salt, iv, tag, encrypted]);
-  fs.writeFileSync(filePath, output);
+  await fs.promises.writeFile(filePath, output);
 
   showInfo(chalk.green(`File encrypted successfully: ${filePath}`));
 };
 
-export const decryptFile = (filePath: string, password: string) => {
-  const fileData = fs.readFileSync(filePath);
+export const decryptFile = async (filePath: string, password: string) => {
+  const fileData = await fs.promises.readFile(filePath);
 
   const salt = fileData.subarray(0, 16);
   const iv = fileData.subarray(16, 28);
@@ -93,15 +95,30 @@ export const handleBackupDatabase = async () => {
   await deletePreviousBackups();
   const client = await pool.connect();
   try {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const backupFileName = path.join(backupPath, `backup-${timestamp}.sql`);
+    const timestamp = Date.now();
+    const backupFileName = path.join(
+      backupPath,
+      `backup-${timestamp}${encryptedExtension}`,
+    );
 
     const writeFile = `pg_dump --data-only --inserts --column-inserts \
   --host=${getEnvValue("DB_HOST")} --port=${getEnvValue("DB_PORT")} --username=${getEnvValue("DB_USER")} --dbname=${getEnvValue("DB_NAME")} \
 | sed '/^INSERT INTO / s/);$/) ON CONFLICT DO NOTHING;/' > ${backupFileName}`;
 
-    execSync(writeFile);
-    encryptFile(backupFileName, getEnvValue("DB_ENCRYPTION_PASS"));
+    exec(writeFile, (error, _, stderr) => {
+      if (error) {
+        showError(chalk.red("Error during database backup:"), error.message);
+        return;
+      }
+      if (stderr) {
+        showError(chalk.red("Error output during database backup:"), stderr);
+        return;
+      }
+      showInfo(
+        chalk.green(`Database backup created successfully: ${backupFileName}`),
+      );
+      encryptFile(backupFileName, getEnvValue("DB_ENCRYPTION_PASS"));
+    });
   } catch (error) {
     showError("Error during database backup:", error);
   } finally {
@@ -141,27 +158,31 @@ export const handleBackupDatabase = async () => {
  * @returns void — function performs work asynchronously and does not return a promise.
  */
 export const deletePreviousBackups = async () => {
-  const files = fs.readdirSync(backupPath);
+  const files = await fs.promises.readdir(backupPath);
 
   await Promise.all(
     files.map(async (file) => {
-      if (!file.startsWith("backup-") || !file.endsWith(".sql.gpg")) {
-        return Promise.resolve();
-      }
-      const date = file.replace("backup-", "").replace(".sql.gpg", "");
-      const correctDate =
-        date.split("T")[0] + " " + date.split("T")[1].replace(/-/g, ":");
-      const fileDate = new Date(correctDate);
+      const filePath = path.join(backupPath, file);
+
+      if (file.startsWith("backup-") && file.endsWith("sql"))
+        return fs.promises.unlink(filePath);
+      if (!file.startsWith("backup-") || !file.endsWith(encryptedExtension))
+        return;
+
+      const date = Number(
+        file.replace("backup-", "").replace(encryptedExtension, ""),
+      );
+      const fileDate = new Date(date);
       const now = new Date();
       const diffTime = Math.abs(now.getTime() - fileDate.getTime());
       const diffDays = Math.ceil(diffTime / timeIntervalBackup);
 
-      if (diffDays <= 7) return Promise.resolve();
+      if (diffDays <= 7) return;
 
-      const filePath = path.join(backupPath, file);
-      fs.unlinkSync(filePath);
+      await fs.promises.unlink(filePath);
+
       showInfo(`Deleted old backup file: ${filePath}`);
-      return Promise.resolve();
+      return;
     }),
   );
 };
