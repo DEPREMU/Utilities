@@ -1,5 +1,5 @@
 import { Alert } from "react-native";
-import { AppTranslationsKeys, typeT } from "@types";
+import { AppTranslationsKeys, Function } from "@types";
 
 type AskPermission = <R>(
   title: AppTranslationsKeys,
@@ -13,12 +13,12 @@ type AskPermission = <R>(
     addDoNotAskAgain?: boolean;
     /** @default true */
     showCancelButton?: boolean;
-    /** @default ["accept"] */
-    acceptButtonText?: Parameters<typeT>;
-    /** @default ["labels.cancel"] */
-    cancelButtonText?: Parameters<typeT>;
-    /** @default ["labels.doNotAskAgain"] */
-    doNotAskAgainButtonText?: Parameters<typeT>;
+    /** @default "labels.accept" */
+    acceptButtonText?: AppTranslationsKeys;
+    /** @default "labels.cancel" */
+    cancelButtonText?: AppTranslationsKeys;
+    /** @default "labels.doNotAskAgain" */
+    doNotAskAgainButtonText?: AppTranslationsKeys;
   },
 ) => Promise<Awaited<R> | null>;
 
@@ -33,6 +33,7 @@ const ask: AskPermission = async (
   },
 ) => {
   const { tTyped } = await import("@utils");
+  const t = tTyped as Function<[AppTranslationsKeys], string>;
 
   const result = await new Promise<"accept" | "cancel" | "doNotAskAgain">(
     (resolve) => {
@@ -40,37 +41,27 @@ const ask: AskPermission = async (
       const cancel = () => resolve("cancel");
 
       Alert.alert(
-        tTyped(...([title] as unknown as Parameters<typeT>)),
-        tTyped(...([message] as unknown as Parameters<typeT>)),
+        t(title),
+        t(message),
         [
           ...((options?.showCancelButton ?? true)
             ? [
                 {
-                  text: tTyped(
-                    ...((options.cancelButtonText ?? [
-                      "labels.cancel",
-                    ]) as Parameters<typeT>),
-                  ),
+                  text: t(options.cancelButtonText ?? "labels.cancel"),
                   style: "cancel" as const,
                   onPress: cancel,
                 },
               ]
             : []),
           {
-            text: tTyped(
-              ...((options.acceptButtonText ?? [
-                "accept",
-              ]) as Parameters<typeT>),
-            ),
+            text: t(options.acceptButtonText ?? "labels.accept"),
             onPress: accept,
           },
           ...(options?.addDoNotAskAgain
             ? [
                 {
-                  text: tTyped(
-                    ...((options.doNotAskAgainButtonText ?? [
-                      "labels.doNotAskAgain",
-                    ]) as Parameters<typeT>),
+                  text: t(
+                    options.doNotAskAgainButtonText ?? "labels.doNotAskAgain",
                   ),
                   style: "destructive" as const,
                   onPress: () => resolve("doNotAskAgain"),
