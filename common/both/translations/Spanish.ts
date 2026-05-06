@@ -162,6 +162,7 @@ export const esApp: AppTranslations = {
     setDefaults: "Restablecer valores predeterminados",
   },
   common: {
+    available: "Disponible",
     showDeleted: "Mostrar eliminados",
     error: "Error",
     textAddedToDatabase: "Texto agregado a la base de datos",
@@ -351,6 +352,14 @@ export const esApp: AppTranslations = {
     youArePlaying: "Estás jugando",
     youLose: "¡Tú pierdes!",
     youWin: "¡Tú ganas!",
+  },
+  homeScreen: {
+    help: "Presiona {{commandToHome}} para regresar a la pantalla de inicio desde cualquier lugar de la aplicación.",
+    keyWords: "Palabras clave: {{keyWords}}",
+    needsInternet: "{{featureName}} requiere conexión a Internet",
+    noNeedsInternet: "{{featureName}} no requiere conexión a Internet",
+    needSession: "{{featureName}} requiere una sesión iniciada",
+    noNeedsSession: "{{featureName}} no requiere sesión iniciada",
   },
   iPQuery: { title: "IP Query" },
   iP_API: { title: "API de IP" },

@@ -62,21 +62,33 @@ export type GetPlaceholders<T extends string> =
 export type HasPlaceholder<T extends string> =
   GetPlaceholders<T> extends never ? false : true;
 
-export type typeT<TLang = AppTranslations> = <K extends NormalizeKeys<TLang>>(
-  key: K,
-  ...args: HasPlural<TLang, K> extends true
-    ? HasPlaceholder<ResolvePlural<TLang, K>> extends true
+export type GetTranslationReturn<T, K extends string> =
+  ResolvePath<T, K> extends never
+    ? ResolvePath<T, `${K}_one`> extends never
+      ? never
+      : string
+    : ResolvePath<T, K>;
+
+export type TranslationArgs<T, K extends string> =
+  HasPlural<T, K> extends true
+    ? HasPlaceholder<ResolvePlural<T, K> & string> extends true
       ? [
           options: Record<
-            GetPlaceholders<ResolvePlural<TLang, K>> | "count",
+            GetPlaceholders<ResolvePlural<T, K> & string> | "count",
             string | number
           >,
         ]
       : [options?: { count: number }]
-    : HasPlaceholder<ResolvePath<TLang, K>> extends true
-      ? [options: Record<GetPlaceholders<ResolvePath<TLang, K>>, string>]
-      : []
-) => string;
+    : [ResolvePath<T, K>] extends [string]
+      ? HasPlaceholder<ResolvePath<T, K> & string> extends true
+        ? [options: Record<GetPlaceholders<ResolvePath<T, K> & string>, string>]
+        : []
+      : [];
+
+export type typeT<TLang = AppTranslations> = <K extends NormalizeKeys<TLang>>(
+  key: K,
+  ...args: TranslationArgs<TLang, K>
+) => GetTranslationReturn<TLang, K>;
 
 type DeviceInformationTranslations = {
   deviceInformation: Record<
@@ -112,6 +124,14 @@ type NotificationsTranslations = {
 export type AppTranslations = BatteryStateTranslations &
   NotificationsTranslations &
   DeviceInformationTranslations & {
+    homeScreen: {
+      help: `${string}{{commandToHome}}${string}`;
+      keyWords: `${string}{{keyWords}}${string}`;
+      needsInternet: `${string}{{featureName}}${string}`;
+      noNeedsInternet: `${string}{{featureName}}${string}`;
+      needSession: `${string}{{featureName}}${string}`;
+      noNeedsSession: `${string}{{featureName}}${string}`;
+    };
     downDetector: {
       title: string;
       keyWords: string;
@@ -711,6 +731,7 @@ export type AppTranslations = BatteryStateTranslations &
       };
     };
     common: {
+      available: string;
       error: string;
       textAddedToDatabase: string;
       failedToAddTextToDatabase: string;
