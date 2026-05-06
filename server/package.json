@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node ./build.ts && node ./build/index.cjs",
-    "start-dev": "yarn nodemon -e ts,json --exec \"sleep 5; node ./build.ts; node ./build/index.cjs\"",
+    "start-dev": "yarn nodemon -i cryptos.json -e ts,json --exec \"sleep 5; node ./build.ts; node ./build/index.cjs\"",
     "format-all": "yarn prettier --write \"**/*.{ts,json}\" --ignore-path ../.gitignore",
     "before-commit": "yarn run lint:fix && yarn run type-check",
     "type-check": "tsc --noEmit",
