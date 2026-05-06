@@ -4,6 +4,11 @@ import {
   NativeFunctionsModule,
 } from "@modules";
 import {
+  ServiceClass,
+  reasonNotification,
+  objByReasonNotification,
+} from "@common";
+import {
   ChannelsId,
   Notification,
   Notifications,
@@ -21,11 +26,6 @@ import * as notifications from "expo-notifications";
 import { AppState, Falsy } from "react-native";
 import { storageManagement } from "../services/storage";
 import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
-import {
-  reasonNotification,
-  objByReasonNotification,
-  ServiceClass,
-} from "@common";
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -188,13 +188,13 @@ const configureNotificationChannel = async () => {
       lightColor: "#00ff00",
     },
     cryptos: {
-      name: tTyped("cryptos"),
+      name: tTyped("notifications.cryptos"),
       importance: notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250, 250, 250, 100],
       lightColor: "#00f7ff7c",
     },
     streamers: {
-      name: tTyped("streamers"),
+      name: tTyped("notifications.streamers"),
       importance: notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#8400ff7c",
@@ -230,25 +230,25 @@ const configureNotificationChannel = async () => {
       vibrationPattern: null,
     },
     downDetector: {
-      name: tTyped("downDetector"),
+      name: tTyped("notifications.downDetector"),
       importance: notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ff00ff",
     },
     loggedInStatusChannel: {
-      name: tTyped("auth.youAreNotLoggedIn"),
+      name: tTyped("notifications.loggedInStatusChannel"),
       importance: notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#00ffff",
     },
     timeToDownload: {
-      name: tTyped("calculator.timeToDownload.title"),
+      name: tTyped("notifications.timeToDownload"),
       importance: notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250, 100],
       lightColor: "#ffa500",
     },
     recorderNotification: {
-      name: tTyped("recorder.label"),
+      name: tTyped("notifications.recorderNotification"),
       importance: notifications.AndroidImportance.LOW,
       sound: null,
       vibrationPattern: null,

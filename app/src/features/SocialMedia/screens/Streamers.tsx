@@ -380,7 +380,7 @@ const Streamers: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("streamers")}</Text>
+      <Text style={styles.title}>{t("streamers.title")}</Text>
       <View style={styles.containerAdd}>
         <TextInput
           style={styles.textInput}

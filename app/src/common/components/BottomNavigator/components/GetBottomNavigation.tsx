@@ -1,6 +1,6 @@
 import { useLanguage } from "@context/LanguageContext";
 import { BottomNavigation } from "react-native-paper";
-import { AppTranslationsKeys } from "@types";
+import { AppTranslationsKeys, Function } from "@types";
 import useStylesBottomNavigator from "@components/BottomNavigator/styles/useStylesBottomNavigator";
 import React, { useMemo, useState } from "react";
 
@@ -28,7 +28,7 @@ const GetBottomNavigation = <T extends Route[]>(
       () =>
         routes.map((route) => ({
           ...route,
-          title: t(...([route.title] as unknown as Parameters<typeof t>)),
+          title: (t as Function<[AppTranslationsKeys], string>)(route.title),
         })),
       [t],
     );
