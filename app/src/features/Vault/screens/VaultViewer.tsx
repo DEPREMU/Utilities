@@ -4,7 +4,7 @@ import { useVault } from "@screens/Vault/context/VaultContext";
 import { REPLACERS } from "@utils";
 import { FolderFiles } from "@types";
 import { useLanguage } from "@context/LanguageContext";
-import { VaultScreenProps } from ".";
+import { useStylesVaultScreen } from "../styles/useStylesVaultScreen";
 import React, { useCallback, useRef } from "react";
 import ActionsMenu, { defaultMenuState } from "../components/ActionsMenu";
 import { List, Menu, Text, Button, Divider } from "react-native-paper";
@@ -36,15 +36,14 @@ export type OnLongPressRef = React.RefObject<
   (event: GestureResponderEvent, item: FolderFiles[number]) => void
 >;
 
-const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
+const VaultViewer: React.FC = () => {
   const { t } = useLanguage();
 
+  const { styles } = useStylesVaultScreen();
   const returnVault = useVault();
 
   const { folders, functionsRef, currentFolderId, setCurrentFolderId } =
     returnVault;
-
-  const { styles } = useStylesVaultScreen;
 
   const [renderModal, setRenderModal] =
     React.useState<ModalData>(defaultModalData);
@@ -160,7 +159,6 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
         dataRef={dataRef}
         setRenderModal={setRenderModal}
         onDismissModal={onDismissRef.current}
-        useStylesVaultScreen={useStylesVaultScreen}
       />
 
       <Modal
@@ -168,7 +166,6 @@ const VaultViewer: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
         renderModal={renderModal}
         onLongPress={onLongPressRef.current}
         setRenderModal={setRenderModal}
-        useStylesVaultScreen={useStylesVaultScreen}
       />
 
       <Text style={styles.title}>{t("vault.viewer.title")}</Text>

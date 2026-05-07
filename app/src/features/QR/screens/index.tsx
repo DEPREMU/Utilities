@@ -1,25 +1,21 @@
 import ScanQR from "./ScanQR";
 import CreateQR from "./CreateQR";
-import { memoDeep } from "@/utils";
-import GetBottomNavigation from "@/common/components/BottomNavigator/components/GetBottomNavigation";
+import { Screens } from "@types";
+import GetBottomNavigation from "@components/BottomNavigator/components/GetBottomNavigation";
 
-const QRNavigator = GetBottomNavigation(
-  [
-    {
-      key: "CreateQR" as const,
-      title: "common.createQR",
-      focusedIcon: "qrcode-plus",
-    },
-    {
-      key: "ScanQR" as const,
-      title: "common.scanQR",
-      focusedIcon: "qrcode",
-    },
-  ],
+const QRNavigator = GetBottomNavigation<Screens["QR"]>([
   {
-    ScanQR,
-    CreateQR,
+    key: "CreateQR",
+    title: "common.createQR",
+    component: CreateQR,
+    focusedIcon: "qrcode-plus",
   },
-);
+  {
+    key: "ScanQR",
+    title: "common.scanQR",
+    component: ScanQR,
+    focusedIcon: "qrcode",
+  },
+]);
 
-export default memoDeep(QRNavigator);
+export default QRNavigator;

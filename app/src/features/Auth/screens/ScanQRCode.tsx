@@ -21,7 +21,7 @@ import { useUserContext } from "@context/UserContext";
 import { useStylesScanQRCode } from "@screens/Auth/styles/useStylesScanQRCode";
 import React, { useEffect, useRef, useState } from "react";
 import { BarcodeScanningResult, Camera, CameraView } from "expo-camera";
-import { LoginWithQRMobile, MessageWebSocketQRLogin } from "@types";
+import { LoginWithQRMobile, MessageWebSocketQRLogin, Screens } from "@types";
 
 type PermissionCamera = "granted" | "denied" | null;
 
@@ -29,7 +29,7 @@ const optionsWebSocket: OptionsReconnectingWS = {
   startClosed: true,
 };
 
-const ScanQRCode: React.FC = () => {
+const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
   const { t } = useLanguage();
   const { styles } = useStylesScanQRCode();
   const { isLoggedIn } = useUserContext();

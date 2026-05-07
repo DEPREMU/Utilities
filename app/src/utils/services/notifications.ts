@@ -135,7 +135,7 @@ export const hasPushNotifications = async (): Promise<boolean> => {
  * Sets up notification handlers for when notifications are received and tapped
  */
 export const setupNotificationHandlers = () => {
-  if (REPLACERS.isWeb) return () => {};
+  if (REPLACERS.isWeb) return { remove: () => {} };
 
   notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -171,9 +171,11 @@ export const setupNotificationHandlers = () => {
     },
   );
 
-  return () => {
-    foregroundListener.remove();
-    notificationListener.remove();
+  return {
+    remove: () => {
+      foregroundListener.remove();
+      notificationListener.remove();
+    },
   };
 };
 

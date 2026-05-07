@@ -1,17 +1,22 @@
-import Button from "@/common/components/Button/screens";
+import {
+  Screens,
+  Function,
+  ScreensAvailable,
+  AppTranslationsKeys,
+} from "@types";
+import Button from "@components/Button/screens";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
-import { navigation } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import React, { useMemo } from "react";
+import { memoDeep, navigation } from "@utils";
 import { useStylesGamesNavigator } from "@screens/Games/styles/useStylesGamesNavigator";
-import { ScreensAvailable, AppTranslationsKeys, Function } from "@types";
 
 const buttons: { label: AppTranslationsKeys; screen: ScreensAvailable }[] = [
   { label: "games.minesweeper.title", screen: "Minesweeper" },
 ];
 
-const GamesNavigator: React.FC = () => {
+const GamesNavigator: React.FC<Screens["Games"]> = () => {
   const { t } = useLanguage();
   const { styles } = useStylesGamesNavigator();
 
@@ -39,4 +44,4 @@ const GamesNavigator: React.FC = () => {
   );
 };
 
-export default GamesNavigator;
+export default memoDeep(GamesNavigator);

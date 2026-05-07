@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { useTheme } from "@/context/ThemeContext";
+import { useTheme } from "@context/ThemeContext";
 import { REPLACERS } from "@utils";
 import { StyleSheet } from "react-native";
-import { useResponsiveLayout } from "@/context/LayoutContext";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
-const useStylesVaultScreen = () => {
+export const useStylesVaultScreen = () => {
   const { colors } = useTheme();
   const { getCommonStyles, getResponsiveValue, width, height } =
     useResponsiveLayout();
@@ -221,5 +221,3 @@ const useStylesVaultScreen = () => {
 
   return returnValue;
 };
-
-export default useStylesVaultScreen;

@@ -2,8 +2,8 @@ import { useVault } from "../context/VaultContext";
 import { List, Text } from "react-native-paper";
 import { FolderFiles } from "@types";
 import { Image, Pressable } from "react-native";
-import useStylesVaultScreen from "../styles/useStylesVaultScreen";
 import React, { useCallback } from "react";
+import { useStylesVaultScreen } from "../styles/useStylesVaultScreen";
 import { ModalData, OnLongPressRef } from "../screens/VaultViewer";
 
 interface ItemViewerProps {

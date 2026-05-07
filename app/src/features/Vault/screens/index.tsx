@@ -7,46 +7,51 @@ import {
   DATA_PLATFORM,
   EventsDeviceInfo,
 } from "@utils";
-import Button from "@/common/components/Button/screens";
+import Button from "@components/Button/screens";
 import { View } from "react-native";
-import { Route } from "@/common/components/BottomNavigator/components/GetBottomNavigation";
+import { Route } from "@components/BottomNavigator/components/GetBottomNavigation";
 import VaultViewer from "@screens/Vault/screens/VaultViewer";
 import ImportScreen from "@screens/Vault/screens/ImportScreen";
 import BackupScreen from "@screens/Vault/screens/BackupScreen";
 import SettingsScreen from "@screens/Vault/screens/SettingsScreen";
 import { useLanguage } from "@context/LanguageContext";
 import CompressionScreen from "@screens/Vault/screens/CompressionScreen";
-import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
-import useStylesBottomNavigator from "@/common/components/BottomNavigator/styles/useStylesBottomNavigator";
+import { useStylesVaultScreen } from "@screens/Vault/styles/useStylesVaultScreen";
 import { BottomNavigation, Text } from "react-native-paper";
 import { useVault, VaultProvider } from "@screens/Vault/context/VaultContext";
+import { useStylesBottomNavigator } from "@components/BottomNavigator/styles/useStylesBottomNavigator";
+import { AppTranslationsKeys, Function, Screens } from "@types";
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { AppTranslationsKeys, Function } from "@types";
 
 const routes: Route[] = [
   {
     key: "vault",
     title: "vault.title",
+    component: VaultViewer,
     focusedIcon: "folder-lock",
   },
   {
     key: "import",
     title: "vault.importFiles",
+    component: ImportScreen,
     focusedIcon: "file-import",
   },
   {
     key: "compression",
     title: "vault.compression",
+    component: CompressionScreen,
     focusedIcon: "zip-box",
   },
   {
     key: "backup",
     title: "vault.backup.title",
+    component: BackupScreen,
     focusedIcon: "archive",
   },
   {
     key: "settings",
     title: "common.settings",
+    component: SettingsScreen,
     focusedIcon: "cog",
   },
 ] as const;
@@ -55,11 +60,15 @@ export interface VaultScreenProps {
   useStylesVaultScreen: ReturnType<typeof useStylesVaultScreen>;
 }
 
-const VaultNavigator = () => {
+const renderSceneMap = BottomNavigation.SceneMap(
+  Object.fromEntries(routes.map((route) => [route.key, route.component])),
+);
+
+const VaultNavigator: React.FC<Screens["Vault"]> = () => {
   const { t } = useLanguage();
-  const returnUseStyles = useStylesVaultScreen();
-  const { functionsRef } = useVault();
+  const { styles } = useStylesVaultScreen();
   const { colors } = useStylesBottomNavigator();
+  const { functionsRef } = useVault();
 
   const [index, setIndex] = useState<number>(-1);
 
@@ -78,22 +87,6 @@ const VaultNavigator = () => {
         title: (t as Function<[AppTranslationsKeys], string>)(route.title),
       })),
     [t],
-  );
-
-  const renderScene = useMemo(
-    () =>
-      BottomNavigation.SceneMap({
-        vault: () => <VaultViewer useStylesVaultScreen={returnUseStyles} />,
-        import: () => <ImportScreen useStylesVaultScreen={returnUseStyles} />,
-        compression: () => (
-          <CompressionScreen useStylesVaultScreen={returnUseStyles} />
-        ),
-        backup: () => <BackupScreen useStylesVaultScreen={returnUseStyles} />,
-        settings: () => (
-          <SettingsScreen useStylesVaultScreen={returnUseStyles} />
-        ),
-      }),
-    [returnUseStyles],
   );
 
   useEffect(() => {
@@ -123,11 +116,9 @@ const VaultNavigator = () => {
 
   if (index === -1)
     return (
-      <View style={returnUseStyles.styles.container}>
-        <Text style={returnUseStyles.styles.lockedTitle}>
-          {t("auth.authenticate")}
-        </Text>
-        <Text style={returnUseStyles.styles.lockedMessage}>
+      <View style={styles.container}>
+        <Text style={styles.lockedTitle}>{t("auth.authenticate")}</Text>
+        <Text style={styles.lockedMessage}>
           {t("auth.authenticateMessage")}
         </Text>
 
@@ -145,7 +136,7 @@ const VaultNavigator = () => {
       shifting
       sceneAnimationEnabled
       barStyle={{ backgroundColor: colors.primary }}
-      renderScene={renderScene}
+      renderScene={renderSceneMap}
       activeColor={colors.background}
       onIndexChange={setIndex}
       inactiveColor={colors.text}

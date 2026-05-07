@@ -1,12 +1,13 @@
-import Button from "@/common/components/Button/screens";
+import Button from "@components/Button/screens";
 import { View } from "react-native";
+import { Screens } from "@types";
 import { translate } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesTranslator from "@screens/Translator/styles/useStylesTranslator";
 import { List, TextInput, Text } from "react-native-paper";
 import React, { useCallback, useMemo, useState } from "react";
 
-const Translator: React.FC = () => {
+const Translator: React.FC<Screens["Translator"]> = () => {
   const { t } = useLanguage();
   const { styles } = useStylesTranslator();
 

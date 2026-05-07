@@ -34,6 +34,7 @@ import {
   isValidEmail,
   isValidPassword,
 } from "@utils";
+import { Screens } from "@types";
 import LoginTypeQR from "@screens/Auth/components/LoginTypeQR";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
@@ -42,7 +43,7 @@ import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 
-const LoginScreen: React.FC = () => {
+const LoginScreen: React.FC<Screens["Login"]> = () => {
   const { t } = useLanguage();
   const { isLoggedIn } = useUserContext();
   const { styles, colors } = useStylesAuthScreens();

@@ -27,22 +27,24 @@ import DeviceInformation from "@screens/DeviceInformation/screens";
 import ClipboardNavigator from "@screens/Clipboard/screens";
 import CalculatorNavigator from "@screens/Calculator/screens";
 import React, { useEffect } from "react";
-import { ScreensAvailable } from "@types";
 import SocialMediaNavigator from "@screens/SocialMedia/screens";
 import ForgotPasswordScreen from "@screens/Auth/screens/ForgotPasswordScreen";
 import DownDetectorNavigator from "@screens/DownDetector/screens";
 import { NavigationContainer } from "@react-navigation/native";
-import { REPLACERS, setupNotificationHandlers, navigation } from "@utils";
+import { Screens as RootStackParamList, ScreensAvailable } from "@types";
+import {
+  REPLACERS,
+  setupNotificationHandlers,
+  navigation,
+  logger,
+} from "@utils";
 
-export type RootStackParamList = Record<ScreensAvailable, object | undefined>;
-
-type Screens = Record<
-  keyof RootStackParamList,
-  {
-    component: React.FC;
+type Screens = {
+  [K in ScreensAvailable]: {
+    component: React.FC<RootStackParamList[K]>;
     options?: NativeStackNavigationOptions;
-  }
->;
+  };
+};
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -94,7 +96,7 @@ const screens: Screens = {
   TerminalCommands: {
     component: REPLACERS.isWeb ? TerminalCommands : ComponentToHome,
   },
-  PDF: { component: PDFNavigator as React.FC },
+  PDF: { component: PDFNavigator },
   QR: {
     component: QRNavigator,
   },
@@ -125,24 +127,42 @@ const AppNavigator: React.FC = () => {
 
   useEffect(() => {
     if (REPLACERS.isNative) {
-      const handleNavigate = (url: string | null) => {
+      const handleNavigate = async (url: string | null) => {
         if (!url || (!url.startsWith("content") && !url.startsWith("file")))
           return;
 
-        if (url.endsWith(".pdf"))
-          navigation.replace("PDF", { uri: decodeURIComponent(url) });
+        if (url.endsWith(".pdf")) {
+          try {
+            const { default: BlobUtil } =
+              await import("react-native-blob-util");
+
+            const uri = `${BlobUtil.fs.dirs.CacheDir}/${url.split("/").pop()}`;
+
+            await BlobUtil.fs.cp(
+              url,
+              `${BlobUtil.fs.dirs.CacheDir}/${url.split("/").pop()}`,
+            );
+
+            navigation.replace("PDF", { uri });
+          } catch (error) {
+            logger.error(
+              "Error handling PDF URL:",
+              error instanceof Error ? error.message : String(error),
+            );
+          }
+        }
       };
 
       const sub = Linking.addEventListener("url", ({ url }) => {
         handleNavigate(url);
       });
-      const removeNotifications = setupNotificationHandlers();
+      const notificationsListeners = setupNotificationHandlers();
 
       Linking.getInitialURL().then(handleNavigate);
 
       return () => {
         sub.remove();
-        removeNotifications();
+        notificationsListeners.remove();
       };
     }
 

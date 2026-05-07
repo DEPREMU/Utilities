@@ -1,4 +1,5 @@
 import Notes from "@screens/Notes/screens/Notes";
+import { Screens } from "@types";
 import NotesViewer from "@screens/Notes/screens/NotesViewer";
 import { memoDeep } from "@utils";
 import NotesSettings from "@screens/Notes/screens/NotesSettings";
@@ -6,8 +7,8 @@ import { StyleSheet } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import { NotesProvider } from "@screens/Notes/context/NotesContext";
 import { BottomNavigation } from "react-native-paper";
-import useStylesBottomNavigator from "@/common/components/BottomNavigator/styles/useStylesBottomNavigator";
-import { useMemo, useRef, useState } from "react";
+import { useStylesBottomNavigator } from "@/common/components/BottomNavigator/styles/useStylesBottomNavigator";
+import React, { useMemo, useRef, useState } from "react";
 import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 
 const stylesInternal = StyleSheet.create({
@@ -34,7 +35,7 @@ const createRoutesNavigator = (t: ReturnType<typeof useLanguage>["t"]) => [
   },
 ];
 
-const NotesNavigator = () => {
+const NotesNavigator: React.FC<Screens["Notes"]> = () => {
   const { t } = useLanguage();
   const { colors } = useStylesBottomNavigator();
 

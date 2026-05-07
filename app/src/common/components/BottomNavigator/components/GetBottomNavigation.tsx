@@ -1,39 +1,44 @@
+import { memoDeep } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import { BottomNavigation } from "react-native-paper";
-import { AppTranslationsKeys, Function } from "@types";
-import useStylesBottomNavigator from "@components/BottomNavigator/styles/useStylesBottomNavigator";
 import React, { useMemo, useState } from "react";
+import { useStylesBottomNavigator } from "@components/BottomNavigator/styles/useStylesBottomNavigator";
+import { AppTranslationsKeys, Function } from "@types";
 
 export type Route = {
   key: string;
   title: AppTranslationsKeys;
+  component: Parameters<typeof BottomNavigation.SceneMap>[0][string];
   focusedIcon: string;
   unfocusedIcon?: string;
 };
 
-const GetBottomNavigation = <T extends Route[]>(
-  routes: T,
-  sceneMap: Record<
-    T[number]["key"],
-    Parameters<typeof BottomNavigation.SceneMap>[0][string]
-  >,
+const GetBottomNavigation = <FC extends Record<string, unknown>>(
+  routes: Route[],
 ) => {
-  const Component = () => {
+  const renderScene = BottomNavigation.SceneMap(
+    Object.fromEntries(routes.map((route) => [route.key, route.component])),
+  );
+
+  const Component: React.FC<FC> = () => {
     const { t } = useLanguage();
     const { colors } = useStylesBottomNavigator();
 
     const [index, setIndex] = useState<number>(0);
 
-    const routesNavigator = useMemo(
+    const routesNavigator: Omit<Route, "sceneMap">[] = useMemo(
       () =>
-        routes.map((route) => ({
-          ...route,
-          title: (t as Function<[AppTranslationsKeys], string>)(route.title),
-        })),
+        routes.map(
+          ({ component: _, ...route }) =>
+            ({
+              ...route,
+              title: (t as Function<[AppTranslationsKeys], string>)(
+                route.title,
+              ),
+            }) as Omit<Route, "sceneMap">,
+        ),
       [t],
     );
-
-    const renderScene = useMemo(() => BottomNavigation.SceneMap(sceneMap), []);
 
     return (
       <BottomNavigation
@@ -49,7 +54,7 @@ const GetBottomNavigation = <T extends Route[]>(
     );
   };
 
-  return Component;
+  return memoDeep(Component);
 };
 
 export default GetBottomNavigation;

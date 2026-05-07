@@ -1,44 +1,40 @@
+import { Screens } from "@types";
 import PDFConverter from "./Converter";
 import PDFViewerScreen from "./Viewer";
-import GetBottomNavigation from "@/common/components/BottomNavigator/components/GetBottomNavigation";
-import React, { useEffect, useMemo } from "react";
+import { usePDFStore } from "../services/zustand";
+import GetBottomNavigation from "@components/BottomNavigator/components/GetBottomNavigation";
+import React, { useEffect } from "react";
 import { deleteDirectoryPickerFolder, memoDeep } from "@utils";
 
-type ViewerProps = {
-  route?: {
-    params?: {
-      uri?: string;
-    };
-  };
-};
+const Navigator = GetBottomNavigation([
+  {
+    key: "pdfViewer",
+    title: "pdf.viewer",
+    component: PDFViewerScreen,
+    focusedIcon: "file-pdf-box",
+  },
+  {
+    key: "pdfConverter",
+    title: "pdf.converter",
+    component: PDFConverter,
+    focusedIcon: "file-cog",
+  },
+]);
 
-const PDFNavigator: React.FC<ViewerProps> = ({ route }) => {
+const PDFNavigator: React.FC<Screens["PDF"]> = ({ route }) => {
   const { uri } = route?.params || {};
 
-  const Navigator = useMemo(
-    () =>
-      GetBottomNavigation(
-        [
-          {
-            key: "pdfViewer" as const,
-            title: "pdf.viewer",
-            focusedIcon: "file-pdf-box",
-          },
-          {
-            key: "pdfConverter" as const,
-            title: "pdf.converter",
-            focusedIcon: "file-cog",
-          },
-        ],
-        {
-          pdfViewer: () => <PDFViewerScreen uri={uri} />,
-          pdfConverter: PDFConverter,
-        },
-      ),
-    [uri],
-  );
+  const setUriState = usePDFStore((s) => s.setPdfUri);
 
-  useEffect(() => deleteDirectoryPickerFolder, []);
+  useEffect(() => {
+    if (uri) setUriState(uri);
+  }, [uri, setUriState]);
+
+  useEffect(() => {
+    return () => {
+      deleteDirectoryPickerFolder();
+    };
+  }, []);
 
   return <Navigator />;
 };

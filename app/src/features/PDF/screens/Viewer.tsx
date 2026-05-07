@@ -1,10 +1,3 @@
-import { View } from "react-native";
-import { useLanguage } from "@/context/LanguageContext";
-import { useStylesPDF } from "@/features/PDF/styles/useStylesPDF";
-import * as ExpoFileSystem from "expo-file-system";
-import { Button, Divider } from "react-native-paper";
-import * as DocumentPicker from "expo-document-picker";
-import React, { useCallback, useEffect, useState } from "react";
 import {
   PDF,
   logger,
@@ -13,22 +6,27 @@ import {
   URI_EXTENSION,
   sanitizeFileName,
 } from "@utils";
+import { View } from "react-native";
+import { usePDFStore } from "../services/zustand";
+import { useLanguage } from "@context/LanguageContext";
+import { useStylesPDF } from "@screens/PDF/styles/useStylesPDF";
+import * as ExpoFileSystem from "expo-file-system";
+import { Button, Divider } from "react-native-paper";
+import * as DocumentPicker from "expo-document-picker";
+import React, { useCallback, useEffect } from "react";
 
-type ViewerProps = {
-  uri?: string;
-};
-
-const Viewer: React.FC<ViewerProps> = ({ uri }) => {
+const Viewer: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesPDF();
 
-  const [uriState, setUriState] = useState<string>("");
+  const uri = usePDFStore((s) => s.pdfUri);
+  const setUriState = usePDFStore((s) => s.setPdfUri);
 
   const handlePressButton = useCallback(async () => {
-    if (uriState) {
+    if (uri) {
       setUriState("");
       try {
-        new ExpoFileSystem.File(uriState).delete();
+        new ExpoFileSystem.File(uri).delete();
       } catch {
         // Ignore errors
       }
@@ -41,7 +39,7 @@ const Viewer: React.FC<ViewerProps> = ({ uri }) => {
 
       setUriState(pick.assets[0].uri);
     }
-  }, [uriState]);
+  }, [uri, setUriState]);
 
   useEffect(() => {
     if (REPLACERS.isWeb) return;
@@ -77,22 +75,22 @@ const Viewer: React.FC<ViewerProps> = ({ uri }) => {
         // Ignore errors
       }
     };
-  }, [uri]);
+  }, [uri, setUriState]);
 
   return (
     <View style={styles.container}>
       <Button mode="contained" onPress={handlePressButton}>
-        {t(uriState ? "pdf.close" : "pdf.open")}
+        {t(uri ? "pdf.close" : "pdf.open")}
       </Button>
 
       <Divider style={styles.divider} />
 
-      {!!uriState && (
+      {!!uri && (
         <PDF
           enableAntialiasing
           enableDoubleTapZoom
           style={styles.pdf}
-          source={{ uri: uriState || "" }}
+          source={{ uri: uri || "" }}
           maxScale={20}
           minScale={0.5}
           fitPolicy={2}
