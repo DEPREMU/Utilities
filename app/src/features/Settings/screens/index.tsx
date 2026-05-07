@@ -1,27 +1,23 @@
-import { memoDeep } from "@utils";
+import { Screens } from "@types";
 import Notifications from "./Notifications";
 import SettingsScreen from "./Settings";
-import GetBottomNavigation from "@/common/components/BottomNavigator/components/GetBottomNavigation";
+import GetBottomNavigation from "@components/BottomNavigator/components/GetBottomNavigation";
 
-const SettingsNavigator = GetBottomNavigation(
-  [
-    {
-      key: "settings" as const,
-      title: "common.settings",
-      focusedIcon: "cogs",
-      unfocusedIcon: "cog",
-    },
-    {
-      key: "notifications" as const,
-      title: "common.notifications",
-      focusedIcon: "bell-cog",
-      unfocusedIcon: "bell-sleep",
-    },
-  ],
+const SettingsNavigator = GetBottomNavigation<Screens["Settings"]>([
   {
-    settings: SettingsScreen,
-    notifications: Notifications,
+    key: "settings",
+    title: "common.settings",
+    component: SettingsScreen,
+    focusedIcon: "cogs",
+    unfocusedIcon: "cog",
   },
-);
+  {
+    key: "notifications",
+    title: "common.notifications",
+    component: Notifications,
+    focusedIcon: "bell-cog",
+    unfocusedIcon: "bell-sleep",
+  },
+]);
 
-export default memoDeep(SettingsNavigator);
+export default SettingsNavigator;

@@ -19,17 +19,18 @@ import {
   setTimeoutPolyfill,
   clearTimeoutPolyfill,
 } from "@utils";
+import { Screens } from "@types";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
-import { useUserContext } from "@/context/UserContext";
+import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import { Button, Divider, Text } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-const SignUpScreen: React.FC = () => {
+const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
   const { t } = useLanguage();
   const { styles } = useStylesAuthScreens();
   const { isLoggedIn } = useUserContext();

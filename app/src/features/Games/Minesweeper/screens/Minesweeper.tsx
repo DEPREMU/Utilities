@@ -1,7 +1,8 @@
-import Button from "@/common/components/Button/screens";
+import Button from "@components/Button/screens";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
 import RenderRow from "@screens/Games/Minesweeper/components/RenderRow";
+import { Screens } from "@types";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesMinesweeper } from "@screens/Games/styles";
 import React, { useCallback, useRef, useState } from "react";
@@ -79,7 +80,7 @@ const getBoard = (difficulty: EachDifficulty): typeCell[][] => {
   return createBoard(difficulty.size, mines);
 };
 
-const Minesweeper: React.FC = () => {
+const Minesweeper: React.FC<Screens["Minesweeper"]> = () => {
   const { t } = useLanguage();
   const { styles } = useStylesMinesweeper();
 

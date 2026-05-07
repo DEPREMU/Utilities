@@ -13,9 +13,9 @@ import axios from "axios";
 import { modalRef } from "@refs";
 import ComputerItem from "../components/ComputerItem";
 import { useLanguage } from "@context/LanguageContext";
-import { AdvertisementTXT } from "@types";
 import Zeroconf, { Service } from "react-native-zeroconf";
 import useStylesComputerControl from "@screens/Phone/ComputesControl/styles/useStylesComputerControl";
+import { AdvertisementTXT, Screens } from "@types";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import { ActivityIndicator, Text, FAB } from "react-native-paper";
 // eslint-disable-next-line react-native/split-platform-components
@@ -99,7 +99,7 @@ const devicesDev: Device[] = Array.from({ length: 5 }).map((_, i) => {
   };
 });
 
-const ComputerControl: React.FC = () => {
+const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
   const { t } = useLanguage();
   const { styles, colors } = useStylesComputerControl();
 

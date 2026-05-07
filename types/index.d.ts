@@ -7,7 +7,6 @@ export * from "./typesNotes";
 export * from "./database/index";
 export * from "./typesStorage";
 export * from "./typesWebSocket";
-export * from "./typesNavigation";
 export * from "./typesTaskRegistry";
 export * from "./typesTranslations";
 export * from "./typesNotifications";
@@ -22,18 +21,18 @@ export type REPLACERS_TYPE =
   | "isProduction";
 
 export type Colors =
-  | "primary"
-  | "secondary"
-  | "accent"
-  | "background"
-  | "text"
-  | "border"
-  | "error"
-  | "warning"
-  | "success"
   | "info"
+  | "text"
+  | "error"
+  | "accent"
+  | "border"
+  | "shadow"
+  | "primary"
+  | "success"
+  | "warning"
   | "overlay"
-  | "shadow";
+  | "secondary"
+  | "background";
 
 export type Function<Args extends unknown[] = unknown[], Return = void> = (
   ...args: Args

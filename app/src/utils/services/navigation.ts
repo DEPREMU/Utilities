@@ -1,8 +1,7 @@
 import { REPLACERS } from "../TOP_LEVEL";
 import { ServiceClass } from "@common";
-import { ScreensAvailable } from "@types";
-import { RootStackParamList } from "@/app/AppNavigator";
 import { createNavigationContainerRef } from "@react-navigation/native";
+import { GetParamsScreen, Screens, ScreensAvailable } from "@types";
 
 type ListenersNavigation = {
   screenChange: (screen: ScreensAvailable) => void;
@@ -11,11 +10,11 @@ type ListenersNavigation = {
 const TAG = "NAVIGATION";
 
 class Navigation extends ServiceClass<ListenersNavigation> {
-  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Home" : "Home";
+  public static instance: Navigation;
 
-  public ref: ReturnType<
-    typeof createNavigationContainerRef<RootStackParamList>
-  >;
+  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Images" : "Home";
+
+  public ref = createNavigationContainerRef<Screens>();
 
   public get currentScreen(): ScreensAvailable {
     return this.#currentScreen;
@@ -28,18 +27,24 @@ class Navigation extends ServiceClass<ListenersNavigation> {
     this.emit("screenChange", name);
   };
 
-  public navigate = (name: ScreensAvailable, params?: object) => {
+  public navigate = <T extends ScreensAvailable>(
+    name: T,
+    params?: GetParamsScreen<T>,
+  ) => {
     if (name === this.#currentScreen) return;
 
     this.#emitScreenChange(name);
     this.ref.navigate(...([name, params] as never));
   };
 
-  public replace = (name: ScreensAvailable, params?: object) => {
+  public replace = <T extends ScreensAvailable>(
+    name: T,
+    params?: GetParamsScreen<T>,
+  ) => {
     this.#emitScreenChange(name);
     this.ref.reset({
       index: 0,
-      routes: [{ name, params }],
+      routes: [{ name, params: params as never }],
     });
   };
 
@@ -69,8 +74,10 @@ class Navigation extends ServiceClass<ListenersNavigation> {
 
   constructor() {
     super();
-    this.ref = createNavigationContainerRef<RootStackParamList>();
     this._reInit();
+
+    if (Navigation.instance) return Navigation.instance;
+    else return (Navigation.instance = this);
   }
 }
 

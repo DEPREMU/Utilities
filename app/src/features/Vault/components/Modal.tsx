@@ -2,16 +2,16 @@ import {
   useVault,
   DEFAULT_VAULT_DATA,
 } from "@screens/Vault/context/VaultContext";
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
 import Animated, {
   withTiming,
   useSharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import {
   PDF,
   memoDeep,
@@ -24,7 +24,7 @@ import bytes from "bytes";
 import { ModalData } from "../screens/VaultViewer";
 import { useLanguage } from "@context/LanguageContext";
 import { scheduleOnRN } from "react-native-worklets";
-import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
+import { useStylesVaultScreen } from "@screens/Vault/styles/useStylesVaultScreen";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Divider, IconButton, Modal, Portal, Text } from "react-native-paper";
 import { View, Image, Pressable, GestureResponderEvent } from "react-native";
@@ -34,7 +34,6 @@ type ModalComponentProps = {
   onDismiss: () => void;
   renderModal: ModalData;
   setRenderModal: React.Dispatch<React.SetStateAction<ModalData>>;
-  useStylesVaultScreen: ReturnType<typeof useStylesVaultScreen>;
   onLongPress: (
     event: GestureResponderEvent,
     item: FolderFiles[number],
@@ -64,10 +63,9 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
   onDismiss,
   renderModal,
   onLongPress,
-  useStylesVaultScreen,
 }) => {
   const { t } = useLanguage();
-  const { styles, height, width } = useStylesVaultScreen;
+  const { styles, height, width } = useStylesVaultScreen();
 
   const { statesRef, functionsRef } = useVault();
 

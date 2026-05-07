@@ -10,7 +10,7 @@ import {
 } from "react-native-paper";
 import { useVault } from "@screens/Vault/context/VaultContext";
 import { useLanguage } from "@context/LanguageContext";
-import { VaultScreenProps } from "./";
+import { useStylesVaultScreen } from "../styles/useStylesVaultScreen";
 import { ScrollView, View, Image } from "react-native";
 import React, { useCallback, useState } from "react";
 import { DownloadableMimeType, AppTranslationsKeys, Function } from "@types";
@@ -31,9 +31,9 @@ const ITEMS_IMPORT: Item[] = [
   },
 ];
 
-const ImportScreen: React.FC<VaultScreenProps> = ({ useStylesVaultScreen }) => {
+const ImportScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { styles } = useStylesVaultScreen;
+  const { styles } = useStylesVaultScreen();
   const {
     files,
     functionsRef,

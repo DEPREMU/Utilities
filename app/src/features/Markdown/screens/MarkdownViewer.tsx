@@ -1,29 +1,37 @@
 import Markdown from "react-native-marked";
-import { useLanguage } from "@/context/LanguageContext";
-import React, { useState } from "react";
+import { Screens } from "@types";
+import { TextInput } from "react-native-paper";
+import { useLanguage } from "@context/LanguageContext";
 
 import { View, Text, ScrollView } from "react-native";
-import { useStylesMarkdownViewer } from "@/features/Markdown/styles/useStylesMarkdownViewer";
-import { TextInput } from "react-native-paper";
+import { useStylesMarkdownViewer } from "@screens/Markdown/styles/useStylesMarkdownViewer";
+import React, { useEffect, useState } from "react";
 
-const MarkdownViewer = () => {
+const MarkdownViewer: React.FC<Screens["MarkdownViewer"]> = ({ route }) => {
+  const { content } = route?.params || {};
+
   const { t } = useLanguage();
   const { styles } = useStylesMarkdownViewer();
-  const [content, setContent] = useState<string>("");
+  const [value, setValue] = useState<string>("");
+
+  useEffect(() => {
+    if (content) setValue(content);
+  }, [content]);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t("markdown.title")}</Text>
       <TextInput
-        style={styles.input}
-        contentStyle={styles.contentStyle}
-        value={content}
-        onChangeText={setContent}
-        placeholder={t("markdown.placeholder")}
         multiline
+        value={value}
+        style={styles.input}
+        placeholder={t("markdown.placeholder")}
+        contentStyle={styles.contentStyle}
+        onChangeText={setValue}
       />
+
       <ScrollView style={styles.scrollView}>
-        <Markdown value={content} />
+        <Markdown value={value} />
       </ScrollView>
     </View>
   );

@@ -17,7 +17,7 @@ import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useStylesHomeScreen } from "@screens/Home/styles/useStylesHomeScreen";
 import RenderScreen, { ButtonType } from "../components/RenderScreen";
-import { AppTranslationsKeys, Function } from "@types";
+import { AppTranslationsKeys, Function, Screens } from "@types";
 import { Text, Button, Tooltip, Searchbar, Icon } from "react-native-paper";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 
@@ -179,7 +179,7 @@ const buttons: ButtonType[] = [
   ...(REPLACERS.isDev ? buttonsDev : []),
 ];
 
-const HomeScreen: React.FC = () => {
+const HomeScreen: React.FC<Screens["Home"]> = () => {
   const { t } = useLanguage();
   const { styles } = useStylesHomeScreen();
   const { isLoggedIn, loggingIn } = useUserContext();

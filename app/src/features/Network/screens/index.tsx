@@ -1,25 +1,21 @@
 import InfoIP from "./IP";
+import { Screens } from "@types";
 import NetworkInfo from "./NetworkInfo";
-import { memoDeep } from "@utils";
-import GetBottomNavigation from "@/common/components/BottomNavigator/components/GetBottomNavigation";
+import GetBottomNavigation from "@components/BottomNavigator/components/GetBottomNavigation";
 
-const Navigator = GetBottomNavigation(
-  [
-    {
-      key: "InfoIP" as const,
-      title: "network.infoIP",
-      focusedIcon: "ip",
-    },
-    {
-      key: "NetworkInfo" as const,
-      title: "network.networkInfo.title",
-      focusedIcon: "help-network",
-    },
-  ],
+const Navigator = GetBottomNavigation<Screens["Network"]>([
   {
-    InfoIP,
-    NetworkInfo,
+    key: "InfoIP" as const,
+    title: "network.infoIP",
+    component: InfoIP,
+    focusedIcon: "ip",
   },
-);
+  {
+    key: "NetworkInfo",
+    title: "network.networkInfo.title",
+    component: NetworkInfo,
+    focusedIcon: "help-network",
+  },
+]);
 
-export default memoDeep(Navigator);
+export default Navigator;

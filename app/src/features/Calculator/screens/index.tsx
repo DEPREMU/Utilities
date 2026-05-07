@@ -1,32 +1,28 @@
 import Finances from "./finances";
 import Calculator from "./calculator";
-import { memoDeep } from "@utils";
+import { Screens } from "@types";
 import TimeToDownload from "./timeToDownload";
 import GetBottomNavigation from "@components/BottomNavigator/components/GetBottomNavigation";
 
-const CalculatorNavigator = GetBottomNavigation(
-  [
-    {
-      key: "Calculator" as const,
-      title: "calculator",
-      focusedIcon: "calculator",
-    },
-    {
-      key: "TimeToDownload" as const,
-      title: "calculator.timeToDownload.title",
-      focusedIcon: "download",
-    },
-    {
-      key: "Finances" as const,
-      title: "calculator.finances.title",
-      focusedIcon: "finance",
-    },
-  ],
+const CalculatorNavigator = GetBottomNavigation<Screens["Calculator"]>([
   {
-    Finances,
-    Calculator,
-    TimeToDownload,
+    key: "Calculator",
+    title: "calculator",
+    component: Calculator,
+    focusedIcon: "calculator",
   },
-);
+  {
+    key: "TimeToDownload",
+    title: "calculator.timeToDownload.title",
+    component: TimeToDownload,
+    focusedIcon: "download",
+  },
+  {
+    key: "Finances",
+    title: "calculator.finances.title",
+    component: Finances,
+    focusedIcon: "finance",
+  },
+]);
 
-export default memoDeep(CalculatorNavigator);
+export default CalculatorNavigator;

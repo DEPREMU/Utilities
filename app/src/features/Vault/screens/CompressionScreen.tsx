@@ -12,7 +12,7 @@ import { useVault } from "@screens/Vault/context/VaultContext";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import { windowModule } from "@modules";
-import { VaultScreenProps } from "./";
+import { useStylesVaultScreen } from "../styles/useStylesVaultScreen";
 import React, { useCallback, useMemo, useState } from "react";
 import { FolderFiles, logger, REPLACERS, tTyped, zipFile } from "@utils";
 
@@ -20,12 +20,10 @@ const getFileSelectionKey = (item: FolderFiles[number]) => {
   return item.originalUri || item.uri;
 };
 
-const CompressionScreen: React.FC<VaultScreenProps> = ({
-  useStylesVaultScreen,
-}) => {
+const CompressionScreen: React.FC = () => {
   const { t } = useLanguage();
   const { functionsRef, statesRef, filesSelected } = useVault();
-  const { styles } = useStylesVaultScreen;
+  const { styles } = useStylesVaultScreen();
 
   const [progress, setProgress] = useState(0);
 

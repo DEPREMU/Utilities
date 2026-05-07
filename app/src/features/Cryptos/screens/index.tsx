@@ -1,4 +1,5 @@
 import SyncScreen from "@components/Sync/screens/SyncScreen";
+import { Screens } from "@types";
 import { memoDeep } from "@utils";
 import DisplayScreen from "./DisplayScreen";
 import SettingsScreen from "./SettingsScreen";
@@ -10,35 +11,31 @@ import { useCryptoStore } from "../services/cryptoZustand";
 import GetBottomNavigation from "@components/BottomNavigator/components/GetBottomNavigation";
 import React, { useEffect } from "react";
 
-const Navigator = GetBottomNavigation(
-  [
-    {
-      key: "DisplayScreen" as const,
-      title: "cryptos.display",
-      focusedIcon: "view-dashboard",
-      unfocusedIcon: "view-dashboard-outline",
-    },
-    {
-      key: "SelectionScreen" as const,
-      title: "cryptos.selection",
-      focusedIcon: "format-list-checks",
-      unfocusedIcon: "format-list-bulleted",
-    },
-    {
-      key: "SettingsScreen" as const,
-      title: "common.settings",
-      focusedIcon: "cog",
-      unfocusedIcon: "cog-outline",
-    },
-  ],
+const Navigator = GetBottomNavigation([
   {
-    DisplayScreen,
-    SettingsScreen,
-    SelectionScreen,
+    key: "DisplayScreen",
+    title: "cryptos.display",
+    component: DisplayScreen,
+    focusedIcon: "view-dashboard",
+    unfocusedIcon: "view-dashboard-outline",
   },
-);
+  {
+    key: "SelectionScreen",
+    title: "cryptos.selection",
+    component: SelectionScreen,
+    focusedIcon: "format-list-checks",
+    unfocusedIcon: "format-list-bulleted",
+  },
+  {
+    key: "SettingsScreen",
+    title: "common.settings",
+    component: SettingsScreen,
+    focusedIcon: "cog",
+    unfocusedIcon: "cog-outline",
+  },
+]);
 
-const CryptosNavigator = () => {
+const CryptosNavigator: React.FC<Screens["Cryptos"]> = () => {
   const { t } = useLanguage();
 
   useIsLoggedIn();

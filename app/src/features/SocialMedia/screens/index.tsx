@@ -1,9 +1,14 @@
 import Streamers from "./Streamers";
-import GetBottomNavigation from "@/common/components/BottomNavigator/components/GetBottomNavigation";
+import { Screens } from "@types";
+import GetBottomNavigation from "@components/BottomNavigator/components/GetBottomNavigation";
 
-const SocialMediaNavigator = GetBottomNavigation(
-  [{ key: "Streamers" as const, title: "streamers", focusedIcon: "twitch" }],
-  { Streamers },
-);
+const SocialMediaNavigator = GetBottomNavigation<Screens["SocialMedia"]>([
+  {
+    key: "Streamers",
+    title: "streamers",
+    component: Streamers,
+    focusedIcon: "twitch",
+  },
+]);
 
 export default SocialMediaNavigator;

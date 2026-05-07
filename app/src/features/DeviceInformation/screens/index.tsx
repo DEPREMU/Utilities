@@ -9,7 +9,7 @@ import React, { useCallback } from "react";
 import { useDeviceInformation } from "@context/DeviceInformationContext";
 import { View, Text, ScrollView } from "react-native";
 import { useStylesDeviceInformation } from "@screens/DeviceInformation/styles/useStylesDeviceInformation";
-import { DeviceInformation as DeviceInformationType } from "@types";
+import { DeviceInformation as DeviceInformationType, Screens } from "@types";
 
 const isValidValue = (value: unknown): boolean => {
   return (
@@ -20,7 +20,7 @@ const isValidValue = (value: unknown): boolean => {
   );
 };
 
-const DeviceInformation: React.FC = () => {
+const DeviceInformation: React.FC<Screens["DeviceInformation"]> = () => {
   const { t } = useLanguage();
   const { styles } = useStylesDeviceInformation();
   const { deviceInfo } = useDeviceInformation();

@@ -15,7 +15,7 @@ import { modalRef } from "@refs";
 import { useVault } from "@/features/Vault/context/VaultContext";
 import { cloneDeep } from "lodash";
 import { ScrollView, View } from "react-native";
-import useStylesVaultScreen from "@screens/Vault/styles/useStylesVaultScreen";
+import { useStylesVaultScreen } from "@screens/Vault/styles/useStylesVaultScreen";
 import React, { useCallback, useRef } from "react";
 import { FolderFiles, memoDeep, PickedFile, tTyped } from "@utils";
 
@@ -95,7 +95,6 @@ interface ActionsMenuProps {
   dataRef: React.RefObject<DataVaultViewer>;
   onDismissModal: () => void;
   setRenderModal: React.Dispatch<React.SetStateAction<ModalData>>;
-  useStylesVaultScreen: ReturnType<typeof useStylesVaultScreen>;
 }
 
 const ActionsMenu: React.FC<ActionsMenuProps> = ({
@@ -104,8 +103,8 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   setMenu,
   onDismissModal,
   setRenderModal,
-  useStylesVaultScreen: { styles },
 }) => {
+  const { styles } = useStylesVaultScreen();
   const { statesRef, functionsRef, setFilesSelected, folders } = useVault();
 
   const renameRef = useRef(async (currentName: string) => {

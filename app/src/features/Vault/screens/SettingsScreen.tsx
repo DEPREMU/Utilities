@@ -4,13 +4,12 @@ import {
 } from "@screens/Vault/context/VaultContext";
 import React from "react";
 import { View } from "react-native";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
+import { useStylesVaultScreen } from "../styles/useStylesVaultScreen";
 import { Text, Button, Divider, TextInput } from "react-native-paper";
-import { VaultScreenProps } from ".";
 
-const SettingsScreen: React.FC<VaultScreenProps> = ({
-  useStylesVaultScreen: { styles },
-}) => {
+const SettingsScreen: React.FC = () => {
+  const { styles } = useStylesVaultScreen();
   const { settings, setSettings, functionsRef, currentFolderId } = useVault();
   const { t } = useLanguage();
 

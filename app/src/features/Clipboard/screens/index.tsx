@@ -1,32 +1,28 @@
 import Clipboard from "./ClipboardScreen";
-import { memoDeep } from "@utils";
+import { Screens } from "@types";
 import SettingsClipboard from "./SettingsClipboard";
 import SyncClipboardScreen from "./SyncClipboardScreen";
-import GetBottomNavigation from "@/common/components/BottomNavigator/components/GetBottomNavigation";
+import GetBottomNavigation from "@components/BottomNavigator/components/GetBottomNavigation";
 
-const ClipboardNavigator = GetBottomNavigation(
-  [
-    {
-      key: "clipboard" as const,
-      title: "labels.clipboard",
-      focusedIcon: "clipboard",
-    },
-    {
-      key: "sync" as const,
-      title: "labels.sync",
-      focusedIcon: "sync",
-    },
-    {
-      key: "settings" as const,
-      title: "clipboard.settings.title",
-      focusedIcon: "cog",
-    },
-  ],
+const ClipboardNavigator = GetBottomNavigation<Screens["Clipboard"]>([
   {
-    sync: SyncClipboardScreen,
-    settings: SettingsClipboard,
-    clipboard: Clipboard,
+    key: "clipboard",
+    title: "labels.clipboard",
+    component: Clipboard,
+    focusedIcon: "clipboard",
   },
-);
+  {
+    key: "sync",
+    title: "labels.sync",
+    component: SyncClipboardScreen,
+    focusedIcon: "sync",
+  },
+  {
+    key: "settings",
+    title: "clipboard.settings.title",
+    component: SettingsClipboard,
+    focusedIcon: "cog",
+  },
+]);
 
-export default memoDeep(ClipboardNavigator);
+export default ClipboardNavigator;

@@ -6,7 +6,8 @@ import {
   IconButton,
   ActivityIndicator,
 } from "react-native-paper";
-import Button from "@/common/components/Button/screens";
+import Button from "@components/Button/screens";
+import { Screens } from "@types";
 import { Command } from "@common";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
@@ -16,7 +17,7 @@ import { useStylesTerminalCommands } from "@screens/Web/TerminalCommands/styles"
 import { FlatList, View, ScrollView } from "react-native";
 import React, { useCallback, useRef, useState } from "react";
 
-const TerminalCommands: React.FC = () => {
+const TerminalCommands: React.FC<Screens["TerminalCommands"]> = () => {
   const { t } = useLanguage();
   const { styles, colors } = useStylesTerminalCommands();
 
