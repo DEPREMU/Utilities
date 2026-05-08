@@ -17,7 +17,7 @@ import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useStylesHomeScreen } from "@screens/Home/styles/useStylesHomeScreen";
 import RenderScreen, { ButtonType } from "../components/RenderScreen";
-import { AppTranslationsKeys, Function, Screens } from "@types";
+import { AppTranslationsKeys, Screens } from "@types";
 import { Text, Button, Tooltip, Searchbar, Icon } from "react-native-paper";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 
@@ -180,7 +180,7 @@ const buttons: ButtonType[] = [
 ];
 
 const HomeScreen: React.FC<Screens["Home"]> = () => {
-  const { t } = useLanguage();
+  const { t, dynamicT } = useLanguage();
   const { styles } = useStylesHomeScreen();
   const { isLoggedIn, loggingIn } = useUserContext();
 
@@ -221,7 +221,7 @@ const HomeScreen: React.FC<Screens["Home"]> = () => {
     if (search === "") return null;
 
     const getTranslation = (key: AppTranslationsKeys) =>
-      (t as Function<[AppTranslationsKeys], string>)(key).toLowerCase();
+      dynamicT(key).toLowerCase();
 
     const filtered = buttons
       .map((b) => ({
@@ -249,7 +249,7 @@ const HomeScreen: React.FC<Screens["Home"]> = () => {
       .map(({ labelT: _1, keyWordsT: _2, ...button }) => button);
 
     return filtered;
-  }, [searchQuery, t]);
+  }, [searchQuery, dynamicT]);
 
   return (
     <Animated.View

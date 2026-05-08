@@ -1,14 +1,14 @@
 import {
-  enApp,
-  esApp,
-  languagesSupported,
-  wrapFunctionWithError,
-} from "@common";
+  typeT,
+  Function,
+  LanguagesSupported,
+  AppTranslationsKeys,
+} from "@types";
 import i18n from "i18next";
 import * as Localization from "expo-localization";
 import { initReactI18next } from "react-i18next";
 import { storageManagement } from "../services/storage";
-import { LanguagesSupported, typeT } from "@types";
+import { enApp, esApp, languagesSupported } from "@common";
 
 i18n.use(initReactI18next).init({
   lng: "en",
@@ -17,7 +17,7 @@ i18n.use(initReactI18next).init({
     en: { translation: enApp },
     es: { translation: esApp },
   },
-  interpolation: { escapeValue: false },
+  interpolation: { escapeValue: true },
 });
 
 /**
@@ -53,25 +53,24 @@ export const getLanguageFromStorage =
  *
  * @throws Will log an error if there is an issue during language detection or storage.
  */
-export const getLanguageFromDevice = wrapFunctionWithError(
-  async () => {
+export const getLanguageFromDevice = (): LanguagesSupported => {
+  try {
     const locales = Localization.getLocales()[0];
     const language = locales.languageCode as LanguagesSupported;
-    const languageAvailable = languagesSupported.includes(language || "");
-    if (language && languageAvailable) {
+    if (language && languagesSupported.includes(language || "")) {
       storageManagement.save("LANGUAGE", language);
       return language;
     }
     return "en";
-  },
-  true,
-  async (_, errMsg) => {
+  } catch (error) {
     import("@utils").then(({ logger }) => {
-      logger.error(`getLanguageFromDevice() => ${errMsg}`);
+      logger.error(
+        `getLanguageFromDevice() => ${error instanceof Error ? error.message : String(error)}`,
+      );
     });
-    return "en" as LanguagesSupported;
-  },
-);
+    return "en";
+  }
+};
 
 /**
  * Checks the user's language preference and saves it if not already set.
@@ -87,7 +86,7 @@ export const checkLanguage = async (): Promise<LanguagesSupported> => {
   let lang: LanguagesSupported | null = await getLanguageFromStorage();
   if (lang) return lang;
 
-  lang = await getLanguageFromDevice();
+  lang = getLanguageFromDevice();
   if (lang) return lang;
 
   storageManagement.save("LANGUAGE", "en");
@@ -95,19 +94,39 @@ export const checkLanguage = async (): Promise<LanguagesSupported> => {
 };
 
 const configureLanguage = async () => {
-  const { logger } = await import("../functions");
-
   try {
     const lng = await checkLanguage();
 
     await i18n.changeLanguage(lng);
   } catch (error) {
-    logger.error?.("Error configuring language:", error);
-    await i18n.changeLanguage("en");
+    const [{ logger }] = await Promise.all([
+      import("../functions"),
+      i18n.changeLanguage("en"),
+    ]);
+    logger.error?.(
+      "Error configuring language:",
+      error instanceof Error ? error.message : String(error),
+    );
   }
 };
 configureLanguage();
 
 export const tTyped = i18n.t as typeT;
+
+/**
+ * This function allows to use dynamic translations without needing to transform the key into a template string.
+ * @usage
+ * Instead of doing:
+ * ```
+ * const dynamicKey: AppTranslationsKeys = "welcome_message";
+ * const translation = t(dynamicKey); // ts-error: It expected two arguments, but only one is given.
+ * ```
+ * You can do:
+ * ```
+ * const dynamicKey: AppTranslationsKeys = "welcome_message";
+ * const translation = dynamicT(dynamicKey); // No ts-error, and it will return the correct translation.
+ * ```
+ */
+export const dynamicT = i18n.t as Function<[AppTranslationsKeys], string>;
 
 export { i18n };

@@ -13,7 +13,7 @@ import { useStylesHomeScreen } from "../styles/useStylesHomeScreen";
 import { memoDeep, navigation } from "@utils";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import React, { useCallback, useMemo, useState } from "react";
-import { ScreensAvailable, AppTranslationsKeys, Function } from "@types";
+import { ScreensAvailable, AppTranslationsKeys } from "@types";
 
 export type ButtonType = {
   label: AppTranslationsKeys;
@@ -30,7 +30,7 @@ type RenderScreenProps = {
 };
 
 const RenderScreen: React.FC<RenderScreenProps> = ({ button, hasInternet }) => {
-  const { t } = useLanguage();
+  const { t, dynamicT } = useLanguage();
   const { isLoggedIn } = useUserContext();
   const { styles, colors } = useStylesHomeScreen();
 
@@ -57,14 +57,11 @@ const RenderScreen: React.FC<RenderScreenProps> = ({ button, hasInternet }) => {
     [button.noNeedsSession, isLoggedIn],
   );
 
-  const label = useMemo(
-    () => (t as Function<[AppTranslationsKeys], string>)(button.label),
-    [button.label, t],
-  );
+  const label = useMemo(() => dynamicT(button.label), [button.label, dynamicT]);
 
   const description = useMemo(
-    () => (t as Function<[AppTranslationsKeys], string>)(button.description),
-    [button.description, t],
+    () => dynamicT(button.description),
+    [button.description, dynamicT],
   );
 
   return (
@@ -105,9 +102,7 @@ const RenderScreen: React.FC<RenderScreenProps> = ({ button, hasInternet }) => {
           <Dialog.Content>
             <Animated.Text style={styles.paragraph}>
               {t("homeScreen.keyWords", {
-                keyWords: (t as Function<[AppTranslationsKeys], string>)(
-                  button.keyWords,
-                ),
+                keyWords: dynamicT(button.keyWords),
               })}
             </Animated.Text>
           </Dialog.Content>

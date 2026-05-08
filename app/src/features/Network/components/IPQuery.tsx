@@ -10,12 +10,11 @@ import {
   dataIPQueryJSON,
   IPQueryLocation,
   AppTranslationsKeys,
-  Function,
 } from "@types";
 import { View, Text } from "react-native";
 // import MapView, { Marker } from "react-native-maps";
 import { useLanguage } from "@context/LanguageContext";
-import SkeletonLoading from "@/common/components/SkeletonLoading";
+import SkeletonLoading from "@components/SkeletonLoading";
 import useStylesIPQuery from "@screens/Network/styles/useStylesIPQuery";
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -59,7 +58,7 @@ const keysTranslated: Record<
 
 const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
   const { styles } = useStylesIPQuery();
-  const { t } = useLanguage();
+  const { t, dynamicT } = useLanguage();
 
   const [show, setShow] = useState<boolean>(true);
   const [dataIP, setDataIP] = useState<dataIPQueryJSON>(
@@ -99,7 +98,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
           <View key={`${key}-${subKey}`} style={styles.containerEachValue}>
             <Text style={styles.textKey}>
               {/* eslint-disable-next-line react/jsx-no-literals */}
-              {(t as Function<[AppTranslationsKeys], string>)(translationKey)}:
+              {dynamicT(translationKey)}:
             </Text>
             <SkeletonLoading
               showChildren={dataIP?.ip !== "yourIP"}
@@ -114,6 +113,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
   }, [
     t,
     dataIP,
+    dynamicT,
     styles.value,
     styles.textKey,
     styles.skeletonValue,

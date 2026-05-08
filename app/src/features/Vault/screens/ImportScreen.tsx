@@ -13,7 +13,7 @@ import { useLanguage } from "@context/LanguageContext";
 import { useStylesVaultScreen } from "../styles/useStylesVaultScreen";
 import { ScrollView, View, Image } from "react-native";
 import React, { useCallback, useState } from "react";
-import { DownloadableMimeType, AppTranslationsKeys, Function } from "@types";
+import { DownloadableMimeType, AppTranslationsKeys } from "@types";
 
 type Item = {
   title: AppTranslationsKeys;
@@ -32,8 +32,8 @@ const ITEMS_IMPORT: Item[] = [
 ];
 
 const ImportScreen: React.FC = () => {
-  const { t } = useLanguage();
   const { styles } = useStylesVaultScreen();
+  const { t, dynamicT } = useLanguage();
   const {
     files,
     functionsRef,
@@ -89,7 +89,7 @@ const ImportScreen: React.FC = () => {
         {ITEMS_IMPORT.map((item) => (
           <List.Item
             key={item.flag}
-            title={(t as Function<[AppTranslationsKeys], string>)(item.title)}
+            title={dynamicT(item.title)}
             onPress={() => setPreflight(item.flag)}
             right={() => (
               <RadioButton
