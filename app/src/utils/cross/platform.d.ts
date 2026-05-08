@@ -15,6 +15,9 @@ export declare const DATA_PLATFORM: PlatformData;
  */
 export type DeleteDirectoryPickerFolder = () => void;
 
+/**
+ * @platform `native`
+ */
 export declare const deleteDirectoryPickerFolder: DeleteDirectoryPickerFolder;
 
 /**

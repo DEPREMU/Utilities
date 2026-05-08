@@ -307,30 +307,31 @@ export const selectImage = async (
   try {
     const result = await DocumentPicker.getDocumentAsync({
       type: "image/*",
-      copyToCacheDirectory: true,
       ...(settings || {}),
     });
 
     if (!result.canceled)
       return await Promise.all(
         result.assets.map(async (asset) => {
-          let base64: string | undefined;
-          if (asset.base64) base64 = asset.base64;
+          const image: Exclude<ReturnSelectImage, { canceled: true }>[number] =
+            {
+              uri: asset.uri,
+              name: asset.name,
+              size: asset.size || 0,
+              type:
+                (asset.mimeType?.split(
+                  "/",
+                )[1] as RequestChangeImageFormat["format"]) || "png",
+            };
+
+          if (asset.base64) image.base64 = asset.base64;
           else if (settings?.base64) {
             const fileData = new File(asset.uri);
-            base64 = await fileData.base64();
+            image.base64 = await fileData.base64();
+            if (image.size === 0) image.size = fileData.size;
           }
 
-          return {
-            uri: asset.uri,
-            name: asset.name,
-            size: asset.size || 0,
-            type:
-              (asset.mimeType?.split(
-                "/",
-              )[1] as RequestChangeImageFormat["format"]) || "png",
-            ...(base64 ? { base64 } : {}),
-          };
+          return image;
         }),
       );
 

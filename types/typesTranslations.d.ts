@@ -461,6 +461,8 @@ export type AppTranslations = BatteryStateTranslations &
       maxFilesToKeep: `${string}{{maxFiles}}${string}`;
     };
     images: {
+      selectedImagesTabTitle: string;
+      convertedImagesTabTitle: string;
       keyWords: string;
       description: string;
       imageSize: `${string}{{size}}${string}`;
