@@ -357,6 +357,8 @@ export const enApp: AppTranslations = {
   iPQuery: { title: "IP Query Information" },
   iP_API: { title: "IP API Information" },
   images: {
+    convertedImagesTabTitle: "Converted Images",
+    selectedImagesTabTitle: "Selected Images",
     canConvertToFormat: "Convert to {{format}}",
     changeImageFormatDescription:
       "Select an image from your device to convert it to a different format.",
@@ -375,7 +377,7 @@ export const enApp: AppTranslations = {
     imageDownloadedInAlbumAlertMessage:
       "The image has been successfully downloaded to the album {{albumName}}.",
     imageDownloadedInAlbumAlertTitle: "Image Downloaded",
-    imageSize: "Image Size: {{size}} bytes",
+    imageSize: "Image Size: {{size}}",
     imageType: "Image Type: {{type}}",
     keyWords: "images, convert, download, format",
     labelImages: "Images",

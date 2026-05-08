@@ -1,255 +1,165 @@
 import {
-  albumsImages,
-  getFormatsButExclude,
-  wrapFunctionWithError,
-} from "@common";
-import {
-  AlbumsImages,
-  ReturnSelectImage,
-  RequestChangeImageFormat,
-  ResponseChangeImageFormat,
-} from "@types";
-import {
-  tTyped,
-  logger,
-  REPLACERS,
-  getRouteAPI,
-  selectImage,
-  checkLanguage,
-  downloadBase64,
-} from "@utils";
-import axios from "axios";
-import { t } from "i18next";
-import Button from "@/common/components/Button/screens";
-import { Text } from "react-native-paper";
-import { modalRef } from "@refs";
+  Images,
+  RenderType,
+  useImagesStore,
+  ImagesConverted,
+} from "../services/zustand";
+import Animated, {
+  FadeInLeft,
+  FadeInRight,
+  FadeOutLeft,
+  FadeOutRight,
+  LinearTransition,
+} from "react-native-reanimated";
+import Button from "@components/Button/screens";
+import { View } from "react-native";
+import RenderImage from "../components/RenderImage";
 import { useLanguage } from "@context/LanguageContext";
-import useStylesChangeImageFormat from "@screens/Images/styles/useStylesChangeImageFormat";
-import { Image, ScrollView, View } from "react-native";
-import { useCallback, useRef, useState } from "react";
+import RenderImageConverted from "../components/RenderImageConverted";
+import { useCallback, useMemo } from "react";
+import {  AppTranslationsKeys } from "@types";
+import { SegmentedButtons, Text } from "react-native-paper";
+import { useStylesChangeImageFormat } from "@screens/Images/styles/useStylesChangeImageFormat";
 
-const getDataChangeImageFormat = wrapFunctionWithError(
-  async (body: RequestChangeImageFormat) => {
-    if (REPLACERS.isWeb) {
-      const data = await wrapFunctionWithError(
-        async () => {
-          const res = await axios.post<ResponseChangeImageFormat>(
-            "http://localhost:3005/change-image-format",
-            body,
-          );
-          return res.data;
-        },
-        async () => null,
-      );
-      if (data) return data;
-    }
+type Button = {
+  value: RenderType;
+  label: AppTranslationsKeys;
+};
 
-    const url = await getRouteAPI("/images/changeImageFormat");
-    const response = await axios.post<ResponseChangeImageFormat>(url, body, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    return response.data;
+const BUTTONS: Button[] = [
+  {
+    label: "images.selectedImagesTabTitle",
+    value: "selected",
   },
-  true,
-  async (_, errorMessage) => {
-    logger.error(errorMessage);
-    return {
-      success: false,
-      error: t("images.errorWhileConvertingImageMessage"),
-    } as ResponseChangeImageFormat;
+  {
+    label: "images.convertedImagesTabTitle",
+    value: "converted",
   },
-);
+];
 
 const ChangeImageFormat = () => {
-  const { t } = useLanguage();
   const { styles } = useStylesChangeImageFormat();
+  const { t, dynamicT } = useLanguage();
 
-  const [images, setImages] = useState<
-    Exclude<ReturnSelectImage, { canceled: true }>
-  >([]);
-  const [imagesConverted, setImagesConverted] = useState<
-    { uri: string; name: string }[]
-  >([]);
-  const [converting, setConverting] = useState<number[]>([]);
+  const images = useImagesStore((s) => s.images);
+  const renderType = useImagesStore((s) => s.renderType);
+  const selectImages = useImagesStore((s) => s.selectImages);
+  const setRenderType = useImagesStore((s) => s.setRenderType);
+  const imagesConverted = useImagesStore((s) => s.ImagesConverted);
 
-  const handleDownloadImageRef = useRef(
-    async (
-      image: (typeof imagesConverted)[number],
-      albumName?: AlbumsImages,
-    ) => {
-      try {
-        const extension = image.name.split(".").pop() || "png";
-
-        downloadBase64({
-          uri: image.uri,
-          fileName: image.name,
-          albumName,
-          directory: "images",
-          typeFile: `image/${extension as "png"}`,
-        });
-
-        logger.log("Image saved:", image.name);
-        modalRef.openSnackBar?.(tTyped("images.downloadImageSuccessMessage"));
-      } catch (error) {
-        logger.error("Failed to download image:", error);
-      }
+  const renderImage = useCallback(
+    ({ item: image, index }: { item: Images[number]; index: number }) => {
+      return <RenderImage image={image} index={index} />;
     },
+    [],
   );
 
-  const handleDeleteImageRef = useRef(
-    (image: (typeof imagesConverted)[number]) => {
-      setImagesConverted((prev) => prev.filter((img) => img.uri !== image.uri));
-      logger.log("Deleted converted image:", image.name);
+  const renderImageConverted = useCallback(
+    ({
+      item: image,
+      index,
+    }: {
+      item: ImagesConverted[number];
+      index: number;
+    }) => {
+      return <RenderImageConverted image={image} index={index} />;
     },
+    [],
   );
 
-  const handlePressSelectImageRef = useRef(async () => {
-    const selectedImages = await selectImage({ multiple: true, base64: true });
-    if (!Array.isArray(selectedImages)) {
-      logger.error("Image selection was canceled or failed.");
-      return;
-    }
-
-    setImages(selectedImages);
-    logger.log(
-      "Selected images:",
-      selectedImages.map((img) => img.name),
+  const renderEmptyImagesSelected = useCallback(() => {
+    return (
+      <View style={styles.sectionContainer}>
+        <Text style={styles.paragraph}>{t("common.empty")}</Text>
+      </View>
     );
-  });
+  }, [t, styles.sectionContainer, styles.paragraph]);
 
-  const changeImageFormat = useCallback(
-    async (image: (typeof images)[number], format: typeof image.type) => {
-      logger.log("Changing format for image:", image.name, "to", format);
-      setConverting((prev) => [...prev, images.indexOf(image)]);
-
-      const data = await getDataChangeImageFormat({
-        format,
-        imageBufferInString: image.base64 || "",
-        lang: await checkLanguage(),
-      });
-      setConverting((prev) => prev.filter((i) => i !== images.indexOf(image)));
-
-      if (!data) {
-        logger.error("Failed to change image format, data fetched:", data);
-        return;
-      }
-
-      if (!data?.imageUri) {
-        modalRef.openSnackBar?.(t("images.errorWhileConvertingImageMessage"));
-        return;
-      }
-      if (data?.newFormat === image.type) {
-        modalRef.openSnackBar?.(t("images.errorWhileConvertingImageMessage"));
-        return;
-      }
-
-      setImagesConverted((prev) => [
-        ...prev,
-        {
-          uri: data?.imageUri || "",
-          name: image.name.replace(`.${image.type}`, `.${format}`),
-        },
-      ]);
-    },
-    [t, images],
-  );
-
-  const renderImages = useCallback(() => {
-    if (!Array.isArray(images)) return null;
-
-    return images.map((image, index) => (
-      <View key={index} style={styles.selectedImageItem}>
-        <Text style={styles.selectedImageText}>{image.name}</Text>
-        <Text style={styles.selectedImageText}>
-          {t("images.imageSize", { size: String(image.size) })}
-        </Text>
-        <Text style={styles.selectedImageText}>
-          {t("images.imageType", { type: image.type })}
-        </Text>
-        <Image
-          source={{ uri: image.uri }}
-          style={
-            converting.includes(index)
-              ? styles.selectedImagePreviewConverting
-              : styles.selectedImagePreview
-          }
-        />
-        {getFormatsButExclude(image.type).map((format) => (
-          <Button
-            key={format}
-            handlePress={changeImageFormat}
-            argsFuncHandlePress={[image, format]}
-            label={t("images.canConvertToFormat", { format })}
-          />
-        ))}
+  const renderEmptyImagesConverted = useCallback(() => {
+    return (
+      <View style={styles.sectionContainer}>
+        <Text style={styles.paragraph}>{t("common.empty")}</Text>
       </View>
-    ));
-  }, [images, styles, t, changeImageFormat, converting]);
+    );
+  }, [t, styles.sectionContainer, styles.paragraph]);
 
-  const renderImagesConverted = useCallback(() => {
-    if (!Array.isArray(imagesConverted)) return null;
-
-    return imagesConverted.map((image, index) => (
-      <View key={index} style={styles.selectedImageItem}>
-        <Text style={styles.selectedImageText}>{image.name}</Text>
-        <Image
-          source={{
-            uri: image.uri,
-          }}
-          style={styles.selectedImagePreview}
-          onError={() => handleDeleteImageRef.current(image)}
-        />
-        {REPLACERS.isNative &&
-          Object.values(albumsImages).map((album) => (
-            <Button
-              key={album}
-              label={t("images.downloadImageAlbumButtonLabel", {
-                albumName: album,
-              })}
-              handlePress={handleDownloadImageRef.current}
-              argsFuncHandlePress={[image, album]}
-            />
-          ))}
-        <Button
-          label={t("images.downloadImageButtonLabel")}
-          handlePress={handleDownloadImageRef.current}
-          argsFuncHandlePress={[image]}
-        />
-        <Button
-          label={t("images.deleteImageButtonLabel")}
-          handlePress={handleDeleteImageRef.current}
-          argsFuncHandlePress={[image]}
-        />
-      </View>
-    ));
-  }, [imagesConverted, styles, t]);
+  const buttons = useMemo(() => {
+    return BUTTONS.map((button) => ({
+      ...button,
+      label: dynamicT(button.label),
+    }));
+  }, [dynamicT]);
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollViewContent}
-        style={styles.scrollViewContainer}
+    <Animated.View
+      style={styles.container}
+      layout={LinearTransition.duration(300).springify()}
+    >
+      <Animated.View
+        style={styles.header}
+        layout={LinearTransition.duration(200).springify()}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>{t("images.changeImageFormatTitle")}</Text>
-        </View>
-        <View style={styles.content}>
-          <Text style={styles.paragraph}>
-            {t("images.changeImageFormatDescription")}
-          </Text>
-          <Button
-            handlePress={handlePressSelectImageRef.current}
-            label={t("images.selectImageButtonLabel")}
+        <Animated.Text style={styles.title}>
+          {t("images.changeImageFormatTitle")}
+        </Animated.Text>
+      </Animated.View>
+
+      <SegmentedButtons
+        value={renderType}
+        buttons={buttons}
+        onValueChange={setRenderType}
+      />
+
+      {renderType === "selected" && (
+        <Animated.View
+          style={styles.scrollViewContainer}
+          layout={LinearTransition.duration(200).springify()}
+          exiting={FadeOutLeft.duration(200).springify()}
+          entering={FadeInLeft.duration(200).springify()}
+        >
+          <Animated.View
+            style={styles.content}
+            layout={LinearTransition.duration(200).springify()}
+          >
+            <Animated.Text style={styles.paragraph}>
+              {t("images.changeImageFormatDescription")}
+            </Animated.Text>
+
+            <Button
+              label={t("images.selectImageButtonLabel")}
+              handlePress={selectImages}
+            />
+          </Animated.View>
+
+          <Animated.FlatList
+            data={images}
+            style={styles.scrollViewContainer}
+            layout={LinearTransition.duration(200).springify()}
+            renderItem={renderImage}
+            ListEmptyComponent={renderEmptyImagesSelected}
+            contentContainerStyle={styles.scrollViewContentContainer}
           />
-        </View>
-        <View style={styles.selectedImagesContainer}>{renderImages()}</View>
-        <View style={styles.selectedImagesContainer}>
-          {renderImagesConverted()}
-        </View>
-      </ScrollView>
-    </View>
+        </Animated.View>
+      )}
+
+      {renderType === "converted" && (
+        <Animated.View
+          style={styles.scrollViewContainer}
+          layout={LinearTransition.duration(200).springify()}
+          exiting={FadeOutRight.duration(200).springify()}
+          entering={FadeInRight.duration(200).springify()}
+        >
+          <Animated.FlatList
+            data={imagesConverted}
+            style={styles.scrollViewContainer}
+            layout={LinearTransition.duration(200).springify()}
+            renderItem={renderImageConverted}
+            ListEmptyComponent={renderEmptyImagesConverted}
+            contentContainerStyle={styles.scrollViewContentContainer}
+          />
+        </Animated.View>
+      )}
+    </Animated.View>
   );
 };
 

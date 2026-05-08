@@ -364,6 +364,8 @@ export const esApp: AppTranslations = {
   iPQuery: { title: "IP Query" },
   iP_API: { title: "API de IP" },
   images: {
+    convertedImagesTabTitle: "Imágenes convertidas",
+    selectedImagesTabTitle: "Imágenes seleccionadas",
     canConvertToFormat: "Convertir a formato {{format}}",
     changeImageFormatDescription:
       "Selecciona una imagen de tu dispositivo para cambiar su formato.",
@@ -382,7 +384,7 @@ export const esApp: AppTranslations = {
     imageDownloadedInAlbumAlertMessage:
       "La imagen ha sido descargada exitosamente en el álbum {{albumName}}.",
     imageDownloadedInAlbumAlertTitle: "Imagen descargada",
-    imageSize: "Tamaño de la imagen: {{size}} bytes",
+    imageSize: "Tamaño de la imagen: {{size}}",
     imageType: "Tipo de imagen: {{type}}",
     keyWords: "imágenes, convertir, descargar, formato",
     labelImages: "Imágenes",
