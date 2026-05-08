@@ -1,9 +1,9 @@
 import { memoDeep } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import { BottomNavigation } from "react-native-paper";
+import { AppTranslationsKeys } from "@types";
 import React, { useMemo, useState } from "react";
 import { useStylesBottomNavigator } from "@components/BottomNavigator/styles/useStylesBottomNavigator";
-import { AppTranslationsKeys, Function } from "@types";
 
 export type Route = {
   key: string;
@@ -21,7 +21,7 @@ const GetBottomNavigation = <FC extends Record<string, unknown>>(
   );
 
   const Component: React.FC<FC> = () => {
-    const { t } = useLanguage();
+    const { dynamicT } = useLanguage();
     const { colors } = useStylesBottomNavigator();
 
     const [index, setIndex] = useState<number>(0);
@@ -32,12 +32,10 @@ const GetBottomNavigation = <FC extends Record<string, unknown>>(
           ({ component: _, ...route }) =>
             ({
               ...route,
-              title: (t as Function<[AppTranslationsKeys], string>)(
-                route.title,
-              ),
+              title: dynamicT(route.title),
             }) as Omit<Route, "sceneMap">,
         ),
-      [t],
+      [dynamicT],
     );
 
     return (

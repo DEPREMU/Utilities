@@ -1,4 +1,5 @@
 import {
+  URLS,
   debug,
   alerts,
   logger,
@@ -19,9 +20,8 @@ import {
   storageManagement,
   setTimeoutPolyfill,
   getDevicePushToken,
-  URLS,
 } from "@utils";
-import Button from "@/common/components/Button/screens";
+import Button from "@components/Button/screens";
 import ThemePicker from "@screens/Settings/components/ThemePicker";
 import { cloneDeep } from "lodash";
 import LanguagePicker from "@screens/Settings/components/LanguagePicker";
@@ -29,8 +29,8 @@ import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
-import { AppTranslationsKeys, Function } from "@types";
 import { useBackgroundTask } from "@context/BackgroundTaskContext";
+import { AppTranslationsKeys } from "@types";
 import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
 import { ActivityIndicator, Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -119,8 +119,8 @@ const DebugComponent: React.FC = memoDeep(() => {
 });
 
 const SettingsScreen: React.FC = () => {
-  const { t } = useLanguage();
   const { isLoggedIn } = useUserContext();
+  const { t, dynamicT } = useLanguage();
   const { setSocketURL } = useWebSocket();
   const { styles, colors } = useStylesSettingsScreen();
   const { addTaskQueueRef } = useBackgroundTask();
@@ -317,13 +317,9 @@ const SettingsScreen: React.FC = () => {
 
     return sections.map((section, index) => (
       <View style={styles.section} key={index}>
-        <Text style={styles.subtitle}>
-          {(t as Function<[AppTranslationsKeys], string>)(section.subtitle)}
-        </Text>
+        <Text style={styles.subtitle}>{dynamicT(section.subtitle)}</Text>
         <TextInput
-          label={(t as Function<[AppTranslationsKeys], string>)(
-            section.labelTextInput,
-          )}
+          label={dynamicT(section.labelTextInput)}
           value={section.value || ""}
           onChangeText={section.onChangeText}
           mode="outlined"
@@ -337,14 +333,12 @@ const SettingsScreen: React.FC = () => {
             }}
             touchableOpacity
             handlePress={section.handlePress}
-            label={(t as Function<[AppTranslationsKeys], string>)(
-              section.labelButton,
-            )}
+            label={dynamicT(section.labelButton)}
           />
         </View>
       </View>
     ));
-  }, [apiURL, socketURL, styles, t, saveApiURL, saveSocketURL]);
+  }, [apiURL, socketURL, styles, dynamicT, saveApiURL, saveSocketURL]);
 
   useEffect(() => {
     const hasInternetListener = deviceInfo.addEventListener(

@@ -10,6 +10,7 @@ import {
 import Button from "@components/Button/screens";
 import { View } from "react-native";
 import { Route } from "@components/BottomNavigator/components/GetBottomNavigation";
+import { Screens } from "@types";
 import VaultViewer from "@screens/Vault/screens/VaultViewer";
 import ImportScreen from "@screens/Vault/screens/ImportScreen";
 import BackupScreen from "@screens/Vault/screens/BackupScreen";
@@ -20,7 +21,6 @@ import { useStylesVaultScreen } from "@screens/Vault/styles/useStylesVaultScreen
 import { BottomNavigation, Text } from "react-native-paper";
 import { useVault, VaultProvider } from "@screens/Vault/context/VaultContext";
 import { useStylesBottomNavigator } from "@components/BottomNavigator/styles/useStylesBottomNavigator";
-import { AppTranslationsKeys, Function, Screens } from "@types";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 
 const routes: Route[] = [
@@ -65,9 +65,9 @@ const renderSceneMap = BottomNavigation.SceneMap(
 );
 
 const VaultNavigator: React.FC<Screens["Vault"]> = () => {
-  const { t } = useLanguage();
   const { styles } = useStylesVaultScreen();
   const { colors } = useStylesBottomNavigator();
+  const { t, dynamicT } = useLanguage();
   const { functionsRef } = useVault();
 
   const [index, setIndex] = useState<number>(-1);
@@ -84,9 +84,9 @@ const VaultNavigator: React.FC<Screens["Vault"]> = () => {
     () =>
       routes.map((route) => ({
         ...route,
-        title: (t as Function<[AppTranslationsKeys], string>)(route.title),
+        title: dynamicT(route.title),
       })),
-    [t],
+    [dynamicT],
   );
 
   useEffect(() => {

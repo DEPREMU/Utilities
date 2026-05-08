@@ -2,7 +2,6 @@ import React, {
   useRef,
   useMemo,
   useState,
-  useEffect,
   ReactNode,
   useContext,
   useCallback,
@@ -10,8 +9,8 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { i18n, REPLACERS } from "@utils";
-import { LanguagesSupported, typeT } from "@types";
-import { checkLanguage, storageManagement } from "@utils";
+import { storageManagement } from "@utils";
+import { AppTranslationsKeys, LanguagesSupported, typeT } from "@types";
 
 interface LanguageContextProps {
   language: LanguagesSupported;
@@ -19,6 +18,7 @@ interface LanguageContextProps {
     (lang: LanguagesSupported) => Promise<void>
   >;
   t: typeT;
+  dynamicT: (key: AppTranslationsKeys) => string;
 }
 
 interface LanguageProviderProps {
@@ -34,8 +34,19 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
 }) => {
   const { t: i18nextT } = useTranslation();
 
-  const [language, setLanguage] = useState<LanguagesSupported>("en");
+  const [language, setLanguage] = useState<LanguagesSupported>(
+    storageManagement.get("LANGUAGE"),
+  );
 
+  /**
+   * This function allows to use translations with dynamic support, if key has replacers, it will automatically throw an error if the replacers are not provided, and it will also throw an error in development mode if a translation key is missing.
+   * @usage
+   * ```
+   * t("key_with_replacer{{value}}"); // ts-error: It expected two arguments, but only one is given.
+   * t("key_with_replacer{{value}}", {}); // ts-error: The property "value" is missing in the type '{}'
+   * t("key_with_replacer{{value}}", { value: "someValue" }); // This is the correct way to use the translation function.
+   * ```
+   */
   const t: typeT = useCallback(
     (key, ...args) => {
       const translation = i18nextT(
@@ -51,29 +62,46 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
     [i18nextT],
   );
 
+  /**
+   * This function allows to use dynamic translations without needing to transform the key into a template string.
+   * @usage
+   * Instead of doing:
+   * ```
+   * const dynamicKey: AppTranslationsKeys = "welcome_message";
+   * const translation = t(dynamicKey); // ts-error: It expected two arguments, but only one is given.
+   * ```
+   * You can do:
+   * ```
+   * const dynamicKey: AppTranslationsKeys = "welcome_message";
+   * const translation = dynamicT(dynamicKey); // No ts-error, and it will return the correct translation.
+   * ```
+   */
+  const dynamicT: LanguageContextProps["dynamicT"] = useCallback(
+    (key) => {
+      const translation = i18nextT(key);
+
+      if (REPLACERS.isDev && translation === key)
+        throw new Error(`Missing translation for key: "${key}"`);
+
+      return translation;
+    },
+    [i18nextT],
+  );
+
   const changeLanguageRef = useRef(async (lang: LanguagesSupported) => {
     setLanguage(lang);
     storageManagement.save("LANGUAGE", lang);
     await i18n.changeLanguage(lang);
   });
 
-  useEffect(() => {
-    const loadLanguage = async () => {
-      const storedLang = await checkLanguage();
-      setLanguage(storedLang);
-      await i18n.changeLanguage(storedLang);
-    };
-
-    loadLanguage();
-  }, []);
-
   const value: LanguageContextProps = useMemo(
     () => ({
       t,
       language,
+      dynamicT,
       changeLanguageRef,
     }),
-    [language, t],
+    [t, language, dynamicT],
   );
 
   return (
