@@ -15,9 +15,9 @@ import {
 } from "./auth.ts";
 import humanize from "humanize-duration";
 import { Router } from "express";
+import { REPLACERS } from "@/config.ts";
 import { translate } from "./translate.ts";
 import { Response, Request } from "express";
-import { handleDoQueryDatabase } from "../dev/handleDoQuery.ts";
 import { decryptHandler, encryptHandler } from "./encryption.ts";
 import { addStreamer, getIsLiveStreamer } from "./socialMedia.ts";
 import { handleAddLog, handleAppAliveCheck } from "./debug.ts";
@@ -132,7 +132,11 @@ const routes: {
   },
   "/doQueryDB": {
     method: "post",
-    handler: handleDoQueryDatabase,
+    handler: REPLACERS.isDev
+      ? (
+          require("@/dev/handleDoQuery.ts") as typeof import("@/dev/handleDoQuery.ts")
+        ).handleDoQueryDatabase
+      : handleGenerate204,
   },
   "/log": {
     method: "post",

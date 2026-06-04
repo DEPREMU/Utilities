@@ -3,51 +3,147 @@ import path from "path";
 import chalk from "chalk";
 import { pool } from "./postgres";
 import DataJSON from "./data.json";
-import { File, Logger } from "@common";
-import { getEnvValue } from "../env.ts";
+import { Directory, File, Logger } from "@common";
+import type { TablesKeys } from "@types";
 import { wrapFunctionWithError } from "@common";
-import { REPLACERS, serverPath, TABLE_MAP } from "../config.ts";
-import { deleteOldSessions, getValidValueDB } from "./functions.ts";
+import { REPLACERS, serverPath, TABLE_MAP } from "@/config.ts";
+import { deleteOldSessions, getValidValueDB } from "@/database/functions.ts";
+import { PoolClient } from "pg";
 
 const getTableFilePath = (tableName: string) =>
   path.join(serverPath, "database", tableName + "_data.dbjson");
 
-const fileSQLPath = path.resolve(serverPath, "database", "create_tables.sql");
+const sqlFile = new File(
+  path.resolve(serverPath, "database", "create_tables.sql"),
+);
 const fileDataPath = path.resolve(serverPath, "database", "data.json");
 
-if (!fs.existsSync(fileSQLPath)) {
-  Logger.error(
-    chalk.red("SQL file not found:"),
-    fileSQLPath,
-    "Please check the path.",
-  );
-  process.exit(1);
-}
+const checkFilesExists = async () => {
+  const dataFile = new File(fileDataPath);
 
-if (!fs.existsSync(fileDataPath)) {
-  Logger.error(
-    chalk.red("Data JSON file not found:"),
-    fileDataPath,
-    "Please check the path.",
-  );
-  process.exit(1);
-}
+  const [sqlExists, dataExists] = await Promise.all([
+    sqlFile.exists(),
+    dataFile.exists(),
+  ]);
+  if (!sqlExists) {
+    Logger.error(
+      chalk.red("SQL file not found:"),
+      sqlFile.path,
+      "Please check the path.",
+    );
+  }
+  if (!dataExists) {
+    Logger.error(
+      chalk.red("Data JSON file not found:"),
+      fileDataPath,
+      "Please check the path.",
+    );
+  }
+  if (!sqlExists || !dataExists) process.exit(1);
+};
+void checkFilesExists();
 
 let intervalIdDeleteOldSessions: number | NodeJS.Timeout | null = null;
+
+const writeBackups = async (
+  client: PoolClient,
+  tableNames: [TablesKeys, string][],
+) => {
+  const backupDir = new Directory(path.join(serverPath, "database", "backups"));
+  if (!(await backupDir.exists())) await backupDir.mkdir({ recursive: true });
+
+  for (const [, tableName] of tableNames) {
+    if (tableName === TABLE_MAP.Logs) continue;
+
+    const querySelect = `SELECT COUNT(*) FROM "${tableName}";`;
+    const result = await client.query(querySelect);
+    const count = parseInt(result.rows[0].count, 10);
+    console.log(chalk.blue(`Backing up table "${tableName}": ${count} rows`));
+    if (count === 0) continue;
+    const chunkSize = count > 1000 ? 1000 : count;
+
+    const file = new File(getTableFilePath(tableName));
+    await file.writeFile("[", "utf-8");
+
+    let lastText = "";
+
+    for (let offset = 0; offset < count; offset += chunkSize) {
+      try {
+        const querySelectChunk = `SELECT * FROM "${tableName}" LIMIT ${chunkSize} OFFSET ${offset};`;
+        const chunkResult = await client.query(querySelectChunk);
+        console.log(
+          chalk.blue(
+            `Backing up table "${tableName}" (offset ${offset}): ${chunkResult.rows.length} rows`,
+          ),
+        );
+        if (chunkResult.rows.length !== 0 && lastText) lastText += ",";
+
+        if (lastText) {
+          await file.writeFile(lastText, {
+            flag: "a",
+            encoding: "utf-8",
+          });
+          lastText = "";
+        }
+
+        let text = JSON.stringify(chunkResult.rows);
+
+        text = text.slice(1, -1);
+        lastText = text;
+      } catch (e) {
+        Logger.error(
+          chalk.red(
+            `Error writing backup for table "${tableName}" (offset ${offset}):`,
+          ),
+          e,
+        );
+      }
+    }
+    await file.writeFile(lastText + "]", { encoding: "utf-8", flag: "a" });
+
+    Logger.log(
+      chalk.green(`Backup created for table "${tableName}":`),
+      file.path,
+    );
+  }
+};
+
+const dropTables = async (
+  client: PoolClient,
+  tableNames: [TablesKeys, string][],
+) => {
+  for (const [, tableName] of tableNames) {
+    try {
+      if (tableName === TABLE_MAP.Users) continue;
+
+      const queryDelete = `DROP TABLE IF EXISTS "${tableName}";`;
+      await client.query(queryDelete);
+      Logger.log(chalk.yellow(`Table "${tableName}" dropped successfully.`));
+    } catch (error) {
+      Logger.error(chalk.red(`Error dropping table "${tableName}":`), error);
+    }
+  }
+
+  await client.query(`DROP TABLE IF EXISTS "${TABLE_MAP.Users}";`);
+  Logger.log(chalk.yellow(`Table "${TABLE_MAP.Users}" dropped successfully.`));
+};
 
 export const initDB = async () => {
   const client = await pool.connect();
 
-  const fileSQL = fs.readFileSync(fileSQLPath, "utf-8");
-  const fileVersion = fileSQL.split("\n")[1].split("Version: ")[1].trim();
+  const sqlFileContent = await sqlFile.readFile("utf-8");
+  const fileVersion = sqlFileContent
+    .split("\n")[1]
+    .split("Version: ")[1]
+    .trim();
 
   try {
-    await client.query(fileSQL);
+    await client.query(sqlFileContent);
   } catch {
     // Ignore
   }
 
-  const dataFile = fs.readFileSync(fileDataPath, "utf-8");
+  const dataFile = await new File(fileDataPath).readFile("utf-8");
   const dataJSON: typeof DataJSON = JSON.parse(dataFile || "{}");
 
   Logger.log(
@@ -55,48 +151,25 @@ export const initDB = async () => {
     `File version: ${fileVersion}`,
   );
 
-  if (dataJSON.prevVersionSQL === fileVersion) return;
+  if (dataJSON.prevVersionSQL === fileVersion && false) return;
 
   await client.query("BEGIN");
 
-  const tableNames = Object.entries(TABLE_MAP);
+  const tableNames = Object.entries(TABLE_MAP) as [TablesKeys, string][];
+
+  try {
+    //? Backup data from existing tables to files
+    await writeBackups(client, tableNames);
+    //? Drop existing tables
+    await dropTables(client, tableNames);
+
+    //? Create new tables with new structure
+    await client.query(sqlFileContent);
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+  } catch (error) {}
 
   await wrapFunctionWithError(
     async () => {
-      //? Create tables if not exist
-      await client.query(fileSQL);
-
-      //? Backup data from existing tables to files
-      for (const [, tableName] of tableNames) {
-        if (tableName === TABLE_MAP.Logs) continue;
-
-        const querySelect = `SELECT * FROM "${tableName}";`;
-        const result = await client.query(querySelect);
-
-        if (result.rows.length === 0) continue;
-
-        fs.writeFileSync(
-          getTableFilePath(tableName),
-          JSON.stringify(result.rows),
-          "utf-8",
-        );
-      }
-
-      //? Drop existing tables
-      for (const [, tableName] of tableNames) {
-        if (tableName === TABLE_MAP.Users) continue;
-
-        const queryDelete = `DROP TABLE IF EXISTS "${tableName}";`;
-        await client.query(queryDelete);
-        Logger.log(chalk.yellow(`Table "${tableName}" dropped successfully.`));
-      }
-      await client.query(`DROP TABLE IF EXISTS "${TABLE_MAP.Users}";`);
-      Logger.log(
-        chalk.yellow(`Table "${TABLE_MAP.Users}" dropped successfully.`),
-      );
-
-      await client.query(fileSQL);
-
       //? Restore data from files to new tables
       for (const [key, tableName] of tableNames) {
         if (tableName === TABLE_MAP.Logs) continue;
