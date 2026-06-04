@@ -15,7 +15,16 @@ import {
 import axios from "axios";
 import * as readline from "readline";
 
-ARGS.BUILD_PROFILE = "development";
+const values = {
+  PLATFORM: "web",
+  BUILD_PROFILE: "development",
+} as const;
+
+for (const [key, value] of Object.entries(values)) {
+  env[key] = value;
+  process.env[key] = value;
+  ARGS[key as keyof typeof ARGS] = value as never;
+}
 const args = getArgs();
 
 interface ProcessState {
@@ -139,9 +148,8 @@ const startExpo = (): ChildProcess => {
   console.log("\x1b[32m[Expo]\x1b[0m Starting...");
 
   const expoEnv = {
+    ...env,
     ...process.env,
-    PLATFORM: "web",
-    BUILD_PROFILE: "development",
   };
 
   return spawnCommand("yarn", ["expo", "start", "-c"], {

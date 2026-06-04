@@ -54,6 +54,7 @@
     "esbuild": "^0.27.2",
     "express": "^5.2.1",
     "humanize-duration": "^3.32.2",
+    "piscina": "^5.1.4",
     "lodash": "^4.17.21",
     "sharp": "^0.34.5",
     "uuid": "^13.0.0"

@@ -6,70 +6,56 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import sharp from "sharp";
+import { File } from "./fs.ts";
+import { Task } from "./Task.ts";
+import { Logger } from "./logger.ts";
 import { sendResponse } from "./fetch.ts";
 import type { Request, Response } from "express";
 import { t, supportedFormatsImages } from "../both/index.ts";
 
-export const readImage = (imagePath: string): Buffer => {
-  if (!fs || !path) return Buffer.from([]);
+const task = new Task<ResponseChangeImageFormat, "IMAGES">({
+  fileWorker: "IMAGES",
+  doNotDestroy: true,
+});
+
+export const readImage = async (imagePath: string): Promise<string> => {
+  if (!fs || !path) return "";
+  imagePath = path.resolve(imagePath);
 
   try {
-    return fs.readFileSync(path.resolve(imagePath));
+    const file = new File(imagePath);
+    const imageStr = await file.readFile("base64");
+
+    return imageStr;
   } catch (error) {
-    console.error("Error reading image file:", error);
-    return Buffer.from([]);
+    Logger.error(
+      "Error reading image file:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return "";
   }
 };
 
 const changeFormat = async (
-  inputBuffer: Buffer,
+  imageBufferInString: string,
   format: RequestChangeImageFormat["format"],
-): Promise<{
-  buffer: Buffer;
-  format: RequestChangeImageFormat["format"];
-}> => {
-  if (!sharp)
-    return {
-      buffer: inputBuffer,
-      format: "jpeg",
-    };
+): Promise<ResponseChangeImageFormat> => {
+  const res = await task.getResult({
+    data: { imageBufferInString, format, lang: "en" },
+    abortAfter: 2 * 60 * 1000,
+    functionName: "changeImageFormat",
+  });
 
-  const res = {
-    buffer: inputBuffer,
-    format: format,
-  };
-
-  try {
-    const image = sharp(inputBuffer);
-
-    switch (format) {
-      case "jpeg":
-        res.buffer = await image
-          .jpeg({ quality: 100, chromaSubsampling: "4:4:4" })
-          .toBuffer();
-        res.format = "jpeg";
-        break;
-      case "png":
-        res.buffer = await image.png().toBuffer();
-        res.format = "png";
-        break;
-      case "webp":
-        res.buffer = await image.webp().toBuffer();
-        res.format = "webp";
-        break;
-      case "avif":
-        res.buffer = await image.avif().toBuffer();
-        res.format = "avif";
-        break;
-      case "gif":
-        res.buffer = await image.gif().toBuffer();
-        res.format = "gif";
-        break;
-      default:
-        throw new Error("Unsupported format");
-    }
-  } catch (error) {
-    console.error(chalk?.red("Error changing image format:"), error);
+  if (res instanceof Error) {
+    Logger.error(
+      chalk?.red(
+        "Error running image format change task:",
+        format,
+        imageBufferInString.slice(0, 30) + "...",
+      ),
+      res.message,
+    );
+    return { success: false, error: res.message };
   }
   return res;
 };
@@ -124,24 +110,25 @@ export const handleChangeImageFormat = async (
       );
     }
 
-    const convertedRes = await changeFormat(imageBuffer, format);
-    const convertedString = convertedRes.buffer.toString("base64");
+    const convertedRes = await changeFormat(base64Data, format);
+    const convertedString = convertedRes.imageUri;
+    if (convertedRes.success && convertedString && convertedRes.newFormat) {
+      const dataUri = `data:image/${convertedRes.newFormat};base64,${convertedString}`;
 
-    const dataUri = `data:image/${convertedRes.format};base64,${convertedString}`;
-
-    sendResponse(
-      res,
-      "SUCCESS",
-      { success: true, imageUri: dataUri, newFormat: convertedRes.format },
-      "/images/changeImageFormat",
-    );
+      return sendResponse(
+        res,
+        "SUCCESS",
+        { success: true, imageUri: dataUri, newFormat: convertedRes.newFormat },
+        "/images/changeImageFormat",
+      );
+    }
   } catch (error) {
-    console.error(chalk?.red("Error changing image format:"), error);
-    sendResponse(
-      res,
-      "INTERNAL_SERVER_ERROR",
-      { success: false, error: t("images.formatChangeError", lang) },
-      "/images/changeImageFormat",
-    );
+    Logger.error(chalk?.red("Error changing image format:"), error);
   }
+  sendResponse(
+    res,
+    "INTERNAL_SERVER_ERROR",
+    { success: false, error: t("images.formatChangeError", lang) },
+    "/images/changeImageFormat",
+  );
 };

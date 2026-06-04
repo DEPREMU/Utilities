@@ -14,6 +14,7 @@ if (!UTILITIES_PATH.endsWith("Utilities"))
 
 export const APP_PATH = path.resolve(UTILITIES_PATH, "app");
 export const TYPES_PATH = path.resolve(UTILITIES_PATH, "types");
+export const COMMON_PATH = path.resolve(UTILITIES_PATH, "common");
 export const SERVER_PATH = path.resolve(UTILITIES_PATH, "server");
 export const SCRIPTS_PATH = path.resolve(UTILITIES_PATH, "scripts");
 export const ANDROID_PATH = path.resolve(APP_PATH, "android");
@@ -143,6 +144,7 @@ export const handleExitFromScript = (fun: (err?: Error) => void) => {
     try {
       fun(err);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Error in exit handler", error);
     } finally {
       process.exit(err ? 1 : 0);

@@ -1,9 +1,12 @@
+/* eslint-disable no-console */
 import {
   ARGS,
   versionExpo,
+  COMMON_PATH,
   versionElectron,
   UTILITIES_FOR_PC_PATH,
 } from "../config.ts";
+import fs from "fs";
 import os from "os";
 import path from "path";
 import { build } from "esbuild";
@@ -23,22 +26,34 @@ const baseConfig: BuildOptions = {
   bundle: true,
   minify: true,
   format: "cjs",
+  platform: "node",
   legalComments: "none",
 };
+
+const BUILD_PROFILE = ARGS.BUILD_PROFILE || "production";
 
 build({
   ...baseConfig,
   outfile: path.join(UTILITIES_FOR_PC_PATH, "build", "preload.cjs"),
   platform: "browser",
   external: ["electron"],
-  entryPoints: [path.join(UTILITIES_FOR_PC_PATH, "src", "preload.ts")],
+  entryPoints: [path.join(UTILITIES_FOR_PC_PATH, "src", "preload", "index.ts")],
   plugins: [
     pluginReplace([
       {
         filter: /\.ts|\.js$/,
         replace: /process\.env\.BUILD_PROFILE/g,
-        replacer: () => JSON.stringify(ARGS["BUILD_PROFILE"] || "production"),
+        replacer: () => JSON.stringify(BUILD_PROFILE),
       },
+      ...(BUILD_PROFILE !== "production"
+        ? []
+        : [
+            {
+              filter: /\.ts|\.js$/,
+              replace: /sendLog\(/g,
+              replacer: () => "(() => {})(",
+            },
+          ]),
     ]),
   ],
 }).catch((err: unknown) => {
@@ -49,11 +64,12 @@ build({
 build({
   ...baseConfig,
   outfile: path.join(UTILITIES_FOR_PC_PATH, "build", "index.cjs"),
-  platform: "node",
   external: [
+    "pino",
     "sharp",
     "pdfkit",
     "node-7z",
+    "piscina",
     "7zip-bin",
     "archiver",
     "electron",
@@ -95,3 +111,40 @@ build({
   console.error("Build failed:", err);
   process.exit(1);
 });
+
+const piscinaCommonPath = path.join(COMMON_PATH, "serverOrElectron", "piscina");
+
+const piscinaCallback = (
+  err: Error | null,
+  files: string[],
+  defaultPath: string,
+) => {
+  if (err) {
+    console.error("Error reading piscina utils directory:", err);
+    return;
+  }
+
+  files.forEach((file) => {
+    if (!file.endsWith(".ts")) return;
+
+    const srcPath = path.join(defaultPath, file);
+    const destPath = path.join(
+      UTILITIES_FOR_PC_PATH,
+      "build",
+      "piscina",
+      file.replace(".ts", ".cjs"),
+    );
+    build({
+      ...baseConfig,
+      outfile: destPath,
+      external: ["pino", "sharp"],
+      entryPoints: [srcPath],
+    }).catch((err: unknown) => {
+      console.error(`Build failed for ${file}:`, err);
+    });
+  });
+};
+
+fs.readdir(piscinaCommonPath, (...args) =>
+  piscinaCallback(...args, piscinaCommonPath),
+);

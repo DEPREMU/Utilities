@@ -46,6 +46,7 @@ export abstract class ServiceClass<
   _reInit = async () => {
     this.clearInit();
     this.#initPromise = this.#init();
+    return this.#initPromise;
   };
 
   abstract _init(): Promise<void>;
