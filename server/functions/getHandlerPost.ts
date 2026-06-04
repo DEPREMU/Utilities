@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import chalk from "chalk";
 import type { Request, Response } from "express";
 import type { RequestBody, RoutesAPI } from "@types";

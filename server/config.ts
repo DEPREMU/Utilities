@@ -1,7 +1,7 @@
-import fs from "fs";
 import path from "path";
+import { Directory } from "@common";
 import { TablesKeys } from "@types";
-import { getEnvValue } from "./env.ts";
+import { getEnvValue } from "@/env.ts";
 
 export const REPLACERS = {
   isDev: getEnvValue("__DEV__"),
@@ -13,11 +13,11 @@ export const serverPath = path.resolve();
 export const UPLOAD_DIR = path.join(serverPath, "updates", "uploads");
 export const PATH_DATA_UPDATES = path.join(serverPath, "updates", "data.json");
 
-try {
-  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-} catch {
-  // ignore
-}
+const createUploadDir = async () => {
+  const dir = new Directory(UPLOAD_DIR);
+  if (!(await dir.exists())) await dir.mkdir({ recursive: true });
+};
+void createUploadDir();
 
 export const TABLE_MAP: Record<TablesKeys, string> = {
   Logs: "logs",

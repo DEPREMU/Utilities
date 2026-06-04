@@ -203,8 +203,12 @@ export const handleLogin = getHandlerPost(
     try {
       const { email, password, deviceId, notificationToken, rememberMe } = body;
 
-      const user = (await fetchFromTable({ table: "Users", match: { email } }))
-        .data?.[0];
+      const res = await fetchFromTable({
+        table: "Users",
+        match: { email },
+      });
+
+      const user = res.data?.[0];
 
       if (!user)
         return sendResponse("UNAUTHORIZED", {
@@ -258,15 +262,8 @@ export const handleLogin = getHandlerPost(
         });
         return;
       }
-      const userData: Omit<UserData, "password"> = Object.entries(user).reduce(
-        (acc, [key, value]) => {
-          if (key !== "password")
-            acc[key as keyof Omit<UserData, "password">] = value as never;
-
-          return acc;
-        },
-        {} as Omit<UserData, "password">,
-      );
+      const userData: Omit<UserData, "password"> = { ...user };
+      delete (userData as Partial<UserData>).password;
 
       sendResponse("SUCCESS", {
         user: userData,

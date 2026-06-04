@@ -1,12 +1,19 @@
-import { build, type Plugin } from "esbuild";
+import fs from "fs";
+import path from "path";
 import { pluginReplace } from "@espcom/esbuild-plugin-replace";
+import { build, type BuildOptions, type Plugin } from "esbuild";
+
+const UTILITIES_PATH = path.resolve("..");
+if (!UTILITIES_PATH.endsWith("Utilities"))
+  throw new Error(`Unexpected utilities path: ${UTILITIES_PATH}`);
+const SERVER_PATH = path.resolve(UTILITIES_PATH, "server");
 
 const isProduction = process.env.NODE_ENV === "production";
 
 const REPLACERS = {
   isDev: !isProduction,
 };
-let i = 0;
+
 const plugins: Plugin[] = [
   pluginReplace([
     {
@@ -38,30 +45,66 @@ const plugins: Plugin[] = [
   ]),
 ];
 
-build({
+const options: BuildOptions = {
   bundle: true,
-  minify: isProduction,
   format: "cjs",
-  outfile: "./build/index.cjs",
+  minify: isProduction,
   platform: "node",
-  entryPoints: ["./index.ts"],
   legalComments: "none",
-  external: [
-    "pg",
-    "ws",
-    "fs",
-    "path",
-    "pino",
-    "http",
-    "sharp",
-    "https",
-    "crypto",
-    "piscina",
-    "firebase-admin",
-  ],
-  plugins,
+};
+
+const external = [
+  "pg",
+  "ws",
+  "fs",
+  "path",
+  "pino",
+  "http",
+  "sharp",
+  "https",
+  "crypto",
+  "piscina",
+  "firebase-admin",
+];
+
+build({
+  ...options,
+  outfile: path.join(SERVER_PATH, "build", "index.cjs"),
+  entryPoints: [path.join(SERVER_PATH, "index.ts")],
+  external,
+  plugins: REPLACERS.isDev ? [] : plugins,
 }).catch((err) => {
   // eslint-disable-next-line no-console
   console.error("Build failed:", err);
   process.exit(1);
+});
+
+const piscinaWorkerPath = path.join(
+  UTILITIES_PATH,
+  "common",
+  "serverOrElectron",
+  "piscina",
+);
+
+fs.readdir(piscinaWorkerPath, (err, files) => {
+  if (err) {
+    console.error("Error reading workers directory:", err);
+    process.exit(1);
+  }
+
+  files.forEach((file) => {
+    if (!file.endsWith("worker.ts")) return;
+
+    build({
+      ...options,
+      outfile: path.join(
+        SERVER_PATH,
+        "build",
+        "piscina",
+        file.replace(".ts", ".cjs"),
+      ),
+      external,
+      entryPoints: [path.join(piscinaWorkerPath, file)],
+    });
+  });
 });

@@ -1,12 +1,11 @@
 import fs from "fs";
 import path from "path";
 import chalk from "chalk";
-import crypto from "crypto";
 import { exec } from "child_process";
-import { pool } from "../postgres.ts";
+import { pool } from "@/database/postgres.ts";
 import { REPLACERS } from "@/config.ts";
 import { getEnvValue } from "@/env.ts";
-import { Directory, File, Logger } from "@common";
+import { Directory, File, Logger, Task } from "@common";
 
 const backupPath = path.join(path.resolve("."), "database", "backups");
 const timeIntervalBackup = 1 * 60 * 60 * 1000;
@@ -19,49 +18,71 @@ export const getInterval = () => {
   return setInterval(handleBackupDatabase, timeIntervalBackup);
 };
 
+const encryptionTask = new Task<boolean, "ENCRYPTION">({
+  fileWorker: "ENCRYPTION",
+  doNotDestroy: true,
+});
+
 export const encryptFile = async (filePath: string, password: string) => {
-  const data = await fs.promises.readFile(filePath);
+  const file = new File(filePath);
+  const copyFile = await file.copyFile(filePath + ".bak");
 
-  const salt = crypto.randomBytes(16);
-  const iv = crypto.randomBytes(12);
+  if (copyFile instanceof Error) {
+    Logger.error(
+      chalk.red("Error creating backup file for encryption:"),
+      copyFile,
+    );
+    return;
+  }
 
-  const key = crypto.pbkdf2Sync(password, salt, 100000, 32, "sha256");
-
-  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-
-  const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
-  const tag = cipher.getAuthTag();
-
-  const output = Buffer.concat([salt, iv, tag, encrypted]);
-  await fs.promises.writeFile(filePath, output);
+  const res = await encryptionTask.getResult({
+    data: { inputPath: copyFile.path, password, outputPath: filePath },
+    abortAfter: 5 * 60 * 1000,
+    functionName: "encryptData",
+  });
+  if (res instanceof Error) {
+    Logger.error(chalk.red("Error encrypting file:"), res);
+    return;
+  }
 
   Logger.log(chalk.green(`File encrypted successfully: ${filePath}`));
 };
 
-export const decryptFile = async (filePath: string, password: string) => {
-  const fileData = await fs.promises.readFile(filePath);
-
-  const salt = fileData.subarray(0, 16);
-  const iv = fileData.subarray(16, 28);
-  const tag = fileData.subarray(28, 44);
-  const encrypted = fileData.subarray(44);
-
-  const key = crypto.pbkdf2Sync(password, salt, 100000, 32, "sha256");
-
-  const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-  decipher.setAuthTag(tag);
-
-  try {
-    const decrypted = Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]);
-
-    return decrypted.toString();
-  } catch (err) {
-    Logger.error(chalk.red("Error decrypting file:"), (err as Error).message);
-    throw new Error("Failed to decrypt (incorrect password or file).");
+export const decryptFile = async (
+  filePath: string,
+  password: string,
+  returnString = false,
+): Promise<string | void> => {
+  const file = new File(filePath);
+  if (!(await file.exists())) {
+    Logger.error(chalk.red("File to decrypt does not exist:"), filePath);
+    return;
   }
+
+  const copyFile = await file.copyFile(filePath + ".bak");
+  if (copyFile instanceof Error) {
+    Logger.error(
+      chalk.red("Error creating backup file for decryption:"),
+      copyFile,
+    );
+    return;
+  }
+
+  const res = await encryptionTask.getResult({
+    data: { inputPath: copyFile.path, password, outputPath: filePath },
+    abortAfter: 5 * 60 * 1000,
+    functionName: "decryptData",
+  });
+  if (res instanceof Error) {
+    Logger.error(chalk.red("Error decrypting file:"), res);
+    return;
+  }
+  Logger.log(chalk.green(`File decrypted successfully: ${filePath}`));
+
+  if (!returnString) return;
+
+  const decryptedContent = await file.readFile("utf-8");
+  return decryptedContent;
 };
 
 /**
@@ -118,7 +139,7 @@ export const handleBackupDatabase = async () => {
       Logger.log(
         chalk.green(`Database backup created successfully: ${backupFileName}`),
       );
-      encryptFile(backupFileName, getEnvValue("DB_ENCRYPTION_PASS"));
+      void encryptFile(backupFileName, getEnvValue("DB_ENCRYPTION_PASS"));
     });
   } catch (error) {
     Logger.error("Error during database backup:", error);
