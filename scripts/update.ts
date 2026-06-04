@@ -91,27 +91,20 @@ const uploadWeb = async (): Promise<boolean> => {
   try {
     console.log("Building web version:", versionExpo);
 
-    const buildPath = path.join(
-      UTILITIES_FOR_PC_PATH,
-      "dist",
-      "_expo",
-      "static",
-      "js",
-      "web",
-    );
+    const buildPath = path.join(UTILITIES_FOR_PC_PATH, "dist");
 
-    execSync("yarn run build-web-app-electron", {
-      stdio: "inherit",
-      cwd: UTILITIES_PATH,
-    });
+    if (!ARGS["testing"] || !fs.existsSync(buildPath))
+      execSync("yarn run build-web-app-electron", {
+        stdio: "inherit",
+        cwd: UTILITIES_PATH,
+      });
     if (!fs.existsSync(buildPath))
       throw new Error(`Build path not found at ${buildPath}`);
 
-    const dirFiles = fs.readdirSync(buildPath);
-    const fileJS = dirFiles.find((file) => file.endsWith(".js"));
-
-    if (!fileJS)
-      throw new Error(`Build file not found in directory ${buildPath}`);
+    const dirFiles = fs.readdirSync(buildPath, {
+      recursive: true,
+      withFileTypes: true,
+    });
 
     const platformsOS: PlatformsOS[] = [];
     if (isNewVersionWeb.windows) platformsOS.push("windows");
@@ -130,8 +123,13 @@ const uploadWeb = async (): Promise<boolean> => {
     zip.pipe(output);
 
     dirFiles.forEach((file) => {
-      const filePath = path.join(buildPath, file);
-      zip.file(filePath, { name: file });
+      if (file.isFile()) {
+        const filePath = path.join(buildPath, file.name);
+        zip.file(filePath, { name: file.name });
+      } else if (file.isDirectory()) {
+        const dirPath = path.join(buildPath, file.name);
+        zip.directory(dirPath, file.name);
+      }
     });
 
     await zip.finalize();
@@ -144,6 +142,14 @@ const uploadWeb = async (): Promise<boolean> => {
       "updates",
     )}/upload-update`;
     console.log("Uploading updates to URL:", url);
+
+    if (ARGS["testing"]) {
+      console.log(
+        "Testing mode enabled - skipping actual upload. Zip file created at:",
+        zipPath,
+      );
+      return true;
+    }
 
     const uploadPromises = platformsOS.map(async (platformOS) => {
       try {
@@ -249,7 +255,8 @@ const run = async () => {
   const isWeb = isBoth || platformUpdateAssets === "web";
   const isAndroid = isBoth || platformUpdateAssets === "android";
 
-  const isNewVersionWeb = isWeb && (await checkIsNewVersion("web"));
+  const isNewVersionWeb =
+    ARGS["testing"] || (isWeb && (await checkIsNewVersion("web")));
 
   if (isNewVersionWeb) await uploadWeb();
 

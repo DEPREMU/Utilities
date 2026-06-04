@@ -22,13 +22,11 @@ export type DataAppElectron = {
   tray: Electron.Tray | null;
   lanIP: string;
   server: Server | null;
-  logPath: string;
   hasSudo: boolean;
   deviceId: string;
   username: string;
   userHome: string;
   language: LanguagesSupported;
-  __dirname: string;
   machineId: string;
   isWindows: boolean;
   isUpdating: boolean;
@@ -38,14 +36,12 @@ export type DataAppElectron = {
   wasSleeping: boolean;
   SERVICE_NAME: string;
   webRestarted: boolean;
-  downloadsPath: string;
   userIsLoggedIn: boolean;
   clipboardWindow: Electron.BrowserWindow | null;
   downloadFilePath: string;
   clipboardHistory: ClipboardItem[];
   reconnectAttempts: number;
   currentWebVersion: string;
-  currentElectronVersion: string;
 };
 
 export type AdvertisementTXT = {

@@ -21,6 +21,7 @@ export const Args: Record<keyof TYPE_ARGS, 0> = {
   check: 0,
   action: 0,
   install: 0,
+  testing: 0,
   platform: 0,
   isWindows: 0,
   BUILD_PROFILE: 0,
@@ -39,6 +40,7 @@ export type TYPE_ARGS = {
   check?: boolean;
   action?: string;
   install?: boolean;
+  testing?: boolean;
   platform?: "linux" | "windows";
   isWindows?: boolean;
   BUILD_PROFILE?: "development" | "preview" | "production";
@@ -54,6 +56,7 @@ type ArgumentsExplanationType =
   | "lan"
   | "web"
   | "check"
+  | "testing"
   | "profile"
   | "install"
   | "platform"
@@ -84,6 +87,8 @@ const ArgumentsExplanation: Record<ArgumentsExplanationType, string> = {
   web: "  --web                        Build web version only",
   check: "  --check                      Run eslint with --max-warnings 0",
   install: "  --install                    Install dependencies",
+  testing:
+    "  -t, --testing                    Run in testing mode with additional logging and no side effects",
 };
 
 const showHelp = () => {
@@ -124,6 +129,7 @@ const showHelp = () => {
 Options:
 ${options.join("\n")}
   -y, --yes                    Automatically answer 'yes' to all prompts and use default values where applicable
+${ArgumentsExplanation["testing"]}
   -h, --help                   Show this help message
 `);
 };
@@ -177,6 +183,10 @@ export const ARGS = args.reduce((acc, arg, index) => {
         return acc;
       case "--web":
         acc["web"] = true;
+        return acc;
+      case "-t":
+      case "--testing":
+        acc["testing"] = true;
         return acc;
       default:
         break;
