@@ -1,4 +1,4 @@
-import { writeLog } from "./logger";
+import { Logger } from "./logger";
 import { Notification } from "electron";
 import { NotificationElectron, NotificationsSaved } from "@types";
 
@@ -28,31 +28,30 @@ export const sendNotification = (notif: NotificationElectron) => {
   const notification = new Notification(notif);
 
   notification.on("action", (_, index) => {
-    writeLog(
+    Logger.log(
       `Notification action clicked: ${index}, ${notification.actions?.[index]}`,
-      "info",
     );
     notification.close();
   });
 
   notification.on("click", () => {
-    writeLog("Notification clicked", "info");
+    Logger.log("Notification clicked");
   });
 
   notification.on("close", () => {
-    writeLog("Notification closed", "info");
+    Logger.log("Notification closed");
   });
 
   notification.on("show", () => {
-    writeLog("Notification shown", "info");
+    Logger.log("Notification shown");
   });
 
   notification.on("failed", (error) => {
-    writeLog(`Notification failed: ${error}`, "error");
+    Logger.error("Notification failed:", error);
   });
 
   notification.on("reply", (_, reply) => {
-    writeLog(`Notification reply: ${reply}`, "info");
+    Logger.log(`Notification reply: ${reply}`);
   });
 
   notification.show();

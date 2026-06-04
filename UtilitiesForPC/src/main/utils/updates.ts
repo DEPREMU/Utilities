@@ -3,22 +3,22 @@ import {
   RequestIsUpdateAvailable,
   ResponseIsUpdateAvailable,
 } from "@types";
-import fs from "fs";
 import path from "path";
 import axios from "axios";
 import dotenv from "dotenv";
 import { app } from "electron";
 import dataApp from "./variables";
-import { writeLog } from "./logger";
-import { getJSPath } from "@utils";
+import { Logger } from "./logger";
+import { exec, spawn } from "child_process";
 import { handleShutdown } from "./server";
+import { nativeData, Paths } from "@utils";
 import type { UpdatesRoutes } from "@types";
-import { execFileSync, execSync, spawn } from "child_process";
+import { File, Timers, Directory, Network } from "@common";
 
 if (!app.isPackaged)
   dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
 
-const urlUpdates = process.env.API_URL.replace("api", "updates"); // API_URL replaced in build process
+const urlUpdates = process.env.API_URL?.replace("api", "updates"); // API_URL replaced in build process
 
 if (!urlUpdates) {
   throw new Error("API_URL is not defined.");
@@ -28,41 +28,38 @@ const getURLUpdates = (route: UpdatesRoutes): string => {
   return `${urlUpdates}${route}`;
 };
 
-export const deleteDownloadedUpdate = () => {
+export const deleteDownloadedUpdate = async () => {
   if (!dataApp) return;
   if (dataApp.getValue("isUpdating")) return;
 
   const downloadFilePath = dataApp.getValue("downloadFilePath");
-  if (!fs.existsSync(downloadFilePath)) return;
+  const file = new File(downloadFilePath);
+  if (!(await file.exists())) return;
 
   try {
-    fs.unlinkSync(downloadFilePath);
-    writeLog("Deleted downloaded update file.", "info");
+    await file.rm();
+    Logger.log("Deleted downloaded update file.");
   } catch {
     try {
       if (dataApp.getValue("isWindows"))
-        execSync(
+        exec(
           `powershell -NoProfile -Command "Remove-Item -LiteralPath '${downloadFilePath.replace(
             /'/g,
             "''",
           )}' -Force"`,
-          { stdio: "ignore" },
         );
-      else execSync(`rm -f "${downloadFilePath.replace(/"/g, '\\"')}"`);
+      else exec(`rm -f "${downloadFilePath.replace(/"/g, '\\"')}"`);
     } catch (error) {
-      writeLog(
-        "Error deleting downloaded update file: " + String(error),
-        "error",
-      );
+      Logger.error("Error deleting downloaded update file:", error);
     }
   }
 };
 
 const openInstallerOrInstall = async (filePath: string) => {
-  writeLog(`Opening installer at path: ${filePath}`, "info");
+  Logger.log(`Opening installer at path: ${filePath}`);
   if (dataApp.getValue("isWindows")) {
     await new Promise<void>((resolve) =>
-      setTimeout(async () => {
+      Timers.setTimeout(async () => {
         try {
           const child = spawn(filePath, [], {
             detached: true,
@@ -70,13 +67,10 @@ const openInstallerOrInstall = async (filePath: string) => {
           });
 
           child.unref();
-          writeLog("Installer spawned on Windows.", "info");
+          Logger.log("Installer spawned on Windows.");
           await handleShutdown();
         } catch (e) {
-          writeLog(
-            "Error spawning installer on Windows: " + String(e),
-            "error",
-          );
+          Logger.error("Error spawning installer on Windows: ", e);
         } finally {
           resolve();
         }
@@ -90,7 +84,7 @@ const openInstallerOrInstall = async (filePath: string) => {
         "utilities-for-pc-autostart.sh",
       )}`;
 
-      writeLog(`Executing Linux install command: ${cmd}`, "info");
+      Logger.log(`Executing Linux install command: ${cmd}`);
       const child = spawn(cmd, [], {
         shell: true,
         stdio: "ignore",
@@ -99,21 +93,22 @@ const openInstallerOrInstall = async (filePath: string) => {
       child.unref();
       await handleShutdown();
     } catch (e) {
-      writeLog("Error installing on Linux: " + String(e), "error");
+      Logger.error("Error installing on Linux:", e);
     }
   }
 };
 
 export const downloadNewUpdate = async (
   downloadUrl: string,
-  downloadFilePath: string,
+  _file: string | File,
 ) => {
   const response = await axios.get(downloadUrl, {
     responseType: "stream",
   });
+  const file = _file instanceof File ? _file : new File(_file);
 
   return new Promise<"success" | "error">((resolve) => {
-    const writer = fs.createWriteStream(downloadFilePath);
+    const writer = file.createWriteStream();
 
     let handleFinishCalled = false;
     const handleFinish = (err?: string) => {
@@ -124,95 +119,92 @@ export const downloadNewUpdate = async (
       resolve(err ? "error" : "success");
     };
     try {
-      writeLog(
-        `Starting download from ${downloadUrl} to ${downloadFilePath}`,
-        "info",
+      Logger.log(
+        `Starting download from ${downloadUrl} to ${file instanceof File ? file.path : file}`,
       );
 
       response.data.pipe(writer);
 
       writer.on("finish", async () => {
-        writeLog("Download finished successfully.", "info");
+        Logger.log("Download finished successfully.");
         handleFinish();
       });
 
       writer.on("error", (err: unknown) => {
-        writeLog("Error writing update file: " + String(err), "error");
+        Logger.error("Error writing update file:", err);
         handleFinish(err instanceof Error ? err.message : String(err));
       });
 
       response.data.on("error", (err: unknown) => {
-        writeLog("Error downloading the file stream: " + String(err), "error");
+        Logger.error("Error downloading the file stream:", err);
         handleFinish(err instanceof Error ? err.message : String(err));
       });
     } catch (error) {
-      writeLog(
-        "Error downloading the update: " +
-          (error instanceof Error ? error.message : String(error)),
-        "error",
-      );
-      handleFinish(error instanceof Error ? error.message : String(error));
+      const msg = error instanceof Error ? error.message : String(error);
+      Logger.error("Error downloading the update:", msg);
+      handleFinish(msg);
     }
   });
 };
 
-export const updateWebJS = async (downloadUrl: string): Promise<void> => {
+export const updateWeb = async (downloadUrl: string): Promise<void> => {
   try {
-    const filePath = path.join(
-      dataApp.getValue("downloadsPath"),
-      "utilities-for-pc-web.zip",
+    const file = new File(
+      path.join(dataApp.getValue("downloadsPath"), "utilities-for-pc-web.zip"),
     );
 
-    const res = await downloadNewUpdate(downloadUrl, filePath);
-    if (res === "error") {
-      writeLog("Failed to download the web update.", "error");
+    const status = await downloadNewUpdate(downloadUrl, file);
+    if (status === "error") {
+      Logger.error("Failed to download the web update.");
       return;
     }
 
     const unzipper = await import("unzipper");
 
-    const jsDir = getJSPath();
+    const distPath = Paths.DIST;
+    if (!distPath.endsWith("dist")) {
+      Logger.error(
+        "The distribution path is not correctly set. Expected it to end with 'dist'.",
+      );
+      return;
+    }
 
-    await Promise.all(
-      fs.readdirSync(jsDir).map(async (file) => {
-        try {
-          if (file.endsWith(".js"))
-            await fs.promises.unlink(path.join(jsDir, file));
-        } catch {
-          writeLog(`Failed to delete old JS file: ${file}`, "warn");
-        }
-      }),
-    );
+    const dir = new Directory(distPath);
+    let success = false;
+    if (await dir.exists())
+      success = await dir.rm({ recursive: true, force: true });
+
+    if (!success) {
+      Logger.error("Failed to remove old web files.");
+      return;
+    }
 
     await new Promise<void>((resolve) => {
-      fs.createWriteStream(filePath)
+      file
+        .createWriteStream()
         .pipe(
           unzipper.Extract({
-            path: jsDir,
+            path: distPath,
           }),
         )
         .on("close", async () => {
-          writeLog("Web update extracted successfully.", "info");
-          try {
-            await fs.promises.unlink(filePath);
-          } catch {
-            writeLog("Failed to delete the web update zip file.", "warn");
-          }
+          Logger.log("Web update extracted successfully.");
+          await file.rm();
           resolve();
         });
     });
 
-    writeLog("Web HTML updated correctly.", "info");
+    Logger.log("Web HTML updated correctly.");
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    writeLog("Error updating Web HTML: " + errorMessage, "error");
+    Logger.error("Error updating Web HTML:", error);
   }
 };
 
 export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
-  const currentVersion = dataApp.getValue(
-    buildType === "electron" ? "currentElectronVersion" : "currentWebVersion",
-  );
+  const currentVersion =
+    buildType === "electron"
+      ? nativeData.getValue("version")
+      : dataApp.getValue("currentWebVersion");
 
   try {
     const body: RequestIsUpdateAvailable = {
@@ -221,38 +213,21 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
       platformOS: dataApp.getValue("isWindows") ? "windows" : "linux",
     };
 
-    for (let attempts = 0; attempts < 5; attempts++) {
-      try {
-        const res = await axios.get("https://www.google.com/generate_204", {
-          timeout: 2500,
-        });
-        if (res.status >= 200 && res.status < 300) break;
-      } catch {
-        writeLog(
-          `No internet connection detected. Retry attempt ${attempts + 1}/5`,
-          "warn",
-        );
-        if (attempts === 4) {
-          writeLog(
-            "No internet connection detected after 5 attempts.",
-            "error",
-          );
-          throw new Error("No internet connection.");
-        }
-        await new Promise((r) => setTimeout(r, 3000));
-      }
+    const hasInternet = await Network.waitForOnline(5, 3000);
+    if (!hasInternet) {
+      Logger.warn("No internet connection. Skipping update check.");
+      return;
     }
 
-    const res = await fetch(getURLUpdates("/is-update-available"), {
-      method: "post",
+    const res = await axios.post(getURLUpdates("/is-update-available"), body, {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify(body),
+      timeout: 5000,
     });
 
-    const data = (await res.json()) as ResponseIsUpdateAvailable;
+    const data = res.data as ResponseIsUpdateAvailable;
     if (!data?.updateAvailable) return;
     dataApp.setValue("isUpdating", true);
 
@@ -260,16 +235,14 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
       const path = dataApp.getValue("downloadFilePath");
       const res = await downloadNewUpdate(data.downloadUrl, path);
       if (res === "error") {
-        writeLog("Failed to download the update installer.", "error");
+        Logger.error("Failed to download the update installer.");
         dataApp.setValue("isUpdating", false);
         return;
       }
 
       await openInstallerOrInstall(path);
-    } else await updateWebJS(data.downloadUrl);
+    } else await updateWeb(data.downloadUrl);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Error verifying new update:", errorMessage);
-    writeLog("Error verifying new update: " + errorMessage, "error");
+    Logger.error("Error verifying new update:", error);
   }
 };

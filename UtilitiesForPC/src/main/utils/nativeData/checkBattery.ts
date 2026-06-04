@@ -1,24 +1,34 @@
 import dataApp from "../variables";
-import { writeLog } from "../logger";
-import { execSync } from "child_process";
+import { exec } from "child_process";
+import { Logger } from "../logger";
 import { ExpectedNativeWebData } from "@types";
 
-export const checkBattery = (): ExpectedNativeWebData["hasBattery"] => {
+export const checkBattery = async (): Promise<
+  ExpectedNativeWebData["hasBattery"]
+> => {
   try {
     if (dataApp.getValue("isWindows")) {
-      const output = execSync(
-        'powershell -Command "Get-WmiObject -Class Win32_Battery"',
-        { encoding: "utf8" }
+      const output = await new Promise<string>((r) =>
+        exec(
+          'powershell -Command "Get-WmiObject -Class Win32_Battery"',
+          (_, stdout) => {
+            r(stdout ?? "");
+          },
+        ),
       );
 
-      return output.trim() !== "" ? true : false;
+      return output.trim() !== "";
     } else {
-      const output = execSync("upower -e", { encoding: "utf8" });
+      const output = await new Promise<string>((r) =>
+        exec("upower -e", { encoding: "utf8" }, (_, stdout) => {
+          r(stdout ?? "");
+        }),
+      );
 
-      return output.includes("battery") ? true : false;
+      return output.includes("battery");
     }
   } catch (error) {
-    writeLog("Error verifying battery:" + error, "error");
+    Logger.error("Error verifying battery:", error);
     return "unknown";
   }
 };

@@ -1,11 +1,10 @@
-import fs from "fs";
 import path from "path";
-import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { app } from "electron";
-import { URI_EXTENSION } from "@common";
+import { Logger } from "./logger";
+import PDFDocument from "pdfkit";
+import { Directory, File, URI_EXTENSION } from "@common";
 import type { PdfCreateRequest, PdfCreateResult } from "@types";
-import { writeLog } from "./logger";
 
 const getFilePathFromUri = (uri: string) => {
   if (!uri) return "";
@@ -26,26 +25,32 @@ export const createPDFWithImages = async (
   const fileName = getPdfFileName(options.filename);
 
   const outputDir = path.join(app.getPath("temp"), "UtilitiesForPC", "pdf");
-  await fs.promises.mkdir(outputDir, { recursive: true });
+  const dir = new Directory(outputDir);
+  await dir.mkdir({ recursive: true });
   const outputPath = path.join(outputDir, fileName);
 
   const maxSizePdfInBytes = options.maxSizePdf * 1024 * 1024 + 1024 * 100;
-  let totalSize = images.reduce((acc, img) => {
-    const imagePath = getFilePathFromUri(img.uri);
-    if (!imagePath) return acc;
-    try {
-      return acc + fs.statSync(imagePath).size;
-    } catch {
-      return acc;
-    }
-  }, 0);
+  let totalSize = 0;
+
+  await Promise.all(
+    images.map(async (img) => {
+      const imagePath = getFilePathFromUri(img.uri);
+      if (!imagePath) return;
+
+      const file = new File(imagePath);
+      const stats = await file.stats();
+      if (!stats || !(await file.exists())) return;
+
+      totalSize += Number(stats.size);
+    }),
+  );
 
   const isLargerThanMaxSize = (multiply?: number) =>
     options.maxSizePdf !== -1 &&
     totalSize > maxSizePdfInBytes * (multiply ?? 1);
 
   const doc = new PDFDocument({ autoFirstPage: false });
-  const writeStream = fs.createWriteStream(outputPath);
+  const writeStream = dir.createWriteStream();
   doc.pipe(writeStream);
 
   let i = 0;
@@ -58,8 +63,8 @@ export const createPDFWithImages = async (
       const imagePath = getFilePathFromUri(image.uri);
       if (!imagePath) continue;
 
-      const stats = await fs.promises.stat(imagePath);
-      const originalSize = stats.size;
+      const stats = await new File(imagePath).stats();
+      const originalSize = Number(stats?.size ?? 0);
 
       let pageWidth = 0;
       let pageHeight = 0;
@@ -104,10 +109,7 @@ export const createPDFWithImages = async (
         height: pageHeight,
       });
     } catch (error) {
-      writeLog(
-        `Error processing image for PDF: ` + String((error as Error)?.message),
-        "error",
-      );
+      Logger.error("Error processing image for PDF:", error);
     }
   }
 

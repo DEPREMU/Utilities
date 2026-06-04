@@ -1,10 +1,19 @@
-import { getPath } from "@utils";
 import dataApp from "./variables";
+import { Paths, Logger } from "@utils";
 import { app, BrowserWindow, globalShortcut } from "electron";
 
 export const createWindowClipboard = (showOnCreate: boolean = false): void => {
   try {
-    console.log("Creating clipboard context menu...");
+    const existingWindow = dataApp.getValue("clipboardWindow");
+    if (existingWindow && !existingWindow.isDestroyed()) {
+      if (showOnCreate) {
+        existingWindow.show();
+        existingWindow.focus();
+      }
+      return;
+    }
+
+    Logger.log("Creating clipboard context menu...");
 
     const window = new BrowserWindow({
       width: 400,
@@ -30,16 +39,16 @@ export const createWindowClipboard = (showOnCreate: boolean = false): void => {
       window.hide();
     });
 
-    const htmlPath = getPath("ASSETS", "index-clipboard.html");
+    const htmlPath = Paths.getPath("ASSETS", "index-clipboard.html");
 
     window.loadFile(htmlPath).catch((err) => {
-      console.error("Error loading clipboard file:", err);
+      Logger.error("Error loading clipboard file:", err);
     });
     dataApp.setValue("clipboardWindow", window);
 
-    console.log("Clipboard context menu created successfully");
+    Logger.log("Clipboard context menu created successfully");
   } catch (error) {
-    console.error("Error creating clipboard context menu:", error);
+    Logger.error("Error creating clipboard context menu:", error);
   }
 };
 
@@ -67,15 +76,14 @@ export const registerClipboardShortcuts = (): void => {
       );
 
       if (!registered)
-        console.error(
+        Logger.error(
           `Failed to register clipboard shortcut: ${shortcut.accelerator}`,
         );
-      else
-        console.log(`Registered clipboard shortcut: ${shortcut.accelerator}`);
+      else Logger.log(`Registered clipboard shortcut: ${shortcut.accelerator}`);
     });
 
-    console.log("Clipboard shortcuts registered successfully");
+    Logger.log("Clipboard shortcuts registered successfully");
   } catch (error) {
-    console.error("Error registering clipboard shortcuts:", error);
+    Logger.error("Error registering clipboard shortcuts:", error);
   }
 };
