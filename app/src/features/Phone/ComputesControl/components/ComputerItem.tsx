@@ -4,9 +4,9 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import { memoDeep } from "@utils";
-import { ActivityIndicator, Card, List } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
-import useStylesComputerControl from "../styles/useStylesComputerControl";
+import { useStylesComputerControl } from "../styles/useStylesComputerControl";
+import { ActivityIndicator, Card, List } from "react-native-paper";
 import { Device, ExecuteCommandOnDevice } from "../screens";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 

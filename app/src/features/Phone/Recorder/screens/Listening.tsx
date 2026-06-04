@@ -11,6 +11,7 @@ import {
   useTheme as usePaperTheme,
 } from "react-native-paper";
 import Slider from "@react-native-community/slider";
+import { Timers } from "@common";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@context/ThemeContext";
 import * as FileSystem from "expo-file-system";
@@ -20,7 +21,7 @@ import { StyleSheet, View } from "react-native";
 import { Svg, Rect, Circle } from "react-native-svg";
 import { createAudioPlayer } from "expo-audio";
 import { useStylesRecorderScreen } from "@screens/Phone/Recorder/styles/useStylesRecorderScreen";
-import { getFormattedDate, setTimeoutPolyfill } from "@utils";
+import { getFormattedDate } from "@utils";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 const formatSeconds = (value?: number | null) => {
@@ -110,7 +111,7 @@ const ListeningScreen: React.FC = () => {
           const player = createAudioPlayer({ uri });
 
           while (player.isBuffering) {
-            await new Promise((resolve) => setTimeoutPolyfill(resolve, 10));
+            await Timers.sleep(10);
           }
 
           const duration = player.duration;

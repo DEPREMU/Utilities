@@ -1,6 +1,6 @@
-import { ResponseDebugAppAlive } from "@types";
 import { REPLACERS } from "../TOP_LEVEL";
-import { DEBUG_SETTINGS, ServiceClass } from "@common";
+import { ResponseDebugAppAlive } from "@types";
+import { Timers, DEBUG_SETTINGS, ServiceClass } from "@common";
 
 type ListenersDebug = {
   appAliveCheck:
@@ -59,18 +59,17 @@ class Debug extends ServiceClass<ListenersDebug> {
   public toggleInterval = async (
     name: keyof ListenersDebug,
   ): Promise<boolean> => {
-    const { setIntervalPolyfill, clearIntervalPolyfill, storageManagement } =
-      await import("@utils");
+    const { storageManagement } = await import("@utils");
 
     switch (name) {
       case "appAliveCheck": {
         const exists = typeof this.#intervals[name] === "number";
 
         if (exists) {
-          clearIntervalPolyfill(this.#intervals[name]);
+          Timers.clearInterval(this.#intervals[name]);
           this.#intervals[name] = null;
         } else {
-          this.#intervals[name] = setIntervalPolyfill(
+          this.#intervals[name] = Timers.setInterval(
             this.#appAliveCheck.func,
             this.#appAliveCheck.timer,
           );
@@ -90,20 +89,20 @@ class Debug extends ServiceClass<ListenersDebug> {
   };
 
   private _initAppAliveCheck = async () => {
-    const { storageManagement, setIntervalPolyfill } = await import("@utils");
+    const { storageManagement } = await import("@utils");
     const debugSettings: DEBUG_SETTINGS =
       storageManagement.get("DEBUG") || this.#defaultSettings;
 
     if (!debugSettings.appAliveCheck) return;
 
-    this.#intervals.appAliveCheck = setIntervalPolyfill(
+    this.#intervals.appAliveCheck = Timers.setInterval(
       this.#appAliveCheck.func,
       this.#appAliveCheck.timer,
     );
   };
 
   override async _init(): Promise<void> {
-    const { storageManagement, logger, waitForTime } = await import("@utils");
+    const { storageManagement, logger } = await import("@utils");
 
     try {
       await storageManagement.waitUntilInitialized();
@@ -111,7 +110,7 @@ class Debug extends ServiceClass<ListenersDebug> {
       if (!data) {
         storageManagement.save("DEBUG", this.#defaultSettings);
       }
-      await waitForTime(1000);
+      await Timers.sleep(1000);
 
       await Promise.all([this._initAppAliveCheck()]);
     } catch (error) {
@@ -123,10 +122,7 @@ class Debug extends ServiceClass<ListenersDebug> {
   }
 
   override async destroy() {
-    const { clearIntervalPolyfill } = await import("@utils");
-    Object.values(this.#intervals).forEach((interval) => {
-      if (typeof interval === "number") clearIntervalPolyfill(interval);
-    });
+    Timers.clearInterval(...Object.values(this.#intervals));
     super.destroy();
   }
 

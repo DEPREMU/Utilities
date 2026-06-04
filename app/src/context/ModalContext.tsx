@@ -7,12 +7,12 @@ import React, {
   useContext,
   createContext,
 } from "react";
+import { Timers } from "@common";
 import { modalRef } from "@refs";
-import ModalComponent from "@/common/components/ModalComponent";
-import SnackBarComponent from "@/common/components/SnackBarComponent";
+import ModalComponent from "@components/ModalComponent";
+import SnackBarComponent from "@components/SnackBarComponent";
 import { SnackbarProps } from "react-native-paper";
 import { StyleSheet, View } from "react-native";
-import { clearTimeoutPolyfill, setTimeoutPolyfill } from "@utils";
 
 export type StylesModal =
   | "body"
@@ -80,7 +80,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
 
   const idTimeout = useRef<number | null>(null);
   const onDismissRef = useRef<() => void>(() => {});
-  const clearIdTimeout = useRef(() => clearTimeoutPolyfill(idTimeout));
+  const clearIdTimeout = useRef(() => Timers.clearTimeout(idTimeout.current));
 
   /**
    * Dismisses a snackbar with the specified id.
@@ -90,7 +90,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   const onDismissSnackbarRef = useRef((id: string) => {
     setSnackbar((prev) => {
       const snackbar = prev.find((snackbar) => snackbar.id === id);
-      if (snackbar?.timeout) clearTimeoutPolyfill(snackbar.timeout);
+      if (snackbar?.timeout) Timers.clearTimeout(snackbar.timeout);
 
       return prev.filter((snackbar) => snackbar.id !== id);
     });
@@ -117,7 +117,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
       clearIdTimeout.current();
 
       setIsOpen(false);
-      idTimeout.current = setTimeoutPolyfill(() => {
+      idTimeout.current = Timers.setTimeout(() => {
         setTitle("");
         setBody(null);
         setButtons(null);
@@ -130,7 +130,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
 
         const id = Math.random().toString(36).substring(2, 15);
 
-        const timeout = setTimeoutPolyfill(() => {
+        const timeout = Timers.setTimeout(() => {
           setSnackbar((prev) => prev.filter((snackbar) => snackbar.id !== id));
         }, duration);
 

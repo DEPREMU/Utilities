@@ -6,11 +6,12 @@ import Animated, {
   WithTimingConfig,
 } from "react-native-reanimated";
 import { Text } from "react-native-paper";
-import { StylesModal } from "@/context/ModalContext";
+import { Timers } from "@common";
+import { memoDeep } from "@utils";
+import { StylesModal } from "@context/ModalContext";
 import { useStylesModalComponent } from "@/common/styles/useStylesModalComponent";
 import React, { useEffect, useRef } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import { setTimeoutPolyfill, clearTimeoutPolyfill, memoDeep } from "@utils";
 
 interface ModalProps {
   title: string;
@@ -61,15 +62,14 @@ const ModalComponent: React.FC<ModalProps> = ({
       setHideModal(false);
       position.value = withTiming(0, options);
     } else {
-      idTimeout.current = setTimeoutPolyfill(() => setHideModal(true), 750);
+      idTimeout.current = Timers.setTimeout(setHideModal, 750, true);
       position.value = withTiming(height + 200, options);
     }
 
-    return () => clearTimeoutPolyfill(idTimeout);
+    return () => {
+      Timers.clearTimeout(idTimeout.current);
+    };
   }, [isOpen, height, position, setHideModal]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => () => clearTimeoutPolyfill(idTimeout), []);
 
   return (
     <Animated.View

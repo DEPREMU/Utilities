@@ -2,13 +2,6 @@ import {
   KeyboardGestureArea,
   KeyboardAvoidingView,
 } from "react-native-keyboard-controller";
-import {
-  logger,
-  navigation,
-  isValidEmail,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-} from "@utils";
 import Animated, {
   FadeInUp,
   withTiming,
@@ -17,6 +10,7 @@ import Animated, {
   useSharedValue,
   LinearTransition,
 } from "react-native-reanimated";
+import { Timers } from "@common";
 import { Screens } from "@types";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
@@ -26,7 +20,7 @@ import { ScrollView, View } from "react-native";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import { Button, Divider, Text } from "react-native-paper";
 import React, { useRef, useState } from "react";
-
+import { logger, navigation, isValidEmail } from "@utils";
 
 const ForgotPasswordScreen: React.FC<Screens["forgotPassword"]> = () => {
   const { t } = useLanguage();
@@ -61,8 +55,8 @@ const ForgotPasswordScreen: React.FC<Screens["forgotPassword"]> = () => {
       if (!success) {
         setError(error || "Sign up failed");
 
-        clearTimeoutPolyfill(timeoutIdRef.current);
-        timeoutIdRef.current = setTimeoutPolyfill(() => {
+        Timers.clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = Timers.setTimeout(() => {
           setError(null);
           timeoutIdRef.current = null;
         }, 4000);

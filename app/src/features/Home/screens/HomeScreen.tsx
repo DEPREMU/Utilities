@@ -4,6 +4,7 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import {
+  Network,
   memoDeep,
   REPLACERS,
   deviceInfo,
@@ -11,7 +12,6 @@ import {
   DATA_PLATFORM,
   sessionManager,
   EventsDeviceInfo,
-  hasInternetConnection,
 } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
@@ -208,7 +208,7 @@ const HomeScreen: React.FC<Screens["Home"]> = () => {
       EventsDeviceInfo.hasInternetChange,
       (newState) => setHasInternet(newState),
     );
-    hasInternetConnection().then(setHasInternet);
+    Network.isOnline().then(setHasInternet);
 
     return () => {
       hasInternetListener.remove();

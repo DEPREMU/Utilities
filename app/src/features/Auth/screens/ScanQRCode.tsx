@@ -3,18 +3,17 @@ import {
   OptionsReconnectingWS,
 } from "@/utils/reconnecting-websocket";
 import {
+  URLS,
   logger,
   parseData,
   REPLACERS,
   navigation,
   storageManagement,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-  URLS,
 } from "@utils";
-import Button from "@/common/components/Button/screens";
+import Button from "@components/Button/screens";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
+import { Timers } from "@common";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
@@ -55,7 +54,7 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
 
     getPermissionsCamera();
 
-    return () => clearTimeoutPolyfill(idTimeoutRef);
+    return () => Timers.clearTimeout(idTimeoutRef.current);
   }, []);
 
   useEffect(() => {
@@ -86,7 +85,7 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
     let ws: ReconnectingWebSocket | null = null;
 
     const clearIdTimeout = () => {
-      clearTimeoutPolyfill(idTimeoutRef);
+      Timers.clearTimeout(idTimeoutRef.current);
     };
 
     const handleLoginWithQR = async () => {
@@ -126,7 +125,7 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
             token,
           };
           ws?.send(JSON.stringify(message));
-          idTimeoutRef.current = setTimeoutPolyfill(
+          idTimeoutRef.current = Timers.setTimeout(
             () => {
               logger.error("QR login error: timeout");
               ws?.close();
@@ -182,11 +181,11 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
       }
     };
 
-    const id = setTimeoutPolyfill(handleLoginWithQR, 500);
+    const id = Timers.setTimeout(handleLoginWithQR, 500);
 
     return () => {
-      clearIdTimeout();
-      clearTimeoutPolyfill(id);
+      Timers.clearTimeout(idTimeoutRef.current);
+      Timers.clearTimeout(id);
       if (!ws) return;
 
       ws.close();

@@ -1,20 +1,19 @@
 import {
   logger,
   tTyped,
+  Network,
   REPLACERS,
   deviceInfo,
   navigation,
-  checkUrlStatus,
   EventsDeviceInfo,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
 } from "@utils";
 import axios from "axios";
+import { Timers } from "@common";
 import { modalRef } from "@refs";
 import ComputerItem from "../components/ComputerItem";
 import { useLanguage } from "@context/LanguageContext";
 import Zeroconf, { Service } from "react-native-zeroconf";
-import useStylesComputerControl from "@screens/Phone/ComputesControl/styles/useStylesComputerControl";
+import { useStylesComputerControl } from "@screens/Phone/ComputesControl/styles/useStylesComputerControl";
 import { AdvertisementTXT, Screens } from "@types";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import { ActivityIndicator, Text, FAB } from "react-native-paper";
@@ -54,7 +53,7 @@ const tryUrls = async (
   let resolved = false;
 
   return await new Promise((resolve: (value: string | null) => void) => {
-    const id = setTimeoutPolyfill(() => {
+    const id = Timers.setTimeout(() => {
       if (!resolved) {
         resolved = true;
         resolve(null);
@@ -63,10 +62,10 @@ const tryUrls = async (
 
     candidates.forEach(async (url) => {
       try {
-        if (await checkUrlStatus(url, "get", 2000)) {
+        if (await Network.isOnlineUrl(url, "get", 2000)) {
           if (!resolved) {
             resolved = true;
-            clearTimeoutPolyfill(id);
+            Timers.clearTimeout(id);
             resolve(url.replace("/status", ""));
           }
         }
@@ -121,8 +120,8 @@ const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
   const rescanPauseTimeoutRef = useRef<number | null>(null);
 
   const clearRescanTimersRef = useRef(() => {
-    clearTimeoutPolyfill(rescanTimeoutRef.current);
-    clearTimeoutPolyfill(rescanPauseTimeoutRef.current);
+    Timers.clearTimeout(rescanTimeoutRef.current);
+    Timers.clearTimeout(rescanPauseTimeoutRef.current);
   });
 
   const handleStopRef = useRef(async () => {
@@ -178,9 +177,9 @@ const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
 
     scanNetworkRef.current();
 
-    rescanTimeoutRef.current = setTimeoutPolyfill(() => {
+    rescanTimeoutRef.current = Timers.setTimeout(() => {
       zeroconfRef.current.stop("DNSSD");
-      rescanPauseTimeoutRef.current = setTimeoutPolyfill(() => {
+      rescanPauseTimeoutRef.current = Timers.setTimeout(() => {
         startRescanCycleRef.current();
       }, 1000);
     }, 10000);

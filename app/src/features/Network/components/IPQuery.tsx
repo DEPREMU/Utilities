@@ -1,21 +1,17 @@
 import {
-  memoDeep,
-  getFormattedDate,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-} from "@utils";
-import {
   IPQueryISP,
   IPQueryRisk,
   dataIPQueryJSON,
   IPQueryLocation,
   AppTranslationsKeys,
 } from "@types";
+import { Timers } from "@common";
 import { View, Text } from "react-native";
 // import MapView, { Marker } from "react-native-maps";
 import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@components/SkeletonLoading";
 import useStylesIPQuery from "@screens/Network/styles/useStylesIPQuery";
+import { memoDeep, getFormattedDate } from "@utils";
 import React, { useEffect, useMemo, useState } from "react";
 
 interface IPQueryProps {
@@ -123,22 +119,22 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
   useEffect(() => {
     if (dataIP?.ip !== "yourIP") return;
 
-    const id = setTimeoutPolyfill(() => {
+    const id = Timers.setTimeout(() => {
       if (dataIP?.ip === "yourIP") setShow(false);
     }, 10000);
 
-    return () => clearTimeoutPolyfill(id);
+    return () => Timers.clearTimeout(id);
   }, [dataIP]);
 
   useEffect(() => {
     if (!data) return;
 
-    const id = setTimeoutPolyfill(() => {
+    const id = Timers.setTimeout(() => {
       setDataIP(data);
       setShow(true);
     }, 1500);
 
-    return () => clearTimeoutPolyfill(id);
+    return () => Timers.clearTimeout(id);
   }, [data]);
 
   if (!show) return null;

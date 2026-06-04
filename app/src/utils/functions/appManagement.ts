@@ -4,23 +4,19 @@ import {
   DownloadableMimeType,
   RequestChangeImageFormat,
 } from "@types";
-import axios from "axios";
 import React from "react";
 import isEqual from "react-fast-compare";
+import { Alert } from "react-native";
 import { logger } from "./debug";
 import { tTyped } from "../translates";
 import * as Sharing from "expo-sharing";
 import { REPLACERS } from "../TOP_LEVEL";
-import { Alert, Falsy } from "react-native";
-import _BackgroundTimer from "react-native-background-timer";
 import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
 import * as MediaLibrary from "expo-media-library";
 import * as DocumentPicker from "expo-document-picker";
 import { Directory, File, Paths } from "expo-file-system";
 import { stringifyData, wrapFunctionWithError } from "@common";
-
-const URL_GOOGLE_204 = "https://www.google.com/generate_204";
 
 export const getFormattedDate = (
   date: Date,
@@ -50,123 +46,6 @@ export const getFormattedDate = (
 export const capitalize = (str: string): string => {
   if (!str) return str;
   return str.charAt(0).toUpperCase() + str.slice(1);
-};
-
-export const setTimeoutPolyfill = (
-  fn: (...args: unknown[]) => void,
-  timeout: number,
-): number => {
-  if (REPLACERS.isNative) return _BackgroundTimer.setTimeout(fn, timeout);
-  else return setTimeout(fn, timeout);
-};
-
-export const clearTimeoutPolyfill = (
-  ...ids: (number | Falsy | React.RefObject<number | Falsy>)[]
-): void => {
-  ids.forEach((id) => {
-    if (id && typeof id === "object" && "current" in id) {
-      const ref = id;
-      id = ref.current;
-      ref.current = null;
-    }
-
-    if (!id) return;
-
-    if (REPLACERS.isNative) _BackgroundTimer.clearTimeout(id as number);
-    else clearTimeout(id);
-  });
-};
-
-export const setIntervalPolyfill = (
-  fn: (...args: unknown[]) => void,
-  interval: number,
-): number => {
-  if (REPLACERS.isNative) return _BackgroundTimer.setInterval(fn, interval);
-  else return setInterval(fn, interval);
-};
-
-export const clearIntervalPolyfill = (
-  ...ids: (number | Falsy | React.RefObject<number | Falsy>)[]
-): void => {
-  ids.forEach((id) => {
-    if (id && typeof id === "object" && "current" in id) {
-      const ref = id;
-      id = ref.current;
-      ref.current = null;
-    }
-
-    if (!id) return;
-
-    if (REPLACERS.isNative) _BackgroundTimer.clearInterval(id);
-    else clearInterval(id);
-  });
-};
-
-export const checkUrlStatus = async (
-  url: string,
-  method?: "get" | "post",
-  timeout?: number,
-): Promise<boolean> => {
-  try {
-    if (!method) method = "get";
-    if (!timeout) timeout = 3000;
-
-    const res = await axios.request<{ destroy?: () => void }>({
-      url,
-      method,
-      timeout,
-      data: method === "post" ? {} : undefined,
-      validateStatus: () => true,
-    });
-    res?.data?.destroy?.();
-    return res.status >= 200 && res.status < 400;
-  } catch (error) {
-    logger.error(
-      `Error checking URL status for ${url}:`,
-      error instanceof Error ? error.message : error,
-    );
-    return false;
-  }
-};
-
-/**
- * Checks if the device has an active internet connection by attempting to reach a Google server.
- *
- * This function performs a GET request to a predefined Google server URL with a 10-second timeout.
- * It considers the connection active if the request returns a status code in the range of 200-399.
- *
- * @returns {Promise<boolean>} A promise that resolves to `true` if the internet connection is verified, or `false` if the request fails or times out.
- */
-export const hasInternetConnection = async (): Promise<boolean> => {
-  try {
-    const res = await axios.get(URL_GOOGLE_204, { timeout: 10000 });
-    return res.status < 400 && res.status >= 200;
-  } catch {
-    return false;
-  }
-};
-
-export const waitForTime = (ms: number) => {
-  return new Promise((resolve) => setTimeoutPolyfill(resolve, ms));
-};
-
-/**
- * Waits for an active internet connection by repeatedly checking connectivity with a specified number of retries and interval.
- * The function attempts to verify the internet connection by calling `hasInternetConnection` at regular intervals until a connection is established or the maximum number of retries is reached.
- *
- * @param retries - The maximum number of attempts to check for an internet connection before giving up.
- * @param interval - The time in milliseconds to wait between each connectivity check. Default is 2000ms (2 seconds).
- * @returns A promise that resolves to `true` if an internet connection is established within the given retries, or `false` if all attempts fail.
- */
-export const waitForInternet = async (
-  retries: number,
-  interval: number = 2000,
-): Promise<boolean> => {
-  for (let i = 0; i < retries; i++) {
-    if (await hasInternetConnection()) return true;
-    await waitForTime(interval);
-  }
-  return false;
 };
 
 /**

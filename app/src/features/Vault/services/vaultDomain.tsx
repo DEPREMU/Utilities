@@ -21,16 +21,14 @@ import {
   sanitizeFileName,
   storageManagement,
   decryptFolderFiles,
-  setTimeoutPolyfill,
-  setIntervalPolyfill,
   actionWithVaultItem,
   EXTENSION_ENCRYPTED,
-  clearTimeoutPolyfill,
   getDefaultVaultDirectory,
   getMimeTypeFromExtension,
   clearDecryptedFolderDirectory,
 } from "@utils";
 import Button from "@components/Button/screens";
+import { Timers } from "@common";
 import { modalRef } from "@refs";
 import { cloneDeep } from "lodash";
 import { TextInput } from "react-native-paper";
@@ -241,7 +239,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
   }
 
   override destroy() {
-    clearTimeoutPolyfill(this.#idTimeoutRef);
+    Timers.clearTimeout(this.#idTimeoutRef);
     super.destroy();
   }
 
@@ -317,7 +315,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
     unlock: async (callback) => {
       if (this.#state.data?.isUnlocked) {
         callback?.(true);
-        clearTimeoutPolyfill(this.#idTimeoutRef);
+        Timers.clearTimeout(this.#idTimeoutRef);
         return;
       }
 
@@ -472,8 +470,8 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
     lock: (callback) => {
       if (!this.#state.data?.isUnlocked) return;
 
-      clearTimeoutPolyfill(this.#idTimeoutRef);
-      this.#idTimeoutRef = setTimeoutPolyfill(async () => {
+      Timers.clearTimeout(this.#idTimeoutRef);
+      this.#idTimeoutRef = Timers.setTimeout(async () => {
         this.#setState((previous) => ({
           ...previous,
           data: null,
@@ -1114,6 +1112,4 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
 export const vaultDomainServiceManager = new InstanceManager(
   () => new VaultDomainService(),
   5 * 60 * 1000,
-  setIntervalPolyfill,
-  clearTimeoutPolyfill,
 );

@@ -13,11 +13,10 @@ import {
   sessionManager,
   getFormattedDate,
   askForPermission,
-  setTimeoutPolyfill,
   notificationsManager,
-  clearTimeoutPolyfill,
 } from "@utils";
 import Button from "@components/Button/screens";
+import { Timers } from "@common";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { FlatList, View } from "react-native";
@@ -487,9 +486,9 @@ const NotificationsScreen: React.FC = () => {
       });
     };
 
-    const id = setTimeoutPolyfill(saveIntervals, 1000);
+    const id = Timers.setTimeout(saveIntervals, 1000);
 
-    return () => clearTimeoutPolyfill(id);
+    return () => Timers.clearTimeout(id);
   }, [minutes, notifications, sendMessageRef]);
 
   return (

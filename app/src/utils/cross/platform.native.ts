@@ -1,5 +1,6 @@
 import PDF from "react-native-pdf";
 import { Image } from "react-native";
+import { Timers } from "@common";
 import * as PDFLib from "pdf-lib";
 import { randomUUID } from "react-native-quick-crypto";
 import { Directories } from "./Directories";
@@ -16,33 +17,29 @@ export const DATA_PLATFORM: PlatformData = {
 };
 
 export const deleteDirectoryPickerFolder = () => {
-  import("../functions").then(({ setTimeoutPolyfill }) => {
-    setTimeoutPolyfill(() => {
-      try {
-        new ExpoFileSystem.Directory(
-          ExpoFileSystem.Paths.cache,
-          Directories.DIRECTORY_PICKER,
-        ).delete();
-      } catch {
-        // Ignore errors
-      }
-    }, 1000);
-  });
+  Timers.setTimeout(() => {
+    try {
+      new ExpoFileSystem.Directory(
+        ExpoFileSystem.Paths.cache,
+        Directories.DIRECTORY_PICKER,
+      ).delete();
+    } catch {
+      // Ignore errors
+    }
+  }, 1000);
 };
 
 export const deleteDirectoryImageManipulatorFolder = () => {
-  import("../functions").then(({ setTimeoutPolyfill }) => {
-    setTimeoutPolyfill(() => {
-      try {
-        new ExpoFileSystem.Directory(
-          ExpoFileSystem.Paths.cache,
-          Directories.IMAGE_MANIPULATOR,
-        ).delete();
-      } catch {
-        // Ignore errors
-      }
-    }, 1000);
-  });
+  Timers.setTimeout(() => {
+    try {
+      new ExpoFileSystem.Directory(
+        ExpoFileSystem.Paths.cache,
+        Directories.IMAGE_MANIPULATOR,
+      ).delete();
+    } catch {
+      // Ignore errors
+    }
+  }, 1000);
 };
 
 export { PDF };

@@ -1,15 +1,14 @@
 import {
   logger,
+  tTyped,
   fetchToServer,
   sessionManager,
   storageManagement,
-  setTimeoutPolyfill,
-  tTyped,
 } from "@utils";
 import { create } from "zustand";
 import { openURL } from "expo-linking";
 import { modalRef } from "@/app/refs";
-import { getValueState } from "@common";
+import { Timers, getValueState } from "@common";
 import { DownDetector, GetStatesZustand } from "@types";
 
 type States = GetStatesZustand<{
@@ -120,7 +119,7 @@ export const useDownDetector = create<States & Actions>((set, get) => {
       } catch {
         modalRef.openSnackBar?.(tTyped("common.failedToAddTextToDatabase"));
       } finally {
-        setTimeout(() => {
+        Timers.setTimeout(() => {
           set({ isLoading: false });
         }, 1000);
       }
@@ -150,7 +149,7 @@ export const useDownDetector = create<States & Actions>((set, get) => {
         };
 
         if (!error && data) {
-          setTimeoutPolyfill(
+          Timers.originalSetTimeout(
             () =>
               set({
                 data:
@@ -164,7 +163,7 @@ export const useDownDetector = create<States & Actions>((set, get) => {
         logger.error("Error fetching downDetector data:", error);
       }
       const fallbackData = storageManagement.get("DOWN_DETECTOR_DATA");
-      setTimeoutPolyfill(
+      Timers.originalSetTimeout(
         () => set({ data: fallbackData || skeletonData }),
         2000,
       );

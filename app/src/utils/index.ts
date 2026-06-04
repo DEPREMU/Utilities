@@ -1,3 +1,4 @@
+import "@common";
 import "./TOP_LEVEL";
 
 export * from "@common";

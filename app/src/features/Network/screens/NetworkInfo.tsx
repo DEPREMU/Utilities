@@ -5,12 +5,12 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
+import { Timers } from "@common";
 import * as NetInfo from "@react-native-community/netinfo";
 import { useLanguage } from "@context/LanguageContext";
 import { Button, Text } from "react-native-paper";
 import { useStylesNetworkInfo } from "@screens/Network/styles/useStylesNetworkInfo";
 import { RefreshControl, ScrollView, View } from "react-native";
-import { clearIntervalPolyfill, setIntervalPolyfill } from "@utils";
 
 type NetworkItem = {
   key: string;
@@ -59,11 +59,11 @@ const NetworkInfo: React.FC = () => {
       setLastUpdated(new Date());
     });
 
-    const id = setIntervalPolyfill(fetchNetworkInfoRef.current, 60000);
+    const id = Timers.setInterval(fetchNetworkInfoRef.current, 60000);
 
     return () => {
       unsubscribe();
-      clearIntervalPolyfill(id);
+      Timers.clearInterval(id);
     };
   }, []);
 

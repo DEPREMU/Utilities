@@ -1,5 +1,5 @@
 import { REPLACERS } from "../TOP_LEVEL";
-import { ServiceClass } from "@common";
+import { Timers, ServiceClass } from "@common";
 import { createNavigationContainerRef } from "@react-navigation/native";
 import { GetParamsScreen, Screens, ScreensAvailable } from "@types";
 
@@ -49,7 +49,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
   };
 
   override async _init(): Promise<void> {
-    const { waitForTime, logger } = await import("@utils");
+    const { logger } = await import("@utils");
 
     try {
       if (this.ref.isReady()) return;
@@ -57,7 +57,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
       let attempts = 0;
       while (!this.ref.isReady() && attempts <= 100) {
         attempts++;
-        await waitForTime(50 + attempts);
+        await Timers.sleep(50 + attempts);
       }
     } catch (error) {
       logger.error(

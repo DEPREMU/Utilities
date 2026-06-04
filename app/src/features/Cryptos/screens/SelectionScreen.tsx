@@ -10,12 +10,12 @@ import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@components/SkeletonLoading";
 import { useCryptoStore } from "../services/cryptoZustand";
 import { useUserContext } from "@context/UserContext";
-import { GetStatesZustand } from "@types";
+import { GetStatesZustand, ValidClearTimeout } from "@types";
 import { useStylesCryptoItem } from "@screens/Cryptos/styles/useStylesCryptoItem";
 import { useStylesSelectionScreen } from "@screens/Cryptos/styles/useStylesSelectionScreen";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import { Text, Button, Searchbar, FAB } from "react-native-paper";
-import { getValueState, PriceBinanceAPI } from "@common";
+import { getValueState, PriceBinanceAPI, Timers } from "@common";
 import React, { useMemo, useEffect, useCallback } from "react";
 import { deviceInfo, memoDeep, navigation, REPLACERS } from "@utils";
 
@@ -34,24 +34,26 @@ type Actions = {
 };
 
 const useSelectionStore = create<States & Actions>((set, get) => {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeoutId: { c: ValidClearTimeout } = {
+    c: null,
+  };
 
   const cleanTimeout = () => {
-    if (!timeoutId) return;
+    if (!timeoutId.c) return;
 
-    clearTimeout(timeoutId);
-    timeoutId = null;
+    Timers.clearTimeout(timeoutId.c);
+    timeoutId.c = null;
   };
 
   const clearCacheData = {
     presses: 0,
-    timeoutId: null as ReturnType<typeof setTimeout> | null,
+    timeoutId: null as ValidClearTimeout,
   };
 
   const cleanTimeoutClearCache = () => {
     if (!clearCacheData.timeoutId) return;
 
-    clearTimeout(clearCacheData.timeoutId);
+    Timers.clearTimeout(clearCacheData.timeoutId);
     clearCacheData.timeoutId = null;
   };
 
@@ -74,7 +76,7 @@ const useSelectionStore = create<States & Actions>((set, get) => {
         useCryptoStore.getState().clearCache();
       }
 
-      clearCacheData.timeoutId = setTimeout(() => {
+      clearCacheData.timeoutId = Timers.setTimeout(() => {
         resetCacheData();
       }, 2500);
     },
@@ -108,7 +110,7 @@ const useSelectionStore = create<States & Actions>((set, get) => {
 
       cleanTimeout();
 
-      timeoutId = setTimeout(() => {
+      timeoutId.c = Timers.setTimeout(() => {
         setFilterText(cleanedText);
         cleanTimeout();
       }, 300);

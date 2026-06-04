@@ -1,10 +1,12 @@
 import {
+  Timers,
+  Network,
+  ServiceClass,
   KeyStorageValues,
   ExpectedStorageTypes,
   wrapFunctionWithError,
   ALL_KEYS_STORAGE_TYPE,
   DO_NOT_DELETE_OR_SAVE,
-  ServiceClass,
 } from "@common";
 import { logger } from "../functions/debug";
 import { cloneDeep } from "lodash";
@@ -19,7 +21,6 @@ import { checkLanguage, tTyped } from "../translates";
 import { ResponseAuth, ResponseFetch } from "@types";
 import { NotificationAction, UserData } from "@types";
 import { NativeFunctionsModule, windowModule } from "@modules";
-import { clearTimeoutPolyfill, setTimeoutPolyfill } from "../functions";
 
 type SessionData = {
   userData: Omit<UserData, "password"> | null;
@@ -392,11 +393,9 @@ class SessionManager extends ServiceClass<ListenersSession> {
   override async _init(): Promise<void> {
     try {
       await this.refreshSession();
-      const { setIntervalPolyfill, clearIntervalPolyfill } =
-        await import("../functions");
 
-      if (this.#intervalId) clearIntervalPolyfill(this.#intervalId);
-      this.#intervalId = setIntervalPolyfill(
+      if (this.#intervalId) Timers.clearInterval(this.#intervalId);
+      this.#intervalId = Timers.setInterval(
         () => this.refreshSession(),
         15 * 60 * 1000,
       );
@@ -411,14 +410,14 @@ class SessionManager extends ServiceClass<ListenersSession> {
 
   private clearTimeoutNotLoggedIn = () => {
     if (!this.#timeoutIdNotLoggedIn) return;
-    clearTimeoutPolyfill(this.#timeoutIdNotLoggedIn);
+    Timers.clearTimeout(this.#timeoutIdNotLoggedIn);
     this.#timeoutIdNotLoggedIn = null;
   };
 
   private notLoggedIn = () => {
     this.clearTimeoutNotLoggedIn();
 
-    this.#timeoutIdNotLoggedIn = setTimeoutPolyfill(async () => {
+    this.#timeoutIdNotLoggedIn = Timers.setTimeout(async () => {
       this.clearTimeoutNotLoggedIn();
       const actions: NotificationAction[] = [
         {
@@ -456,11 +455,10 @@ class SessionManager extends ServiceClass<ListenersSession> {
       if (this.#data.isLoggingIn) return;
       this.#data.isLoggingIn = true;
 
-      const { waitForInternet, deviceInfo, checkServerAlive } =
-        await import("@utils");
+      const { deviceInfo, checkServerAlive } = await import("@utils");
 
       const [hasInternet, isServerAlive] = await Promise.all([
-        waitForInternet(5),
+        Network.waitForOnline(5),
         checkServerAlive(),
       ]);
       if (!hasInternet) {
@@ -599,10 +597,8 @@ class SessionManager extends ServiceClass<ListenersSession> {
   };
 
   override destroy = async () => {
-    if (this.#intervalId) {
-      const { clearIntervalPolyfill } = await import("@utils");
-      clearIntervalPolyfill(this.#intervalId);
-    }
+    if (this.#intervalId) Timers.clearInterval(this.#intervalId);
+
     super.destroy();
   };
 

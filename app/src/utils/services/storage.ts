@@ -1,4 +1,5 @@
 import {
+  Timers,
   parseData,
   isSecureKey,
   ServiceClass,
@@ -270,6 +271,8 @@ const cleanAllStorageData = wrapFunctionWithError(
 );
 
 class StorageManagement extends ServiceClass<never> {
+  static instance: StorageManagement;
+
   #hasUI: boolean = false;
 
   public get hasUI() {
@@ -283,13 +286,13 @@ class StorageManagement extends ServiceClass<never> {
   override async _init() {
     try {
       await this.#loadData();
-      const { waitForTime, elapsedTime } = await import("@utils");
+      const { elapsedTime } = await import("@utils");
 
       const t = Date.now();
       const maxWaitTime = 30 * 1000;
       while (!this.#hasUI) {
         const { elapsed, hasElapsed } = elapsedTime(t, maxWaitTime);
-        await waitForTime(Math.min(maxWaitTime - elapsed, 50 + elapsed));
+        await Timers.sleep(Math.min(maxWaitTime - elapsed, 50 + elapsed));
         if (hasElapsed) break;
       }
     } catch (error) {
@@ -485,7 +488,7 @@ class StorageManagement extends ServiceClass<never> {
    * @returns A promise that resolves when the data has been reloaded.
    */
   public reloadData = async (): Promise<void> => {
-    this._reInit();
+    return this._reInit();
   };
 
   override destroy(): void {
@@ -493,7 +496,10 @@ class StorageManagement extends ServiceClass<never> {
   }
 
   constructor() {
+    if (StorageManagement.instance) return StorageManagement.instance;
+
     super();
+    StorageManagement.instance = this;
     this._reInit();
   }
 }

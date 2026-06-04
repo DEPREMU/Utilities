@@ -3,7 +3,6 @@ import {
   logger,
   Cryptos,
   elapsedTime,
-  waitForTime,
   CryptoEvents,
   sessionManager,
   SelectedCryptos,
@@ -15,6 +14,7 @@ import {
   OptionsReconnectingWS,
   ReconnectingWebSocket,
 } from "@/utils/reconnecting-websocket";
+import { Timers } from "@common";
 import { CryptosSettings, CryptosWebSocketMessage } from "@types";
 
 export const enum TIMES {
@@ -118,7 +118,7 @@ export abstract class CryptosWs extends Cryptos {
 
         switch (message.type) {
           case "synced": {
-            await waitForTime(1000);
+            await Timers.sleep(1000);
             this.emit(CryptoEvents.SYNCED_STATUS, "synced", message.settings);
 
             state.setLoading(false);

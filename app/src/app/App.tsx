@@ -1,14 +1,16 @@
-import {
-  REPLACERS,
-  cleanupServices,
-  storageManagement,
-  setTimeoutPolyfill,
-} from "@utils";
+import { Timers } from "@common";
 import AppNavigator from "./AppNavigator";
 import AppProviders from "@context/AppProviders";
 import LoadingScreen from "@screens/Loading/screens/LoadingScreen";
 import { NativeFunctionsModule } from "@modules";
 import React, { useEffect, useState } from "react";
+import { REPLACERS, cleanupServices, storageManagement } from "@utils";
+
+if (REPLACERS.isDev) {
+  import("@utils").then((utils) => {
+    (global as Record<string, unknown>).utils = utils;
+  });
+}
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -23,7 +25,7 @@ const App = () => {
     if (REPLACERS.isWeb) return cleanup();
 
     if (!REPLACERS.isDev)
-      setTimeoutPolyfill(async () => {
+      Timers.setTimeout(async () => {
         const launchedFromService =
           await NativeFunctionsModule.wasLaunchedFromService();
         if (!launchedFromService) return;

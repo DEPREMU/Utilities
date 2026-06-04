@@ -4,10 +4,11 @@ import {
   useSharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
+import { Timers } from "@common";
 import { useTheme } from "@context/ThemeContext";
 import { ViewStyle } from "react-native";
+import { ValidClearTimeout } from "@types";
 import React, { useCallback, useEffect } from "react";
-import { clearTimeoutPolyfill, setTimeoutPolyfill } from "@utils";
 
 type UseTextInputReturn = {
   clear: () => void;
@@ -65,9 +66,7 @@ export const useTextInput = ({
     onChangeRef.current = onChangeNum;
   }, [onChangeNum]);
 
-  const timeoutId = React.useRef<ReturnType<typeof setTimeoutPolyfill> | null>(
-    null,
-  );
+  const timeoutId = React.useRef<ValidClearTimeout>(null);
 
   const clear = useCallback(() => {
     setIsValid(true);
@@ -84,7 +83,7 @@ export const useTextInput = ({
   useEffect(() => {
     if (!valueStr) return;
 
-    timeoutId.current = setTimeoutPolyfill(() => {
+    timeoutId.current = Timers.setTimeout(() => {
       const num = Number(valueStr);
       const validNum = isNaN(num) ? 0 : num;
       const valid = onChangeRef.current.isValid
@@ -113,8 +112,7 @@ export const useTextInput = ({
     return () => {
       const shouldClean = onChangeRef.current.cleanTimeout?.() ?? true;
 
-      if (timeoutId.current && shouldClean)
-        clearTimeoutPolyfill(timeoutId.current);
+      if (shouldClean) Timers.clearTimeout(timeoutId.current);
       timeoutId.current = null;
     };
   }, [valueStr, xValue]);

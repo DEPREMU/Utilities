@@ -16,9 +16,8 @@ import {
   isValidEmail,
   sessionManager,
   isValidPassword,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
 } from "@utils";
+import { Timers } from "@common";
 import { Screens } from "@types";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
@@ -64,8 +63,8 @@ const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
       if (!success) {
         setError(error || "Sign up failed");
 
-        clearTimeoutPolyfill(timeoutIdRef.current);
-        timeoutIdRef.current = setTimeoutPolyfill(() => {
+        Timers.clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = Timers.setTimeout(() => {
           setError(null);
           timeoutIdRef.current = null;
         }, 3000);

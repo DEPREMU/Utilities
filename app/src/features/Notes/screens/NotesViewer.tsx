@@ -22,13 +22,6 @@ import {
   AudioRecorder,
 } from "react-native-audio-api";
 import {
-  PDF,
-  tTyped,
-  memoDeep,
-  setIntervalPolyfill,
-  clearIntervalPolyfill,
-} from "@utils";
-import {
   Icon,
   Menu,
   Text,
@@ -50,6 +43,7 @@ import {
   TextInputSelectionChangeEvent,
 } from "react-native";
 import { File } from "expo-file-system";
+import { Timers } from "@common";
 import * as Sharing from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import * as DocumentPicker from "expo-document-picker";
@@ -57,6 +51,7 @@ import { useNotesFeature } from "@screens/Notes/context/NotesContext";
 import useStylesNotesScreen from "@screens/Notes/styles/useStylesNotesScreen";
 import NotesAudioChoiceModal from "@screens/Notes/components/viewer/NotesAudioChoiceModal";
 import type { NotesAttachment } from "@types";
+import { PDF, tTyped, memoDeep } from "@utils";
 import { AudioModule, createAudioPlayer } from "expo-audio";
 
 interface NotesViewerProps {
@@ -309,7 +304,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
   const lineSelectionMapRef = useRef<Record<number, SelectionRange>>({});
   const pendingFocusLineIndexRef = useRef<number | null>(null);
   const clearRecordTimerRef = useRef(() => {
-    clearIntervalPolyfill(recordTimerIdRef.current);
+    Timers.clearInterval(recordTimerIdRef.current);
     recordTimerIdRef.current = null;
   });
   const pauseAudioRecordingRef = useRef(async () => {
@@ -383,7 +378,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
     await player.play();
   });
   const clearInlinePreviewAudioRef = useRef(() => {
-    clearIntervalPolyfill(inlinePreviewAudioTimerIdRef.current);
+    Timers.clearInterval(inlinePreviewAudioTimerIdRef.current);
     inlinePreviewAudioTimerIdRef.current = null;
     inlinePreviewAudioPlayerRef.current?.remove();
     inlinePreviewAudioPlayerRef.current = null;
@@ -575,7 +570,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
     recordingStartedAtMsRef.current = Date.now();
 
     clearRecordTimerRef.current();
-    const timerId = setIntervalPolyfill(() => {
+    const timerId = Timers.setInterval(() => {
       const startAt = recordingStartedAtMsRef.current;
       const elapsedMs =
         recordingAccumulatedMsRef.current +
@@ -726,7 +721,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
       const player = createAudioPlayer({ uri });
       inlinePreviewAudioPlayerRef.current = player;
 
-      const listenerId = setIntervalPolyfill(() => {
+      const listenerId = Timers.setInterval(() => {
         setInlinePreviewAudioState({
           attachmentId: attachment.id,
           playing: player.playing,
@@ -1155,9 +1150,9 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
 
   useEffect(() => {
     return () => {
-      clearIntervalPolyfill(recordTimerIdRef.current);
-      clearIntervalPolyfill(audioListenerTimerIdRef.current);
-      clearIntervalPolyfill(inlinePreviewAudioTimerIdRef.current);
+      Timers.clearInterval(recordTimerIdRef.current);
+      Timers.clearInterval(audioListenerTimerIdRef.current);
+      Timers.clearInterval(inlinePreviewAudioTimerIdRef.current);
 
       const recorder = audioRecorderRef.current;
       if (recorder) {
@@ -1173,7 +1168,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
   }, []);
 
   useEffect(() => {
-    clearIntervalPolyfill(audioListenerTimerIdRef.current);
+    Timers.clearInterval(audioListenerTimerIdRef.current);
     audioListenerTimerIdRef.current = null;
     audioAttachmentPlayerRef.current?.remove();
     audioAttachmentPlayerRef.current = null;
@@ -1190,7 +1185,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
     const player = createAudioPlayer({ uri: openedAttachmentUri });
     audioAttachmentPlayerRef.current = player;
 
-    const listenerId = setIntervalPolyfill(() => {
+    const listenerId = Timers.setInterval(() => {
       const currentTime = player.currentTime || 0;
       const duration = player.duration || 0;
       const playing = player.playing;
@@ -1204,7 +1199,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
     audioListenerTimerIdRef.current = listenerId as unknown as number;
 
     return () => {
-      clearIntervalPolyfill(listenerId as unknown as number);
+      Timers.clearInterval(listenerId as unknown as number);
       player.remove();
       audioAttachmentPlayerRef.current = null;
     };
@@ -1218,12 +1213,12 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
     const targetLineIndex = pendingFocusLineIndexRef.current;
     if (targetLineIndex === null || isPreviewMode) return;
 
-    const timeoutId = setTimeout(() => {
+    const timeoutId = Timers.setTimeout(() => {
       lineInputsRef.current[targetLineIndex]?.focus?.();
       pendingFocusLineIndexRef.current = null;
     }, 0);
 
-    return () => clearTimeout(timeoutId);
+    return () => Timers.clearTimeout(timeoutId);
   }, [editableLines, isPreviewMode]);
 
   if (!draftNote)

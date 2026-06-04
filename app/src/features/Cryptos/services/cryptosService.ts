@@ -1,15 +1,18 @@
 import {
+  Timers,
+  CryptoEvents,
+  InstanceManager,
+  SelectedCryptos,
+} from "@common";
+import {
   deviceInfo,
   sessionManager,
   EventsDeviceInfo,
   storageManagement,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
 } from "@utils";
 import { cloneDeep } from "lodash";
 import { CryptosWs, TIMES } from "./cryptoWs";
-import { Crypto, CryptosSettings } from "@types";
-import { CryptoEvents, InstanceManager, SelectedCryptos } from "@common";
+import { Crypto, CryptosSettings, ValidClearTimeout } from "@types";
 
 type AdditionsData = Omit<Crypto, "id" | "datePurchased" | "userId">[];
 
@@ -19,13 +22,13 @@ export class CryptosService extends CryptosWs {
   #settings: CryptosSettings | null = null;
 
   #deletes = {
-    timeoutId: null as ReturnType<typeof setTimeoutPolyfill> | null,
+    timeoutId: null as ValidClearTimeout,
     shouldDelete: false,
     cryptoSymbols: [] as string[],
   };
 
   #updates = {
-    timeoutId: null as ReturnType<typeof setTimeoutPolyfill> | null,
+    timeoutId: null as ValidClearTimeout,
     shouldUpdate: false,
     data: {} as {
       [symbol: string]: Partial<SelectedCryptos[string]>;
@@ -33,7 +36,7 @@ export class CryptosService extends CryptosWs {
   };
 
   #additions = {
-    timeoutId: null as ReturnType<typeof setTimeoutPolyfill> | null,
+    timeoutId: null as ValidClearTimeout,
     shouldAdd: false,
     data: [] as AdditionsData,
   };
@@ -86,11 +89,8 @@ export class CryptosService extends CryptosWs {
     this.#updates.shouldUpdate = true;
     this.#updates.data[symbol] = cryptoData;
 
-    if (this.#updates.timeoutId) clearTimeoutPolyfill(this.#updates.timeoutId);
-    this.#updates.timeoutId = setTimeoutPolyfill(
-      () => this._updateCryptos(),
-      5000,
-    );
+    if (this.#updates.timeoutId) Timers.clearTimeout(this.#updates.timeoutId);
+    this.#updates.timeoutId = Timers.setTimeout(this._updateCryptos, 5000);
   };
 
   private _deleteCryptos = async () => {
@@ -126,8 +126,8 @@ export class CryptosService extends CryptosWs {
         (c) => c.symbol !== cryptoId,
       );
 
-    if (this.#deletes.timeoutId) clearTimeoutPolyfill(this.#deletes.timeoutId);
-    this.#deletes.timeoutId = setTimeoutPolyfill(
+    if (this.#deletes.timeoutId) Timers.clearTimeout(this.#deletes.timeoutId);
+    this.#deletes.timeoutId = Timers.setTimeout(
       () => this._deleteCryptos(),
       5000,
     );
@@ -167,8 +167,8 @@ export class CryptosService extends CryptosWs {
       );
 
     if (this.#additions.timeoutId)
-      clearTimeoutPolyfill(this.#additions.timeoutId);
-    this.#additions.timeoutId = setTimeoutPolyfill(
+      Timers.clearTimeout(this.#additions.timeoutId);
+    this.#additions.timeoutId = Timers.setTimeout(
       () => this._addCryptos(),
       5000,
     );
@@ -188,10 +188,10 @@ export class CryptosService extends CryptosWs {
       this.#pricesListener.remove();
       this.#pricesListener = null;
     }
-    if (this.#deletes.timeoutId) clearTimeoutPolyfill(this.#deletes.timeoutId);
+    if (this.#deletes.timeoutId) Timers.clearTimeout(this.#deletes.timeoutId);
     if (this.#additions.timeoutId)
-      clearTimeoutPolyfill(this.#additions.timeoutId);
-    if (this.#updates.timeoutId) clearTimeoutPolyfill(this.#updates.timeoutId);
+      Timers.clearTimeout(this.#additions.timeoutId);
+    if (this.#updates.timeoutId) Timers.clearTimeout(this.#updates.timeoutId);
     this.#removeHasInternetListener.remove();
   }
 
@@ -331,6 +331,4 @@ export class CryptosService extends CryptosWs {
 export const CryptoManager = new InstanceManager(
   () => new CryptosService(),
   TIMES.INSTANCE_CACHE,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
 );

@@ -2,8 +2,8 @@ import { alerts } from "../services/alerts";
 import { AppState } from "react-native";
 import { REPLACERS } from "../TOP_LEVEL";
 import * as Location from "expo-location";
-import { Permission } from "@common";
 import { permissionsData } from "@refs";
+import { Permission, Timers } from "@common";
 import { NativeFunctionsModule } from "@modules";
 
 const TAG = "PERMISSIONS";
@@ -50,8 +50,7 @@ const askLocationPermission = async (
 ): Promise<void> => {
   if (REPLACERS.isWeb) return;
 
-  const { notificationsManager, storageManagement, waitForTime } =
-    await import("@utils");
+  const { notificationsManager, storageManagement } = await import("@utils");
   if (!storageManagement.hasUI) return;
   if (
     permissionsData.permissions.location.doNotAskAgain &&
@@ -70,7 +69,7 @@ const askLocationPermission = async (
   }
 
   if (permissionsData.hasOverlayPermission) NativeFunctionsModule.openApp?.();
-  await waitForTime(500);
+  await Timers.sleep(500);
 
   granted = !!(await alerts.showAlert(
     "permissions.locationPermission",
@@ -99,9 +98,9 @@ const askLocationPermission = async (
 };
 
 export const waitForAppToBeActive = async (): Promise<void> => {
-  const { logger, waitForTime, elapsedTime } = await import("@utils");
+  const { logger, elapsedTime } = await import("@utils");
 
-  await waitForTime(500);
+  await Timers.sleep(500);
 
   let step: "waitingForInactivity" | "waitingForActivity" | "done" =
     "waitingForInactivity";
@@ -116,15 +115,15 @@ export const waitForAppToBeActive = async (): Promise<void> => {
 
     if (step === "waitingForInactivity") {
       if (AppState.currentState !== "active") {
-        await waitForTime(500);
+        await Timers.sleep(500);
         step = "waitingForActivity";
-      } else await waitForTime(100);
+      } else await Timers.sleep(100);
     } else if (step === "waitingForActivity") {
       if (AppState.currentState === "active") step = "done";
-      else await waitForTime(100);
+      else await Timers.sleep(100);
     }
   }
-  await waitForTime(500);
+  await Timers.sleep(500);
 };
 
 /**
@@ -216,10 +215,8 @@ const askBatteryOptimizationPermission = async (
   permissionsData.permissions.batteryOptimization.enabled = hasPermission;
   if (hasPermission) return;
 
-  const { waitForTime } = await import("@utils");
-
   if (permissionsData.hasOverlayPermission) NativeFunctionsModule.openApp?.();
-  await waitForTime(500);
+  await Timers.sleep(500);
 
   const accepted = await alerts.showAlert(
     "permissions.batteryOptimizationPermission",

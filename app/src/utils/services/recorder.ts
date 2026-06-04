@@ -1,4 +1,10 @@
 import {
+  Timers,
+  ServiceClass,
+  wrapFunctionWithError,
+  ExpectedUnsecureStorageTypes,
+} from "@common";
+import {
   FileFormat,
   FilePreset,
   AudioManager,
@@ -7,25 +13,13 @@ import {
   FileDirectory,
   RecordingNotificationManager,
 } from "react-native-audio-api";
-import {
-  logger,
-  areEqualValues,
-  downloadBase64,
-  setTimeoutPolyfill,
-  setIntervalPolyfill,
-  clearIntervalPolyfill,
-} from "../functions";
 import { tTyped } from "../translates";
 import { modalRef } from "@refs";
 import { storageManagement } from "./storage";
 import { NotificationAction } from "@types";
 import { notificationsManager } from "./notifications";
 import { Directory, File, Paths } from "expo-file-system";
-import {
-  ExpectedUnsecureStorageTypes,
-  ServiceClass,
-  wrapFunctionWithError,
-} from "@common";
+import { logger, areEqualValues, downloadBase64 } from "../functions";
 
 type RecorderData = Exclude<
   ExpectedUnsecureStorageTypes["RECORDER_DATA"],
@@ -383,20 +377,20 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
 
   private clearRecordInterval = () => {
     if (!this.#recordIntervalId) return;
-    clearIntervalPolyfill(this.#recordIntervalId);
+    Timers.clearInterval(this.#recordIntervalId);
     this.#recordIntervalId = null;
   };
 
   private clearPlayerInterval = () => {
     if (!this.#playerIntervalId) return;
-    clearIntervalPolyfill(this.#playerIntervalId);
+    Timers.clearInterval(this.#playerIntervalId);
     this.#playerIntervalId = null;
   };
 
   private initPlayerInterval = () => {
     this.clearPlayerInterval();
 
-    this.#playerIntervalId = setIntervalPolyfill(() => {
+    this.#playerIntervalId = Timers.setInterval(() => {
       this.updatePlayerStatus();
     }, INTERVAL_UPDATE_PLAYER);
   };
@@ -423,7 +417,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
 
   private waitForActivity = async () => {
     await new Promise<void>((resolve) => {
-      setTimeoutPolyfill(() => resolve(), 350);
+      Timers.setTimeout(() => resolve(), 350);
     });
   };
   private moveRecordingToCache = async (uri: string) => {
@@ -483,7 +477,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
   private initRecordInterval = () => {
     this.clearRecordInterval();
 
-    this.#recordIntervalId = setIntervalPolyfill(() => {
+    this.#recordIntervalId = Timers.setInterval(() => {
       this.updateSecondsRecorded();
     }, INTERVAL_UPDATE_RECORD);
   };
@@ -551,7 +545,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
       if (this.#data.shouldAutoStart && hasPermission) {
         AudioManager.setAudioSessionOptions({});
         await AudioManager.setAudioSessionActivity(true);
-        setTimeoutPolyfill(this.startRecording, 1000);
+        Timers.setTimeout(this.startRecording, 1000);
 
         notificationsManager.sendNotification({
           actions,

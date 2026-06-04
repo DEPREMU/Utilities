@@ -27,9 +27,10 @@ import {
   ActivityIndicator,
 } from "react-native-paper";
 import Sortable from "react-native-sortables";
+import { Timers } from "@common";
 import { shareAsync } from "expo-sharing";
-import { useLanguage } from "@/context/LanguageContext";
-import { useStylesPDF } from "@/features/PDF/styles/useStylesPDF";
+import { useLanguage } from "@context/LanguageContext";
+import { useStylesPDF } from "@screens/PDF/styles/useStylesPDF";
 import { cloneDeep, isNaN } from "lodash";
 import * as DirectoryPicker from "expo-document-picker";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -173,7 +174,7 @@ const PDFConverter: React.FC = () => {
         link.download = result.fileName;
         document.body.appendChild(link);
         link.click();
-        setTimeout(() => {
+        Timers.setTimeout(() => {
           document.body.removeChild(link);
           result.cleanup();
         }, 60 * 1000);

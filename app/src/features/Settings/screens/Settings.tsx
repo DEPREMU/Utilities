@@ -18,10 +18,10 @@ import {
   EventsDeviceInfo,
   getFormattedDate,
   storageManagement,
-  setTimeoutPolyfill,
   getDevicePushToken,
 } from "@utils";
 import Button from "@components/Button/screens";
+import { Timers } from "@common";
 import ThemePicker from "@screens/Settings/components/ThemePicker";
 import { cloneDeep } from "lodash";
 import LanguagePicker from "@screens/Settings/components/LanguagePicker";
@@ -157,7 +157,7 @@ const SettingsScreen: React.FC = () => {
 
     const hasUpdate = await updates?.checkForUpdates();
 
-    setTimeoutPolyfill(() => {
+    Timers.setTimeout(() => {
       setUpdatesData((prevState) =>
         cloneDeep({
           ...prevState,

@@ -22,6 +22,8 @@ export const REPLACERS: Record<REPLACERS_TYPE, boolean> = {
   isProduction,
 };
 
+if (REPLACERS.isNative) import("./global.native");
+
 const checkVariables = (): void => {
   const NEEDED_VARIABLES = [
     "version",
