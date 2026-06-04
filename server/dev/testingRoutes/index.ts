@@ -9,6 +9,8 @@ import { makeRequest } from "./utils.ts";
 import { TestResult, TestSummary } from "./types.ts";
 import { MethodsAvailableInAPI, RoutesAPI } from "@types";
 
+const LOG = false;
+
 /**
  * Executes a single test case
  * @param route - API route to test
@@ -90,8 +92,10 @@ const executeRouteTests = async (route: RoutesAPI): Promise<TestResult[]> => {
   const tests = routeTests[route];
   const results: TestResult[] = [];
 
-  Logger.log(`\nTesting route: ${route}`);
-  Logger.log(`   Running ${tests.length} tests...\n`);
+  if (LOG) {
+    Logger.log(`\nTesting route: ${route}`);
+    Logger.log(`   Running ${tests.length} tests...\n`);
+  }
 
   for (const test of tests) {
     const method =
@@ -116,11 +120,13 @@ const executeRouteTests = async (route: RoutesAPI): Promise<TestResult[]> => {
 
     results.push(result);
 
-    if (result.success) {
-      Logger.log(`   ✓ ${result.description} (${result.duration}ms)`);
-    } else {
-      Logger.log(`   ✗ ${result.description} (${result.duration}ms)`);
-      Logger.log(`     Error: ${result.error}`);
+    if (LOG) {
+      if (result.success) {
+        Logger.log(`   ✓ ${result.description} (${result.duration}ms)`);
+      } else {
+        Logger.log(`   ✗ ${result.description} (${result.duration}ms)`);
+        Logger.log(`     Error: ${result.error}`);
+      }
     }
 
     if (result.success) {
@@ -145,13 +151,15 @@ export const runAllTests = async (
   const startTime = Date.now();
   const allResults: TestResult[] = [];
 
-  Logger.log(
-    "╔════════════════════════════════════════════════════════════════",
-  );
-  Logger.log("║ 🚀 Starting API Test Suite");
-  Logger.log(
-    "╚════════════════════════════════════════════════════════════════\n",
-  );
+  if (LOG) {
+    Logger.log(
+      "╔════════════════════════════════════════════════════════════════",
+    );
+    Logger.log("║ 🚀 Starting API Test Suite");
+    Logger.log(
+      "╚════════════════════════════════════════════════════════════════\n",
+    );
+  }
 
   const routes = Object.keys(routeTests) as RoutesAPI[];
 
@@ -178,23 +186,25 @@ export const runAllTests = async (
     results: allResults,
   };
 
-  Logger.log(
-    "\n|================================================================",
-  );
-  Logger.log("| Test Summary");
-  Logger.log(
-    "|================================================================",
-  );
-  Logger.log(`| Total Tests:    ${summary.total}`);
-  Logger.log(`| Passed:         ${summary.passed}`);
-  Logger.log(`| Failed:         ${summary.failed}`);
-  Logger.log(
-    `| Success Rate:   ${((passed / summary.total) * 100).toFixed(2)}%`,
-  );
-  Logger.log(`| Total Duration: ${summary.duration}ms`);
-  Logger.log(
-    "|================================================================\n",
-  );
+  if (LOG) {
+    Logger.log(
+      "\n|================================================================",
+    );
+    Logger.log("| Test Summary");
+    Logger.log(
+      "|================================================================",
+    );
+    Logger.log(`| Total Tests:    ${summary.total}`);
+    Logger.log(`| Passed:         ${summary.passed}`);
+    Logger.log(`| Failed:         ${summary.failed}`);
+    Logger.log(
+      `| Success Rate:   ${((passed / summary.total) * 100).toFixed(2)}%`,
+    );
+    Logger.log(`| Total Duration: ${summary.duration}ms`);
+    Logger.log(
+      "|================================================================\n",
+    );
+  }
 
   if (failed > 0) {
     Logger.log("Some tests failed. See details above.\n");
