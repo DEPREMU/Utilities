@@ -3,7 +3,7 @@ import {
   hasCriticalError,
   validateResponse,
 } from "./validator.ts";
-import { showInfo } from "../functions/logger.ts";
+import { Logger } from "@common";
 import { routeTests } from "./testCases.ts";
 import { makeRequest } from "./utils.ts";
 import { TestResult, TestSummary } from "./types.ts";
@@ -90,8 +90,8 @@ const executeRouteTests = async (route: RoutesAPI): Promise<TestResult[]> => {
   const tests = routeTests[route];
   const results: TestResult[] = [];
 
-  showInfo(`\nTesting route: ${route}`);
-  showInfo(`   Running ${tests.length} tests...\n`);
+  Logger.log(`\nTesting route: ${route}`);
+  Logger.log(`   Running ${tests.length} tests...\n`);
 
   for (const test of tests) {
     const method =
@@ -117,10 +117,10 @@ const executeRouteTests = async (route: RoutesAPI): Promise<TestResult[]> => {
     results.push(result);
 
     if (result.success) {
-      showInfo(`   ✓ ${result.description} (${result.duration}ms)`);
+      Logger.log(`   ✓ ${result.description} (${result.duration}ms)`);
     } else {
-      showInfo(`   ✗ ${result.description} (${result.duration}ms)`);
-      showInfo(`     Error: ${result.error}`);
+      Logger.log(`   ✗ ${result.description} (${result.duration}ms)`);
+      Logger.log(`     Error: ${result.error}`);
     }
 
     if (result.success) {
@@ -145,9 +145,11 @@ export const runAllTests = async (
   const startTime = Date.now();
   const allResults: TestResult[] = [];
 
-  showInfo("╔════════════════════════════════════════════════════════════════");
-  showInfo("║ 🚀 Starting API Test Suite");
-  showInfo(
+  Logger.log(
+    "╔════════════════════════════════════════════════════════════════",
+  );
+  Logger.log("║ 🚀 Starting API Test Suite");
+  Logger.log(
     "╚════════════════════════════════════════════════════════════════\n",
   );
 
@@ -159,7 +161,7 @@ export const runAllTests = async (
 
     const failed = results.filter((r) => !r.success);
     if (failed.length > 0 && stopOnError) {
-      showInfo("\n❌ Stopping tests due to failure (stopOnError=true)\n");
+      Logger.log("\n❌ Stopping tests due to failure (stopOnError=true)\n");
       throwTestError(failed[0]);
     }
   }
@@ -176,31 +178,35 @@ export const runAllTests = async (
     results: allResults,
   };
 
-  showInfo(
+  Logger.log(
     "\n|================================================================",
   );
-  showInfo("| Test Summary");
-  showInfo("|================================================================");
-  showInfo(`| Total Tests:    ${summary.total}`);
-  showInfo(`| Passed:         ${summary.passed}`);
-  showInfo(`| Failed:         ${summary.failed}`);
-  showInfo(`| Success Rate:   ${((passed / summary.total) * 100).toFixed(2)}%`);
-  showInfo(`| Total Duration: ${summary.duration}ms`);
-  showInfo(
+  Logger.log("| Test Summary");
+  Logger.log(
+    "|================================================================",
+  );
+  Logger.log(`| Total Tests:    ${summary.total}`);
+  Logger.log(`| Passed:         ${summary.passed}`);
+  Logger.log(`| Failed:         ${summary.failed}`);
+  Logger.log(
+    `| Success Rate:   ${((passed / summary.total) * 100).toFixed(2)}%`,
+  );
+  Logger.log(`| Total Duration: ${summary.duration}ms`);
+  Logger.log(
     "|================================================================\n",
   );
 
   if (failed > 0) {
-    showInfo("Some tests failed. See details above.\n");
-    showInfo("Failed tests:");
+    Logger.log("Some tests failed. See details above.\n");
+    Logger.log("Failed tests:");
     allResults
       .filter((r) => !r.success)
       .forEach((r) => {
-        showInfo(`  * ${r.route} - ${r.description}`);
-        showInfo(`    Error: ${r.error}\n`);
+        Logger.log(`  * ${r.route} - ${r.description}`);
+        Logger.log(`    Error: ${r.error}\n`);
       });
   } else {
-    showInfo("All tests passed!\n");
+    Logger.log("All tests passed!\n");
   }
 
   return summary;
@@ -218,9 +224,13 @@ export const runRouteTests = async (
 ): Promise<TestSummary> => {
   const startTime = Date.now();
 
-  showInfo("|================================================================");
-  showInfo(`| 🚀 Testing Route: ${route}`);
-  showInfo("|================================================================");
+  Logger.log(
+    "|================================================================",
+  );
+  Logger.log(`| 🚀 Testing Route: ${route}`);
+  Logger.log(
+    "|================================================================",
+  );
 
   const results = await executeRouteTests(route);
 
@@ -241,18 +251,22 @@ export const runRouteTests = async (
     results,
   };
 
-  showInfo(
+  Logger.log(
     "\n|================================================================",
   );
-  showInfo("| Route Test Summary");
-  showInfo("|================================================================");
-  showInfo(`| Route:          ${route}`);
-  showInfo(`| Total Tests:    ${summary.total}`);
-  showInfo(`| Passed:         ${summary.passed}`);
-  showInfo(`| Failed:         ${summary.failed}`);
-  showInfo(`| Success Rate:   ${((passed / summary.total) * 100).toFixed(2)}%`);
-  showInfo(`| Duration:       ${summary.duration}ms`);
-  showInfo(
+  Logger.log("| Route Test Summary");
+  Logger.log(
+    "|================================================================",
+  );
+  Logger.log(`| Route:          ${route}`);
+  Logger.log(`| Total Tests:    ${summary.total}`);
+  Logger.log(`| Passed:         ${summary.passed}`);
+  Logger.log(`| Failed:         ${summary.failed}`);
+  Logger.log(
+    `| Success Rate:   ${((passed / summary.total) * 100).toFixed(2)}%`,
+  );
+  Logger.log(`| Duration:       ${summary.duration}ms`);
+  Logger.log(
     "|================================================================\n",
   );
 

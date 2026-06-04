@@ -1,9 +1,8 @@
 import chalk from "chalk";
 import axios from "axios";
-import { showInfo } from "../functions/logger.ts";
 import { fetchFromTable } from "../database/functions.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
-import { languagesSupported, t } from "@common";
+import { t, Logger, languagesSupported } from "@common";
 import { LanguagesSupported, ReasonNotification } from "@types";
 
 const isDown = async (url: string): Promise<boolean> => {
@@ -13,13 +12,13 @@ const isDown = async (url: string): Promise<boolean> => {
     const res = await axios.get(url, { timeout: 5000 });
     if (res.status >= 200 && res.status < 400) return false;
   } catch (error) {
-    showInfo(`Error fetching ${url}:`, error);
+    Logger.log(`Error fetching ${url}:`, error);
   }
   return true;
 };
 
 const handleCheckDownServers = async () => {
-  showInfo("Running DownDetector check...");
+  Logger.log("Running DownDetector check...");
 
   const [PushTokens, UserConfig, DownDetector] = await Promise.all([
     fetchFromTable({
@@ -117,7 +116,7 @@ const handleCheckDownServers = async () => {
 };
 
 const getInterval = () => {
-  showInfo(chalk.blue("Starting DownDetector interval..."));
+  Logger.log(chalk.blue("Starting DownDetector interval..."));
 
   return setInterval(handleCheckDownServers, 5 * 60 * 1000);
 };

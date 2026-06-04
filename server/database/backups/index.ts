@@ -4,15 +4,16 @@ import chalk from "chalk";
 import crypto from "crypto";
 import { exec } from "child_process";
 import { pool } from "../postgres.ts";
-import { getEnvValue } from "../../env.ts";
-import { showError, showInfo } from "../../functions/logger.ts";
+import { REPLACERS } from "@/config.ts";
+import { getEnvValue } from "@/env.ts";
+import { Directory, File, Logger } from "@common";
 
 const backupPath = path.join(path.resolve("."), "database", "backups");
 const timeIntervalBackup = 1 * 60 * 60 * 1000;
 const encryptedExtension = ".sql.gpg";
 
 export const getInterval = () => {
-  showInfo("Starting database backup interval...");
+  Logger.log("Starting database backup interval...");
 
   handleBackupDatabase();
   return setInterval(handleBackupDatabase, timeIntervalBackup);
@@ -34,7 +35,7 @@ export const encryptFile = async (filePath: string, password: string) => {
   const output = Buffer.concat([salt, iv, tag, encrypted]);
   await fs.promises.writeFile(filePath, output);
 
-  showInfo(chalk.green(`File encrypted successfully: ${filePath}`));
+  Logger.log(chalk.green(`File encrypted successfully: ${filePath}`));
 };
 
 export const decryptFile = async (filePath: string, password: string) => {
@@ -58,7 +59,7 @@ export const decryptFile = async (filePath: string, password: string) => {
 
     return decrypted.toString();
   } catch (err) {
-    showError(chalk.red("Error decrypting file:"), (err as Error).message);
+    Logger.error(chalk.red("Error decrypting file:"), (err as Error).message);
     throw new Error("Failed to decrypt (incorrect password or file).");
   }
 };
@@ -90,7 +91,7 @@ export const decryptFile = async (filePath: string, password: string) => {
  * ```
  */
 export const handleBackupDatabase = async () => {
-  if (getEnvValue("__DEV__")) return;
+  if (REPLACERS.isDev) return;
 
   await deletePreviousBackups();
   const client = await pool.connect();
@@ -107,20 +108,20 @@ export const handleBackupDatabase = async () => {
 
     exec(writeFile, (error, _, stderr) => {
       if (error) {
-        showError(chalk.red("Error during database backup:"), error.message);
+        Logger.error(chalk.red("Error during database backup:"), error.message);
         return;
       }
       if (stderr) {
-        showError(chalk.red("Error output during database backup:"), stderr);
+        Logger.error(chalk.red("Error output during database backup:"), stderr);
         return;
       }
-      showInfo(
+      Logger.log(
         chalk.green(`Database backup created successfully: ${backupFileName}`),
       );
       encryptFile(backupFileName, getEnvValue("DB_ENCRYPTION_PASS"));
     });
   } catch (error) {
-    showError("Error during database backup:", error);
+    Logger.error("Error during database backup:", error);
   } finally {
     client.release();
   }
@@ -158,7 +159,7 @@ export const handleBackupDatabase = async () => {
  * @returns void — function performs work asynchronously and does not return a promise.
  */
 export const deletePreviousBackups = async () => {
-  const files = await fs.promises.readdir(backupPath);
+  const files = await new Directory(backupPath).readDir();
 
   await Promise.all(
     files.map(async (file) => {
@@ -179,9 +180,9 @@ export const deletePreviousBackups = async () => {
 
       if (diffDays <= 7) return;
 
-      await fs.promises.unlink(filePath);
+      await new File(filePath).rm();
 
-      showInfo(`Deleted old backup file: ${filePath}`);
+      Logger.log(`Deleted old backup file: ${filePath}`);
       return;
     }),
   );

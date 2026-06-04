@@ -1,17 +1,15 @@
 import fs from "fs";
-import chalk from "chalk";
-import { showError } from "../functions/logger.ts";
-import { getHandlerPost } from "../functions/getHandlerPost.ts";
-import { CryptoEvents, Cryptos, PriceBinanceAPI } from "@common";
 import path from "path";
-import { serverPath } from "../config.ts";
-import { getEnvValue } from "../env.ts";
+import chalk from "chalk";
+import { getHandlerPost } from "@/functions/getHandlerPost.ts";
+import { REPLACERS, serverPath } from "@/config.ts";
+import { Logger, CryptoEvents, Cryptos, PriceBinanceAPI, File } from "@common";
 
 const cryptosFilePath = path.join(serverPath, "dev", "cryptos.json");
 
 export const cryptos = new Cryptos(500);
 void cryptos.fetchDataBinance(true);
-if (getEnvValue("__DEV__")) {
+if (REPLACERS.isDev) {
   cryptos.addEventListener(CryptoEvents.UPDATE, async (d) => {
     void fs.promises.writeFile(cryptosFilePath, JSON.stringify(d), {
       encoding: "utf-8",
@@ -28,11 +26,13 @@ export const handleGetCryptoPrice = getHandlerPost(
 
       let dataCrypto = cryptos.getCryptoBySymbol(symbol);
       if (!dataCrypto) {
-        if (getEnvValue("__DEV__")) {
-          const dataFromFile = await fs.promises.readFile(cryptosFilePath, {
-            encoding: "utf-8",
-          });
-          const dataParsed = JSON.parse(dataFromFile) as PriceBinanceAPI;
+        if (REPLACERS.isDev) {
+          const dataFromFile = await new File(cryptosFilePath).readFile(
+            "utf-8",
+          );
+          const dataParsed = JSON.parse(
+            dataFromFile || "[]",
+          ) as PriceBinanceAPI;
           cryptos.prices = dataParsed;
           dataCrypto = cryptos.getCryptoBySymbol(symbol);
         }
@@ -67,7 +67,7 @@ export const handleGetCryptoPrice = getHandlerPost(
       const errorMessage =
         error instanceof Error ? error.message : String(error);
 
-      showError(chalk.red("Error fetching crypto price:"), errorMessage);
+      Logger.error(chalk.red("Error fetching crypto price:"), errorMessage);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: "Error fetching crypto price: " + errorMessage,
@@ -90,7 +90,7 @@ export const handleGetCryptos = getHandlerPost(
         cryptos: cryptosFilteredByCurrency,
       });
     } catch (error) {
-      showError(chalk.red("Error fetching cryptos:"), error);
+      Logger.error(chalk.red("Error fetching cryptos:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: "Error fetching cryptos",

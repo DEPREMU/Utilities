@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import crypto from "crypto";
-import { showError } from "../functions/logger.ts";
+import { Logger } from "@common";
 import { getEnvValue } from "../env.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { RequestDecrypt, RequestEncrypt } from "@types";
@@ -125,7 +125,7 @@ export const encryptHandler = getHandlerPost(
         dataEncrypted: encryptedData,
       });
     } catch (error) {
-      showError(
+      Logger.error(
         chalk.red("Encryption error:"),
         error instanceof Error ? error.message : error,
       );
@@ -169,7 +169,7 @@ export const decryptHandler = getHandlerPost(
         decryptedValue: decryptedData,
       });
     } catch (error) {
-      showError(chalk.red("Decryption error:"), error);
+      Logger.error(chalk.red("Decryption error:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         error: "Decryption failed",
         success: false,

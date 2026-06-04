@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { showError } from "../functions/logger.ts";
+import { Logger } from "@common";
 import { getEnvValue } from "../env.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { URLSearchParams } from "url";
@@ -46,7 +46,7 @@ export const translate = getHandlerPost(
         translatedText: data.translations?.[0]?.text || "",
       });
     } catch (error) {
-      showError(chalk.red("Error during translation request:"), error);
+      Logger.error(chalk.red("Error during translation request:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: "Internal server error",

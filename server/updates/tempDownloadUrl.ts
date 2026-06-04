@@ -8,12 +8,11 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import { v4 } from "uuid";
-import { showError } from "../functions/logger.ts";
 import { UPLOAD_DIR } from "../config.ts";
 import { getEnvValue } from "../env.ts";
-import { sendResponse } from "@common";
 import { getFinalFileName } from "./uploadUpdate.ts";
 import { Request, Response } from "express";
+import { Logger, sendResponse } from "@common";
 
 type InfoUrl = {
   id: string;
@@ -102,7 +101,7 @@ export const handleDownload = (
     res.download(filePath, (err) => {
       if (!err || !sendResponse) return;
 
-      showError("Error downloading file:", err);
+      Logger.error("Error downloading file:", err);
       sendResponse(
         res,
         "INTERNAL_SERVER_ERROR",
@@ -111,7 +110,7 @@ export const handleDownload = (
       );
     });
   } catch (error) {
-    showError(chalk.red("Error processing download via temp URL:"), error);
+    Logger.error(chalk.red("Error processing download via temp URL:"), error);
     sendResponse(
       res,
       "INTERNAL_SERVER_ERROR",

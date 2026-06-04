@@ -9,9 +9,8 @@ import path from "path";
 import chalk from "chalk";
 import Busboy from "busboy";
 import { UPLOAD_DIR } from "../config.ts";
-import { sendResponse } from "@common";
 import { Request, Response } from "express";
-import { showError, showInfo } from "../functions/logger.ts";
+import { Logger, sendResponse } from "@common";
 import dataUploads, { updateDataUploads } from "./dataUploads.ts";
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -58,26 +57,26 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
         ) as UpdateInfo;
 
         if (!existingData) {
-          showInfo("Invalid platform or OS");
+          Logger.log("Invalid platform or OS");
           isNewVersion = false;
           return;
         }
 
         if (dataFile.version === existingData.version) {
-          showInfo("Version already exists:", dataFile.version);
+          Logger.log("Version already exists:", dataFile.version);
           isNewVersion = false;
           return;
         }
 
         isNewVersion = true;
       } catch {
-        showError("JSON not valid");
+        Logger.error("JSON not valid");
       }
     });
 
     busboy.on("file", (_, file) => {
       if (!dataFile || !isNewVersion) {
-        showInfo("Version not new, discarding file...");
+        Logger.log("Version not new, discarding file...");
 
         file.on("end", () => {
           if (connectionClosed || !sendResponse) return;
@@ -100,7 +99,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
       const finalName = getFinalFileName(dataFile);
       const saveTo = path.join(UPLOAD_DIR, finalName);
 
-      showInfo(`Saving file to: ${saveTo}`);
+      Logger.log(`Saving file to: ${saveTo}`);
 
       const writeStream = fs.createWriteStream(saveTo);
 
@@ -109,7 +108,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
 
         file.on("end", resolve);
         file.on("error", (err) => {
-          showError("Error in file stream:", err);
+          Logger.error("Error in file stream:", err);
           writeStream.destroy();
           fs.unlink(saveTo, () => {});
           reject(err);
@@ -117,7 +116,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
 
         writeStream.on("finish", resolve);
         writeStream.on("error", (err) => {
-          showError("Error writing file:", err);
+          Logger.error("Error writing file:", err);
           file.unpipe(writeStream);
           fs.unlink(saveTo, () => {});
           reject(err);
@@ -145,10 +144,10 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
           dataFile.platformOS as PlatformsOS,
           dataFile.version,
         );
-        showInfo("All files written successfully");
+        Logger.log("All files written successfully");
         sendResponse?.(res, "SUCCESS", { success: true }, "/upload-update");
       } catch (err) {
-        showError("Error uploading:", err);
+        Logger.error("Error uploading:", err);
         if (connectionClosed) return;
         sendResponse?.(
           res,
@@ -161,7 +160,7 @@ export const handleUploadUpdate = (req: Request, res: Response) => {
 
     req.pipe(busboy);
   } catch (error) {
-    showError(chalk.red("Error handling upload:"), error);
+    Logger.error(chalk.red("Error handling upload:"), error);
     sendResponse?.(
       res,
       "INTERNAL_SERVER_ERROR",

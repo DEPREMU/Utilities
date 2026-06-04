@@ -1,9 +1,10 @@
 import chalk from "chalk";
 import { pool } from "../database/postgres.ts";
-import { showError } from "../functions/logger.ts";
+import { Logger } from "@common";
 import { getEnvValue } from "../env.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { ResponseDoQuery } from "@types";
+import { REPLACERS } from "@/config.ts";
 
 export const handleDoQueryDatabase = getHandlerPost(
   "/doQueryDB",
@@ -12,7 +13,7 @@ export const handleDoQueryDatabase = getHandlerPost(
     showFields: ["boolean", "undefined"],
   },
   async (body, sendResponse) => {
-    if (!getEnvValue("__DEV__")) {
+    if (!REPLACERS.isDev) {
       sendResponse("FORBIDDEN", { success: false, error: "Not available" });
       return;
     }
@@ -35,7 +36,7 @@ export const handleDoQueryDatabase = getHandlerPost(
           result: data,
         });
       } catch (error) {
-        showError(
+        Logger.error(
           chalk.red("Error executing query:"),
           error instanceof Error ? error.message : error,
         );
@@ -49,7 +50,7 @@ export const handleDoQueryDatabase = getHandlerPost(
         client.release();
       }
     } catch (error) {
-      showError(chalk.red("Error connecting to database:"), error);
+      Logger.error(chalk.red("Error connecting to database:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: `Error connecting to database: ${

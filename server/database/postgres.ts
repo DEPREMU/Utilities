@@ -5,10 +5,10 @@ import path from "path";
 import chalk from "chalk";
 import { Pool } from "pg";
 import { exec } from "child_process";
+import { Logger } from "@common";
 import { initDB } from "./initDB.ts";
 import { PoolConfig } from "pg";
 import { getEnvValue } from "../env.ts";
-import { showError, showInfo } from "../functions/logger.ts";
 
 export let dbInitialized = false;
 
@@ -43,7 +43,7 @@ if (
 export const pool = new Pool(dbConfig);
 
 pool.on("error", (err) => {
-  showError(chalk.red("Unexpected error on idle client"), err);
+  Logger.error(chalk.red("Unexpected error on idle client"), err);
   process.exit(-1);
 });
 
@@ -103,11 +103,11 @@ export const handleInitDB = async () => {
   try {
     const client = await pool.connect();
     const usersCount = await client.query("SELECT COUNT(*) FROM users;");
-    showInfo(
+    Logger.log(
       chalk.bgBlack(`Number of users after drop: ${usersCount.rows[0].count}`),
     );
   } catch (error) {
-    showError(chalk.red("Error querying users count:"), error);
+    Logger.error(chalk.red("Error querying users count:"), error);
     throw new Error("Failed to query users count" + (error as Error).message);
   }
 
