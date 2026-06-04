@@ -1,9 +1,10 @@
+import { Timers } from "@common";
+import { memoDeep } from "@utils";
 import { View, Text } from "react-native";
 import { useLanguage } from "@context/LanguageContext";
 import useStylesIP_API from "@screens/Network/styles/useStylesIP_API";
 import React, { useEffect, useMemo, useState } from "react";
 import { dataIP_API_JSON, AppTranslationsKeys } from "@types";
-import { memoDeep, setTimeoutPolyfill, clearTimeoutPolyfill } from "@utils";
 
 const dataIPLocal: dataIP_API_JSON = {
   status: "false",
@@ -73,19 +74,19 @@ const IP_API: React.FC<IP_ApiProps> = ({ data }) => {
   useEffect(() => {
     if (dataIP.status === "success") return;
 
-    const id = setTimeoutPolyfill(() => {
+    const id = Timers.setTimeout(() => {
       if (dataIP.status !== "success") setShow(false);
     }, 10000);
 
-    return () => clearTimeoutPolyfill(id);
+    return () => Timers.clearTimeout(id);
   }, [dataIP]);
 
   useEffect(() => {
     if (!data) return;
 
-    const idTimeout = setTimeoutPolyfill(() => setDataIP(data), 2500);
+    const idTimeout = Timers.setTimeout(() => setDataIP(data), 2500);
 
-    return () => clearTimeoutPolyfill(idTimeout);
+    return () => Timers.clearTimeout(idTimeout);
   }, [data]);
 
   const renderData = useMemo(

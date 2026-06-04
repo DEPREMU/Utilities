@@ -9,18 +9,16 @@ import {
   ASSETS,
   tTyped,
   APP_NAME,
+  REPLACERS,
   deviceInfo,
-  waitForTime,
+  elapsedTime,
   sessionManager,
   recorderManager,
   clipboardManager,
   storageManagement,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
   notificationsManager,
-  REPLACERS,
-  elapsedTime,
 } from "@utils";
+import { Timers } from "@common";
 import { ProgressBar } from "react-native-paper";
 import { useStylesLoadingScreen } from "@screens/Loading/styles";
 import { View, useWindowDimensions } from "react-native";
@@ -105,38 +103,38 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
           initValues.yValueProgressBar,
           duration[400],
         );
-        await waitForTime(100);
+        await Timers.sleep(100);
 
         xValueWelcome.value = withSpring(
           initValues.xValueWelcome,
           duration[400],
         );
-        await waitForTime(200);
+        await Timers.sleep(200);
 
         xValueImage.value = withSpring(initValues.xValueImage, duration[500]);
-        await waitForTime(350);
+        await Timers.sleep(350);
 
         yValueMain.value = withSpring(initValues.yValueMain, duration[500]);
 
         if (!onFinished) return;
-        await waitForTime(500);
+        await Timers.sleep(500);
         onFinished();
       } else {
         yValueMain.value = withSpring(0, duration[500]);
-        await waitForTime(500);
+        await Timers.sleep(500);
 
         xValueImage.value = withSpring(0, duration[500]);
-        await waitForTime(200);
+        await Timers.sleep(200);
 
         xValueWelcome.value = withSpring(0, duration[400]);
-        await waitForTime(100);
+        await Timers.sleep(100);
 
         xValueAppName.value = withSpring(0, duration[500]);
         yValueProgressBar.value = withSpring(0, duration[400]);
 
         if (!onFinished) return;
 
-        await waitForTime(500);
+        await Timers.sleep(500);
         onFinished();
       }
     };
@@ -147,18 +145,18 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
       if (isFinished.current) return;
       isFinished.current = true;
       const onFinished = async () => {
-        await waitForTime(500);
+        await Timers.sleep(500);
         animation(true, () => setIsLoading(false));
       };
 
-      if (idTimeout.current) clearTimeoutPolyfill(idTimeout.current);
+      if (idTimeout.current) Timers.clearTimeout(idTimeout.current);
       const { remaining, hasElapsed } = elapsedTime(startTime, 3000);
       if (hasElapsed || REPLACERS.isDev) {
         onFinished();
         return;
       }
 
-      idTimeout.current = setTimeoutPolyfill(onFinished, remaining);
+      idTimeout.current = Timers.setTimeout(onFinished, remaining);
     };
 
     const executeWaiting = async (fun: () => Promise<void>) => {
@@ -166,7 +164,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
       setLoaded((prev) => {
         const newValue = prev + 1;
         if (newValue >= functionsRef.current.length)
-          waitForTime(300).then(finished);
+          Timers.sleep(300).then(finished);
         return newValue;
       });
     };
@@ -174,7 +172,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
     functionsRef.current.forEach(executeWaiting);
 
     return () => {
-      if (idTimeout.current) clearTimeoutPolyfill(idTimeout.current);
+      if (idTimeout.current) Timers.clearTimeout(idTimeout.current);
     };
   }, [
     yValueMain,

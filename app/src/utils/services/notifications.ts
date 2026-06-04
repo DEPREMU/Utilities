@@ -4,6 +4,7 @@ import {
   NativeFunctionsModule,
 } from "@modules";
 import {
+  Timers,
   ServiceClass,
   reasonNotification,
   objByReasonNotification,
@@ -454,8 +455,7 @@ class NotificationsManager extends ServiceClass<never> {
           );
 
           if (isDND && localNotification.behavior.bypassDoNotDisturb) {
-            const { setTimeoutPolyfill } = await import("@utils");
-            setTimeoutPolyfill(NativeFunctionsModule.enableDoNotDisturb, 1500);
+            Timers.setTimeout(NativeFunctionsModule.enableDoNotDisturb, 1500);
           }
 
           return String(notificationId);

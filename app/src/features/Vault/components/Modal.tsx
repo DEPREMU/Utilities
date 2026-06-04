@@ -21,6 +21,7 @@ import {
   getFormattedDate,
 } from "@utils";
 import bytes from "bytes";
+import { Timers } from "@common";
 import { ModalData } from "../screens/VaultViewer";
 import { useLanguage } from "@context/LanguageContext";
 import { scheduleOnRN } from "react-native-worklets";
@@ -133,7 +134,7 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
             item: nextItem,
             type,
           });
-          setTimeout(() => {
+          Timers.setTimeout(() => {
             translationX.value = withTiming(0, { duration: 200 }, () => {
               isTransitioningRef.value = false;
             });

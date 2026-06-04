@@ -5,6 +5,7 @@ import {
   getImageFromVideo,
   getMimeTypeFromExtension,
 } from "@utils";
+import { Timers } from "@common";
 import * as ExpoSQL from "expo-sqlite";
 import { FolderFiles } from "@types";
 
@@ -508,10 +509,8 @@ class VaultServiceManager {
       this.#service = new VaultService();
     }
     if (this.#timeoutId) {
-      import("@utils").then(({ clearTimeoutPolyfill }) => {
-        clearTimeoutPolyfill(this.#timeoutId);
-        this.#timeoutId = null;
-      });
+      Timers.clearTimeout(this.#timeoutId);
+      this.#timeoutId = null;
     }
     return this.#service;
   };
@@ -532,8 +531,7 @@ class VaultServiceManager {
     };
     if (force) return func();
 
-    const { setTimeoutPolyfill } = await import("@utils");
-    this.#timeoutId = setTimeoutPolyfill(func, 5 * 60 * 1000);
+    this.#timeoutId = Timers.setTimeout(func, 5 * 60 * 1000);
   };
 }
 

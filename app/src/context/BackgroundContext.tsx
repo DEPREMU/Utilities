@@ -4,12 +4,8 @@ import {
   REPLACERS,
   deviceInfo,
   navigation,
-  waitForTime,
   EventsDeviceInfo,
-  setTimeoutPolyfill,
-  setIntervalPolyfill,
-  clearTimeoutPolyfill,
-  clearIntervalPolyfill,
+  Timers,
 } from "@utils";
 import { reloadAppAsync } from "expo";
 import { BackgroundModule } from "@modules";
@@ -69,19 +65,19 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
 
       if (timeControlsRef.current[id]?.id) {
         if (timeControlsRef.current[id]?.type === "interval")
-          clearIntervalPolyfill(timeControlsRef.current[id]?.id);
-        else clearTimeoutPolyfill(timeControlsRef.current[id]?.id);
+          Timers.clearInterval(timeControlsRef.current[id]?.id);
+        else Timers.clearTimeout(timeControlsRef.current[id]?.id);
       }
 
       if (data.type === "interval") {
         timeControlsRef.current[id] = {
           ...timeControlsRef.current[id],
-          id: setIntervalPolyfill(data.fn, data.interval),
+          id: Timers.setInterval(data.fn, data.interval),
         };
       } else {
         timeControlsRef.current[id] = {
           ...timeControlsRef.current[id],
-          id: setTimeoutPolyfill(data.fn, data.interval),
+          id: Timers.setTimeout(data.fn, data.interval),
         };
       }
     },
@@ -95,8 +91,8 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       if (!timeControlsRef.current[id]?.id) return;
 
       if (timeControlsRef.current[id]?.type === "interval")
-        clearIntervalPolyfill(timeControlsRef.current[id]?.id);
-      else clearTimeoutPolyfill(timeControlsRef.current[id]?.id);
+        Timers.clearInterval(timeControlsRef.current[id]?.id);
+      else Timers.clearTimeout(timeControlsRef.current[id]?.id);
 
       timeControlsRef.current[id] = null;
     },
@@ -128,7 +124,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       let attempt = 0;
       while (!BackgroundModule.start && attempt < 5) {
         attempt++;
-        await waitForTime(1000);
+        await Timers.sleep(1000);
         logger.log(
           `Waiting for BackgroundModule to be ready... Attempt ${attempt}`,
         );
@@ -167,20 +163,20 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       (newState) => {
         if (newState !== "active") {
           if (!timeoutId)
-            timeoutId = setTimeoutPolyfill(() => {
+            timeoutId = Timers.setTimeout(() => {
               const current = navigation.currentScreen;
 
               if (current !== "Home") navigation.replace("Home");
             }, 60000);
         } else if (timeoutId) {
-          clearTimeoutPolyfill(timeoutId);
+          Timers.clearTimeout(timeoutId);
           timeoutId = null;
         }
       },
     );
 
     return () => {
-      if (timeoutId) clearTimeoutPolyfill(timeoutId);
+      if (timeoutId) Timers.clearTimeout(timeoutId);
       appStateListener.remove();
       statePhoneListener.remove();
     };

@@ -1,10 +1,4 @@
-import {
-  waitForTime,
-  setTimeoutPolyfill,
-  setIntervalPolyfill,
-  clearTimeoutPolyfill,
-  clearIntervalPolyfill,
-} from "../functions/appManagement";
+import { Timers } from "@common";
 import { logger } from "../functions/debug";
 import type WebSocketType from "ws";
 
@@ -169,7 +163,7 @@ export class ReconnectingWebSocket<T = string> {
 
     if ("timeout" in this.#options.pingPong) {
       const { interval, timeout } = this.#options.pingPong;
-      this.#pongSettings.intervalId = setIntervalPolyfill(() => {
+      this.#pongSettings.intervalId = Timers.setInterval(() => {
         if (!this.#ws) return;
         if (!this.#options.pingPong) return;
 
@@ -177,7 +171,7 @@ export class ReconnectingWebSocket<T = string> {
           this.#ws.send(this.#options.pingPong.messageToSend);
         }
 
-        this.#pongSettings.timeoutId = setTimeoutPolyfill(() => {
+        this.#pongSettings.timeoutId = Timers.setTimeout(() => {
           logger.warn(
             TAG,
             "Ping timeout: No pong response received within expected time.",
@@ -319,7 +313,7 @@ export class ReconnectingWebSocket<T = string> {
 
               if (expectedMessage && event.data === expectedMessage) {
                 if (this.#pongSettings.timeoutId) {
-                  clearTimeoutPolyfill(this.#pongSettings.timeoutId);
+                  Timers.clearTimeout(this.#pongSettings.timeoutId);
                   this.#pongSettings.timeoutId = null;
                 }
                 if ("expectedResponse" in this.#options.pingPong && this.#ws) {
@@ -333,7 +327,7 @@ export class ReconnectingWebSocket<T = string> {
           };
         });
         if (!this.#connected)
-          await waitForTime(
+          await Timers.sleep(
             this.#options.retryDelay || (DEFAULT_OPTIONS.retryDelay as number),
           );
       }
@@ -364,11 +358,11 @@ export class ReconnectingWebSocket<T = string> {
     );
 
     if (this.#pongSettings.intervalId) {
-      clearIntervalPolyfill(this.#pongSettings.intervalId);
+      Timers.clearInterval(this.#pongSettings.intervalId);
       this.#pongSettings.intervalId = null;
     }
     if (this.#pongSettings.timeoutId) {
-      clearTimeoutPolyfill(this.#pongSettings.timeoutId);
+      Timers.clearTimeout(this.#pongSettings.timeoutId);
       this.#pongSettings.timeoutId = null;
     }
 

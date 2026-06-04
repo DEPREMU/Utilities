@@ -5,19 +5,19 @@ import {
   AvailableFunctions,
   FunctionsArguments,
 } from "@types";
-import React, { useRef, useEffect, useContext, createContext } from "react";
 import {
   alerts,
   logger,
+  Network,
   REPLACERS,
   deviceInfo,
   navigation,
   EventsDeviceInfo,
   storageManagement,
   executeRegisteredTask,
-  hasInternetConnection,
 } from "@utils";
 import { BackHandler } from "react-native";
+import React, { useRef, useEffect, useContext, createContext } from "react";
 
 type BackgroundTask = {
   requiresInternet: boolean;
@@ -159,7 +159,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
 
       try {
         if (task.requiresInternet) {
-          const hasInternet = await hasInternetConnection();
+          const hasInternet = await Network.isOnline();
           if (!hasInternet) {
             taskQueueRef.current.unshift(task);
             break;
@@ -221,7 +221,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
     try {
       if (!task.requiresInternet) return await task.func();
 
-      const hasInternet = await hasInternetConnection();
+      const hasInternet = await Network.isOnline();
       if (!hasInternet) executeWhenInternetRef.current.push({ task });
       else await task.func();
     } catch {

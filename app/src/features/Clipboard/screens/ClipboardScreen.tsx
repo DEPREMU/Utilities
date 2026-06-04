@@ -18,10 +18,9 @@ import {
   fetchToServer,
   sessionManager,
   storageManagement,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
 } from "@utils";
 import { Tables } from "@types";
+import { Timers } from "@common";
 import { useLanguage } from "@context/LanguageContext";
 import RenderClipboardItem from "@screens/Clipboard/components/RenderClipboardItem";
 import { useStylesClipboardScreen } from "@screens/Clipboard/styles";
@@ -218,9 +217,9 @@ const ClipboardScreen: React.FC = () => {
       handleSetVars();
       return;
     }
-    clearTimeoutPolyfill(idTimeoutRef);
+    Timers.clearTimeout(idTimeoutRef.current);
 
-    idTimeoutRef.current = setTimeoutPolyfill(
+    idTimeoutRef.current = Timers.setTimeout(
       () => handleSetVars(data || undefined),
       page > 0 ? 100 : data ? 3000 : 2000,
     );
@@ -294,9 +293,9 @@ const ClipboardScreen: React.FC = () => {
       }
     }
 
-    clearTimeoutPolyfill(idTimeoutSearch);
+    Timers.clearTimeout(idTimeoutSearch.current);
 
-    idTimeoutSearch.current = setTimeoutPolyfill(() => {
+    idTimeoutSearch.current = Timers.setTimeout(() => {
       fetchClipboardFromDatabaseRef.current(text);
     }, 2000);
   });
@@ -369,8 +368,8 @@ const ClipboardScreen: React.FC = () => {
 
     setDefaultStates.current?.();
 
-    clearTimeoutPolyfill(idTimeoutSearch);
-    idTimeoutSearch.current = setTimeoutPolyfill(() => {
+    Timers.clearTimeout(idTimeoutSearch.current);
+    idTimeoutSearch.current = Timers.setTimeout(() => {
       fetchClipboardFromDatabaseRef.current(searchText);
     }, 1000);
   }, [searchText, deleted]);
@@ -379,7 +378,8 @@ const ClipboardScreen: React.FC = () => {
     fetchClipboardFromDatabaseRef.current();
 
     return () => {
-      clearTimeoutPolyfill(idTimeoutRef.current, idTimeoutSearch.current);
+      Timers.clearTimeout(idTimeoutRef.current);
+      Timers.clearTimeout(idTimeoutSearch.current);
     };
   }, []);
 

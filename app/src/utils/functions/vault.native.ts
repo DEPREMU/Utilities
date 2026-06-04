@@ -1,4 +1,5 @@
 import {
+  Timers,
   URI_EXTENSION,
   EXTENSION_ENCRYPTED,
   getMimeTypeFromExtension,
@@ -10,9 +11,9 @@ import {
   FolderFiles,
   HasPasswordZIP,
   GetFoldersVault,
+  GetImageFromVideo,
   GetDecryptedFolderDirectory,
   ClearDecryptedFolderDirectory,
-  GetImageFromVideo,
 } from "@types";
 import * as ZIP from "react-native-zip-archive";
 import { logger } from "../functions/debug";
@@ -228,7 +229,7 @@ export const decryptFolderFiles: DecryptFolderFiles = async (
         decryptedFiles.push(fileDecrypted);
         if (onDecryptedFile) onDecryptedFile(fileDecrypted);
 
-        await new Promise((r) => setTimeout(r, 10));
+        await Timers.sleep(10);
       } catch (error) {
         logger.error(
           "DECRYPT",

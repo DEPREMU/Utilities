@@ -3,7 +3,7 @@ import { useTheme } from "@context/ThemeContext";
 import { StyleSheet } from "react-native";
 import { useResponsiveLayout } from "@context/LayoutContext";
 
-const useStylesComputerControl = () => {
+export const useStylesComputerControl = () => {
   const { colors } = useTheme();
   const { getCommonStyles, texts } = useResponsiveLayout();
 
@@ -22,5 +22,3 @@ const useStylesComputerControl = () => {
 
   return { styles, colors };
 };
-
-export default useStylesComputerControl;

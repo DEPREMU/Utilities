@@ -8,7 +8,7 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import { useLanguage } from "@context/LanguageContext";
-import { memoDeep, tTyped } from "@utils";
+import { memoDeep, Timers, tTyped } from "@utils";
 import { useStylesSyncScreen } from "../styles/useStylesSyncScreen";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Divider, Modal, Portal } from "react-native-paper";
@@ -51,12 +51,12 @@ const SyncScreen: React.FC<SyncScreenProps> = ({
 
     let dots = 0;
 
-    const interval = setInterval(() => {
+    const interval = Timers.originalSetInterval(() => {
       setSyncing(tTyped("common.syncing").replace("...", ".".repeat(dots % 4)));
       dots = (dots + 1) % 4;
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => Timers.originalClearInterval(interval);
   }, [visible, title]);
 
   useEffect(() => {

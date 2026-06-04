@@ -8,23 +8,19 @@ import {
   ClipboardWebSocketMessage,
 } from "@types";
 import {
-  logger,
-  fetchToServer,
-  setIntervalPolyfill,
-  clearIntervalPolyfill,
-} from "../functions";
-import {
   parseData,
   ServiceClass,
   ClipboardStorage,
   wrapFunctionWithError,
 } from "@common";
+import { Timers } from "@common";
 import { cloneDeep } from "lodash";
 import { getRandomUUID } from "../cross";
 import { sessionManager } from "./session";
 import * as ExpoClipboard from "expo-clipboard";
 import { REPLACERS, URLS } from "../TOP_LEVEL";
 import { storageManagement } from "./storage";
+import { logger, fetchToServer } from "../functions";
 import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
 import { DeviceEventEmitter, EmitterSubscription } from "react-native";
 import { windowModule, keyboardModule, BackgroundModule } from "@modules";
@@ -464,11 +460,9 @@ class ClipboardManager extends ServiceClass<ListenersClipboard> {
         storageManagement.save("CLIPBOARD", data);
         this.#clipboardData = data;
         if (REPLACERS.isNative)
-          import("@utils").then(({ setTimeoutPolyfill }) => {
-            setTimeoutPolyfill(() => {
-              BackgroundModule.startClipboardService();
-            }, 10000);
-          });
+          Timers.setTimeout(() => {
+            BackgroundModule.startClipboardService();
+          }, 10000);
       }
 
       const { isLoggedIn } = sessionManager.getSessionData();
@@ -487,9 +481,9 @@ class ClipboardManager extends ServiceClass<ListenersClipboard> {
       await this.createClipboardWebSocket();
 
       if (REPLACERS.isWeb) {
-        if (this.#intervalId) clearIntervalPolyfill(this.#intervalId);
+        if (this.#intervalId) Timers.clearInterval(this.#intervalId);
 
-        this.#intervalId = setIntervalPolyfill(() => {
+        this.#intervalId = Timers.setInterval(() => {
           this.handleIntervalClipboardWeb();
         }, 500);
       } else {
@@ -546,7 +540,7 @@ class ClipboardManager extends ServiceClass<ListenersClipboard> {
   };
 
   _clearTimers() {
-    clearIntervalPolyfill(this.#intervalId);
+    Timers.clearInterval(this.#intervalId);
     if (this.#listenerSession) {
       this.#listenerSession.remove();
       this.#listenerSession = null;

@@ -8,14 +8,13 @@ import {
   fetchToServer,
   sessionManager,
   storageManagement,
-  setIntervalPolyfill,
   notificationsManager,
-  clearIntervalPolyfill,
 } from "@utils";
-import Button from "@/common/components/Button/screens";
+import Button from "@components/Button/screens";
+import { Timers } from "@common";
 import { modalRef } from "@refs";
 import { Streamer } from "@types";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
 import { View, ScrollView } from "react-native";
 import { useStylesStreamers } from "@screens/SocialMedia/styles/useStylesStreamers";
 import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
@@ -373,9 +372,9 @@ const Streamers: React.FC = () => {
     };
 
     if (!streamersLoaded.current) loadStreamers();
-    const id = setIntervalPolyfill(loadStreamers, 15000);
+    const id = Timers.setInterval(loadStreamers, 15000);
 
-    return () => clearIntervalPolyfill(id);
+    return () => Timers.clearInterval(id);
   }, []);
 
   return (

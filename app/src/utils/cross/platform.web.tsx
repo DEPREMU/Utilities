@@ -1,4 +1,5 @@
 import { v4 } from "uuid";
+import { Timers } from "@common";
 import { windowModule } from "@modules";
 import type { PdfProps } from "react-native-pdf";
 import { useResponsiveLayout } from "@context/LayoutContext";
@@ -60,7 +61,7 @@ const PDF_PAGE_SIZES = {
 
 let i = 0;
 export const ready = async () => {
-  while (i < 3) await new Promise((resolve) => setTimeout(resolve, 100));
+  while (i < 3) await Timers.sleep(100);
 };
 
 const DATA_PLATFORM: PlatformData = {

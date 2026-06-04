@@ -1,4 +1,5 @@
 import { Alert } from "react-native";
+import { Timers } from "@common";
 import { AppTranslationsKeys, Function } from "@types";
 
 type AskPermission = <R>(
@@ -98,12 +99,7 @@ class Alerts {
   };
 
   public showAlert: AskPermission = async (...args) => {
-    const {
-      storageManagement,
-      setTimeoutPolyfill,
-      clearTimeoutPolyfill,
-      notificationsManager,
-    } = await import("@utils");
+    const { storageManagement, notificationsManager } = await import("@utils");
 
     await Promise.all([
       storageManagement.waitUntilInitialized(),
@@ -124,13 +120,13 @@ class Alerts {
               if (isResolved) return;
               isResolved = true;
 
-              if (!isTimeout) clearTimeoutPolyfill(id);
+              if (!isTimeout) Timers.clearTimeout(id);
               r();
               resolve(value);
               this.processQueue();
             };
 
-            id = setTimeoutPolyfill(() => res(null, true), 2 * 60 * 1000);
+            id = Timers.setTimeout(res, 2 * 60 * 1000, null, true);
             ask(...args).then((v) => res(v));
           }),
       );

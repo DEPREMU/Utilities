@@ -4,17 +4,17 @@ import {
   NativeFunctionsModule,
 } from "@modules";
 import {
+  Timers,
+  Network,
+  ServiceClass,
+  ExpectedSecureStorageTypes,
+} from "@common";
+import {
   ScreensAvailable,
   EventNativeModule,
   NotificationAction,
   ReasonNotification,
 } from "@types";
-import {
-  logger,
-  isLocationEnabled,
-  setIntervalPolyfill,
-  clearIntervalPolyfill,
-} from "../functions";
 import { tTyped } from "../translates";
 import * as NetInfo from "@react-native-community/netinfo";
 import { REPLACERS } from "../TOP_LEVEL";
@@ -23,7 +23,7 @@ import { navigation } from "./navigation";
 import { DATA_PLATFORM } from "../cross";
 import * as DeviceInfoRN from "react-native-device-info";
 import { storageManagement } from "./storage";
-import { ExpectedSecureStorageTypes, ServiceClass } from "@common";
+import { logger, isLocationEnabled } from "../functions";
 import { AppState, AppStateStatus, DeviceEventEmitter } from "react-native";
 
 export type typeDataReceivedState = { state: "suspended" | "resumed" };
@@ -168,19 +168,18 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     if (this.#listeners[event]) return;
     const reason: ReasonNotification = "noInternetConnection";
 
-    const { notificationsManager, hasInternetConnection } =
-      await import("@utils");
+    const { notificationsManager } = await import("@utils");
 
     await notificationsManager.waitUntilInitialized();
 
-    const hasInternetId = setIntervalPolyfill(
+    const hasInternetId = Timers.setInterval(
       async () => {
         const prev = this.hasInternet;
         const info = this.fetchNetworkInfo;
 
         const current =
           (!info.isCellular || info.fetchWithCellularData) &&
-          (await hasInternetConnection());
+          (await Network.isOnline());
         if (prev === current) return;
 
         if (REPLACERS.isNative)
@@ -216,7 +215,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     );
 
     this.#listeners[event] = () => {
-      clearIntervalPolyfill(hasInternetId);
+      Timers.clearInterval(hasInternetId);
     };
   };
 
@@ -359,8 +358,8 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       notificationsManager.getNotification("locationEnabled");
     if (!notification.enabled) return;
 
-    const id = setIntervalPolyfill(verifyLocation, 15000);
-    this.#listeners[event] = () => clearIntervalPolyfill(id);
+    const id = Timers.setInterval(verifyLocation, 15000);
+    this.#listeners[event] = () => Timers.clearInterval(id);
   };
 
   private _initBatteryAlerts = async () => {
@@ -428,10 +427,10 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       });
     };
 
-    const id = setIntervalPolyfill(handleBatteryNotifications, 10000);
-    if (REPLACERS.isWeb && !DATA_PLATFORM.hasBattery) clearIntervalPolyfill(id);
+    const id = Timers.setInterval(handleBatteryNotifications, 10000);
+    if (REPLACERS.isWeb && !DATA_PLATFORM.hasBattery) Timers.clearInterval(id);
     else {
-      this.#listeners[event] = () => clearIntervalPolyfill(id);
+      this.#listeners[event] = () => Timers.clearInterval(id);
     }
   };
 

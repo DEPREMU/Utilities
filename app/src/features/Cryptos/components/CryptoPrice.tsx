@@ -4,9 +4,9 @@ import { useLanguage } from "@context/LanguageContext";
 import SkeletonLoading from "@components/SkeletonLoading";
 import { CryptoManager } from "../services";
 import { useCryptoStore } from "../services/cryptoZustand";
-import { SelectedCryptos } from "@common";
 import { useStylesCryptoPrice } from "@screens/Cryptos/styles/useStylesCryptoPrice";
-import { memoDeep, waitForTime, getFormattedDate } from "@utils";
+import { Timers, SelectedCryptos } from "@common";
+import { memoDeep, getFormattedDate } from "@utils";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 
 type CryptoPriceProps = {
@@ -43,7 +43,7 @@ const CryptoPrice: React.FC<CryptoPriceProps> = ({ cryptoData }) => {
 
         return;
       }
-      await waitForTime(500);
+      await Timers.sleep(500);
 
       setLoading(false);
       setPrice(priceInfo.price);

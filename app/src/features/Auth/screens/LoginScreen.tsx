@@ -28,12 +28,11 @@ import {
   tTyped,
   REPLACERS,
   navigation,
-  sessionManager,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
   isValidEmail,
+  sessionManager,
   isValidPassword,
 } from "@utils";
+import { Timers } from "@common";
 import { Screens } from "@types";
 import LoginTypeQR from "@screens/Auth/components/LoginTypeQR";
 import { modalRef } from "@refs";
@@ -83,8 +82,8 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
 
   const setErrorMessage = useRef((message: string) => {
     setError(message);
-    clearTimeoutPolyfill(timeoutIdRef.current);
-    timeoutIdRef.current = setTimeoutPolyfill(() => {
+    Timers.clearTimeout(timeoutIdRef.current);
+    timeoutIdRef.current = Timers.setTimeout(() => {
       setError(null);
       timeoutIdRef.current = null;
     }, 5000);

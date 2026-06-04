@@ -1,8 +1,8 @@
-import { APP_VERSION, REPLACERS } from "../TOP_LEVEL";
 import * as ExpoUpdates from "expo-updates";
 import { EventsDeviceInfo } from "./deviceInfo";
 import { EventEmitterService } from "@types";
-import { ServiceClass } from "@common";
+import { APP_VERSION, REPLACERS } from "../TOP_LEVEL";
+import { Timers, Network, ServiceClass } from "@common";
 
 type CheckUpdatesNatively = {
   time: number;
@@ -35,7 +35,6 @@ class Updates extends ServiceClass<never> {
           openURL,
           deviceInfo,
           fetchToServer,
-          waitForInternet,
           notificationsManager,
         } = await import("@utils");
 
@@ -47,7 +46,7 @@ class Updates extends ServiceClass<never> {
         const result = res.data;
         if (!result?.updateAvailable) return false;
 
-        const hasInternet = await waitForInternet(5);
+        const hasInternet = await Network.waitForOnline(5);
         if (!hasInternet) {
           this.#checkUpdatesNatively.removeListenerInternet =
             deviceInfo.addEventListener(
@@ -151,11 +150,10 @@ class Updates extends ServiceClass<never> {
     if (!REPLACERS.isNative || REPLACERS.isDev) return;
     if (this.#listenerExpoUpdates) return;
 
-    const { setIntervalPolyfill, clearIntervalPolyfill, deviceInfo } =
-      await import("@utils");
+    const { deviceInfo } = await import("@utils");
 
     let sub: null | EventEmitterService = null;
-    const id = setIntervalPolyfill(
+    const id = Timers.setInterval(
       () => {
         if (deviceInfo.hasInternet) return this.#checkUpdatesExpo();
 
@@ -174,7 +172,7 @@ class Updates extends ServiceClass<never> {
       60 * 60 * 1000,
     );
 
-    this.#listenerExpoUpdates = () => clearIntervalPolyfill(id);
+    this.#listenerExpoUpdates = () => Timers.clearInterval(id);
   };
 
   private _initCheckUpdatesNatively = async () => {
@@ -182,8 +180,7 @@ class Updates extends ServiceClass<never> {
     if (this.#idIntervalCheckUpdatesNatively) return;
 
     await this.#checkUpdatesNatively.func();
-    const { setIntervalPolyfill } = await import("@utils");
-    this.#idIntervalCheckUpdatesNatively = setIntervalPolyfill(
+    this.#idIntervalCheckUpdatesNatively = Timers.setInterval(
       this.#checkUpdatesNatively.func,
       this.#checkUpdatesNatively.time,
     );
@@ -205,8 +202,7 @@ class Updates extends ServiceClass<never> {
 
   override async destroy() {
     if (this.#idIntervalCheckUpdatesNatively) {
-      const { clearIntervalPolyfill } = await import("@utils");
-      clearIntervalPolyfill(this.#idIntervalCheckUpdatesNatively);
+      Timers.clearInterval(this.#idIntervalCheckUpdatesNatively);
       this.#idIntervalCheckUpdatesNatively = null;
     }
 

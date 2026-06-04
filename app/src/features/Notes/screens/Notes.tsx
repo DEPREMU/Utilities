@@ -1,10 +1,3 @@
-import {
-  tTyped,
-  memoDeep,
-  getFormattedDate,
-  setTimeoutPolyfill,
-  clearTimeoutPolyfill,
-} from "@utils";
 import React, {
   useRef,
   useMemo,
@@ -28,7 +21,8 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
-import Button from "@/common/components/Button/screens";
+import Button from "@components/Button/screens";
+import { Timers } from "@common";
 import { modalRef } from "@refs";
 import NotesCardItem from "@screens/Notes/components/list/NotesCardItem";
 import { useLanguage } from "@context/LanguageContext";
@@ -36,6 +30,7 @@ import { useNotesFeature } from "@screens/Notes/context/NotesContext";
 import useStylesNotesScreen from "@screens/Notes/styles/useStylesNotesScreen";
 import NotesSelectionActions from "@screens/Notes/components/list/NotesSelectionActions";
 import { FAB, Icon, Text, TextInput } from "react-native-paper";
+import { tTyped, memoDeep, getFormattedDate } from "@utils";
 
 export interface NotesProps {
   onSelectedNote: () => void;
@@ -282,9 +277,8 @@ const Notes: React.FC<NotesProps> = ({ onSelectedNote }) => {
     setIsUnlockRefreshing(true);
     handleOpenUnlockModal();
 
-    if (unlockTimeoutRef.current)
-      clearTimeoutPolyfill(unlockTimeoutRef.current);
-    unlockTimeoutRef.current = setTimeoutPolyfill(() => {
+    if (unlockTimeoutRef.current) Timers.clearTimeout(unlockTimeoutRef.current);
+    unlockTimeoutRef.current = Timers.setTimeout(() => {
       setIsUnlockRefreshing(false);
     }, 200);
   });
@@ -362,7 +356,7 @@ const Notes: React.FC<NotesProps> = ({ onSelectedNote }) => {
   }, [setSelectedFolderId]);
 
   useEffect(() => {
-    return () => clearTimeoutPolyfill(unlockTimeoutRef);
+    return () => Timers.clearTimeout(unlockTimeoutRef.current);
   }, []);
 
   return (
