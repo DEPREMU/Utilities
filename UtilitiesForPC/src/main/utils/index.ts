@@ -1,10 +1,9 @@
-import fs from "fs";
-import path from "path";
 import dataApp from "./variables";
-import { execSync } from "child_process";
+import { exec } from "child_process";
+import { Timers } from "@common";
+import { Logger } from "./logger";
 import { handleShutdown } from "./server";
-import { app, dialog, powerMonitor } from "electron";
-import { initNewLogSession, writeLog } from "./logger";
+import { app, powerMonitor } from "electron";
 
 powerMonitor.on("resume", () => {
   dataApp.setValue("wasSleeping", true);
@@ -13,7 +12,7 @@ powerMonitor.on("resume", () => {
 powerMonitor.on("unlock-screen", () => {
   if (!dataApp.getValue("wasSleeping")) return;
 
-  writeLog("Restarting whole Electron app due to screen unlock...", "warn");
+  Logger.warn("Restarting whole Electron app due to screen unlock...");
   app.relaunch();
   handleShutdown();
 });
@@ -21,99 +20,40 @@ powerMonitor.on("unlock-screen", () => {
 const elevatePrivileges = (): void => {
   if (dataApp.getValue("isWindows")) return;
 
-  try {
-    execSync("sudo -n true");
-    dataApp.setValue("hasSudo", true);
-    writeLog("Privilegios de administrador verificados.", "info");
-  } catch {
+  exec("sudo -n true", (error) => {
+    if (!error) {
+      dataApp.setValue("hasSudo", true);
+    }
+
+    Logger.warn(
+      "User does not have sudo privileges or sudo session has expired.",
+    );
+
     const command = `pkexec /opt/UtilitiesForPC/utilities-for-pc ${process.argv
       .filter((arg) => arg.includes("--"))
       .join(" ")}`;
 
-    writeLog(`Elevating privileges... ${command}`, "info");
+    Logger.log(`Elevating privileges... ${command}`);
 
-    try {
-      execSync(command);
-      writeLog("Elevating privileges...", "info");
-    } catch (error) {
-      writeLog(
-        "Failed to elevate privileges (or user cancelled): " +
-          JSON.stringify(error),
-        "error",
+    exec(command, (e) => {
+      Timers.setTimeout(() => {
+        app.quit();
+        process.exit(0);
+      }, 1000);
+
+      if (!e) {
+        dataApp.setValue("hasSudo", true);
+
+        return;
+      }
+      Logger.error(
+        "Failed to elevate privileges (or user cancelled):",
+        e.message,
       );
-      console.error("Error elevating privileges:", error);
-    }
-
-    app.quit();
-    process.exit(0);
-  }
-};
-
-const ASSETS = app.isPackaged
-  ? path.join(process.resourcesPath, "assets")
-  : path.join(path.dirname(__dirname), "assets");
-
-const BUILD = app.isPackaged
-  ? path.join(process.resourcesPath, "app.asar", "build")
-  : path.join(path.dirname(__dirname), "build");
-
-const DIST = app.isPackaged
-  ? path.join(process.resourcesPath, "dist")
-  : path.join(path.dirname(__dirname), "dist");
-
-export const PATHS = {
-  DIST,
-  BUILD,
-  ASSETS,
-} as const;
-
-export const getPath = (
-  key: keyof typeof PATHS,
-  ...segments: string[]
-): string => {
-  return path.join(PATHS[key], ...segments);
-};
-
-export const getJSPath = (): string => {
-  const pathWeb = path.join(
-    app.isPackaged ? process.resourcesPath : path.dirname(__dirname),
-    "dist",
-    "_expo",
-    "static",
-    "js",
-    "web",
-  );
-
-  if (!fs.existsSync(pathWeb))
-    throw new Error(`JS path does not exist: ${pathWeb}`);
-
-  const dirFiles = fs.readdirSync(pathWeb);
-  const jsFile = dirFiles.find((file) => file.endsWith(".js"));
-
-  if (!jsFile) throw new Error(`JS file not found in directory ${pathWeb}`);
-
-  return pathWeb;
-};
-
-export const askPath = async (): Promise<string | null> => {
-  try {
-    const mainWindow = dataApp.getValue("mainWindow");
-    if (!mainWindow) return null;
-
-    const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ["openFile", "dontAddToRecent"],
     });
-    if (result.canceled) return null;
-    if (!result.filePaths.length) return null;
-
-    return result.filePaths[0].split("/").slice(0, -1).join("/");
-  } catch (error) {
-    writeLog("Error asking path: " + String(error), "error");
-    return null;
-  }
+  });
+  Logger.log("Privilegios de administrador verificados.");
 };
-
-initNewLogSession();
 elevatePrivileges();
 
 export * from "./expose";
@@ -122,7 +62,6 @@ export * from "./server";
 export * from "./storage";
 export * from "./variables";
 export * from "./translations";
-export * from "./memoryMonitor";
 export * from "./notifications";
 export * from "./nativeData/index";
 

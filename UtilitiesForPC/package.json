@@ -38,10 +38,11 @@
       "output": "dist-electron"
     },
     "asarUnpack": [
-      "**/node_modules/sharp/**",
       "**/node_modules/@img/**",
-      "**/node_modules/7zip-bin/**",
-      "**/node_modules/node-7z/**"
+      "**/node_modules/sharp/**",
+      "**/node_modules/piscina/**",
+      "**/node_modules/node-7z/**",
+      "**/node_modules/7zip-bin/**"
     ],
     "files": [
       "build/**/*",

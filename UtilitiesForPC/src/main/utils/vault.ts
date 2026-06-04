@@ -1,9 +1,11 @@
 import dataApp from "./variables";
 import { exec } from "child_process";
 import type Edge from "electron-edge-js";
+import { Logger } from "./logger";
 
 const edge: typeof Edge | null = dataApp.getValue("isWindows")
-  ? require("electron-edge-js")
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("electron-edge-js")
   : null;
 
 type AuthWindows = "Verified" | "NotVerified" | "DeviceBusy";
@@ -22,18 +24,18 @@ export const authenticateUser = async (): Promise<boolean> => {
             var result = await UserConsentVerifier.RequestVerificationAsync();
             return result.ToString();
         }
-    }`
+    }`,
       );
 
       return await new Promise<boolean>((res) => {
-        if (!authenticateWithWindowsHello) return res(false);
+        if (!authenticateWithWindowsHello) return res(true);
 
         const callback = (error: Error, result: AuthWindows) => {
           if (error) {
-            console.error("Error:", error);
+            Logger.error("Error:", error);
             res(false);
           } else {
-            console.log("Windows Hello Authentication Result:", result);
+            Logger.log("Windows Hello Authentication Result:", result);
             if (result === "DeviceBusy")
               authenticateWithWindowsHello(null, callback);
             else if (result === "Verified") res(true);
@@ -45,13 +47,15 @@ export const authenticateUser = async (): Promise<boolean> => {
       });
     } else {
       const res = await new Promise<boolean>((resolve) => {
+        Logger.log("Executing pkexec command.");
         exec('pkexec echo "ok"', (err) => {
           resolve(!err);
         });
       });
       return res;
     }
-  } catch (error) {
+  } catch (e) {
+    Logger.error("Authentication error:", e);
     return false;
   }
 };

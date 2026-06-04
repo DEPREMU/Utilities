@@ -2,15 +2,14 @@ import cors from "cors";
 import express from "express";
 import { app } from "electron";
 import dataApp from "./variables";
+import { exec } from "child_process";
 import machineId from "node-machine-id";
 import { Server } from "http";
-import { Bonjour, ServiceConfig } from "bonjour-service";
-import { writeLog } from "./logger";
-import { exec, execSync } from "child_process";
+import { Logger } from "./logger";
 import { AdvertisementTXT } from "@types";
-import { stopMemoryMonitor } from "./memoryMonitor";
-import { handleChangeImageFormat } from "@common";
+import { Bonjour, ServiceConfig } from "bonjour-service";
 import { clearTempFiles, executeTerminalCommands } from "./storage";
+import { Timers, stopMemoryMonitor, handleChangeImageFormat } from "@common";
 
 if (!handleChangeImageFormat)
   throw new Error("handleChangeImageFormat is not defined");
@@ -20,7 +19,7 @@ let isReconnecting = false;
 let isShuttingDown = false;
 
 export const turnOffComputer = async (): Promise<boolean> => {
-  writeLog("Received turn-off-computer request", "warn");
+  Logger.warn("Received turn-off-computer request");
   const command = dataApp.getValue("isWindows")
     ? "shutdown /s /f /t 10"
     : "sudo shutdown -h now";
@@ -29,19 +28,18 @@ export const turnOffComputer = async (): Promise<boolean> => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
         const message = `Error shutting down the computer: ${error.message}`;
-        writeLog(message, "error");
-        console.error(message);
+        Logger.error(message);
         resolve(false);
       }
-      if (stdout) writeLog(`Shutdown stdout: ${stdout}`, "info");
-      if (stderr) writeLog(`Shutdown stderr: ${stderr}`, "warn");
+      if (stdout) Logger.log(`Shutdown stdout: ${stdout}`);
+      if (stderr) Logger.warn(`Shutdown stderr: ${stderr}`);
       resolve(true);
     });
   });
 };
 
 export const restartComputer = async (): Promise<boolean> => {
-  writeLog("Received restart-computer request", "warn");
+  Logger.warn("Received restart-computer request");
   const command = dataApp.getValue("isWindows")
     ? "shutdown /r /f /t 10"
     : "sudo shutdown -r now";
@@ -50,12 +48,11 @@ export const restartComputer = async (): Promise<boolean> => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
         const message = `Error restarting the computer: ${error.message}`;
-        writeLog(message, "error");
-        console.error(message);
+        Logger.error(message);
         resolve(false);
       }
-      if (stdout) writeLog(`Restart stdout: ${stdout}`, "info");
-      if (stderr) writeLog(`Restart stderr: ${stderr}`, "warn");
+      if (stdout) Logger.log(`Restart stdout: ${stdout}`);
+      if (stderr) Logger.warn(`Restart stderr: ${stderr}`);
       resolve(true);
     });
   });
@@ -68,21 +65,20 @@ const hasPermissionsMiddleware = (
 ) => {
   try {
     const { deviceId } = req.body || {};
-    writeLog(
+    Logger.log(
       `Received deviceId: ${deviceId}, expected: ${dataApp.getValue(
         "deviceId",
       )} areEqual: ${deviceId === dataApp.getValue("deviceId")}`,
-      "info",
     );
     if (!deviceId || deviceId !== dataApp.getValue("deviceId")) {
       const message = "Unauthorized request: Invalid or missing deviceId";
-      writeLog(message, "warn");
+      Logger.warn(message);
       res.status(401).json({ error: message });
       return;
     }
   } catch (error) {
     const message = `Error in permissions middleware: ${error}`;
-    writeLog(message, "error");
+    Logger.error(message);
     res.status(500).json({ error: message });
     return;
   }
@@ -93,16 +89,16 @@ export const handleShutdown = async () => {
   if (isShuttingDown) return;
   isShuttingDown = true;
   try {
-    writeLog("Executing shutdown commands...", "info");
+    Logger.log("Executing shutdown commands...");
     await executeTerminalCommands("Shut-down");
   } catch (err) {
-    writeLog(`Error executing shutdown commands: ${err}`, "error");
+    Logger.error("Error executing shutdown commands:", err);
   }
   await clearTempFiles();
-  writeLog("Shutting down gracefully...", "info");
+  Logger.log("Shutting down gracefully...");
   cleanAdAndServer();
   stopMemoryMonitor();
-  setTimeout(() => process.exit(0), 500);
+  Timers.setTimeout(() => process.exit(0), 500);
 };
 
 export const cleanAdAndServer = (): void => {
@@ -110,21 +106,21 @@ export const cleanAdAndServer = (): void => {
   const server: Server | null = dataApp.getValue("server");
 
   if (ad) {
-    writeLog("Stopping mDNS advertisement...", "info");
+    Logger.log("Stopping mDNS advertisement...");
     try {
       ad.unpublishAll();
       ad.destroy();
     } catch (e) {
-      writeLog(`Error stopping ad (ignoring): ${e}`, "warn");
+      Logger.error("Error stopping ad (ignoring):", e);
     }
     dataApp.setValue("ad", null);
   }
   if (server) {
-    writeLog("Closing server...", "info");
+    Logger.log("Closing server...");
     try {
       server.close?.();
     } catch (e) {
-      writeLog(`Error closing server (ignoring): ${e}`, "warn");
+      Logger.error("Error closing server (ignoring):", e);
     }
     dataApp.setValue("server", null);
   }
@@ -132,9 +128,8 @@ export const cleanAdAndServer = (): void => {
 
 export const scheduleReconnect = (reason: string) => {
   if (isReconnecting || isShuttingDown) {
-    writeLog(
+    Logger.log(
       `Reconnect ignored: (Reason: ${reason}, isReconnecting: ${isReconnecting}, isShuttingDown: ${isShuttingDown})`,
-      "info",
     );
     return;
   }
@@ -145,9 +140,8 @@ export const scheduleReconnect = (reason: string) => {
     60000,
   );
   dataApp.setValue("reconnectAttempts", (prev) => prev + 1);
-  writeLog(
+  Logger.warn(
     `Server stopped (${reason}). Reconnecting in ${delay / 1000}s...`,
-    "warn",
   );
 
   if (idTimeoutServer) {
@@ -155,25 +149,24 @@ export const scheduleReconnect = (reason: string) => {
     idTimeoutServer = null;
   }
 
-  idTimeoutServer = setTimeout(() => {
-    writeLog("Reconnect timeout elapsed. Attempting to restart...", "info");
+  idTimeoutServer = Timers.setTimeout(() => {
+    Logger.log("Reconnect timeout elapsed. Attempting to restart...");
     idTimeoutServer = null;
 
     try {
       const server = dataApp.getValue("server");
       if (server) {
         server.close(() => {
-          writeLog("Existing server closed. Restarting...", "info");
+          Logger.log("Existing server closed. Restarting...");
           initServer();
         });
       } else {
-        writeLog("No existing server found. Restarting...", "info");
+        Logger.log("No existing server found. Restarting...");
         initServer();
       }
     } catch (e) {
-      writeLog(
-        `Error during server close in reconnect: ${e}. Forcing restart.`,
-        "error",
+      Logger.error(
+        `Error during server close in reconnect: ${e instanceof Error ? e.message : String(e)}. Forcing restart.`,
       );
       initServer();
     }
@@ -190,7 +183,7 @@ const initDevServer = (): void => {
   devApp.get("/close-app", (_, res) => {
     res.json({ success: true });
 
-    setTimeout(handleShutdown, 1000);
+    Timers.setTimeout(handleShutdown, 1000);
     serverDev?.close();
   });
 
@@ -201,30 +194,30 @@ const initDevServer = (): void => {
 
 export const initServer = (): void => {
   if (isShuttingDown) {
-    writeLog("Shutdown in progress. Aborting server init.", "warn");
+    Logger.warn("Shutdown in progress. Aborting server init.");
     return;
   }
-  writeLog("Initializing server...", "info");
+  Logger.log("Initializing server...");
 
   if (!dataApp.getValue("hasSudo") && !dataApp.getValue("isWindows")) {
-    writeLog(
+    Logger.error(
       "Permissions missing (no sudo or not Windows). Server will not start.",
-      "error",
     );
     return;
   }
 
   if (!dataApp.getValue("deviceId")) {
-    dataApp.setValue("deviceId", machineId.machineIdSync());
+    machineId.machineId().then((id) => {
+      dataApp.setValue("deviceId", id);
+      Logger.log(`Device ID set: ${id}`);
+    });
   }
 
-  if (dataApp.getValue("hasSudo")) {
-    try {
-      writeLog(`Configuring firewall...`, "info");
-      execSync("sudo ufw allow 3005 && sudo ufw reload");
-    } catch (err) {
-      writeLog(`Error configuring firewall: ${err}`, "error");
-    }
+  if (dataApp.getValue("hasSudo") && !dataApp.getValue("isWindows")) {
+    Logger.log(`Configuring firewall...`);
+    exec("sudo ufw allow 3005 && sudo ufw reload", (e) => {
+      if (e) Logger.error(`Error configuring firewall: ${e.message}`);
+    });
   }
 
   try {
@@ -240,17 +233,17 @@ export const initServer = (): void => {
 
     app.post("/log", (req, res) => {
       const { message, level } = req.body;
-      writeLog(`Client log [${level}]: ${message}`, level);
+      Logger[level as "log"](`Client log [${level}]: ${message}`);
       res.json({ success: true });
     });
 
     app.post("/turn-off-computer", hasPermissionsMiddleware, async (_, res) => {
-      writeLog("Received /turn-off-computer request", "info");
+      Logger.log("Received /turn-off-computer request");
       res.json({ success: await turnOffComputer() });
     });
 
     app.post("/restart-computer", hasPermissionsMiddleware, async (_, res) => {
-      writeLog("Received /restart-computer request", "info");
+      Logger.log("Received /restart-computer request");
       res.json({ success: await restartComputer() });
     });
 
@@ -262,7 +255,7 @@ export const initServer = (): void => {
         idTimeoutServer = null;
       }
 
-      writeLog(`Server listening on port ${dataApp.getValue("PORT")}`, "info");
+      Logger.log(`Server listening on port ${dataApp.getValue("PORT")}`);
 
       isReconnecting = false;
       dataApp.setValue("reconnectAttempts", 0);
@@ -272,7 +265,7 @@ export const initServer = (): void => {
         const deviceId = dataApp.getValue("deviceId");
         const txt: AdvertisementTXT = {
           lanIP,
-          deviceId: deviceId,
+          deviceId,
         };
 
         const serviceConfig: ServiceConfig = {
@@ -291,14 +284,14 @@ export const initServer = (): void => {
 
         if (!service?.published && !service?.activated) initServer();
       } catch (error) {
-        writeLog(`Error setting up mDNS: ${error}`, "error");
+        Logger.error("Error setting up mDNS:", error);
       }
     });
 
     server.on("error", (err: NodeJS.ErrnoException) => {
-      writeLog(`Server error: ${err.message}`, "error");
+      Logger.error(`Server error: ${err.message}`);
       if (err.code === "EADDRINUSE") {
-        writeLog("Port 3005 already in use. Retrying...", "warn");
+        Logger.warn("Port 3005 already in use. Retrying...");
         scheduleReconnect("EADDRINUSE");
       } else {
         scheduleReconnect("server_error");
@@ -306,13 +299,13 @@ export const initServer = (): void => {
     });
 
     server.on("close", () => {
-      writeLog("Server 'close' event fired.", "info");
+      Logger.log("Server 'close' event fired.");
       dataApp.setValue("server", null);
 
       if (isReconnecting || isShuttingDown) {
-        writeLog("Server close was expected.", "info");
+        Logger.log("Server close was expected.");
       } else {
-        writeLog("Server closed unexpectedly. Scheduling reconnect...", "warn");
+        Logger.warn("Server closed unexpectedly. Scheduling reconnect...");
         scheduleReconnect("unexpected_close");
       }
     });
@@ -321,18 +314,18 @@ export const initServer = (): void => {
 
     dataApp.setValue("server", server);
   } catch (error) {
-    writeLog(`Fatal error during server initialization: ${error}`, "error");
+    Logger.error("Fatal error during server initialization:", error);
     scheduleReconnect("init_catch");
   }
 };
 
 process.on("uncaughtException", (err) => {
-  writeLog(`Uncaught exception: ${err}`, "error");
+  Logger.error("Uncaught exception:", err);
   scheduleReconnect("uncaughtException");
 });
 
 process.on("unhandledRejection", (reason) => {
-  writeLog(`Unhandled promise rejection: ${reason}`, "error");
+  Logger.error("Unhandled promise rejection:", reason);
   scheduleReconnect("unhandledRejection");
 });
 

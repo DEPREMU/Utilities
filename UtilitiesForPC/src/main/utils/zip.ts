@@ -1,10 +1,10 @@
-import fs from "fs";
 import path from "path";
 import { app } from "electron";
+import { Logger } from "./logger";
 import { path7za } from "7zip-bin";
-import { URI_EXTENSION } from "@common";
 import { ChannelsIpcRenderer } from "@types";
 import { add, SevenZipOptions } from "node-7z";
+import { Directory, File, URI_EXTENSION } from "@common";
 
 export const zipFolder = async (
   ...args: ChannelsIpcRenderer["zip-folder"]["functionArgs"]
@@ -18,21 +18,18 @@ export const zipFolder = async (
     );
 
     const tempFolder = path.join(app.getPath("temp"), "zip-temp-folder");
-    await fs.promises.mkdir(tempFolder, { recursive: true });
+    const tempDir = new Directory(tempFolder);
+    await tempDir.mkdir({ recursive: true });
     await Promise.all(
       files.map(async (filePath) => {
-        try {
-          filePath = filePath.startsWith(URI_EXTENSION)
-            ? filePath.slice(URI_EXTENSION.length)
-            : filePath;
+        filePath = filePath.startsWith(URI_EXTENSION)
+          ? filePath.slice(URI_EXTENSION.length)
+          : filePath;
 
-          const fileName = path.basename(filePath);
-          const destPath = path.join(tempFolder, fileName);
+        const fileName = path.basename(filePath);
+        const destPath = path.join(tempFolder, fileName);
 
-          await fs.promises.copyFile(filePath, destPath);
-        } catch {
-          // Ignore individual file copy errors
-        }
+        await new File(filePath).copyFile(destPath);
       }),
     );
 
@@ -52,7 +49,7 @@ export const zipFolder = async (
       zipStream.on("end", async () => {
         try {
           onProgress?.(100, "", 0);
-          await fs.promises.rm(tempFolder, { recursive: true, force: true });
+          await tempDir.rm({ recursive: true, force: true });
         } catch {
           // Ignore error
         }
@@ -61,15 +58,12 @@ export const zipFolder = async (
 
       zipStream.on("error", (err) => {
         onError?.(err);
-        console.error(
-          "Error zipping folder:",
-          err instanceof Error ? err.message : err,
-        );
+        Logger.error("Error zipping folder:", err);
         resolve("");
       });
     });
   } catch (error) {
-    console.error("Error in zipFolder function:", (error as Error).message);
+    Logger.error("Error in zipFolder function:", error);
     return "";
   }
 };

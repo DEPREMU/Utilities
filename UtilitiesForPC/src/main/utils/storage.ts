@@ -1,31 +1,36 @@
 import {
+  File,
+  Task,
   Command,
+  Directory,
   isSecureKey,
   ALL_KEYS_STORAGE,
-  ALL_KEYS_STORAGE_TYPE,
-  wrapFunctionWithError,
-  getMimeTypeFromExtension,
   EXTENSION_ENCRYPTED,
+  ALL_KEYS_STORAGE_TYPE,
+  getMimeTypeFromExtension,
 } from "@common";
-import fs from "fs";
 import path from "path";
 import Store from "electron-store";
 import crypto from "crypto";
 import dataApp from "./variables";
 import { exec } from "child_process";
-import { writeLog } from "./logger";
-import { pipeline } from "stream/promises";
-import { promisify } from "util";
+import { Logger } from "./logger";
 import { URI_EXTENSION } from "@common";
 import { app, safeStorage } from "electron";
-import { ElectronStoreType, FileInfo, FolderFiles, PickedFile } from "@types";
+import { FileInfo, PickedFile, FolderFiles, ElectronStoreType } from "@types";
 
-try {
-  const dir = path.join(app.getPath("userData"), "secure-storage");
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-} catch (err) {
-  console.error("Error initializing secure storage:", err);
-}
+const createSecureStorageDir = async () => {
+  try {
+    const dirPath = path.join(app.getPath("userData"), "secure-storage");
+
+    const dir = new Directory(dirPath);
+
+    if (!(await dir.exists())) await dir.mkdir({ recursive: true });
+  } catch (err) {
+    Logger.error("Error initializing secure storage:", err);
+  }
+};
+createSecureStorageDir();
 
 const store = new Store({
   name: "secure-storage",
@@ -34,33 +39,37 @@ const store = new Store({
   clearInvalidConfig: true,
 }) as unknown as ElectronStoreType;
 
-const getMachineKey = (): Buffer => {
+const getMachineKey = async (): Promise<Buffer> => {
   try {
     let machineId = "";
-    if (fs.existsSync("/etc/machine-id")) {
-      machineId = fs.readFileSync("/etc/machine-id", "utf-8").trim();
-    } else if (fs.existsSync("/var/lib/dbus/machine-id")) {
-      machineId = fs.readFileSync("/var/lib/dbus/machine-id", "utf-8").trim();
+    let file = new File("/etc/machine-id");
+    if (await file.exists()) {
+      machineId = await file.readFile();
     } else {
-      machineId = "fallback-machine-id-utilities-pc";
+      file = new File("/var/lib/dbus/machine-id");
+      if (await file.exists()) {
+        machineId = await file.readFile();
+      } else {
+        machineId = "fallback-machine-id-utilities-pc";
+      }
     }
-    return crypto.createHash("sha256").update(machineId).digest();
+    return crypto.createHash("sha256").update(machineId.trim()).digest();
   } catch (error) {
-    console.error("Error getting machine ID:", error);
+    Logger.error("Error getting machine ID:", error);
     return crypto.createHash("sha256").update("fallback-error-key").digest();
   }
 };
 
-const encryptFallback = (text: string): string => {
+const encryptFallback = async (text: string): Promise<string> => {
   const iv = crypto.randomBytes(16);
-  const key = getMachineKey();
+  const key = await getMachineKey();
   const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
   let encrypted = cipher.update(text, "utf8", "hex");
   encrypted += cipher.final("hex");
   return `fb:${iv.toString("hex")}:${encrypted}`;
 };
 
-const decryptFallback = (text: string): string | null => {
+const decryptFallback = async (text: string): Promise<string | null> => {
   try {
     const textParts = text.split(":");
     if (textParts.length < 2) return null;
@@ -73,13 +82,13 @@ const decryptFallback = (text: string): string | null => {
 
     if (ivHex.length !== 32 || encryptedText.length === 0) return null;
     const iv = Buffer.from(ivHex, "hex");
-    const key = getMachineKey();
+    const key = await getMachineKey();
     const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
     let decrypted = decipher.update(encryptedText, "hex", "utf8");
     decrypted += decipher.final("utf8");
     return decrypted;
   } catch (error) {
-    console.error("Error decrypting fallback:", error);
+    Logger.error("Error decrypting fallback:", error);
     return null;
   }
 };
@@ -92,7 +101,7 @@ const decryptSafeStorage = (text: string): string | null => {
     const buffer = Buffer.from(base64Payload, "base64");
     return safeStorage.decryptString(buffer);
   } catch (error) {
-    console.error("Error decrypting safeStorage:", error);
+    Logger.error("Error decrypting safeStorage:", error);
     return null;
   }
 };
@@ -105,7 +114,7 @@ const verifyCommandStructure = (str: string): string | null => {
           parsed.filter((item: Command) => "command" in item && "when" in item),
         )
       : null;
-  } catch (error) {
+  } catch {
     return null;
   }
 };
@@ -118,7 +127,7 @@ export const getStorageValue = async (
 
     if (!isSecureKey(key)) return (store.get(keyValue) as string) ?? null;
 
-    const storedValue = store.get(keyValue as any) as string;
+    const storedValue = store.get(keyValue);
     if (!storedValue) return null;
 
     const tryVerifyCommands = (value: string): string | null => {
@@ -129,9 +138,8 @@ export const getStorageValue = async (
 
     if (storedValue.startsWith("ss:")) {
       if (!safeStorage.isEncryptionAvailable()) {
-        writeLog(
+        Logger.error(
           `Encryption not available for key ${String(key)}(${keyValue})`,
-          "error",
         );
         return null;
       }
@@ -141,7 +149,7 @@ export const getStorageValue = async (
     }
 
     if (storedValue.startsWith("fb:")) {
-      const fallbackDecrypted = decryptFallback(storedValue);
+      const fallbackDecrypted = await decryptFallback(storedValue);
       if (!fallbackDecrypted) return null;
       return tryVerifyCommands(fallbackDecrypted);
     }
@@ -152,28 +160,22 @@ export const getStorageValue = async (
         const decrypted = safeStorage.decryptString(buffer);
         return tryVerifyCommands(decrypted);
       } catch (e) {
-        const fallbackDecrypted = decryptFallback(storedValue);
+        const fallbackDecrypted = await decryptFallback(storedValue);
         if (fallbackDecrypted) return tryVerifyCommands(fallbackDecrypted);
-        writeLog(
-          `Error decrypting key ${String(key)}(${keyValue}): ${e}`,
-          "error",
-        );
+        Logger.error(`Error decrypting key ${String(key)}(${keyValue}):`, e);
         return null;
       }
     }
 
-    const fallbackDecrypted = decryptFallback(storedValue);
+    const fallbackDecrypted = await decryptFallback(storedValue);
     if (fallbackDecrypted) return tryVerifyCommands(fallbackDecrypted);
 
-    writeLog(
+    Logger.error(
       `Encryption not available and fallback failed for key ${String(key)}(${keyValue})`,
-      "error",
     );
     return null;
-  } catch (error) {
-    const err = typeof error === "string" ? error : JSON.stringify(error);
-    writeLog(`Error reading key ${String(key)}: ` + err, "error");
-    console.error(`Error reading key ${String(key)}:`, error);
+  } catch (err) {
+    Logger.error(`Error reading key ${String(key)}:`, err);
     return null;
   }
 };
@@ -191,22 +193,20 @@ export const saveStorageValue = async <T extends ALL_KEYS_STORAGE_TYPE>(
         try {
           const encrypted = safeStorage.encryptString(jsonValue);
           store.set(keyValue, `ss:${encrypted.toString("base64")}`);
-        } catch (e) {
-          const fallbackEncrypted = encryptFallback(jsonValue);
+        } catch {
+          const fallbackEncrypted = await encryptFallback(jsonValue);
           store.set(keyValue, fallbackEncrypted);
         }
       } else {
-        const fallbackEncrypted = encryptFallback(jsonValue);
+        const fallbackEncrypted = await encryptFallback(jsonValue);
         store.set(keyValue, fallbackEncrypted);
       }
     } else {
       store.set(keyValue, value);
     }
     return true;
-  } catch (error) {
-    const err = typeof error === "string" ? error : JSON.stringify(error);
-    writeLog(`Error saving key ${String(key)}: ` + err, "error");
-    console.error(`Error saving key ${String(key)}:`, error);
+  } catch (err) {
+    Logger.error(`Error saving key ${String(key)}:`, err);
     return false;
   }
 };
@@ -219,10 +219,8 @@ export const removeStorageValue = async (
     store.delete(keyValue);
 
     return true;
-  } catch (error) {
-    const err = typeof error === "string" ? error : JSON.stringify(error);
-    writeLog(`Error removing key ${String(key)}: ` + err, "error");
-    console.error(`Error removing key ${String(key)}:`, error);
+  } catch (err) {
+    Logger.error(`Error removing key ${String(key)}: `, err);
     return false;
   }
 };
@@ -241,7 +239,7 @@ const initDeviceId = async (): Promise<void> => {
     dataApp.setValue("deviceId", hashedId);
     await saveStorageValue("DEVICE_ID", hashedId);
   } catch (error) {
-    console.error("Error initializing device ID:", error);
+    Logger.error("Error initializing device ID:", error);
   }
 };
 initDeviceId();
@@ -258,80 +256,57 @@ export const executeTerminalCommands = async (when: Command["when"]) => {
       commandsParsed
         ?.filter((cmd) => cmd.when === when)
         ?.map((cmd) => {
-          return new Promise<1>((resolve) => {
-            try {
-              exec(cmd.command, (error, stdout, stderr) => {
-                if (error) {
-                  writeLog(
-                    `Command execution error for "${cmd.command}" for ${when}: ${error.message}`,
-                    "error",
-                  );
-                }
-                if (stderr) {
-                  writeLog(
-                    `Command execution stderr for "${cmd.command}" for ${when}: ${stderr}`,
-                    "error",
-                  );
-                }
-                if (stdout) {
-                  writeLog(
-                    `Command execution stdout for "${cmd.command}" for ${when}: ${stdout}`,
-                    "info",
-                  );
-                }
+          return new Promise<void>((resolve) => {
+            exec(cmd.command, (error, stdout, stderr) => {
+              if (error) {
+                Logger.error(
+                  `Command execution error for "${cmd.command}" for ${when}: ${error.message}`,
+                );
+              }
+              if (stderr) {
+                Logger.error(
+                  `Command execution stderr for "${cmd.command}" for ${when}: ${stderr}`,
+                );
+              }
+              if (stdout) {
+                Logger.log(
+                  `Command execution stdout for "${cmd.command}" for ${when}: ${stdout}`,
+                );
+              }
 
-                resolve(1);
-              });
-            } catch (error) {
-              writeLog(
-                `Error executing command "${cmd.command}" for ${when}: ` +
-                  (typeof error === "string" ? error : JSON.stringify(error)),
-                "error",
-              );
-            } finally {
-              resolve(1);
-            }
+              resolve();
+            });
           });
         }),
     );
   } catch (error) {
-    writeLog(
-      `Error executing terminal commands for ${when}: ` +
-        (typeof error === "string" ? error : JSON.stringify(error)),
-      "error",
-    );
+    Logger.error(`Error executing terminal commands for ${when}:`, error);
   }
 };
 
-let filesInTemp: Set<string> = new Set();
+const filesInTemp: Set<string> = new Set();
 
 export const copyFileToTemp = async (
   base64: string,
   fileName: string,
 ): Promise<FileInfo | null> => {
   try {
-    console.log("Copying file to temp:", fileName, base64.slice(0, 30) + "...");
     if (base64.includes("base64,")) base64 = base64.split("base64,")[1];
 
     const tempDir = app.getPath("temp");
     const filePath = path.join(tempDir, fileName);
     const buffer = Buffer.from(base64, "base64");
-    const success = await new Promise<boolean>((r) => {
-      fs.writeFile(filePath, buffer, (err) => r(!err));
-    });
-    console.log({ success, filePath });
+    const success = await new File(filePath).writeFile(buffer);
     if (!success) return null;
 
-    const stats = await new Promise<fs.Stats | null>((r) => {
-      fs.stat(filePath, (err, stats) => r(err ? null : stats));
-    });
+    const stats = await new File(filePath).stats();
     const extension = path.extname(fileName).slice(1);
     const mimeType = getMimeTypeFromExtension(extension);
 
     const info: FileInfo = {
       uri: URI_EXTENSION + filePath,
       name: fileName,
-      size: stats ? stats.size : buffer.length,
+      size: stats ? Number(stats.size) : buffer.length,
       createdAt: stats ? stats.birthtime : new Date(),
       modifiedAt: stats ? stats.mtime : new Date(),
       extension,
@@ -339,13 +314,9 @@ export const copyFileToTemp = async (
     };
     filesInTemp.add(filePath);
 
-    console.log(info);
     return info;
   } catch (error) {
-    writeLog(
-      `Error copying file to temp: ` + String((error as Error)?.message),
-      "error",
-    );
+    Logger.error("Error copying file to temp:", error);
     return null;
   }
 };
@@ -353,27 +324,13 @@ export const copyFileToTemp = async (
 export const clearTempFiles = async (): Promise<void> => {
   try {
     await Promise.all(
-      Array.from(filesInTemp).map(
-        (filePath) =>
-          new Promise<void>((resolve) => {
-            fs.unlink(filePath, (err) => {
-              if (err) {
-                writeLog(
-                  `Error deleting temp file ${filePath}: ` + String(err),
-                  "error",
-                );
-              }
-              resolve();
-            });
-          }),
-      ),
+      Array.from(filesInTemp).map((filePath) => {
+        return new File(filePath).rm({ force: true });
+      }),
     );
     filesInTemp.clear();
   } catch (error) {
-    writeLog(
-      `Error clearing temp files: ` + String((error as Error)?.message),
-      "error",
-    );
+    Logger.error("Error clearing temp files:", error);
   }
 };
 
@@ -382,109 +339,55 @@ export const removeFileWithUri = async (
 ): Promise<{ success: boolean }> => {
   try {
     const filePath = uri.replace(URI_EXTENSION, "");
-    await new Promise<void>((resolve, reject) => {
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+    const file = new File(filePath);
+    if (await file.exists()) await file.rm({ force: true });
+
     filesInTemp.delete(filePath);
     return { success: true };
   } catch (error) {
-    writeLog(
-      `Error removing file with URI ${uri}: ` +
-        String((error as Error)?.message),
-      "error",
-    );
+    Logger.error(`Error removing file with URI ${uri}: `, error);
     return { success: false };
   }
 };
 
-const pbkdf2Async = promisify(crypto.pbkdf2);
+const encryptionTask = new Task<boolean, "ENCRYPTION">({
+  fileWorker: "ENCRYPTION",
+  doNotDestroy: true,
+});
 
-const deriveKey = async (password: string, salt: Buffer): Promise<Buffer> => {
-  return (await pbkdf2Async(password, salt, 100000, 32, "sha256")) as Buffer;
+export const encryptFile = async (
+  inputPath: string,
+  outputPath: string,
+  password: string,
+): Promise<boolean> => {
+  const result = await encryptionTask.getResult({
+    functionName: "encryptData",
+    data: { password, inputPath, outputPath },
+  });
+  if (result instanceof Error) {
+    Logger.error(`Error encrypting file "${inputPath}": ${result.message}`);
+    return false;
+  }
+
+  return true;
 };
 
-export const encryptFile = wrapFunctionWithError(
-  async (
-    inputPath: string,
-    outputPath: string,
-    password: string,
-  ): Promise<boolean> => {
-    const salt = crypto.randomBytes(16);
-    const iv = crypto.randomBytes(12);
+export const decryptFile = async (
+  inputPath: string,
+  outputPath: string,
+  password: string,
+): Promise<boolean> => {
+  const result = await encryptionTask.getResult({
+    functionName: "decryptData",
+    data: { password, inputPath, outputPath },
+  });
 
-    const key = await deriveKey(password, salt);
-
-    const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-    const input = fs.createReadStream(inputPath);
-    const output = fs.createWriteStream(outputPath);
-
-    output.write(salt);
-    output.write(iv);
-
-    const tagPlaceholder = Buffer.alloc(16, 0);
-    output.write(tagPlaceholder);
-
-    await pipeline(input, cipher, output);
-
-    const authTag = cipher.getAuthTag();
-
-    const fd = await fs.promises.open(outputPath, "r+");
-    try {
-      await fd.write(authTag, 0, 16, 28);
-    } finally {
-      await fd.close();
-    }
-
-    return true;
-  },
-  true,
-  (_, errMsg, inputPath) => {
-    writeLog(`Error encrypting file "${inputPath}": ${errMsg}`, "error");
+  if (result instanceof Error) {
+    Logger.error(`Error decrypting file "${inputPath}": ${result.message}`);
     return false;
-  },
-);
-
-export const decryptFile = wrapFunctionWithError(
-  async (
-    inputPath: string,
-    outputPath: string,
-    password: string,
-  ): Promise<boolean> => {
-    const headerBuffer = Buffer.alloc(44);
-    const fd = await fs.promises.open(inputPath, "r");
-
-    const { bytesRead } = await fd.read(headerBuffer, 0, 44, 0);
-    if (bytesRead < 44) return false;
-
-    await fd.close();
-
-    const salt = headerBuffer.subarray(0, 16);
-    const iv = headerBuffer.subarray(16, 28);
-    const authTag = headerBuffer.subarray(28, 44);
-
-    const key = await deriveKey(password, salt);
-
-    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-    decipher.setAuthTag(authTag);
-
-    const input = fs.createReadStream(inputPath, { start: 44 });
-    const output = fs.createWriteStream(outputPath);
-
-    await pipeline(input, decipher, output);
-    return true;
-  },
-  true,
-  (_, errMsg, inputPath) => {
-    writeLog(`Error decrypting file "${inputPath}": ${errMsg}`, "error");
-    return false;
-  },
-);
+  }
+  return true;
+};
 
 export const encryptFiles = async (
   files: PickedFile[],
@@ -492,38 +395,40 @@ export const encryptFiles = async (
   folderId: string,
 ): Promise<{ success: boolean; errFiles?: PickedFile[] }> => {
   try {
-    let errorFiles: PickedFile[] = [];
+    const errorFiles: PickedFile[] = [];
 
-    await Promise.all(
-      files.map(async (file) => {
-        const inputPath = file.uri.replace(URI_EXTENSION, "");
-        const directory = (await getStorageValue("VAULT_DIRECTORY")) as string;
-        const outputDir = path.join(directory, folderId);
-        try {
-          const stats = await fs.promises.stat(outputDir);
-          if (!stats.isDirectory())
-            await fs.promises.mkdir(outputDir, {
-              recursive: true,
-            });
-        } catch {
-          errorFiles.push(file);
-          return;
-        }
-        const outputPath = path.join(
-          outputDir,
-          file.name + EXTENSION_ENCRYPTED,
-        );
+    const directory = (await getStorageValue("VAULT_DIRECTORY")) as string;
+    const outputDir = path.join(directory, folderId);
+    const dir = new Directory(outputDir);
+    if (!(await dir.exists())) {
+      await dir.mkdir({ recursive: true });
+      if (!(await dir.exists()))
+        return {
+          success: false,
+          errFiles: files,
+        };
+    }
 
-        const success = await encryptFile(inputPath, outputPath, password);
-        if (!success) errorFiles.push(file);
-      }),
-    );
+    if (errorFiles.length === 0)
+      await Promise.all(
+        files.map(async (file) => {
+          const inputPath = file.uri.replace(URI_EXTENSION, "");
+
+          const outputPath = path.join(
+            outputDir,
+            file.name + EXTENSION_ENCRYPTED,
+          );
+
+          const success = await encryptFile(inputPath, outputPath, password);
+          if (!success) errorFiles.push(file);
+        }),
+      );
 
     return {
       success: errorFiles.length === 0,
       ...(errorFiles.length > 0 ? { errFiles: errorFiles } : {}),
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       errFiles: files,
@@ -536,7 +441,8 @@ export const getTempFolderPathForDecryptedFiles = async (
 ): Promise<[string, string]> => {
   const directory = (await getStorageValue("VAULT_DIRECTORY")) as string;
   const folderPath = path.join(directory, folderId);
-  if (folderId && !fs.existsSync(folderPath)) return ["", ""];
+  const file = new File(folderPath);
+  if (folderId && !(await file.exists())) return ["", ""];
 
   const tempFolder = path.join(app.getPath("temp"), "UtilitiesForPC");
   return [tempFolder, folderPath];
@@ -552,16 +458,15 @@ export const decryptFiles = async (
 
     if (!tempFolder) return [];
 
-    try {
-      if (!fs.existsSync(tempFolder))
-        fs.mkdirSync(tempFolder, {
-          recursive: true,
-        });
-    } catch {
-      return [];
+    const dir = new Directory(tempFolder);
+    if (!(await dir.exists())) {
+      await dir.mkdir({ recursive: true });
+      if (!(await dir.exists())) return [];
     }
 
-    const files = await fs.promises.readdir(folderPath);
+    const folder = new Directory(folderPath);
+    if (!(await folder.exists())) return [];
+    const files = await folder.readDir();
     const decryptedFiles = await Promise.all(
       files
         .filter((file) => file.endsWith(EXTENSION_ENCRYPTED))
@@ -574,7 +479,7 @@ export const decryptFiles = async (
 
           if (!success) return null;
 
-          const stats = await fs.promises.stat(outputPath);
+          const stats = await new File(outputPath).stats();
 
           const mimeType = getMimeTypeFromExtension(
             path.extname(originalName).slice(1),
@@ -583,7 +488,7 @@ export const decryptFiles = async (
           const info: FolderFiles[number] = {
             uri: URI_EXTENSION + outputPath,
             name: originalName,
-            size: stats.size,
+            size: Number(stats?.size ?? 0),
             mimeType,
             originalUri: URI_EXTENSION + filePath,
           };
@@ -593,10 +498,9 @@ export const decryptFiles = async (
 
     return decryptedFiles.filter((f): f is FolderFiles[number] => !!f);
   } catch (error) {
-    writeLog(
-      `Error loading encrypted files from folder ${folderId}: ` +
-        String((error as Error)?.message),
-      "error",
+    Logger.error(
+      `Error loading encrypted files from folder ${folderId}: `,
+      error,
     );
     return [];
   }
@@ -612,31 +516,28 @@ export const actionWithVaultItem = async (
 
     const sourcePath = item.originalUri.replace(URI_EXTENSION, "");
     const targetDir = path.join(directory, targetFolderId);
-    try {
-      const stats = await fs.promises.stat(targetDir);
-      if (!stats.isDirectory())
-        await fs.promises.mkdir(targetDir, {
-          recursive: true,
-        });
-    } catch (err) {
-      return { success: false, error: "Target folder does not exist." };
+
+    const dir = new Directory(targetDir);
+    if (!(await dir.exists())) {
+      await dir.mkdir({ recursive: true });
+      if (!(await dir.exists()))
+        return { success: false, error: "Target folder does not exist." };
     }
 
     const fileName = path.basename(sourcePath);
     const targetPath = path.join(targetDir, fileName);
+    const sourceFile = new File(sourcePath);
 
-    if (action === "copy") await fs.promises.copyFile(sourcePath, targetPath);
-    else if (action === "move")
-      await fs.promises.rename(sourcePath, targetPath);
+    if (action === "copy") await sourceFile.copyFile(targetPath);
+    else if (action === "move") await sourceFile.rename(targetPath);
     else return { success: false, error: "Invalid action." };
 
     return { success: true };
   } catch (error) {
     const errMsg =
       error instanceof Error ? error.message : "Unknown error occurred.";
-    writeLog(
+    Logger.error(
       `Error performing ${action} on vault item ${item.name}: ${errMsg}`,
-      "error",
     );
     return { success: false, error: errMsg };
   }
@@ -651,15 +552,13 @@ export const renameVaultItem = async (
     const targetDir = path.dirname(sourcePath);
     const targetPath = path.join(targetDir, newName);
 
-    await fs.promises.rename(sourcePath, targetPath);
+    await new File(sourcePath).rename(targetPath);
 
     return { success: true };
   } catch (error) {
-    const errMsg =
-      error instanceof Error ? error.message : "Unknown error occurred.";
-    writeLog(
+    const errMsg = error instanceof Error ? error.message : String(error);
+    Logger.error(
       `Error renaming vault item ${item.name} to ${newName}: ${errMsg}`,
-      "error",
     );
     return { success: false, error: errMsg };
   }
@@ -669,7 +568,7 @@ export const getFileInfo = async (
   filePath: string,
 ): Promise<FileInfo | null> => {
   try {
-    const stats = await fs.promises.stat(filePath);
+    const stats = await new File(filePath).stats();
     const fileName = path.basename(filePath);
     const extension = path.extname(fileName).slice(1);
     const mimeType = getMimeTypeFromExtension(extension);
@@ -677,20 +576,16 @@ export const getFileInfo = async (
     const info: FileInfo = {
       uri: URI_EXTENSION + filePath,
       name: fileName,
-      size: stats.size,
-      createdAt: stats.birthtime,
-      modifiedAt: stats.mtime,
+      size: Number(stats?.size ?? 0),
+      createdAt: stats?.birthtime ?? new Date(),
+      modifiedAt: stats?.mtime ?? new Date(),
       extension,
       ...(mimeType ? { mimeType } : {}),
     };
 
     return info;
   } catch (error) {
-    writeLog(
-      `Error getting file info for ${filePath}: ` +
-        String((error as Error)?.message),
-      "error",
-    );
+    Logger.error(`Error getting file info for ${filePath}:`, error);
     return null;
   }
 };
@@ -698,13 +593,10 @@ export const getFileInfo = async (
 export const clearDecryptedFolderDirectory = async (): Promise<void> => {
   try {
     const [tempFolder] = await getTempFolderPathForDecryptedFiles("");
-    if (tempFolder && fs.existsSync(tempFolder))
-      fs.rmSync(tempFolder, { recursive: true, force: true });
+    const tempDir = new File(tempFolder);
+    if (tempFolder && (await tempDir.exists()))
+      await tempDir.rm({ recursive: true, force: true });
   } catch (error) {
-    writeLog(
-      `Error clearing decrypted folder directory: ` +
-        String((error as Error)?.message || error),
-      "error",
-    );
+    Logger.error("Error clearing decrypted folder directory:", error);
   }
 };

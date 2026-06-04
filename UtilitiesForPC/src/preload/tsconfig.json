@@ -11,14 +11,13 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "sourceMap": false,
-    "typeRoots": ["../node_modules/@types", "../../types/index.d.ts"],
+    "typeRoots": ["../node_modules/@types", "../../../types/index.d.ts"],
     "paths": {
-      "@/*": ["./src/main/*"],
-      "@utils": ["./src/main/utils"],
-      "@types": ["../types/index.d.ts"],
-      "@common": ["../common/serverOrElectron/index.ts"]
+      "@/*": ["./*"],
+      "@types": ["../../../types/index.d.ts"],
+      "@common": ["../../../common/both/index.ts"]
     }
   },
-  "include": ["./src/main/**/*.ts", "../../common/index.ts"],
+  "include": ["./**/*.ts", "../../../common/both/index.ts"],
   "exclude": ["node_modules", "build", "dist", "release"]
 }
