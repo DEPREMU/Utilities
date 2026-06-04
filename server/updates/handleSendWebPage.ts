@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import chalk from "chalk";
-import { showError } from "../functions/logger.ts";
+import { Logger } from "@common";
 import { serverPath } from "../config.ts";
 import { Request, Response } from "express";
 
@@ -16,7 +16,7 @@ const getFinalHTML = (tries: number = 0) => {
 
     return html;
   } catch (error) {
-    showError(chalk.red("Error loading web page files:"), error);
+    Logger.error(chalk.red("Error loading web page files:"), error);
     return getFinalHTML(tries + 1);
   }
 };
@@ -28,7 +28,7 @@ const handleSendWebPage = (_: Request, res: Response) => {
     res.setHeader("Content-Type", "text/html");
     res.send(finalHtml);
   } catch (error) {
-    showError(chalk.red("Error sending updates web page:"), error);
+    Logger.error(chalk.red("Error sending updates web page:"), error);
     try {
       res.status(500).send("Error loading updates web page: " + String(error));
     } catch {

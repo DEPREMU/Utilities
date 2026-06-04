@@ -1,10 +1,9 @@
 import chalk from "chalk";
-import { t } from "@common";
+import { t, Logger } from "@common";
 import { getEnvValue } from "../env.ts";
 import { fetchFromTable } from "../database/functions.ts";
 import { ReasonNotification } from "@types";
 import { sendFCMNotification } from "../firebase/admin.ts";
-import { showError, showInfo } from "../functions/logger.ts";
 
 const handleSendNotificationToAdmin = async () => {
   try {
@@ -15,7 +14,7 @@ const handleSendNotificationToAdmin = async () => {
 
     const user = Array.isArray(fetch.data) ? fetch.data[0] : fetch.data;
     if (!user) {
-      showInfo(chalk.red("Admin user not found for notifications."));
+      Logger.log(chalk.red("Admin user not found for notifications."));
       return;
     }
 
@@ -41,7 +40,7 @@ const handleSendNotificationToAdmin = async () => {
       : fetchUserConfig.data;
 
     if (validTokens.length === 0) {
-      showInfo(chalk.yellow("No valid tokens found for admin notification."));
+      Logger.log(chalk.yellow("No valid tokens found for admin notification."));
       return;
     }
 
@@ -62,19 +61,19 @@ const handleSendNotificationToAdmin = async () => {
         "downDetector",
         { screen: "Home", reason },
       );
-      showInfo(
+      Logger.log(
         chalk.green(
           `Notification sent to admin. Success: ${res?.successCount || 0}, Failure: ${res?.failureCount || 0}`,
         ),
       );
     } catch (error) {
-      showError(
+      Logger.error(
         "Error sending notification to admin:",
         error instanceof Error ? error.message : String(error),
       );
     }
   } catch (error) {
-    showError(
+    Logger.error(
       "Error fetching admin user for notification:",
       error instanceof Error ? error.message : String(error),
     );

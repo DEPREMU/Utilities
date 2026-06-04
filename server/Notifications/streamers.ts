@@ -5,11 +5,10 @@ import {
   LanguagesSupported,
 } from "@types";
 import chalk from "chalk";
-import { t } from "@common";
+import { t, Logger } from "@common";
 import { isLiveStreamer } from "../routes/socialMedia.ts";
 import { fetchFromTable } from "../database/functions.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
-import { showError, showInfo } from "../functions/logger.ts";
 
 const notificationsSent: Record<
   string,
@@ -121,7 +120,7 @@ const handleSendNotificationsStreamers = async () => {
         const title = t("streamerLiveNotificationTitle", lang, config);
         const body = t("streamerLiveNotification", lang, config);
 
-        showInfo(
+        Logger.log(
           chalk.green(
             `Sending notification to user ${userConfig.userId} that ${status.streamer} is live`,
           ),
@@ -147,7 +146,7 @@ const handleSendNotificationsStreamers = async () => {
             },
           );
         } catch (error) {
-          showError(chalk.red("Error sending push notification:"), error);
+          Logger.error(chalk.red("Error sending push notification:"), error);
         }
       } catch {
         // Ignore
@@ -157,7 +156,7 @@ const handleSendNotificationsStreamers = async () => {
 };
 
 export const getInterval = () => {
-  showInfo(chalk.blue("Starting streamers interval..."));
+  Logger.log(chalk.blue("Starting streamers interval..."));
 
   return setInterval(handleSendNotificationsStreamers, 5000);
 };

@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import chalk from "chalk";
-import { showError, showInfo } from "./logger";
 import type { Request, Response } from "express";
 import type { RequestBody, RoutesAPI } from "@types";
-import { sendResponse as sendResponseType } from "@common";
+import { Logger, sendResponse as sendResponseType } from "@common";
 
 type TypeOf = {
   string: string;
@@ -48,7 +47,7 @@ const isValidValue = (
   value: unknown,
   expectedTypes: (keyof TypeOf)[],
 ): boolean => {
-  showInfo("Validating value:", value, "against types:", expectedTypes);
+  Logger.log("Validating value:", value, "against types:", expectedTypes);
   for (const type of expectedTypes) {
     switch (type) {
       case "bigint":
@@ -120,7 +119,7 @@ export const getHandlerPost: GetHandlerPost = (path, keys, callback): any => {
         req as any,
       );
     } catch (error) {
-      showError(chalk.red("Error processing request:"), error);
+      Logger.error(chalk.red("Error processing request:"), error);
       sendResponseType(
         res,
         "INTERNAL_SERVER_ERROR",

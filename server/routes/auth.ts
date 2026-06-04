@@ -12,6 +12,7 @@ import {
 } from "../database/functions.ts";
 import {
   t,
+  Logger,
   sendResponse,
   isValidEmail,
   isValidPassword,
@@ -20,7 +21,6 @@ import {
 } from "@common";
 import chalk from "chalk";
 import bcrypt from "bcryptjs";
-import { showError } from "../functions/logger.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import { NextFunction, Request, Response } from "express";
 import {
@@ -42,7 +42,7 @@ import {
  * ```typescript
  * const result = await insertTokenToDB("push_token_123", "user_456");
  * if (result.error) {
- *   showError("Failed to insert token:", result.error);
+ *   Logger.error("Failed to insert token:", result.error);
  * }
  * ```
  */
@@ -58,7 +58,7 @@ const insertTokenToDB = async (
     });
     return null;
   } catch (error) {
-    showError(chalk.red("Error getting push token:"), error);
+    Logger.error(chalk.red("Error getting push token:"), error);
     return error instanceof Error ? error.message : String(error);
   }
 };
@@ -132,7 +132,7 @@ export const getStorageData = async (
 
     return storageData;
   } catch (error) {
-    showError(chalk.red("Error fetching storage data:"), error);
+    Logger.error(chalk.red("Error fetching storage data:"), error);
     return null;
   }
 };
@@ -175,7 +175,7 @@ export const initializeTables = async (
     const userConfigError = userConfig.error;
     const userNotificationsConfigError = userNotificationsConfig.error;
     if (userConfigError || userNotificationsConfigError) {
-      showError(
+      Logger.error(
         chalk.red("Error initializing user tables:"),
         userConfigError || userNotificationsConfigError,
       );
@@ -183,7 +183,7 @@ export const initializeTables = async (
     }
     return true;
   } catch (error) {
-    showError(chalk.red("Error initializing user tables:"), error);
+    Logger.error(chalk.red("Error initializing user tables:"), error);
     return false;
   }
 };
@@ -227,7 +227,10 @@ export const handleLogin = getHandlerPost(
       });
 
       if (dataInsert.error || !dataInsert.data) {
-        showError(chalk.red("Error inserting user session:"), dataInsert.error);
+        Logger.error(
+          chalk.red("Error inserting user session:"),
+          dataInsert.error,
+        );
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: t("internalError", lang),
@@ -237,7 +240,7 @@ export const handleLogin = getHandlerPost(
 
       const error = await insertTokenToDB(notificationToken, user.userId);
 
-      if (error) showError(chalk.red("Error inserting push token:"), error);
+      if (error) Logger.error(chalk.red("Error inserting push token:"), error);
 
       const userSession = dataInsert.data?.[0];
 
@@ -248,7 +251,7 @@ export const handleLogin = getHandlerPost(
       );
 
       if (!storageValues) {
-        showError(chalk.red("Error fetching storage values for user"));
+        Logger.error(chalk.red("Error fetching storage values for user"));
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: t("internalError", lang),
@@ -272,7 +275,7 @@ export const handleLogin = getHandlerPost(
         storageValues,
       });
     } catch (error) {
-      showError(chalk.red("Error logging in user:"), error);
+      Logger.error(chalk.red("Error logging in user:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: t("internalError", lang),
@@ -328,7 +331,7 @@ export const handleSignIn = getHandlerPost(
       const user = insertedData.data?.[0];
 
       if (!user) {
-        showError(chalk.red("Error inserting user: No data returned"));
+        Logger.error(chalk.red("Error inserting user: No data returned"));
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: t("internalError", lang),
@@ -344,7 +347,7 @@ export const handleSignIn = getHandlerPost(
 
       sendResponse("SUCCESS", { success: !!user });
     } catch (error) {
-      showError(chalk.red("Error in sign-in handler:"), error);
+      Logger.error(chalk.red("Error in sign-in handler:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: t("internalError", lang),
@@ -379,7 +382,10 @@ export const handleRefreshSession = getHandlerPost(
       );
 
       if (updatedData.error || !updatedData.data) {
-        showError(chalk.red("Error updating user session:"), updatedData.error);
+        Logger.error(
+          chalk.red("Error updating user session:"),
+          updatedData.error,
+        );
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: t("internalError", lang),
@@ -390,7 +396,9 @@ export const handleRefreshSession = getHandlerPost(
       const update = updatedData.data[0];
 
       if (!update) {
-        showError(chalk.red("Error updating user session: No data returned"));
+        Logger.error(
+          chalk.red("Error updating user session: No data returned"),
+        );
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: t("internalError", lang),
@@ -406,7 +414,7 @@ export const handleRefreshSession = getHandlerPost(
       ).data;
 
       if (!userDataFetch || userDataFetch.length === 0) {
-        showError(chalk.red("Error fetching user data for refreshed token"));
+        Logger.error(chalk.red("Error fetching user data for refreshed token"));
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: t("internalError", lang),
@@ -423,7 +431,7 @@ export const handleRefreshSession = getHandlerPost(
         success: true,
       });
     } catch (error) {
-      showError(chalk.red("Error refreshing token:"), error);
+      Logger.error(chalk.red("Error refreshing token:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: t("internalError", lang),
@@ -451,7 +459,7 @@ export const handleSignOut = getHandlerPost(
       });
 
       if (!deletedData.success) {
-        showError(chalk.red("Error deleting user session"));
+        Logger.error(chalk.red("Error deleting user session"));
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: t("internalError", lang),
@@ -461,7 +469,7 @@ export const handleSignOut = getHandlerPost(
 
       sendResponse("SUCCESS", { success: true });
     } catch (error) {
-      showError(chalk.red("Error signing out user:"), error);
+      Logger.error(chalk.red("Error signing out user:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
         success: false,
         error: t("internalError", lang),
@@ -535,7 +543,7 @@ export const authMiddleware = async (
     req.user = { tokenDecoded: payload, token };
     next();
   } catch (err) {
-    showError(chalk.red("Error in auth middleware:"), err);
+    Logger.error(chalk.red("Error in auth middleware:"), err);
     sendResponse(
       res,
       "UNAUTHORIZED",

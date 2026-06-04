@@ -74,9 +74,9 @@ const storeInsertedLogId = async (response: any) => {
     );
 };
 
-const getBase64SamplePngImage = () => {
-  const imageBuffer = readImage("./testingRoutes/sample.jpeg");
-  return imageBuffer.toString("base64");
+const getBase64SamplePngImage = async () => {
+  const imageBuffer = await readImage("./testingRoutes/sample.jpeg");
+  return imageBuffer;
 };
 
 /**
@@ -748,11 +748,11 @@ export const routeTests: {
     {
       route: "/images/changeImageFormat",
       description: "Change format - PNG to JPEG",
-      body: {
+      body: async () => ({
         lang: "en",
         format: "png",
-        imageBufferInString: getBase64SamplePngImage(),
-      },
+        imageBufferInString: await getBase64SamplePngImage(),
+      }),
       expectedResponse: {
         success: true,
         imageUri: expect.any(String),
@@ -762,12 +762,12 @@ export const routeTests: {
     {
       route: "/images/changeImageFormat",
       description: "Change format - JPEG to WebP",
-      body: {
+      body: async () => ({
         lang: "es",
         format: "webp",
-        imageBufferInString: getBase64SamplePngImage(),
-      },
-      expectedResponse: { success: true },
+        imageBufferInString: await getBase64SamplePngImage(),
+      }),
+      expectedResponse: { success: true, newFormat: "webp" },
       shouldSucceed: true,
     },
     {

@@ -6,10 +6,10 @@ import {
 } from "@types";
 import fs from "fs";
 import path from "path";
-import { showError } from "../functions/logger.ts";
+import { Logger } from "@common";
 import { getEnvValue } from "../env.ts";
 import { getFinalFileName } from "./uploadUpdate.ts";
-import { PATH_DATA_UPDATES, UPLOAD_DIR } from "../config.ts";
+import { PATH_DATA_UPDATES, REPLACERS, UPLOAD_DIR } from "../config.ts";
 
 const defaultData: DataUpdates = {
   old: {
@@ -110,14 +110,14 @@ export const updateDataUploads = (
         timestamp: Date.now(),
       };
 
-    if (!getEnvValue("__DEV__"))
+    if (!REPLACERS.isDev)
       fs.writeFileSync(
         PATH_DATA_UPDATES,
         JSON.stringify(dataUploads, null, 2),
         "utf-8",
       );
   } catch (error) {
-    showError("Error updating data uploads:", error);
+    Logger.error("Error updating data uploads:", error);
   }
 };
 

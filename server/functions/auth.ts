@@ -1,8 +1,7 @@
 import jwt from "jsonwebtoken";
 import chalk from "chalk";
-import { showError } from "./logger.ts";
 import { getEnvValue } from "../env.ts";
-import { wrapFunctionWithError } from "@common";
+import { Logger, wrapFunctionWithError } from "@common";
 import { deleteInTable, insertIntoTable } from "../database/functions.ts";
 
 declare global {
@@ -37,7 +36,7 @@ export const getJWTToken = wrapFunctionWithError(
   },
   true,
   async (_, errorMessage) => {
-    showError(chalk.red("Error generating JWT token:"), errorMessage);
+    Logger.error(chalk.red("Error generating JWT token:"), errorMessage);
     return "";
   },
 );
@@ -49,7 +48,7 @@ export const decodeJWTToken = wrapFunctionWithError(
   },
   true,
   async (_, errorMessage) => {
-    showError(chalk.red("Error decoding JWT token:"), errorMessage);
+    Logger.error(chalk.red("Error decoding JWT token:"), errorMessage);
     return null;
   },
 );
@@ -78,7 +77,7 @@ export const getJWTTokenAndUpload = wrapFunctionWithError(
   },
   true,
   (_, errorMessage) => {
-    showError(chalk.red("Error uploading JWT token:"), errorMessage);
+    Logger.error(chalk.red("Error uploading JWT token:"), errorMessage);
     return { error: errorMessage } as unknown as ReturnType<
       typeof insertIntoTable<"UserSessions">
     >;

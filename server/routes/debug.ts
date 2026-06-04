@@ -1,4 +1,4 @@
-import { showError } from "../functions/logger.ts";
+import { Logger } from "@common";
 import { RequestLogs } from "@types";
 import humanizeDuration from "humanize-duration";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
@@ -25,7 +25,7 @@ export const handleAddLog = getHandlerPost(
         success = !error;
       }
     } catch (err) {
-      showError("Error adding log:", err);
+      Logger.error("Error adding log:", err);
       error = err instanceof Error ? err.message : String(err);
     }
     sendResponse("SUCCESS", { success });

@@ -5,7 +5,7 @@ import {
 } from "../database/functions.ts";
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling.ts";
-import { showError, showInfo } from "../functions/logger.ts";
+import { Logger } from "@common";
 import { WebSocket, WebSocketServer } from "ws";
 import { ClipboardSync, ClipboardWebSocketMessage } from "@types";
 
@@ -33,7 +33,7 @@ const handleInit = (
   });
   usersClipboard.addDeviceUser(userDevice);
 
-  showInfo(
+  Logger.log(
     chalk.green("New clipboard client connected:"),
     chalk.yellow(userDevice.userId),
     chalk.green("Device ID:"),
@@ -126,11 +126,14 @@ const onMessage = async (
         break;
       }
       default:
-        showInfo(chalk.yellow("Unknown clipboard message type:"), message);
+        Logger.log(chalk.yellow("Unknown clipboard message type:"), message);
         break;
     }
   } catch (error) {
-    showError(chalk.red("Error handling Clipboard WebSocket message:"), error);
+    Logger.error(
+      chalk.red("Error handling Clipboard WebSocket message:"),
+      error,
+    );
   }
 };
 
@@ -140,7 +143,7 @@ const onConnection = (wsClipboard: WebSocket) => {
   wsClipboard.on("message", (buffer) => onMessage(buffer, userDevice));
 
   wsClipboard.on("close", () => {
-    showInfo(
+    Logger.log(
       chalk.red("Clipboard client disconnected:"),
       chalk.yellow(userDevice.userId),
       chalk.green("Device ID:"),
@@ -150,7 +153,7 @@ const onConnection = (wsClipboard: WebSocket) => {
   });
 
   wsClipboard.on("error", (error) => {
-    showInfo(
+    Logger.log(
       "Clipboard WebSocket error:",
       error instanceof Error ? error.message : error,
     );
@@ -197,7 +200,7 @@ export const initWebSocketClipboard = () => {
             },
           );
         } catch (error) {
-          showError(
+          Logger.error(
             chalk.red("Error sending clipboard data via WebSocket:"),
             error,
           );
@@ -209,7 +212,7 @@ export const initWebSocketClipboard = () => {
 
     return wss;
   } catch (error) {
-    showError(
+    Logger.error(
       chalk.red("Error initializing Clipboard WebSocket server:"),
       error instanceof Error ? error.message : error,
     );

@@ -1,4 +1,3 @@
-import "./dev/monitor.ts";
 import "./database/initDB.ts";
 
 import {
@@ -7,6 +6,13 @@ import {
   initWebSocketClipboard,
   initWebSocketLoginQRCode,
 } from "./websocket/index.ts";
+import {
+  host,
+  port,
+  REPLACERS,
+  serverPath,
+  executeFunctions,
+} from "./config.ts";
 import cors from "cors";
 import path from "path";
 import http from "http";
@@ -21,26 +27,27 @@ import routerUpdates from "./updates/index.ts";
 import { runAllTests } from "./testingRoutes/index.ts";
 import { handleInitDB } from "./database/postgres.ts";
 import { deleteInTable } from "./database/functions.ts";
-import { showError, showInfo } from "./functions/logger.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
+import { Logger, startMemoryMonitor } from "@common";
 import { validateServerEnv, getEnvValue } from "./env.ts";
-import { executeFunctions, host, port, serverPath } from "./config.ts";
+
 import { RequestAuth, RoutesAPI, WebSocketPathname } from "@types";
 
 const app = express();
 
+startMemoryMonitor();
 validateServerEnv();
 
 try {
   initializeFirebaseAdmin();
 } catch (error) {
-  showError(chalk.red("Failed to initialize Firebase Admin SDK:"), error);
+  Logger.error(chalk.red("Failed to initialize Firebase Admin SDK:"), error);
 }
 
 const sourceProtocol = getEnvValue("USE_HTTPS") ? "https" : "http";
 const sourceProtocolWs = getEnvValue("USE_HTTPS") ? "wss" : "ws";
 
-if (!getEnvValue("__DEV__")) {
+if (!REPLACERS.isDev) {
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -67,7 +74,7 @@ app.use(
   express.json({ limit: "50mb" }),
   rateLimit({
     windowMs: 1 * 60 * 1000,
-    limit: !getEnvValue("__DEV__") ? 200 : Infinity,
+    limit: !REPLACERS.isDev ? 200 : Infinity,
   }),
   routerAPI,
 );
@@ -77,7 +84,7 @@ app.use(
   express.static(path.join(serverPath, "updates", "web-page")),
   rateLimit({
     windowMs: 10 * 60 * 1000,
-    limit: !getEnvValue("__DEV__") ? 200 : Infinity,
+    limit: !REPLACERS.isDev ? 200 : Infinity,
   }),
   routerUpdates,
 );
@@ -90,7 +97,7 @@ const webSocketLoginQRCode = initWebSocketLoginQRCode();
 
 server.on("upgrade", (request, socket, head) => {
   if (!request.url) {
-    showError("Missing request URL");
+    Logger.error("Missing request URL");
     socket.destroy();
     return;
   }
@@ -121,19 +128,19 @@ server.on("upgrade", (request, socket, head) => {
       wsCalled = webSocketLoginQRCode;
       break;
     default:
-      showError("Invalid WebSocket pathname:", pathname);
+      Logger.error("Invalid WebSocket pathname:", pathname);
       socket.destroy();
       return;
   }
 
   if (!wsCalled) {
-    showError("WebSocket server not found for pathname:", pathname);
+    Logger.error("WebSocket server not found for pathname:", pathname);
     socket.destroy();
     return;
   }
 
   wsCalled.handleUpgrade(request, socket, head, (ws) => {
-    showInfo(
+    Logger.log(
       chalk.blue("WebSocket connection upgraded for pathname:", pathname),
     );
     wsCalled.emit("connection", ws, request);
@@ -142,7 +149,7 @@ server.on("upgrade", (request, socket, head) => {
 
 handleInitDB().then(() => {
   server.listen(port, host, async () => {
-    showInfo(
+    Logger.log(
       "",
       chalk.green(`Server is running on ${sourceProtocol}://${host}:${port}`),
       "\n",
@@ -154,7 +161,7 @@ handleInitDB().then(() => {
         `Clipboard WebSocket is running on ${sourceProtocolWs}://${host}:${port}/clipboard`,
       ),
     );
-    if (getEnvValue("__DEV__")) {
+    if (REPLACERS.isDev) {
       const user: RequestAuth<"signup"> = {
         lang: "en",
         email: "test@test.test",
@@ -172,10 +179,10 @@ handleInitDB().then(() => {
       })
         .then((res) => res.json())
         .then((data) => {
-          showInfo(chalk.blue("Test user signup response:"), data);
+          Logger.log(chalk.blue("Test user signup response:"), data);
         })
         .catch((error) => {
-          showError(chalk.red("Error during test user signup:"), error);
+          Logger.error(chalk.red("Error during test user signup:"), error);
         });
 
       await runAllTests(true);

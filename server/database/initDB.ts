@@ -3,10 +3,10 @@ import path from "path";
 import chalk from "chalk";
 import { pool } from "./postgres";
 import DataJSON from "./data.json";
+import { File, Logger } from "@common";
 import { getEnvValue } from "../env.ts";
-import { showError, showInfo } from "../functions/logger.ts";
 import { wrapFunctionWithError } from "@common";
-import { serverPath, TABLE_MAP } from "../config.ts";
+import { REPLACERS, serverPath, TABLE_MAP } from "../config.ts";
 import { deleteOldSessions, getValidValueDB } from "./functions.ts";
 
 const getTableFilePath = (tableName: string) =>
@@ -16,7 +16,7 @@ const fileSQLPath = path.resolve(serverPath, "database", "create_tables.sql");
 const fileDataPath = path.resolve(serverPath, "database", "data.json");
 
 if (!fs.existsSync(fileSQLPath)) {
-  showError(
+  Logger.error(
     chalk.red("SQL file not found:"),
     fileSQLPath,
     "Please check the path.",
@@ -25,7 +25,7 @@ if (!fs.existsSync(fileSQLPath)) {
 }
 
 if (!fs.existsSync(fileDataPath)) {
-  showError(
+  Logger.error(
     chalk.red("Data JSON file not found:"),
     fileDataPath,
     "Please check the path.",
@@ -50,7 +50,7 @@ export const initDB = async () => {
   const dataFile = fs.readFileSync(fileDataPath, "utf-8");
   const dataJSON: typeof DataJSON = JSON.parse(dataFile || "{}");
 
-  showInfo(
+  Logger.log(
     chalk.blue("Database initialization started"),
     `File version: ${fileVersion}`,
   );
@@ -88,10 +88,10 @@ export const initDB = async () => {
 
         const queryDelete = `DROP TABLE IF EXISTS "${tableName}";`;
         await client.query(queryDelete);
-        showInfo(chalk.yellow(`Table "${tableName}" dropped successfully.`));
+        Logger.log(chalk.yellow(`Table "${tableName}" dropped successfully.`));
       }
       await client.query(`DROP TABLE IF EXISTS "${TABLE_MAP.Users}";`);
-      showInfo(
+      Logger.log(
         chalk.yellow(`Table "${TABLE_MAP.Users}" dropped successfully.`),
       );
 
@@ -115,7 +115,7 @@ export const initDB = async () => {
         const columns = Object.keys(rows[0]).map((c) => `"${c}"`);
 
         if (!func) {
-          showError(
+          Logger.error(
             chalk.red(
               `No valid value function found for table "${tableName}". Data might not be restored correctly.`,
             ),
@@ -140,33 +140,35 @@ export const initDB = async () => {
       }
 
       dataJSON.prevVersionSQL = fileVersion;
-      if (!getEnvValue("__DEV__"))
-        fs.writeFileSync(
-          fileDataPath,
+      if (!REPLACERS.isDev)
+        await new File(fileDataPath).writeFile(
           JSON.stringify(dataJSON, null, 2),
           "utf-8",
         );
 
-      for (const [, tableName] of tableNames) {
-        const tableFilePath = getTableFilePath(tableName);
-        if (!fs.existsSync(tableFilePath)) continue;
-        showInfo(`Removing file: ${tableFilePath}`);
+      await Promise.all(
+        Object.entries(TABLE_MAP).map(async ([, tableName]) => {
+          if (tableName === TABLE_MAP.Logs) return;
+          const file = new File(getTableFilePath(tableName));
+          if (!(await file.exists())) return;
+          Logger.log(`Removing file: ${file.path}`);
 
-        fs.rmSync(tableFilePath, {
-          force: true,
-          retryDelay: 100,
-          maxRetries: 5,
-        });
-      }
+          await file.rm({
+            force: true,
+            maxRetries: 5,
+            retryDelay: 100,
+          });
+        }),
+      );
 
       await client.query("COMMIT");
-      showInfo(
+      Logger.log(
         chalk.green("Database initialized successfully with version:"),
         fileVersion,
       );
     },
     async (err, errorMessage) => {
-      showError(chalk.red("Error while updating the DB", errorMessage));
+      Logger.error(chalk.red("Error while updating the DB", errorMessage));
       await client.query("ROLLBACK");
     },
   );
