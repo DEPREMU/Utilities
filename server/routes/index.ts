@@ -53,6 +53,13 @@ const handleGenerate204 = (_: Request, res: Response) => {
 
 const router = Router();
 
+const doQueryImport = REPLACERS.isDev
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require("@/dev/handleDoQuery.ts") as typeof import("@/dev/handleDoQuery.ts"))
+  : ({
+      handleDoQueryDatabase: handleGenerate204 as never,
+    } satisfies typeof import("@/dev/handleDoQuery.ts"));
+
 const routes: {
   [K in Exclude<RoutesAPI, UpdatesRoutes>]: Route<K>;
 } = {
@@ -132,11 +139,7 @@ const routes: {
   },
   "/doQueryDB": {
     method: "post",
-    handler: REPLACERS.isDev
-      ? (
-          require("@/dev/handleDoQuery.ts") as typeof import("@/dev/handleDoQuery.ts")
-        ).handleDoQueryDatabase
-      : handleGenerate204,
+    handler: doQueryImport.handleDoQueryDatabase,
   },
   "/log": {
     method: "post",
@@ -158,7 +161,9 @@ Object.entries(routes).forEach(([path, route]) => {
       router[route.method](path, ...route.middlewares, route.handler);
     else router[route.method](path, route.handler);
   } catch (err) {
-    throw new Error(`Error setting up route ${path}: ${String(err)}`);
+    throw new Error(
+      `Error setting up route ${path}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 });
 

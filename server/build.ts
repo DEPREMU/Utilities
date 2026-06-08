@@ -65,6 +65,8 @@ const external = [
   "crypto",
   "piscina",
   "firebase-admin",
+  "@prisma/client",
+  "@prisma/adapter-pg",
 ];
 
 build({
@@ -86,25 +88,28 @@ const piscinaWorkerPath = path.join(
   "piscina",
 );
 
-fs.readdir(piscinaWorkerPath, (err, files) => {
+fs.readdir(piscinaWorkerPath, async (err, files) => {
   if (err) {
+    // eslint-disable-next-line no-console
     console.error("Error reading workers directory:", err);
     process.exit(1);
   }
 
-  files.forEach((file) => {
-    if (!file.endsWith("worker.ts")) return;
+  await Promise.all(
+    files.map((file) => {
+      if (!file.endsWith("worker.ts")) return;
 
-    build({
-      ...options,
-      outfile: path.join(
-        SERVER_PATH,
-        "build",
-        "piscina",
-        file.replace(".ts", ".cjs"),
-      ),
-      external,
-      entryPoints: [path.join(piscinaWorkerPath, file)],
-    });
-  });
+      return build({
+        ...options,
+        outfile: path.join(
+          SERVER_PATH,
+          "build",
+          "piscina",
+          file.replace(".ts", ".cjs"),
+        ),
+        external,
+        entryPoints: [path.join(piscinaWorkerPath, file)],
+      });
+    }),
+  );
 });

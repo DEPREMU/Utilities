@@ -1,34 +1,21 @@
 import {
-  getJWTToken,
-  decodeJWTToken,
-  getDateWithDaysAhead,
-  getJWTTokenAndUpload,
-} from "../functions/auth.ts";
-import {
-  deleteInTable,
-  updateInTable,
-  fetchFromTable,
-  insertIntoTable,
-} from "../database/functions.ts";
-import {
   t,
   Logger,
   sendResponse,
   isValidEmail,
   isValidPassword,
   reasonNotification,
+  getDateWithTimeAhead,
   ExpectedStorageTypes,
 } from "@common";
 import chalk from "chalk";
 import bcrypt from "bcryptjs";
-import { getHandlerPost } from "../functions/getHandlerPost.ts";
+import { JWT } from "@/functions/auth.ts";
+import { prisma } from "@/database/postgres.ts";
+import { getHandlerPost } from "@/functions/getHandlerPost.ts";
 import { NextFunction, Request, Response } from "express";
-import {
-  Tables,
-  UserData,
-  LanguagesSupported,
-  UserNotificationsConfig,
-} from "@types";
+
+const data = reasonNotification.map((reason) => ({ reason }));
 
 /**
  * Inserts a push token into the database for a specific user.
@@ -40,26 +27,30 @@ import {
  *
  * @example
  * ```typescript
- * const result = await insertTokenToDB("push_token_123", "user_456");
- * if (result.error) {
- *   Logger.error("Failed to insert token:", result.error);
+ * const error = await insertTokenToDB("push_token_123", "user_456");
+ * if (error) {
+ *   Logger.error("Failed to insert token:", error);
  * }
  * ```
  */
 const insertTokenToDB = async (
   token: string | undefined,
   userId: string,
-): Promise<string | null> => {
+): Promise<Error | null> => {
   try {
     if (!token || token === "Web") return null;
-    await insertIntoTable("PushTokens", {
-      token,
-      userId,
+
+    await prisma.pushTokens.upsert({
+      where: {
+        token_userId: { token, userId },
+      },
+      update: { userId },
+      create: { token, userId },
     });
     return null;
   } catch (error) {
     Logger.error(chalk.red("Error getting push token:"), error);
-    return error instanceof Error ? error.message : String(error);
+    return error instanceof Error ? error : new Error(String(error));
   }
 };
 
@@ -72,119 +63,59 @@ export const getStorageData = async (
   if (!userId) return null;
 
   try {
-    const [
-      usersData,
-      userConfigData,
-      streamersUserData,
-      userNotificationsConfigData,
-    ] = await Promise.all([
-      fetchFromTable({ table: "Users", match: { userId } }),
-      fetchFromTable({ table: "UserConfig", match: { userId } }),
-      fetchFromTable({ table: "Streamers", match: { userId } }),
-      fetchFromTable({ table: "UserNotificationsConfig", match: { userId } }),
-    ]);
+    const USER = await prisma.users.findUnique({
+      where: { userId },
+      include: {
+        streamers: true,
+        userConfig: true,
+        cryptosSettings: {
+          include: { autoRefresh: true, notifications: true },
+        },
+      },
+    });
 
-    const userData = usersData.data?.[0];
-    const userConfig = userConfigData.data?.[0];
-    const streamersUser = streamersUserData.data;
-    const userNotificationsConfig = userNotificationsConfigData.data;
+    if (!USER || !USER.userConfig) return null;
 
-    if (!Array.isArray(userNotificationsConfig)) return null;
-    if (!userData) return null;
+    const {
+      userConfig,
+      streamers,
+      password: _,
+      cryptosSettings,
+      ...user
+    } = USER;
 
-    const user: Partial<UserData> = { ...userData };
-
-    delete user["password"];
-
-    const userConfigToSave: Tables["UserConfig"] = {
-      userId,
-      language: userConfig?.language || "en",
-      hasAdmin: userConfig?.hasAdmin || false,
-      updatedAt: new Date().toISOString(),
-      theme: userConfig?.theme || "auto",
-      webSocketURL: userConfig?.webSocketURL || "",
-      API_URL: userConfig?.API_URL || "",
-    };
     let date = -1;
-    if (rememberMe) date = getDateWithDaysAhead(15).getTime();
+    if (rememberMe) date = getDateWithTimeAhead({ days: 15 }).getTime();
 
-    const storageData: Partial<ExpectedStorageTypes<"BOTH">> = {
+    let storageData: Partial<ExpectedStorageTypes<"BOTH">> = {
+      THEME: userConfig.theme,
+      LANGUAGE: userConfig.language,
+      USER_DATA: user,
       SESSION_EXPIRY: date,
+      HAS_ADMIN_ACCESS: userConfig.hasAdmin,
+      CRYPTOS_SETTINGS: cryptosSettings,
       LAST_UPDATE_CHECK: Date.now(),
       USER_SESSION_TOKEN_STORAGE: token,
-      HAS_ADMIN_ACCESS: userConfigToSave.hasAdmin,
-      LANGUAGE: userConfigToSave.language,
-      THEME: userConfigToSave.theme || "auto",
       STREAMERS:
-        streamersUser
-          ?.map((streamer) => ({ ...streamer, isLive: false }))
-          .filter(Boolean) || null,
-      USER_DATA: (user as Omit<UserData, "password">) || null,
-      ...(userConfigToSave.hasAdmin
-        ? {
-            API_URL: userConfigToSave.API_URL || "",
-            WEBSOCKET_URL: userConfigToSave.webSocketURL || "",
-            CLIPBOARD_WEBSOCKET_URL:
-              userConfigToSave.webSocketURL?.replace("/ws", "/clipboard") || "",
-          }
-        : {}),
+        streamers
+          .map((streamer) => ({ ...streamer, isLive: false }))
+          .filter(Boolean) || undefined,
     };
+
+    if (userConfig.hasAdmin) {
+      storageData = {
+        ...storageData,
+        API_URL: userConfig.API_URL || undefined,
+        WEBSOCKET_URL: userConfig.webSocketURL || undefined,
+        CLIPBOARD_WEBSOCKET_URL:
+          userConfig.webSocketURL?.replace("/ws", "/clipboard") || undefined,
+      };
+    }
 
     return storageData;
   } catch (error) {
     Logger.error(chalk.red("Error fetching storage data:"), error);
     return null;
-  }
-};
-
-export const initializeTables = async (
-  userId: string,
-  language: LanguagesSupported,
-) => {
-  try {
-    const updatedAt = new Date().toISOString();
-
-    const commonValues = {
-      userId,
-      updatedAt,
-    };
-
-    const commonValuesNotifications: Omit<UserNotificationsConfig, "reason"> = {
-      ...commonValues,
-      paused: false,
-      enabled: false,
-      pauseTime: -1,
-    };
-
-    const [userConfig, userNotificationsConfig] = await Promise.all([
-      insertIntoTable("UserConfig", {
-        language,
-        theme: "auto",
-        hasAdmin: false,
-        ...commonValues,
-      }),
-      insertIntoTable(
-        "UserNotificationsConfig",
-        reasonNotification.map((reason) => ({
-          ...commonValuesNotifications,
-          reason,
-        })),
-      ),
-    ]);
-
-    const userConfigError = userConfig.error;
-    const userNotificationsConfigError = userNotificationsConfig.error;
-    if (userConfigError || userNotificationsConfigError) {
-      Logger.error(
-        chalk.red("Error initializing user tables:"),
-        userConfigError || userNotificationsConfigError,
-      );
-      return false;
-    }
-    return true;
-  } catch (error) {
-    Logger.error(chalk.red("Error initializing user tables:"), error);
-    return false;
   }
 };
 
@@ -203,12 +134,9 @@ export const handleLogin = getHandlerPost(
     try {
       const { email, password, deviceId, notificationToken, rememberMe } = body;
 
-      const res = await fetchFromTable({
-        table: "Users",
-        match: { email },
+      const user = await prisma.users.findUnique({
+        where: { email },
       });
-
-      const user = res.data?.[0];
 
       if (!user)
         return sendResponse("UNAUTHORIZED", {
@@ -223,18 +151,18 @@ export const handleLogin = getHandlerPost(
           error: t("auth.invalidPassword", lang),
         });
 
-      const dataInsert = await getJWTTokenAndUpload({
-        deviceId,
-        email: user.email,
-        userId: user.userId,
-        notificationToken,
+      const token = new JWT({
+        content: {
+          deviceId,
+          notificationToken,
+          email: user.email,
+          userId: user.userId,
+        },
       });
+      const userSession = await token.uploadToken();
 
-      if (dataInsert.error || !dataInsert.data) {
-        Logger.error(
-          chalk.red("Error inserting user session:"),
-          dataInsert.error,
-        );
+      if (userSession instanceof Error) {
+        Logger.error(chalk.red("Error inserting user session:"), userSession);
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: t("internalError", lang),
@@ -246,12 +174,10 @@ export const handleLogin = getHandlerPost(
 
       if (error) Logger.error(chalk.red("Error inserting push token:"), error);
 
-      const userSession = dataInsert.data?.[0];
-
       const storageValues = await getStorageData(
         user.userId,
         !!rememberMe,
-        dataInsert.data[0].token,
+        userSession.token,
       );
 
       if (!storageValues) {
@@ -262,8 +188,7 @@ export const handleLogin = getHandlerPost(
         });
         return;
       }
-      const userData: Omit<UserData, "password"> = { ...user };
-      delete (userData as Partial<UserData>).password;
+      const { password: _, ...userData } = user;
 
       sendResponse("SUCCESS", {
         user: userData,
@@ -304,31 +229,40 @@ export const handleSignIn = getHandlerPost(
           error: t("auth.invalidEmailFormat", lang),
         });
 
-      const { data: userExists } = await fetchFromTable({
-        table: "Users",
-        match: { email },
-      });
+      const [hashedPassword, userExists] = await Promise.all([
+        bcrypt.hash(password, 10),
+        prisma.users.findUnique({
+          where: { email },
+          select: { email: true },
+        }),
+      ]);
 
-      if (
-        userExists ||
-        (Array.isArray(userExists) && (userExists as []).length > 0)
-      )
+      if (userExists)
         return sendResponse("BAD_REQUEST", {
           success: false,
           error: t("auth.accountAlreadyExists", lang),
         });
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const insertedData = await insertIntoTable("Users", {
-        email: email,
-        password: hashedPassword,
+      const user = await prisma.users.create({
+        data: {
+          email,
+          password: hashedPassword,
+          userConfig: { create: { theme: "auto" } },
+          notificationsConfigs: { createMany: { data } },
+          cryptosSettings: {
+            create: {
+              autoRefresh: { create: {} },
+              notifications: { create: {} },
+            },
+          },
+        },
       });
 
-      const user = insertedData.data?.[0];
-
       if (!user) {
-        Logger.error(chalk.red("Error inserting user: No data returned"));
+        Logger.error(
+          chalk.red("Error inserting user: No data returned"),
+          typeof user,
+        );
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: t("internalError", lang),
@@ -336,13 +270,7 @@ export const handleSignIn = getHandlerPost(
         return;
       }
 
-      if (!(await initializeTables(user.userId, lang)))
-        return sendResponse("INTERNAL_SERVER_ERROR", {
-          success: false,
-          error: t("internalError", lang),
-        });
-
-      sendResponse("SUCCESS", { success: !!user });
+      sendResponse("SUCCESS", { success: true });
     } catch (error) {
       Logger.error(chalk.red("Error in sign-in handler:"), error);
       sendResponse("INTERNAL_SERVER_ERROR", {
@@ -360,28 +288,12 @@ export const handleRefreshSession = getHandlerPost(
     const lang = body.lang || "en";
 
     try {
-      const { tokenDecoded: decoded, token } = req.user || {};
+      const { token } = req.user || {};
 
-      const newToken = await getJWTToken({
-        email: decoded.email,
-        deviceId: decoded.deviceId,
-        userId: decoded.userId,
-        notificationToken: decoded.notificationToken,
-      });
-
-      const updatedData = await updateInTable(
-        "UserSessions",
-        {
-          token: newToken,
-          updatedAt: new Date().toISOString(),
-        },
-        { token, userId: decoded.userId, deviceId: decoded.deviceId },
-      );
-
-      if (updatedData.error || !updatedData.data) {
+      const newToken = token.updatedToken;
+      if (!newToken) {
         Logger.error(
-          chalk.red("Error updating user session:"),
-          updatedData.error,
+          chalk.red("Error refreshing token: No new token generated"),
         );
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
@@ -390,9 +302,18 @@ export const handleRefreshSession = getHandlerPost(
         return;
       }
 
-      const update = updatedData.data[0];
+      const updatedData = await prisma.userSessions.update({
+        data: { token: newToken },
+        where: {
+          userId_deviceId: {
+            userId: token.data.userId,
+            deviceId: token.data.deviceId,
+          },
+        },
+        include: { user: true },
+      });
 
-      if (!update) {
+      if (updatedData?.token !== newToken) {
         Logger.error(
           chalk.red("Error updating user session: No data returned"),
         );
@@ -403,14 +324,9 @@ export const handleRefreshSession = getHandlerPost(
         return;
       }
 
-      const userDataFetch = (
-        await fetchFromTable({
-          table: "Users",
-          match: { userId: decoded.userId },
-        })
-      ).data;
+      const user = updatedData.user;
 
-      if (!userDataFetch || userDataFetch.length === 0) {
+      if (!user) {
         Logger.error(chalk.red("Error fetching user data for refreshed token"));
         sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
@@ -419,12 +335,11 @@ export const handleRefreshSession = getHandlerPost(
         return;
       }
 
-      const userData: Partial<UserData> = userDataFetch[0];
-      delete userData["password"];
+      const { password: _, ...userData } = user;
 
       sendResponse("SUCCESS", {
-        user: userData as Omit<UserData, "password">,
-        token: update.token,
+        user: userData as Omit<typeof user, "password">,
+        token: updatedData.token,
         success: true,
       });
     } catch (error) {
@@ -441,28 +356,30 @@ export const handleSignOut = getHandlerPost(
   "/auth/signOut",
   {},
   async (body, sendResponse, req) => {
-    const { tokenDecoded: decoded } = req.user || {};
     const lang = body.lang || "en";
 
     try {
-      deleteInTable(decoded.userId, "PushTokens", {
-        userId: decoded.userId,
-        token: decoded.notificationToken,
-      });
+      const { token } = req.user;
+      const data = token?.data;
 
-      const deletedData = await deleteInTable(decoded.userId, "UserSessions", {
-        userId: decoded.userId,
-        deviceId: decoded.deviceId,
-      });
-
-      if (!deletedData.success) {
-        Logger.error(chalk.red("Error deleting user session"));
-        sendResponse("INTERNAL_SERVER_ERROR", {
-          success: false,
-          error: t("internalError", lang),
-        });
-        return;
-      }
+      await Promise.all([
+        prisma.pushTokens.delete({
+          where: {
+            token_userId: {
+              token: token.token,
+              userId: data.userId,
+            },
+          },
+        }),
+        prisma.userSessions.delete({
+          where: {
+            userId_deviceId: {
+              userId: data.userId,
+              deviceId: data.deviceId,
+            },
+          },
+        }),
+      ]);
 
       sendResponse("SUCCESS", { success: true });
     } catch (error) {
@@ -480,72 +397,57 @@ export const authMiddleware = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const response: Parameters<typeof sendResponse<"/auth/login">>[2] = {
+    success: false,
+  };
+
   try {
     const authHeader = req.headers?.authorization;
-    if (!authHeader)
-      return sendResponse(
-        res,
-        "UNAUTHORIZED",
-        {
-          error: "Authorization header missing",
-          success: false,
-        },
-        "/auth/login",
-      );
+    if (!authHeader) {
+      response.error = "Authorization header missing";
+      return;
+    }
 
     const [scheme, token] = authHeader.split(" ");
-    if (scheme !== "Bearer" || !token)
-      return sendResponse(
-        res,
-        "UNAUTHORIZED",
-        {
-          error: "Invalid authorization format",
-          success: false,
-        },
-        "/auth/login",
-      );
+    if (scheme !== "Bearer" || !token) {
+      response.error = "Invalid authorization format";
+      return;
+    }
 
     const deviceId = req.body?.deviceId as string | undefined;
-    if (!deviceId)
-      return sendResponse(
-        res,
-        "BAD_REQUEST",
-        {
-          error: "Device ID is required",
-          success: false,
-        },
-        "/auth/login",
-      );
+    if (!deviceId) {
+      response.error = "Device ID is required";
+      return;
+    }
 
-    const payload = await decodeJWTToken(token);
-    if (!payload)
-      return sendResponse(
-        res,
-        "UNAUTHORIZED",
-        {
-          error: "Invalid or expired token",
-          success: false,
-        },
-        "/auth/login",
-      );
+    let tokenInstance: JWT;
 
-    if (payload.deviceId !== deviceId)
-      return sendResponse(
-        res,
-        "FORBIDDEN",
-        { error: "Forbidden request", success: false },
-        "/auth/login",
-      );
+    try {
+      tokenInstance = new JWT({ token });
 
-    req.user = { tokenDecoded: payload, token };
+      if (tokenInstance.data.deviceId !== deviceId) {
+        response.error = "Forbidden request";
+        return;
+      }
+    } catch (error) {
+      Logger.error(chalk.red("Error verifying JWT token:"), error);
+      response.error = "Invalid or expired token";
+      return;
+    }
+
+    req.user = { token: tokenInstance };
+    response.success = true;
     next();
   } catch (err) {
     Logger.error(chalk.red("Error in auth middleware:"), err);
-    sendResponse(
-      res,
-      "UNAUTHORIZED",
-      { error: "Invalid or expired token", success: false },
-      "/auth/login",
-    );
+    response.error = "Unknown error occurred during authentication";
+  } finally {
+    if (response.error || !response.success)
+      sendResponse(
+        res,
+        response.error ? "UNAUTHORIZED" : "SUCCESS",
+        response,
+        "/auth/login",
+      );
   }
 };

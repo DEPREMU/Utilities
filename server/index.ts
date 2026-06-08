@@ -1,5 +1,3 @@
-import "./database/initDB.ts";
-
 import {
   initWebSocket,
   initWebSocketCryptos,

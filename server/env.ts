@@ -38,7 +38,9 @@ export const validateServerEnv = () => {
   const iv = process.env.IV;
 
   if (!iv || iv.length !== 16)
-    throw new Error("IV must be a valid 16-byte hex string.");
+    throw new Error(
+      "IV must be a valid 16-byte hex string. " + iv + " " + iv?.length,
+    );
 };
 
 const env: Env = {

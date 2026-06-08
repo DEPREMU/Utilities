@@ -39,3 +39,13 @@ export type Colors =
 export type Function<Args extends unknown[] = unknown[], Return = void> = (
   ...args: Args
 ) => Return;
+
+export type Slice<
+  T extends unknown[],
+  N extends number,
+  Acc extends unknown[] = [],
+> = Acc["length"] extends N
+  ? T
+  : T extends [unknown, ...infer Rest]
+    ? Slice<Rest, N, [...Acc, unknown]>
+    : [];

@@ -1,7 +1,7 @@
 #!/bin/bash
 MAX_START_SECONDS=300
 
-# Reboot if startup does not reach server launch on time. //! DELETE
+# Reboot if startup does not reach server launch on time.
 (
     sleep "$MAX_START_SECONDS"
     echo "Startup timeout reached before server launch. Rebooting..."
@@ -21,6 +21,7 @@ cd $HOME/Utilities
 nordvpn connect Mexico
 max_retries=30
 retry=0
+
 until curl -sSf --connect-timeout 5 http://www.google.com/generate_204 >/dev/null 2>&1; do
     retry=$((retry+1))
     echo "Waiting for internet... (attempt $retry/$max_retries)"
@@ -30,10 +31,17 @@ until curl -sSf --connect-timeout 5 http://www.google.com/generate_204 >/dev/nul
     fi
     sleep 2
 done
+
 git pull
 yarn install
 
 cleanup_watchdog
 trap - EXIT
+
+echo "Applying Prisma migrations..."
+yarn workspace server prisma migrate deploy
+
+echo "Generating Prisma client..."
+yarn workspace server prisma generate
 
 NODE_ENV=production yarn run server

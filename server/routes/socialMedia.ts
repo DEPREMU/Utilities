@@ -1,9 +1,9 @@
 import axios from "axios";
 import chalk from "chalk";
 import { Logger } from "@common";
-import { getHandlerPost } from "../functions/getHandlerPost.ts";
-import { insertIntoTable } from "../database/functions.ts";
-import { RequestAddStreamer, RequestGetIsLiveStreamer } from "@types";
+import { prisma } from "@/database/postgres.ts";
+import { getHandlerPost } from "@/functions/getHandlerPost.ts";
+import { RequestGetIsLiveStreamer } from "@types";
 
 const getLinkImageStreamer = async (streamer: string) => {
   try {
@@ -15,16 +15,14 @@ const getLinkImageStreamer = async (streamer: string) => {
       .find((e: string) => e.includes("og:image"));
 
     if (!imageElement) return;
-    const image = imageElement
+    const image: string = imageElement
       .split(" ")
       .find((e: string) => e.includes("content="))
-
       .split('"')[1];
 
     return image;
   } catch (error) {
     Logger.error("Error fetching streamer image:", error);
-    return;
   }
 };
 
@@ -32,7 +30,7 @@ export const isLiveStreamer = async (streamer: string): Promise<boolean> => {
   try {
     if (!streamer) return false;
     streamer = streamer.toLowerCase().replace(/\s/g, "");
-    const { data }: { data: string } = await axios.get(
+    const { data } = await axios.get<string>(
       `https://www.twitch.tv/${streamer}`,
     );
 
@@ -88,7 +86,7 @@ export const addStreamer = getHandlerPost(
     userId: "string",
   },
   async (body, sendResponse) => {
-    const { name, userId } = body as RequestAddStreamer;
+    const { name, userId } = body;
 
     if (!name || !userId)
       return sendResponse("BAD_REQUEST", {
@@ -97,40 +95,37 @@ export const addStreamer = getHandlerPost(
       });
 
     try {
-      const [, result] = await Promise.all([
-        insertIntoTable("UserNotificationsConfig", {
-          enabled: false,
-          paused: false,
-          pauseTime: -1,
-          userId,
-          streamer: name,
-          reason: "streamers",
-          updatedAt: new Date().toISOString(),
+      const [, data] = await Promise.all([
+        prisma.userNotificationsConfig.update({
+          where: {
+            userId_reason: {
+              userId,
+              reason: "streamers",
+            },
+          },
+          data: {
+            streamers: {
+              create: {
+                paused: false,
+                enabled: false,
+                streamer: name,
+                pauseTime: -1,
+              },
+            },
+          },
         }),
-        insertIntoTable("Streamers", {
-          name,
-          userId,
-          linkImage: await getLinkImageStreamer(name),
+        prisma.streamers.create({
+          data: {
+            name,
+            userId,
+            linkImage: await getLinkImageStreamer(name),
+          },
         }),
       ]);
-
-      const data = result.data?.[0];
-
-      if (!data)
-        return sendResponse("INTERNAL_SERVER_ERROR", {
-          success: false,
-          error: "Failed to add streamer: " + result.error || "Unknown error",
-        });
 
       const streamer = data
         ? { ...data, isLive: await isLiveStreamer(data.name) }
         : null;
-
-      if (result.error)
-        return sendResponse("INTERNAL_SERVER_ERROR", {
-          success: false,
-          error: `Failed to add streamer: ${result.error}`,
-        });
 
       sendResponse("SUCCESS", { streamer, success: true });
     } catch (error) {

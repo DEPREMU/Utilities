@@ -1,69 +1,67 @@
 import chalk from "chalk";
+import { prisma } from "@/database/postgres.ts";
 import { t, Logger } from "@common";
 import { getEnvValue } from "../env.ts";
-import { fetchFromTable } from "../database/functions.ts";
 import { ReasonNotification } from "@types";
-import { sendFCMNotification } from "../firebase/admin.ts";
+import { sendFCMNotification } from "@/firebase/admin.ts";
 
 const handleSendNotificationToAdmin = async () => {
   try {
-    const fetch = await fetchFromTable({
-      table: "Users",
-      match: { email: getEnvValue("ADMIN_EMAIL") },
+    const users = await prisma.users.findMany({
+      where: {
+        email: getEnvValue("ADMIN_EMAIL"),
+        pushTokens: { some: { token: { not: "" } } },
+      },
+      include: {
+        pushTokens: { select: { token: true } },
+        userConfig: { select: { language: true } },
+      },
     });
-
-    const user = Array.isArray(fetch.data) ? fetch.data[0] : fetch.data;
-    if (!user) {
-      Logger.log(chalk.red("Admin user not found for notifications."));
-      return;
-    }
-
-    const fetchToken = await fetchFromTable({
-      table: "PushTokens",
-      match: { userId: user.userId },
-    });
-    const tokens = Array.isArray(fetchToken.data)
-      ? fetchToken.data
-      : [fetchToken.data];
-    const validTokens =
-      tokens
-        ?.map((t) => t?.token)
-        .filter((t): t is string => typeof t === "string" && t.length > 10) ||
-      [];
-
-    const fetchUserConfig = await fetchFromTable({
-      table: "UserConfig",
-      match: { userId: user.userId },
-    });
-    const userConfig = Array.isArray(fetchUserConfig.data)
-      ? fetchUserConfig.data[0]
-      : fetchUserConfig.data;
-
-    if (validTokens.length === 0) {
-      Logger.log(chalk.yellow("No valid tokens found for admin notification."));
-      return;
-    }
 
     try {
-      const reason: ReasonNotification = "downDetector";
-      const res = await sendFCMNotification(
-        validTokens,
-        {
-          title: t(
-            "notificationServerRestartTitle",
-            userConfig?.language || "en",
-          ),
-          body: t(
-            "notificationServerRestartBody",
-            userConfig?.language || "en",
-          ),
-        },
-        "downDetector",
-        { screen: "Home", reason },
+      const reason = "downDetector" satisfies ReasonNotification;
+
+      const results = await Promise.all(
+        users.map((user) => {
+          try {
+            if (!user.userConfig) return;
+
+            const validTokens = user.pushTokens
+              .map((pt) => pt.token)
+              .filter((token) => token && token.length > 10);
+            if (validTokens.length === 0) return;
+
+            return sendFCMNotification(
+              validTokens,
+              {
+                title: t(
+                  "notificationServerRestartTitle",
+                  user.userConfig.language || "en",
+                ),
+                body: t(
+                  "notificationServerRestartBody",
+                  user.userConfig.language || "en",
+                ),
+              },
+              "downDetector",
+              { screen: "Home", reason },
+            );
+          } catch {
+            // Ignore individual user notification errors
+          }
+        }),
       );
+
+      const success = results.reduce((acc, res) => {
+        return acc + (res?.successCount || 0);
+      }, 0);
+      const failure = results.reduce((acc, res) => {
+        return acc + (res?.failureCount || 0);
+      }, 0);
+
       Logger.log(
         chalk.green(
-          `Notification sent to admin. Success: ${res?.successCount || 0}, Failure: ${res?.failureCount || 0}`,
+          `Notification sent to admin/s. Success: ${success}, Failure: ${failure}`,
         ),
       );
     } catch (error) {

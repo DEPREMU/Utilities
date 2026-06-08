@@ -1,9 +1,8 @@
-import { Logger } from "@common";
-import { RequestLogs } from "@types";
 import humanizeDuration from "humanize-duration";
+import { Logger, Timers } from "@common";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
-import { insertIntoTable } from "../database/functions.ts";
 import { sendFCMNotification } from "../firebase/admin.ts";
+import { prisma } from "@/database/postgres.ts";
 
 /**
  * Handles adding a log entry to the database.
@@ -18,24 +17,25 @@ export const handleAddLog = getHandlerPost(
     let error: string | undefined;
 
     try {
-      const log = (body || null) as RequestLogs | null;
+      const log: typeof body | null = body || null;
       if (log) {
-        const { error: insertError } = await insertIntoTable("Logs", log);
-        error = insertError || undefined;
-        success = !error;
+        const insertedLog = await prisma.logs.create({
+          data: { ...log, timestamp: new Date() },
+        });
+        success = !!insertedLog;
       }
     } catch (err) {
       Logger.error("Error adding log:", err);
       error = err instanceof Error ? err.message : String(err);
     }
-    sendResponse("SUCCESS", { success });
+    sendResponse("SUCCESS", { success, error });
   },
 );
 
 const timers: {
   [deviceId: string]: {
     pushToken: string;
-    idTimeout: NodeJS.Timeout | number | null;
+    idTimeout: number | null;
     lastTimestamp: number;
   };
 } = {};
@@ -49,7 +49,8 @@ export const handleAppAliveCheck = getHandlerPost(
   async (body, sendResponse) => {
     const { deviceId, pushToken } = body;
 
-    if (timers[deviceId]?.idTimeout) clearTimeout(timers[deviceId].idTimeout);
+    if (timers[deviceId]?.idTimeout)
+      Timers.clearTimeout(timers[deviceId].idTimeout);
     else if (timers[deviceId]?.lastTimestamp) {
       sendFCMNotification(
         [pushToken],
@@ -68,7 +69,7 @@ export const handleAppAliveCheck = getHandlerPost(
     timers[deviceId] = {
       pushToken,
       lastTimestamp: Date.now(),
-      idTimeout: setTimeout(
+      idTimeout: Timers.setTimeout(
         () => {
           sendFCMNotification(
             [pushToken],

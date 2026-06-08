@@ -1,8 +1,6 @@
-import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import { exec } from "child_process";
-import { pool } from "@/database/postgres.ts";
 import { REPLACERS } from "@/config.ts";
 import { getEnvValue } from "@/env.ts";
 import { Directory, File, Logger, Task } from "@common";
@@ -38,7 +36,7 @@ export const encryptFile = async (filePath: string, password: string) => {
   const res = await encryptionTask.getResult({
     data: { inputPath: copyFile.path, password, outputPath: filePath },
     abortAfter: 5 * 60 * 1000,
-    functionName: "encryptData",
+    functionName: "encryptFile",
   });
   if (res instanceof Error) {
     Logger.error(chalk.red("Error encrypting file:"), res);
@@ -71,7 +69,7 @@ export const decryptFile = async (
   const res = await encryptionTask.getResult({
     data: { inputPath: copyFile.path, password, outputPath: filePath },
     abortAfter: 5 * 60 * 1000,
-    functionName: "decryptData",
+    functionName: "decryptFile",
   });
   if (res instanceof Error) {
     Logger.error(chalk.red("Error decrypting file:"), res);
@@ -115,7 +113,6 @@ export const handleBackupDatabase = async () => {
   if (REPLACERS.isDev) return;
 
   await deletePreviousBackups();
-  const client = await pool.connect();
   try {
     const timestamp = Date.now();
     const backupFileName = path.join(
@@ -143,8 +140,6 @@ export const handleBackupDatabase = async () => {
     });
   } catch (error) {
     Logger.error("Error during database backup:", error);
-  } finally {
-    client.release();
   }
 };
 
@@ -183,16 +178,19 @@ export const deletePreviousBackups = async () => {
   const files = await new Directory(backupPath).readDir();
 
   await Promise.all(
-    files.map(async (file) => {
-      const filePath = path.join(backupPath, file);
+    files.map(async (filename) => {
+      const file = new File(path.join(backupPath, filename));
 
-      if (file.startsWith("backup-") && file.endsWith("sql"))
-        return fs.promises.unlink(filePath);
-      if (!file.startsWith("backup-") || !file.endsWith(encryptedExtension))
+      if (filename.startsWith("backup-") && filename.endsWith("sql"))
+        return file.rm({ force: true });
+      if (
+        !filename.startsWith("backup-") ||
+        !filename.endsWith(encryptedExtension)
+      )
         return;
 
       const date = Number(
-        file.replace("backup-", "").replace(encryptedExtension, ""),
+        filename.replace("backup-", "").replace(encryptedExtension, ""),
       );
       const fileDate = new Date(date);
       const now = new Date();
@@ -201,9 +199,9 @@ export const deletePreviousBackups = async () => {
 
       if (diffDays <= 7) return;
 
-      await new File(filePath).rm();
+      await file.rm();
 
-      Logger.log(`Deleted old backup file: ${filePath}`);
+      Logger.log(`Deleted old backup file: ${file.path}`);
       return;
     }),
   );

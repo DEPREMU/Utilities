@@ -1,13 +1,9 @@
-import {
-  updateInTable,
-  fetchFromTable,
-  insertIntoTable,
-} from "../database/functions.ts";
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling.ts";
 import { Logger } from "@common";
+import { prisma } from "@/database/postgres.ts";
+import { ClipboardWebSocketMessage } from "@types";
 import { WebSocket, WebSocketServer } from "ws";
-import { ClipboardSync, ClipboardWebSocketMessage } from "@types";
 
 let idIntervalClipboard: NodeJS.Timeout | number | null = null;
 
@@ -48,45 +44,28 @@ const handleAddNewItem = async (
   if (message.type !== "add-new-item") return;
 
   try {
-    const value: ClipboardSync = {
-      userId: userDevice.userId,
-      deleted: false,
-      content: message.content,
-      deviceId: userDevice.deviceId,
-      createdAt: new Date().toISOString(),
-    };
-
-    const { data: existsData } = await fetchFromTable({
-      table: "ClipboardSync",
-      match: {
+    const res = await prisma.clipboardSync.upsert({
+      where: {
+        userId_deviceId_content: {
+          userId: userDevice.userId,
+          content: message.content,
+          deviceId: userDevice.deviceId,
+        },
+      },
+      create: {
         userId: userDevice.userId,
         content: message.content,
         deviceId: userDevice.deviceId,
       },
-      limit: 1,
-      orderBy: "createdAt",
-      orderDirection: "DESC",
+      update: {
+        deleted: false,
+        createdAt: new Date(),
+      },
     });
-    let id = existsData?.[0].id as string;
-
-    if (id) {
-      updateInTable(
-        "ClipboardSync",
-        { deleted: false, createdAt: new Date().toISOString() },
-        { id },
-      );
-    } else {
-      const { data: insertedData } = await insertIntoTable(
-        "ClipboardSync",
-        value,
-      );
-      if (!insertedData || !insertedData.length) return;
-      id = insertedData[0].id as string;
-    }
 
     usersClipboard.sendMessageToUser(
       {
-        id,
+        id: res.id,
         type: "new-clipboard-item",
         content: message.content,
       },
@@ -173,15 +152,15 @@ export const initWebSocketClipboard = () => {
         try {
           if (Object.keys(data.devices).length === 0) return;
 
-          const fetchedData = await fetchFromTable({
-            limit: 1,
-            table: "ClipboardSync",
-            match: { userId: userId, deleted: false },
-            orderBy: "createdAt",
-            orderDirection: "DESC",
+          const lastItem = await prisma.clipboardSync.findFirst({
+            where: {
+              userId,
+              deleted: false,
+            },
+            take: 1,
+            orderBy: { createdAt: "desc" },
           });
 
-          const lastItem = fetchedData?.data?.[0];
           if (!lastItem) return;
 
           usersClipboard.sendMessageToUser(

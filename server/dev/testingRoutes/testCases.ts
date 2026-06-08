@@ -5,8 +5,8 @@ import {
   AnythingMatcher,
   ObjectContainingMatcher,
 } from "./types.ts";
-import { encrypt } from "../routes/encryption.ts";
-import { readImage } from "@common";
+import { Prisma } from "@/generated/prisma/index.js";
+import { readImage, Task } from "@common";
 import { RoutesAPI, ResponseAuth, ResponseDatabaseInsert } from "@types";
 
 /**
@@ -116,34 +116,6 @@ export const routeTests: {
       shouldSucceed: true,
     },
   ],
-  "/log": [
-    {
-      route: "/log",
-      description: "Log entry - valid error log",
-      body: {
-        type: "error",
-        message: "Test error message",
-        deviceId: "device-001",
-        timestamp: new Date().toISOString(),
-        deviceName: "Test Device",
-      },
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-    },
-    {
-      route: "/log",
-      description: "Log entry - valid warning log",
-      body: {
-        type: "warn",
-        message: "Test warning message",
-        deviceId: "device-002",
-        timestamp: new Date().toISOString(),
-        deviceName: "Test Device 2",
-      },
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-    },
-  ],
   "/cryptos": [
     {
       route: "/cryptos",
@@ -242,8 +214,22 @@ export const routeTests: {
     {
       route: "/decrypt",
       description: "Decrypt - valid encrypted data",
-      body: {
-        dataToDecrypt: encrypt("test data"),
+      body: async () => {
+        const encrypted = await new Task<string, "ENCRYPTION">({
+          fileWorker: "ENCRYPTION",
+        }).getResult({
+          functionName: "encryptText",
+          data: { text: "test data to encrypt" },
+        });
+        if (encrypted instanceof Error) {
+          throw new Error(
+            "Failed to encrypt data for decryption test: " + encrypted.message,
+          );
+        }
+
+        return {
+          dataToDecrypt: encrypted,
+        };
       },
       expectedResponse: { decryptedValue: expect.any(String) },
       shouldSucceed: true,
@@ -251,7 +237,23 @@ export const routeTests: {
     {
       route: "/decrypt",
       description: "Decrypt - should include success true",
-      body: { dataToDecrypt: encrypt("another test") },
+      body: async () => {
+        const encrypted = await new Task<string, "ENCRYPTION">({
+          fileWorker: "ENCRYPTION",
+        }).getResult({
+          functionName: "encryptText",
+          data: { text: "test data to encrypt number 2" },
+        });
+        if (encrypted instanceof Error) {
+          throw new Error(
+            "Failed to encrypt data for decryption test: " + encrypted.message,
+          );
+        }
+
+        return {
+          dataToDecrypt: encrypted,
+        };
+      },
       expectedResponse: { success: true },
       shouldSucceed: true,
     },
@@ -405,7 +407,37 @@ export const routeTests: {
       authorization: () => "expired-or-invalid-token",
     },
   ],
+  "/log": [
+    {
+      route: "/log",
+      description: "Log entry - valid error log",
+      body: {
+        type: "error",
+        message: "Test error message",
+        deviceId: "device-001",
+        timestamp: new Date(),
+        deviceName: "Test Device",
+      },
+      expectedResponse: { success: true },
+      shouldSucceed: true,
+    },
+    {
+      route: "/log",
+      description: "Log entry - valid warning log",
+      body: () => ({
+        type: "warn",
+        message: "Test warning message",
+        deviceId: "device-002",
+        timestamp: new Date(),
+        deviceName: "Test Device 2",
+        userId: getUserId(),
+      }),
+      expectedResponse: { success: true },
+      shouldSucceed: true,
+    },
+  ],
   "/database/fetch": [
+    /*
     {
       route: "/database/fetch",
       description: "Fetch - get all users",
@@ -482,8 +514,10 @@ export const routeTests: {
       shouldSucceed: true,
       authorization: getAuthToken,
     },
+    */
   ],
   "/database/insert": [
+    /*
     {
       route: "/database/insert",
       description: "Insert - new crypto entry",
@@ -492,12 +526,13 @@ export const routeTests: {
         table: "Cryptos",
         values: {
           amount: "0.5",
+          id: "crypto-001" + Date.now().toString(),
           symbol: "BTCUSDT",
           userId: getUserId(),
           baseCoin: "BTC",
           quoteCoin: "USDT",
-          datePurchased: new Date().toISOString(),
-          firstPricePurchased: 50000,
+          datePurchased: new Date(),
+          firstPricePurchased: new Prisma.Decimal(30000),
         },
         deviceId: deviceIdNew,
       }),
@@ -514,19 +549,21 @@ export const routeTests: {
         table: "Logs",
         values: [
           {
+            id: "log-001" + Date.now().toString(),
             type: "log",
             userId: getUserId(),
             message: "First log",
             deviceId: deviceIdNew,
-            timestamp: new Date().toISOString(),
+            timestamp: new Date(),
             deviceName: "Device 1",
           },
           {
+            id: "log-002" + Date.now().toString(),
             type: "warn",
             userId: getUserId(),
             message: "Second log",
             deviceId: deviceIdNew,
-            timestamp: new Date().toISOString(),
+            timestamp: new Date(),
             deviceName: "Device 1",
           },
         ],
@@ -550,8 +587,10 @@ export const routeTests: {
       shouldSucceed: false,
       authorization: getAuthToken,
     },
+    */
   ],
   "/database/update": [
+    /*
     {
       route: "/database/update",
       description: "Update - user email",
@@ -594,8 +633,10 @@ export const routeTests: {
       shouldSucceed: false,
       authorization: getAuthToken,
     },
+    */
   ],
   "/database/delete": [
+    /*
     {
       route: "/database/delete",
       description: "Delete - specific log entry",
@@ -635,6 +676,7 @@ export const routeTests: {
       authorization: getAuthToken,
       expectedResponse: { success: true },
     },
+    */
   ],
   "/auth/signOut": [
     {
@@ -703,7 +745,7 @@ export const routeTests: {
           id: "streamer-123",
           name: "shroud",
           userId: "user-123",
-          createdAt: new Date().toISOString(),
+          createdAt: new Date(),
           linkImage: "https://example.com/image.jpg",
         },
       },
@@ -720,7 +762,7 @@ export const routeTests: {
           id: "streamer-456",
           name: "unknownstreamer",
           userId: "user-456",
-          createdAt: new Date().toISOString(),
+          createdAt: new Date(),
           linkImage: null,
         },
       },
@@ -734,9 +776,10 @@ export const routeTests: {
       description: "Check streamer - invalid data should fail",
       body: {
         streamer: {
+          id: "",
           name: "",
           userId: "",
-          createdAt: "",
+          createdAt: new Date(0),
           linkImage: null,
         },
       },

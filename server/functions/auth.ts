@@ -1,14 +1,14 @@
 import jwt from "jsonwebtoken";
 import chalk from "chalk";
-import { getEnvValue } from "../env.ts";
-import { Logger, wrapFunctionWithError } from "@common";
-import { deleteInTable, insertIntoTable } from "../database/functions.ts";
+import { Logger } from "@common";
+import { prisma } from "@/database/postgres.ts";
+import { getEnvValue } from "@/env.ts";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      user: { tokenDecoded: TokenJWT; token: string };
+      user: { token: JWT };
     }
   }
 }
@@ -22,64 +22,108 @@ type TokenJWT = {
 
 const expiresIn = "17d";
 
-export const getDateWithDaysAhead = (days: number): Date => {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
-};
+export class JWT {
+  static #secret = getEnvValue("JWT_SECRET");
 
-export const getJWTToken = wrapFunctionWithError(
-  async (storedValues: TokenJWT) => {
-    return jwt.sign(storedValues, getEnvValue("JWT_SECRET"), {
-      expiresIn,
-    });
-  },
-  true,
-  async (_, errorMessage) => {
-    Logger.error(chalk.red("Error generating JWT token:"), errorMessage);
-    return "";
-  },
-);
+  #data: TokenJWT;
+  #token: string | null = null;
+  #initToken: string | null = null;
 
-export const decodeJWTToken = wrapFunctionWithError(
-  async (token: string) => {
-    const decoded = jwt.verify(token, getEnvValue("JWT_SECRET")) as TokenJWT;
-    return decoded;
-  },
-  true,
-  async (_, errorMessage) => {
-    Logger.error(chalk.red("Error decoding JWT token:"), errorMessage);
-    return null;
-  },
-);
+  private static generateToken(data: TokenJWT): string | null {
+    return jwt.sign(
+      data,
+      this.#secret,
+      !(data as { exp?: number }).exp ? { expiresIn } : undefined,
+    );
+  }
 
-export const getJWTTokenAndUpload = wrapFunctionWithError(
-  async (tokenJWT: TokenJWT) => {
-    const token = await getJWTToken(tokenJWT);
-    await Promise.all([
-      deleteInTable(tokenJWT.userId, "UserSessions", {
-        deviceId: tokenJWT.deviceId,
-        userId: tokenJWT.userId,
-      }),
-      deleteInTable(tokenJWT.userId, "PushTokens", {
-        token: tokenJWT.notificationToken,
-      }),
-    ]);
+  private static verifyToken(token: string): TokenJWT {
+    return jwt.verify(token, this.#secret) as TokenJWT;
+  }
 
-    const dataInsert = await insertIntoTable("UserSessions", {
-      userId: tokenJWT.userId,
-      token,
-      deviceId: tokenJWT.deviceId,
-      updatedAt: new Date().toISOString(),
-    });
+  public uploadToken = async (): Promise<
+    DB["Tables"]["UserSessions"] | Error
+  > => {
+    try {
+      const data = this.data;
+      const token = this.token;
 
-    return dataInsert;
-  },
-  true,
-  (_, errorMessage) => {
-    Logger.error(chalk.red("Error uploading JWT token:"), errorMessage);
-    return { error: errorMessage } as unknown as ReturnType<
-      typeof insertIntoTable<"UserSessions">
-    >;
-  },
-);
+      const [userSession] = await Promise.all([
+        prisma.userSessions.upsert({
+          where: {
+            userId_deviceId: {
+              userId: data.userId,
+              deviceId: data.deviceId,
+            },
+          },
+          create: {
+            token,
+            userId: data.userId,
+            deviceId: data.deviceId,
+          },
+          update: { token },
+        }),
+        prisma.pushTokens.upsert({
+          where: {
+            token_userId: {
+              token: data.notificationToken,
+              userId: data.userId,
+            },
+          },
+          create: {
+            token: this.token,
+            userId: this.#data.userId,
+          },
+          update: { createdAt: new Date() },
+        }),
+      ]);
+
+      return userSession;
+    } catch (error) {
+      Logger.error(chalk.red("Error uploading JWT token:"), error);
+      return error instanceof Error ? error : new Error(String(error));
+    }
+  };
+
+  public get updatedToken(): string | null {
+    try {
+      if (this.#initToken === this.#token)
+        return (this.#token = JWT.generateToken(this.#data));
+      else return this.#token;
+    } finally {
+      this.#initToken = this.#token;
+    }
+  }
+
+  public get token(): string {
+    if (!this.#token) this.#token = JWT.generateToken(this.#data);
+    if (!this.#token) throw new Error("Error generating token");
+
+    return this.#token;
+  }
+
+  public get data() {
+    return { ...this.#data };
+  }
+
+  constructor(data: { token?: string; content?: TokenJWT }) {
+    if (data.token) {
+      const decoded = JWT.verifyToken(data.token);
+      if (!decoded) throw new Error("Invalid token provided");
+
+      this.#data = decoded;
+      this.#token = data.token;
+      this.#initToken = data.token;
+    } else if (data.content) {
+      const token = JWT.generateToken(data.content);
+      if (!token) throw new Error("Error generating token with provided data");
+
+      this.#data = data.content;
+      this.#token = token;
+    } else {
+      throw new Error(
+        "Either token or content must be provided to initialize JWT",
+      );
+    }
+  }
+}

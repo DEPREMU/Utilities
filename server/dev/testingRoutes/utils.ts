@@ -1,5 +1,5 @@
-import { host, port } from "../config.ts";
-import { getEnvValue } from "../env.ts";
+import { host, port } from "@/config.ts";
+import { getEnvValue } from "@/env.ts";
 import { RoutesAPI, MethodsAvailableInAPI, UpdatesRoutes } from "@types";
 
 /**

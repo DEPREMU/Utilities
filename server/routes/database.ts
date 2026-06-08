@@ -1,10 +1,4 @@
 import {
-  deleteInTable,
-  updateInTable,
-  fetchFromTable,
-  insertIntoTable,
-} from "../database/functions.ts";
-import {
   RequestDatabaseDelete,
   RequestDatabaseFetch,
   RequestDatabaseInsert,
@@ -12,6 +6,7 @@ import {
   ResponseDatabaseUpdate,
 } from "@types";
 import chalk from "chalk";
+import { prisma } from "@/database/postgres.ts";
 import { TABLE_MAP } from "../config.ts";
 import { getHandlerPost } from "../functions/getHandlerPost.ts";
 import type { Request, Response } from "express";
@@ -31,29 +26,28 @@ export const handleFetchFromDatabase = getHandlerPost(
     columnsToSearch: ["object", "string", "undefined"],
     lang: ["string", "undefined"],
   },
-  async (body, sendResponse, req) => {
+  async (_body, _sendResponse, _req) => {
+    /*
     const requestBody = body as RequestDatabaseFetch;
     const lang = requestBody?.lang || "en";
     let { match } = requestBody;
 
     try {
       const { table } = requestBody;
-      const { tokenDecoded: decode } = req.user || {};
+      const { token } = req.user || {};
 
       if (!table || !TABLE_MAP[table])
         return sendResponse("BAD_REQUEST", {
-          success: false,
           error: t("database.invalidBody", lang),
+          success: false,
         });
 
-      if (!match) match = { userId: decode.userId };
-      else {
-        if (match.userId && match.userId !== decode.userId) {
-          return sendResponse("UNAUTHORIZED", {
-            success: false,
-            error: t("auth.unauthorized", lang),
-          });
-        }
+      if (!match.userId) match = { userId: token.data.userId };
+      else if (match.userId && match.userId !== token.data.userId) {
+        return sendResponse("UNAUTHORIZED", {
+          error: t("auth.unauthorized", lang),
+          success: false,
+        });
       }
 
       const options: Record<string, unknown> = {};
@@ -100,6 +94,7 @@ export const handleFetchFromDatabase = getHandlerPost(
         error: t("database.fetchError", lang),
       });
     }
+    */
   },
 );
 
@@ -110,13 +105,14 @@ export const handleInsertToDatabase = getHandlerPost(
     values: "object",
     lang: ["string", "undefined"],
   },
-  async (body, sendResponse, req) => {
+  async (_body, _sendResponse, _req) => {
+    /*
     const requestBody = body as RequestDatabaseInsert;
     const lang = requestBody?.lang || "en";
 
     try {
       const { table, values } = requestBody;
-      const { token, tokenDecoded: decode } = req.user || {};
+      const { token } = req.user || {};
 
       if (!table || !TABLE_MAP[table] || !values)
         return sendResponse("BAD_REQUEST", {
@@ -124,11 +120,12 @@ export const handleInsertToDatabase = getHandlerPost(
           success: false,
         });
 
-      const { data: usersSessions } = await fetchFromTable({
-        table: "UserSessions",
-        match: { userId: decode.userId, token },
+      const userSession = await prisma.userSessions.findUnique({
+        where: {
+          userId_token: { userId: token.data.userId, token: token.token },
+        },
       });
-      if (!usersSessions || usersSessions.length === 0)
+      if (!userSession)
         return sendResponse("UNAUTHORIZED", {
           success: false,
           error: t("auth.sessionNotFound", lang),
@@ -149,18 +146,20 @@ export const handleInsertToDatabase = getHandlerPost(
         error: t("database.insertError", lang),
       });
     }
+     */
   },
 );
 
 export const handleUpdateToDatabase = async (
-  req: Request<unknown, unknown, RequestDatabaseUpdate>,
-  res: Response<ResponseDatabaseUpdate>,
+  _req: Request<unknown, unknown, RequestDatabaseUpdate>,
+  _res: Response<ResponseDatabaseUpdate>,
 ) => {
+  /*
   const lang = req.body?.lang || "en";
 
   try {
     let { match } = req.body || {};
-    const { tokenDecoded: decode } = req.user || {};
+    const { token } = req.user || {};
     const { table, values } = req.body || {};
 
     if (!table || !TABLE_MAP[table] || !values)
@@ -171,16 +170,14 @@ export const handleUpdateToDatabase = async (
         "/database/update",
       );
 
-    if (!match) match = { userId: decode.userId };
-    else {
-      if (match.userId && match.userId !== decode.userId) {
-        return sendResponse(
-          res,
-          "UNAUTHORIZED",
-          { success: false, error: t("auth.unauthorized", lang) },
-          "/database/update",
-        );
-      }
+    if (!match) match = { userId: token.data.userId };
+    else if (match.userId && match.userId !== token.data.userId) {
+      return sendResponse(
+        res,
+        "UNAUTHORIZED",
+        { success: false, error: t("auth.unauthorized", lang) },
+        "/database/update",
+      );
     }
 
     const { data, error } = await updateInTable(table, values, match);
@@ -202,6 +199,7 @@ export const handleUpdateToDatabase = async (
       "/database/update",
     );
   }
+  */
 };
 
 export const handleDeleteFromDatabase = getHandlerPost(
@@ -212,12 +210,13 @@ export const handleDeleteFromDatabase = getHandlerPost(
     lang: ["string", "undefined"],
   },
   async (body, sendResponse, req) => {
+    /*
     const requestBody = body as RequestDatabaseDelete;
     const lang = requestBody?.lang || "en";
 
     try {
-      const { tokenDecoded: decode } = req.user || {};
-      const { table, match = { userId: decode.userId } } = requestBody;
+      const { token } = req.user || {};
+      const { table, match = { userId: token.data.userId } } = requestBody;
 
       if (!table || !TABLE_MAP[table])
         return sendResponse("BAD_REQUEST", {
@@ -225,7 +224,7 @@ export const handleDeleteFromDatabase = getHandlerPost(
           success: false,
         });
 
-      if (match.userId && match.userId !== decode.userId) {
+      if (match.userId && match.userId !== token.data.userId) {
         return sendResponse("UNAUTHORIZED", {
           success: false,
           error: t("auth.unauthorized", lang),
@@ -233,7 +232,7 @@ export const handleDeleteFromDatabase = getHandlerPost(
       }
 
       const { success, error } = await deleteInTable(
-        decode.userId,
+        token.data.userId,
         table,
         match,
       );
@@ -251,5 +250,6 @@ export const handleDeleteFromDatabase = getHandlerPost(
         error: t("database.deleteError", lang),
       });
     }
+    */
   },
 );

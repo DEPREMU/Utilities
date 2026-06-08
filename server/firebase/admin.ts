@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import admin from "firebase-admin";
 import { Logger } from "@common";
+import { prisma } from "@/database/postgres.ts";
 import { getEnvValue } from "../env.ts";
-import { deleteInTable } from "../database/functions.ts";
 import { ScreensAvailable, ChannelsId } from "@types";
 
 let firebaseApp: admin.app.App | null = null;
@@ -42,6 +42,9 @@ export const sendFCMNotification = async (
   try {
     const messaging = getFirebaseAdmin().messaging();
 
+    const imageUrl =
+      typeof data?.image === "string" ? data.image : notification.imageUrl;
+
     const message: admin.messaging.MulticastMessage = {
       tokens,
       notification: {
@@ -49,23 +52,11 @@ export const sendFCMNotification = async (
         title: notification.title,
         imageUrl: notification.imageUrl,
       },
-      ...(data && { data }),
-      android: {
-        notification: {
-          channelId,
-          imageUrl: data?.image,
-        },
-      },
+      ...(typeof data === "object" && data !== null && { data }),
+      android: { notification: { imageUrl, channelId } },
       apns: {
-        payload: {
-          aps: {
-            sound: "default",
-            badge: 1,
-          },
-        },
-        fcmOptions: {
-          imageUrl: data?.image,
-        },
+        payload: { aps: { sound: "default", badge: 1 } },
+        fcmOptions: { imageUrl },
       },
     };
 
@@ -80,18 +71,18 @@ export const sendFCMNotification = async (
     if (response.failureCount > 0) {
       Logger.error(chalk.red(`Failures: ${response.failureCount}`));
       response.responses.forEach((resp, idx) => {
-        if (!resp.success) {
-          Logger.error(
-            chalk.red(
-              `Error in token ${tokens[idx].slice(0, 20)}...: ${resp.error}`,
-            ),
-          );
+        if (resp.success || !resp.error) return;
 
-          if (resp.error?.message.includes("Requested entity was not found.")) {
-            deleteInTable("", "PushTokens", {
-              token: tokens[idx],
-            });
-          }
+        Logger.error(
+          chalk.red(
+            `Error in token ${tokens[idx].slice(0, 20)}...: ${resp.error}`,
+          ),
+        );
+
+        if (resp.error.message.includes("Requested entity was not found.")) {
+          void prisma.pushTokens.delete({
+            where: { token: tokens[idx] },
+          });
         }
       });
     }

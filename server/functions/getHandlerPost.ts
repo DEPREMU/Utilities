@@ -10,15 +10,15 @@ type TypeOf = {
   symbol: symbol;
   object: object;
   boolean: boolean;
-  function: () => any;
+  function: () => unknown;
   undefined: undefined;
 };
 
 type GetHandlerPost = {
   <
     T extends RoutesAPI<"post">,
-    K extends RequestBody<T>,
     U extends { [P in keyof K]?: keyof TypeOf | (keyof TypeOf)[] },
+    K extends RequestBody<T>,
     B extends {
       [P in keyof K]:
         | Exclude<K[P], undefined | null>
@@ -84,13 +84,10 @@ const isValidValue = (
   return false;
 };
 
-export const getHandlerPost: GetHandlerPost = (path, keys, callback): any => {
-  return async (
-    req: Request<unknown, unknown, Record<string, unknown>>,
-    res: Response,
-  ) => {
+export const getHandlerPost: GetHandlerPost = (path, keys, callback) => {
+  return async (req, res) => {
     try {
-      const body = req.body || {};
+      const body: Record<string, unknown> = req.body || {};
       for (const key in keys) {
         const expectedType = keys[key];
         if (!expectedType) continue;
@@ -99,7 +96,7 @@ export const getHandlerPost: GetHandlerPost = (path, keys, callback): any => {
           ? expectedType
           : [expectedType];
 
-        if (isValidValue(body[key], expectedTypes as any)) continue;
+        if (isValidValue(body[key], expectedTypes as never)) continue;
 
         sendResponseType(
           res,
@@ -107,15 +104,15 @@ export const getHandlerPost: GetHandlerPost = (path, keys, callback): any => {
           {
             success: false,
             error: `Invalid type for ${key}. Expected ${keys[key]}.`,
-          } as unknown as any,
+          } as never,
           path,
         );
         return;
       }
       await callback(
-        body as any,
+        body as never,
         (status, data) => sendResponseType(res, status, data, path),
-        req as any,
+        req as never,
       );
     } catch (error) {
       Logger.error(chalk.red("Error processing request:"), error);
@@ -125,7 +122,7 @@ export const getHandlerPost: GetHandlerPost = (path, keys, callback): any => {
         {
           success: false,
           error: "An error occurred while processing the request.",
-        } as unknown as any,
+        } as never,
         path,
       );
     }

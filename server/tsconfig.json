@@ -11,7 +11,7 @@
       "@types": ["../types/index.d.ts"],
       "@common": ["../common/serverOrElectron/index.ts"]
     },
-    "typeRoots": ["../types/index.d.ts"]
+    "typeRoots": ["../types/index.d.ts", "./generated/*.d.ts"]
   },
   "include": ["./**/*.ts", "../common/index.ts"],
   "exclude": [
