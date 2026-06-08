@@ -10,5 +10,5 @@ export * from "./validations.ts";
 export * from "./errorHandling.ts";
 export * from "./notifications.ts";
 export * from "./classes/index.ts";
-export * from "./jsonHandling/index.ts";
+export * from "./helpers/index.ts";
 export * from "./translations/index.ts";
