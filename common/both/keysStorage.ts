@@ -1,8 +1,4 @@
 import {
-  Crypto,
-  Streamer,
-  UserData,
-  DownDetector,
   NotesSettings,
   Notifications,
   VaultSettings,
@@ -37,7 +33,7 @@ export type PriceBinanceAPI = {
 }[];
 
 export type SelectedCryptos = {
-  [symbol: string]: Crypto;
+  [symbol: string]: DB["Tables"]["Cryptos"];
 };
 
 export type ClipboardStorage = {
@@ -74,8 +70,8 @@ export type PermissionsData = Record<Permission, DataPermission>;
 export type ExpectedSecureStorageTypes = {
   DEVICE_ID: string;
   CLIPBOARD: ClipboardStorage;
-  USER_DATA: Omit<UserData, "password"> | null;
-  STREAMERS: (Streamer & { isLive: boolean })[] | null;
+  USER_DATA: Omit<DB["Tables"]["Users"], "password"> | null;
+  STREAMERS: (DB["Tables"]["Streamers"] & { isLive: boolean })[] | null;
   SESSION_EXPIRY: number | -1;
   NOTES_PASSWORD: string | null;
   VAULT_PASSWORD: { [folder: string]: string } | null;
@@ -85,7 +81,7 @@ export type ExpectedSecureStorageTypes = {
   PERMISSIONS_DATA: PermissionsData | null;
   LAST_UPDATE_CHECK: number | null;
   TERMINAL_COMMANDS: Command[] | null;
-  DOWN_DETECTOR_DATA: DownDetector[] | null;
+  DOWN_DETECTOR_DATA: DB["Tables"]["DownDetector"][] | null;
   USER_SESSION_TOKEN_STORAGE: string | null;
 };
 

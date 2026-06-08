@@ -1,5 +1,5 @@
 import pino from "pino";
-import { getMessage } from "../both/index.ts";
+import { Helper } from "../both/index.ts";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -27,16 +27,16 @@ const logger = isProduction
 export class Logger {
   static log(...args: unknown[]): void {
     if (isProduction) return;
-    logger?.info(getMessage(...args));
+    logger?.info(Helper.getMessage(...args));
   }
 
   static warn(...args: unknown[]): void {
     if (isProduction) return;
-    logger?.warn(getMessage(...args));
+    logger?.warn(Helper.getMessage(...args));
   }
 
   static error(...args: unknown[]): void {
     if (isProduction) return;
-    logger?.error(getMessage(...args));
+    logger?.error(Helper.getMessage(...args));
   }
 }

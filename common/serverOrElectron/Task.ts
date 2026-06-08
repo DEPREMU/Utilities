@@ -72,15 +72,13 @@ export class Task<ReturnValue, F extends WorkerFiles> extends ServiceClass<
     if (!this.isInitialized) await this.waitUntilInitialized();
     if (!this.existsFile) return new Error("File does not exist.");
 
-    const format = (data as any).data.format;
-
     const controller = new AbortController();
     this.#controllers.add(controller);
 
     let timeoutId: number | null = null;
 
     const handleFinish = () => {
-      console.log(++x, format, "Task finished, cleaning up...");
+      console.log(++x, "Task finished, cleaning up...");
       if (timeoutId) Timers.clearTimeout(timeoutId);
       timeoutId = null;
 
@@ -107,7 +105,7 @@ export class Task<ReturnValue, F extends WorkerFiles> extends ServiceClass<
 
       return await res;
     } catch (error) {
-      Logger.error(++x, format, "Error getting task result:", error);
+      Logger.error(++x, "Error getting task result:", error);
       return error instanceof Error ? error : new Error(String(error));
     } finally {
       handleFinish();

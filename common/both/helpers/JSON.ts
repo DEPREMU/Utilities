@@ -1,3 +1,5 @@
+import { Slice } from "@types";
+
 /**
  * Gets a valid representation of a value for logging or debugging purposes.
  *
@@ -71,3 +73,65 @@ export const stringifyData = (value: unknown): string => {
     return "notValid";
   }
 };
+
+const functionFallback = (functionName: string) => () =>
+  // eslint-disable-next-line no-console
+  console.log(
+    `Function created after parsed data, original function name: "${functionName}"`,
+  );
+
+const symbolFallback = (symbolName: string) =>
+  Symbol(
+    `Symbol created after parsed data, original symbol name: "${symbolName}"`,
+  );
+
+const getCorrectParsed = <T = object | null>(obj: object | null): T => {
+  if (!obj) return null as T;
+  if (Array.isArray(obj))
+    return obj.map((value) => {
+      if (value === "<<Function>>") return functionFallback(value);
+      if (value === "<<Symbol>>") return symbolFallback(value);
+      if (typeof value === "object") return getCorrectParsed<T>(value);
+      return value;
+    }) as T;
+  else
+    return Object.fromEntries(
+      Object.entries(obj).map(([key, value]) => {
+        if (value === "<<Function>>") return [key, functionFallback(key)];
+        if (value === "<<Symbol>>") return [key, symbolFallback(key)];
+        if (typeof value === "object") return [key, getCorrectParsed(value)];
+        return [key, value];
+      }),
+    ) as T;
+};
+
+export const parseData = <T = object | null>(
+  value: string | null,
+): T | null => {
+  let parsed: T;
+  try {
+    if (!value) return value as T;
+
+    if (value.includes("<<Symbol>>") || value.includes("<<Function>>")) {
+      const parsedValue = global.JSON.parse(value);
+
+      return getCorrectParsed<T>(parsedValue);
+    } else parsed = global.JSON.parse(value || "null") as T;
+  } catch {
+    parsed = value as T;
+  }
+  return parsed;
+};
+
+export const JSON = {
+  parseData,
+  stringifyData,
+  parse: global.JSON.parse as unknown as <T>(
+    value: string,
+    ...args: Slice<Parameters<typeof global.JSON.parse>, 1>
+  ) => T,
+  stringify: global.JSON.stringify as <T>(
+    value: T,
+    ...args: Slice<Parameters<typeof global.JSON.stringify>, 1>
+  ) => string,
+} as const;
