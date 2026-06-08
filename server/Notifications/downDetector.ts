@@ -1,13 +1,11 @@
 import chalk from "chalk";
 import axios from "axios";
-import { fetchFromTable } from "../database/functions.ts";
-import { sendFCMNotification } from "../firebase/admin.ts";
+import { prisma } from "@/database/postgres.ts";
+import { sendFCMNotification } from "@/firebase/admin.ts";
 import { t, Logger, languagesSupported } from "@common";
 import { LanguagesSupported, ReasonNotification } from "@types";
 
 const isDown = async (url: string): Promise<boolean> => {
-  if (!url || !url.startsWith("http")) return false;
-
   try {
     const res = await axios.get(url, { timeout: 5000 });
     if (res.status >= 200 && res.status < 400) return false;
@@ -20,96 +18,94 @@ const isDown = async (url: string): Promise<boolean> => {
 const handleCheckDownServers = async () => {
   Logger.log("Running DownDetector check...");
 
-  const [PushTokens, UserConfig, DownDetector] = await Promise.all([
-    fetchFromTable({
-      table: "PushTokens",
-    }),
-    fetchFromTable({
-      table: "UserConfig",
-    }),
-    fetchFromTable({
-      table: "DownDetector",
-    }),
-  ]);
-
-  const dataPushTokens = PushTokens.data || [];
-  const dataUserConfig = UserConfig.data || [];
-  const dataDownDetector = DownDetector.data || [];
-
-  dataDownDetector.forEach((downDetector) => {
-    if (
-      dataDownDetector.find(
-        (dd) => dd.url.toLowerCase() === downDetector.url.toLowerCase(),
-      )
-    )
-      return;
-    dataDownDetector.push(downDetector);
+  const USERS = await prisma.users.findMany({
+    where: {
+      pushTokens: { some: { token: { not: "" } } },
+      downDetectors: { some: { url: { not: "" } } },
+    },
+    include: {
+      userConfig: { select: { language: true } },
+      pushTokens: {
+        where: { token: { not: "" } },
+        select: { token: true },
+      },
+      downDetectors: {
+        where: { url: { startsWith: "http" } },
+        select: { url: true },
+      },
+    },
   });
 
-  dataPushTokens.forEach((pushToken) => {
-    if (dataPushTokens.find((pt) => pt.token === pushToken.token)) return;
-    dataPushTokens.push(pushToken);
-  });
+  const users = USERS.map((u) => ({
+    ...u,
+    downDetectors: u.downDetectors.map((dd) => ({
+      ...dd,
+      url: dd.url.toLowerCase(),
+    })),
+  })).filter(
+    (user) => user.pushTokens.length > 0 && user.downDetectors.length > 0,
+  );
 
-  dataUserConfig.forEach((userConfig) => {
-    if (dataUserConfig.find((uc) => uc.userId === userConfig.userId)) return;
-    dataUserConfig.push(userConfig);
-  });
+  const downWebURLs = new Set<string>(
+    users.flatMap((u) => u.downDetectors.map((dd) => dd.url)),
+  );
 
-  const downWebURLs = (
-    await Promise.all(
-      dataDownDetector.map(async (dd) =>
-        (await isDown(dd.url)) ? dd.url : null,
-      ),
-    )
-  ).filter((url): url is string => !!url);
+  await Promise.all(
+    [...downWebURLs].map(async (url) => {
+      if (!(await isDown(url))) downWebURLs.delete(url);
+    }),
+  );
 
   const usersData: {
+    urls: Set<string>;
     lang: LanguagesSupported;
-    token: string | string[];
-    url: string | string[];
+    tokens: Set<string>;
     userId: string;
   }[] = [];
 
-  dataUserConfig.forEach((userConfig) => {
-    const userPushTokens = dataPushTokens.filter(
-      (pt) => pt.userId === userConfig.userId,
+  users.forEach((user) => {
+    if (!user.userConfig) return;
+
+    const urls = new Set(
+      user.downDetectors
+        .filter((dd) => downWebURLs.has(dd.url))
+        .map((dd) => dd.url),
     );
-    const userUrls = dataDownDetector.filter(
-      (dd) => dd.userId === userConfig.userId,
-    );
-    if (userPushTokens.length === 0 || userUrls.length === 0) return;
+    if (urls.size === 0) return;
+
+    const tokens = new Set(user.pushTokens.map((pt) => pt.token));
 
     usersData.push({
-      lang: userConfig.language as LanguagesSupported,
-      token: userPushTokens.map((upt) => upt.token),
-      url: userUrls.map((url) => url.url),
-      userId: userConfig.userId,
+      urls,
+      tokens,
+      lang: user.userConfig.language,
+      userId: user.userId,
     });
   });
 
   downWebURLs.forEach((webURL) => {
-    const users = usersData.filter((ud) => ud.url.includes(webURL));
+    const users = usersData.filter((ud) => ud.urls.has(webURL));
     if (users.length === 0) return;
 
     languagesSupported.forEach((lang) => {
-      const langType = lang as LanguagesSupported;
-
-      const usersLang = users.filter((u) => u.lang === langType);
+      const usersLang = users.filter((u) => u.lang === lang);
       if (usersLang.length === 0) return;
-      const tokens = usersLang.flatMap((u) => u.token);
-      const title = t("downDetectorNotificationTitle", langType, {
-        service: webURL,
-      });
-      const body = t("downDetectorNotificationBody", langType, {
-        service: webURL,
-      });
+
+      const tokens = usersLang.flatMap((u) => [...u.tokens]);
       if (tokens.length === 0) return;
-      const reason: ReasonNotification = "downDetector";
-      sendFCMNotification(tokens, { title, body }, "downDetector", {
-        screen: "DownDetector",
+
+      const title = t("downDetectorNotificationTitle", lang, {
+        service: webURL,
+      });
+      const body = t("downDetectorNotificationBody", lang, {
+        service: webURL,
+      });
+      const reason = "downDetector" satisfies ReasonNotification;
+
+      sendFCMNotification(tokens, { title, body }, reason, {
         url: webURL,
         reason,
+        screen: "DownDetector",
       });
     });
   });

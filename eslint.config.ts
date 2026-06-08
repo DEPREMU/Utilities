@@ -8,11 +8,13 @@ import prettierConfig from "eslint-config-prettier";
 import { defineConfig } from "eslint/config";
 import pluginReactHooks from "eslint-plugin-react-hooks";
 import typescriptParser from "@typescript-eslint/parser";
+// @ts-expect-error - no types available for this package
 import pluginReactNative from "eslint-plugin-react-native";
 
 export default defineConfig([
   {
     ignores: [
+      "**/generated/prisma/**",
       "**/node_modules/**",
       "**/dist/**",
       "**/build/**",
@@ -53,6 +55,7 @@ export default defineConfig([
         NodeJS: "readonly",
         Express: "readonly",
         ReactNavigation: "readonly",
+        DB: "readonly",
       },
     },
     plugins: {
@@ -65,7 +68,7 @@ export default defineConfig([
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "warn",
-        { argsIgnorePattern: "^_" },
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",

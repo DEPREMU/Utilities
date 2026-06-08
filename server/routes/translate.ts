@@ -1,9 +1,15 @@
+import axios from "axios";
 import chalk from "chalk";
 import { Logger } from "@common";
-import { getEnvValue } from "../env.ts";
-import { getHandlerPost } from "../functions/getHandlerPost.ts";
+import { getEnvValue } from "@/env.ts";
+import { getHandlerPost } from "@/functions/getHandlerPost.ts";
 import { URLSearchParams } from "url";
-import { RequestTranslate } from "@types";
+
+const url = "https://api-free.deepl.com/v2/translate";
+const headers = {
+  "Content-Type": "application/x-www-form-urlencoded",
+  Authorization: `DeepL-Auth-Key ${getEnvValue(`DEEPL_TRANSLATOR_API`)}`,
+};
 
 export const translate = getHandlerPost(
   "/translate",
@@ -12,38 +18,29 @@ export const translate = getHandlerPost(
     targetLang: "string",
   },
   async (body, sendResponse) => {
-    const { text, targetLang } = body as RequestTranslate;
+    const { text, targetLang } = body;
 
     try {
-      const url = "https://api-free.deepl.com/v2/translate";
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `DeepL-Auth-Key ${getEnvValue("DEEPL_TRANSLATOR_API")}`,
-        },
-        body: new URLSearchParams({
+      const response = await axios.post(
+        url,
+        new URLSearchParams({
           text,
           target_lang: targetLang,
         }),
-      });
-      if (!response.ok) {
-        let errorData: { message?: string } | null = null;
-        try {
-          errorData = await response.json();
-        } catch {
-          // Ignore JSON parsing errors
-        }
+        { headers },
+      );
+
+      if (response.status !== 200) {
+        const errorData = response.data as { message?: string } | null;
         return sendResponse("INTERNAL_SERVER_ERROR", {
           success: false,
           error: errorData?.message || "Translation failed",
         });
       }
 
-      const data = await response.json();
       sendResponse("SUCCESS", {
         success: true,
-        translatedText: data.translations?.[0]?.text || "",
+        translatedText: response.data.translations?.[0]?.text || "",
       });
     } catch (error) {
       Logger.error(chalk.red("Error during translation request:"), error);

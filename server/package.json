@@ -4,8 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./build.ts && node ./build/index.cjs",
-    "start-dev": "yarn nodemon -i cryptos.json -e ts,json --exec \"sleep 5; node ./build.ts; node ./build/index.cjs\"",
+    "db-update": "prisma migrate dev && prisma generate",
+    "db-migrate": "prisma migrate dev",
+    "db-generate": "prisma generate",
+    "start": "yarn run db-update && node ./build.ts && node ./build/index.cjs",
+    "start-dev": "yarn nodemon -i cryptos.json -i generated/prisma -e ts,json --exec \"sleep 5; yarn run start\"",
     "format-all": "yarn prettier --write \"**/*.{ts,json}\" --ignore-path ../.gitignore",
     "before-commit": "yarn run lint:fix && yarn run type-check",
     "type-check": "tsc --noEmit",
@@ -18,6 +21,8 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
     "busboy": "^1.6.0",
     "compression": "^1.8.1",
@@ -34,6 +39,7 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
+    "prisma": "^7.8.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/busboy": "^1.5.4",
     "@types/compression": "^1.8.1",

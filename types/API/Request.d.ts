@@ -6,7 +6,7 @@ import {
   MethodsAvailableInAPI,
 } from "./typesAPI";
 import { LanguagesSupported } from "../typesTranslations";
-import { Logs, Streamer, Tables, TablesKeys } from "../database";
+import { Tables, TablesKeys } from "../database";
 import { BuildTypeUpdates, PlatformsOS, UpdatesRoutes } from "./typesUpdates";
 
 export type RequestBody<
@@ -56,7 +56,7 @@ export type RequestAddStreamer = {
 };
 
 export type RequestGetIsLiveStreamer = {
-  streamer: Streamer;
+  streamer: DB["Tables"]["Streamers"];
 };
 
 export type RequestAuth<T extends "login" | "signup"> = {
@@ -146,7 +146,7 @@ export type RequestDatabaseDelete<T extends TablesKeys = TablesKeys> = {
   deviceId: string;
 };
 
-export type RequestLogs = Logs;
+export type RequestLogs = DB["Tables"]["Logs"];
 
 export type RequestDoQuery = {
   query: string;

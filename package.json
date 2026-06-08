@@ -10,7 +10,8 @@
     "common",
     "server",
     "scripts",
-    "UtilitiesForPC"
+    "UtilitiesForPC",
+    "packages/*"
   ],
   "scripts": {
     "__ROOT__": "______________________________________________",

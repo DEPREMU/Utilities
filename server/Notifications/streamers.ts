@@ -1,158 +1,179 @@
-import {
-  ChannelsId,
-  UserConfig,
-  ScreensAvailable,
-  LanguagesSupported,
-} from "@types";
 import chalk from "chalk";
-import { t, Logger } from "@common";
-import { isLiveStreamer } from "../routes/socialMedia.ts";
-import { fetchFromTable } from "../database/functions.ts";
-import { sendFCMNotification } from "../firebase/admin.ts";
+import { prisma } from "@/database/postgres.ts";
+import { isLiveStreamer } from "@/routes/socialMedia.ts";
+import { sendFCMNotification } from "@/firebase/admin.ts";
+import { ChannelsId, ScreensAvailable } from "@types";
+import { t, Logger, languagesSupported, Helper } from "@common";
 
 const notificationsSent: Record<
   string,
-  { streamer: string; timestamp: number }
+  { streamer: string; timestamp: number } | undefined
 > = {};
 
 const handleSendNotificationsStreamers = async () => {
-  const [PushTokens, Streamers, UserNotificationsConfig, UserConfig] =
-    await Promise.all([
-      fetchFromTable({
-        table: "PushTokens",
-      }),
-      fetchFromTable({
-        table: "Streamers",
-      }),
-      fetchFromTable({
-        table: "UserNotificationsConfig",
-      }),
-      fetchFromTable({
-        table: "UserConfig",
-      }),
-    ]);
-
-  const pushTokens = PushTokens.data;
-  const tableStreamers = Streamers.data;
-  const notificationsConfig = UserNotificationsConfig.data || null;
-
-  if (!tableStreamers || !notificationsConfig || !pushTokens) return;
-
-  const usersConfig: Record<string, UserConfig> | undefined =
-    UserConfig.data?.reduce(
-      (acc, config) => {
-        if (config.userId) acc[config.userId] = config;
-        return acc;
+  const USERS = await prisma.users.findMany({
+    where: {
+      streamers: { some: { name: { not: "" } } },
+      pushTokens: { some: { token: { not: "" } } },
+      notificationsConfigs: {
+        some: { reason: "allNotifications", enabled: true },
       },
-      {} as Record<string, UserConfig>,
-    );
-
-  const streamersSet = new Set(tableStreamers.map((s) => s.name.toLowerCase()));
-  const streamers = Array.from(streamersSet);
-
-  const notificationsEnabled = Object.fromEntries(
-    notificationsConfig
-      .filter((config) => config.reason === "allNotifications" && config.userId)
-      .map((config) => [config.userId, config]),
-  );
-
-  const pushTokensUsers = pushTokens.reduce(
-    (acc, userToken) => {
-      if (!acc[userToken.userId]) acc[userToken.userId] = { tokens: [] };
-      if (userToken.token) {
-        acc[userToken.userId].tokens.push(userToken.token);
-      }
-      return acc;
     },
-    {} as Record<string, { tokens: string[] }>,
+    include: {
+      streamers: {
+        where: { name: { not: "" }, linkImage: { not: "" } },
+        select: { name: true, linkImage: true },
+      },
+      pushTokens: {
+        where: { token: { not: "" } },
+        select: { token: true },
+      },
+      userConfig: { select: { language: true } },
+      notificationsConfigs: {
+        where: {
+          OR: [
+            { reason: "streamers", enabled: true },
+            { reason: "allNotifications", enabled: true },
+          ],
+        },
+      },
+    },
+  });
+
+  const users = USERS.map((u) => {
+    const streamersSet = new Set<string>();
+    const streamers = u.streamers.map((s) => {
+      const name = s.name.toLowerCase();
+      streamersSet.add(name);
+
+      return { ...s, name };
+    });
+
+    const config = u.notificationsConfigs.find(
+      (nc) => nc.reason === "allNotifications",
+    );
+    if (!config) return null;
+
+    return {
+      ...u,
+      streamers,
+      streamersSet,
+    };
+  }).filter(
+    (
+      u,
+    ): u is NonNullable<typeof u> & {
+      userConfig: NonNullable<NonNullable<typeof u>["userConfig"]>;
+    } => {
+      return (
+        !!u &&
+        u.streamers.length > 0 &&
+        u.pushTokens.length > 0 &&
+        !!u.userConfig
+      );
+    },
   );
 
-  const liveStatuses = (
-    await Promise.all(
-      streamers.map(async (streamer) => {
-        const isLive = await isLiveStreamer(streamer);
-        const usersConfig = notificationsConfig.filter((config) =>
-          config.streamer?.toLowerCase().includes(streamer),
-        );
-        const image = tableStreamers.find(
-          (s) => s.name.toLowerCase() === streamer,
-        )?.linkImage;
-        return {
-          streamer,
-          isLive,
-          usersConfig,
-          ...(image ? { image } : {}),
-        };
-      }),
-    )
-  ).filter((status) => status.isLive);
+  const streamers = new Map<string, (typeof users)[0]["streamers"][0]>(
+    users.flatMap((u) => u.streamers.map((s) => [s.name, s])),
+  );
+
+  const liveStatusesMap = await Promise.all(
+    [...streamers].map(async ([streamer, streamerData]) => {
+      const usersConfig = users
+        .filter((u) => u.streamersSet.has(streamer) && u.userConfig)
+        .map((u) => u.userConfig);
+
+      if (usersConfig.length === 0) return null;
+
+      const isLive = await isLiveStreamer(streamer);
+      const image = streamerData.linkImage || undefined;
+
+      return {
+        image,
+        isLive,
+        streamer,
+        usersConfig,
+      };
+    }),
+  );
+  const liveStatuses = liveStatusesMap.filter(
+    (status): status is NonNullable<typeof status> & { isLive: true } =>
+      !!status && status.isLive,
+  );
 
   const channelId: ChannelsId = "streamers";
   const data: { screen: ScreensAvailable } = {
     screen: "SocialMedia",
   };
 
-  for (const status of liveStatuses) {
-    for (const userConfig of status.usersConfig) {
-      try {
-        if (!userConfig.enabled) continue;
-        if (!userConfig.userId) continue;
-        if (!notificationsEnabled[userConfig.userId]?.enabled) continue;
-        if (!pushTokensUsers[userConfig.userId]?.tokens) continue;
-        if (
-          notificationsSent[userConfig.userId]?.streamer === status.streamer &&
-          (notificationsSent[userConfig.userId]?.timestamp || 0) +
-            8 * 60 * 60 * 1000 >
-            Date.now()
-        )
-          continue;
+  await Promise.all(
+    liveStatuses.map(async (status) => {
+      const config = { streamer: status.streamer };
 
-        notificationsSent[userConfig.userId] = {
-          streamer: status.streamer,
-          timestamp: Date.now(),
-        };
-
-        const lang: LanguagesSupported =
-          (usersConfig?.[userConfig.userId]?.language as LanguagesSupported) ||
-          "en";
-
-        const config = { streamer: status.streamer };
-        const title = t("streamerLiveNotificationTitle", lang, config);
-        const body = t("streamerLiveNotification", lang, config);
-
-        Logger.log(
-          chalk.green(
-            `Sending notification to user ${userConfig.userId} that ${status.streamer} is live`,
-          ),
-          config,
-          pushTokensUsers[userConfig.userId]?.tokens,
-          title,
-          body,
-        );
-
-        try {
-          const tokens = pushTokensUsers?.[userConfig.userId]?.tokens || [];
-
-          await sendFCMNotification(
-            tokens,
+      const translations = Helper.Object.fromEntries(
+        languagesSupported.map((lang) => {
+          return [
+            lang,
             {
-              title,
-              body,
+              body: t("streamerLiveNotification", lang, config),
+              title: t("streamerLiveNotificationTitle", lang, config),
             },
-            channelId,
-            {
-              ...data,
-              ...(status.image && { image: status.image }),
-            },
-          );
-        } catch (error) {
-          Logger.error(chalk.red("Error sending push notification:"), error);
-        }
-      } catch {
-        // Ignore
-      }
-    }
-  }
+          ];
+        }),
+      );
+
+      await Promise.all(
+        users.map(async (user) => {
+          try {
+            if (!user.streamersSet.has(status.streamer)) return;
+            if (user.pushTokens.length === 0) return;
+            if (user.notificationsConfigs.some((nc) => !nc.enabled)) return;
+
+            const notificationSent = notificationsSent[user.userId];
+            if (!notificationSent) {
+              notificationsSent[user.userId] = {
+                streamer: status.streamer,
+                timestamp: Date.now(),
+              };
+              return;
+            }
+
+            if (notificationSent.streamer === status.streamer) {
+              if (notificationSent.timestamp + 8 * 60 * 60 * 1000 > Date.now())
+                return;
+              else {
+                notificationsSent[user.userId] = {
+                  streamer: status.streamer,
+                  timestamp: Date.now(),
+                };
+              }
+            }
+
+            const lang = user.userConfig.language;
+            const { title, body } = translations[lang];
+
+            await sendFCMNotification(
+              user.pushTokens.map((pt) => pt.token),
+              { title, body },
+              channelId,
+              {
+                ...data,
+                ...(status.image && { image: status.image }),
+              },
+            );
+          } catch (error) {
+            Logger.error(
+              chalk.red(
+                `Error sending notification to user ${user.userId} for streamer ${status.streamer}:`,
+              ),
+              error,
+            );
+          }
+        }),
+      );
+    }),
+  );
 };
 
 export const getInterval = () => {

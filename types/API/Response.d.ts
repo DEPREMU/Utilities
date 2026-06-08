@@ -61,7 +61,7 @@ export type ResponseGetIsLiveStreamer = {
 
 export type ResponseAuth<T extends "login" | "signup"> = T extends "login"
   ? {
-      user?: Omit<UserData, "password">;
+      user?: Omit<DB["Tables"]["Users"], "password">;
       token?: string;
       error?: string;
       success: boolean;

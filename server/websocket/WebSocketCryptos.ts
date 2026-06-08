@@ -1,22 +1,15 @@
 import {
-  deleteInTable,
-  updateInTable,
-  fetchFromTable,
-  insertIntoTable,
-} from "../database/functions.ts";
-import {
-  Crypto,
   Notification,
   CryptosSettings,
   LanguagesSupported,
   CryptosWebSocketMessage,
-  CommonUserDataWS,
 } from "@types";
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling.ts";
-import { cryptos } from "../routes/cryptos.ts";
-import { sendFCMNotification } from "../firebase/admin.ts";
-import { executeFunctionAfterInit } from "../config.ts";
+import { prisma } from "@/database/postgres.ts";
+import { cryptos } from "@/routes/cryptos.ts";
+import { sendFCMNotification } from "@/firebase/admin.ts";
+import { executeFunctionAfterInit } from "@/config.ts";
 import WebSocket, { WebSocketServer } from "ws";
 import { t, Logger, SelectedCryptos } from "@common";
 
@@ -29,39 +22,18 @@ const users = new Users<
   CryptosWebSocketMessage<"sentByServer">
 >();
 
-const getDefaultCryptoSettings = (
-  userData: CommonUserDataWS,
-): CryptosSettings => {
-  const now = new Date().toISOString();
-
-  return {
-    userId: userData.userId,
-    defaultCurrency: "USDT",
-    autoRefresh: {
-      valueMs: 60000,
-      enabled: false,
-    },
-    notifications: {
-      valueMs: 3600000,
-      enabled: false,
-    },
-    updatedAt: now,
-    createdAt: now,
-  };
-};
-
-const getPercentGain = (price: number, cryptoData: Crypto) => {
+const getPercentGain = (price: number, cryptoData: DB["Tables"]["Cryptos"]) => {
   if (!cryptoData.firstPricePurchased) return "0%";
   const percentage =
-    ((price - cryptoData.firstPricePurchased) /
-      cryptoData.firstPricePurchased) *
+    ((price - cryptoData.firstPricePurchased.toNumber()) /
+      cryptoData.firstPricePurchased.toNumber()) *
     100;
 
   return `${percentage > 0 ? "+" : ""}${percentage.toFixed(2)}%`;
 };
 
 const getNotificationCrypto = async (
-  userCryptos: Crypto[],
+  userCryptos: DB["Tables"]["Cryptos"][],
   language: LanguagesSupported,
 ): Promise<Notification | null> => {
   try {
@@ -110,38 +82,29 @@ const getNotificationCrypto = async (
 };
 
 const handleSendNotification = async (userId: string) => {
-  const [cryptos, userConfig, pushTokens] = await Promise.all([
-    fetchFromTable({
-      table: "Cryptos",
-      match: { userId },
-    }),
-    fetchFromTable({
-      table: "UserConfig",
-      match: { userId },
-    }),
-    fetchFromTable({
-      table: "PushTokens",
-      match: { userId },
-    }),
-  ]);
+  const user = await prisma.users.findUnique({
+    where: { userId },
+    include: {
+      cryptos: true,
+      pushTokens: { select: { token: true } },
+      userConfig: { select: { language: true } },
+    },
+  });
+  if (!user) return;
 
-  const cryptosData = cryptos.data;
-  const config = userConfig.data?.[0];
-  const tokens = pushTokens.data
-    ?.map((t) => t.token)
-    .filter((t): t is string => !t.startsWith("expo"));
+  const tokens = user.pushTokens
+    .map((t) => t.token)
+    .filter((t) => !t.startsWith("expo"));
 
-  if (!config) return;
-  if (!tokens?.length) return;
-  if (!cryptosData?.length) return;
+  if (!tokens.length || !user.userConfig || !user.cryptos.length) return;
 
   const notification = await getNotificationCrypto(
-    cryptosData,
-    config.language,
+    user.cryptos,
+    user.userConfig.language,
   );
   if (!notification) return;
 
-  sendFCMNotification(
+  await sendFCMNotification(
     tokens,
     {
       body: notification.message,
@@ -154,34 +117,41 @@ const handleSendNotification = async (userId: string) => {
 
 const initUserInterval = async (userId: string) => {
   try {
-    const [notification, userSettings] = await Promise.all([
-      fetchFromTable({
-        table: "UserNotificationsConfig",
-        match: { userId, reason: "cryptos" },
-      }),
-      fetchFromTable({
-        table: "CryptosSettings",
-        match: { userId },
-      }),
-    ]);
+    const user = await prisma.users.findUnique({
+      where: { userId },
+      include: {
+        notificationsConfigs: {
+          where: { reason: "cryptos" },
+        },
+        cryptosSettings: {
+          include: { notifications: true, autoRefresh: true },
+        },
+      },
+    });
 
-    let settings = userSettings.data?.[0];
+    if (!user) return;
+    if (!user.notificationsConfigs || user.notificationsConfigs.length === 0)
+      return;
+
+    let settings = user.cryptosSettings;
 
     if (!settings) {
-      settings = getDefaultCryptoSettings({ userId, deviceId: "" });
-      const res = await insertIntoTable("CryptosSettings", settings);
-      if (res.data && res.data.length > 0) {
-        settings = res.data[0];
-      }
+      const res = await prisma.cryptosSettings.create({
+        data: {
+          userId,
+          autoRefresh: { create: {} },
+          notifications: { create: {} },
+        },
+        include: { notifications: true, autoRefresh: true },
+      });
+      if (res) settings = res;
     }
 
-    if (!notification.data || notification.data.length === 0) return;
-    if (!settings) return;
+    if (!settings || !settings.notifications) return;
 
-    const notifi = notification.data[0];
     const id = "notification-interval-" + userId;
 
-    if (notifi.enabled) {
+    if (user.notificationsConfigs[0].enabled) {
       users.setInterval(
         () => handleSendNotification(userId),
         settings.notifications.valueMs,
@@ -193,20 +163,18 @@ const initUserInterval = async (userId: string) => {
   } catch (error) {
     Logger.error(
       "Failed to initialize user notification interval for WebSocketCryptos:",
-      error instanceof Error ? error.message : error,
+      error,
     );
   }
 };
 
 const initUsersInterval = async () => {
   try {
-    const { data } = await fetchFromTable({
-      table: "Users",
+    const users = await prisma.users.findMany({
+      select: { userId: true },
     });
 
-    if (!data) return;
-
-    data.forEach((user) => {
+    users.forEach((user) => {
       if (!user.userId) return;
 
       initUserInterval(user.userId);
@@ -214,7 +182,7 @@ const initUsersInterval = async () => {
   } catch (error) {
     Logger.error(
       "Failed to initialize users notifications for WebSocketCryptos:",
-      error instanceof Error ? error.message : error,
+      error,
     );
   }
 };
@@ -243,8 +211,7 @@ const getDiff = <T extends Record<string, unknown>>(
   ) as Partial<T>;
 
   if (isCrypto(original) && diff.amount && diff.amount !== original.amount) {
-    (diff as unknown as SelectedCryptos[string]).datePurchased =
-      new Date().toISOString();
+    (diff as unknown as SelectedCryptos[string]).datePurchased = new Date();
   }
 
   return diff;
@@ -255,26 +222,19 @@ const sendCryptos = async (
   onlyDeviceId?: boolean,
 ) => {
   try {
-    const { data: cryptos } = await fetchFromTable({
-      match: { userId: userDevice.userId },
-      table: "Cryptos",
+    const cryptos = await prisma.cryptos.findMany({
+      where: { userId: userDevice.userId },
     });
 
     if (onlyDeviceId) {
-      userDevice.sendMessage({
-        type: "cryptos",
-        cryptos: cryptos ?? [],
-      });
+      userDevice.sendMessage({ type: "cryptos", cryptos });
       return;
     }
 
     users.setTimeout(
       () => {
         users.sendMessageToUser(
-          {
-            type: "cryptos",
-            cryptos: cryptos ?? [],
-          },
+          { type: "cryptos", cryptos },
           userDevice.userId,
         );
       },
@@ -298,35 +258,46 @@ const handleSyncSettings = async (
   if (message.type !== "sync-settings") return;
   const userId = userDevice.userId;
 
+  const res = await prisma.cryptosSettings.upsert({
+    where: { userId },
+    create: {
+      userId,
+      autoRefresh: { create: {} },
+      notifications: { create: {} },
+      defaultCurrency: message.settings?.defaultCurrency ?? "USDT",
+    },
+    update: {
+      updatedAt: new Date(),
+      defaultCurrency: message.settings?.defaultCurrency,
+      autoRefresh: {
+        upsert: {
+          create: {},
+          update: {
+            enabled: message.settings?.autoRefresh?.enabled ?? undefined,
+            valueMs: message.settings?.autoRefresh?.valueMs ?? undefined,
+          },
+        },
+      },
+      notifications: {
+        upsert: {
+          create: {},
+          update: {
+            enabled: message.settings?.notifications?.enabled ?? undefined,
+            valueMs: message.settings?.notifications?.valueMs ?? undefined,
+          },
+        },
+      },
+    },
+    include: { notifications: true, autoRefresh: true },
+  });
+
   let existing = users.getAdditionalData("cryptoSettings")?.[userId];
 
   if (!existing) {
-    const { data } = await fetchFromTable({
-      table: "CryptosSettings",
-      match: { userId },
-    });
-
-    existing =
-      data?.[0] ??
-      getDefaultCryptoSettings({ userId, deviceId: userDevice.deviceId });
-
+    existing = res;
     users.setAdditionalData("cryptoSettings", (prev) => {
       return { ...prev, [userId]: existing } as typeof prev;
     });
-  }
-
-  const existingDate = new Date(existing.updatedAt).getTime();
-  const incomingDate = message.settings?.updatedAt
-    ? new Date(message.settings.updatedAt).getTime()
-    : 0;
-
-  if (existingDate > incomingDate) {
-    message.settings = existing;
-  } else if (incomingDate > existingDate && message.settings) {
-    const diff = getDiff(existing, message.settings);
-
-    if (Object.keys(diff).length >= 0)
-      await updateInTable("CryptosSettings", diff);
   }
 
   users.setTimeout(
@@ -358,95 +329,36 @@ const handleAddCrypto = async (
   if (message.type !== "add-crypto") return;
 
   try {
-    const { data: cryptos } = await fetchFromTable({
-      match: { userId: userData.userId },
-      table: "Cryptos",
-    });
-    const existing = cryptos?.find((c) => c.symbol === message.crypto.symbol);
-
-    let success = false;
-
-    if (existing) {
-      const dif = getDiff(existing, message.crypto);
-
-      if (Object.keys(dif).length === 0) return;
-
-      const res = await updateInTable(
-        "Cryptos",
-        {
-          ...dif,
-          datePurchased:
-            dif.amount === existing.amount
-              ? existing.datePurchased
-              : new Date().toISOString(),
+    await prisma.cryptos.upsert({
+      where: {
+        userId_symbol: {
+          userId: userData.userId,
+          symbol: message.crypto.symbol,
         },
-        { id: existing.id, userId: userData.userId },
-      );
-
-      success = Array.isArray(res.data) && res.data.length > 0;
-    } else {
-      const res = await insertIntoTable("Cryptos", {
+      },
+      create: {
         userId: userData.userId,
         symbol: message.crypto.symbol,
         amount: message.crypto.amount,
         baseCoin: message.crypto.baseCoin,
         quoteCoin: message.crypto.quoteCoin,
-        datePurchased: new Date().toISOString(),
+        datePurchased: new Date(),
         firstPricePurchased: message.crypto.firstPricePurchased,
-      });
-      success = Array.isArray(res.data) && res.data.length > 0;
-    }
+      },
+      update: {
+        amount: message.crypto.amount,
+        baseCoin: message.crypto.baseCoin,
+        quoteCoin: message.crypto.quoteCoin,
+        datePurchased: new Date(),
+        firstPricePurchased: message.crypto.firstPricePurchased,
+      },
+    });
 
-    if (success) sendCryptos(userData);
+    sendCryptos(userData);
   } catch (error) {
     Logger.error(
       "Failed to add crypto for user:",
       userData.userId,
-      "crypto:",
-      message.crypto,
-      "error:",
-      error instanceof Error ? error.message : error,
-    );
-  }
-};
-
-const handleUpdateCrypto = async (
-  message: CryptosWebSocketMessage<"sentByApp">,
-  userDevice: NonNullable<ReturnType<typeof users.getUser>>,
-) => {
-  if (message.type !== "update-crypto") return;
-
-  try {
-    const { data: cryptos } = await fetchFromTable({
-      match: { userId: userDevice.userId },
-      table: "Cryptos",
-    });
-
-    const existing = cryptos?.find((c) => c.symbol === message.crypto.symbol);
-    if (!existing) return;
-
-    const dif = getDiff(existing, message.crypto);
-
-    if (Object.keys(dif).length === 0) return;
-
-    const res = await updateInTable(
-      "Cryptos",
-      {
-        ...dif,
-        datePurchased:
-          dif.amount === existing.amount
-            ? existing.datePurchased
-            : new Date().toISOString(),
-      },
-      { id: existing.id, userId: userDevice.userId },
-    );
-    if (Array.isArray(res.data) && res.data.length === 0) return;
-
-    sendCryptos(userDevice);
-  } catch (error) {
-    Logger.error(
-      "Failed to update crypto for user:",
-      userDevice.userId,
       "crypto:",
       message.crypto,
       "error:",
@@ -462,14 +374,16 @@ const handleDeleteCrypto = async (
   if (message.type !== "delete-crypto") return;
 
   try {
-    const res = await deleteInTable(userDevice.userId, "Cryptos", {
-      symbol: message.symbol,
-      userId: userDevice.userId,
+    const res = await prisma.cryptos.delete({
+      where: {
+        userId_symbol: {
+          userId: userDevice.userId,
+          symbol: message.symbol,
+        },
+      },
     });
 
-    if (!res.success) return;
-
-    sendCryptos(userDevice);
+    if (res) sendCryptos(userDevice);
   } catch (error) {
     Logger.error(
       "Failed to delete crypto for user:",
@@ -526,7 +440,7 @@ const handleMessage = async (
         handleAddCrypto(parsedMessage, userDevice);
         break;
       case "update-crypto":
-        handleUpdateCrypto(parsedMessage, userDevice);
+        handleAddCrypto(parsedMessage, userDevice);
         break;
       case "delete-crypto":
         handleDeleteCrypto(parsedMessage, userDevice);

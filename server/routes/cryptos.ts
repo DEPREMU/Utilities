@@ -1,4 +1,3 @@
-import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import { getHandlerPost } from "@/functions/getHandlerPost.ts";
@@ -11,7 +10,7 @@ export const cryptos = new Cryptos(500);
 void cryptos.fetchDataBinance(true);
 if (REPLACERS.isDev) {
   cryptos.addEventListener(CryptoEvents.UPDATE, async (d) => {
-    void fs.promises.writeFile(cryptosFilePath, JSON.stringify(d), {
+    void new File(cryptosFilePath).writeFile(JSON.stringify(d), {
       encoding: "utf-8",
     });
   });
@@ -25,24 +24,18 @@ export const handleGetCryptoPrice = getHandlerPost(
       const { symbol } = body;
 
       let dataCrypto = cryptos.getCryptoBySymbol(symbol);
-      if (!dataCrypto) {
-        if (REPLACERS.isDev) {
-          const dataFromFile = await new File(cryptosFilePath).readFile(
-            "utf-8",
-          );
-          const dataParsed = JSON.parse(
-            dataFromFile || "[]",
-          ) as PriceBinanceAPI;
-          cryptos.prices = dataParsed;
-          dataCrypto = cryptos.getCryptoBySymbol(symbol);
-        }
-
-        if (!dataCrypto)
-          return sendResponse("NOT_FOUND", {
-            success: false,
-            error: "Crypto not found",
-          });
+      if (REPLACERS.isDev && !dataCrypto) {
+        const dataFromFile = await new File(cryptosFilePath).readFile("utf-8");
+        const dataParsed = JSON.parse(dataFromFile || "[]") as PriceBinanceAPI;
+        cryptos.prices = dataParsed;
+        dataCrypto = cryptos.getCryptoBySymbol(symbol);
       }
+
+      if (!dataCrypto)
+        return sendResponse("NOT_FOUND", {
+          success: false,
+          error: "Crypto not found",
+        });
 
       const price = dataCrypto.price;
       const priceMXN: number | undefined = cryptos.getCryptoByBase(
@@ -51,12 +44,6 @@ export const handleGetCryptoPrice = getHandlerPost(
         "USDT",
         "BTC",
       )?.price;
-
-      if (price === null)
-        return sendResponse("INTERNAL_SERVER_ERROR", {
-          success: false,
-          error: "Error fetching crypto price, price is invalid",
-        });
 
       sendResponse("SUCCESS", {
         price,
@@ -81,9 +68,11 @@ export const handleGetCryptos = getHandlerPost(
   {},
   async (body, sendResponse) => {
     try {
-      const cryptosFilteredByCurrency = cryptos.prices.filter((crypto) =>
-        crypto.symbol.endsWith(body.currency || ""),
-      );
+      const cryptosFilteredByCurrency = body.currency
+        ? cryptos.prices.filter((crypto) =>
+            crypto.symbol.endsWith(body.currency || ""),
+          )
+        : cryptos.prices;
 
       sendResponse("SUCCESS", {
         success: true,

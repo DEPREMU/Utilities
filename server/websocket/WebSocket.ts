@@ -1,9 +1,9 @@
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling.ts";
 import { Logger } from "@common";
-import { updateInTable } from "../database/functions.ts";
 import { WebSocketMessage } from "@types";
 import WebSocket, { WebSocketServer } from "ws";
+import { prisma } from "@/database/postgres.ts";
 
 const users = new Users<
   Record<string, unknown>,
@@ -48,11 +48,10 @@ const onMessage = (
         handleInitWebSocket(message, userDevice);
         break;
       case "language-change":
-        updateInTable(
-          "UserConfig",
-          { language: message.language },
-          { userId: userDevice.userId },
-        );
+        void prisma.userConfig.update({
+          data: { language: message.language },
+          where: { userId: userDevice.userId },
+        });
         break;
       case "pong":
         userDevice.pongReceived();

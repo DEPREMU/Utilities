@@ -1,11 +1,7 @@
 import type {
-  Logs,
-  Cryptos,
-  Streamer,
-  UserData,
-  TablesKeys,
-  DownDetector,
-} from "../database";
+  SerializableTask,
+  AvailableFunctions,
+} from "../typesTaskRegistry";
 import {
   WebPageFetch,
   UpdatesRoutes,
@@ -37,8 +33,7 @@ import type {
   ResponseGetIsLiveStreamer,
   ResponseChangeImageFormat,
 } from "./Response";
-
-import {
+import type {
   RequestAuth,
   RequestCryptos,
   RequestDecrypt,
@@ -59,9 +54,10 @@ import {
   RequestChangeImageFormat,
 } from "./Request";
 import type { Handler } from "express";
-import { Notifications } from "../typesNotifications";
+import type { TablesKeys } from "../database";
+import type { type Prisma } from "../../server/generated/prisma";
+import type { Notifications } from "../typesNotifications";
 import type { LanguagesSupported } from "../typesTranslations";
-import { AvailableFunctions, SerializableTask } from "../typesTaskRegistry";
 
 export type MethodsAvailableInAPI = {
   get: "get";
@@ -85,8 +81,8 @@ export type Coin = {
 
 export type LogFetch = {
   url: "/log";
+  body: Prisma.LogsCreateInput;
   method: MethodsAvailableInAPI["post"];
-  body: Logs;
   response: ResponseLogs;
 };
 export type HealthFetch = {

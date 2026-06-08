@@ -1,0 +1,357 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==============================================
+// Enums (Mapped from CHECK constraints)
+// ==============================================
+
+enum LogType {
+  log
+  warn
+  error
+}
+
+enum Theme {
+  light
+  dark
+  auto
+}
+
+enum Languages {
+  en
+  es
+}
+
+enum ReasonNotification {
+  cryptos
+  streamers
+  downDetector
+  batteryAlerts
+  timeToDownload
+  locationEnabled
+  updateAvailable
+  allNotifications
+  recorderNotification
+  noInternetConnection
+  loggedInStatusChannel
+}
+
+// ==============================================
+// Models
+// ==============================================
+
+model Users {
+  userId                  String      @id @default(uuid()) @db.Uuid
+  name                    String?     @default("")
+  email                   String      @unique
+  phone                   String?     @default("")
+  password                String
+  description             String?     @default("")
+  createdAt               DateTime    @default(now()) @db.Timestamptz
+  updatedAt               DateTime    @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  logs                    Logs[]
+  notes                   Notes[]
+  cryptos                 Cryptos[]
+  streamers               Streamers[]
+  pushTokens              PushTokens[]
+  userSessions            UserSessions[]
+  downDetectors           DownDetector[]
+  clipboardSyncs          ClipboardSync[]
+  notificationsConfigs    UserNotificationsConfig[]
+
+  userConfig              UserConfig?
+  cryptosSettings         CryptosSettings?
+
+  @@map("users")
+}
+
+model Logs {
+  id          String   @id @default(uuid()) @db.Uuid
+  type        LogType
+  message     String
+  userId      String?  @db.Uuid
+  deviceId    String
+  timestamp   DateTime @db.Timestamptz
+  deviceName  String
+
+  user Users? @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("logs")
+}
+
+model AutoRefreshCrypto {
+  id                String          @id @default(uuid()) @db.Uuid
+  enabled           Boolean         @default(true)
+  valueMs           Int             @default(60000)
+
+  cryptosSettingsId String          @unique @db.Uuid
+  cryptosSettings   CryptosSettings @relation(fields: [cryptosSettingsId], references: [id], onDelete: Cascade)
+
+  @@map("auto_refresh_crypto")
+}
+
+model NotificationCrypto {
+  id                String          @id @default(uuid()) @db.Uuid
+  enabled           Boolean         @default(true)
+  valueMs           Int             @default(3600000)
+
+  cryptosSettingsId String          @unique @db.Uuid
+  cryptosSettings   CryptosSettings  @relation(fields: [cryptosSettingsId], references: [id], onDelete: Cascade)
+
+  @@map("notification_crypto")
+}
+
+model CryptosSettings {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  createdAt       DateTime @default(now()) @db.Timestamptz
+  updatedAt       DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  defaultCurrency String?  @default("USDT")
+
+  autoRefresh     AutoRefreshCrypto?
+  notifications   NotificationCrypto?
+
+  user Users      @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("cryptos_settings")
+}
+
+model Cryptos {
+  id                  String   @id @default(uuid()) @db.Uuid
+  amount              String
+  symbol              String
+  userId              String   @db.Uuid
+  baseCoin            String
+  quoteCoin           String
+  datePurchased       DateTime @db.Timestamptz
+  firstPricePurchased Decimal  @db.Decimal
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+
+  @@map("cryptos")
+}
+
+model PushTokens {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([token, userId])
+
+  @@map("push_tokens")
+}
+
+model UserNotificationsConfig {
+  id        String                @id @default(uuid()) @db.Uuid
+  reason    ReasonNotification
+  paused    Boolean?              @default(false)
+  userId    String                @db.Uuid
+  enabled   Boolean               @default(false)
+  updatedAt DateTime              @default(now()) @updatedAt @db.Timestamptz
+  createdAt DateTime              @default(now()) @db.Timestamptz
+  pauseTime Int                   @default(-1)
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  streamers UserStreamerNotification[]
+
+  @@unique([userId, reason])
+
+  @@map("user_notifications_config")
+}
+
+model UserStreamerNotification {
+  id                       String   @id @default(uuid()) @db.Uuid
+  paused                   Boolean? @default(false)
+  enabled                  Boolean  @default(false)
+  streamer                 String
+  pauseTime                Int      @default(-1)
+  updatedAt                DateTime @default(now()) @updatedAt @db.Timestamptz
+  createdAt                DateTime @default(now()) @db.Timestamptz
+
+  userNotificationConfigId String @db.Uuid
+  userNotificationsConfig  UserNotificationsConfig @relation(fields: [userNotificationConfigId], references: [id], onDelete: Cascade)
+
+  @@unique([userNotificationConfigId, streamer])
+
+  @@map("user_streamer_notification")
+}
+
+model UserConfig {
+  id           String       @id @default(uuid()) @db.Uuid
+  theme        Theme
+  language     Languages    @default(en)
+  userId       String       @unique @db.Uuid
+  API_URL      String?
+  hasAdmin     Boolean      @default(false)
+  updatedAt    DateTime     @default(now()) @updatedAt @db.Timestamptz
+  createdAt    DateTime     @default(now()) @db.Timestamptz
+  webSocketURL String?
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("user_config")
+}
+
+model ClipboardSync {
+  id        String   @id @default(uuid()) @db.Uuid
+  content   String
+  deleted   Boolean? @default(false)
+  userId    String   @db.Uuid
+  deviceId  String
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, deviceId, content])
+
+  @@index([userId], name: "idx_clipboard_userid")
+
+  @@map("clipboard_sync")
+}
+
+model Streamers {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  userId    String   @db.Uuid
+  linkImage String?
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("streamer")
+}
+
+model UserSessions {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String
+  userId    String   @db.Uuid
+  deviceId  String
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@unique([userId, token])
+
+  @@map("user_sessions")
+}
+
+model DownDetector {
+  id               String   @id @default(uuid()) @db.Uuid
+  url              String
+  userId           String   @db.Uuid
+  createdAt        DateTime @default(now()) @db.Timestamptz
+  sendNotification Boolean
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("down_detector")
+}
+
+// =========================
+// ========= Notes =========
+// =========================
+
+enum FontStyle {
+  normal
+  italic
+}
+
+enum FontWeight {
+  normal
+  bold
+}
+
+enum TextDecorationLine {
+  none
+  underline
+  line_through
+}
+
+model Notes {
+  id            String   @id @default(uuid()) @db.Uuid
+  title         String
+  content       String
+
+  userId        String   @db.Uuid
+  folderId      String?
+
+  isPinned      Boolean  @default(false)
+  isHidden      Boolean  @default(false)
+
+  createdAt     DateTime @default(now()) @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  sources       NoteSource[]
+  richTextRuns  RichTextRun[]
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+model NoteSource {
+  id          String @id @default(uuid()) @db.Uuid
+
+  uri         String
+  type        SourceType
+
+  name        String?
+  size        Int?
+  mimeType    String?
+  durationMs  Int?
+
+  noteId      String @db.Uuid
+
+  note Notes @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@map("note_sources")
+}
+
+enum SourceType {
+  image
+  video
+  audio
+  other
+}
+
+model RichTextRun {
+  id                 String @id @default(uuid()) @db.Uuid
+
+  start              Int
+  end                Int
+
+  color              String?
+  fontSize           Int?
+  fontStyle          FontStyle?
+  fontFamily         String?
+  fontWeight         FontWeight?
+  textDecorationLine TextDecorationLine?
+
+  noteId            String @db.Uuid
+
+  notes Notes @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@map("rich_text_runs")
+}

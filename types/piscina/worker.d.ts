@@ -10,11 +10,17 @@ export type EncryptionWorkerData = {
 
 type EncryptionWorker = {
   functions: {
-    encryptData: {
+    encryptFile: {
       data: EncryptionWorkerData;
     };
-    decryptData: {
+    decryptFile: {
       data: EncryptionWorkerData;
+    };
+    encryptText: {
+      data: { text: string };
+    };
+    decryptText: {
+      data: { text: string };
     };
   };
 };

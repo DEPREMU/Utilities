@@ -7,7 +7,6 @@ import {
 import fs from "fs";
 import path from "path";
 import { Logger } from "@common";
-import { getEnvValue } from "../env.ts";
 import { getFinalFileName } from "./uploadUpdate.ts";
 import { PATH_DATA_UPDATES, REPLACERS, UPLOAD_DIR } from "../config.ts";
 

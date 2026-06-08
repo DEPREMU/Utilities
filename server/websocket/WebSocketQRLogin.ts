@@ -6,11 +6,11 @@ import {
 } from "@types";
 import chalk from "chalk";
 import QRCode from "qrcode";
-import { Logger } from "@common";
+import { JWT } from "../functions/auth.ts";
+import { Helper, Logger } from "@common";
+import { prisma } from "@/database/postgres.ts";
 import { getStorageData } from "../routes/auth.ts";
-import { fetchFromTable } from "../database/functions.ts";
 import WebSocket, { WebSocketServer } from "ws";
-import { decodeJWTToken, getJWTTokenAndUpload } from "../functions/auth.ts";
 
 const usersActive: UsersWebSocketQR = {};
 
@@ -50,55 +50,47 @@ const handleLoginWithQR = async (
     };
     wsWeb.send(JSON.stringify(message));
 
-    const decoded = await decodeJWTToken(tokenMobile);
-    if (!decoded || !deviceIdWeb) {
+    const decoded = new JWT({ token: tokenMobile }).data;
+    if (!deviceIdWeb) {
       messageToMobile.status = "error";
       wsMobile.send(JSON.stringify(messageToMobile));
       return;
     }
 
-    const [fetchedUser, dataInsert] = await Promise.all([
-      fetchFromTable({
-        table: "Users",
-        match: { userId: decoded.userId },
-      }),
-      getJWTTokenAndUpload({
-        deviceId: deviceIdWeb,
+    const token = new JWT({
+      content: {
         email: decoded.email,
         userId: decoded.userId,
+        deviceId: deviceIdWeb,
         notificationToken: "mobile-" + deviceIdWeb,
-      }),
-    ]);
-    if (
-      !fetchedUser.data ||
-      fetchedUser.data.length === 0 ||
-      !dataInsert.data
-    ) {
-      messageToMobile.status = "error";
-      wsMobile.send(JSON.stringify(messageToMobile));
-      return;
-    }
+      },
+    });
+    const tokenStr = token.token;
 
-    const user: Partial<(typeof fetchedUser.data)[0]> = fetchedUser.data[0];
-    delete user["password"];
+    const [user] = await Promise.all([
+      prisma.users.findUnique({ where: { userId: decoded.userId } }),
+      token.uploadToken(),
+    ]);
 
     const storageValues = await getStorageData(
       decoded.userId,
       messageByApp.rememberMe,
-      dataInsert.data[0].token,
+      tokenStr,
     );
 
-    if (!storageValues) {
+    if (!storageValues || !user) {
       messageToMobile.status = "error";
       wsMobile.send(JSON.stringify(messageToMobile));
       return;
     }
 
+    const userSafe = Helper.Object.removeProperties(user, "password");
+
     const responseAuth: ResponseAuth<"login"> = {
+      storageValues,
+      user: userSafe,
+      token: tokenStr,
       success: true,
-      user: user as ResponseAuth<"login">["user"],
-      token: dataInsert.data[0].token,
-      storageValues: storageValues || undefined,
     };
 
     if (wsWeb && wsWeb.readyState === WebSocket.OPEN) {
@@ -152,9 +144,8 @@ export const initWebSocketLoginQRCode = () => {
     socket.on("message", async (message) => {
       try {
         const msg = message.toString();
-        const parsedMsg = JSON.parse(
-          msg,
-        ) as MessageWebSocketQRLogin<"sentByApp">;
+        const parsedMsg =
+          Helper.JSON.parse<MessageWebSocketQRLogin<"sentByApp">>(msg);
 
         switch (parsedMsg.type) {
           case "scanned":

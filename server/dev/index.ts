@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { Logger } from "@common";
+import { prisma } from "@/database/postgres.ts";
 import { runAllTests } from "@/dev/testingRoutes/index.ts";
-import { deleteInTable } from "@/database/functions";
 import { createFakeData } from "./createFakeData";
 import { RequestAuth, RoutesAPI } from "@types";
 import { executeFunctionAfterInit, host, port } from "@/config";
@@ -12,9 +12,13 @@ const initDev = async () => {
     email: "test@test.test",
     password: "Test123!",
   };
-  await deleteInTable("", "Users", {
-    email: user.email,
-  });
+  try {
+    await prisma.users.delete({
+      where: { email: user.email },
+    });
+  } catch {
+    // Ignore errors
+  }
 
   const route = "/auth/signup" satisfies RoutesAPI;
   await fetch(`http://${host}:${port}/api${route}`, {
@@ -32,7 +36,7 @@ const initDev = async () => {
 
   await createFakeData();
 
-  await runAllTests(true);
+  await runAllTests(true); //TODO: Uncomment this line to run all tests after initialization. Make sure the refactor is completed before doing so, as some tests might fail due to the ongoing refactor.
 };
 
 executeFunctionAfterInit(initDev);

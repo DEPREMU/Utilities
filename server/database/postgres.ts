@@ -1,24 +1,14 @@
 import "./backups/index.ts";
 
-import fs from "fs";
 import path from "path";
 import chalk from "chalk";
-import { Pool } from "pg";
+import { File } from "@common";
 import { exec } from "child_process";
-import { Logger } from "@common";
-import { initDB } from "./initDB.ts";
-import { PoolConfig } from "pg";
-import { getEnvValue } from "../env.ts";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { getEnvValue } from "@/env.ts";
+import { PrismaClient } from "@/generated/prisma/index.js";
 
 export let dbInitialized = false;
-
-const dbConfig: PoolConfig = {
-  port: getEnvValue("DB_PORT"),
-  host: getEnvValue("DB_HOST"),
-  user: getEnvValue("DB_USER"),
-  password: getEnvValue("DB_PASS"),
-  database: getEnvValue("DB_NAME"),
-};
 
 if (
   !getEnvValue("DB_USER") ||
@@ -31,21 +21,6 @@ if (
     ),
   );
 }
-
-/**
- * Initializes and exports a PostgreSQL pool instance.
- *
- * The `pool` constant is created using the `Pool` class from pg,
- * which manages a pool of database connections for efficient querying.
- *
- * @constant
- */
-export const pool = new Pool(dbConfig);
-
-pool.on("error", (err) => {
-  Logger.error(chalk.red("Unexpected error on idle client"), err);
-  process.exit(-1);
-});
 
 /**
  * Creates a PostgreSQL password file (.pgpass or pgpass.conf) to enable password-less authentication.
@@ -79,7 +54,7 @@ const handleCreatePgPassFile = () => {
       "postgresql",
       "pgpass.conf",
     );
-    fs.writeFileSync(pgpassFilePath, pgpass, { mode: 0o600 });
+    new File(pgpassFilePath).writeFile(pgpass, { mode: 0o600 });
   } else {
     pgpassFilePath = "~/.pgpass";
     exec(`echo "${pgpass}" > ${pgpassFilePath} && chmod 600 ${pgpassFilePath}`);
@@ -99,17 +74,9 @@ const handleCreatePgPassFile = () => {
  */
 export const handleInitDB = async () => {
   handleCreatePgPassFile();
-  await initDB();
-  try {
-    const client = await pool.connect();
-    const usersCount = await client.query("SELECT COUNT(*) FROM users;");
-    Logger.log(
-      chalk.bgBlack(`Number of users after drop: ${usersCount.rows[0].count}`),
-    );
-  } catch (error) {
-    Logger.error(chalk.red("Error querying users count:"), error);
-    throw new Error("Failed to query users count" + (error as Error).message);
-  }
 
   dbInitialized = true;
 };
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+export const prisma = new PrismaClient({ adapter });
