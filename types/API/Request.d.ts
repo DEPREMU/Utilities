@@ -9,19 +9,6 @@ import { LanguagesSupported } from "../typesTranslations";
 import { Tables, TablesKeys } from "../database";
 import { BuildTypeUpdates, PlatformsOS, UpdatesRoutes } from "./typesUpdates";
 
-export type RequestBody<
-  T extends RoutesAPI | UpdatesRoutes = RoutesAPI | UpdatesRoutes,
-  U extends TablesKeys = TablesKeys,
-> = T extends RoutesPostAPI | RoutesPutAPI
-  ? Extract<
-      FetchAPI<U>,
-      {
-        url: T;
-        method: MethodsAvailableInAPI["put"] | MethodsAvailableInAPI["post"];
-      }
-    >["body"]
-  : undefined;
-
 export type ResponseFetch<
   T extends RoutesAPI | UpdatesRoutes,
   B = RequestBody<T>,
@@ -173,7 +160,7 @@ export type RequestUploadUpdate<T extends BuildTypeUpdates = BuildTypeUpdates> =
   {
     version: string;
     buildType: T;
-    platformOS?: T extends "android" ? undefined : PlatformsOS;
+    platformOS?: T extends "android" ? never : PlatformsOS;
   };
 
 export type RequestDownloadViaTempUrl = {

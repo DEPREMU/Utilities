@@ -16,7 +16,7 @@ export const sendResponse = <T extends RoutesAPI>(
     Logger.error(
       chalk.red("Error sending response:"),
       chalk.yellow(JSON.stringify(message || {})),
-      err instanceof Error ? err.message : String(err),
+      err,
     );
   }
 };

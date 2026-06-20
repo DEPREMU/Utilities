@@ -52,40 +52,40 @@ enum ReasonNotification {
 // ==============================================
 
 model Users {
-  userId                  String      @id @default(uuid()) @db.Uuid
-  name                    String?     @default("")
-  email                   String      @unique
-  phone                   String?     @default("")
-  password                String
-  description             String?     @default("")
-  createdAt               DateTime    @default(now()) @db.Timestamptz
-  updatedAt               DateTime    @default(now()) @updatedAt @db.Timestamptz
+  userId      String   @id @default(uuid()) @db.Uuid
+  name        String?  @default("")
+  email       String   @unique
+  phone       String?  @default("")
+  password    String
+  description String?  @default("")
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz
 
   // Relations
-  logs                    Logs[]
-  notes                   Notes[]
-  cryptos                 Cryptos[]
-  streamers               Streamers[]
-  pushTokens              PushTokens[]
-  userSessions            UserSessions[]
-  downDetectors           DownDetector[]
-  clipboardSyncs          ClipboardSync[]
-  notificationsConfigs    UserNotificationsConfig[]
+  logs                 Logs[]
+  notes                Notes[]
+  cryptos              Cryptos[]
+  streamers            UserStreamers[]
+  pushTokens           PushTokens[]
+  userSessions         UserSessions[]
+  downDetectors        DownDetector[]
+  clipboardSyncs       ClipboardSync[]
+  notificationsConfigs UserNotificationsConfig[]
 
-  userConfig              UserConfig?
-  cryptosSettings         CryptosSettings?
+  userConfig      UserConfig?
+  cryptosSettings CryptosSettings?
 
   @@map("users")
 }
 
 model Logs {
-  id          String   @id @default(uuid()) @db.Uuid
-  type        LogType
-  message     String
-  userId      String?  @db.Uuid
-  deviceId    String
-  timestamp   DateTime @db.Timestamptz
-  deviceName  String
+  id         String   @id @default(uuid()) @db.Uuid
+  type       LogType
+  message    String
+  userId     String?  @db.Uuid
+  deviceId   String
+  timestamp  DateTime @db.Timestamptz
+  deviceName String
 
   user Users? @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
@@ -93,9 +93,9 @@ model Logs {
 }
 
 model AutoRefreshCrypto {
-  id                String          @id @default(uuid()) @db.Uuid
-  enabled           Boolean         @default(true)
-  valueMs           Int             @default(60000)
+  id      String  @id @default(uuid()) @db.Uuid
+  enabled Boolean @default(true)
+  valueMs Int     @default(60000)
 
   cryptosSettingsId String          @unique @db.Uuid
   cryptosSettings   CryptosSettings @relation(fields: [cryptosSettingsId], references: [id], onDelete: Cascade)
@@ -104,28 +104,28 @@ model AutoRefreshCrypto {
 }
 
 model NotificationCrypto {
-  id                String          @id @default(uuid()) @db.Uuid
-  enabled           Boolean         @default(true)
-  valueMs           Int             @default(3600000)
+  id      String  @id @default(uuid()) @db.Uuid
+  enabled Boolean @default(true)
+  valueMs Int     @default(3600000)
 
   cryptosSettingsId String          @unique @db.Uuid
-  cryptosSettings   CryptosSettings  @relation(fields: [cryptosSettingsId], references: [id], onDelete: Cascade)
+  cryptosSettings   CryptosSettings @relation(fields: [cryptosSettingsId], references: [id], onDelete: Cascade)
 
   @@map("notification_crypto")
 }
 
 model CryptosSettings {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @unique @db.Uuid
-  createdAt       DateTime @default(now()) @db.Timestamptz
-  updatedAt       DateTime @default(now()) @updatedAt @db.Timestamptz
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz
 
-  defaultCurrency String?  @default("USDT")
+  defaultCurrency String? @default("USDT")
 
-  autoRefresh     AutoRefreshCrypto?
-  notifications   NotificationCrypto?
+  autoRefresh   AutoRefreshCrypto?
+  notifications NotificationCrypto?
 
-  user Users      @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("cryptos_settings")
 }
@@ -143,7 +143,6 @@ model Cryptos {
   user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@unique([userId, symbol])
-
   @@map("cryptos")
 }
 
@@ -156,55 +155,52 @@ model PushTokens {
   user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@unique([token, userId])
-
   @@map("push_tokens")
 }
 
 model UserNotificationsConfig {
-  id        String                @id @default(uuid()) @db.Uuid
+  id        String             @id @default(uuid()) @db.Uuid
   reason    ReasonNotification
-  paused    Boolean?              @default(false)
-  userId    String                @db.Uuid
-  enabled   Boolean               @default(false)
-  updatedAt DateTime              @default(now()) @updatedAt @db.Timestamptz
-  createdAt DateTime              @default(now()) @db.Timestamptz
-  pauseTime Int                   @default(-1)
+  paused    Boolean?           @default(false)
+  userId    String             @db.Uuid
+  enabled   Boolean            @default(false)
+  updatedAt DateTime           @default(now()) @updatedAt @db.Timestamptz
+  createdAt DateTime           @default(now()) @db.Timestamptz
+  pauseTime Int                @default(-1)
 
   user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   streamers UserStreamerNotification[]
 
   @@unique([userId, reason])
-
   @@map("user_notifications_config")
 }
 
 model UserStreamerNotification {
-  id                       String   @id @default(uuid()) @db.Uuid
-  paused                   Boolean? @default(false)
-  enabled                  Boolean  @default(false)
-  streamer                 String
-  pauseTime                Int      @default(-1)
-  updatedAt                DateTime @default(now()) @updatedAt @db.Timestamptz
-  createdAt                DateTime @default(now()) @db.Timestamptz
+  id        String   @id @default(uuid()) @db.Uuid
+  paused    Boolean? @default(false)
+  enabled   Boolean  @default(false)
+  streamer  String
+  pauseTime Int      @default(-1)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
 
-  userNotificationConfigId String @db.Uuid
+  userNotificationConfigId String                  @db.Uuid
   userNotificationsConfig  UserNotificationsConfig @relation(fields: [userNotificationConfigId], references: [id], onDelete: Cascade)
 
   @@unique([userNotificationConfigId, streamer])
-
   @@map("user_streamer_notification")
 }
 
 model UserConfig {
-  id           String       @id @default(uuid()) @db.Uuid
+  id           String    @id @default(uuid()) @db.Uuid
   theme        Theme
-  language     Languages    @default(en)
-  userId       String       @unique @db.Uuid
+  language     Languages @default(en)
+  userId       String    @unique @db.Uuid
   API_URL      String?
-  hasAdmin     Boolean      @default(false)
-  updatedAt    DateTime     @default(now()) @updatedAt @db.Timestamptz
-  createdAt    DateTime     @default(now()) @db.Timestamptz
+  hasAdmin     Boolean   @default(false)
+  updatedAt    DateTime  @default(now()) @updatedAt @db.Timestamptz
+  createdAt    DateTime  @default(now()) @db.Timestamptz
   webSocketURL String?
 
   user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
@@ -223,20 +219,28 @@ model ClipboardSync {
   user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@unique([userId, deviceId, content])
-
   @@index([userId], name: "idx_clipboard_userid")
-
   @@map("clipboard_sync")
 }
 
-model Streamers {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  userId    String   @db.Uuid
-  linkImage String?
-  createdAt DateTime @default(now()) @db.Timestamptz
+model UserStreamers {
+  id         String @id @default(uuid()) @db.Uuid
+  userId     String @db.Uuid
+  streamerId String @db.Uuid
 
-  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  streamer Streamers @relation(fields: [streamerId], references: [id])
+  user     Users     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, streamerId])
+  @@map("user_streamers")
+}
+
+model Streamers {
+  id            String          @id @default(uuid()) @db.Uuid
+  name          String          @unique
+  linkImage     String?
+  createdAt     DateTime        @default(now()) @db.Timestamptz
+  userStreamers UserStreamers[]
 
   @@map("streamer")
 }
@@ -253,7 +257,6 @@ model UserSessions {
 
   @@unique([userId, deviceId])
   @@unique([userId, token])
-
   @@map("user_sessions")
 }
 
@@ -290,21 +293,21 @@ enum TextDecorationLine {
 }
 
 model Notes {
-  id            String   @id @default(uuid()) @db.Uuid
-  title         String
-  content       String
+  id      String @id @default(uuid()) @db.Uuid
+  title   String
+  content String
 
-  userId        String   @db.Uuid
-  folderId      String?
+  userId   String  @db.Uuid
+  folderId String?
 
-  isPinned      Boolean  @default(false)
-  isHidden      Boolean  @default(false)
+  isPinned Boolean @default(false)
+  isHidden Boolean @default(false)
 
-  createdAt     DateTime @default(now()) @db.Timestamptz
-  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz
 
-  sources       NoteSource[]
-  richTextRuns  RichTextRun[]
+  sources      NoteSource[]
+  richTextRuns RichTextRun[]
 
   user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
@@ -312,17 +315,17 @@ model Notes {
 }
 
 model NoteSource {
-  id          String @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-  uri         String
-  type        SourceType
+  uri  String
+  type SourceType
 
-  name        String?
-  size        Int?
-  mimeType    String?
-  durationMs  Int?
+  name       String?
+  size       Int?
+  mimeType   String?
+  durationMs Int?
 
-  noteId      String @db.Uuid
+  noteId String @db.Uuid
 
   note Notes @relation(fields: [noteId], references: [id], onDelete: Cascade)
 
@@ -337,10 +340,10 @@ enum SourceType {
 }
 
 model RichTextRun {
-  id                 String @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-  start              Int
-  end                Int
+  start Int
+  end   Int
 
   color              String?
   fontSize           Int?
@@ -349,7 +352,7 @@ model RichTextRun {
   fontWeight         FontWeight?
   textDecorationLine TextDecorationLine?
 
-  noteId            String @db.Uuid
+  noteId String @db.Uuid
 
   notes Notes @relation(fields: [noteId], references: [id], onDelete: Cascade)
 

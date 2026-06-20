@@ -7,6 +7,7 @@ export * from "./zustand.ts";
 export * from "./mimeType.ts";
 export * from "./keysStorage.ts";
 export * from "./validations.ts";
+export * from "./fetch/index.ts";
 export * from "./errorHandling.ts";
 export * from "./notifications.ts";
 export * from "./classes/index.ts";

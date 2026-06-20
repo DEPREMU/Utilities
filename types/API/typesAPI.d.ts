@@ -87,13 +87,14 @@ export type LogFetch = {
 };
 export type HealthFetch = {
   url: "/health";
+  body: undefined;
   method: MethodsAvailableInAPI["get"];
   response: ResponseHealth;
 };
 export type CryptosFetch = {
   url: "/cryptos";
-  method: MethodsAvailableInAPI["post"];
-  body: RequestCryptos;
+  body: undefined;
+  method: MethodsAvailableInAPI["get"];
   response: ResponseCryptos;
 };
 export type DecryptFetch = {
@@ -125,12 +126,6 @@ export type AuthLoginFetch = {
   body: RequestAuth<"login">;
   method: MethodsAvailableInAPI["post"];
   response: ResponseAuth<"login">;
-};
-export type CryptoPriceFetch = {
-  url: "/cryptoPrice";
-  body: RequestCryptoPrice;
-  method: MethodsAvailableInAPI["post"];
-  response: ResponseCryptoPrice;
 };
 export type AddStreamerFetch = {
   url: "/addStreamer";
@@ -200,6 +195,7 @@ export type ChangeImageFormat = {
 };
 export type Generate204Fetch = {
   url: "/generate204";
+  body: undefined;
   method: MethodsAvailableInAPI["get"];
   response: undefined;
 };
@@ -214,18 +210,13 @@ export type DebugAppAlive = {
 export type FetchAPI<T extends TablesKeys = TablesKeys> =
   | LogFetch
   | HealthFetch
-  | CryptosFetch
   | DecryptFetch
   | EncryptFetch
   | WebPageFetch
   | DoQueryFetch
   | DebugAppAlive
   | TranslateFetch
-  | AuthLoginFetch
-  | AuthSignUpFetch
   | AddStreamerFetch
-  | AuthSignOutFetch
-  | CryptoPriceFetch
   | Generate204Fetch
   | ChangeImageFormat
   | UploadUpdateFetch
@@ -236,8 +227,7 @@ export type FetchAPI<T extends TablesKeys = TablesKeys> =
   | DatabaseDeleteFetch<T>
   | IsUpdateAvailableFetch
   | GetIsLiveStreamerFetch
-  | DownloadViaTempUrlFetch
-  | AuthRefreshSessionFetch;
+  | DownloadViaTempUrlFetch;
 
 export type RoutesAPIWithItsMethod = {
   [K in RoutesAPI | UpdatesRoutes]: {

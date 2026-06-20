@@ -49,3 +49,14 @@ export type Slice<
   : T extends [unknown, ...infer Rest]
     ? Slice<Rest, N, [...Acc, unknown]>
     : [];
+
+export type TypeOfJS = {
+  string: string;
+  number: number;
+  bigint: bigint;
+  symbol: symbol;
+  object: object;
+  boolean: boolean;
+  function: () => unknown;
+  undefined: undefined;
+};

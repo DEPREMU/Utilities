@@ -1,9 +1,9 @@
 import chalk from "chalk";
 import { prisma } from "@/database/postgres.ts";
-import { isLiveStreamer } from "@/routes/socialMedia.ts";
 import { sendFCMNotification } from "@/firebase/admin.ts";
 import { ChannelsId, ScreensAvailable } from "@types";
 import { t, Logger, languagesSupported, Helper } from "@common";
+import { isLiveStreamer } from "@/routes/streamers/get/handlers";
 
 const notificationsSent: Record<
   string,
@@ -13,22 +13,22 @@ const notificationsSent: Record<
 const handleSendNotificationsStreamers = async () => {
   const USERS = await prisma.users.findMany({
     where: {
-      streamers: { some: { name: { not: "" } } },
+      streamers: { some: { streamer: { name: { not: "" } } } },
       pushTokens: { some: { token: { not: "" } } },
       notificationsConfigs: {
         some: { reason: "allNotifications", enabled: true },
       },
     },
     include: {
+      userConfig: { select: { language: true } },
       streamers: {
-        where: { name: { not: "" }, linkImage: { not: "" } },
-        select: { name: true, linkImage: true },
+        where: { streamer: { name: { not: "" }, linkImage: { not: "" } } },
+        select: { streamer: { select: { name: true, linkImage: true } } },
       },
       pushTokens: {
         where: { token: { not: "" } },
         select: { token: true },
       },
-      userConfig: { select: { language: true } },
       notificationsConfigs: {
         where: {
           OR: [
@@ -43,7 +43,7 @@ const handleSendNotificationsStreamers = async () => {
   const users = USERS.map((u) => {
     const streamersSet = new Set<string>();
     const streamers = u.streamers.map((s) => {
-      const name = s.name.toLowerCase();
+      const name = s.streamer.name.toLowerCase();
       streamersSet.add(name);
 
       return { ...s, name };
@@ -75,7 +75,7 @@ const handleSendNotificationsStreamers = async () => {
   );
 
   const streamers = new Map<string, (typeof users)[0]["streamers"][0]>(
-    users.flatMap((u) => u.streamers.map((s) => [s.name, s])),
+    users.flatMap((u) => u.streamers.map((s) => [s.streamer.name, s])),
   );
 
   const liveStatusesMap = await Promise.all(
@@ -87,7 +87,7 @@ const handleSendNotificationsStreamers = async () => {
       if (usersConfig.length === 0) return null;
 
       const isLive = await isLiveStreamer(streamer);
-      const image = streamerData.linkImage || undefined;
+      const image = streamerData.streamer.linkImage || undefined;
 
       return {
         image,

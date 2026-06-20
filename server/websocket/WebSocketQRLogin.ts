@@ -6,10 +6,9 @@ import {
 } from "@types";
 import chalk from "chalk";
 import QRCode from "qrcode";
-import { JWT } from "../functions/auth.ts";
-import { Helper, Logger } from "@common";
 import { prisma } from "@/database/postgres.ts";
-import { getStorageData } from "../routes/auth.ts";
+import { Helper, Logger } from "@common";
+import { getStorageData, JWT } from "@/routes/auth/variables.ts";
 import WebSocket, { WebSocketServer } from "ws";
 
 const usersActive: UsersWebSocketQR = {};
