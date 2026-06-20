@@ -26,6 +26,8 @@ declare global {
   };
 }
 
+export { Prisma };
+
 export type Notes = Prisma.NoteGetPayload<{
   include: {
     sources: true;

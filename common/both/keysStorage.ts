@@ -1,4 +1,5 @@
 import {
+  Prisma,
   NotesSettings,
   Notifications,
   VaultSettings,
@@ -71,7 +72,11 @@ export type ExpectedSecureStorageTypes = {
   DEVICE_ID: string;
   CLIPBOARD: ClipboardStorage;
   USER_DATA: Omit<DB["Tables"]["Users"], "password"> | null;
-  STREAMERS: (DB["Tables"]["Streamers"] & { isLive: boolean })[] | null;
+  STREAMERS:
+    | (Prisma.StreamersGetPayload<{ omit: { createdAt: true } }> & {
+        isLive: boolean;
+      })[]
+    | null;
   SESSION_EXPIRY: number | -1;
   NOTES_PASSWORD: string | null;
   VAULT_PASSWORD: { [folder: string]: string } | null;

@@ -1,0 +1,46 @@
+{
+  "old": {
+    "linux": {
+      "version": "0.0.0",
+      "timestamp": 1,
+      "relativePath": "linux/0.0.0"
+    },
+    "windows": {
+      "version": "0.0.0",
+      "timestamp": 1,
+      "relativePath": "windows/0.0.0"
+    },
+    "web": {
+      "version": "0.0.0",
+      "timestamp": 1,
+      "relativePath": "web/0.0.0"
+    },
+    "android": {
+      "version": "0.0.0",
+      "timestamp": 1,
+      "relativePath": "android/0.0.0"
+    }
+  },
+  "new": {
+    "linux": {
+      "version": "0.0.0",
+      "timestamp": 1,
+      "relativePath": "linux/0.0.0"
+    },
+    "windows": {
+      "version": "0.0.0",
+      "timestamp": 1,
+      "relativePath": "windows/0.0.0"
+    },
+    "web": {
+      "version": "0.0.0",
+      "timestamp": 1,
+      "relativePath": "web/0.0.0"
+    },
+    "android": {
+      "version": "0.0.0",
+      "timestamp": 1,
+      "relativePath": "android/0.0.0"
+    }
+  }
+}

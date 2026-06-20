@@ -8,11 +8,10 @@ import {
   host,
   port,
   REPLACERS,
-  serverPath,
   executeFunctions,
+  PATH_WEB_PATH_UPDATES,
 } from "./config.ts";
 import cors from "cors";
-import path from "path";
 import http from "http";
 import chalk from "chalk";
 import helmet from "helmet";
@@ -21,7 +20,6 @@ import express from "express";
 import routerAPI from "./routes/index.ts";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
-import routerUpdates from "./updates/index.ts";
 import { handleInitDB } from "./database/postgres.ts";
 import { WebSocketPathname } from "@types";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
@@ -69,21 +67,12 @@ const startApp = async () => {
     "/api",
     express.json({ limit: "50mb" }),
     rateLimit({
-      windowMs: 1 * 60 * 1000,
       limit: !REPLACERS.isDev ? 200 : Infinity,
+      windowMs: 1 * 60 * 1000,
     }),
     routerAPI,
   );
-  app.use(
-    "/updates",
-    express.json(),
-    express.static(path.join(serverPath, "updates", "web-page")),
-    rateLimit({
-      windowMs: 10 * 60 * 1000,
-      limit: !REPLACERS.isDev ? 200 : Infinity,
-    }),
-    routerUpdates,
-  );
+  app.use("/updates", express.static(PATH_WEB_PATH_UPDATES));
 
   const server = http.createServer(app);
   const cryptoWss = initWebSocketCryptos();
@@ -159,7 +148,8 @@ const startApp = async () => {
       ),
     );
 
-    if (REPLACERS.isDev) await import("@/dev/index.ts");
+    // if (REPLACERS.isDev) await import("@/dev/index.ts"); //TODO: remove this line and the file it imports, it's only for testing hot reload of server functions
+
     await executeFunctions();
   });
 };

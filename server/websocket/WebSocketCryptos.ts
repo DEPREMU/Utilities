@@ -7,7 +7,7 @@ import {
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling.ts";
 import { prisma } from "@/database/postgres.ts";
-import { cryptos } from "@/routes/cryptos.ts";
+import { cryptos } from "@/routes/cryptos/variables.ts";
 import { sendFCMNotification } from "@/firebase/admin.ts";
 import { executeFunctionAfterInit } from "@/config.ts";
 import WebSocket, { WebSocketServer } from "ws";
