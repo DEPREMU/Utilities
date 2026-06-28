@@ -148,7 +148,7 @@ const startApp = async () => {
       ),
     );
 
-    // if (REPLACERS.isDev) await import("@/dev/index.ts"); //TODO: remove this line and the file it imports, it's only for testing hot reload of server functions
+    if (REPLACERS.isDev) await import("@/dev/index.ts");
 
     await executeFunctions();
   });

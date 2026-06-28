@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Handler, Router } from "express";
 import { GetParams, GetRouterObj } from "./Helpers";
 import { PriceBinanceAPI } from "@common";
 import {
@@ -47,7 +47,7 @@ export type CryptosFetch =
 
 export type ServerInfoFetch =
   | GetUrlFetch<"/health", null, {}, { upTime: number; timestamp: string }>
-  | GetUrlFetch<"/generate204", null, {}, undefined>
+  | GetUrlFetch<"/generate204", null, {}, "">
   | GetUrlFetch<
       "/appAlive/:deviceId-string/:pushToken-string",
       null,
@@ -75,7 +75,13 @@ export type ResponseStreamersFetch = Prisma.StreamersGetPayload<{
 
 export type StreamersFetch =
   | GetUrlFetch<
-      "/:streamerId",
+      "/page/:page-number-optional",
+      null,
+      {},
+      { streamers?: ResponseStreamersFetch[]; error?: string }
+    >
+  | GetUrlFetch<
+      "/streamer/:streamerId",
       null,
       {},
       {
@@ -99,12 +105,6 @@ export type StreamersFetch =
       }
     >
   | GetUrlFetch<
-      "/page/:page-number-optional",
-      null,
-      {},
-      { streamers?: ResponseStreamersFetch[]; error?: string }
-    >
-  | GetUrlFetch<
       "/:userId/:streamerId-optional",
       null,
       {},
@@ -123,7 +123,7 @@ export type Get = {
 };
 
 export type GetRoutesGet<T extends keyof Get> = {
-  [P in Get[T]["url"]]: GetRouterObj;
+  [P in Get[T]["url"]]: GetRouterObj<Get[T], P>;
 };
 
 export type GetMainRouter = {

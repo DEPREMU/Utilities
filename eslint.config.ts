@@ -56,6 +56,8 @@ export default defineConfig([
         Express: "readonly",
         ReactNavigation: "readonly",
         DB: "readonly",
+        FetchAPI: "readonly",
+        RoutesAPI: "readonly",
       },
     },
     plugins: {

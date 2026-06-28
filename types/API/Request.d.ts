@@ -173,7 +173,7 @@ export type RequestDownloadViaTempUrl = {
 export type RequestChangeImageFormat = {
   lang: LanguagesSupported;
   format: "jpeg" | "png" | "webp" | "avif" | "gif";
-  imageBufferInString: string;
+  imageStr: string;
 };
 
 export type RequestDebugAppAlive = {

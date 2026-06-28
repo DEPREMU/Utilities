@@ -1,4 +1,4 @@
-import { getRouterGet } from "@/routes/common";
+import { getRouterGet } from "@common";
 import { handleDownload, handleIsUpdateAvailable } from "./handlers";
 
 export const routerUpdatesGet = getRouterGet("/updates", {

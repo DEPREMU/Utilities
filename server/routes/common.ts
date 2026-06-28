@@ -43,7 +43,7 @@ const addRoute = (method: MethodsAPI, key: string, path: string) => {
 const getRouter = (
   method: MethodsAPI,
   key: string,
-  routes: Record<string, GetRouterObj>,
+  routes: Record<string, GetRouterObj<{ url: string }, string>>,
 ) => {
   const router = Router();
   Helper.Object.entries(routes).forEach(

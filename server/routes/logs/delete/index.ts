@@ -1,6 +1,7 @@
+import { authMiddleware } from "../middlewares/auth";
+import { getRouterDelete } from "@common";
 import { handleDeleteLog } from "./handlers";
-import { getRouterDelete } from "@/routes/common";
 
 export const routerLogsDelete = getRouterDelete("/logs", {
-  "/:logId": { handler: handleDeleteLog },
+  "/:logId": { handler: handleDeleteLog, middlewares: [authMiddleware] },
 });

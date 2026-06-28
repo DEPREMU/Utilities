@@ -1,7 +1,6 @@
 import chalk from "chalk";
-import { Logger } from "@common";
 import { prisma } from "@/database/postgres";
-import { getHandlerDelete } from "@/functions/getHandlerDelete";
+import { Logger, getHandlerDelete } from "@common";
 
 export const handleDeleteLog = getHandlerDelete(
   "/logs",

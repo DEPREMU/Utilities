@@ -1,828 +1,634 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  TestCase,
   AnyMatcher,
+  TestRoutes,
   AnythingMatcher,
   ObjectContainingMatcher,
-} from "./types.ts";
-import { Prisma } from "@/generated/prisma/index.js";
-import { readImage, Task } from "@common";
-import { RoutesAPI, ResponseAuth, ResponseDatabaseInsert } from "@types";
+} from "./types";
+import path from "path";
+import { user } from "../utils.ts";
+import { prisma } from "@/database/postgres";
+import { randomUUID } from "crypto";
+import { serverPath } from "@/config";
+import { readImage, PriceBinanceAPI, STATUS_RESPONSE } from "@common";
 
-/**
- * Helper object to check for missing routes at compile time
- * Usage: const missingRoute: RouteTestSuite["/some/route"]; // Will error if route doesn't exist
- */
 export const expect = {
   any: (constructor: unknown): AnyMatcher => ({ __type: "any", constructor }),
   anything: (): AnythingMatcher => ({ __type: "anything" }),
-  objectContaining: (obj: unknown): ObjectContainingMatcher<any> => ({
+  objectContaining: <T>(
+    obj: T extends Array<infer U>
+      ? Array<
+          U extends object
+            ? {
+                [K in keyof U]?:
+                  | U[K]
+                  | AnyMatcher
+                  | AnythingMatcher
+                  | ObjectContainingMatcher;
+              }
+            : U | AnyMatcher | AnythingMatcher | ObjectContainingMatcher
+        >
+      : {
+          [K in keyof T]?:
+            | T[K]
+            | AnyMatcher
+            | AnythingMatcher
+            | ObjectContainingMatcher;
+        },
+  ): ObjectContainingMatcher<T> => ({
     __type: "objectContaining",
-    obj,
+    obj: obj as never,
   }),
 };
 
-const emailNew = `newuser${Date.now()}@example.com`;
-const passwordNew = `SecurePassword123!${Date.now().toString(36).substring(2, 15)}`;
-const deviceIdNew = `device-${Date.now()}`;
+const decryptedValue = randomUUID();
+let encryptedValue: string | null = null;
 
-let responseAuth: ResponseAuth<"login"> | null = null;
-let cryptoUidNew: string | null = null;
-let logIdNew: string | null = null;
+const getEncryptedValue = (): string => {
+  if (encryptedValue) return encryptedValue;
 
-const getAuthToken = () => responseAuth?.token as string;
-
-const getUserId = (): string => {
-  const userId = responseAuth?.user?.userId;
-  if (!userId) throw new Error("Auth userId not available yet");
-  return userId;
+  throw new Error(
+    "Encrypted value not set. Please run the decryption test case first to set it.",
+  );
 };
 
-const getCryptoUid = (): string => {
-  if (!cryptoUidNew) throw new Error("Crypto uid not available yet");
-  return cryptoUidNew;
-};
+export const testCases = {
+  GET: {
+    "/info/appAlive/:deviceId-string/:pushToken-string": [],
+    "/updates/download/:id": [],
 
-const getLogId = (): string => {
-  if (!logIdNew) throw new Error("Log id not available yet");
-  return logIdNew;
-};
-
-const addDataUser = async (response: ResponseAuth<"login"> | null) => {
-  if (!response?.success || !response.token)
-    throw new Error(
-      "Failed to add token to user: invalid response" +
-        JSON.stringify(response),
-    );
-
-  responseAuth = response;
-};
-
-const storeInsertedCryptoUid = async (response: any) => {
-  const id = response?.data?.[0]?.id;
-  if (typeof id === "string" && id.length > 0) cryptoUidNew = id;
-};
-
-const storeInsertedLogId = async (response: any) => {
-  const data = response?.data as ResponseDatabaseInsert<"Logs">["data"];
-
-  const id = data?.[0]?.id;
-  if (typeof id === "string" && id.length > 0) logIdNew = id;
-  else
-    throw new Error(
-      "Failed to store log id: invalid response " + JSON.stringify(response),
-    );
-};
-
-const getBase64SamplePngImage = async () => {
-  const imageBuffer = await readImage("./testingRoutes/sample.jpeg");
-  return imageBuffer;
-};
-
-/**
- * Comprehensive test suite for all API routes
- * This array ensures type-safety: if a route is missing or doesn't have at least 3 tests,
- * TypeScript will throw a compile error
- */
-export const routeTests: {
-  [K in RoutesAPI]: TestCase<K>[];
-} = {
-  "/is-update-available": [],
-  "/web-page": [],
-  "/generate204": [],
-  "/upload-update": [],
-  "/debug/appAlive": [],
-  "/download/:buildType/:version/:platformOS/:id": [],
-  "/health": [
-    {
-      route: "/health",
-      description: "Health check - should return running status",
-      body: undefined,
-      expectedResponse: { status: "running" },
-      shouldSucceed: true,
-    },
-    {
-      route: "/health",
-      description: "Health check - should include timestamp",
-      body: undefined,
-      expectedResponse: { timestamp: expect.any(String) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/health",
-      description: "Health check - should include uptime",
-      body: undefined,
-      expectedResponse: { uptime: expect.any(Number) },
-      shouldSucceed: true,
-    },
-  ],
-  "/cryptos": [
-    {
-      route: "/cryptos",
-      description: "Get cryptos - default currency (USD)",
-      body: {},
-      expectedResponse: { cryptos: expect.any(Array) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/cryptos",
-      description: "Get cryptos - with specific currency",
-      body: { currency: "MXN" },
-      expectedResponse: { cryptos: expect.any(Array) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/cryptos",
-      description: "Get cryptos - should not have error on success",
-      body: {},
-      expectedResponse: { error: undefined },
-      shouldSucceed: true,
-    },
-  ],
-  "/cryptoPrice": [
-    {
-      route: "/cryptoPrice",
-      description: "Get crypto price - Bitcoin in USD",
-      body: { symbol: "BTCUSDT" },
-      expectedResponse: { price: expect.any(Number) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/cryptoPrice",
-      description: "Get crypto price - Ethereum in MXN",
-      body: { symbol: "ETHMXN" },
-      expectedResponse: { price: expect.any(Number) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/cryptoPrice",
-      description: "Get crypto price - invalid crypto should fail",
-      body: { symbol: "invalid-crypto-symbol" },
-      expectedResponse: { error: expect.any(String) },
-      shouldSucceed: false,
-    },
-  ],
-  "/translate": [
-    {
-      route: "/translate",
-      description: "Translate - English to Spanish",
-      body: { text: "Hello world", targetLang: "ES" },
-      expectedResponse: { translatedText: expect.any(String) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/translate",
-      description: "Translate - Spanish to English",
-      body: { text: "Hola mundo", targetLang: "EN" },
-      expectedResponse: { translatedText: expect.any(String) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/translate",
-      description: "Translate - empty text should fail",
-      body: { text: "", targetLang: "ES" },
-      expectedResponse: { error: expect.any(String) },
-      shouldSucceed: false,
-    },
-  ],
-  "/encrypt": [
-    {
-      route: "/encrypt",
-      description: "Encrypt - valid string",
-      body: { dataToEncrypt: "test data" },
-      expectedResponse: { dataEncrypted: expect.any(String) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/encrypt",
-      description: "Encrypt - should include success true",
-      body: { dataToEncrypt: "another test" },
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-    },
-    {
-      route: "/encrypt",
-      description: "Encrypt - empty string",
-      body: { dataToEncrypt: "" },
-      expectedResponse: {
-        error: expect.any(String),
+    "/cryptos/": [
+      {
+        description: "Should fetch the list of cryptos successfully",
+        shouldSucceed: true,
+        expectedResponse: {
+          cryptos: expect.objectContaining<PriceBinanceAPI>([
+            { symbol: expect.any(String), price: expect.any(Number) },
+          ]),
+        },
       },
-      shouldSucceed: false,
-    },
-  ],
-  "/decrypt": [
-    {
-      route: "/decrypt",
-      description: "Decrypt - valid encrypted data",
-      body: async () => {
-        const encrypted = await new Task<string, "ENCRYPTION">({
-          fileWorker: "ENCRYPTION",
-        }).getResult({
-          functionName: "encryptText",
-          data: { text: "test data to encrypt" },
-        });
-        if (encrypted instanceof Error) {
-          throw new Error(
-            "Failed to encrypt data for decryption test: " + encrypted.message,
+    ],
+    "/cryptos/:symbol": [
+      {
+        requestBody: { symbol: "BTCUSDT" },
+        description: "Should fetch the price of a specific crypto successfully",
+        shouldSucceed: true,
+        expectedResponse: {
+          crypto: expect.objectContaining<PriceBinanceAPI>([
+            {
+              symbol: "BTCUSDT",
+              price: expect.any(Number),
+            },
+          ]),
+        },
+      },
+      {
+        requestBody: { symbol: "NonValidSymbol" },
+        description: "Should return an error for an invalid crypto symbol",
+        shouldSucceed: false,
+        expectedResponse: {
+          error: expect.any(String),
+        },
+      },
+    ],
+    "/cryptos/price/:symbol": [
+      {
+        requestBody: { symbol: "ETHUSDT" },
+        shouldSucceed: true,
+        expectedResponse: { price: expect.any(Number) },
+        description:
+          "Should fetch the price of a specific crypto successfully using price route",
+      },
+      {
+        requestBody: { symbol: "NonValidSymbol" },
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        description:
+          "Should return an error for an invalid crypto symbol using price route",
+      },
+    ],
+    "/info/generate204": [
+      {
+        description:
+          "Should return a 204 status code for the generate204 route",
+        shouldSucceed: (status: number) =>
+          status === STATUS_RESPONSE.NO_CONTENT,
+        expectedResponse: "",
+      },
+    ],
+    "/info/health": [
+      {
+        description: "Should return a successful health status",
+        shouldSucceed: true,
+        expectedResponse: {
+          upTime: expect.any(Number),
+          timestamp: expect.any(String),
+        },
+      },
+    ],
+    "/logs/": [
+      {
+        auth: user.getSessionToken,
+        description: "Should fetch the list of logs successfully",
+        shouldSucceed: true,
+        expectedResponse: { logs: expect.any(Array) },
+      },
+      {
+        auth: "InvalidToken",
+        description:
+          "Should return an error when fetching logs with invalid auth",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+      },
+    ],
+    "/logs/page": [
+      {
+        auth: user.getSessionToken,
+        description: "Should fetch a page of logs successfully",
+        shouldSucceed: true,
+        expectedResponse: { logs: expect.any(Array) },
+      },
+      {
+        auth: "InvalidToken",
+        description:
+          "Should return an error when fetching a page of logs with invalid auth",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+      },
+    ],
+    "/logs/page/:page-number-optional": [
+      {
+        auth: user.getSessionToken,
+        requestBody: { page: 1 },
+        description: "Should fetch a page of logs successfully",
+        shouldSucceed: true,
+        expectedResponse: { logs: expect.any(Array) },
+      },
+      {
+        auth: "InvalidToken",
+        description:
+          "Should return an error when fetching a page of logs with invalid auth",
+        requestBody: { page: 1 },
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+      },
+    ],
+    "/streamers/page": [
+      {
+        description: "Should fetch a page of streamers successfully",
+        shouldSucceed: true,
+        expectedResponse: { streamers: expect.any(Array) },
+      },
+    ],
+    "/streamers/page/:page-number-optional": [
+      {
+        requestBody: { page: 1 },
+        description: "Should fetch a page of streamers successfully",
+        shouldSucceed: true,
+        expectedResponse: { streamers: expect.any(Array) },
+      },
+    ],
+    "/streamers/": [
+      {
+        description: "Should fetch the list of streamers successfully",
+        shouldSucceed: true,
+        expectedResponse: { streamers: expect.any(Array) },
+      },
+    ],
+    "/streamers/streamer/:streamerId": [
+      {
+        description: "Should fetch a streamer by ID successfully",
+        shouldSucceed: true,
+        expectedResponse: { streamer: expect.any(Object) },
+        requestBody: async () => {
+          const streamer = await prisma.streamers.findFirst();
+
+          if (!streamer) {
+            throw new Error(
+              "No streamers found in the database. Please ensure there are streamers in the database for this test.",
+            );
+          }
+
+          return { streamerId: streamer.id };
+        },
+      },
+      {
+        description: "Should not fetch a streamer by ID with invalid ID",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: { streamerId: "invalid-streamer-id" },
+      },
+    ],
+    "/streamers/:userId": [
+      {
+        description: "Should fetch streamers by user ID successfully",
+        shouldSucceed: true,
+        expectedResponse: { streamers: expect.any(Array) },
+        requestBody: async () => {
+          const userData = user.getUserData();
+          const userId = userData.user?.userId;
+
+          if (!userId) {
+            throw new Error(
+              "User ID not found in session data. Please ensure the user is logged in for this test.",
+            );
+          }
+
+          return { userId };
+        },
+      },
+      {
+        requestBody: { userId: "invalid-user-id" },
+        description: "Should not fetch streamers by user ID with invalid ID",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+      },
+    ],
+    "/streamers/:userId/:streamerId-optional": [
+      {
+        description:
+          "Should fetch streamers by user ID and optional streamer ID successfully",
+        shouldSucceed: true,
+        expectedResponse: { streamers: expect.any(Array) },
+        requestBody: async () => {
+          const userData = user.getUserData();
+          const userId = userData.user?.userId;
+
+          if (!userId) {
+            throw new Error(
+              "User ID not found in session data. Please ensure the user is logged in for this test.",
+            );
+          }
+
+          const streamer = await prisma.userStreamers.findFirst({
+            where: { userId },
+            include: { streamer: true },
+          });
+
+          return { userId, streamerId: streamer?.id || "" };
+        },
+      },
+      {
+        description:
+          "Should not fetch streamers by user ID and optional streamer ID with invalid IDs",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: {
+          userId: "invalid-user-id",
+          streamerId: "invalid-streamer-id",
+        },
+      },
+    ],
+    "/streamers/add/:userId/:streamerName": [
+      {
+        description: "Should add a streamer successfully for a user",
+        shouldSucceed: true,
+        expectedResponse: { streamer: expect.any(Object) },
+        requestBody: async () => {
+          const userData = user.getUserData();
+          const userId = userData.user?.userId;
+
+          if (!userId) {
+            throw new Error(
+              "User ID not found in session data. Please ensure the user is logged in for this test.",
+            );
+          }
+
+          return { userId, streamerName: "ElMariana" };
+        },
+      },
+      {
+        description:
+          "Should not add a streamer successfully for a user with invalid user ID",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: {
+          userId: "invalid-user-id",
+          streamerName: "invalid-streamer-name",
+        },
+      },
+    ],
+    "/updates/is-update-available/:version/:buildType": [
+      {
+        description: "Should fetch successfully",
+        shouldSucceed: true,
+        expectedResponse: {
+          latestVersion: expect.any(String),
+          isUpdateAvailable: expect.any(Boolean),
+        },
+        requestBody: {
+          buildType: "android",
+          version: "0.0.0",
+        },
+      },
+    ],
+    "/updates/is-update-available/:version/:buildType/:platform-optional": [
+      {
+        description: "Should fetch successfully",
+        shouldSucceed: true,
+        expectedResponse: {
+          latestVersion: expect.any(String),
+          isUpdateAvailable: expect.any(Boolean),
+        },
+        requestBody: {
+          version: "0.0.0",
+          platform: "linux",
+          buildType: "electron",
+        },
+      },
+    ],
+  },
+
+  POST: {
+    "/updates/upload": [],
+    "/dev/executeQuery": [],
+    "/images/change-format": [
+      {
+        description: "Should change image format successfully",
+        shouldSucceed: true,
+        expectedResponse: { success: true },
+        requestBody: async () => {
+          const imageStr = await readImage(
+            path.join(serverPath, "dev/testingRoutes/sample.jpeg"),
           );
-        }
 
-        return {
-          dataToDecrypt: encrypted,
-        };
+          return { imageStr, lang: "en", format: "png" };
+        },
       },
-      expectedResponse: { decryptedValue: expect.any(String) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/decrypt",
-      description: "Decrypt - should include success true",
-      body: async () => {
-        const encrypted = await new Task<string, "ENCRYPTION">({
-          fileWorker: "ENCRYPTION",
-        }).getResult({
-          functionName: "encryptText",
-          data: { text: "test data to encrypt number 2" },
-        });
-        if (encrypted instanceof Error) {
-          throw new Error(
-            "Failed to encrypt data for decryption test: " + encrypted.message,
-          );
-        }
+    ],
 
-        return {
-          dataToDecrypt: encrypted,
-        };
+    "/auth/login": [
+      {
+        description: "Should login successfully with valid credentials",
+        shouldSucceed: true,
+        expectedResponse: {
+          token: expect.any(String),
+        },
+        requestBody: {
+          lang: "en",
+          email: user.email,
+          password: user.password,
+          deviceId: user.deviceId,
+          rememberMe: false,
+          notificationToken: "Web",
+        },
+        onFinish: (res) => {
+          if (!res)
+            throw new Error(
+              "Login failed during test setup: No response received",
+            );
+
+          const { success: _0, error, ...rest } = res;
+
+          if (error) {
+            throw new Error(`Login failed during test setup: ${error}`);
+          }
+
+          user.setUserData(rest);
+        },
       },
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-    },
-    {
-      route: "/decrypt",
-      description: "Decrypt - invalid encrypted data should fail",
-      body: { dataToDecrypt: "invalid-encrypted-data" },
-      expectedResponse: { error: expect.any(String) },
-      shouldSucceed: false,
-    },
-  ],
-  "/doQueryDB": [
-    {
-      route: "/doQueryDB",
-      description: "Execute query - SELECT query",
-      body: { query: "SELECT 1 as test", showFields: true },
-      expectedResponse: {
-        result: expect.objectContaining({
-          rows: expect.any(Array),
-          rowCount: expect.any(Number),
+      {
+        description: "Should not login with invalid credentials",
+        shouldSucceed: false,
+        expectedResponse: {
+          error: expect.any(String),
+        },
+        requestBody: {
+          lang: "en",
+          email: user.email,
+          password: "wrong-password",
+          deviceId: "test-device-id",
+          rememberMe: false,
+          notificationToken: "Web",
+        },
+      },
+    ],
+    "/auth/refreshSession": [
+      {
+        description: "Should refresh session successfully with valid token",
+        shouldSucceed: true,
+        expectedResponse: {
+          token: expect.any(String),
+        },
+        requestBody: () => ({
+          lang: "en",
+          deviceId: user.deviceId,
+        }),
+        onFinish: (res) => {
+          if (!res)
+            throw new Error(
+              "Refresh session failed during test setup: No response",
+            );
+
+          const { success: _0, error, ...rest } = res;
+
+          if (error) {
+            throw new Error(
+              `Refresh session failed during test setup: ${error}`,
+            );
+          }
+
+          user.setUserData(rest);
+        },
+        auth: user.getSessionToken,
+      },
+      {
+        auth: "InvalidToken",
+        description: "Should not refresh session with invalid token",
+        shouldSucceed: false,
+        expectedResponse: {
+          error: expect.any(String),
+        },
+        requestBody: {
+          lang: "en",
+          deviceId: "test-device-id",
+        },
+      },
+    ],
+    "/auth/signout": [
+      {
+        auth: user.getSessionToken,
+        requestBody: { deviceId: user.deviceId, lang: "en" },
+        description: "Should sign out successfully with valid token",
+        shouldSucceed: true,
+        expectedResponse: { success: true },
+      },
+      {
+        auth: "InvalidToken",
+        requestBody: { deviceId: "test-device-id", lang: "en" },
+        description: "Should not sign out successfully with invalid token",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+      },
+    ],
+    "/auth/signup": [
+      {
+        description: "Should sign up successfully with valid credentials",
+        shouldSucceed: true,
+        expectedResponse: { success: true },
+        requestBody: {
+          lang: "en",
+          email: `user${Date.now()}@test.test`,
+          password: "Test123!",
+        },
+      },
+      {
+        description: "Should not sign up with invalid credentials",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: {
+          lang: "en",
+          email: "invalid-email",
+          password: "invalid-password",
+        },
+      },
+    ],
+    "/encryption/encrypt": [
+      {
+        description: "Should encrypt successfully with valid data",
+        expectedResponse: { value: expect.any(String) },
+        shouldSucceed: true,
+        requestBody: () => ({ value: decryptedValue }),
+        onFinish: (res) => {
+          if (!res)
+            throw new Error(
+              "Encryption failed during test setup: No response received",
+            );
+
+          const { value } = res;
+          if (typeof value !== "string")
+            throw new Error(
+              "Encryption failed during test setup: Invalid response",
+            );
+
+          encryptedValue = value;
+        },
+      },
+      {
+        requestBody: { value: undefined as unknown as string },
+        description: "Should not encrypt with invalid data",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+      },
+    ],
+    "/encryption/decrypt": [
+      {
+        description: "Should decrypt successfully with valid data",
+        shouldSucceed: true,
+        expectedResponse: { value: expect.any(String) },
+        requestBody: () => ({ value: getEncryptedValue() }),
+        onFinish: (res) => {
+          if (!res)
+            throw new Error(
+              "Decryption failed during test setup: No response received",
+            );
+
+          const { value } = res;
+
+          if (typeof value !== "string" || value !== decryptedValue)
+            throw new Error(
+              "Decryption failed during test setup: Decrypted value does not match original",
+            );
+        },
+      },
+      {
+        description: "Should not decrypt with invalid data",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: () => ({ value: "invalid-encrypted-value" }),
+      },
+    ],
+    "/languages/translate": [
+      {
+        description: "Should translate text successfully with valid data",
+        shouldSucceed: true,
+        expectedResponse: { translatedText: expect.any(String) },
+        requestBody: { text: "Hello", targetLanguage: "es" },
+        onFinish: (res) => {
+          if (!res)
+            throw new Error(
+              "Translation failed during test setup: No response received",
+            );
+
+          const { translatedText } = res;
+          if (
+            typeof translatedText !== "string" ||
+            translatedText.toLowerCase() !== "hola"
+          )
+            throw new Error(
+              "Translation failed during test setup: Translated text does not match expected",
+            );
+        },
+      },
+      {
+        requestBody: { text: "", targetLanguage: "es" },
+        description: "Should not translate text with invalid data",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+      },
+    ],
+    "/logs/add": [
+      {
+        description: "Should add a log successfully with valid data",
+        shouldSucceed: true,
+        expectedResponse: { success: true },
+        requestBody: {
+          type: "log",
+          message: "Test log message",
+          deviceId: "test-device-id",
+          timestamp: new Date().toISOString(),
+          deviceName: "Test Device",
+        },
+      },
+      {
+        description: "Should add a log successfully with valid data and userId",
+        shouldSucceed: true,
+        expectedResponse: { success: true },
+        requestBody: () => ({
+          type: "log",
+          userId: user.getUserData().user?.userId,
+          message: "Test log message",
+          deviceId: user.deviceId,
+          timestamp: new Date().toISOString(),
+          deviceName: "Test Device",
         }),
       },
-      shouldSucceed: true,
-    },
-    {
-      route: "/doQueryDB",
-      description: "Execute query - without showFields",
-      body: { query: "SELECT NOW()", showFields: false },
-      expectedResponse: { result: expect.anything() },
-      shouldSucceed: true,
-    },
-    {
-      route: "/doQueryDB",
-      description: "Execute query - invalid SQL should fail",
-      body: { query: "INVALID SQL SYNTAX", showFields: false },
-      expectedResponse: { error: expect.any(String) },
-      shouldSucceed: false,
-    },
-  ],
-  "/auth/signup": [
-    {
-      route: "/auth/signup",
-      description: "Signup - new user with valid data",
-      body: {
-        lang: "en",
-        email: emailNew,
-        password: passwordNew,
-      },
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-    },
-    {
-      route: "/auth/signup",
-      description: "Signup - duplicate email should fail",
-      body: {
-        lang: "en",
-        email: emailNew,
-        password: "Password123!",
-      },
-      expectedResponse: { success: false, error: expect.any(String) },
-      shouldSucceed: false,
-    },
-    {
-      route: "/auth/signup",
-      description: "Signup - weak password should fail",
-      body: {
-        lang: "es",
-        email: `another${Date.now()}@example.com`,
-        password: "123",
-      },
-      expectedResponse: { success: false, error: expect.any(String) },
-      shouldSucceed: false,
-    },
-  ],
-  "/auth/login": [
-    {
-      route: "/auth/login",
-      description: "Login - valid credentials",
-      body: {
-        lang: "en",
-        email: emailNew,
-        password: passwordNew,
-        deviceId: deviceIdNew,
-        rememberMe: true,
-        notificationToken: "token-123",
-      },
-      expectedResponse: {
-        success: true,
-        user: expect.any(Object),
-        token: expect.any(String),
-        storageValues: expect.any(Object),
-      },
-      shouldSucceed: true,
-      onSuccess: addDataUser,
-    },
-    {
-      route: "/auth/login",
-      description: "Login - invalid credentials should fail",
-      body: {
-        lang: "en",
-        email: emailNew,
-        password: "WrongPassword",
-        deviceId: "device-002",
-        rememberMe: false,
-        notificationToken: "token-456",
-      },
-      expectedResponse: { success: false, error: expect.any(String) },
-      shouldSucceed: false,
-    },
-    {
-      route: "/auth/login",
-      description: "Login - should return token on success",
-      body: {
-        lang: "es",
-        email: emailNew,
-        password: passwordNew,
-        deviceId: deviceIdNew,
-        rememberMe: true,
-        notificationToken: "token-789",
-      },
-      expectedResponse: { token: expect.any(String) },
-      shouldSucceed: true,
-      onSuccess: addDataUser,
-    },
-  ],
-  "/auth/refreshSession": [
-    {
-      route: "/auth/refreshSession",
-      description: "Refresh session - valid token",
-      body: { lang: "en", deviceId: deviceIdNew },
-      expectedResponse: { success: true, token: expect.any(String) },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-      onSuccess: addDataUser,
-    },
-    {
-      route: "/auth/refreshSession",
-      description: "Refresh session - should return user data",
-      body: { lang: "es", deviceId: deviceIdNew },
-      expectedResponse: { user: expect.any(Object) },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-      onSuccess: addDataUser,
-    },
-    {
-      route: "/auth/refreshSession",
-      description: "Refresh session - expired token should fail",
-      body: { lang: "en", deviceId: "device-003" },
-      expectedResponse: { success: false, error: expect.any(String) },
-      shouldSucceed: false,
-      authorization: () => "expired-or-invalid-token",
-    },
-  ],
-  "/log": [
-    {
-      route: "/log",
-      description: "Log entry - valid error log",
-      body: {
-        type: "error",
-        message: "Test error message",
-        deviceId: "device-001",
-        timestamp: new Date(),
-        deviceName: "Test Device",
-      },
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-    },
-    {
-      route: "/log",
-      description: "Log entry - valid warning log",
-      body: () => ({
-        type: "warn",
-        message: "Test warning message",
-        deviceId: "device-002",
-        timestamp: new Date(),
-        deviceName: "Test Device 2",
-        userId: getUserId(),
-      }),
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-    },
-  ],
-  "/database/fetch": [
-    /*
-    {
-      route: "/database/fetch",
-      description: "Fetch - get all users",
-      body: {
-        lang: "en",
-        table: "Users",
-        match: undefined,
-        deviceId: deviceIdNew,
-      },
-      expectedResponse: { data: expect.any(Array) },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-    },
-    {
-      route: "/database/fetch",
-      description: "Fetch - get specific user by email",
-      body: () => ({
-        lang: "en",
-        table: "Users",
-        match: { email: emailNew, userId: getUserId() },
-        deviceId: deviceIdNew,
-        pagination: false,
-      }),
-      expectedResponse: { data: expect.any(Array) },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-    },
-    {
-      route: "/database/fetch",
-      description: "Fetch - with pagination",
-      body: {
-        lang: "es",
-        table: "Logs",
-        deviceId: deviceIdNew,
-        pagination: true,
-        limit: 10,
-        offset: 0,
-        orderBy: "userId",
-        orderDirection: "DESC",
-      },
-      expectedResponse: { data: expect.any(Array) },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-    },
-    {
-      route: "/database/fetch",
-      description: "Fetch - with search term",
-      body: {
-        lang: "es",
-        table: "Logs",
-        deviceId: deviceIdNew,
-        search: "test",
-        columnsToSearch: "message",
-      },
-      expectedResponse: { data: expect.any(Array) },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-    },
-    {
-      route: "/database/fetch",
-      description: "Fetch - with search term and pagination",
-      body: {
-        lang: "es",
-        table: "Logs",
-        deviceId: deviceIdNew,
-        pagination: true,
-        limit: 10,
-        orderBy: "userId",
-        orderDirection: "DESC",
-        search: "error",
-        columnsToSearch: "message",
-      },
-      expectedResponse: { data: expect.any(Array) },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-    },
-    */
-  ],
-  "/database/insert": [
-    /*
-    {
-      route: "/database/insert",
-      description: "Insert - new crypto entry",
-      body: () => ({
-        lang: "en",
-        table: "Cryptos",
-        values: {
-          amount: "0.5",
-          id: "crypto-001" + Date.now().toString(),
-          symbol: "BTCUSDT",
-          userId: getUserId(),
-          baseCoin: "BTC",
-          quoteCoin: "USDT",
-          datePurchased: new Date(),
-          firstPricePurchased: new Prisma.Decimal(30000),
+    ],
+  },
+
+  DELETE: {
+    "/logs/:logId": [
+      {
+        auth: user.getSessionToken,
+        description: "Should delete a log successfully with valid logId",
+        requestBody: async () => {
+          const logs = await prisma.logs.findMany({
+            take: 5,
+            where: { userId: user.getUserData().user?.userId },
+          });
+
+          let logId: string | undefined = logs.filter((log) => !!log.id)[0]?.id;
+
+          while (!logId && logs.length > 0) {
+            logId = logs.pop()?.id;
+          }
+          if (!logId) {
+            throw new Error(
+              "No logs found for the user to delete. Please ensure there are logs in the database for this test.",
+            );
+          }
+
+          return { logId: logs.filter((log) => !!log.id)[0]?.id };
         },
-        deviceId: deviceIdNew,
-      }),
-      expectedResponse: { success: true, data: expect.any(Array) },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-      onSuccess: storeInsertedCryptoUid,
-    },
-    {
-      route: "/database/insert",
-      description: "Insert - multiple logs",
-      body: () => ({
-        lang: "es",
-        table: "Logs",
-        values: [
-          {
-            id: "log-001" + Date.now().toString(),
-            type: "log",
-            userId: getUserId(),
-            message: "First log",
-            deviceId: deviceIdNew,
-            timestamp: new Date(),
-            deviceName: "Device 1",
-          },
-          {
-            id: "log-002" + Date.now().toString(),
-            type: "warn",
-            userId: getUserId(),
-            message: "Second log",
-            deviceId: deviceIdNew,
-            timestamp: new Date(),
-            deviceName: "Device 1",
-          },
-        ],
-        deviceId: deviceIdNew,
-      }),
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-      onSuccess: storeInsertedLogId,
-    },
-    {
-      route: "/database/insert",
-      description: "Insert - duplicate entry should fail",
-      body: {
-        lang: "en",
-        table: "Users",
-        values: {},
-        deviceId: deviceIdNew,
+        shouldSucceed: true,
+        expectedResponse: { success: true },
       },
-      expectedResponse: { success: false, error: expect.any(String) },
-      shouldSucceed: false,
-      authorization: getAuthToken,
-    },
-    */
-  ],
-  "/database/update": [
-    /*
-    {
-      route: "/database/update",
-      description: "Update - user email",
-      body: {
-        lang: "en",
-        table: "Users",
-        match: { email: emailNew },
-        values: { email: `newemail${Date.now()}@example.com` },
-        deviceId: deviceIdNew,
+      {
+        auth: user.getSessionToken,
+        description: "Should not delete a log with invalid logId",
+        requestBody: { logId: "invalid-log-id" },
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
       },
-      expectedResponse: { success: true, data: expect.any(Array) },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-    },
-    {
-      route: "/database/update",
-      description: "Update - crypto amount",
-      body: () => ({
-        lang: "es",
-        table: "Cryptos",
-        match: { userId: getUserId(), baseCoin: "BTC", quoteCoin: "USDT" },
-        values: { amount: "1.5" },
-        deviceId: deviceIdNew,
-      }),
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-    },
-    {
-      route: "/database/update",
-      description: "Update - non-existent record",
-      body: {
-        lang: "en",
-        table: "Users",
-        match: { userId: "00000000-0000-0000-0000-000000000000" },
-        values: { description: "noop" },
-        deviceId: deviceIdNew,
-      },
-      expectedResponse: { success: false, error: expect.any(String) },
-      shouldSucceed: false,
-      authorization: getAuthToken,
-    },
-    */
-  ],
-  "/database/delete": [
-    /*
-    {
-      route: "/database/delete",
-      description: "Delete - specific log entry",
-      body: () => ({
-        lang: "en",
-        table: "Logs",
-        match: { id: getLogId(), userId: getUserId() },
-        deviceId: deviceIdNew,
-      }),
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-    },
-    {
-      route: "/database/delete",
-      description: "Delete - crypto by uid",
-      body: () => ({
-        lang: "es",
-        table: "Cryptos",
-        match: { id: getCryptoUid(), userId: getUserId() },
-        deviceId: deviceIdNew,
-      }),
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-    },
-    {
-      route: "/database/delete",
-      description: "Delete - non-existent record should still succeed",
-      body: {
-        lang: "en",
-        table: "Logs",
-        match: { id: "00000000-0000-0000-0000-000000000000" },
-        deviceId: deviceIdNew,
-      },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-      expectedResponse: { success: true },
-    },
-    */
-  ],
-  "/auth/signOut": [
-    {
-      route: "/auth/signOut",
-      description: "Sign out - valid session",
-      body: {
-        lang: "en",
-        deviceId: deviceIdNew,
-      },
-      expectedResponse: { success: true },
-      shouldSucceed: true,
-      authorization: getAuthToken,
-    },
-    {
-      route: "/auth/signOut",
-      description: "Sign out - invalid token should fail",
-      body: {
-        lang: "en",
-        deviceId: deviceIdNew,
-      },
-      expectedResponse: { success: false },
-      shouldSucceed: false,
-      authorization: () => "invalid-token",
-    },
-  ],
-  "/addStreamer": [
-    {
-      route: "/addStreamer",
-      description: "Add streamer - Twitch streamer",
-      body: () => ({
-        name: "elmariana",
-        userId: getUserId(),
-      }),
-      expectedResponse: { success: true, streamer: expect.any(Object) },
-      shouldSucceed: true,
-    },
-    {
-      route: "/addStreamer",
-      description: "Add streamer - should check if live",
-      body: () => ({
-        name: "ninja",
-        userId: getUserId(),
-      }),
-      expectedResponse: {
-        streamer: expect.objectContaining({ isLive: expect.any(Boolean) }),
-      },
-      shouldSucceed: true,
-    },
-    {
-      route: "/addStreamer",
-      description: "Add streamer - invalid name should fail",
-      body: {
-        name: "",
-        userId: "user-789",
-      },
-      expectedResponse: { error: expect.any(String) },
-      shouldSucceed: false,
-    },
-  ],
-  "/getIsLiveStreamer": [
-    {
-      route: "/getIsLiveStreamer",
-      description: "Check streamer - active streamer",
-      body: {
-        streamer: {
-          id: "streamer-123",
-          name: "shroud",
-          userId: "user-123",
-          createdAt: new Date(),
-          linkImage: "https://example.com/image.jpg",
-        },
-      },
-      expectedResponse: {
-        streamer: expect.objectContaining({ isLive: expect.any(Boolean) }),
-      },
-      shouldSucceed: true,
-    },
-    {
-      route: "/getIsLiveStreamer",
-      description: "Check streamer - offline streamer",
-      body: {
-        streamer: {
-          id: "streamer-456",
-          name: "unknownstreamer",
-          userId: "user-456",
-          createdAt: new Date(),
-          linkImage: null,
-        },
-      },
-      expectedResponse: {
-        streamer: expect.objectContaining({ isLive: false }),
-      },
-      shouldSucceed: true,
-    },
-    {
-      route: "/getIsLiveStreamer",
-      description: "Check streamer - invalid data should fail",
-      body: {
-        streamer: {
-          id: "",
-          name: "",
-          userId: "",
-          createdAt: new Date(0),
-          linkImage: null,
-        },
-      },
-      expectedResponse: { error: expect.any(String) },
-      shouldSucceed: false,
-    },
-  ],
-  "/images/changeImageFormat": [
-    {
-      route: "/images/changeImageFormat",
-      description: "Change format - PNG to JPEG",
-      body: async () => ({
-        lang: "en",
-        format: "png",
-        imageBufferInString: await getBase64SamplePngImage(),
-      }),
-      expectedResponse: {
-        success: true,
-        imageUri: expect.any(String),
-      },
-      shouldSucceed: true,
-    },
-    {
-      route: "/images/changeImageFormat",
-      description: "Change format - JPEG to WebP",
-      body: async () => ({
-        lang: "es",
-        format: "webp",
-        imageBufferInString: await getBase64SamplePngImage(),
-      }),
-      expectedResponse: { success: true, newFormat: "webp" },
-      shouldSucceed: true,
-    },
-    {
-      route: "/images/changeImageFormat",
-      description: "Change format - invalid image data should fail",
-      body: {
-        lang: "en",
-        format: "png",
-        imageBufferInString: "invalid-image-data",
-      },
-      expectedResponse: { success: false, error: expect.any(String) },
-      shouldSucceed: false,
-    },
-  ],
-};
+    ],
+  },
+} as const satisfies TestRoutes;

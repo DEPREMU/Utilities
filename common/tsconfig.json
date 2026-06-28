@@ -11,6 +11,7 @@
     "allowJs": true,
     "isolatedModules": false,
     "paths": {
+      "@commonSrc/*": ["./*"],
       "@types": ["../types/index.d.ts"]
     },
     "typeRoots": ["../types/index.d.ts"]

@@ -132,7 +132,7 @@ export class JWT {
             },
           },
           create: {
-            token: this.token,
+            token: data.notificationToken,
             userId: this.#data.userId,
           },
           update: { createdAt: new Date() },

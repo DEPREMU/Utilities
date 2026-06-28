@@ -1,13 +1,14 @@
 import { prisma } from "@/database/postgres";
-import { getHandlerPost } from "@/functions/getHandlerPost";
+import { getHandlerPost } from "@common";
 
 export const handleAddLog = getHandlerPost(
   "/logs",
   "/add",
   {
+    id: "undefined",
     type: "string",
     user: "undefined",
-    userId: "string",
+    userId: ["string", "undefined"],
     message: "string",
     deviceId: "string",
     timestamp: "string",
@@ -17,7 +18,7 @@ export const handleAddLog = getHandlerPost(
     try {
       const log = await prisma.logs.create({
         data: {
-          type: body.type as "log",
+          type: body.type,
           userId: body.userId,
           message: body.message,
           deviceId: body.deviceId,

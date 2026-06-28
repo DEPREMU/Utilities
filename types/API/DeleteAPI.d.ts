@@ -4,7 +4,7 @@ import { GetParams, GetRouterObj } from "./Helpers";
 export type LogsDelete = GetUrlFetch<
   "/:logId",
   null,
-  GetParams<"/:logId">,
+  { auth: true },
   DEFAULT_RESPONSE
 >;
 
@@ -13,5 +13,5 @@ export type Delete = {
 };
 
 export type GetRoutesDelete<T extends keyof Delete> = {
-  [P in Delete[T]["url"]]: GetRouterObj;
+  [P in Delete[T]["url"]]: GetRouterObj<Delete[T], P>;
 };

@@ -1,4 +1,4 @@
-import { getRouterPost } from "@/routes/common";
+import { getRouterPost } from "@common";
 import { handleTranslate } from "./handlers";
 
 export const routerLanguagesPost = getRouterPost("/languages", {

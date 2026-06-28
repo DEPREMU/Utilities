@@ -2,8 +2,7 @@ import path from "path";
 import chalk from "chalk";
 import { UPLOAD_DIR } from "@/config.ts";
 import { PlatformsOS } from "@types";
-import { File, Logger } from "@common";
-import { getHandlerGet } from "@/functions/getHandlerGet.ts";
+import { File, Logger, getHandlerGet } from "@common";
 import { dataUpdates, getFinalFileName } from "../variables.ts";
 
 export const handleIsUpdateAvailable = getHandlerGet(

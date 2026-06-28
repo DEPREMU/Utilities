@@ -5,12 +5,12 @@ import { REPLACERS } from "@/config.ts";
 import { ROUTER_AUTH } from "./auth/";
 import { ROUTER_LOGS } from "./logs/index.ts";
 import { ROUTER_INFO } from "./info/index.ts";
-import { getMainRouter } from "./common.ts";
 import { ROUTER_CRYPTOS } from "./cryptos/";
-import { ROUTER_ENCRYPTION } from "./encryption/index.ts";
+import { ROUTER_UPDATES } from "./updates/index.ts";
 import { ROUTER_STREAMERS } from "./streamers/index.ts";
 import { ROUTER_LANGUAGES } from "./languages/index.ts";
-import { ROUTER_UPDATES } from "./updates/index.ts";
+import { ROUTER_ENCRYPTION } from "./encryption/index.ts";
+import { ROUTER_IMAGES, getMainRouter } from "@common";
 
 const router = getMainRouter({
   "/dev": {
@@ -24,6 +24,7 @@ const router = getMainRouter({
   "/auth": { router: ROUTER_AUTH },
   "/info": { router: ROUTER_INFO },
   "/logs": { router: ROUTER_LOGS },
+  "/images": { router: ROUTER_IMAGES },
   "/cryptos": { router: ROUTER_CRYPTOS },
   "/updates": { router: ROUTER_UPDATES },
   "/languages": { router: ROUTER_LANGUAGES },

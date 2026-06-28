@@ -1,7 +1,6 @@
 import chalk from "chalk";
 import { JWT } from "./variables.ts";
-import { Logger } from "@common";
-import { getHandlerPost } from "@/functions/getHandlerPost.ts";
+import { Logger, getHandlerPost } from "@common";
 
 export const authMiddleware = getHandlerPost(
   "/auth",

@@ -4,7 +4,7 @@ import {
   handleSignOut,
   handleRefreshSession,
 } from "./handlers";
-import { getRouterPost } from "@/routes/common";
+import { getRouterPost } from "@common";
 import { authMiddleware } from "../middlewares";
 
 export const routerAuthPost = getRouterPost("/auth", {

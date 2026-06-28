@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { MethodsAPI, ResolveRoute } from "@types";
 
-import { FetchAPI, RequestBody, RoutesAPI, TablesKeys } from "@types";
+//TODO: Remove exclude when PUT routes are added
+
+type GetFunction<T, R extends unknown[]> = (...args: R) => Promise<T> | T;
 
 export type AnyMatcher = {
   __type: "any";
@@ -11,101 +14,64 @@ export type AnythingMatcher = {
   __type: "anything";
 };
 
-export type ObjectContainingMatcher<T> = {
+export type ObjectContainingMatcher<T = any> = {
   __type: "objectContaining";
-  obj: T;
-};
-
-type ResponseOf<
-  T extends RoutesAPI,
-  U extends TablesKeys | undefined = TablesKeys,
-> = U extends TablesKeys
-  ? Extract<FetchAPI<U>, { url: T }>["response"]
-  : Extract<FetchAPI, { url: T }>["response"];
-
-type GetTableByRoute<T extends RoutesAPI> =
-  Extract<FetchAPI, { url: T }> extends { body: { table: infer Table } }
-    ? Table extends TablesKeys
-      ? Table
-      : undefined
-    : undefined;
-
-type BodyValue<
-  T extends RoutesAPI,
-  U extends TablesKeys | undefined = TablesKeys,
-> = U extends TablesKeys ? RequestBody<T, U> : RequestBody<T>;
-
-type BodyResolver<
-  T extends RoutesAPI,
-  U extends TablesKeys | undefined = TablesKeys,
-> =
-  | BodyValue<T, U>
-  | (() => BodyValue<T, U>)
-  | (() => Promise<BodyValue<T, U>>);
-
-export type TestCase<
-  T extends RoutesAPI,
-  U extends TablesKeys | undefined = GetTableByRoute<T>,
-> = {
-  body: BodyResolver<T, U>;
-  route: T;
-  description: string;
-  expectedResponse: U extends TablesKeys
-    ? {
-        [K in keyof ResponseOf<T, U>]?:
-          | ResponseOf<T, U>[K]
-          | AnyMatcher
-          | AnythingMatcher
-          | ObjectContainingMatcher<any>;
-      }
+  obj: T extends Array<infer U>
+    ? Array<
+        U extends object
+          ? U | AnyMatcher | AnythingMatcher | ObjectContainingMatcher<any>
+          : U
+      >
     : {
-        [K in keyof ResponseOf<T>]?:
-          | ResponseOf<T>[K]
-          | AnyMatcher
-          | AnythingMatcher
-          | ObjectContainingMatcher<any>;
+        [K in keyof T]?: T[K] extends object
+          ? T[K] | AnyMatcher | AnythingMatcher | ObjectContainingMatcher<any>
+          : T[K];
       };
-
-  shouldSucceed: boolean;
-  onSuccess?: (response: ResponseOf<T, U> | null) => Promise<void> | void;
-} & (T extends RoutesAPI<"middleware">
-  ? { authorization: () => string }
-  : { authorization?: never });
-
-/**
- * Represents a single test case for an API route
- */
-export type RouteTestCase<T extends RoutesAPI> = {
-  route: T;
-  description: string;
-  body: Extract<FetchAPI, { url: T }> extends { body: infer B } ? B : undefined;
-  expectedResponse: Partial<Extract<FetchAPI, { url: T }>["response"]>;
-  shouldSucceed: boolean;
 };
 
-/**
- * Ensures that every route has at least 3 test cases
- * This type will throw a compile error if a route is missing
- */
-export type RouteTestSuite = {
-  [K in RoutesAPI]: [
-    RouteTestCase<K>,
-    RouteTestCase<K>,
-    RouteTestCase<K>,
-    ...RouteTestCase<K>[],
-  ];
+type GetResponse<
+  T extends Exclude<MethodsAPI, "PUT">,
+  R extends RoutesAPI[T],
+> = ResolveRoute<FetchAPI<T>, R>["response"] extends object
+  ? Partial<ResolveRoute<FetchAPI<T>, R>["response"]>
+  : ResolveRoute<FetchAPI<T>, R>["response"] | null;
+
+type GetRequestBody<
+  T extends Exclude<MethodsAPI, "PUT">,
+  R extends RoutesAPI[T],
+> = ResolveRoute<FetchAPI<T>, R>["body"] extends object
+  ? Partial<ResolveRoute<FetchAPI<T>, R>["body"]>
+  : ResolveRoute<FetchAPI<T>, R>["body"];
+
+type GetResponseWithType<T> = T extends object
+  ? {
+      [K in keyof T]?: GetResponseWithType<T[K]>;
+    }
+  : T | AnyMatcher | AnythingMatcher | ObjectContainingMatcher<any>;
+
+export type TestRoutes = {
+  [K in Exclude<MethodsAPI, "PUT">]: {
+    [R in RoutesAPI[K]]: ({
+      description: string;
+      shouldSucceed:
+        | boolean
+        | GetFunction<boolean, [status: number, response: GetResponse<K, R>]>;
+      expectedResponse: GetResponseWithType<GetResponse<K, R>>;
+
+      onFinish?: GetFunction<void, [response: GetResponse<K, R> | null]>;
+    } & (ResolveRoute<FetchAPI<K>, R>["auth"] extends true
+      ? { auth: GetFunction<string, []> | string }
+      : { auth?: never }) &
+      (GetRequestBody<K, R> extends null | undefined
+        ? { requestBody?: never }
+        : {
+            requestBody:
+              | GetRequestBody<K, R>
+              | GetFunction<GetRequestBody<K, R>, []>;
+          }))[];
+  };
 };
 
-/**
- * Flattened array of all test cases
- */
-export type AllTestCases = {
-  [K in RoutesAPI]: RouteTestCase<K>;
-}[RoutesAPI][];
-
-/**
- * Test execution result
- */
 export type TestResult = {
   route: string;
   description: string;
@@ -116,9 +82,6 @@ export type TestResult = {
   duration: number;
 };
 
-/**
- * Test summary statistics
- */
 export type TestSummary = {
   total: number;
   passed: number;

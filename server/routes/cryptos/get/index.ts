@@ -3,7 +3,7 @@ import {
   handleGetCryptoPrice,
   handleGetCryptoBySymbol,
 } from "./handlers";
-import { getRouterGet } from "@/routes/common";
+import { getRouterGet } from "@common";
 
 export const routerCryptosGet = getRouterGet("/cryptos", {
   "/": { handler: handleGetCryptos },

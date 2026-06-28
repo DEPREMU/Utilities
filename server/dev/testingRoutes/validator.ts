@@ -1,4 +1,4 @@
-import type { TestResult } from "./types";
+import type { TestResult, TestRoutes } from "./types";
 
 /**
  * Validates if a value matches the expected matcher
@@ -35,7 +35,17 @@ const matchesExpectation = (actual: unknown, expected: unknown): boolean => {
     if (expectObj.__type === "objectContaining") {
       if (typeof actual !== "object" || actual === null) return false;
       const actualObj = actual as Record<string, unknown>;
-      const expectedProps = expectObj.obj as Record<string, unknown>;
+      const expectedProps = expectObj.obj as
+        | Record<string, unknown>
+        | Record<string, unknown>[];
+
+      if (Array.isArray(expectedProps)) {
+        return expectedProps.some((item) =>
+          Array.isArray(actualObj)
+            ? actualObj.some((el) => matchesExpectation(el, item))
+            : matchesExpectation(actualObj, item),
+        );
+      }
 
       for (const [key, value] of Object.entries(expectedProps)) {
         if (!matchesExpectation(actualObj[key], value)) {
@@ -67,11 +77,14 @@ const matchesExpectation = (actual: unknown, expected: unknown): boolean => {
  * @param shouldSucceed - Whether the request should succeed
  * @returns Validation result with error message if failed
  */
-export const validateResponse = (
+export const validateResponse = async (
+  status: number,
   response: unknown,
   expectedResponse: Record<string, unknown>,
-  shouldSucceed: boolean,
-): { isValid: boolean; error?: string } => {
+  shouldSucceed: TestRoutes["GET"]["/cryptos/"][0]["shouldSucceed"],
+): Promise<{ isValid: boolean; error?: string }> => {
+  if (response === expectedResponse) return { isValid: true };
+
   if (typeof response !== "object" || response === null) {
     return {
       isValid: false,
@@ -86,7 +99,7 @@ export const validateResponse = (
   const hasError = "error" in responseObj;
 
   // Validate success expectation
-  if (shouldSucceed) {
+  if (typeof shouldSucceed === "boolean" && shouldSucceed) {
     // If response has success field, it should be true
     if (hasSuccess && responseObj.success !== true) {
       return {
@@ -104,6 +117,15 @@ export const validateResponse = (
       return {
         isValid: false,
         error: `Expected successful response but got error: ${responseObj.error}`,
+      };
+    }
+  } else if (typeof shouldSucceed === "function") {
+    const funcResult = await shouldSucceed(status, response);
+
+    if (!funcResult) {
+      return {
+        isValid: false,
+        error: `Custom success function returned false. Response: ${JSON.stringify(response)}`,
       };
     }
   } else {
@@ -154,7 +176,9 @@ export const throwTestError = (testResult: TestResult): never => {
 | Error: ${testResult.error || "Unknown error"}
 |================================================================
 | Expected Response:
-| ${JSON.stringify(testResult.expectedResponse, null, 2).split("\n").join("\n| ")}
+| ${JSON.stringify(testResult.expectedResponse, null, 2)
+    .split("\n")
+    .join("\n| ")}
 |================================================================
 | Actual Response:
 | ${JSON.stringify(testResult.response, null, 2).split("\n").join("\n| ")}

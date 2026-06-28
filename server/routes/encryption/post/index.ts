@@ -1,4 +1,4 @@
-import { getRouterPost } from "@/routes/common";
+import { getRouterPost } from "@common";
 import { handleDecrypt, handleEncrypt } from "./handlers";
 
 export const routerEncryptionPost = getRouterPost("/encryption", {
