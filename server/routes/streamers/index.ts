@@ -1,4 +1,4 @@
-import { getRouterPerRoute } from "@/routes/common";
+import { getRouterPerRoute } from "@common";
 import { routerStreamersGet } from "./get";
 
 export const ROUTER_STREAMERS = getRouterPerRoute("/streamers", {

@@ -1,8 +1,7 @@
 import axios from "axios";
 import chalk from "chalk";
-import { Logger } from "@common";
 import { getEnvValue } from "@/env";
-import { getHandlerPost } from "@/functions/getHandlerPost";
+import { Logger, getHandlerPost } from "@common";
 
 const url = "https://api-free.deepl.com/v2/translate";
 const headers = {
@@ -20,6 +19,11 @@ export const handleTranslate = getHandlerPost(
   async (body, sendResponse) => {
     try {
       const { text, targetLanguage } = body;
+      if (!text) {
+        return sendResponse("BAD_REQUEST", {
+          error: "Missing 'text' parameter",
+        });
+      }
 
       const response = await axios.post(
         url,

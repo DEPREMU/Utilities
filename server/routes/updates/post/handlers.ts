@@ -1,11 +1,10 @@
-import Busboy from "busboy";
-import { getHandlerPost } from "@/functions/getHandlerPost";
-import { RequestUploadUpdate } from "@types";
-import { dataUpdates, getFinalFileName } from "../variables";
-import { File, Logger } from "@common";
-import chalk from "chalk";
 import path from "path";
+import chalk from "chalk";
+import Busboy from "busboy";
 import { UPLOAD_DIR } from "@/config";
+import { RequestUploadUpdate } from "@types";
+import { File, Logger, getHandlerPost } from "@common";
+import { dataUpdates, getFinalFileName } from "../variables";
 
 export const handleUpload = getHandlerPost(
   "/updates",

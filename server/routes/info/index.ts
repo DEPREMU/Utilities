@@ -1,5 +1,5 @@
 import { routerInfoGet } from "./get";
-import { getRouterPerRoute } from "@/routes/common";
+import { getRouterPerRoute } from "@common";
 
 export const ROUTER_INFO = getRouterPerRoute("/info", {
   GET: routerInfoGet,

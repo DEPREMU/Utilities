@@ -4,7 +4,13 @@ import { Logger } from "@common";
 import { prisma } from "@/database/postgres";
 import { randomUUID } from "crypto";
 import { host, port, TABLE_MAP } from "@/config";
-import { TablesKeys, RequestAuth, ResponseAuth, RoutesPostAPI } from "@types";
+import {
+  TablesKeys,
+  RequestAuth,
+  ResponseAuth,
+  RoutesPostAPI,
+  Prisma,
+} from "@types";
 
 const createRandomUser = async (): Promise<{
   email: string;
@@ -84,7 +90,7 @@ const getCountInTable = async (tableKey: string): Promise<number> => {
 
 const insertFakeDataIntoTable = async (
   tableName: string,
-  tableKey: string,
+  tableKey: TablesKeys,
   chunk: number,
   userId: string,
 ) => {
@@ -167,11 +173,13 @@ const insertFakeDataIntoTable = async (
         break;
       case "Streamers":
         await prisma.streamers.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            name: `Fake Streamer ${Math.random().toString(16).slice(2, 10)}`,
-            linkImage: `https://fakeimage${Math.random().toString(16).slice(2, 10)}.com/image.png`,
-          })),
+          data: Array.from({ length: chunk }).map(
+            () =>
+              ({
+                name: `Fake Streamer ${Math.random().toString(16).slice(2, 10)}`,
+                linkImage: `https://fakeimage${Math.random().toString(16).slice(2, 10)}.com/image.png`,
+              }) satisfies Prisma.StreamersCreateArgs["data"],
+          ),
         });
         break;
       case "UserConfig":

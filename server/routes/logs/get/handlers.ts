@@ -1,10 +1,10 @@
 import { prisma } from "@/database/postgres";
-import { getHandlerGet } from "@/functions/getHandlerGet";
+import { getHandlerGet } from "@common";
 
 export const handleGetLogs = getHandlerGet(
   "/logs",
   "/",
-  {},
+  {} as never,
   async (_, sendResponse) => {
     try {
       const logs = await prisma.logs.findMany({

@@ -1,10 +1,10 @@
 import { cryptos } from "../variables.ts";
-import { getHandlerGet } from "@/functions/getHandlerGet.ts";
+import { getHandlerGet } from "@common";
 
 export const handleGetCryptos = getHandlerGet(
   "/cryptos",
   "/",
-  {},
+  null as never,
   (_, sendResponse) => {
     sendResponse("SUCCESS", { cryptos: cryptos.prices });
   },

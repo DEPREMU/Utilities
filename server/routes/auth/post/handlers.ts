@@ -1,9 +1,14 @@
+import {
+  t,
+  Logger,
+  isValidEmail,
+  getHandlerPost,
+  isValidPassword,
+} from "@common";
 import chalk from "chalk";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/database/postgres.ts";
-import { getHandlerPost } from "@/functions/getHandlerPost.ts";
 import { JWT, DATA_REASONS, getStorageData } from "../variables.ts";
-import { isValidEmail, isValidPassword, Logger, t } from "@common";
 
 /**
  * Inserts a push token into the database for a specific user.
@@ -291,7 +296,7 @@ export const handleSignOut = getHandlerPost(
         prisma.pushTokens.delete({
           where: {
             token_userId: {
-              token: token.token,
+              token: token.data.notificationToken,
               userId: data.userId,
             },
           },

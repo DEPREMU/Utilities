@@ -1,8 +1,12 @@
-import { getRouterGet } from "@/routes/common";
+import { getRouterGet } from "@common";
+import { authMiddleware } from "../middlewares/auth";
 import { handleGetLogs, handleGetLogsPage } from "./handlers";
 
 export const routerLogsGet = getRouterGet("/logs", {
-  "/": { handler: handleGetLogs },
-  "/page": { handler: handleGetLogsPage },
-  "/page/:page-number-optional": { handler: handleGetLogsPage },
+  "/": { handler: handleGetLogs, middlewares: [authMiddleware] },
+  "/page": { handler: handleGetLogsPage, middlewares: [authMiddleware] },
+  "/page/:page-number-optional": {
+    handler: handleGetLogsPage,
+    middlewares: [authMiddleware],
+  },
 });

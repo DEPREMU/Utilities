@@ -2,7 +2,7 @@ import rateLimit from "express-rate-limit";
 import { REPLACERS } from "@/config";
 import { routerUpdatesGet } from "./get";
 import { routerUpdatesPost } from "./post";
-import { getRouterPerRoute } from "../common";
+import { getRouterPerRoute } from "@common";
 
 export const ROUTER_UPDATES = getRouterPerRoute(
   "/updates",

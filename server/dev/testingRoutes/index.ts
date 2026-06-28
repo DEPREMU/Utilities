@@ -3,11 +3,11 @@ import {
   hasCriticalError,
   validateResponse,
 } from "./validator.ts";
-import { Logger } from "@common";
-import { routeTests } from "./testCases.ts";
-import { makeRequest } from "./utils.ts";
-import { TestResult, TestSummary } from "./types.ts";
-import { MethodsAvailableInAPI, RoutesAPI } from "@types";
+import { user } from "../utils";
+import { testCases } from "./testCases.ts";
+import { MethodsAPI } from "@types";
+import { Helper, Logger, ServerFetch, Timers } from "@common";
+import { TestResult, TestRoutes, TestSummary } from "./types.ts";
 
 const LOG = false;
 
@@ -22,63 +22,63 @@ const LOG = false;
  * @returns Test result
  */
 const executeTest = async (
-  route: RoutesAPI,
+  route: RoutesAPI[keyof RoutesAPI],
   description: string,
   body: unknown,
-  method: MethodsAvailableInAPI[keyof MethodsAvailableInAPI],
+  method: MethodsAPI,
   expectedResponse: Record<string, unknown>,
-  shouldSucceed: boolean,
+  shouldSucceed: TestRoutes["GET"]["/cryptos/"][0]["shouldSucceed"],
   authorizationToken: string | null,
 ): Promise<TestResult> => {
   const startTime = Date.now();
 
   try {
-    const response = await makeRequest(
-      route,
+    const response = await ServerFetch.server(
       method,
-      body,
-      authorizationToken
-        ? { Authorization: `Bearer ${authorizationToken}` }
-        : undefined,
+      route,
+      body as never,
+      authorizationToken as never,
     );
+
     const duration = Date.now() - startTime;
 
     if (hasCriticalError(response)) {
       return {
         route,
-        description,
-        success: false,
-        error: "Critical server or network error detected",
-        response,
-        expectedResponse,
         duration,
+        response: response.data,
+        description,
+        expectedResponse,
+        error: "Critical server or network error detected",
+        success: false,
       };
     }
 
-    const validation = validateResponse(
-      response,
+    const validation = await validateResponse(
+      response.status,
+      response.data,
       expectedResponse,
       shouldSucceed,
     );
 
     return {
       route,
-      description,
-      success: validation.isValid,
-      error: validation.error,
-      response,
-      expectedResponse,
+      response: response.data,
       duration,
+      description,
+      expectedResponse,
+      error: validation.error,
+      success: validation.isValid,
     };
   } catch (error) {
     const duration = Date.now() - startTime;
     return {
       route,
-      description,
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-      expectedResponse,
       duration,
+      description,
+      expectedResponse,
+      error: error instanceof Error ? error.message : String(error),
+      success: false,
     };
   }
 };
@@ -88,8 +88,11 @@ const executeTest = async (
  * @param route - Route to test
  * @returns Array of test results
  */
-const executeRouteTests = async (route: RoutesAPI): Promise<TestResult[]> => {
-  const tests = routeTests[route];
+const executeRouteTests = async <M extends Exclude<MethodsAPI, "PUT">>(
+  method: M,
+  route: RoutesAPI[M],
+): Promise<TestResult[]> => {
+  const tests = testCases[method][route] || [];
   const results: TestResult[] = [];
 
   if (LOG) {
@@ -98,24 +101,23 @@ const executeRouteTests = async (route: RoutesAPI): Promise<TestResult[]> => {
   }
 
   for (const test of tests) {
-    const method =
-      test.route === "/health"
-        ? "get"
-        : test.route.includes("/database/update")
-          ? "put"
-          : "post";
-
     const resolvedBody =
-      typeof test.body === "function" ? await test.body() : test.body;
+      typeof test.requestBody === "function"
+        ? await test.requestBody()
+        : test.requestBody;
 
     const result = await executeTest(
-      test.route,
+      route,
       test.description,
       resolvedBody,
       method,
       test.expectedResponse as Record<string, unknown>,
-      test.shouldSucceed,
-      "authorization" in test ? test.authorization?.() || null : null,
+      test.shouldSucceed as never,
+      test.auth
+        ? typeof test.auth === "function"
+          ? await test.auth()
+          : test.auth
+        : null,
     );
 
     results.push(result);
@@ -130,8 +132,7 @@ const executeRouteTests = async (route: RoutesAPI): Promise<TestResult[]> => {
     }
 
     if (result.success) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await test.onSuccess?.((result.response as any) || null);
+      await test.onFinish?.(result.response || null);
     }
   }
 
@@ -146,7 +147,7 @@ const executeRouteTests = async (route: RoutesAPI): Promise<TestResult[]> => {
 export const runAllTests = async (
   stopOnError = false,
 ): Promise<TestSummary> => {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await Promise.all([Timers.sleep(1000), user.initUserData()]);
 
   const startTime = Date.now();
   const allResults: TestResult[] = [];
@@ -161,16 +162,18 @@ export const runAllTests = async (
     );
   }
 
-  const routes = Object.keys(routeTests) as RoutesAPI[];
+  for (const method in testCases) {
+    const routes = Helper.Object.keys(testCases[method as "GET"]);
 
-  for (const route of routes) {
-    const results = await executeRouteTests(route);
-    allResults.push(...results);
+    for (const route of routes) {
+      const results = await executeRouteTests(method as "GET", route);
+      allResults.push(...results);
 
-    const failed = results.filter((r) => !r.success);
-    if (failed.length > 0 && stopOnError) {
-      Logger.log("\n❌ Stopping tests due to failure (stopOnError=true)\n");
-      throwTestError(failed[0]);
+      const failed = results.filter((r) => !r.success);
+      if (failed.length > 0 && stopOnError) {
+        Logger.log("\n❌ Stopping tests due to failure (stopOnError=true)\n");
+        throwTestError(failed[0]);
+      }
     }
   }
 
@@ -228,8 +231,9 @@ export const runAllTests = async (
  * @param stopOnError - Whether to stop on first error
  * @returns Test summary for the route
  */
-export const runRouteTests = async (
-  route: RoutesAPI,
+export const runRouteTests = async <M extends Exclude<MethodsAPI, "PUT">>(
+  method: M,
+  route: RoutesAPI[M],
   stopOnError = false,
 ): Promise<TestSummary> => {
   const startTime = Date.now();
@@ -242,7 +246,7 @@ export const runRouteTests = async (
     "|================================================================",
   );
 
-  const results = await executeRouteTests(route);
+  const results = await executeRouteTests(method, route);
 
   if (stopOnError) {
     const failed = results.find((r) => !r.success);

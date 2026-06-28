@@ -3,7 +3,7 @@ import {
   handleGenerate204,
   handleHealthCheck,
 } from "./handlers";
-import { getRouterGet } from "@/routes/common";
+import { getRouterGet } from "@common";
 
 export const routerInfoGet = getRouterGet("/info", {
   "/health": {

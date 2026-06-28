@@ -10,7 +10,7 @@ export const changeImageFormat = async (
   request: RequestChangeImageFormat,
 ): Promise<ResponseChangeImageFormat> => {
   const format = request.format;
-  const inputBuffer = request.imageBufferInString;
+  const inputBuffer = request.imageStr;
 
   const res: ResponseChangeImageFormat = {
     success: false,

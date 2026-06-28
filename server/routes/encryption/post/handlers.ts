@@ -1,6 +1,5 @@
-import { getHandlerPost } from "@/functions/getHandlerPost";
-import { Logger, Task } from "@common";
 import chalk from "chalk";
+import { Task, Logger, getHandlerPost } from "@common";
 
 const taskEncryption = new Task<string, "ENCRYPTION">({
   fileWorker: "ENCRYPTION",

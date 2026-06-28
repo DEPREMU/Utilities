@@ -6,7 +6,7 @@ import type { FetchToServer, FetchToServerPerMethod } from "@types";
  * Before using this class, make sure to set the `API_URL` static property to the base URL of your API.
  */
 export class ServerFetch {
-  static API_URL = "";
+  static API_URL = process.env.API_URL || "http://localhost:3000/api";
 
   static getValidRoute<T extends string>(
     route: T,
@@ -31,48 +31,91 @@ export class ServerFetch {
       .join("/");
   }
 
-  static get: FetchToServerPerMethod["GET"] = async (route, params) => {
+  static get: FetchToServerPerMethod["GET"] = async (route, params, token) => {
     const validRoute = ServerFetch.getValidRoute(route, params);
 
-    const response = await axios.get(`${ServerFetch.API_URL}${validRoute}`);
-    return response.data as never;
+    const response = await axios.get(`${ServerFetch.API_URL}${validRoute}`, {
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+      validateStatus: () => true,
+    });
+    return {
+      data: response.data as never,
+      status: response.status,
+    } satisfies Awaited<ReturnType<FetchToServerPerMethod["GET"]>>;
   };
 
-  static post: FetchToServerPerMethod["POST"] = async (route, body) => {
+  static post: FetchToServerPerMethod["POST"] = async (route, body, token) => {
     const response = await axios.post(
       `${ServerFetch.API_URL}${route}`,
       body as never,
+      {
+        ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+        validateStatus: () => true,
+      },
     );
-    return response.data as never;
+    return {
+      data: response.data as never,
+      status: response.status,
+    } satisfies Awaited<ReturnType<FetchToServerPerMethod["POST"]>>;
   };
 
-  static delete: FetchToServerPerMethod["DELETE"] = async (route, body) => {
+  static delete: FetchToServerPerMethod["DELETE"] = async (
+    route,
+    body,
+    token,
+  ) => {
     const validRoute = ServerFetch.getValidRoute(route, body);
 
-    const response = await axios.delete(`${ServerFetch.API_URL}${validRoute}`);
-    return response.data as never;
+    const response = await axios.delete(`${ServerFetch.API_URL}${validRoute}`, {
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+      validateStatus: () => true,
+    });
+    return {
+      data: response.data as never,
+      status: response.status,
+    } satisfies Awaited<ReturnType<FetchToServerPerMethod["DELETE"]>>;
   };
 
-  static put: FetchToServerPerMethod["PUT"] = async (route, body) => {
+  static put: FetchToServerPerMethod["PUT"] = async (route, body, token) => {
     const response = await axios.put(
       `${ServerFetch.API_URL}${route}`,
       body as never,
+      {
+        ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+        validateStatus: () => true,
+      },
     );
-    return response.data as never;
+    return {
+      data: response.data as never,
+      status: response.status,
+    } satisfies Awaited<ReturnType<FetchToServerPerMethod["PUT"]>>;
   };
 
-  static server: FetchToServer = async (method, route, body) => {
+  static server: FetchToServer = async (method, route, body, token) => {
     try {
       let res = null;
       switch (method) {
         case "GET":
-          res = await ServerFetch.get(route as RoutesAPI["GET"], body);
+          res = await ServerFetch.get(
+            route as RoutesAPI["GET"],
+            body,
+            token as never,
+          );
+
           break;
         case "POST":
-          res = await ServerFetch.post(route as RoutesAPI["POST"], body);
+          res = await ServerFetch.post(
+            route as RoutesAPI["POST"],
+            body,
+            token as never,
+          );
           break;
         case "DELETE":
-          res = await ServerFetch.delete(route as RoutesAPI["DELETE"], body);
+          res = await ServerFetch.delete(
+            route as RoutesAPI["DELETE"],
+            body,
+            token as never,
+          );
           break;
 
         default:

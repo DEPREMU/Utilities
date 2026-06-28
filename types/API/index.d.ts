@@ -14,7 +14,11 @@ export * from "./DeleteAPI";
 
 export type MethodsAPI = "GET" | "PUT" | "POST" | "DELETE";
 
-type ResolveRoute<T, Route extends string, Prefix extends string = ""> = {
+export type ResolveRoute<
+  T,
+  Route extends string,
+  Prefix extends string = "",
+> = {
   [K in keyof T]: T[K] extends infer V
     ? V extends { url: infer U extends string }
       ? Route extends `${Prefix}${K & string}${U}`
@@ -58,8 +62,14 @@ export type FetchToServerMethod<M extends MethodsAPI> = <
   const R extends RoutesAPI[M],
 >(
   route: R,
-  body:  ResolveRoute<FetchAPI<M>, R>["body"] ,
-) => Promise<ResolveRoute<FetchAPI<M>, R>["response"]>;
+  body: ResolveRoute<FetchAPI<M>, R>["body"],
+  authToken?: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
+    ? string
+    : never,
+) => Promise<{
+  data: ResolveRoute<FetchAPI<M>, R>["response"];
+  status: number;
+}>;
 
 export type FetchToServer = <
   M extends MethodsAPI,
@@ -68,7 +78,13 @@ export type FetchToServer = <
   method: M,
   route: R,
   body: NonNullable<ResolveRoute<FetchAPI<M>, R>["body"]>,
-) => Promise<ResolveRoute<FetchAPI<M>, R>["response"]>;
+  authToken?: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
+    ? string
+    : never,
+) => Promise<{
+  data: ResolveRoute<FetchAPI<M>, R>["response"];
+  status: number;
+}>;
 
 export type FetchToServerPerMethod = {
   GET: FetchToServerMethod<"GET">;

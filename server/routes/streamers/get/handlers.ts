@@ -1,8 +1,7 @@
 import axios from "axios";
-import { Logger } from "@common";
 import { prisma } from "@/database/postgres";
-import { getHandlerGet } from "@/functions/getHandlerGet";
 import { StreamersFetch } from "@types";
+import { Logger, getHandlerGet } from "@common";
 
 const getLinkImageStreamer = async (streamer: string) => {
   try {
@@ -51,7 +50,7 @@ export const isLiveStreamer = async (streamer: string): Promise<boolean> => {
 export const handleGetStreamers = getHandlerGet(
   "/streamers",
   "/",
-  {},
+  {} as never,
   async (_, sendResponse) => {
     try {
       const streamers = await prisma.streamers.findMany({
@@ -92,7 +91,7 @@ export const handleGetStreamersPage = getHandlerGet(
 
 export const handleGetStreamerById = getHandlerGet(
   "/streamers",
-  "/:streamerId",
+  "/streamer/:streamerId",
   { streamerId: "string" },
   async (params, sendResponse) => {
     try {

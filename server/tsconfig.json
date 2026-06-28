@@ -9,7 +9,8 @@
     "paths": {
       "@/*": ["./*"],
       "@types": ["../types/index.d.ts"],
-      "@common": ["../common/serverOrElectron/index.ts"]
+      "@common": ["../common/serverOrElectron/index.ts"],
+      "@commonSrc/*": ["../common/*"]
     },
     "typeRoots": ["../types/index.d.ts", "./generated/*.d.ts"]
   },

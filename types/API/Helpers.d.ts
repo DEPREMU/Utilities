@@ -6,8 +6,16 @@ import {
   MethodsAPI,
   DEFAULT_RESPONSE,
 } from "@types";
-import type { STATUS_RESPONSE } from "@common";
+import type { STATUS_RESPONSE } from "../../common/serverOrElectron";
 import { Handler, NextFunction, Request, Response } from "express";
+
+type RemoveOptional<M extends string> = M extends `${infer Rest}-optional`
+  ? Rest
+  : M extends `optional-${infer Rest}`
+    ? Rest
+    : M extends "optional"
+      ? ""
+      : M;
 
 type BaseType<T extends string> = T extends "string"
   ? string
@@ -33,31 +41,44 @@ type ApplyModifiers<
       ? T | null
       : T;
 
+type StripOptional<P extends string> = P extends `${infer R}-optional`
+  ? [R, true]
+  : [P, false];
+
 type ParamToObject<P extends string> =
-  P extends `${infer Name}-${infer Type}-${infer Mods}`
-    ? Mods extends `${string}optional${string}`
-      ? {
-          [K in Name]?: ApplyModifiers<
-            BaseType<Type>,
-            Exclude<Mods, "optional">
-          >;
-        }
-      : { [K in Name]: ApplyModifiers<BaseType<Type>, Mods> }
-    : P extends `${infer Name}-${infer Type}`
-      ? { [K in Name]: BaseType<Type> }
-      : { [K in P]: string };
+  StripOptional<P> extends [
+    infer Core extends string,
+    infer IsOpt extends boolean,
+  ]
+    ? Core extends `${infer Name}-${infer Type}-${infer Mods}`
+      ? IsOpt extends true
+        ? { [K in Name]?: ApplyModifiers<BaseType<Type>, Mods> }
+        : { [K in Name]: ApplyModifiers<BaseType<Type>, Mods> }
+      : Core extends `${infer Name}-${infer Type}`
+        ? IsOpt extends true
+          ? { [K in Name]?: BaseType<Type> }
+          : { [K in Name]: BaseType<Type> }
+        : IsOpt extends true
+          ? { [K in Core]?: string }
+          : { [K in Core]: string }
+    : never;
 
-export type GetParams<T extends string> =
-  T extends `${string}:${infer Param}/${infer Rest}`
-    ? ParamToObject<Param> & GetParams<`/${Rest}`>
-    : T extends `${string}:${infer Param}`
-      ? ParamToObject<Param>
-      : {};
+type GetParams<
+  T extends string,
+  Found extends boolean = false,
+> = T extends `${string}:${infer Param}/${infer Rest}`
+  ? ParamToObject<Param> & GetParams<`/${Rest}`, true>
+  : T extends `${string}:${infer Param}`
+    ? ParamToObject<Param>
+    : Found extends true
+      ? {}
+      : never;
 
-export type GetRouterObj = {
+export type GetRouterObj<T extends { url: string }, U extends string> = {
   handler: Handler;
-  middlewares?: Handler[];
-};
+} & (Extract<T, { url: P }> extends { auth: true }
+  ? { middlewares: [Handler, ...Handler] }
+  : { middlewares?: Handler[] });
 
 type RouterFetch = Record<string, GetUrlFetch<string, unknown, {}>>;
 
@@ -129,17 +150,32 @@ type GetBody<
     : never
   : GetParams<U>;
 
+type ExpandType<Original, JsType> = Original extends JsType ? Original : JsType;
+
+type JsTypes<O> = O extends readonly (keyof TypeOfJS)[]
+  ? TypeOfJS[O[number]]
+  : O extends keyof TypeOfJS
+    ? TypeOfJS[O]
+    : never;
+
+type MergeField<Original, O> =
+  JsTypes<O> extends infer J
+    ? J extends unknown
+      ? Original extends J
+        ? Original
+        : J
+      : never
+    : never;
+
 export type GetHandlerType<H extends RouterFetch, M extends MethodsAPI> = <
   K extends keyof H,
   U extends H[K]["url"],
   B extends GetBody<M, H, K, U>,
   O extends { [P in keyof B]?: keyof TypeOfJS | (keyof TypeOfJS)[] },
   T extends {
-    [P in keyof B]: O[P] extends (keyof TypeOfJS)[]
-      ? TypeOfJS[O[P][number]]
-      : O[P] extends keyof TypeOfJS
-        ? TypeOfJS[O[P]]
-        : B[P];
+    [P in keyof B]: O[P] extends keyof TypeOfJS | readonly (keyof TypeOfJS)[]
+      ? MergeField<B[P], O[P]>
+      : B[P];
   },
 >(
   path: K,

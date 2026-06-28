@@ -1,14 +1,13 @@
-import { sendFCMNotification } from "@/firebase/admin";
-import { getHandlerGet } from "@/functions/getHandlerGet";
-import { Logger, Timers } from "@common";
 import humanizeDuration from "humanize-duration";
+import { sendFCMNotification } from "@/firebase/admin";
+import { Logger, Timers, getHandlerGet } from "@common";
 
 const START_TIME = Date.now();
 
 export const handleHealthCheck = getHandlerGet(
   "/info",
   "/health",
-  {},
+  null as never,
   (_, sendRes) => {
     const now = new Date();
     const upTime = now.getTime() - START_TIME;
@@ -20,9 +19,9 @@ export const handleHealthCheck = getHandlerGet(
 export const handleGenerate204 = getHandlerGet(
   "/info",
   "/generate204",
-  {},
+  null as never,
   (_, sendRes) => {
-    sendRes("NO_CONTENT", undefined);
+    sendRes("NO_CONTENT", "");
   },
 );
 
