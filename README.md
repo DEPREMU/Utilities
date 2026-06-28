@@ -1,6 +1,6 @@
 # Utilities
 
-Utilities is a Yarn workspaces monorepo that ships:
+Utilities is a Yarn workspaces monorepo that currently ships:
 
 - An Expo React Native app for Android and Web (`app/`)
 - A Node.js + Express + PostgreSQL + WebSocket backend (`server/`)
@@ -21,42 +21,38 @@ Repository: `https://github.com/DEPREMU/Utilities`
 
 ### Main app capabilities
 
-The app navigator currently includes features such as:
+The current app navigation includes:
 
-- Auth: login, sign up, forgot password, QR login
-- Clipboard sync
-- Cryptos and market checks
-- Translator
-- PDF tools and PDF deep-link opening
-- Vault
-- Notes (native-focused)
-- Recorder (native-focused)
-- Device information
-- Calculator
-- Network tools
-- Social media integrations
-- Down detector
-- Games (including Minesweeper)
-- Images and markdown viewer
-- Phone/computer control tools
+- Auth flows: Login, SignUp, forgotPassword, and ScanQRCode
+- Home, Settings, Clipboard, Vault, DeviceInformation, MarkdownViewer, QR, and PDF screens
+- Network, Cryptos, Translator, Calculator, Images, SocialMedia, and DownDetector tools
+- Games navigation plus Minesweeper
+- Recorder, ComputerControl, and TerminalCommands for native or web-aware control flows
+- Notes, which is native-only because the web build does not load the same storage stack
+- Test, which is only available in dev builds
 
-Feature screens live under `app/src/features/`.
+Feature screens live under `app/src/features/` and are wired through `app/src/app/AppNavigator.tsx`.
 
 ### Server capabilities
 
-The API server provides:
+The API server currently provides route groups for:
 
-- Auth and session routes
-- Typed database read/write routes
-- Crypto, translation, and social routes
-- Image conversion route
-- Health and debug routes
-- Update upload/download routes
+- Auth and session flows
+- Info and health checks
+- Logs read/write/delete operations
+- Image format conversion
+- Cryptos lookup and price endpoints
+- Translation requests
+- Streamer lookup and registration helpers
+- Encryption and decryption helpers
+- Update availability, download, and upload endpoints
+- Development-only database query helpers
 
 The server also runs WebSocket channels:
 
 - `/ws` (general channel)
 - `/clipboard` (clipboard sync channel)
+- `/ws-cryptos` (crypto feed channel)
 - `/ws-login-qr` (QR login channel)
 
 ## Monorepo Structure
@@ -69,15 +65,14 @@ The server also runs WebSocket channels:
 |- common/           Shared cross-workspace helpers/translations
 |- types/            Shared TypeScript declarations/contracts
 |- scripts/          Root automation/build pipelines
-|- implementation-md/ implementation notes/prompts
 ```
 
 ## Tech Stack
 
 - Runtime: Node.js, Yarn workspaces
-- Mobile/Web app: Expo 55, React 19, React Native 0.83, React Navigation
-- Backend: Express 5, PostgreSQL, `ws`, Firebase Admin, Pino
-- Desktop: Electron 40 + preload bridge IPC
+- Mobile/Web app: Expo 56, React 19.2.3, React Native 0.85.3, React Navigation
+- Backend: Express 5, PostgreSQL, ws, Firebase Admin, Prisma 7.8.0, Pino
+- Desktop: Electron 42.5.0 with preload bridge IPC
 - Build tooling: TypeScript, esbuild, ESLint, Prettier
 
 ## Requirements
@@ -91,24 +86,26 @@ The server also runs WebSocket channels:
 ### Android development
 
 - Android SDK + platform tools
-- Java/JDK compatible with Expo/Gradle setup
-- Device/emulator for `expo run:android`
+- Java/JDK compatible with the Expo and Gradle setup
+- Device or emulator for `expo run:android`
 
 ### Electron development/build
 
-- Linux or Windows supported by current scripts
+- Windows or Linux for the current packaging flow
 - On Linux, packaging scripts may install system packages and may require `sudo`
 
 ## Environment Setup
 
 1. Create `.env` in the repository root.
-2. Start from `.env.example` and fill real secrets/URLs.
+2. Populate the values used by the app, server, and desktop build from the current config files.
 
-### Variables present in `.env.example`
+### Variables consumed by the current configuration
 
 ```env
 __DEV__=false
 USE_HTTPS=false
+BUILD_PROFILE=development|production|preview
+PLATFORM=android|web|electron
 JWT_SECRET=...
 VAPID_PUBLIC_KEY=...
 VAPID_PRIVATE_KEY=...
@@ -123,18 +120,15 @@ DB_ENCRYPTION_PASS=...
 WS_URL=ws://localhost:3000/ws
 API_URL=http://localhost:3000/api
 FCM_SERVER_KEY=...
-ADMIN_PASSWORD=...
+ADMIN_EMAIL=...
+ADMIN_PASSWORD=... application password for admin user
+SECRET_KEY_TO_ENCRYPTION=...
 IV=0123456789abcdef
 ```
 
-### Also expected by server env validation
+The app config also reads `WS_URL`, `API_URL`, and `ADMIN_PASSWORD` into Expo `extra`, and the app Babel config requires `BUILD_PROFILE` and `PLATFORM` when the root scripts do not set them for you.
 
-`server/env.ts` additionally validates keys such as:
-
-- `ADMIN_EMAIL`
-- `SECRET_KEY_TO_ENCRYPTION`
-
-If missing, defaults/warnings can apply for some values, but secure production configuration should always provide explicit values.
+The server environment validation currently checks values such as `ADMIN_EMAIL` and `SECRET_KEY_TO_ENCRYPTION` in addition to the database, auth, encryption, Firebase, and push-notification keys above.
 
 ## Install Dependencies
 
@@ -167,6 +161,8 @@ yarn run clean:all
 yarn run format-all
 yarn run type-check
 yarn run app-compile-check   # Kotlin compile check after prebuild
+yarn run update-assets
+yarn run build-autocomplete-dict
 ```
 
 ### Build and distribution helpers
@@ -229,33 +225,16 @@ The server registers routes in `server/routes/index.ts` and `server/updates/inde
 
 ### API routes (`/api`)
 
-- `POST /cryptoPrice`
-- `POST /cryptos`
-- `POST /translate`
-- `POST /encrypt`
-- `POST /decrypt`
-- `GET /health`
-- `POST /addStreamer`
-- `POST /getIsLiveStreamer`
-- `POST /auth/login`
-- `POST /auth/signup`
-- `POST /auth/refreshSession` (auth middleware)
-- `POST /auth/signOut` (auth middleware)
-- `POST /database/fetch` (auth middleware)
-- `POST /database/insert` (auth middleware)
-- `PUT /database/update` (auth middleware)
-- `POST /database/delete` (auth middleware)
-- `POST /doQueryDB`
-- `POST /log`
-- `POST /images/changeImageFormat`
-- `POST /debug/appAlive`
-
-### Update routes (`/updates`)
-
-- `POST /is-update-available`
-- `GET /download/:buildType/:version/:platformOS/:id`
-- `POST /upload-update`
-- `GET /web-page`
+- Auth: `POST /auth/login`, `POST /auth/signup`, `POST /auth/signout`, `POST /auth/refreshSession`
+- Info: `GET /info/health`, `GET /info/generate204`, `GET /info/appAlive/:deviceId/:pushToken`
+- Logs: `GET /logs`, `GET /logs/page`, `GET /logs/page/:page`, `POST /logs/add`, `DELETE /logs/:logId`
+- Images: `POST /images/change-format`
+- Cryptos: `GET /cryptos`, `GET /cryptos/:symbol`, `GET /cryptos/price/:symbol`
+- Languages: `POST /languages/translate`
+- Streamers: `GET /streamers`, `GET /streamers/page`, `GET /streamers/:userId`, `GET /streamers/streamer/:streamerId`, `GET /streamers/add/:userId/:streamerName`
+- Encryption: `POST /encryption/decrypt`, `POST /encryption/encrypt`
+- Dev-only: `POST /dev/executeQuery`
+- Updates: `GET /updates/is-update-available/:version/:buildType`, `GET /updates/is-update-available/:version/:buildType/:platform`, `GET /updates/download/:id`, `POST /updates/upload`
 
 ## WebSocket Contracts
 
@@ -263,6 +242,7 @@ Upgrade handling in `server/index.ts` maps pathnames to dedicated websocket serv
 
 - `/ws` for general app events (including ping/pong)
 - `/clipboard` for clipboard synchronization
+- `/ws-cryptos` for crypto price feeds
 - `/ws-login-qr` for QR login flow
 
 Client lifecycle and reconnect behavior is implemented in app context providers (for example `app/src/context/WebSocketContext.tsx`).
@@ -282,8 +262,8 @@ Native Android sources are under `app/native/` and include modules/packages such
 
 Electron code lives in `UtilitiesForPC/src/`:
 
-- Main process: `UtilitiesForPC/src/main/index.ts`
-- Preload bridge: `UtilitiesForPC/src/preload.ts`
+- Main process: `UtilitiesForPC/src/main/app.ts`
+- Preload bridge: `UtilitiesForPC/src/preload/index.ts`
 
 Renderer communication is done through typed IPC channels exposed by preload (`contextIsolation: true`, `nodeIntegration: false` in window settings).
 
