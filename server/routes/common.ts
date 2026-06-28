@@ -98,11 +98,9 @@ export const getMainRouter = (routes: GetMainRouter): Router => {
     try {
       router.use(subRouter);
     } catch (err) {
-      throw new Error(
-        `Error setting up sub-router for path ${path}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
+      throw new Error(`Error setting up sub-router for path ${path}`, {
+        cause: err,
+      });
     }
   });
 

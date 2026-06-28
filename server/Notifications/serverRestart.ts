@@ -23,14 +23,14 @@ const handleSendNotificationToAdmin = async () => {
         orderBy: { userId: "asc" },
       });
 
-    let USERS: Awaited<ReturnType<typeof callback>> | null = null;
+    let USERS: Awaited<ReturnType<typeof callback>>;
 
     let success = 0;
     let failure = 0;
 
     const { getNext } = getPagination(callback);
 
-    while ((USERS = await getNext()) !== null && USERS.length > 0) {
+    while ((USERS = await getNext()).length > 0) {
       try {
         const reason = "downDetector" satisfies ReasonNotification;
 
