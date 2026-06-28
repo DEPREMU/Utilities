@@ -7,6 +7,9 @@ import { Logger, ServerFetch } from "@common";
 import { executeFunctionAfterInit } from "@/config";
 
 const initDev = async () => {
+  const filePath = "./test.ts";
+  await import(filePath).then(({ testing }) => testing()).catch(() => {});
+
   try {
     await prisma.users.delete({
       where: { email: user.email },

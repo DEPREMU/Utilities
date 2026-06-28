@@ -110,11 +110,6 @@ export const getBodyParsed = (
         body[key as string],
         expectedTypes as (keyof TypeOfJS)[],
       );
-      console.log(
-        `Parsed parameter "${key}":`,
-        validValue,
-        `(expected types: ${expectedTypes.join(", ")})`,
-      );
 
       if (validValue === null) return ["invalid", true];
 

@@ -51,7 +51,7 @@ const getEncryptedValue = (): string => {
   );
 };
 
-export const testCases = {
+export const testCases: TestRoutes = {
   GET: {
     "/info/appAlive/:deviceId-string/:pushToken-string": [],
     "/updates/download/:id": [],
@@ -631,4 +631,4 @@ export const testCases = {
       },
     ],
   },
-} as const satisfies TestRoutes;
+};

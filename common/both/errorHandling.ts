@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export type OnError<T> = (error: Error, errorMessage: string) => Promise<T>;
 
-export type AnyFn<T = any> = (...args: any[]) => T;
+export type AnyFn<T> = (...args: any[]) => T;
 
 type WrapFunctionWithError = {
   /**
