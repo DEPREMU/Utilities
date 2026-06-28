@@ -11,7 +11,7 @@ Expo React Native application for Android and Web.
 
 ## Scope
 
-This workspace contains the user-facing app UI, navigation, contexts, and native Android bridge integration.
+This workspace contains the user-facing app UI, navigation, contexts, PDF deep-link handling, and native Android bridge integration.
 
 Key areas:
 
@@ -30,26 +30,23 @@ Key areas:
 
 ## Features In Navigation
 
-Current stack includes screens/modules such as:
+Current stack includes these screens and navigators:
 
-- Auth (`Login`, `SignUp`, `forgotPassword`, `ScanQRCode`)
-- Home
-- Vault
-- Notes (native-focused)
-- Recorder (native-only)
-- PDF
-- Clipboard
-- Calculator
-- Network
-- Cryptos
-- Translator
-- SocialMedia
-- DownDetector
-- Games + Minesweeper
-- Images
-- Markdown viewer
-- Device information
-- Computer control and terminal tools (platform-aware)
+- Auth: `Login`, `SignUp`, `forgotPassword`, `ScanQRCode`
+- Core: `Home`, `Settings`, `Clipboard`, `Vault`, `DeviceInformation`, `MarkdownViewer`, `QR`, `PDF`
+- Productivity: `Network`, `Cryptos`, `Translator`, `Calculator`, `Images`, `SocialMedia`, `DownDetector`
+- Games: `Games` and `Minesweeper`
+- Native or platform-aware tools: `Recorder`, `ComputerControl`, `TerminalCommands`
+- Native-only storage/content screen: `Notes`
+- Development-only screen: `Test`
+
+Platform gating in `AppNavigator.tsx` currently redirects these screens away from web when needed:
+
+- `Recorder`
+- `ScanQRCode`
+- `ComputerControl`
+- `TerminalCommands`
+- `Notes`
 
 ## Configuration
 
@@ -60,7 +57,7 @@ Important behavior:
 - Build profile is required (`BUILD_PROFILE` must exist)
 - Platforms are configured as `android` and `web`
 - Runtime version changes by profile
-- App version currently based on `0.3.0-beta`
+- App version currently based on `0.4.0-beta`
 - `extra` includes values derived from root `.env` (WS/API URLs, admin password)
 
 Babel behavior (`babel.config.ts`) depends on:
@@ -79,6 +76,7 @@ yarn run before-commit
 yarn run lint:fix
 yarn run type-check
 yarn run android
+yarn run ios  # Not supported, prints a message and exits
 ```
 
 ## Recommended Commands (From Repository Root)
@@ -117,6 +115,8 @@ Commonly required:
 - `WS_URL`
 - `API_URL`
 - `ADMIN_PASSWORD`
+
+The Expo config also consumes `version` from `app.config.ts` and injects it into `extra.version`.
 
 ## Quality Gate
 

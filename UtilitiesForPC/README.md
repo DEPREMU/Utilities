@@ -13,16 +13,16 @@ Electron desktop runtime for the Utilities web app build, with a preload bridge 
 
 This workspace provides:
 
-- Electron main process (`src/main/`)
-- Preload bridge (`src/preload.ts`)
+- Electron main process (`src/main/app.ts` and related helpers)
+- Preload bridge (`src/preload/index.ts`)
 - Desktop packaging (`electron-builder` config in `package.json`)
-- IPC features used by the web renderer (clipboard, notifications, command execution, vault helpers, file/temp helpers, and more)
+- IPC features used by the web renderer (clipboard, notifications, command execution, vault helpers, file/temp helpers, PDF creation, and more)
 
 ## Runtime Architecture
 
 ### Main process
 
-Main entry: `build/index.cjs` (compiled from `src/main/index.ts`).
+Main entry: `build/index.cjs` (compiled from `src/main/app.ts`).
 
 Main process responsibilities include:
 
@@ -30,14 +30,14 @@ Main process responsibilities include:
 - Startup and shutdown handling
 - Auto-start setup (Windows/Linux packaged paths)
 - Optional system dependency checks on Linux packaged runs
-- Internal local server startup and update checks
+- Internal local server startup, update checks, memory monitoring, and clipboard window setup
 
 In packaged mode, it loads built web assets from `dist/index.html`.
 In dev mode, it loads Expo web from `http://localhost:8081`.
 
 ### Preload bridge
 
-`src/preload.ts` exposes typed `window.UtilitiesForPC.*` APIs via IPC with `contextIsolation: true` and `nodeIntegration: false`.
+`src/preload/index.ts` exposes typed `window.UtilitiesForPC.*` APIs via IPC with `contextIsolation: true` and `nodeIntegration: false`.
 
 Bridge includes operations such as:
 
@@ -48,6 +48,7 @@ Bridge includes operations such as:
 - Command execution
 - PDF creation with progress callback
 - Vault file actions and folder picking
+- Safe folder, file info, zip, and encrypted vault helpers
 
 ## Scripts (From `UtilitiesForPC/package.json`)
 
@@ -57,6 +58,8 @@ Run from this folder:
 yarn run type-check
 yarn run before-commit
 ```
+
+The full build and packaging flows are driven from the repository root scripts.
 
 ## Recommended Commands (From Repository Root)
 
@@ -101,7 +104,8 @@ Key runtime dependencies include:
 
 ## Development Notes
 
-- In dev, Electron expects Expo web dev server to be available.
+- In dev, Electron expects Expo web dev server to be available at `http://localhost:8081`.
+- In packaged runs, the main process loads `dist/index.html` and starts the internal server/update flow.
 - In packaged runs on Linux, setup may perform additional dependency/autostart steps requiring elevated privileges.
 - Renderer must not access Node directly; use preload IPC APIs.
 

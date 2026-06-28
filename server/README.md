@@ -15,7 +15,7 @@ This workspace is responsible for:
 
 - REST API under `/api`
 - Update service endpoints under `/updates`
-- WebSocket services (`/ws`, `/clipboard`, `/ws-login-qr`)
+- WebSocket services (`/ws`, `/clipboard`, `/ws-cryptos`, `/ws-login-qr`)
 - Database initialization and access
 - Auth/session and encryption-related server flows
 
@@ -30,7 +30,7 @@ At startup (`index.ts`):
 - Configures security middleware (Helmet in non-dev)
 - Mounts API and updates routers
 - Creates HTTP server
-- Attaches WebSocket upgrade handling by path
+- Attaches WebSocket upgrade handling by path (`/ws`, `/clipboard`, `/ws-cryptos`, `/ws-login-qr`)
 - Initializes PostgreSQL connection flow
 
 ## Scripts (From `server/package.json`)
@@ -38,6 +38,9 @@ At startup (`index.ts`):
 Run from this folder:
 
 ```bash
+yarn run db-update
+yarn run db-migrate
+yarn run db-generate
 yarn run start
 yarn run start-dev
 yarn run format-all
@@ -61,6 +64,7 @@ Based on current config/runtime:
 - Updates base: `http://localhost:3000/updates`
 - WS: `ws://localhost:3000/ws`
 - Clipboard WS: `ws://localhost:3000/clipboard`
+- Crypto WS: `ws://localhost:3000/ws-cryptos`
 - QR login WS: `ws://localhost:3000/ws-login-qr`
 
 Port default is `3000`.
@@ -69,33 +73,31 @@ Port default is `3000`.
 
 Registered in `routes/index.ts`:
 
-- `POST /cryptoPrice`
-- `POST /cryptos`
-- `POST /translate`
-- `POST /encrypt`
-- `POST /decrypt`
-- `GET /health`
-- `POST /addStreamer`
-- `POST /getIsLiveStreamer`
-- `POST /auth/login`
-- `POST /auth/signup`
-- `POST /auth/refreshSession` (auth middleware)
-- `POST /auth/signOut` (auth middleware)
-- `POST /database/fetch` (auth middleware)
-- `POST /database/insert` (auth middleware)
-- `PUT /database/update` (auth middleware)
-- `POST /database/delete` (auth middleware)
-- `POST /doQueryDB`
-- `POST /log`
-- `POST /images/changeImageFormat`
-- `POST /debug/appAlive`
+- Auth: `POST /auth/login`, `POST /auth/signup`, `POST /auth/signout`, `POST /auth/refreshSession`
+- Info: `GET /info/health`, `GET /info/generate204`, `GET /info/appAlive/:deviceId/:pushToken`
+- Logs: `GET /logs`, `GET /logs/page`, `GET /logs/page/:page`, `POST /logs/add`, `DELETE /logs/:logId`
+- Images: `POST /images/change-format`
+- Cryptos: `GET /cryptos`, `GET /cryptos/:symbol`, `GET /cryptos/price/:symbol`
+- Languages: `POST /languages/translate`
+- Streamers: `GET /streamers`, `GET /streamers/page`, `GET /streamers/:userId`, `GET /streamers/streamer/:streamerId`, `GET /streamers/add/:userId/:streamerName`
+- Encryption: `POST /encryption/decrypt`, `POST /encryption/encrypt`
+- Dev-only: `POST /dev/executeQuery`
+- Updates: `GET /updates/is-update-available/:version/:buildType`, `GET /updates/is-update-available/:version/:buildType/:platform`, `GET /updates/download/:id`, `POST /updates/upload`
 
-Update routes in `updates/index.ts`:
+## Route Modules
 
-- `POST /is-update-available`
-- `GET /download/:buildType/:version/:platformOS/:id`
-- `POST /upload-update`
-- `GET /web-page`
+The top-level router currently mounts these modules:
+
+- `/auth`
+- `/info`
+- `/logs`
+- `/images`
+- `/cryptos`
+- `/updates`
+- `/languages`
+- `/streamers`
+- `/encryption`
+- `/dev` in development only
 
 ## Environment
 
@@ -106,14 +108,14 @@ Expected keys include:
 - `IV`
 - `WS_URL`
 - `__DEV__`
+- `USE_HTTPS`
+- `JWT_SECRET`
 - `DB_PORT`
 - `DB_USER`
 - `DB_PASS`
 - `DB_NAME`
 - `DB_HOST`
 - `API_URL`
-- `USE_HTTPS`
-- `JWT_SECRET`
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD`
 - `VAPID_PUBLIC_KEY`
@@ -121,6 +123,7 @@ Expected keys include:
 - `DB_ENCRYPTION_PASS`
 - `DEEPL_TRANSLATOR_API`
 - `FIREBASE_SERVICE_ACCOUNT`
+- `FCM_SERVER_KEY`
 - `SECRET_KEY_TO_ENCRYPTION`
 
 Note: missing values may trigger warnings/defaults, but production should provide explicit secure values.
@@ -159,4 +162,4 @@ Check `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, and database availability.
 
 ### WebSocket upgrade path rejected
 
-Only `/ws`, `/clipboard`, and `/ws-login-qr` are accepted in current upgrade switch logic.
+Only `/ws`, `/clipboard`, `/ws-cryptos`, and `/ws-login-qr` are accepted in current upgrade switch logic.
