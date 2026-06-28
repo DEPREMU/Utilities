@@ -52,12 +52,12 @@ export const sendFCMNotification = async (
         title: notification.title,
         imageUrl: notification.imageUrl,
       },
-      ...(typeof data === "object" && data !== null && { data }),
       android: { notification: { imageUrl, channelId } },
       apns: {
         payload: { aps: { sound: "default", badge: 1 } },
         fcmOptions: { imageUrl },
       },
+      data: data || undefined,
     };
 
     const response = await messaging.sendEachForMulticast(message);
