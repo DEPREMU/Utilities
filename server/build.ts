@@ -66,6 +66,7 @@ const external = [
   "piscina",
   "firebase-admin",
   "@prisma/client",
+  "@node-rs/bcrypt",
   "@prisma/adapter-pg",
 ];
 

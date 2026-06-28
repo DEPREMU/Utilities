@@ -1,9 +1,10 @@
+import { Helper } from "../helpers";
 import type { LanguagesSupported } from "@types";
 
-export const languagesNames: Record<LanguagesSupported, string> = {
+export const languagesNames = {
   en: "English",
   es: "Español",
-};
+} as const satisfies Record<LanguagesSupported, string>;
 
 /**
  * An array containing all supported language codes.
@@ -11,6 +12,4 @@ export const languagesNames: Record<LanguagesSupported, string> = {
  * @see {@link LanguagesSupported}
  * @see {@link languagesNames}
  */
-export const languagesSupported = [
-  ...Object.keys(languagesNames),
-] as LanguagesSupported[];
+export const languagesSupported = Helper.Object.keys(languagesNames);

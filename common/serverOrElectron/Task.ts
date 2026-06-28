@@ -78,7 +78,6 @@ export class Task<ReturnValue, F extends WorkerFiles> extends ServiceClass<
     let timeoutId: number | null = null;
 
     const handleFinish = () => {
-      console.log(++x, "Task finished, cleaning up...");
       if (timeoutId) Timers.clearTimeout(timeoutId);
       timeoutId = null;
 

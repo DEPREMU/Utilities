@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import dotenv from "dotenv";
 import crypto from "crypto";
 import { pipeline } from "stream/promises";
 import { promisify } from "util";
@@ -70,8 +69,6 @@ const algorithm = "aes-256-cbc";
  * The input text is encrypted and the result is returned as a base64-encoded string.
  */
 export const encryptText = (data: { text: string }): string | Error => {
-  console.log("Encrypting text:", data);
-
   try {
     const cipher = crypto.createCipheriv(
       algorithm,
@@ -95,7 +92,6 @@ export const encryptText = (data: { text: string }): string | Error => {
  * @throws {Error} If decryption fails due to invalid input or configuration.
  */
 export const decryptText = (data: { text: string }): string | Error => {
-  console.log("Decrypting text:", data);
   try {
     const decipher = crypto.createDecipheriv(
       algorithm,

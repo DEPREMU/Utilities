@@ -58,6 +58,7 @@ export default defineConfig([
         DB: "readonly",
         FetchAPI: "readonly",
         RoutesAPI: "readonly",
+        BufferEncoding: "readonly",
       },
     },
     plugins: {

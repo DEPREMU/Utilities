@@ -1,16 +1,16 @@
-import axios from "axios";
-import chalk from "chalk";
-import { Logger } from "@common";
-import { prisma } from "@/database/postgres";
-import { randomUUID } from "crypto";
-import { host, port, TABLE_MAP } from "@/config";
 import {
+  Prisma,
   TablesKeys,
   RequestAuth,
   ResponseAuth,
   RoutesPostAPI,
-  Prisma,
 } from "@types";
+import axios from "axios";
+import chalk from "chalk";
+import { prisma } from "@/database/postgres";
+import { randomUUID } from "crypto";
+import { host, port, TABLE_MAP } from "@/config";
+import { Helper, Logger, ServerFetch } from "@common";
 
 const createRandomUser = async (): Promise<{
   email: string;
@@ -20,13 +20,12 @@ const createRandomUser = async (): Promise<{
     const email = `user${randomUUID()}${Date.now()}@example.com`;
     const password = "Test123!";
 
-    const signup = "/auth/signup" satisfies RoutesPostAPI;
-    const res = await axios.post(`http://${host}:${port}/api${signup}`, {
+    const res = await ServerFetch.post("/auth/signup", {
       lang: "en",
       email,
       password,
-    } satisfies RequestAuth<"signup">);
-    const resData = res.data as ResponseAuth<"signup">;
+    });
+    const resData = res.data;
 
     if (!resData.success) {
       Logger.error(
@@ -228,7 +227,7 @@ const insertFakeDataIntoTable = async (
 };
 
 export const createFakeData = async () => {
-  const tables = Object.entries(TABLE_MAP) as [TablesKeys, string][];
+  const tables = Helper.Object.entries(TABLE_MAP);
   const MIN_RECORDS = 5000;
   const chunkSize = 100;
 

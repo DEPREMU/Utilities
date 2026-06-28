@@ -6,7 +6,7 @@ import {
   isValidPassword,
 } from "@common";
 import chalk from "chalk";
-import bcrypt from "bcryptjs";
+import bcrypt from "@node-rs/bcrypt";
 import { prisma } from "@/database/postgres.ts";
 import { JWT, DATA_REASONS, getStorageData } from "../variables.ts";
 
@@ -159,19 +159,18 @@ export const handleSignIn = getHandlerPost(
           error: t("auth.invalidEmailFormat", lang),
         });
 
-      const [hashedPassword, userExists] = await Promise.all([
-        bcrypt.hash(password, 10),
-        prisma.users.findUnique({
-          where: { email },
-          select: { email: true },
-        }),
-      ]);
+      const userExists = await prisma.users.findUnique({
+        where: { email },
+        select: { email: true },
+      });
 
       if (userExists)
         return sendResponse("BAD_REQUEST", {
           success: false,
           error: t("auth.accountAlreadyExists", lang),
         });
+
+      const hashedPassword = await bcrypt.hash(password, 10);
 
       const user = await prisma.users.create({
         data: {

@@ -4,6 +4,10 @@ type FromEntries<T extends ReadonlyArray<readonly [PropertyKey, unknown]>> = {
   [E in T[number] as E[0]]: E[1];
 };
 
+type StrictEntries<T> = Array<{ [K in keyof T]: [K, T[K]] }[keyof T]>;
+type StrictKeys<T> = Array<keyof T>;
+type StrictValues<T> = Array<T[keyof T]>;
+
 export const Object = {
   removeProperties: <T extends Record<string, unknown>, K extends keyof T>(
     obj: T,
@@ -22,13 +26,13 @@ export const Object = {
     entries: T,
   ) => FromEntries<T>,
 
-  entries: global.Object.entries as <T extends Record<string, unknown>>(
+  entries: globalThis.Object.entries as <T extends object>(
     obj: T,
-  ) => Array<{ [K in keyof T]: [K, T[K]] }[keyof T]>,
+  ) => StrictEntries<T>,
 
-  values: global.Object.values,
-
-  keys: global.Object.keys as <T extends Record<string, unknown>>(
+  values: globalThis.Object.values as <T extends object>(
     obj: T,
-  ) => Array<keyof T>,
+  ) => StrictValues<T>,
+
+  keys: globalThis.Object.keys as <T extends object>(obj: T) => StrictKeys<T>,
 } as const;

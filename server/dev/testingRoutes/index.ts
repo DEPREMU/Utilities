@@ -83,11 +83,6 @@ const executeTest = async (
   }
 };
 
-/**
- * Executes all tests for a specific route
- * @param route - Route to test
- * @returns Array of test results
- */
 const executeRouteTests = async <M extends Exclude<MethodsAPI, "PUT">>(
   method: M,
   route: RoutesAPI[M],
