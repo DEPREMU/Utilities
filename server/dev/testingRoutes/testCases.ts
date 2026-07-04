@@ -20,19 +20,13 @@ export const expect = {
           U extends object
             ? {
                 [K in keyof U]?:
-                  | U[K]
-                  | AnyMatcher
-                  | AnythingMatcher
-                  | ObjectContainingMatcher;
+                  U[K] | AnyMatcher | AnythingMatcher | ObjectContainingMatcher;
               }
             : U | AnyMatcher | AnythingMatcher | ObjectContainingMatcher
         >
       : {
           [K in keyof T]?:
-            | T[K]
-            | AnyMatcher
-            | AnythingMatcher
-            | ObjectContainingMatcher;
+            T[K] | AnyMatcher | AnythingMatcher | ObjectContainingMatcher;
         },
   ): ObjectContainingMatcher<T> => ({
     __type: "objectContaining",
@@ -594,6 +588,8 @@ export const testCases: TestRoutes = {
       },
     ],
   },
+
+  PUT: { "/logs/": [] },
 
   DELETE: {
     "/logs/:logId": [

@@ -83,7 +83,7 @@ const executeTest = async (
   }
 };
 
-const executeRouteTests = async <M extends Exclude<MethodsAPI, "PUT">>(
+const executeRouteTests = async <M extends MethodsAPI>(
   method: M,
   route: RoutesAPI[M],
 ): Promise<TestResult[]> => {
@@ -226,7 +226,7 @@ export const runAllTests = async (
  * @param stopOnError - Whether to stop on first error
  * @returns Test summary for the route
  */
-export const runRouteTests = async <M extends Exclude<MethodsAPI, "PUT">>(
+export const runRouteTests = async <M extends MethodsAPI>(
   method: M,
   route: RoutesAPI[M],
   stopOnError = false,

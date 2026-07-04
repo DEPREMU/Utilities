@@ -1,4 +1,5 @@
 import { Get } from "./GetAPI";
+import { Put } from "./PutAPI";
 import { Post } from "./PostAPI";
 import { Delete } from "./DeleteAPI";
 import { CleanUrlParameters } from "@types";
@@ -9,6 +10,7 @@ export * from "./Response";
 export * from "./typesAPI";
 export * from "./typesUpdates";
 export * from "./GetAPI";
+export * from "./PutAPI";
 export * from "./PostAPI";
 export * from "./DeleteAPI";
 
@@ -41,18 +43,21 @@ type GetRecursiveRoutes<T, Prefix extends string = ""> = {
 }[keyof T];
 
 export type RoutesGetAPI = GetRecursiveRoutes<Get>;
+export type RoutesPutAPI = GetRecursiveRoutes<Put>;
 export type RoutesPostAPI = GetRecursiveRoutes<Post>;
 export type RoutesDeleteAPI = GetRecursiveRoutes<Delete>;
 
 declare global {
   export type RoutesAPI = {
     GET: RoutesGetAPI;
+    PUT: RoutesPutAPI;
     POST: RoutesPostAPI;
     DELETE: RoutesDeleteAPI;
   };
 
   export type FetchAPI<T extends MethodsAPI> = {
     GET: Get;
+    PUT: Put;
     POST: Post;
     DELETE: Delete;
   }[T];

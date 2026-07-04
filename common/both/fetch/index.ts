@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { FetchToServer, FetchToServerPerMethod } from "@types";
+import type { FetchToServer, FetchToServerPerMethod, MethodsAPI } from "@types";
 
 /**
  * Fetch class to handle server requests using axios. It provides methods for GET, POST, DELETE, and PUT requests, ensuring type safety and proper route handling.
@@ -29,6 +29,13 @@ export class ServerFetch {
         return segment;
       })
       .join("/");
+  }
+
+  static getRoute<T extends RoutesAPI[MethodsAPI]>(
+    route: keyof T,
+    params?: Record<string, unknown>,
+  ): string {
+    return ServerFetch.getValidRoute(route as string, params);
   }
 
   static get: FetchToServerPerMethod["GET"] = async (route, params, token) => {

@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { MethodsAPI, ResolveRoute } from "@types";
 
-//TODO: Remove exclude when PUT routes are added
-
 type GetFunction<T, R extends unknown[]> = (...args: R) => Promise<T> | T;
 
 export type AnyMatcher = {
@@ -29,15 +27,15 @@ export type ObjectContainingMatcher<T = any> = {
       };
 };
 
-type GetResponse<
-  T extends Exclude<MethodsAPI, "PUT">,
-  R extends RoutesAPI[T],
-> = ResolveRoute<FetchAPI<T>, R>["response"] extends object
+type GetResponse<T extends MethodsAPI, R extends RoutesAPI[T]> = ResolveRoute<
+  FetchAPI<T>,
+  R
+>["response"] extends object
   ? Partial<ResolveRoute<FetchAPI<T>, R>["response"]>
   : ResolveRoute<FetchAPI<T>, R>["response"] | null;
 
 type GetRequestBody<
-  T extends Exclude<MethodsAPI, "PUT">,
+  T extends MethodsAPI,
   R extends RoutesAPI[T],
 > = ResolveRoute<FetchAPI<T>, R>["body"] extends object
   ? Partial<ResolveRoute<FetchAPI<T>, R>["body"]>
@@ -50,7 +48,7 @@ type GetResponseWithType<T> = T extends object
   : T | AnyMatcher | AnythingMatcher | ObjectContainingMatcher<any>;
 
 export type TestRoutes = {
-  [K in Exclude<MethodsAPI, "PUT">]: {
+  [K in MethodsAPI]: {
     [R in RoutesAPI[K]]: ({
       description: string;
       shouldSucceed:
@@ -66,8 +64,7 @@ export type TestRoutes = {
         ? { requestBody?: never }
         : {
             requestBody:
-              | GetRequestBody<K, R>
-              | GetFunction<GetRequestBody<K, R>, []>;
+              GetRequestBody<K, R> | GetFunction<GetRequestBody<K, R>, []>;
           }))[];
   };
 };
