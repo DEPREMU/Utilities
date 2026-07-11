@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { APP_PATH } from "../config.ts";
+import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 
 const HEADER = "UDICT1";
 const MAX_WORDS = 300_000;
@@ -90,7 +91,7 @@ const run = () => {
       path.resolve(pathFiles, item.replace(".txt", ".dict")),
       output,
     );
-    console.log(
+    Logger.log(
       `Built ${item.replace(".txt", ".dict")} from ${item} with ${entries.length} words`,
     );
   }

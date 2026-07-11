@@ -1,6 +1,6 @@
 import {
   env,
-  ARGS,
+  args,
   APP_PATH,
   TYPES_PATH,
   SERVER_PATH,
@@ -11,18 +11,28 @@ import {
 } from "./config.ts";
 import fs from "fs";
 import path from "path";
+import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { execSync } from "child_process";
 import { formatFolder } from "./format-folder.ts";
+import { Helper } from "@commonSrc/both/index.ts";
 
-const run = () => {
-  const action = ARGS.action;
+const PATHS = {
+  App: APP_PATH,
+  Types: TYPES_PATH,
+  Server: SERVER_PATH,
+  Scripts: SCRIPTS_PATH,
+  UtilitiesForPC: UTILITIES_FOR_PC_PATH,
+} as const;
+
+const run = async () => {
+  const action = args.ARGS.action;
   if (!action) {
     throw new Error(
       "No action specified. Use --action=<action> or -h for help.",
     );
   }
 
-  console.log(`Running root action: ${action}`);
+  Logger.log(`Running root action: ${action}`);
 
   switch (action) {
     case "compile-check":
@@ -41,14 +51,11 @@ const run = () => {
       clean();
       break;
     case "clean-all":
-      clean();
+      await clean();
       installAll();
       break;
     case "format-all":
       formatAll();
-      break;
-    case "install-all":
-      installAll();
       break;
     case "app":
       execSync("yarn expo start -c", { cwd: APP_PATH, stdio: "inherit", env });
@@ -94,7 +101,7 @@ const run = () => {
   }
 };
 
-const clean = () => {
+const clean = async () => {
   const pathsToClean = [
     path.join(APP_PATH, ".expo"),
     path.join(APP_PATH, "android"),
@@ -110,22 +117,31 @@ const clean = () => {
     path.join(UTILITIES_FOR_PC_PATH, "dist-electron"),
   ];
 
-  console.log("Cleaning paths...");
-  pathsToClean.forEach((p) => {
-    if (!fs.existsSync(p)) return;
+  Logger.log("Cleaning paths...");
+  await Promise.all(
+    pathsToClean.map(async (p) => {
+      if (!(await fs.promises.stat(p).catch(() => false))) return;
 
-    console.log(`Removing ${p}`);
-    try {
-      fs.rmSync(p, { recursive: true, force: true });
-    } catch (error) {
-      console.warn(`Failed to remove ${p}, continuing...`);
-    }
-  });
+      // eslint-disable-next-line no-console
+      console.log(`Removing ${p}`);
+      await fs.promises
+        .rm(p, {
+          force: true,
+          recursive: true,
+        })
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.warn(`Failed to remove ${p}, continuing...`, error);
+        });
+    }),
+  );
 
+  // eslint-disable-next-line no-console
   console.log("Cleaning yarn cache in app...");
   try {
     execSync("yarn cache clean", { cwd: UTILITIES_PATH, stdio: "inherit" });
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.warn(
       "Failed to clean yarn cache in app, continuing...",
       e instanceof Error ? e.message : e,
@@ -134,66 +150,33 @@ const clean = () => {
 };
 
 const installAll = () => {
-  const dirs = [
-    APP_PATH,
-    TYPES_PATH,
-    SERVER_PATH,
-    SCRIPTS_PATH,
-    UTILITIES_FOR_PC_PATH,
-  ];
-  console.log(
-    `Installing dependencies in ${UTILITIES_PATH} for ${dirs.join(", ")} using yarn...`,
-  );
+  // eslint-disable-next-line no-console
+  console.log(`Installing dependencies in ${UTILITIES_PATH} using yarn...`);
 
   execSync("yarn install", {
     cwd: UTILITIES_PATH,
     stdio: "inherit",
-    env,
   });
 };
 
-const formatAll = () => {
-  console.log("Formatting app...");
-  formatFolder(APP_PATH);
-  console.log("Formatting server...");
-  formatFolder(SERVER_PATH);
-  console.log("Formatting UtilitiesForPC...");
-  formatFolder(UTILITIES_FOR_PC_PATH);
-  console.log("Formatting types...");
-  formatFolder(TYPES_PATH);
-  console.log("Formatting scripts...");
-  formatFolder(SCRIPTS_PATH);
+const formatAll = async () => {
+  await Promise.all(
+    Helper.Object.entries(PATHS).map(([name, cwd]) => {
+      Logger.log(`Formatting ${name}...`);
+
+      return formatFolder(cwd);
+    }),
+  );
 };
 
 const beforeCommit = () => {
   handleExitFromScript(() => {});
 
-  console.log("Running before-commit in app...");
-  execSync("yarn run before-commit", { cwd: APP_PATH, stdio: "inherit", env });
+  Helper.Object.entries(PATHS).forEach(([name, cwd]) => {
+    Logger.log(`Running before-commit in ${name}...`);
 
-  console.log("Running before-commit in server...");
-  execSync("yarn run before-commit", {
-    cwd: SERVER_PATH,
-    stdio: "inherit",
-    env,
+    execSync("yarn run before-commit", { cwd, stdio: "inherit", env });
   });
-
-  console.log("Running before-commit in UtilitiesForPC...");
-  execSync("yarn run before-commit", {
-    cwd: UTILITIES_FOR_PC_PATH,
-    stdio: "inherit",
-    env,
-  });
-
-  console.log("Running before-commit in types...");
-  execSync("yarn run before-commit", {
-    cwd: TYPES_PATH,
-    stdio: "inherit",
-    env,
-  });
-
-  console.log("Running type-check in scripts...");
-  execSync("yarn run type-check", { cwd: SCRIPTS_PATH, stdio: "inherit", env });
 };
 
 run();

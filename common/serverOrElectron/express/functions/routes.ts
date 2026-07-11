@@ -8,6 +8,8 @@ import type {
   GetRoutesPost,
   GetMainRouter,
   GetRoutesDelete,
+  Put,
+  GetRoutesPut,
 } from "@types";
 import chalk from "chalk";
 import { Router } from "express";
@@ -93,6 +95,13 @@ export const getRouterGet = <T extends keyof Get>(
   return getRouter("GET", key, routes);
 };
 
+export const getRouterPut = <T extends keyof Put>(
+  key: T,
+  routes: GetRoutesPut<T>,
+): Router => {
+  return getRouter("PUT", key, routes);
+};
+
 export const getMainRouter = (routes: GetMainRouter): Router => {
   const router = Router();
   Helper.Object.entries(routes).forEach(([path, { router: subRouter }]) => {
@@ -103,6 +112,7 @@ export const getMainRouter = (routes: GetMainRouter): Router => {
         `Error setting up sub-router for path ${path}: ${
           err instanceof Error ? err.message : String(err)
         }`,
+        { cause: err },
       );
     }
   });

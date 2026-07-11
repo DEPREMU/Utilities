@@ -1,6 +1,6 @@
 import {
   env,
-  ARGS,
+  args,
   APP_PATH,
   PLATFORM,
   UTILITIES_PATH,
@@ -8,6 +8,7 @@ import {
 } from "../config.ts";
 import fs from "fs";
 import path from "path";
+import { Logger } from "@commonSrc/serverOrElectron";
 import { execSync, spawn } from "child_process";
 
 const localEnv = {
@@ -44,43 +45,40 @@ const killProcessTree = (child?: ReturnType<typeof spawn> | null): void => {
 };
 
 handleExitFromScript(() => {
-  console.log("Finished app-build-dev-android script.");
+  Logger.log("Finished app-build-dev-android script.");
   killProcessTree(expo);
 
   if (PLATFORM.isWindows) return;
-  console.log("Cleaning up java processes...");
+  Logger.log("Cleaning up java processes...");
   spawn("pkill", ["-f", "java"]);
 });
 
 const run = () => {
   const androidPath = path.join(APP_PATH, "android");
   if (fs.existsSync(androidPath)) {
-    console.log("Removing android directory...");
+    Logger.log("Removing android directory...");
     fs.rmSync(androidPath, { recursive: true, force: true });
   }
 
-  console.log("Running prebuild...");
+  Logger.log("Running prebuild...");
   execSync("yarn run app-prebuild-android", {
     env: localEnv,
     cwd: UTILITIES_PATH,
     stdio: "inherit",
   });
 
-  console.log("Running android build...");
+  Logger.log("Running android build...");
   expo = spawnCommand(
     PLATFORM.isWindows ? "yarn" : "taskset",
     PLATFORM.isWindows
       ? ["expo", "run:android", "--no-build-cache"]
       : ["-c", "0-5", "yarn", "expo", "run:android", "--no-build-cache"],
-    {
-      cwd: APP_PATH,
-      env: localEnv,
-    },
+    { cwd: APP_PATH, env: localEnv },
   );
 };
 
 const runExpo = () => {
-  console.log("Running expo...");
+  Logger.log("Running expo...");
 
   expo = spawnCommand("expo", ["start", "--clear", "--dev-client"], {
     cwd: APP_PATH,
@@ -88,5 +86,5 @@ const runExpo = () => {
   });
 };
 
-if (!ARGS["skip-build-android"]) run();
+if (!args.ARGS["skip-build-android"]) run();
 else runExpo();

@@ -1,21 +1,19 @@
 import {
   env,
-  ARGS,
-  getArgs,
+  args,
   APP_PATH,
-  versionExpo,
-  isNewVersion,
+  versionExpo, 
   UTILITIES_PATH,
-  getRouteUpdates,
-  handleExitFromScript,
   deleteAndroidFromGitIgnore,
 } from "../config.ts";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
 import FormData from "form-data";
+import { Logger } from "@commonSrc/serverOrElectron";
 import { execSync } from "child_process";
 import type * as Types from "@types";
+import { isNewVersion, ServerFetch } from "@commonSrc/both";
 
 /**
  * Uploads Android APK build to the update server.
@@ -28,39 +26,30 @@ deleteAndroidFromGitIgnore();
 
 const checkIsNewVersion = async () => {
   try {
-    const body: Types.RequestIsUpdateAvailable<"android"> = {
-      buildType: "android",
-      currentVersion: versionExpo,
-      platformOS: undefined,
-    };
-
-    const res = await fetch(getRouteUpdates("/is-update-available"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const res = await ServerFetch.get(
+      "/updates/is-update-available/:version/:buildType",
+      {
+        version: versionExpo,
+        buildType: "android",
       },
-      body: JSON.stringify(body),
-    });
+    );
 
-    const result = (await res.json()) as Types.ResponseIsUpdateAvailable;
+    const result = res.data;
 
     if (!isNewVersion(versionExpo, result.latestVersion)) {
-      console.log("Version already exists on the server.");
+      Logger.log("Version already exists on the server.");
       process.exit(0);
     } else
-      console.log("New version detected. Proceeding with build and upload.");
+      Logger.log("New version detected. Proceeding with build and upload.");
   } catch (error) {
-    console.error("Error checking for new version:", error);
+    Logger.error("Error checking for new version:", error);
     process.exit(1);
   }
 };
 
 const uploadAndroidBuild = async () => {
   try {
-    const url = getRouteUpdates("/upload-update");
-
-    console.log(`Uploading Android build, version: ${versionExpo}`);
-    console.log(`Uploading to URL: ${url}`);
+    Logger.log(`Uploading Android build, version: ${versionExpo}`);
 
     const appBuildsPath = path.join(APP_PATH, "builds");
 
@@ -76,14 +65,14 @@ const uploadAndroidBuild = async () => {
     }
 
     const apkPath = path.join(appBuildsPath, apkFile);
-    console.log(`Found APK: ${apkFile}`);
+    Logger.log(`Found APK: ${apkFile}`);
 
     const data: Types.RequestUploadUpdate = {
       version: versionExpo,
       buildType: "android",
     };
 
-    console.log(`Uploading Android build...`, data);
+    Logger.log(`Uploading Android build...`, data);
 
     const formData = new FormData();
     formData.append("data", JSON.stringify(data));
@@ -96,6 +85,7 @@ const uploadAndroidBuild = async () => {
       });
     });
 
+    const url = ServerFetch.getRoute("/updates/upload");
     const response = await axios.post(url, formData, {
       headers: {
         ...formData.getHeaders(),
@@ -106,15 +96,15 @@ const uploadAndroidBuild = async () => {
       timeout: 10 * 60 * 1000,
     });
 
-    console.log("Upload successful:", response.data);
+    Logger.log("Upload successful:", response.data);
 
     if (response.data.error) {
       throw new Error(`Upload failed: ${response.data.error}`);
     }
 
-    console.log("\nAndroid build uploaded successfully!");
+    Logger.log("\nAndroid build uploaded successfully!");
   } catch (error) {
-    console.error(
+    Logger.error(
       "Fatal error during Android upload:",
       error instanceof Error ? error.message : String(error),
     );
@@ -122,26 +112,18 @@ const uploadAndroidBuild = async () => {
   }
 };
 
-console.log("=== Android Build and Upload Process ===\n");
-
-const handleClose = () => {
-  deleteAndroidFromGitIgnore(true);
-  process.exit(0);
-};
-
-handleExitFromScript(handleClose);
+Logger.log("=== Android Build and Upload Process ===\n");
 
 const run = async () => {
   await checkIsNewVersion();
-  if (!ARGS["skip-build-android"])
-    execSync(`yarn run build-android ${getArgs()}`, {
+  if (!args.ARGS["skip-build-android"])
+    execSync(`yarn run build-android ${args.getArgs()}`, {
       env,
-      stdio: "inherit",
       cwd: UTILITIES_PATH,
+      stdio: "inherit",
       killSignal: "SIGINT",
     });
   await uploadAndroidBuild();
-  handleClose();
 };
 
 run();

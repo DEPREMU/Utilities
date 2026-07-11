@@ -1,7 +1,9 @@
 import fs from "fs";
 import path from "path";
 import prettier from "prettier";
+import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { UTILITIES_PATH } from "./config.ts";
+import { Directory, File } from "@commonSrc/serverOrElectron/fs.ts";
 
 const validExtensions = [
   ".ts",
@@ -33,47 +35,50 @@ const isExcludedPath = (filePath: string): boolean => {
 export const formatFolder = async (
   localPath: string,
   prettierConfig?: prettier.Options,
-  first: boolean = true
+  first: boolean = true,
 ): Promise<number> => {
-  if (!fs.existsSync(localPath))
+  const dir = new Directory(localPath);
+  if (!(await dir.exists()))
     throw new Error(`Path does not exist: ${localPath}`);
 
-  const files = fs.readdirSync(localPath);
+  const files = await dir.readDir();
   const prettierFile = files.find(
-    (file) => file === ".prettierrc" || file === ".prettierrc.json"
+    (file) => file === ".prettierrc" || file === ".prettierrc.json",
   );
   if (prettierFile) {
     const configPath = path.join(localPath, prettierFile);
-    const configContent = fs.readFileSync(configPath, "utf-8");
+    const configContent = await new File(configPath).readFile("utf-8");
     prettierConfig = JSON.parse(configContent) as prettier.Options;
   }
-  console.log(`Using Prettier config: ${JSON.stringify(prettierConfig)}`);
+  Logger.log(`Using Prettier config: ${JSON.stringify(prettierConfig)}`);
 
   let formattedFiles = 0;
   await Promise.all(
-    files.map(async (file) => {
-      const fullPath = localPath + "/" + file;
-      const stats = fs.statSync(fullPath);
-      if (isExcludedPath(fullPath)) return;
-      console.log(`Formatting: ${fullPath}`);
+    files.map(async (_filename) => {
+      const file = new File(path.join(localPath, _filename));
+
+      const stats = await file.stats();
+
+      if (isExcludedPath(file.path) || !stats) return;
+      Logger.log(`Formatting: ${file.path}`);
       if (stats.isDirectory()) {
-        return await formatFolder(fullPath, prettierConfig, false);
-      } else if (stats.isFile() && isValidFileExtension(file)) {
-        const content = fs.readFileSync(fullPath, "utf-8");
+        return await formatFolder(file.path, prettierConfig, false);
+      } else if (stats.isFile() && isValidFileExtension(file.path)) {
+        const content = await file.readFile("utf-8");
         const formattedContent = await prettier.format(
           content,
           prettierConfig || {
-            filepath: fullPath,
+            filepath: file.path,
             endOfLine: "lf",
-          }
+          },
         );
-        fs.writeFileSync(fullPath, formattedContent, "utf-8");
+        await file.writeFile(formattedContent, "utf-8");
         formattedFiles++;
       }
-    })
+    }),
   );
   if (first) {
-    console.log(`Total formatted files: ${formattedFiles}`);
+    Logger.log(`Total formatted files: ${formattedFiles}`);
   }
   return formattedFiles;
 };

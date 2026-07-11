@@ -6,13 +6,13 @@ import {
 } from "child_process";
 import {
   env,
-  ARGS,
-  getArgs,
+  args,
   APP_PATH,
   PLATFORM,
   UTILITIES_FOR_PC_PATH,
 } from "../config.ts";
 import axios from "axios";
+import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import * as readline from "readline";
 
 const values = {
@@ -23,9 +23,8 @@ const values = {
 for (const [key, value] of Object.entries(values)) {
   env[key] = value;
   process.env[key] = value;
-  ARGS[key as keyof typeof ARGS] = value as never;
+  (args.ARGS as Record<string, unknown>)[key] = value as never;
 }
-const args = getArgs();
 
 interface ProcessState {
   expo: ChildProcess | null;
@@ -53,13 +52,13 @@ const spawnCommand = (
 
 const runBuildCommand = (command: string): void => {
   try {
-    console.log(`\x1b[36m[Build]\x1b[0m Executing: ${command}`);
+    Logger.log(`\x1b[36m[Build]\x1b[0m Executing: ${command}`);
     execSync(command, {
       env,
       stdio: "inherit",
     });
   } catch (error) {
-    console.error("\x1b[31m[Build Error]\x1b[0m Command failed:", error);
+    Logger.error("\x1b[31m[Build Error]\x1b[0m Command failed:", error);
   }
 };
 
@@ -70,7 +69,7 @@ const killElectron = async (): Promise<void> => {
     const res = await axios.get("http://localhost:9090/close-app", {
       timeout: 5000,
     });
-    if (!res.data?.success) console.error("Failed to close Electron app");
+    if (!res.data?.success) Logger.error("Failed to close Electron app");
 
     state.electron = null;
   } catch {
@@ -88,7 +87,7 @@ const killProcess = (
       return;
     }
 
-    console.log(`\x1b[33m[Manager]\x1b[0m Stopping ${name}...`);
+    Logger.log(`\x1b[33m[Manager]\x1b[0m Stopping ${name}...`);
 
     if (PLATFORM.isWindows && process.pid) {
       const killer = spawn("taskkill", ["/PID", `${process.pid}`, "/T", "/F"], {
@@ -106,18 +105,18 @@ const killProcess = (
     setTimeout(() => {
       if (process.exitCode) return;
 
-      console.warn(`\x1b[31m[Manager]\x1b[0m Force killing ${name}...`);
+      Logger.warn(`\x1b[31m[Manager]\x1b[0m Force killing ${name}...`);
       process.kill("SIGKILL");
     }, 5000);
   });
 };
 
 const startElectron = async (): Promise<ChildProcess> => {
-  runBuildCommand(`yarn run build-resources-electron ${args}`);
+  runBuildCommand(`yarn run build-resources-electron ${args.getArgs()}`);
 
   await killElectron();
 
-  console.log("\x1b[32m[Electron]\x1b[0m Starting...");
+  Logger.log("\x1b[32m[Electron]\x1b[0m Starting...");
 
   const electronEnv = {
     ...env,
@@ -136,7 +135,7 @@ const startElectron = async (): Promise<ChildProcess> => {
 
   child.on("close", (code) => {
     if (!state.isRestarting && !!code) {
-      console.log(`\x1b[31m[Electron]\x1b[0m Exited with code ${code}`);
+      Logger.log(`\x1b[31m[Electron]\x1b[0m Exited with code ${code}`);
     }
     child.removeAllListeners();
   });
@@ -145,7 +144,7 @@ const startElectron = async (): Promise<ChildProcess> => {
 };
 
 const startExpo = (): ChildProcess => {
-  console.log("\x1b[32m[Expo]\x1b[0m Starting...");
+  Logger.log("\x1b[32m[Expo]\x1b[0m Starting...");
 
   const expoEnv = {
     ...env,
@@ -163,17 +162,17 @@ const performRestart = async () => {
   state.isRestarting = true;
 
   try {
-    console.log("\x1b[33m[Manager]\x1b[0m Restarting Electron...");
+    Logger.log("\x1b[33m[Manager]\x1b[0m Restarting Electron...");
     state.electron = await startElectron();
   } catch (error) {
-    console.error("Error during restart:", (error as Error).message);
+    Logger.error("Error during restart:", (error as Error).message);
   } finally {
     state.isRestarting = false;
   }
 };
 
 const performExit = async () => {
-  console.log("\n\x1b[33m[Manager]\x1b[0m Shutting down all processes...");
+  Logger.log("\n\x1b[33m[Manager]\x1b[0m Shutting down all processes...");
 
   await killElectron();
 
@@ -190,7 +189,7 @@ const performExit = async () => {
   ]);
   if (state.expo && !state.expo.killed) state.expo?.kill("SIGKILL");
 
-  console.log("\x1b[32m[Manager]\x1b[0m Goodbye.");
+  Logger.log("\x1b[32m[Manager]\x1b[0m Goodbye.");
   process.exit(0);
 };
 
@@ -202,11 +201,11 @@ const run = async () => {
   readline.emitKeypressEvents(process.stdin);
   if (process.stdin.isTTY) process.stdin.setRawMode(true);
 
-  console.log("\n---------------------------------------------------------");
-  console.log(" \x1b[1mCONTROLS:\x1b[0m");
-  console.log(" \x1b[36m[r]\x1b[0m Restart Electron (rebuilds resources)");
-  console.log(" \x1b[31m[q]\x1b[0m Quit all processes");
-  console.log("---------------------------------------------------------\n");
+  Logger.log("\n---------------------------------------------------------");
+  Logger.log(" \x1b[1mCONTROLS:\x1b[0m");
+  Logger.log(" \x1b[36m[r]\x1b[0m Restart Electron (rebuilds resources)");
+  Logger.log(" \x1b[31m[q]\x1b[0m Quit all processes");
+  Logger.log("---------------------------------------------------------\n");
 
   process.stdin.on("keypress", async (_, key) => {
     if (key.name === "q" || (key.ctrl && key.name === "c")) await performExit();

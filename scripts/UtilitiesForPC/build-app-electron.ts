@@ -17,8 +17,7 @@
 
 import {
   ask,
-  ARGS,
-  getArgs,
+  args,
   PLATFORM,
   UTILITIES_PATH,
   handleExitFromScript,
@@ -29,6 +28,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { t } from "./translations.ts";
+import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { execSync } from "child_process";
 
 type BuildPlatform = "linux" | "windows";
@@ -37,7 +37,9 @@ const removeDirSafe = (dirPath: string) => {
   try {
     if (fs.existsSync(dirPath))
       fs.rmSync(dirPath, { recursive: true, force: true });
-  } catch {}
+  } catch {
+    // Ignore
+  }
 };
 
 const TEMP_FOLDER = path.join(
@@ -59,7 +61,7 @@ removeDirSafe(TEMP_FOLDER);
 fs.mkdirSync(TEMP_FOLDER, { recursive: true });
 
 const addAutostartLinux = async () => {
-  const answer0 = ARGS.yes ? "y" : await ask(t("enableAutoStartQuestion"));
+  const answer0 = args.ARGS.yes ? "y" : await ask(t("enableAutoStartQuestion"));
   if (answer0.toLowerCase() !== "y") return;
 
   const homePath = process.env.HOME;
@@ -161,7 +163,7 @@ ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
     );
     execSync(`sudo chmod 0440 /etc/sudoers.d/${fileSudoers}`);
   } catch (error) {
-    console.error("Failed to configure system files:", error);
+    Logger.error("Failed to configure system files:", error);
     throw error;
   }
 
@@ -171,15 +173,15 @@ ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
   fs.writeFileSync(desktopFilePath, desktopFileContent);
   execSync(`chmod +x ${desktopFilePath}`);
 
-  console.log(t("autoStartEnabled"));
+  Logger.log(t("autoStartEnabled"));
 };
 
 const buildApp = async () => {
   const buildPlatform: BuildPlatform = PLATFORM.isWindows ? "windows" : "linux";
 
-  console.log(t("elevatingPermissions"));
+  Logger.log(t("elevatingPermissions"));
 
-  console.log(t("buildingApp") + ` (isWindows=${PLATFORM.isWindows})`);
+  Logger.log(t("buildingApp") + ` (isWindows=${PLATFORM.isWindows})`);
   execSync(
     `yarn run build-resources-electron --isWindows=${PLATFORM.isWindows}`,
     {
@@ -208,7 +210,7 @@ const buildApp = async () => {
     else fs.renameSync(dir, path.join(TEMP_FOLDER, path.basename(dir)));
   });
 
-  console.log(t("appBuildCommandExecuted"));
+  Logger.log(t("appBuildCommandExecuted"));
 
   execSync("yarn install", {
     cwd: TEMP_FOLDER,
@@ -216,32 +218,32 @@ const buildApp = async () => {
   });
 
   if (buildPlatform === "windows") {
-    console.log(t("buildingWindowsExecutable"));
+    Logger.log(t("buildingWindowsExecutable"));
 
     execSync("yarn electron-builder --win", {
       cwd: TEMP_FOLDER,
       stdio: "inherit",
     });
 
-    console.log(t("windowsBuildCompleted"));
+    Logger.log(t("windowsBuildCompleted"));
   } else if (buildPlatform === "linux") {
-    console.log(t("buildingLinuxPackage"));
+    Logger.log(t("buildingLinuxPackage"));
 
-    console.log(t("installingLinuxDependencies"));
+    Logger.log(t("installingLinuxDependencies"));
     try {
       execSync(
         "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
         { stdio: "inherit" },
       );
-    } catch (error) {
-      console.log(t("someDependenciesInstalled"));
+    } catch {
+      Logger.log(t("someDependenciesInstalled"));
     }
 
     execSync("yarn electron-builder --linux deb", {
       cwd: TEMP_FOLDER,
       stdio: "inherit",
     });
-    console.log("\n" + t("appPackagedSuccessfully"));
+    Logger.log("\n" + t("appPackagedSuccessfully"));
   }
 
   const extension = PLATFORM.isWindows ? ".exe" : ".deb";
@@ -267,7 +269,7 @@ const buildApp = async () => {
 
   if (PLATFORM.isWindows) return;
 
-  const installAnswer = ARGS.yes
+  const installAnswer = args.ARGS.yes
     ? "y"
     : await ask(t("installDebPackagePrompt"), -1);
   if (installAnswer.toLowerCase() === "y") {
@@ -283,10 +285,10 @@ const buildApp = async () => {
 
     const answer = await ask(t("pleaseRestartComputer"), 10000);
     if (answer.toLowerCase() === "y") {
-      console.log(t("restartNow"));
+      Logger.log(t("restartNow"));
       execSync("sudo reboot", { stdio: "inherit" });
     } else {
-      console.log(t("restartingComputer"));
+      Logger.log(t("restartingComputer"));
     }
 
     const answer2 = await ask(t("openAppNow"), 60000);
@@ -298,7 +300,7 @@ const buildApp = async () => {
     }
   }
 
-  console.log(
+  Logger.log(
     `\n${t("appPackagedSuccessMessage")} ${
       PLATFORM.isWindows ? t("appPackagedSuccessMessage") : ""
     }`,
@@ -317,8 +319,7 @@ const run = async () => {
     };
 
     if (!isElevated()) {
-      const args = getArgs();
-      const command = `cd ${UTILITIES_PATH}; yarn run build-app-electron ${args}; pause`;
+      const command = `cd ${UTILITIES_PATH}; yarn run build-app-electron ${args.getArgs()}; pause`;
 
       execSync(
         `powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process PowerShell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command ${command}'"`,
@@ -332,14 +333,14 @@ const run = async () => {
     cwd: UTILITIES_PATH,
     stdio: "inherit",
   });
-  console.log(t("webAppBuiltSuccessfully"));
+  Logger.log(t("webAppBuiltSuccessfully"));
 
   await buildApp();
 };
 
 handleExitFromScript(async (err) => {
-  if (err) console.error("An error occurred:", err.message);
-  if (!ARGS.yes) await ask(t("pressEnterToExit"), -1);
+  if (err) Logger.error("An error occurred:", err.message);
+  if (!args.ARGS.yes) await ask(t("pressEnterToExit"), -1);
   removeDirSafe(TEMP_FOLDER);
 });
 

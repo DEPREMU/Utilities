@@ -16,9 +16,9 @@ import {
 import fs from "fs";
 import path from "path";
 import axios from "axios";
-import archiver from "archiver";
 import FormData from "form-data";
 import { execSync } from "child_process";
+import { ZipArchive } from "archiver";
 
 const isNewVersionWeb = {
   linux: false,
@@ -117,7 +117,7 @@ const uploadWeb = async (): Promise<boolean> => {
     );
     const output = fs.createWriteStream(zipPath);
 
-    const zip = archiver("zip", {
+    const zip = new ZipArchive({
       zlib: { level: 9 },
     });
     zip.pipe(output);
