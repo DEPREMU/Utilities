@@ -1,5 +1,5 @@
 import {
-  getArgs,
+  args,
   APP_PATH,
   UTILITIES_PATH,
   UTILITIES_FOR_PC_PATH,
@@ -8,6 +8,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { t } from "./translations.ts";
+import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { execSync } from "child_process";
 
 const dataBuild = {
@@ -21,28 +22,29 @@ const removeDirSafe = (dirPath: string) => {
   try {
     if (fs.existsSync(dirPath))
       fs.rmSync(dirPath, { recursive: true, force: true });
-  } catch {}
+  } catch {
+    // Ignore
+  }
 };
 
 const exportWebApp = () => {
   if (!fs.existsSync(APP_PATH))
     throw new Error(t("appPathDoesNotExist") + APP_PATH);
 
-  const args = getArgs();
 
-  console.log(t("installingDependencies"));
+  Logger.log(t("installingDependencies"));
   execSync("yarn install", { cwd: UTILITIES_PATH });
-  console.log(t("dependenciesInstalled"));
+  Logger.log(t("dependenciesInstalled"));
 
-  console.log(t("buildingWebApp"));
-  const data = execSync(`yarn run build-web ${args}`, {
+  Logger.log(t("buildingWebApp"));
+  const data = execSync(`yarn run build-web ${args.getArgs()}`, {
     cwd: UTILITIES_PATH,
   });
   if (!data.toString().includes("Exported: dist"))
     throw new Error(t("failedToBuildWebApp") + data.toString());
-  console.log(t("webAppBuiltSuccessfully"));
+  Logger.log(t("webAppBuiltSuccessfully"));
 
-  console.log(t("cleaningUpOldBuildDirectories"));
+  Logger.log(t("cleaningUpOldBuildDirectories"));
   [
     path.resolve(UTILITIES_FOR_PC_PATH, "dist"),
     dataBuild.distElectron,
@@ -51,9 +53,9 @@ const exportWebApp = () => {
   ].forEach((dir) => {
     removeDirSafe(dir);
   });
-  console.log(t("oldBuildDirectoriesCleaned"));
+  Logger.log(t("oldBuildDirectoriesCleaned"));
 
-  console.log(t("preparingFilesForElectronApp"));
+  Logger.log(t("preparingFilesForElectronApp"));
   const distPath = path.resolve(APP_PATH, "dist");
   const distPathToCopy = path.resolve(UTILITIES_FOR_PC_PATH, "dist");
   fs.cpSync(distPath, distPathToCopy, { recursive: true });
@@ -64,7 +66,7 @@ const run = async () => {
   try {
     exportWebApp();
   } catch (error) {
-    console.error(t("buildFailed"), error);
+    Logger.error(t("buildFailed"), error);
     process.exit(1);
   }
 };

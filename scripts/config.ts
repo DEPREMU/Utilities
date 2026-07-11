@@ -2,11 +2,11 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import readline from "readline";
-import { ARGS } from "./arguments.ts";
+import { args } from "./arguments.ts";
 import type * as Types from "@types";
-import APP_CONFIG_FUNC from "../app/app.config.ts";
-import type PACKAGE_JSON_APP from "../UtilitiesForPC/package.json";
-import type PACKAGE_JSON_UTILITIES_FOR_PC from "../UtilitiesForPC/package.json";
+import APP_CONFIG_FUNC from "@appSrc/app.config.ts";
+import type PACKAGE_JSON_APP from "@appSrc/package.json";
+import type PACKAGE_JSON_UTILITIES_FOR_PC from "@utilitiesSrc/package.json";
 
 export const UTILITIES_PATH = path.resolve();
 if (!UTILITIES_PATH.endsWith("Utilities"))
@@ -35,7 +35,7 @@ export const APP_CONFIG = APP_CONFIG_FUNC(
     projectRoot: APP_PATH,
     staticConfigPath: path.resolve(APP_PATH, "app.config.ts"),
   },
-  ARGS.BUILD_PROFILE ?? process.env.BUILD_PROFILE ?? "production",
+  args.ARGS.BUILD_PROFILE ?? process.env.BUILD_PROFILE ?? "production",
 );
 
 export const GRADLE_OPTS = "-Xmx4g -XX:MaxMetaspaceSize=1536m";
@@ -63,18 +63,10 @@ if (!versionElectron)
 dotenv.config({ path: path.resolve(UTILITIES_PATH, ".env") });
 export const env = {
   ...process.env,
-  PLATFORM: ARGS.platform ?? "android",
-  EAS_BUILD: false,
-  BUILD_PROFILE: ARGS.BUILD_PROFILE ?? "production",
-} as unknown as Types.Env & NodeJS.ProcessEnv;
-
-export const URL_UPDATES = env.API_URL?.replace("api", "updates") as string;
-if (!URL_UPDATES)
-  throw new Error("API_URL is not defined in environment variables.");
-
-export const getRouteUpdates = (route: Types.UpdatesRoutes): string => {
-  return `${URL_UPDATES}${route}`;
-};
+  PLATFORM: args.ARGS.platform ?? "android",
+  EAS_BUILD: "0",
+  BUILD_PROFILE: args.ARGS.BUILD_PROFILE ?? "production",
+} as Partial<Types.Env> & NodeJS.ProcessEnv;
 
 export const ask = async (
   question: string,
@@ -100,15 +92,12 @@ export const ask = async (
   });
 };
 
-export const deleteAndroidFromGitIgnore = (restore = false) => {
-  if (restore) {
-    let prev = gitignore;
-    if (!prev.includes("android/")) prev += "\nandroid/";
-
-    fs.writeFileSync(path.resolve(UTILITIES_PATH, ".gitignore"), prev);
-    return;
-  }
-
+/**
+ * Deletes the "android/" line from the .gitignore file in the Utilities directory.
+ * This is useful when you want to temporarily include the android/ directory in version control.
+ * The original .gitignore content is restored when the process exits.
+ */
+export const deleteAndroidFromGitIgnore = () => {
   const lines = gitignore
     .split("\n")
     .filter((line) => !line.trim().includes("android/"));
@@ -117,24 +106,32 @@ export const deleteAndroidFromGitIgnore = (restore = false) => {
     path.resolve(UTILITIES_PATH, ".gitignore"),
     lines.join("\n"),
   );
-};
 
-export const getSumVersion = (version: string): number => {
-  return version
-    .split(".")
-    .reduce(
-      (sum, part, index) => sum + parseInt(part) * Math.pow(1000, 2 - index),
-      0,
-    );
-};
+  let isRestored = false;
+  const restoreGitIgnore = () => {
+    if (isRestored) return;
+    isRestored = true;
 
-export const isNewVersion = (
-  current: string,
-  serverVersion: string,
-): boolean => {
-  if (serverVersion.toLowerCase() === "unknown") return true;
+    let prev = gitignore;
+    if (!prev.includes("android/")) prev += "\nandroid/";
 
-  return getSumVersion(serverVersion) < getSumVersion(current);
+    fs.writeFileSync(path.resolve(UTILITIES_PATH, ".gitignore"), prev);
+  };
+
+  const events: Set<keyof process.ProcessEventMap> = new Set([
+    "exit", //? On exit
+    "SIGINT", //? On Ctrl+C
+    "SIGHUP", //? On terminal close
+    "SIGQUIT", //? On quit signal
+    "SIGTERM", //? On termination signal
+    "beforeExit", //? Before the event loop ends
+    "uncaughtException", //? On uncaught exceptions
+    "unhandledRejection", //? On unhandled promise rejections
+  ]);
+
+  events.forEach((event) => {
+    process.on(event, restoreGitIgnore);
+  });
 };
 
 export const handleExitFromScript = (fun: (err?: Error) => void) => {

@@ -1,56 +1,36 @@
-import type {
-  PlatformsOS,
-  RequestUploadUpdate,
-  RequestIsUpdateAvailable,
-} from "@types";
 import {
-  ARGS,
-  getArgs,
+  args,
   PLATFORM,
-  isNewVersion,
   UTILITIES_PATH,
   versionElectron,
-  getRouteUpdates,
   UTILITIES_FOR_PC_PATH,
 } from "../config.ts";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
 import FormData from "form-data";
+import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { execSync } from "child_process";
-import type * as Types from "@types";
+import { ServerFetch } from "@commonSrc/both/index.ts";
+import type { PlatformsOS, RequestUploadUpdate } from "@types";
 
 let isNewVersionLinux: boolean;
 let isNewVersionWindows: boolean;
 
-const isNewVersionPlatform = async (platformOS: PlatformsOS) => {
+const isNewVersionPlatform = async (platform: PlatformsOS) => {
   try {
-    const body: RequestIsUpdateAvailable = {
-      buildType: "electron",
-      currentVersion: versionElectron,
-      platformOS,
-    };
-
-    const res = await fetch(getRouteUpdates("/is-update-available"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const res = await ServerFetch.get(
+      "/updates/is-update-available/:version/:buildType/:platform-optional",
+      {
+        platform,
+        version: versionElectron,
+        buildType: "electron",
       },
-      body: JSON.stringify(body),
-    });
+    );
 
-    const result = (await res.json()) as Types.ResponseIsUpdateAvailable;
-
-    const isNew = isNewVersion(versionElectron, result.latestVersion);
-    if (!isNew) {
-      console.log(
-        `No new ${platformOS} version available. Current: ${versionElectron}, Latest: ${result.latestVersion}`,
-      );
-    }
-
-    return isNew;
+    return res.data.isUpdateAvailable;
   } catch (error) {
-    console.error(
+    Logger.error(
       "Error checking for new version:",
       error instanceof Error ? error.message : String(error),
     );
@@ -60,7 +40,7 @@ const isNewVersionPlatform = async (platformOS: PlatformsOS) => {
 
 const uploadElectronBuilds = async () => {
   try {
-    console.log("Uploading Electron builds, version:", versionElectron);
+    Logger.log("Uploading Electron builds, version:", versionElectron);
 
     const distElectronPath = path.join(UTILITIES_FOR_PC_PATH, "dist-electron");
 
@@ -100,7 +80,7 @@ const uploadElectronBuilds = async () => {
       );
     }
 
-    console.log(
+    Logger.log(
       `Found ${availablePlatforms.length} build(s):`,
       availablePlatforms
         .map((p) => `${p.platformOS} (${path.basename(p.file)})`)
@@ -125,7 +105,7 @@ const uploadElectronBuilds = async () => {
             version: versionElectron,
           };
 
-          console.log(
+          Logger.log(
             `Uploading ${platformOS} build: ${path.basename(file)}...`,
             data,
           );
@@ -142,7 +122,7 @@ const uploadElectronBuilds = async () => {
           });
 
           const response = await axios.post(
-            getRouteUpdates("/upload-update"),
+            ServerFetch.getRoute("/updates/upload"),
             formData,
             {
               headers: {
@@ -155,15 +135,15 @@ const uploadElectronBuilds = async () => {
             },
           );
 
-          console.log(`Upload successful for ${platformOS}:`, response.data);
+          Logger.log(`Upload successful for ${platformOS}:`, response.data);
           return {
             platformOS,
             success: !response.data?.error,
             data: response.data,
           };
         } catch (error) {
-          console.error(`Failed to upload ${platformOS} build:`);
-          console.error(error instanceof Error ? error.message : String(error));
+          Logger.error(`Failed to upload ${platformOS} build:`);
+          Logger.error(error instanceof Error ? error.message : String(error));
           return {
             platformOS,
             success: false,
@@ -175,27 +155,25 @@ const uploadElectronBuilds = async () => {
 
     const results = await Promise.all(uploadPromises);
 
-    console.log("\n=== Electron Upload Summary ===");
+    Logger.log("\n=== Electron Upload Summary ===");
     const successCount = results.filter((r) => r.success).length;
     results.forEach((result) => {
       const status = result.success ? "Success" : "Failed";
-      console.log(`${result.platformOS}: ${status}`);
+      Logger.log(`${result.platformOS}: ${status}`);
       if (!result.success && "error" in result) {
-        console.log(`  Error: ${result.error}`);
+        Logger.log(`  Error: ${result.error}`);
       }
     });
 
-    console.log(
-      `\nTotal: ${successCount}/${results.length} successful uploads`,
-    );
+    Logger.log(`\nTotal: ${successCount}/${results.length} successful uploads`);
 
     if (successCount === 0) {
       throw new Error("All Electron uploads failed");
     }
 
-    console.log("\nElectron builds uploaded successfully!");
+    Logger.log("\nElectron builds uploaded successfully!");
   } catch (error) {
-    console.error(
+    Logger.error(
       "Fatal error during Electron upload:",
       error instanceof Error ? error.message : String(error),
     );
@@ -204,7 +182,7 @@ const uploadElectronBuilds = async () => {
 };
 
 const buildElectronApp = () => {
-  console.log("Starting Electron app build process...");
+  Logger.log("Starting Electron app build process...");
 
   if (!fs.existsSync(UTILITIES_FOR_PC_PATH)) {
     throw new Error(
@@ -214,13 +192,13 @@ const buildElectronApp = () => {
 
   const platform = PLATFORM.isWindows ? "windows" : "linux";
 
-  console.log(`Building Electron app for platform: ${platform}`);
+  Logger.log(`Building Electron app for platform: ${platform}`);
 
-  const args = getArgs();
+  const ARGS = args.getArgs();
 
   execSync(
     `yarn run build-app-electron ${
-      args.includes("platform") ? args : `${args} --platform=${platform}`
+      ARGS.includes("platform") ? ARGS : `${ARGS} --platform=${platform}`
     }`,
     {
       cwd: UTILITIES_PATH,
@@ -229,10 +207,10 @@ const buildElectronApp = () => {
     },
   );
 
-  console.log("Electron app build completed!");
+  Logger.log("Electron app build completed!");
 };
 
-console.log("=== Electron Build and Upload Process ===\n");
+Logger.log("=== Electron Build and Upload Process ===\n");
 
 if (PLATFORM.isWindows) {
   const isElevated = () => {
@@ -245,8 +223,7 @@ if (PLATFORM.isWindows) {
   };
 
   if (!isElevated()) {
-    const args = getArgs();
-    const command = `cd ${UTILITIES_PATH}; yarn run build-upload-electron ${args}; pause`;
+    const command = `cd ${UTILITIES_PATH}; yarn run build-upload-electron ${args.getArgs()}; pause`;
 
     execSync(
       `powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process PowerShell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command ${command}'"`,
@@ -264,15 +241,15 @@ const run = async () => {
   }
 
   if (!isNewVersionLinux && !isNewVersionWindows) {
-    console.log(
+    Logger.log(
       "No new version available for either platform. Exiting without uploading.",
     );
     return;
   }
 
-  if (!ARGS["skip-build-electron"]) buildElectronApp();
+  if (!args.ARGS["skip-build-electron"]) buildElectronApp();
   uploadElectronBuilds().catch((error) => {
-    console.error(
+    Logger.error(
       "Process failed:",
       error instanceof Error ? error.message : String(error),
     );

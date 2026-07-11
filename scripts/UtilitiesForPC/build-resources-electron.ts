@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import {
-  ARGS,
+  args,
   versionExpo,
   COMMON_PATH,
   versionElectron,
@@ -15,11 +15,11 @@ import type { BuildOptions } from "esbuild";
 
 let isWindows = os.platform() === "win32";
 
-if (typeof ARGS["isWindows"] === "boolean") {
+if (typeof args.ARGS.isWindows === "boolean") {
   console.log(
-    `Building for platform ${ARGS["isWindows"] ? "Windows" : "Linux"} as specified in arguments.`,
+    `Building for platform ${args.ARGS.isWindows ? "Windows" : "Linux"} as specified in arguments.`,
   );
-  isWindows = ARGS["isWindows"];
+  isWindows = args.ARGS.isWindows;
 }
 
 const baseConfig: BuildOptions = {
@@ -30,7 +30,7 @@ const baseConfig: BuildOptions = {
   legalComments: "none",
 };
 
-const BUILD_PROFILE = ARGS.BUILD_PROFILE || "production";
+const BUILD_PROFILE = args.ARGS.BUILD_PROFILE || "production";
 
 build({
   ...baseConfig,

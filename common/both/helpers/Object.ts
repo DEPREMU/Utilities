@@ -1,4 +1,4 @@
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 type FromEntries<T extends ReadonlyArray<readonly [PropertyKey, unknown]>> = {
   [E in T[number] as E[0]]: E[1];

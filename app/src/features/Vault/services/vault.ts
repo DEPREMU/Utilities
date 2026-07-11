@@ -1,13 +1,12 @@
 import {
   logger,
-  getSumVersion,
   sanitizeFileName,
   getImageFromVideo,
   getMimeTypeFromExtension,
 } from "@utils";
-import { Timers } from "@common";
 import * as ExpoSQL from "expo-sqlite";
 import { FolderFiles } from "@types";
+import { isNewVersion, Timers } from "@common";
 
 const TAG = "VaultService";
 const DB_NAME = "vault.db";
@@ -98,6 +97,7 @@ const select = (
 type WhereClause = Record<string, unknown> | string;
 
 const getWhereClouse = (whereClause: WhereClause) => {
+  // eslint-disable-next-line no-useless-assignment
   let whereStr = "";
   if (typeof whereClause === "string") {
     whereStr = whereClause;
@@ -236,9 +236,7 @@ class VaultService {
         return;
       } else if (versionRow.value === DB_VERSION) return;
 
-      const targetVersion = getSumVersion(DB_VERSION);
-      const currentVersion = getSumVersion(versionRow.value);
-      if (targetVersion > currentVersion) {
+      if (isNewVersion(versionRow.value, DB_VERSION)) {
         await this.#migrateDB();
       }
     } catch (e) {

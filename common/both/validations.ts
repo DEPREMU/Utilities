@@ -71,3 +71,10 @@ export const getSumVersion = (version: string): number => {
     return 0;
   }
 };
+
+export const isNewVersion = (
+  currentVersion: string,
+  latestVersion: string,
+): boolean => {
+  return getSumVersion(latestVersion) > getSumVersion(currentVersion);
+};

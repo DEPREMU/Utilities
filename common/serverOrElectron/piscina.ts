@@ -8,9 +8,13 @@ export const PiscinaWorkerFiles: Record<WorkerFiles, string> = {
 };
 
 export const getPiscinaWorkerPath = (worker: WorkerFiles) => {
-  return path.join(
-    __dirname ?? path.resolve(),
-    "piscina",
-    PiscinaWorkerFiles[worker],
-  );
+  try {
+    return path.join(
+      __dirname ?? path.resolve(),
+      "piscina",
+      PiscinaWorkerFiles[worker],
+    );
+  } catch {
+    return path.join(path.resolve(), "piscina", PiscinaWorkerFiles[worker]);
+  }
 };
