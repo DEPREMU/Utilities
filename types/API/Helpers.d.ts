@@ -158,7 +158,7 @@ type JsTypes<O> = O extends readonly (keyof TypeOfJS)[]
     ? TypeOfJS[O]
     : never;
 
-type MergeField<Original, O> =
+export type MergeField<Original, O> =
   JsTypes<O> extends infer J
     ? J extends unknown
       ? Original extends J
@@ -184,7 +184,7 @@ export type GetHandlerType<H extends RouterFetch, M extends MethodsAPI> = <
   callback: (
     body: T,
     sendResponse: (
-      status: keyof typeof STATUS_RESPONSE,
+      status: STATUS_RESPONSE,
       message: Extract<H[K], { url: U }>["response"],
     ) => void,
     express: {

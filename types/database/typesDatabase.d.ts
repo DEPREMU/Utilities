@@ -19,8 +19,9 @@ import type { ReasonNotification } from "../typesNotifications";
 
 declare global {
   export type DB = {
-    Tables: Tables;
     TablesKeys: TablesKeys;
+    TablesServer: TablesServer;
+    TablesClient: TablesClient;
     LanguagesSupported: LanguagesSupported;
     ReasonNotification: ReasonNotification;
   };
@@ -42,7 +43,21 @@ export type CryptosSettings = Prisma.CryptosSettingsGetPayload<{
   };
 }>;
 
-export type Tables = {
+type Serialized<T> = T extends string | number | boolean | null | undefined
+  ? T
+  : T extends Date
+    ? string
+    : T extends Prisma.Decimal
+      ? number
+      : T extends bigint
+        ? string
+        : T extends readonly (infer U)[]
+          ? Serialized<U>[]
+          : T extends object
+            ? { [K in keyof T]: Serialized<T[K]> }
+            : T;
+
+export type TablesServer = {
   Logs: Logs;
   Notes: Notes;
   Users: Users;
@@ -57,7 +72,11 @@ export type Tables = {
   UserNotificationsConfig: UserNotificationConfig;
 };
 
-export type TablesKeys = keyof Tables;
+export type TablesClient = {
+  [K in keyof TablesServer]: Serialized<TablesServer[K]>;
+};
+
+export type TablesKeys = keyof TablesServer;
 
 export type UserKeys = keyof Users;
 export type LogsKeys = keyof Logs;

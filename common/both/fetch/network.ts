@@ -1,21 +1,19 @@
 import axios from "axios";
-import { Timers } from "./timer.ts";
+import { Timers } from "../timer.ts";
 
-export const STATUS_RESPONSE = {
-  SUCCESS: 200,
-  FORBIDDEN: 403,
-  NOT_FOUND: 404,
-  NO_CONTENT: 204,
-  BAD_REQUEST: 400,
-  UNAUTHORIZED: 401,
-  PAYLOAD_TOO_LARGE: 413,
-  INTERNAL_SERVER_ERROR: 500,
-} as const;
+export const enum STATUS_RESPONSE {
+  SUCCESS = 200,
+  FORBIDDEN = 403,
+  NOT_FOUND = 404,
+  NO_CONTENT = 204,
+  BAD_REQUEST = 400,
+  UNAUTHORIZED = 401,
+  PAYLOAD_TOO_LARGE = 413,
+  INTERNAL_SERVER_ERROR = 500,
+}
 
 export class Network {
   static readonly URL_GOOGLE_204 = "https://www.google.com/generate_204";
-
-  static readonly STATUS_RESPONSE = STATUS_RESPONSE;
 
   /**
    * Checks if the device has an active internet connection by attempting to reach a Google server.
