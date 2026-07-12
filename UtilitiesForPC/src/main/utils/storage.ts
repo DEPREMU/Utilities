@@ -361,7 +361,7 @@ export const encryptFile = async (
   password: string,
 ): Promise<boolean> => {
   const result = await encryptionTask.getResult({
-    functionName: "encryptData",
+    functionName: "encryptFile",
     data: { password, inputPath, outputPath },
   });
   if (result instanceof Error) {
@@ -378,7 +378,7 @@ export const decryptFile = async (
   password: string,
 ): Promise<boolean> => {
   const result = await encryptionTask.getResult({
-    functionName: "decryptData",
+    functionName: "decryptFile",
     data: { password, inputPath, outputPath },
   });
 

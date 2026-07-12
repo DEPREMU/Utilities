@@ -1,8 +1,3 @@
-import {
-  BuildTypeUpdates,
-  RequestIsUpdateAvailable,
-  ResponseIsUpdateAvailable,
-} from "@types";
 import path from "path";
 import axios from "axios";
 import dotenv from "dotenv";
@@ -11,9 +6,9 @@ import dataApp from "./variables";
 import { Logger } from "./logger";
 import { exec, spawn } from "child_process";
 import { handleShutdown } from "./server";
+import { BuildTypeUpdates } from "@types";
 import { nativeData, Paths } from "@utils";
-import type { UpdatesRoutes } from "@types";
-import { File, Timers, Directory, Network } from "@common";
+import { File, Timers, Directory, Network, ServerFetch } from "@common";
 
 if (!app.isPackaged)
   dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
@@ -23,10 +18,6 @@ const urlUpdates = process.env.API_URL?.replace("api", "updates"); // API_URL re
 if (!urlUpdates) {
   throw new Error("API_URL is not defined.");
 }
-
-const getURLUpdates = (route: UpdatesRoutes): string => {
-  return `${urlUpdates}${route}`;
-};
 
 export const deleteDownloadedUpdate = async () => {
   if (!dataApp) return;
@@ -150,7 +141,7 @@ export const downloadNewUpdate = async (
 export const updateWeb = async (downloadUrl: string): Promise<void> => {
   try {
     const file = new File(
-      path.join(dataApp.getValue("downloadsPath"), "utilities-for-pc-web.zip"),
+      path.join(Paths.DOWNLOADS, "utilities-for-pc-web.zip"),
     );
 
     const status = await downloadNewUpdate(downloadUrl, file);
@@ -207,28 +198,23 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
       : dataApp.getValue("currentWebVersion");
 
   try {
-    const body: RequestIsUpdateAvailable = {
-      buildType,
-      currentVersion,
-      platformOS: dataApp.getValue("isWindows") ? "windows" : "linux",
-    };
-
     const hasInternet = await Network.waitForOnline(5, 3000);
     if (!hasInternet) {
       Logger.warn("No internet connection. Skipping update check.");
       return;
     }
 
-    const res = await axios.post(getURLUpdates("/is-update-available"), body, {
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+    const res = await ServerFetch.get(
+      "/updates/is-update-available/:version/:buildType/:platform-optional",
+      {
+        buildType,
+        platform: dataApp.getValue("isWindows") ? "windows" : "linux",
+        version: currentVersion,
       },
-      timeout: 5000,
-    });
+    );
 
-    const data = res.data as ResponseIsUpdateAvailable;
-    if (!data?.updateAvailable) return;
+    const data = res.data;
+    if (!data?.isUpdateAvailable || !data.downloadUrl) return;
     dataApp.setValue("isUpdating", true);
 
     if (buildType === "electron") {

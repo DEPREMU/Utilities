@@ -7,12 +7,9 @@ import machineId from "node-machine-id";
 import { Server } from "http";
 import { Logger } from "./logger";
 import { AdvertisementTXT } from "@types";
-import { Bonjour, ServiceConfig } from "bonjour-service";
+import Bonjour, { ServiceConfig } from "bonjour-service";
 import { clearTempFiles, executeTerminalCommands } from "./storage";
-import { Timers, stopMemoryMonitor, handleChangeImageFormat } from "@common";
-
-if (!handleChangeImageFormat)
-  throw new Error("handleChangeImageFormat is not defined");
+import { Timers, stopMemoryMonitor, ROUTER_IMAGES } from "@common";
 
 let idTimeoutServer: NodeJS.Timeout | number | null = null;
 let isReconnecting = false;
@@ -247,7 +244,7 @@ export const initServer = (): void => {
       res.json({ success: await restartComputer() });
     });
 
-    app.post("/change-image-format", handleChangeImageFormat);
+    app.use("/images", ROUTER_IMAGES);
 
     const server = app.listen(dataApp.getValue("PORT"), "0.0.0.0", () => {
       if (idTimeoutServer) {

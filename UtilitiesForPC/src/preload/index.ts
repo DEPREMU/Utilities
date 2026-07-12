@@ -4,14 +4,14 @@ import {
   LanguagesSupported,
   ChannelsIpcRenderer,
 } from "@types";
-import { Timers, ALL_KEYS_STORAGE_TYPE, getMessage } from "@common";
+import { Timers, ALL_KEYS_STORAGE_TYPE, Helper } from "@common";
 import { ipcRenderer, contextBridge, IpcRendererEvent } from "electron";
 
 const sendLog = (level: "log" | "warn" | "error", ...args: unknown[]) => {
   void fetch("http://localhost:3005/log", {
     body: JSON.stringify({
       level,
-      message: getMessage(...args),
+      message: Helper.getMessage(...args),
     }),
     method: "POST",
     headers: { "Content-Type": "application/json" },
