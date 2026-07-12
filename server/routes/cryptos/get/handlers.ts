@@ -1,12 +1,12 @@
 import { cryptos } from "../variables.ts";
-import { getHandlerGet } from "@common";
+import { getHandlerGet, STATUS_RESPONSE } from "@common";
 
 export const handleGetCryptos = getHandlerGet(
   "/cryptos",
   "/",
   null as never,
   (_, sendResponse) => {
-    sendResponse("SUCCESS", { cryptos: cryptos.prices });
+    sendResponse(STATUS_RESPONSE.SUCCESS, { cryptos: cryptos.prices });
   },
 );
 
@@ -17,7 +17,7 @@ export const handleGetCryptoBySymbol = getHandlerGet(
   (params, sendResponse) => {
     const crypto = cryptos.getCryptoBySymbol(params.symbol);
 
-    sendResponse("SUCCESS", {
+    sendResponse(STATUS_RESPONSE.SUCCESS, {
       crypto,
       error: crypto ? undefined : "Crypto not found",
     });
@@ -36,7 +36,7 @@ export const handleGetCryptoPrice = getHandlerGet(
     }
 
     sendResponse(
-      "SUCCESS",
+      STATUS_RESPONSE.SUCCESS,
       crypto?.price
         ? { price: crypto.price, priceMXN }
         : { error: "Crypto not found" },

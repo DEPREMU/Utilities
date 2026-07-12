@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
+import { STATUS_RESPONSE } from "@commonSrc/both";
 import type { Delete, GetHandlerType } from "@types";
 import { getBodyParsed, sendResponse } from "./common";
 
@@ -21,7 +22,7 @@ export const getHandlerDelete: GetHandlerType<Delete, "DELETE"> = (
       );
     } catch (error) {
       Logger.error(chalk.red("Error processing request:"), error);
-      sendResponse(res, "INTERNAL_SERVER_ERROR", {
+      sendResponse(res, STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         success: false,
         error: "An error occurred while processing the request.",
       } as never);

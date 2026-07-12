@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { JWT } from "@/routes/auth/variables";
-import { Logger, getHandlerGet } from "@common";
+import { Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 
 export const authMiddleware = getHandlerGet(
   "/logs",
@@ -10,13 +10,17 @@ export const authMiddleware = getHandlerGet(
     try {
       const authHeader = req.headers?.authorization;
       if (!authHeader) {
-        sendResponse("UNAUTHORIZED", { error: "Authorization header missing" });
+        sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
+          error: "Authorization header missing",
+        });
         return;
       }
 
       const [scheme, token] = authHeader.split(" ");
       if (scheme !== "Bearer" || !token) {
-        sendResponse("UNAUTHORIZED", { error: "Invalid authorization format" });
+        sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
+          error: "Invalid authorization format",
+        });
         return;
       }
 
@@ -26,7 +30,9 @@ export const authMiddleware = getHandlerGet(
         tokenInstance = new JWT({ token });
       } catch (error) {
         Logger.error(chalk.red("Error verifying JWT token:"), error);
-        sendResponse("UNAUTHORIZED", { error: "Invalid or expired token" });
+        sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
+          error: "Invalid or expired token",
+        });
         return;
       }
 
@@ -34,7 +40,7 @@ export const authMiddleware = getHandlerGet(
       next();
     } catch (err) {
       Logger.error(chalk.red("Error in auth middleware:"), err);
-      sendResponse("UNAUTHORIZED", {
+      sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
         error: "Unknown error occurred during authentication",
       });
     }

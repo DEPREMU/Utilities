@@ -1,7 +1,7 @@
 import axios from "axios";
 import chalk from "chalk";
 import { getEnvValue } from "@/env";
-import { Logger, getHandlerPost } from "@common";
+import { Logger, STATUS_RESPONSE, getHandlerPost } from "@common";
 
 const url = "https://api-free.deepl.com/v2/translate";
 const headers = {
@@ -20,7 +20,7 @@ export const handleTranslate = getHandlerPost(
     try {
       const { text, targetLanguage } = body;
       if (!text) {
-        return sendResponse("BAD_REQUEST", {
+        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           error: "Missing 'text' parameter",
         });
       }
@@ -36,17 +36,19 @@ export const handleTranslate = getHandlerPost(
 
       if (response.status !== 200) {
         const errorData = response.data as { message?: string } | null;
-        return sendResponse("INTERNAL_SERVER_ERROR", {
+        return sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           error: errorData?.message || "Translation failed",
         });
       }
 
-      sendResponse("SUCCESS", {
+      sendResponse(STATUS_RESPONSE.SUCCESS, {
         translatedText: response.data.translations?.[0]?.text || "",
       });
     } catch (error) {
       Logger.error(chalk.red("Error during translation request:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", { error: "Internal server error" });
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
+        error: "Internal server error",
+      });
     }
   },
 );

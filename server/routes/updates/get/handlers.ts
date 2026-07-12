@@ -2,8 +2,8 @@ import path from "path";
 import chalk from "chalk";
 import { UPLOAD_DIR } from "@/config.ts";
 import { PlatformsOS } from "@types";
-import { File, Logger, getHandlerGet } from "@common";
 import { dataUpdates, getFinalFileName } from "../variables.ts";
+import { File, Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 
 export const handleIsUpdateAvailable = getHandlerGet(
   "/updates",
@@ -41,10 +41,10 @@ export const handleIsUpdateAvailable = getHandlerGet(
         );
       }
 
-      sendResponse("SUCCESS", res);
+      sendResponse(STATUS_RESPONSE.SUCCESS, res);
     } catch (error) {
       Logger.error(chalk.red("Error in handleIsUpdateAvailable:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", res);
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, res);
     }
   },
 );
@@ -59,7 +59,7 @@ export const handleDownload = getHandlerGet(
 
       const infoUrl = dataUpdates.getInfoTempUrl(id);
       if (!infoUrl)
-        return sendResponse("NOT_FOUND", {
+        return sendResponse(STATUS_RESPONSE.NOT_FOUND, {
           error: "Temporary download URL not found or expired",
         });
 
@@ -73,7 +73,7 @@ export const handleDownload = getHandlerGet(
       );
 
       if (!(await new File(filePath).exists()))
-        return sendResponse("NOT_FOUND", {
+        return sendResponse(STATUS_RESPONSE.NOT_FOUND, {
           error: "File not found on server",
         });
 
@@ -81,13 +81,15 @@ export const handleDownload = getHandlerGet(
         if (!err) return;
 
         Logger.error("Error downloading file:", err);
-        sendResponse("INTERNAL_SERVER_ERROR", {
+        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           error: "Error downloading file",
         });
       });
     } catch (error) {
       Logger.error(chalk.red("Error processing download via temp URL:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", { error: "Internal server error" });
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
+        error: "Internal server error",
+      });
     }
   },
 );

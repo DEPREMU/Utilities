@@ -4,6 +4,7 @@ import {
   isValidEmail,
   getHandlerPost,
   isValidPassword,
+  STATUS_RESPONSE,
 } from "@common";
 import chalk from "chalk";
 import bcrypt from "@node-rs/bcrypt";
@@ -68,14 +69,14 @@ export const handleLogin = getHandlerPost(
       });
 
       if (!user)
-        return sendResponse("UNAUTHORIZED", {
+        return sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
           success: false,
           error: t("auth.userNotFound", lang),
         });
 
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch)
-        return sendResponse("UNAUTHORIZED", {
+        return sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
           success: false,
           error: t("auth.invalidPassword", lang),
         });
@@ -92,7 +93,7 @@ export const handleLogin = getHandlerPost(
 
       if (userSession instanceof Error) {
         Logger.error(chalk.red("Error inserting user session:"), userSession);
-        sendResponse("INTERNAL_SERVER_ERROR", {
+        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           success: false,
           error: t("internalError", lang),
         });
@@ -111,7 +112,7 @@ export const handleLogin = getHandlerPost(
 
       if (!storageValues) {
         Logger.error(chalk.red("Error fetching storage values for user"));
-        sendResponse("INTERNAL_SERVER_ERROR", {
+        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           success: false,
           error: t("internalError", lang),
         });
@@ -119,7 +120,7 @@ export const handleLogin = getHandlerPost(
       }
       const { password: _, ...userData } = user;
 
-      sendResponse("SUCCESS", {
+      sendResponse(STATUS_RESPONSE.SUCCESS, {
         user: userData,
         token: userSession.token,
         success: true,
@@ -127,7 +128,7 @@ export const handleLogin = getHandlerPost(
       });
     } catch (error) {
       Logger.error(chalk.red("Error logging in user:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", {
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         success: false,
         error: t("internalError", lang),
       });
@@ -149,12 +150,12 @@ export const handleSignIn = getHandlerPost(
       const { email, password } = body;
 
       if (!isValidPassword(password))
-        return sendResponse("BAD_REQUEST", {
+        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           success: false,
           error: t("auth.passwordNotStrong", lang),
         });
       if (!isValidEmail(email))
-        return sendResponse("BAD_REQUEST", {
+        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           success: false,
           error: t("auth.invalidEmailFormat", lang),
         });
@@ -165,7 +166,7 @@ export const handleSignIn = getHandlerPost(
       });
 
       if (userExists)
-        return sendResponse("BAD_REQUEST", {
+        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           success: false,
           error: t("auth.accountAlreadyExists", lang),
         });
@@ -192,17 +193,17 @@ export const handleSignIn = getHandlerPost(
           chalk.red("Error inserting user: No data returned"),
           typeof user,
         );
-        sendResponse("INTERNAL_SERVER_ERROR", {
+        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           success: false,
           error: t("internalError", lang),
         });
         return;
       }
 
-      sendResponse("SUCCESS", { success: true });
+      sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
     } catch (error) {
       Logger.error(chalk.red("Error in sign-in handler:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", {
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         success: false,
         error: t("internalError", lang),
       });
@@ -225,7 +226,7 @@ export const handleRefreshSession = getHandlerPost(
         Logger.error(
           chalk.red("Error refreshing token: No new token generated"),
         );
-        sendResponse("INTERNAL_SERVER_ERROR", {
+        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           success: false,
           error: t("internalError", lang),
         });
@@ -247,7 +248,7 @@ export const handleRefreshSession = getHandlerPost(
         Logger.error(
           chalk.red("Error updating user session: No data returned"),
         );
-        sendResponse("INTERNAL_SERVER_ERROR", {
+        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           success: false,
           error: t("internalError", lang),
         });
@@ -256,7 +257,7 @@ export const handleRefreshSession = getHandlerPost(
 
       if (!updatedData.user) {
         Logger.error(chalk.red("Error fetching user data for refreshed token"));
-        sendResponse("INTERNAL_SERVER_ERROR", {
+        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           success: false,
           error: t("internalError", lang),
         });
@@ -265,14 +266,14 @@ export const handleRefreshSession = getHandlerPost(
 
       const { password: _, ...user } = updatedData.user;
 
-      sendResponse("SUCCESS", {
+      sendResponse(STATUS_RESPONSE.SUCCESS, {
         user,
         token: updatedData.token,
         success: true,
       });
     } catch (error) {
       Logger.error(chalk.red("Error refreshing token:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", {
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         success: false,
         error: t("internalError", lang),
       });
@@ -310,10 +311,10 @@ export const handleSignOut = getHandlerPost(
         }),
       ]);
 
-      sendResponse("SUCCESS", { success: true });
+      sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
     } catch (error) {
       Logger.error(chalk.red("Error signing out user:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", {
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         success: false,
         error: t("internalError", lang),
       });

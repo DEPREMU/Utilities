@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { getHandlerPost } from "@commonSrc/serverOrElectron/express/functions/getHandlerPost";
-import { t, supportedFormatsImages } from "@commonSrc/both";
+import { t, supportedFormatsImages, STATUS_RESPONSE } from "@commonSrc/both";
 import { changeFormat, isImageBuffer } from "../utils";
 
 export const handleChangeImageFormat = getHandlerPost(
@@ -18,13 +18,13 @@ export const handleChangeImageFormat = getHandlerPost(
       const { format, imageStr } = body;
 
       if (!format || !supportedFormatsImages.includes(format as never))
-        return sendResponse("BAD_REQUEST", {
+        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           error: t("images.invalidImageFormat", lang),
           success: false,
         });
 
       if (!imageStr)
-        return sendResponse("BAD_REQUEST", {
+        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           error: t("images.invalidImageBuffer", lang),
           success: false,
         });
@@ -33,7 +33,7 @@ export const handleChangeImageFormat = getHandlerPost(
       const imageBuffer = Buffer.from(base64Data, "base64");
 
       if (!(await isImageBuffer(imageBuffer))) {
-        return sendResponse("BAD_REQUEST", {
+        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           error: t("images.invalidImageBuffer", lang),
           success: false,
         });
@@ -44,7 +44,7 @@ export const handleChangeImageFormat = getHandlerPost(
       if (convertedRes.success && convertedString && convertedRes.newFormat) {
         const dataUri = `data:image/${convertedRes.newFormat};base64,${convertedString}`;
 
-        return sendResponse("SUCCESS", {
+        return sendResponse(STATUS_RESPONSE.SUCCESS, {
           success: true,
           imageUri: dataUri,
           newFormat: convertedRes.newFormat,
@@ -53,7 +53,7 @@ export const handleChangeImageFormat = getHandlerPost(
     } catch (error) {
       Logger.error(chalk?.red("Error changing image format:"), error);
     }
-    sendResponse("INTERNAL_SERVER_ERROR", {
+    sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
       success: false,
       error: t("images.formatChangeError", lang),
     });

@@ -3,8 +3,8 @@ import chalk from "chalk";
 import Busboy from "busboy";
 import { UPLOAD_DIR } from "@/config";
 import { RequestUploadUpdate } from "@types";
-import { File, Logger, getHandlerPost } from "@common";
 import { dataUpdates, getFinalFileName } from "../variables";
+import { File, Logger, STATUS_RESPONSE, getHandlerPost } from "@common";
 
 export const handleUpload = getHandlerPost(
   "/updates",
@@ -55,7 +55,7 @@ export const handleUpload = getHandlerPost(
             if (connectionClosed) return;
 
             connectionClosed = true;
-            sendResponse("FORBIDDEN", {
+            sendResponse(STATUS_RESPONSE.FORBIDDEN, {
               error: "Version already exists or invalid platform/OS",
               success: false,
             });
@@ -97,7 +97,7 @@ export const handleUpload = getHandlerPost(
 
       busboy.on("finish", async () => {
         if (!dataFile)
-          return sendResponse("BAD_REQUEST", {
+          return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
             error: "Missing or invalid data field",
             success: false,
           });
@@ -114,11 +114,11 @@ export const handleUpload = getHandlerPost(
           );
           Logger.log("All files written successfully");
 
-          sendResponse("SUCCESS", { success });
+          sendResponse(STATUS_RESPONSE.SUCCESS, { success });
         } catch (err) {
           Logger.error("Error uploading:", err);
           if (connectionClosed) return;
-          sendResponse("INTERNAL_SERVER_ERROR", {
+          sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
             error: "Error uploading files",
             success: false,
           });
@@ -128,7 +128,7 @@ export const handleUpload = getHandlerPost(
       req.pipe(busboy);
     } catch (error) {
       Logger.error(chalk.red("Error handling upload:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", {
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         error: "Internal server error",
         success: false,
       });

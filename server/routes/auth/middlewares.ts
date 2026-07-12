@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { JWT } from "./variables.ts";
-import { Logger, getHandlerPost } from "@common";
+import { Logger, STATUS_RESPONSE, getHandlerPost } from "@common";
 
 export const authMiddleware = getHandlerPost(
   "/auth",
@@ -47,7 +47,12 @@ export const authMiddleware = getHandlerPost(
       response.error = "Unknown error occurred during authentication";
     } finally {
       if (response.error || !response.success)
-        sendResponse(response.error ? "UNAUTHORIZED" : "SUCCESS", response);
+        sendResponse(
+          response.error
+            ? STATUS_RESPONSE.UNAUTHORIZED
+            : STATUS_RESPONSE.SUCCESS,
+          response,
+        );
     }
   },
 );
