@@ -72,13 +72,13 @@ export const getValidValue = (
 
 export const sendResponse = (
   res: Response,
-  status: keyof typeof STATUS_RESPONSE,
+  status: STATUS_RESPONSE,
   message: unknown,
 ) => {
   try {
     if (typeof message === "object" && message !== null)
-      res.status(STATUS_RESPONSE[status]).json(message);
-    else res.status(STATUS_RESPONSE[status]).send(message);
+      res.status(status).json(message);
+    else res.status(status).send(message);
   } catch (error) {
     Logger.error("Error while sending response:", error);
   }
@@ -118,7 +118,7 @@ export const getBodyParsed = (
   );
 
   if (!parsedParams || (parsedParams as { invalid: boolean })["invalid"]) {
-    sendResponse(res, "BAD_REQUEST", {
+    sendResponse(res, STATUS_RESPONSE.BAD_REQUEST, {
       error: "Invalid request parameters.",
       success: false,
     } as never);

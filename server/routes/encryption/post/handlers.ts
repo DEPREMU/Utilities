@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { Task, Logger, getHandlerPost } from "@common";
+import { Task, Logger, getHandlerPost, STATUS_RESPONSE } from "@common";
 
 const taskEncryption = new Task<string, "ENCRYPTION">({
   fileWorker: "ENCRYPTION",
@@ -15,7 +15,7 @@ export const handleEncrypt = getHandlerPost(
       const { value } = body;
 
       if (!value)
-        return sendResponse("BAD_REQUEST", {
+        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           error: "No data provided to encrypt",
         });
 
@@ -26,16 +26,18 @@ export const handleEncrypt = getHandlerPost(
 
       if (result instanceof Error) {
         Logger.error(chalk.red("Encryption error in task:"), result);
-        sendResponse("INTERNAL_SERVER_ERROR", {
+        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           error: "Encryption failed",
         });
         return;
       }
 
-      sendResponse("SUCCESS", { value: result });
+      sendResponse(STATUS_RESPONSE.SUCCESS, { value: result });
     } catch (error) {
       Logger.error(chalk.red("Encryption error:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", { error: "Encryption failed" });
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
+        error: "Encryption failed",
+      });
     }
   },
 );
@@ -49,7 +51,7 @@ export const handleDecrypt = getHandlerPost(
       const { value } = body;
 
       if (!value)
-        return sendResponse("BAD_REQUEST", {
+        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           error: "No data provided to decrypt",
         });
 
@@ -59,16 +61,18 @@ export const handleDecrypt = getHandlerPost(
       });
       if (result instanceof Error) {
         Logger.error(chalk.red("Decryption error in task:"), result);
-        sendResponse("INTERNAL_SERVER_ERROR", {
+        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           error: "Decryption failed",
         });
         return;
       }
 
-      sendResponse("SUCCESS", { value: result });
+      sendResponse(STATUS_RESPONSE.SUCCESS, { value: result });
     } catch (error) {
       Logger.error(chalk.red("Decryption error:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", { error: "Decryption failed" });
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
+        error: "Decryption failed",
+      });
     }
   },
 );

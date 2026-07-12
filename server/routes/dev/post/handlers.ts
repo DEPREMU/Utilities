@@ -3,7 +3,7 @@ import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/database/postgres.ts";
 import { REPLACERS } from "@/config.ts";
 import { ResponseDoQuery } from "@types";
-import { Logger, getHandlerPost } from "@common";
+import { Logger, STATUS_RESPONSE, getHandlerPost } from "@common";
 
 export const handleExecuteQuery = getHandlerPost(
   "/dev",
@@ -14,7 +14,10 @@ export const handleExecuteQuery = getHandlerPost(
   },
   async (body, sendResponse) => {
     if (!REPLACERS.isDev) {
-      sendResponse("FORBIDDEN", { success: false, error: "Not available" });
+      sendResponse(STATUS_RESPONSE.FORBIDDEN, {
+        success: false,
+        error: "Not available",
+      });
       return;
     }
 
@@ -35,13 +38,13 @@ export const handleExecuteQuery = getHandlerPost(
               : undefined,
         };
 
-        sendResponse("SUCCESS", {
+        sendResponse(STATUS_RESPONSE.SUCCESS, {
           success: true,
           result: data,
         });
       } catch (error) {
         Logger.error(chalk.red("Error executing query:"), error);
-        sendResponse("INTERNAL_SERVER_ERROR", {
+        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           success: false,
           error: `Error executing query: ${
             error instanceof Error ? error.message : String(error)
@@ -50,7 +53,7 @@ export const handleExecuteQuery = getHandlerPost(
       }
     } catch (error) {
       Logger.error(chalk.red("Error connecting to database:"), error);
-      sendResponse("INTERNAL_SERVER_ERROR", {
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         success: false,
         error: `Error connecting to database: ${
           error instanceof Error ? error.message : String(error)

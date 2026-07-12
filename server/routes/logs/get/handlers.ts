@@ -1,5 +1,5 @@
 import { prisma } from "@/database/postgres";
-import { getHandlerGet } from "@common";
+import { getHandlerGet, STATUS_RESPONSE } from "@common";
 
 export const handleGetLogs = getHandlerGet(
   "/logs",
@@ -11,9 +11,9 @@ export const handleGetLogs = getHandlerGet(
         orderBy: { timestamp: "desc" },
       });
 
-      sendResponse("SUCCESS", { logs });
+      sendResponse(STATUS_RESPONSE.SUCCESS, { logs });
     } catch {
-      sendResponse("INTERNAL_SERVER_ERROR", {
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         error: "Failed to fetch logs",
       });
     }
@@ -37,9 +37,9 @@ export const handleGetLogsPage = getHandlerGet(
         orderBy: { timestamp: "desc" },
       });
 
-      sendResponse("SUCCESS", { logs });
+      sendResponse(STATUS_RESPONSE.SUCCESS, { logs });
     } catch {
-      sendResponse("INTERNAL_SERVER_ERROR", {
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         error: "Failed to fetch logs",
       });
     }

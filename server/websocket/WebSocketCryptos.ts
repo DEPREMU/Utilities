@@ -11,7 +11,7 @@ import { cryptos } from "@/routes/cryptos/variables.ts";
 import { sendFCMNotification } from "@/firebase/admin.ts";
 import { executeFunctionAfterInit } from "@/config.ts";
 import WebSocket, { WebSocketServer } from "ws";
-import { t, Logger, SelectedCryptos } from "@common";
+import { t, Logger, SelectedCryptos, Helper } from "@common";
 
 const users = new Users<
   {
@@ -214,7 +214,8 @@ const getDiff = <T extends Record<string, unknown>>(
   ) as Partial<T>;
 
   if (isCrypto(original) && diff.amount && diff.amount !== original.amount) {
-    (diff as unknown as SelectedCryptos[string]).datePurchased = new Date();
+    (diff as unknown as SelectedCryptos[string]).datePurchased =
+      new Date().toISOString();
   }
 
   return diff;
@@ -225,9 +226,16 @@ const sendCryptos = async (
   onlyDeviceId?: boolean,
 ) => {
   try {
-    const cryptos = await prisma.cryptos.findMany({
-      where: { userId: userDevice.userId },
-    });
+    const cryptos = (
+      await prisma.cryptos.findMany({
+        where: { userId: userDevice.userId },
+      })
+    ).map((c) =>
+      Helper.Object.changeType(c, {
+        datePurchased: "string",
+        firstPricePurchased: "number",
+      }),
+    );
 
     if (onlyDeviceId) {
       userDevice.sendMessage({ type: "cryptos", cryptos });

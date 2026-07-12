@@ -1,6 +1,6 @@
 import humanizeDuration from "humanize-duration";
 import { sendFCMNotification } from "@/firebase/admin";
-import { Logger, Timers, getHandlerGet } from "@common";
+import { Logger, STATUS_RESPONSE, Timers, getHandlerGet } from "@common";
 
 const START_TIME = Date.now();
 
@@ -12,7 +12,7 @@ export const handleHealthCheck = getHandlerGet(
     const now = new Date();
     const upTime = now.getTime() - START_TIME;
 
-    sendRes("SUCCESS", { upTime, timestamp: now.toISOString() });
+    sendRes(STATUS_RESPONSE.SUCCESS, { upTime, timestamp: now.toISOString() });
   },
 );
 
@@ -21,7 +21,7 @@ export const handleGenerate204 = getHandlerGet(
   "/generate204",
   null as never,
   (_, sendRes) => {
-    sendRes("NO_CONTENT", "");
+    sendRes(STATUS_RESPONSE.NO_CONTENT, "");
   },
 );
 
@@ -81,10 +81,10 @@ export const handleAppAlive = getHandlerGet(
         ),
       };
 
-      sendResponse("SUCCESS", { success: true });
+      sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
     } catch (error) {
       Logger.error("Error in handleAppAlive:", error);
-      sendResponse("INTERNAL_SERVER_ERROR", {
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         success: false,
         error: "An error occurred while processing the request.",
       });

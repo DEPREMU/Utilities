@@ -1,5 +1,5 @@
 import { prisma } from "@/database/postgres";
-import { getHandlerPost } from "@common";
+import { getHandlerPost, STATUS_RESPONSE } from "@common";
 
 export const handleAddLog = getHandlerPost(
   "/logs",
@@ -27,9 +27,9 @@ export const handleAddLog = getHandlerPost(
         },
       });
 
-      sendResponse("SUCCESS", { success: !!log.id });
+      sendResponse(STATUS_RESPONSE.SUCCESS, { success: !!log.id });
     } catch {
-      sendResponse("INTERNAL_SERVER_ERROR", {
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         error: "Failed to add log",
         success: false,
       });

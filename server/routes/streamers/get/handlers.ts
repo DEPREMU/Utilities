@@ -1,7 +1,7 @@
 import axios from "axios";
 import { prisma } from "@/database/postgres";
 import { StreamersFetch } from "@types";
-import { Logger, getHandlerGet } from "@common";
+import { Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 
 const getLinkImageStreamer = async (streamer: string) => {
   try {
@@ -57,10 +57,12 @@ export const handleGetStreamers = getHandlerGet(
         omit: { createdAt: true },
       });
 
-      sendResponse("SUCCESS", { streamers });
+      sendResponse(STATUS_RESPONSE.SUCCESS, { streamers });
     } catch (error) {
       Logger.error("Error fetching streamers:", error);
-      sendResponse("INTERNAL_SERVER_ERROR", { error: "Internal server error" });
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
+        error: "Internal server error",
+      });
     }
   },
 );
@@ -81,10 +83,12 @@ export const handleGetStreamersPage = getHandlerGet(
         skip: (page - 1) * STREAMERS_PER_PAGE,
       });
 
-      sendResponse("SUCCESS", { streamers });
+      sendResponse(STATUS_RESPONSE.SUCCESS, { streamers });
     } catch (error) {
       Logger.error("Error fetching streamers page:", error);
-      sendResponse("INTERNAL_SERVER_ERROR", { error: "Internal server error" });
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
+        error: "Internal server error",
+      });
     }
   },
 );
@@ -101,16 +105,20 @@ export const handleGetStreamerById = getHandlerGet(
       });
 
       if (!streamer) {
-        sendResponse("NOT_FOUND", { error: "Streamer not found" });
+        sendResponse(STATUS_RESPONSE.NOT_FOUND, {
+          error: "Streamer not found",
+        });
         return;
       }
 
-      sendResponse("SUCCESS", {
+      sendResponse(STATUS_RESPONSE.SUCCESS, {
         streamer: { ...streamer, isLive: await isLiveStreamer(streamer.name) },
       });
     } catch (error) {
       Logger.error("Error fetching streamer by ID:", error);
-      sendResponse("INTERNAL_SERVER_ERROR", { error: "Internal server error" });
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
+        error: "Internal server error",
+      });
     }
   },
 );
@@ -140,7 +148,7 @@ export const handleGetStreamersByUserId = getHandlerGet(
           streamers: streamersWithLiveStatus,
         } satisfies (StreamersFetch & { url: "/:userId" })["response"];
 
-        sendResponse("SUCCESS", res as never);
+        sendResponse(STATUS_RESPONSE.SUCCESS, res as never);
         return;
       }
 
@@ -149,11 +157,11 @@ export const handleGetStreamersByUserId = getHandlerGet(
         include: { streamer: { omit: { createdAt: true } } },
       });
       if (!streamer || !streamer.streamer) {
-        sendResponse("SUCCESS", { error: "Streamer not found" });
+        sendResponse(STATUS_RESPONSE.SUCCESS, { error: "Streamer not found" });
         return;
       }
 
-      sendResponse("SUCCESS", {
+      sendResponse(STATUS_RESPONSE.SUCCESS, {
         streamers: [
           {
             ...streamer.streamer,
@@ -163,7 +171,9 @@ export const handleGetStreamersByUserId = getHandlerGet(
       });
     } catch (error) {
       Logger.error("Error fetching streamers by user ID:", error);
-      sendResponse("INTERNAL_SERVER_ERROR", { error: "Internal server error" });
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
+        error: "Internal server error",
+      });
     }
   },
 );
@@ -203,10 +213,14 @@ export const handleAddStreamerByUserId = getHandlerGet(
         isLive: await isLiveStreamer(existingStreamer.name),
       };
 
-      sendResponse("SUCCESS", { streamer: streamerWithLiveStatus });
+      sendResponse(STATUS_RESPONSE.SUCCESS, {
+        streamer: streamerWithLiveStatus,
+      });
     } catch (error) {
       Logger.error("Error adding streamer by user ID:", error);
-      sendResponse("INTERNAL_SERVER_ERROR", { error: "Internal server error" });
+      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
+        error: "Internal server error",
+      });
     }
   },
 );

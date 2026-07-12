@@ -3,6 +3,7 @@ import {
   reasonNotification,
   ExpectedStorageTypes,
   getDateWithTimeAhead,
+  Helper,
 } from "@common";
 import jwt from "jsonwebtoken";
 import chalk from "chalk";
@@ -40,10 +41,18 @@ export const getStorageData = async (
     let storageData: Partial<ExpectedStorageTypes<"BOTH">> = {
       THEME: userConfig.theme,
       LANGUAGE: userConfig.language,
-      USER_DATA: user,
+      USER_DATA: Helper.Object.changeType(user, {
+        updatedAt: "string",
+        createdAt: "string",
+      }),
       SESSION_EXPIRY: date,
       HAS_ADMIN_ACCESS: userConfig.hasAdmin,
-      CRYPTOS_SETTINGS: cryptosSettings,
+      CRYPTOS_SETTINGS: cryptosSettings
+        ? Helper.Object.changeType(cryptosSettings, {
+            createdAt: "string",
+            updatedAt: "string",
+          })
+        : undefined,
       LAST_UPDATE_CHECK: Date.now(),
       USER_SESSION_TOKEN_STORAGE: token,
     };
@@ -103,7 +112,7 @@ export class JWT {
   }
 
   public uploadToken = async (): Promise<
-    DB["Tables"]["UserSessions"] | Error
+    DB["TablesServer"]["UserSessions"] | Error
   > => {
     try {
       const data = this.data;
