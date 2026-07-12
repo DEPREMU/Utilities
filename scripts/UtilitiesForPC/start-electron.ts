@@ -12,6 +12,7 @@ import {
   UTILITIES_FOR_PC_PATH,
 } from "../config.ts";
 import axios from "axios";
+import { Helper } from "@commonSrc/both/index.ts";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import * as readline from "readline";
 
@@ -20,10 +21,10 @@ const values = {
   BUILD_PROFILE: "development",
 } as const;
 
-for (const [key, value] of Object.entries(values)) {
+for (const [key, value] of Helper.Object.entries(values)) {
   env[key] = value;
   process.env[key] = value;
-  (args.ARGS as Record<string, unknown>)[key] = value as never;
+  args.editArg(key, value as never);
 }
 
 interface ProcessState {

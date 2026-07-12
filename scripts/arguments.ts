@@ -20,6 +20,7 @@ export type TYPE_ARGS = {
   action?: string;
   install?: boolean;
   testing?: boolean;
+  PLATFORM?: "android" | "web";
   platform?: "linux" | "windows";
   isWindows?: boolean;
   BUILD_PROFILE?: "development" | "preview" | "production";
@@ -106,6 +107,8 @@ class Args {
     install: "  --install                    Install dependencies",
     testing:
       "  -t, --testing                Run in testing mode with additional logging and no side effects",
+    PLATFORM:
+      "  --PLATFORM=<android|web>     Specify the platform for testing (android or web)",
   };
 
   static Args: Record<keyof TYPE_ARGS, 0> = {
@@ -119,6 +122,7 @@ class Args {
     install: 0,
     testing: 0,
     platform: 0,
+    PLATFORM: 0,
     isWindows: 0,
     BUILD_PROFILE: 0,
     "skip-build-android": 0,
@@ -130,6 +134,17 @@ class Args {
   static readonly showHelp = showHelp;
 
   ARGS: Readonly<TYPE_ARGS> = {};
+
+  public editArg = <T extends keyof TYPE_ARGS>(
+    key: T,
+    value: TYPE_ARGS[T],
+  ): void => {
+    if (Object.isFrozen(this.ARGS)) this.ARGS = { ...this.ARGS, [key]: value };
+
+    (this.ARGS[key] as unknown) = value;
+
+    Object.freeze(this.ARGS);
+  };
 
   #init = () => {
     if (Args.args.includes("-h") || Args.args.includes("--help"))
