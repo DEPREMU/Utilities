@@ -63,6 +63,11 @@ declare global {
   }[T];
 }
 
+type Response = {
+  ok: boolean;
+  status: number;
+};
+
 export type FetchToServerMethod<M extends MethodsAPI> = <
   const R extends RoutesAPI[M],
 >(
@@ -71,10 +76,7 @@ export type FetchToServerMethod<M extends MethodsAPI> = <
   authToken?: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
     ? string
     : never,
-) => Promise<{
-  data: ResolveRoute<FetchAPI<M>, R>["response"];
-  status: number;
-}>;
+) => Promise<Response & { data: ResolveRoute<FetchAPI<M>, R>["response"] }>;
 
 export type FetchToServer = <
   M extends MethodsAPI,
@@ -86,10 +88,7 @@ export type FetchToServer = <
   authToken?: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
     ? string
     : never,
-) => Promise<{
-  data: ResolveRoute<FetchAPI<M>, R>["response"];
-  status: number;
-}>;
+) => Promise<Response & { data: ResolveRoute<FetchAPI<M>, R>["response"] }>;
 
 export type FetchToServerPerMethod = {
   GET: FetchToServerMethod<"GET">;

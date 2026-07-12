@@ -22,7 +22,10 @@ const users = new Users<
   CryptosWebSocketMessage<"sentByServer">
 >();
 
-const getPercentGain = (price: number, cryptoData: DB["Tables"]["Cryptos"]) => {
+const getPercentGain = (
+  price: number,
+  cryptoData: DB["TablesServer"]["Cryptos"],
+) => {
   if (!cryptoData.firstPricePurchased) return "0%";
   const percentage =
     ((price - cryptoData.firstPricePurchased.toNumber()) /
@@ -33,7 +36,7 @@ const getPercentGain = (price: number, cryptoData: DB["Tables"]["Cryptos"]) => {
 };
 
 const getNotificationCrypto = async (
-  userCryptos: DB["Tables"]["Cryptos"][],
+  userCryptos: DB["TablesServer"]["Cryptos"][],
   language: LanguagesSupported,
 ): Promise<Notification | null> => {
   try {

@@ -1,5 +1,6 @@
 import { JSON } from "./JSON.ts";
-import { Object } from "./Object.ts";
+import { Arrays } from "./Array.ts";
+import { Objects } from "./Object.ts";
 
 export class Helper {
   static readonly getMessage = (...args: unknown[]) => {
@@ -22,7 +23,9 @@ export class Helper {
       .join(" ");
   };
 
-  static readonly Object = Object;
-
   static readonly JSON = JSON;
+
+  static readonly Arrays = Arrays;
+
+  static readonly Object = Objects;
 }

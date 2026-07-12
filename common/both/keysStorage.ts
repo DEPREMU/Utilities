@@ -3,7 +3,6 @@ import {
   NotesSettings,
   Notifications,
   VaultSettings,
-  CryptosSettings,
   SerializableTask,
   AvailableFunctions,
   LanguagesSupported,
@@ -34,7 +33,7 @@ export type PriceBinanceAPI = {
 }[];
 
 export type SelectedCryptos = {
-  [symbol: string]: DB["Tables"]["Cryptos"];
+  [symbol: string]: DB["TablesClient"]["Cryptos"];
 };
 
 export type ClipboardStorage = {
@@ -71,7 +70,7 @@ export type PermissionsData = Record<Permission, DataPermission>;
 export type ExpectedSecureStorageTypes = {
   DEVICE_ID: string;
   CLIPBOARD: ClipboardStorage;
-  USER_DATA: Omit<DB["Tables"]["Users"], "password"> | null;
+  USER_DATA: Omit<DB["TablesClient"]["Users"], "password"> | null;
   STREAMERS:
     | (Prisma.StreamersGetPayload<{ omit: { createdAt: true } }> & {
         isLive: boolean;
@@ -81,12 +80,12 @@ export type ExpectedSecureStorageTypes = {
   NOTES_PASSWORD: string | null;
   VAULT_PASSWORD: { [folder: string]: string } | null;
   VAULT_DIRECTORY: string | null;
-  CRYPTOS_SETTINGS: CryptosSettings | null;
+  CRYPTOS_SETTINGS: DB["TablesClient"]["CryptosSettings"] | null;
   NETWORK_SETTINGS: NetworkSettings | null;
   PERMISSIONS_DATA: PermissionsData | null;
   LAST_UPDATE_CHECK: number | null;
   TERMINAL_COMMANDS: Command[] | null;
-  DOWN_DETECTOR_DATA: DB["Tables"]["DownDetector"][] | null;
+  DOWN_DETECTOR_DATA: DB["TablesClient"]["DownDetector"][] | null;
   USER_SESSION_TOKEN_STORAGE: string | null;
 };
 
