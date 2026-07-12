@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { app } from "electron";
 import { exec } from "child_process";
-import { getMessage } from "@common";
+import { Helper } from "@common";
 import dataApp, { Paths } from "./variables";
 
 const write = (message: string) => {
@@ -39,11 +39,14 @@ const writeLog = (message: string, level: "log" | "warn" | "error") => {
  * This method provides a consistent logging format across the application, making it easier to analyze logs and identify issues.
  */
 export class Logger {
-  static log = (...args: unknown[]) => writeLog(getMessage(...args), "log");
+  static log = (...args: unknown[]) =>
+    writeLog(Helper.getMessage(...args), "log");
 
-  static warn = (...args: unknown[]) => writeLog(getMessage(...args), "warn");
+  static warn = (...args: unknown[]) =>
+    writeLog(Helper.getMessage(...args), "warn");
 
-  static error = (...args: unknown[]) => writeLog(getMessage(...args), "error");
+  static error = (...args: unknown[]) =>
+    writeLog(Helper.getMessage(...args), "error");
 }
 
 const initNewLogSession = () => {
