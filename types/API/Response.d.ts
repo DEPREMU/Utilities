@@ -1,6 +1,6 @@
+import { TablesKeys } from "../database";
 import type { Falsy } from "react-native";
 import { RequestChangeImageFormat } from "./Request";
-import { Streamer, Tables, TablesKeys, UserData } from "../database";
 import type { PriceBinanceAPI, ExpectedStorageTypes } from "@common";
 
 export { Falsy };
@@ -10,17 +10,6 @@ export type ResponseHealth = {
   status: "running";
   timestamp: string;
   uptimeString: string;
-};
-
-export type ResponseDatabaseFetch<T extends TablesKeys> = {
-  data?: Tables[T][];
-  error?: string;
-  success: boolean;
-};
-export type ResponseDatabaseInsert<T extends TablesKeys = TablesKeys> = {
-  data?: Tables[T][] | null;
-  error?: string;
-  success: boolean;
 };
 
 export type ResponseSignOut = {
@@ -50,18 +39,18 @@ export type ResponseTranslate = {
 export type ResponseAddStreamer = {
   error?: string;
   success?: boolean;
-  streamer?: (Streamer & { isLive: boolean }) | null;
+  streamer?: (DB["TablesClient"]["Streamers"] & { isLive: boolean }) | null;
 };
 
 export type ResponseGetIsLiveStreamer = {
   error?: string;
   success: boolean;
-  streamer?: Streamer & { isLive: boolean };
+  streamer?: DB["TablesClient"]["Streamers"] & { isLive: boolean };
 };
 
 export type ResponseAuth<T extends "login" | "signup"> = T extends "login"
   ? {
-      user?: Omit<DB["Tables"]["Users"], "password">;
+      user?: Omit<DB["TablesClient"]["Users"], "password">;
       token?: string;
       error?: string;
       success: boolean;
@@ -79,11 +68,6 @@ export type ResponseDatabaseDelete = {
 
 export type ResponseGetRandomUUID = {
   uuid?: string;
-  error?: string;
-  success: boolean;
-};
-export type ResponseDatabaseUpdate<T extends TablesKeys = TablesKeys> = {
-  data?: Tables[T][] | Falsy;
   error?: string;
   success: boolean;
 };
