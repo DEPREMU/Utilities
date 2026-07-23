@@ -1,7 +1,6 @@
-import { CryptosSettings } from "@types";
+import axios from "axios";
 import { EventHandler } from "./classes/events.ts";
 import type { PriceBinanceAPI, SelectedCryptos } from "./keysStorage";
-import axios from "axios";
 
 export type ResponseExchangeInfo = {
   symbols: {
@@ -29,9 +28,11 @@ type Listeners = {
   [CryptoEvents.REFRESH]: (refreshing: boolean) => void;
   [CryptoEvents.SYNCED_STATUS]: (
     sync: "syncing" | "synced" | "error",
-    settings?: CryptosSettings,
+    settings?: DB["TablesClient"]["CryptosSettings"],
   ) => void;
-  [CryptoEvents.SETTINGS_UPDATED]: (settings: CryptosSettings) => void;
+  [CryptoEvents.SETTINGS_UPDATED]: (
+    settings: DB["TablesClient"]["CryptosSettings"],
+  ) => void;
   [CryptoEvents.UPDATE_OWNED_CRYPTOS]: (cryptos: SelectedCryptos) => void;
 };
 

@@ -120,38 +120,28 @@ export class ServerFetch {
     } satisfies Awaited<ReturnType<FetchToServerPerMethod["PUT"]>>;
   };
 
-  static server: FetchToServer = async (method, route, body, token) => {
+  static server: FetchToServer = async (method, route, body, ...args) => {
     try {
+      const token = args[0] as never;
+
       let res = null;
       switch (method) {
         case "GET":
-          res = await ServerFetch.get(
-            route as RoutesAPI["GET"],
-            body,
-            token as never,
-          );
+          res = await ServerFetch.get(route as RoutesAPI["GET"], body, token);
 
           break;
         case "POST":
-          res = await ServerFetch.post(
-            route as RoutesAPI["POST"],
-            body,
-            token as never,
-          );
+          res = await ServerFetch.post(route as RoutesAPI["POST"], body, token);
           break;
         case "DELETE":
           res = await ServerFetch.delete(
             route as RoutesAPI["DELETE"],
             body,
-            token as never,
+            token,
           );
           break;
         case "PUT":
-          res = await ServerFetch.put(
-            route as RoutesAPI["PUT"],
-            body,
-            token as never,
-          );
+          res = await ServerFetch.put(route as RoutesAPI["PUT"], body, token);
           break;
 
         default:
