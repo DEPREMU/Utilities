@@ -11,6 +11,10 @@ import { ROUTER_STREAMERS } from "./streamers/index.ts";
 import { ROUTER_LANGUAGES } from "./languages/index.ts";
 import { ROUTER_ENCRYPTION } from "./encryption/index.ts";
 import { ROUTER_IMAGES, getMainRouter } from "@common";
+import { ROUTER_CLIPBOARD } from "./clipboard/index.ts";
+import { ROUTER_USER_CONFIG } from "./userconfig/index.ts";
+import { ROUTER_DOWN_DETECTOR } from "./downdetector/index.ts";
+import { ROUTER_USER_NOTIFICATIONS_CONFIG } from "./usernotificationsconfig/index.ts";
 
 const router = getMainRouter({
   "/dev": {
@@ -29,7 +33,11 @@ const router = getMainRouter({
   "/updates": { router: ROUTER_UPDATES },
   "/languages": { router: ROUTER_LANGUAGES },
   "/streamers": { router: ROUTER_STREAMERS },
+  "/clipboard": { router: ROUTER_CLIPBOARD },
   "/encryption": { router: ROUTER_ENCRYPTION },
+  "/user-config": { router: ROUTER_USER_CONFIG },
+  "/down-detector": { router: ROUTER_DOWN_DETECTOR },
+  "/user-notifications-config": { router: ROUTER_USER_NOTIFICATIONS_CONFIG },
 });
 
 export default router;

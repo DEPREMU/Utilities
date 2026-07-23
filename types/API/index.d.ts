@@ -68,14 +68,12 @@ type Response = {
   status: number;
 };
 
-export type FetchToServerMethod<M extends MethodsAPI> = <
-  const R extends RoutesAPI[M],
->(
+export type FetchToServerMethod<M extends MethodsAPI> = <const R extends RoutesAPI[M]>(
   route: R,
   body: ResolveRoute<FetchAPI<M>, R>["body"],
-  authToken?: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
-    ? string
-    : never,
+  ...args: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
+    ? [authToken: string]
+    : []
 ) => Promise<Response & { data: ResolveRoute<FetchAPI<M>, R>["response"] }>;
 
 export type FetchToServer = <
@@ -85,9 +83,9 @@ export type FetchToServer = <
   method: M,
   route: R,
   body: NonNullable<ResolveRoute<FetchAPI<M>, R>["body"]>,
-  authToken?: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
-    ? string
-    : never,
+  ...args: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
+    ? [authToken: string]
+    : []
 ) => Promise<Response & { data: ResolveRoute<FetchAPI<M>, R>["response"] }>;
 
 export type FetchToServerPerMethod = {

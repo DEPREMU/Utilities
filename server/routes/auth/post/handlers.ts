@@ -214,12 +214,13 @@ export const handleSignIn = getHandlerPost(
 export const handleRefreshSession = getHandlerPost(
   "/auth",
   "/refreshSession",
-  { deviceId: "string" },
+  { deviceId: "string", notificationToken: "string" },
   async (body, sendResponse, { req }) => {
     const lang = body.lang || "en";
 
     try {
       const { token } = req.user || {};
+      const { notificationToken } = body;
 
       const newToken = token.updatedToken;
       if (!newToken) {
@@ -232,6 +233,20 @@ export const handleRefreshSession = getHandlerPost(
         });
         return;
       }
+
+      await prisma.pushTokens.upsert({
+        update: { token: notificationToken },
+        create: {
+          token: notificationToken,
+          userId: token.data.userId,
+        },
+        where: {
+          token_userId: {
+            token: token.data.notificationToken,
+            userId: token.data.userId,
+          },
+        },
+      });
 
       const updatedData = await prisma.userSessions.update({
         data: { token: newToken },

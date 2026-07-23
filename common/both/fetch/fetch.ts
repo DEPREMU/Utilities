@@ -51,7 +51,13 @@ export class ServerFetch {
     );
   }
 
-  static get: FetchToServerPerMethod["GET"] = async (route, params, token) => {
+  static get: FetchToServerPerMethod["GET"] = async (
+    route,
+    params,
+    ...args
+  ) => {
+    const token = args[0] as string;
+
     const response = await axios.get(
       ServerFetch.getRoute(route, params as never),
       {
@@ -66,7 +72,13 @@ export class ServerFetch {
     } satisfies Awaited<ReturnType<FetchToServerPerMethod["GET"]>>;
   };
 
-  static post: FetchToServerPerMethod["POST"] = async (route, body, token) => {
+  static post: FetchToServerPerMethod["POST"] = async (
+    route,
+    body,
+    ...args
+  ) => {
+    const token = args[0] as string;
+
     const response = await axios.post(
       ServerFetch.getRoute(route, undefined as never),
       body as never,
@@ -86,8 +98,10 @@ export class ServerFetch {
   static delete: FetchToServerPerMethod["DELETE"] = async (
     route,
     body,
-    token,
+    ...args
   ) => {
+    const token = args[0] as string;
+
     const response = await axios.delete(
       ServerFetch.getRoute(route, body as never),
       {
@@ -103,7 +117,9 @@ export class ServerFetch {
     } satisfies Awaited<ReturnType<FetchToServerPerMethod["DELETE"]>>;
   };
 
-  static put: FetchToServerPerMethod["PUT"] = async (route, body, token) => {
+  static put: FetchToServerPerMethod["PUT"] = async (route, body, ...args) => {
+    const token = args[0] as string;
+
     const response = await axios.put(
       ServerFetch.getRoute(route, undefined as never),
       body as never,
@@ -122,33 +138,15 @@ export class ServerFetch {
 
   static server: FetchToServer = async (method, route, body, ...args) => {
     try {
-      const token = args[0] as never;
+      const res = await ServerFetch[method.toLowerCase() as "get"](
+        route as "/info/generate204",
+        body,
+        ...(args as []),
+      );
 
-      let res = null;
-      switch (method) {
-        case "GET":
-          res = await ServerFetch.get(route as RoutesAPI["GET"], body, token);
-
-          break;
-        case "POST":
-          res = await ServerFetch.post(route as RoutesAPI["POST"], body, token);
-          break;
-        case "DELETE":
-          res = await ServerFetch.delete(
-            route as RoutesAPI["DELETE"],
-            body,
-            token,
-          );
-          break;
-        case "PUT":
-          res = await ServerFetch.put(route as RoutesAPI["PUT"], body, token);
-          break;
-
-        default:
-          throw new Error(`Unsupported method: ${method}`);
-      }
-
-      return res;
+      return { ...res, data: res.data as never } satisfies Awaited<
+        ReturnType<FetchToServer>
+      >;
     } catch (error) {
       throw error instanceof Error
         ? error

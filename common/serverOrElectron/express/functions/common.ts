@@ -94,7 +94,8 @@ export const getBodyParsed = (
     res: Response;
   },
 ) => {
-  const body: Record<string, unknown> = req.body || req.params || {};
+  const body: Record<string, unknown> =
+    req.body || req.params || req.query || {};
 
   const parsedParams = Helper.Object.fromEntries(
     Helper.Object.entries(keys || {}).map(([key, expectedType]) => {

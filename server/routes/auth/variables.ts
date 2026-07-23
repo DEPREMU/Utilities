@@ -51,6 +51,8 @@ export const getStorageData = async (
         ? Helper.Object.changeType(cryptosSettings, {
             createdAt: "string",
             updatedAt: "string",
+            autoRefresh: "object",
+            notifications: "object",
           })
         : undefined,
       LAST_UPDATE_CHECK: Date.now(),

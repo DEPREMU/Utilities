@@ -37,7 +37,7 @@ const executeTest = async (
       method,
       route,
       body as never,
-      authorizationToken as never,
+      ...((authorizationToken ? [authorizationToken] : []) as []),
     );
 
     const duration = Date.now() - startTime;

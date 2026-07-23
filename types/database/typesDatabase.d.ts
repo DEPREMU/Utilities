@@ -1,19 +1,5 @@
-import type {
-  Logs,
-  Users,
-  Notes,
-  type Prisma,
-  Cryptos,
-  Streamers,
-  PushTokens,
-  UserConfig,
-  UserSessions,
-  DownDetector,
-  ClipboardSync,
-  CryptosSettings,
-  UserNotificationConfig,
-} from "../../server/generated/prisma";
 import type { UserData } from "./typesUser";
+import type { type Prisma } from "../../server/generated/prisma";
 import { LanguagesSupported } from "../typesTranslations";
 import type { ReasonNotification } from "../typesNotifications";
 
@@ -43,6 +29,27 @@ export type CryptosSettings = Prisma.CryptosSettingsGetPayload<{
   };
 }>;
 
+export type Logs = Prisma.LogsGetPayload<{}>;
+
+export type Users = Prisma.UsersGetPayload<{}>;
+
+export type Cryptos = Prisma.CryptosGetPayload<{}>;
+
+export type UserNotificationConfig =
+  Prisma.UserNotificationsConfigGetPayload<{}>;
+
+export type Streamers = Prisma.StreamersGetPayload<{}>;
+
+export type PushTokens = Prisma.PushTokensGetPayload<{}>;
+
+export type UserConfig = Prisma.UserConfigGetPayload<{}>;
+
+export type UserSessions = Prisma.UserSessionsGetPayload<{}>;
+
+export type DownDetector = Prisma.DownDetectorGetPayload<{}>;
+
+export type ClipboardSync = Prisma.ClipboardSyncGetPayload<{}>;
+
 type Serialized<T> = T extends string | number | boolean | null | undefined
   ? T
   : T extends Date
@@ -68,7 +75,10 @@ export type TablesServer = {
   DownDetector: DownDetector;
   UserSessions: UserSessions;
   ClipboardSync: ClipboardSync;
-  CryptosSettings: CryptosSettings;
+  CryptosSettings: CryptosSettings & {
+    autoRefresh: Serialized<NonNullable<CryptosSettings["autoRefresh"]>>;
+    notifications: Serialized<NonNullable<CryptosSettings["notifications"]>>;
+  };
   UserNotificationsConfig: UserNotificationConfig;
 };
 

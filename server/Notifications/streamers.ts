@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { prisma } from "@/database/postgres.ts";
-import { isLiveStreamer } from "@/routes/streamers/get/handlers";
+import { isLiveStreamer } from "@/routes/streamers/common";
 import { sendFCMNotification } from "@/firebase/admin.ts";
 import { getInterval, getPagination } from "./utils";
 import { ChannelsId, ScreensAvailable } from "@types";

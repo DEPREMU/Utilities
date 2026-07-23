@@ -10,7 +10,8 @@
     "skipLibCheck": true,
     "paths": {
       "@types": ["./index.d.ts"],
-      "@common": ["../common/both"]
+      "@common": ["../common/both"],
+      "@commonSrc/*": ["../common/*"]
     }
   },
   "include": ["./**/*.d.ts"],

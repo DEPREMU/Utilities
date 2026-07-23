@@ -61,6 +61,7 @@ export type RequestAuth<T extends "login" | "signup"> = {
 export type RequestRefreshSession = {
   lang: LanguagesSupported;
   deviceId: string;
+  notificationToken: string;
 };
 
 export type RequestSignOut = {
