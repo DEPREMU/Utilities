@@ -1,11 +1,11 @@
 import {
   t,
   Logger,
+  Helper,
   isValidEmail,
   getHandlerPost,
   isValidPassword,
   STATUS_RESPONSE,
-  Helper,
 } from "@common";
 import chalk from "chalk";
 import bcrypt from "@node-rs/bcrypt";
@@ -238,19 +238,20 @@ export const handleRefreshSession = getHandlerPost(
         return;
       }
 
-      await prisma.pushTokens.upsert({
-        update: { token: notificationToken },
-        create: {
-          token: notificationToken,
-          userId: token.data.userId,
-        },
-        where: {
-          token_userId: {
-            token: token.data.notificationToken,
+      if (!notificationToken.includes("web"))
+        await prisma.pushTokens.upsert({
+          update: { token: notificationToken },
+          create: {
+            token: notificationToken,
             userId: token.data.userId,
           },
-        },
-      });
+          where: {
+            token_userId: {
+              token: token.data.notificationToken,
+              userId: token.data.userId,
+            },
+          },
+        });
 
       const updatedData = await prisma.userSessions.update({
         data: { token: newToken },

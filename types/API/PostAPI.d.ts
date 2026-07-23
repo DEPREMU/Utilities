@@ -92,10 +92,18 @@ export type StreamersFetch = GetUrlFetch<
   }
 >;
 
+export type AdminFetch = GetUrlFetch<
+  "/unlock",
+  { deviceId: string; password: string },
+  { auth: true },
+  { error?: string; success?: boolean }
+>;
+
 export type Post = {
   "/dev": DevFetch;
   "/auth": AuthFetch;
   "/logs": LogsFetch;
+  "/admin": AdminFetch;
   "/images": ImagesFetch;
   "/updates": UpdatesFetch;
   "/languages": TranslateFetch;

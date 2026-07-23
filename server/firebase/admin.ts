@@ -41,6 +41,16 @@ export const sendFCMNotification = async (
 ) => {
   try {
     const messaging = getFirebaseAdmin().messaging();
+    tokens = tokens.filter(
+      (token) =>
+        token &&
+        token.trim() !== "" &&
+        token.slice(0, 3).toLowerCase() !== "web",
+    );
+    if (tokens.length === 0) {
+      Logger.log(chalk.yellow("No valid tokens to send notifications."));
+      return;
+    }
 
     const imageUrl =
       typeof data?.image === "string" ? data.image : notification.imageUrl;

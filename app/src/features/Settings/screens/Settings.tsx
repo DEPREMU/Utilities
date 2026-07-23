@@ -10,7 +10,6 @@ import {
   deviceInfo,
   navigation,
   APP_VERSION,
-  ADMIN_PASSWORD,
   sessionManager,
   DEBUG_SETTINGS,
   EventsDeviceInfo,
@@ -131,6 +130,7 @@ const SettingsScreen: React.FC = () => {
   const [hasAdmin, setHasAdmin] = useState<boolean>(
     storageManagement.get("HAS_ADMIN_ACCESS", false),
   );
+  const [errorAdmin, setErrorAdmin] = useState<string | null>(null);
   const [socketURL, setSocketURLState] = useState<string>(
     storageManagement.get("WEBSOCKET_URL", ""),
   );
@@ -141,6 +141,8 @@ const SettingsScreen: React.FC = () => {
   const [fetchWithCellularData, setFetchWithCellularData] = useState<boolean>(
     deviceInfo.fetchNetworkInfo.fetchWithCellularData,
   );
+
+  const errorTimeoutRef = useRef<number | null>(null);
 
   const handleCheckForUpdatesRef = useRef(async () => {
     if (REPLACERS.isWeb) return;
@@ -180,31 +182,42 @@ const SettingsScreen: React.FC = () => {
   });
 
   const handleCheckPasswordAdminSection = useCallback(async () => {
-    if (!password || !ADMIN_PASSWORD) return;
+    if (!password) return;
 
     const { userData, sessionToken } = sessionManager.getSessionData();
 
     if (!userData?.userId || !sessionToken) return;
-    if (password !== ADMIN_PASSWORD) return;
 
-    const deviceId = storageManagement.get("DEVICE_ID");
+    const setError = (error: string) => {
+      setErrorAdmin(error);
 
-    setHasAdmin(true);
-    storageManagement.save("HAS_ADMIN_ACCESS", true);
+      if (errorTimeoutRef.current) Timers.clearTimeout(errorTimeoutRef.current);
+
+      errorTimeoutRef.current = Timers.setTimeout(() => {
+        setErrorAdmin(null);
+        errorTimeoutRef.current = null;
+      }, 5000);
+    };
 
     try {
-      const res = await ServerFetch.put(
-        "/user-config/update",
-        {
-          values: { hasAdmin: true },
-          deviceId,
-        },
+      const deviceId = storageManagement.get("DEVICE_ID");
+
+      const res = await ServerFetch.post(
+        "/admin/unlock",
+        { deviceId, password },
         sessionToken,
       );
 
-      logger.log("Admin access granted:", res.data.success);
+      if (res.data.success) {
+        setHasAdmin(true);
+        storageManagement.save("HAS_ADMIN_ACCESS", true);
+      } else if (res.data.error) {
+        setError(res.data.error);
+      }
     } catch (error) {
-      logger.error("Error updating user config:", error);
+      logger.error("Error checking admin password:", error);
+
+      setError((error as Error).message);
     }
   }, [password]);
 
@@ -448,23 +461,28 @@ const SettingsScreen: React.FC = () => {
           {!hasAdmin && (
             <View style={styles.section}>
               <Text style={styles.subtitle}>{t("settings.adminSection")}</Text>
+
+              {!!errorAdmin && (
+                <Text style={styles.infoText}>{errorAdmin}</Text>
+              )}
+
               <View style={styles.inputContainer}>
                 <TextInput
-                  label={t("settings.passwordAdminSection")}
-                  onChangeText={setPassword}
-                  value={password}
                   secureTextEntry
                   mode="outlined"
+                  value={password}
+                  label={t("settings.passwordAdminSection")}
+                  onChangeText={setPassword}
                 />
               </View>
               <View style={styles.buttonContainer}>
                 <Button
+                  label={t("auth.checkPassword")}
+                  handlePress={handleCheckPasswordAdminSection}
                   customStyles={{
                     button: styles.button,
                     textButton: styles.buttonLabel,
                   }}
-                  handlePress={handleCheckPasswordAdminSection}
-                  label={t("auth.checkPassword")}
                 />
               </View>
             </View>

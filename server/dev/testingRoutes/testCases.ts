@@ -10,6 +10,7 @@ import { prisma } from "@/database/postgres";
 import { randomUUID } from "crypto";
 import { serverPath } from "@/config";
 import { readImage, PriceBinanceAPI, STATUS_RESPONSE } from "@common";
+import { getEnvValue } from "@/env.ts";
 
 export const expect = {
   any: (constructor: unknown): AnyMatcher => ({ __type: "any", constructor }),
@@ -428,6 +429,30 @@ export const testCases: TestRoutes = {
   POST: {
     "/updates/upload": [],
     "/dev/executeQuery": [],
+    "/admin/unlock": [
+      {
+        auth: user.getSessionToken,
+        description:
+          "Should unlock admin access successfully with valid password",
+        shouldSucceed: true,
+        expectedResponse: { success: true },
+        requestBody: {
+          deviceId: user.deviceId,
+          password: getEnvValue("ADMIN_PASSWORD"),
+        },
+      },
+      {
+        auth: "InvalidToken",
+        description:
+          "Should not unlock admin access successfully with invalid token",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: {
+          deviceId: user.deviceId,
+          password: getEnvValue("ADMIN_PASSWORD"),
+        },
+      },
+    ],
 
     "/clipboard/add": [
       {

@@ -37,7 +37,6 @@ export default (
       version,
       WS_URL_BASE: process.env.WS_URL,
       API_URL_BASE: process.env.API_URL,
-      ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
       eas: {
         projectId: "7dd2c093-0c91-4638-a5b9-828d458e8be0",
       },
