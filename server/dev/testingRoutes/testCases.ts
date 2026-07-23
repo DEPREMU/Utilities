@@ -49,7 +49,129 @@ export const testCases: TestRoutes = {
   GET: {
     "/info/appAlive/:deviceId-string/:pushToken-string": [],
     "/updates/download/:id": [],
+    "/clipboard/:deviceId/:page-number-optional": [],
+    "/clipboard/search/:deviceId/:deleted-boolean/:query-string/:page-number-optional":
+      [],
+    "/down-detector/:deviceId/:page-number-optional": [],
 
+    "/down-detector/:deviceId": [
+      {
+        auth: user.getSessionToken,
+        description: "Should fetch down-detector status successfully",
+        shouldSucceed: true,
+        expectedResponse: { downDetectors: expect.any(Object) },
+        requestBody: { deviceId: user.deviceId },
+      },
+      {
+        auth: "InvalidToken",
+        description:
+          "Should return an error when fetching down-detector status with invalid auth",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: { deviceId: user.deviceId },
+      },
+    ],
+    "/clipboard/search/:deviceId/:deleted-boolean/:query-string": [
+      {
+        auth: user.getSessionToken,
+        description:
+          "Should search clipboard entries successfully with valid auth",
+        shouldSucceed: true,
+        expectedResponse: { clipboardItems: expect.any(Array) },
+        requestBody: async () => {
+          const deviceId = user.deviceId;
+          const userId = user.getUserData().user?.userId;
+
+          if (!userId)
+            throw new Error(
+              "User ID not found in session data. Please ensure the user is logged in for this test.",
+            );
+
+          const uuid = randomUUID();
+
+          const entry = await prisma.clipboardSync.create({
+            data: {
+              userId,
+              deviceId,
+              content: `${uuid} Test clipboard content`,
+            },
+          });
+
+          return {
+            deviceId,
+            query: entry.content.slice(0, uuid.length),
+            deleted: false,
+          };
+        },
+      },
+      {
+        auth: "InvalidToken",
+        description:
+          "Should return an error when searching clipboard entries with invalid auth",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: async () => {
+          const deviceId = user.deviceId;
+
+          const entries = await prisma.clipboardSync.findMany({
+            where: { deviceId },
+          });
+
+          if (!entries || entries.length === 0) {
+            throw new Error(
+              "No clipboard entries found for the user. Please ensure there are clipboard entries in the database for this test.",
+            );
+          }
+
+          return { deviceId, deleted: false, query: entries[0].content };
+        },
+      },
+    ],
+    "/clipboard/:deviceId": [
+      {
+        auth: user.getSessionToken,
+        description: "Should fetch clipboard entries successfully",
+        shouldSucceed: true,
+        expectedResponse: { clipboardItems: expect.any(Array) },
+        requestBody: async () => {
+          const deviceId = user.deviceId;
+
+          const entries = await prisma.clipboardSync.findMany({
+            where: { deviceId },
+          });
+
+          if (!entries || entries.length === 0) {
+            throw new Error(
+              "No clipboard entries found for the user. Please ensure there are clipboard entries in the database for this test.",
+            );
+          }
+
+          return { deviceId };
+        },
+      },
+      {
+        auth: "InvalidToken",
+        description:
+          "Should return an error when fetching clipboard entries with invalid auth",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: async () => {
+          const deviceId = user.deviceId;
+
+          const entries = await prisma.clipboardSync.findMany({
+            where: { deviceId },
+          });
+
+          if (!entries || entries.length === 0) {
+            throw new Error(
+              "No clipboard entries found for the user. Please ensure there are clipboard entries in the database for this test.",
+            );
+          }
+
+          return { deviceId };
+        },
+      },
+    ],
     "/cryptos/": [
       {
         description: "Should fetch the list of cryptos successfully",
@@ -272,35 +394,6 @@ export const testCases: TestRoutes = {
         },
       },
     ],
-    "/streamers/add/:userId/:streamerName": [
-      {
-        description: "Should add a streamer successfully for a user",
-        shouldSucceed: true,
-        expectedResponse: { streamer: expect.any(Object) },
-        requestBody: async () => {
-          const userData = user.getUserData();
-          const userId = userData.user?.userId;
-
-          if (!userId) {
-            throw new Error(
-              "User ID not found in session data. Please ensure the user is logged in for this test.",
-            );
-          }
-
-          return { userId, streamerName: "ElMariana" };
-        },
-      },
-      {
-        description:
-          "Should not add a streamer successfully for a user with invalid user ID",
-        shouldSucceed: false,
-        expectedResponse: { error: expect.any(String) },
-        requestBody: {
-          userId: "invalid-user-id",
-          streamerName: "invalid-streamer-name",
-        },
-      },
-    ],
     "/updates/is-update-available/:version/:buildType": [
       {
         description: "Should fetch successfully",
@@ -335,6 +428,115 @@ export const testCases: TestRoutes = {
   POST: {
     "/updates/upload": [],
     "/dev/executeQuery": [],
+
+    "/clipboard/add": [
+      {
+        auth: user.getSessionToken,
+        description: "Should add a clipboard entry successfully",
+        shouldSucceed: true,
+        expectedResponse: { id: expect.any(String) },
+        requestBody: async () => {
+          const userData = user.getUserData();
+          const userId = userData.user?.userId;
+
+          if (!userId) {
+            throw new Error(
+              "User ID not found in session data. Please ensure the user is logged in for this test.",
+            );
+          }
+
+          return {
+            userId,
+            deviceId: user.deviceId,
+            content: "Test clipboard content",
+          };
+        },
+      },
+      {
+        auth: "InvalidToken",
+        description:
+          "Should not add a clipboard entry successfully with invalid token",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: {
+          content: "Test clipboard content",
+          deviceId: user.deviceId,
+        },
+      },
+    ],
+    "/down-detector/add": [
+      {
+        auth: user.getSessionToken,
+        description: "Should add a down-detector entry successfully",
+        shouldSucceed: true,
+        expectedResponse: { id: expect.any(String) },
+        requestBody: async () => {
+          const userData = user.getUserData();
+          const userId = userData.user?.userId;
+
+          if (!userId) {
+            throw new Error(
+              "User ID not found in session data. Please ensure the user is logged in for this test.",
+            );
+          }
+
+          return {
+            userId,
+            deviceId: user.deviceId,
+            values: {
+              url: "https://example.com",
+              sendNotification: Math.random() < 0.5,
+            },
+          };
+        },
+      },
+      {
+        auth: "InvalidToken",
+        description:
+          "Should not add a down-detector entry successfully with invalid token",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: {
+          deviceId: user.deviceId,
+          values: {
+            url: "https://example.com",
+            sendNotification: Math.random() < 0.5,
+          },
+        },
+      },
+    ],
+    "/streamers/add": [
+      {
+        description: "Should add a streamer successfully for a user",
+        shouldSucceed: true,
+        expectedResponse: { streamer: expect.any(Object) },
+        requestBody: async () => {
+          const userData = user.getUserData();
+          const userId = userData.user?.userId;
+
+          if (!userId) {
+            throw new Error(
+              "User ID not found in session data. Please ensure the user is logged in for this test.",
+            );
+          }
+
+          return { userId, streamerName: "ElMariana", deviceId: user.deviceId };
+        },
+        auth: user.getSessionToken,
+      },
+      {
+        auth: user.getSessionToken,
+        description:
+          "Should not add a streamer successfully for a user with invalid user ID",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestBody: {
+          userId: "invalid-user-id",
+          deviceId: user.deviceId,
+          streamerName: "invalid-streamer-name",
+        },
+      },
+    ],
     "/images/change-format": [
       {
         description: "Should change image format successfully",
@@ -591,9 +793,185 @@ export const testCases: TestRoutes = {
     ],
   },
 
-  PUT: { "/logs/": [] },
+  PUT: {
+    "/logs/": [],
+    "/clipboard/delete/toggle-deleted": [
+      {
+        auth: user.getSessionToken,
+        description:
+          "Should toggle the deleted status of a clipboard entry successfully",
+        shouldSucceed: true,
+        expectedResponse: {},
+        requestBody: async () => {
+          const clipboardEntry = await prisma.clipboardSync.findFirst({
+            where: { deviceId: user.deviceId },
+          });
+
+          if (!clipboardEntry) {
+            throw new Error(
+              "No clipboard entry found for the user to toggle. Please ensure there is a clipboard entry in the database for this test.",
+            );
+          }
+
+          return {
+            deviceId: user.deviceId,
+            id: clipboardEntry.id || "",
+          };
+        },
+      },
+    ],
+    "/clipboard/delete/toggle-deleted-all": [
+      {
+        auth: user.getSessionToken,
+        description:
+          "Should toggle the deleted status of all clipboard entries successfully",
+        shouldSucceed: true,
+        expectedResponse: {},
+        requestBody: async () => {
+          return {
+            restore: Math.random() < 0.5,
+            deviceId: user.deviceId,
+          };
+        },
+      },
+    ],
+    "/down-detector/update": [
+      {
+        auth: user.getSessionToken,
+        description: "Should update down-detector status successfully",
+        shouldSucceed: true,
+        expectedResponse: {},
+        requestBody: async () => {
+          const deviceId = user.deviceId;
+
+          const downDetectorEntry = await prisma.downDetector.create({
+            data: {
+              url: "https://example.com",
+              user: { connect: { userId: user.getUserData().user?.userId } },
+              sendNotification: Math.random() < 0.5,
+            },
+          });
+          if (!downDetectorEntry)
+            throw new Error(
+              "No down-detector entry found for the user to update. Please ensure there is a down-detector entry in the database for this test.",
+            );
+
+          return {
+            deviceId,
+            id: downDetectorEntry.id,
+            values: { sendNotification: Math.random() < 0.5 },
+          };
+        },
+      },
+    ],
+    "/user-config/update": [
+      {
+        auth: user.getSessionToken,
+        description: "Should update user config successfully",
+        shouldSucceed: true,
+        expectedResponse: { success: true },
+        requestBody: async () => {
+          const userData = user.getUserData();
+          const userId = userData.user?.userId;
+
+          if (!userId) {
+            throw new Error(
+              "User ID not found in session data. Please ensure the user is logged in for this test.",
+            );
+          }
+
+          return {
+            userId,
+            values: { theme: "dark" },
+            deviceId: user.deviceId,
+          };
+        },
+      },
+    ],
+    "/user-notifications-config/update": [
+      {
+        auth: user.getSessionToken,
+        description: "Should update user notifications config successfully",
+        shouldSucceed: true,
+        expectedResponse: {},
+        requestBody: async () => {
+          const userData = user.getUserData();
+          const userId = userData.user?.userId;
+
+          if (!userId) {
+            throw new Error(
+              "User ID not found in session data. Please ensure the user is logged in for this test.",
+            );
+          }
+
+          return {
+            userId,
+            match: { reason: "downDetector" },
+            values: { enabled: Math.random() < 0.5 },
+            deviceId: user.deviceId,
+          };
+        },
+      },
+    ],
+  },
 
   DELETE: {
+    "/down-detector/:deviceId/:downDetectorId": [
+      {
+        auth: user.getSessionToken,
+        description: "Should delete a down-detector entry successfully",
+        shouldSucceed: true,
+        expectedResponse: { success: true },
+        requestBody: async () => {
+          const deviceId = user.deviceId;
+          const downDetectorId = await prisma.downDetector
+            .create({
+              data: {
+                url: "https://example.com",
+                user: { connect: { userId: user.getUserData().user?.userId } },
+                sendNotification: Math.random() < 0.5,
+              },
+            })
+            .then((entry) => entry?.id);
+
+          if (!downDetectorId) {
+            throw new Error(
+              "No down-detector entry found for the user to delete. Please ensure there is a down-detector entry in the database for this test.",
+            );
+          }
+
+          return { deviceId, downDetectorId };
+        },
+      },
+    ],
+    "/streamers/:deviceId/:streamerId": [
+      {
+        auth: user.getSessionToken,
+        description: "Should delete a streamer successfully",
+        shouldSucceed: true,
+        expectedResponse: { success: true },
+        requestBody: async () => {
+          const deviceId = user.deviceId;
+          const streamerId = await prisma.streamers
+            .findFirst({
+              where: {
+                userStreamers: {
+                  some: { user: { userId: user.getUserData().user?.userId } },
+                },
+              },
+            })
+            .then((streamer) => streamer?.id);
+
+          if (!streamerId) {
+            throw new Error(
+              "No streamer found for the user to delete. Please ensure there is a streamer in the database for this test.",
+            );
+          }
+
+          return { deviceId, streamerId };
+        },
+      },
+    ],
     "/logs/:logId": [
       {
         auth: user.getSessionToken,

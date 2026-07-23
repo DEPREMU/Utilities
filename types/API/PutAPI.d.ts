@@ -45,7 +45,7 @@ export type UserNotificationsConfigFetch = GetUrlFetch<
   {
     deviceId: string;
     values: Omit<
-      Prisma.UserNotificationConfigUpdateInput,
+      Prisma.UserNotificationsConfigUpdateInput,
       "id" | "createdAt" | "updatedAt" | "user"
     >;
     match: Omit<

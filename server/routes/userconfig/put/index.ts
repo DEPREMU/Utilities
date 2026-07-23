@@ -1,10 +1,10 @@
 import { getRouterPut } from "@common";
+import { authMiddleware } from "@/routes/auth/middlewares";
 import { handleUpdateUserConfig } from "./handlers";
-import { handleAuthMiddleware } from "@/routes/clipboard/middlewares/auth";
 
 export const routerUserConfigPut = getRouterPut("/user-config", {
   "/update": {
     handler: handleUpdateUserConfig,
-    middlewares: [handleAuthMiddleware],
+    middlewares: [authMiddleware],
   },
 });
