@@ -1,51 +1,7 @@
-import axios from "axios";
 import { prisma } from "@/database/postgres";
 import { StreamersFetch } from "@types";
-import { Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
-
-const getLinkImageStreamer = async (streamer: string) => {
-  try {
-    streamer = streamer.toLowerCase().replace(/\s+/g, "");
-    const { data } = await axios.get(`https://www.twitch.tv/${streamer}`);
-    if (!data) return;
-    const imageElement = data
-      .split(">")
-      .find((e: string) => e.includes("og:image"));
-
-    if (!imageElement) return;
-    const image: string = imageElement
-      .split(" ")
-      .find((e: string) => e.includes("content="))
-      .split('"')[1];
-
-    return image;
-  } catch (error) {
-    Logger.error("Error fetching streamer image:", error);
-  }
-};
-
-export const isLiveStreamer = async (streamer: string): Promise<boolean> => {
-  try {
-    if (!streamer) return false;
-    streamer = streamer.toLowerCase().replace(/\s/g, "");
-    const { data } = await axios.get<string>(
-      `https://www.twitch.tv/${streamer}`,
-    );
-
-    const script = data
-      .split(">")
-      .find((e: string) => e.includes("isLiveBroadcast"));
-    if (!script) return false;
-
-    const json = JSON.parse(script.replace("</script", ""));
-    const isLive: boolean =
-      json?.["@graph"]?.[0]?.publication?.isLiveBroadcast || false;
-    return isLive;
-  } catch (error) {
-    Logger.error("Error checking if streamer is live:", error);
-    return false;
-  }
-};
+import { isLiveStreamer } from "../common";
+import { Helper, Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 
 export const handleGetStreamers = getHandlerGet(
   "/streamers",
@@ -53,11 +9,13 @@ export const handleGetStreamers = getHandlerGet(
   {} as never,
   async (_, sendResponse) => {
     try {
-      const streamers = await prisma.streamers.findMany({
-        omit: { createdAt: true },
-      });
+      const streamers = await prisma.streamers.findMany();
 
-      sendResponse(STATUS_RESPONSE.SUCCESS, { streamers });
+      sendResponse(STATUS_RESPONSE.SUCCESS, {
+        streamers: streamers.map((s) =>
+          Helper.Object.changeType(s, { createdAt: "string" }),
+        ),
+      });
     } catch (error) {
       Logger.error("Error fetching streamers:", error);
       sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
@@ -79,11 +37,14 @@ export const handleGetStreamersPage = getHandlerGet(
 
       const streamers = await prisma.streamers.findMany({
         take: STREAMERS_PER_PAGE,
-        omit: { createdAt: true },
         skip: (page - 1) * STREAMERS_PER_PAGE,
       });
 
-      sendResponse(STATUS_RESPONSE.SUCCESS, { streamers });
+      sendResponse(STATUS_RESPONSE.SUCCESS, {
+        streamers: streamers.map((s) =>
+          Helper.Object.changeType(s, { createdAt: "string" }),
+        ),
+      });
     } catch (error) {
       Logger.error("Error fetching streamers page:", error);
       sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
@@ -100,7 +61,6 @@ export const handleGetStreamerById = getHandlerGet(
   async (params, sendResponse) => {
     try {
       const streamer = await prisma.streamers.findUnique({
-        omit: { createdAt: true },
         where: { id: params.streamerId },
       });
 
@@ -112,7 +72,11 @@ export const handleGetStreamerById = getHandlerGet(
       }
 
       sendResponse(STATUS_RESPONSE.SUCCESS, {
-        streamer: { ...streamer, isLive: await isLiveStreamer(streamer.name) },
+        streamer: {
+          ...streamer,
+          isLive: await isLiveStreamer(streamer.name),
+          createdAt: streamer.createdAt.toISOString(),
+        },
       });
     } catch (error) {
       Logger.error("Error fetching streamer by ID:", error);
@@ -134,7 +98,7 @@ export const handleGetStreamersByUserId = getHandlerGet(
       if (!streamerId) {
         const streamers = await prisma.userStreamers.findMany({
           where: { userId },
-          include: { streamer: { omit: { createdAt: true } } },
+          include: { streamer: true },
         });
 
         const streamersWithLiveStatus = await Promise.all(
@@ -145,7 +109,9 @@ export const handleGetStreamersByUserId = getHandlerGet(
         );
 
         const res = {
-          streamers: streamersWithLiveStatus,
+          streamers: streamersWithLiveStatus.map((s) =>
+            Helper.Object.changeType(s, { createdAt: "string" }),
+          ),
         } satisfies (StreamersFetch & { url: "/:userId" })["response"];
 
         sendResponse(STATUS_RESPONSE.SUCCESS, res as never);
@@ -154,7 +120,7 @@ export const handleGetStreamersByUserId = getHandlerGet(
 
       const streamer = await prisma.userStreamers.findUnique({
         where: { id: streamerId, userId },
-        include: { streamer: { omit: { createdAt: true } } },
+        include: { streamer: true },
       });
       if (!streamer || !streamer.streamer) {
         sendResponse(STATUS_RESPONSE.SUCCESS, { error: "Streamer not found" });
@@ -166,58 +132,12 @@ export const handleGetStreamersByUserId = getHandlerGet(
           {
             ...streamer.streamer,
             isLive: await isLiveStreamer(streamer.streamer.name),
+            createdAt: streamer.streamer.createdAt.toISOString(),
           },
         ],
       });
     } catch (error) {
       Logger.error("Error fetching streamers by user ID:", error);
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        error: "Internal server error",
-      });
-    }
-  },
-);
-
-export const handleAddStreamerByUserId = getHandlerGet(
-  "/streamers",
-  "/add/:userId/:streamerName",
-  { userId: "string", streamerName: "string" },
-  async (params, sendResponse) => {
-    try {
-      const { streamerName, userId } = params;
-
-      let existingStreamer = await prisma.streamers.findUnique({
-        omit: { createdAt: true },
-        where: { name: streamerName },
-      });
-
-      if (!existingStreamer) {
-        const newStreamer = await prisma.userStreamers.create({
-          data: {
-            user: { connect: { userId } },
-            streamer: {
-              create: {
-                name: streamerName,
-                linkImage: (await getLinkImageStreamer(streamerName)) ?? null,
-              },
-            },
-          },
-          include: { streamer: { omit: { createdAt: true } } },
-        });
-
-        existingStreamer = newStreamer.streamer;
-      }
-
-      const streamerWithLiveStatus = {
-        ...existingStreamer,
-        isLive: await isLiveStreamer(existingStreamer.name),
-      };
-
-      sendResponse(STATUS_RESPONSE.SUCCESS, {
-        streamer: streamerWithLiveStatus,
-      });
-    } catch (error) {
-      Logger.error("Error adding streamer by user ID:", error);
       sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         error: "Internal server error",
       });

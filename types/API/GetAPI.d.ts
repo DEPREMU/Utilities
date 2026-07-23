@@ -9,6 +9,7 @@ import {
   PlatformsOS,
   Post,
   Prisma,
+  Put,
   ResponseDownloadUpload,
 } from "@types";
 import { Delete } from "./DeleteAPI";
@@ -55,30 +56,49 @@ export type ServerInfoFetch =
       DEFAULT_RESPONSE
     >;
 
+export type ClipboardFetch =
+  | GetUrlFetch<
+      "/:deviceId/:page-number-optional",
+      null,
+      { auth: true },
+      | { clipboardItems: DB["TablesClient"]["ClipboardSync"][] }
+      | { error: string }
+    >
+  | GetUrlFetch<
+      "/search/:deviceId/:deleted-boolean/:query-string/:page-number-optional",
+      null,
+      { auth: true },
+      | { clipboardItems: DB["TablesClient"]["ClipboardSync"][] }
+      | { error: string }
+    >;
+
+export type DownDetectorFetch = GetUrlFetch<
+  "/:deviceId/:page-number-optional",
+  null,
+  { auth: true },
+  { downDetectors: DB["TablesClient"]["DownDetector"][] } | { error: string }
+>;
+
 export type LogsFetch =
   | GetUrlFetch<
       "/",
       null,
       { auth: true },
-      { logs: DB["Tables"]["Logs"][] } | { error: string }
+      { logs: DB["TablesClient"]["Logs"][] } | { error: string }
     >
   | GetUrlFetch<
       "/page/:page-number-optional",
       null,
       { auth: true },
-      { logs?: DB["Tables"]["Logs"][]; error?: string }
+      { logs?: DB["TablesClient"]["Logs"][]; error?: string }
     >;
-
-export type ResponseStreamersFetch = Prisma.StreamersGetPayload<{
-  omit: { createdAt: true };
-}>;
 
 export type StreamersFetch =
   | GetUrlFetch<
       "/page/:page-number-optional",
       null,
       {},
-      { streamers?: ResponseStreamersFetch[]; error?: string }
+      { streamers?: DB["TablesClient"]["Streamers"][]; error?: string }
     >
   | GetUrlFetch<
       "/streamer/:streamerId",
@@ -86,23 +106,14 @@ export type StreamersFetch =
       {},
       {
         error?: string;
-        streamer?: ResponseStreamersFetch & { isLive: boolean };
+        streamer?: DB["TablesClient"]["Streamers"] & { isLive: boolean };
       }
     >
   | GetUrlFetch<
       "/",
       null,
       {},
-      { streamers?: ResponseStreamersFetch[]; error?: string }
-    >
-  | GetUrlFetch<
-      "/add/:userId/:streamerName",
-      null,
-      {},
-      {
-        error?: string;
-        streamer?: ResponseStreamersFetch & { isLive: boolean };
-      }
+      { streamers?: DB["TablesClient"]["Streamers"][]; error?: string }
     >
   | GetUrlFetch<
       "/:userId/:streamerId-optional",
@@ -110,7 +121,7 @@ export type StreamersFetch =
       {},
       {
         error?: string;
-        streamers?: (ResponseStreamersFetch & { isLive: boolean })[];
+        streamers?: (DB["TablesClient"]["Streamers"] & { isLive: boolean })[];
       }
     >;
 
@@ -120,6 +131,8 @@ export type Get = {
   "/cryptos": CryptosFetch;
   "/updates": UpdatesFetch;
   "/streamers": StreamersFetch;
+  "/clipboard": ClipboardFetch;
+  "/down-detector": DownDetectorFetch;
 };
 
 export type GetRoutesGet<T extends keyof Get> = {
@@ -127,7 +140,7 @@ export type GetRoutesGet<T extends keyof Get> = {
 };
 
 export type GetMainRouter = {
-  [P in keyof Get | keyof Post | keyof Delete]: {
+  [P in keyof Get | keyof Post | keyof Delete | keyof Put]: {
     router: Router;
   };
 };

@@ -120,7 +120,9 @@ export const getMainRouter = (routes: GetMainRouter): Router => {
   return router;
 };
 
-export const getRouterPerRoute = <T extends keyof Get | keyof Post>(
+export const getRouterPerRoute = <
+  T extends keyof Get | keyof Post | keyof Put | keyof Delete,
+>(
   route: T,
   routers: Partial<Record<MethodsAPI, Router>>,
   callback?: (router: Router) => unknown,

@@ -62,6 +62,36 @@ export type ImagesFetch = GetUrlFetch<
   ResponseChangeImageFormat
 >;
 
+export type DownDetectorFetch = GetUrlFetch<
+  "/add",
+  {
+    deviceId: string;
+    values: Omit<
+      DB["TablesClient"]["DownDetector"],
+      "id" | "userId" | "createdAt"
+    >;
+  },
+  { auth: true },
+  DB["TablesClient"]["DownDetector"] | { error: string }
+>;
+
+export type ClipboardFetch = GetUrlFetch<
+  "/add",
+  { deviceId: string; content: string },
+  { auth: true },
+  DB["TablesClient"]["ClipboardSync"] | { error: string }
+>;
+
+export type StreamersFetch = GetUrlFetch<
+  "/add",
+  { deviceId: string; userId: string; streamerName: string },
+  { auth: true },
+  {
+    error?: string;
+    streamer?: ResponseStreamersFetch & { isLive: boolean };
+  }
+>;
+
 export type Post = {
   "/dev": DevFetch;
   "/auth": AuthFetch;
@@ -69,7 +99,10 @@ export type Post = {
   "/images": ImagesFetch;
   "/updates": UpdatesFetch;
   "/languages": TranslateFetch;
+  "/clipboard": ClipboardFetch;
+  "/streamers": StreamersFetch;
   "/encryption": EncryptionFetch;
+  "/down-detector": DownDetectorFetch;
 };
 
 export type RequestBody<
