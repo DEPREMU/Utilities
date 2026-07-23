@@ -1,14 +1,7 @@
 {
   "extends": "expo/tsconfig.base",
   "typeRoutes": ["../types/index.d.ts"],
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/types/*",
-    "../common/both/index.ts",
-    "../common/both/notifications.ts",
-    "src/index.txs"
-  ],
+  "include": ["**/*.ts", "**/*.tsx", "**/types/*", "../common/both/index.ts"],
   "compilerOptions": {
     "strict": true,
     "allowImportingTsExtensions": true,

@@ -42,11 +42,6 @@ export default (
         projectId: "7dd2c093-0c91-4638-a5b9-828d458e8be0",
       },
     },
-    splash: {
-      image: "./src/assets/icon.png",
-      resizeMode: "contain",
-      backgroundColor: "#ffffff",
-    },
     android: {
       adaptiveIcon: {
         foregroundImage: "./src/assets/adaptive-icon.png",

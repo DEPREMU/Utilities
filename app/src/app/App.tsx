@@ -2,8 +2,8 @@ import { Timers } from "@common";
 import AppNavigator from "./AppNavigator";
 import AppProviders from "@context/AppProviders";
 import LoadingScreen from "@screens/Loading/screens/LoadingScreen";
+import { useEffect, useState } from "react";
 import { NativeFunctionsModule } from "@modules";
-import React, { useEffect, useState } from "react";
 import { REPLACERS, cleanupServices, storageManagement } from "@utils";
 
 if (REPLACERS.isDev) {
