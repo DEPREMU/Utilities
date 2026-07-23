@@ -7,13 +7,13 @@ import {
 import { create } from "zustand";
 import { CryptoManager } from "./cryptosService";
 import { sessionManager } from "@utils";
-import { CryptosSettings, GetStatesZustand } from "@types";
+import { GetStatesZustand } from "@types";
 
 type States = GetStatesZustand<{
   prices: PriceBinanceAPI;
   loading: boolean;
   currency: string;
-  settings: CryptosSettings;
+  settings: DB["TablesClient"]["CryptosSettings"];
   isWriting: boolean;
   refreshing: boolean;
   isDestroyed: boolean;
@@ -36,7 +36,8 @@ export const useCryptoStore = create<States & Actions>((set, get) => {
   const service = CryptoManager.instance;
 
   const prices = service.prices;
-  const settings = service.getSettings() || ({} as CryptosSettings);
+  const settings =
+    service.getSettings() || ({} as DB["TablesClient"]["CryptosSettings"]);
   const selectedCryptos = service.ownedCryptos;
 
   CryptoManager.destroy();
@@ -116,7 +117,8 @@ export const useCryptoStore = create<States & Actions>((set, get) => {
         const cryptoPrice = service.getCryptoBySymbol(cryptoId);
         if (!cryptoPrice) return;
 
-        const crypto = {
+        const crypto: SelectedCryptos[string] = {
+          id: "",
           amount: "0",
           symbol: cryptoId,
           baseCoin: cryptoPrice.baseCoin,
@@ -169,13 +171,14 @@ export const useCryptoStore = create<States & Actions>((set, get) => {
         const newOwned = { ...prev };
 
         newOwned[symbol] = {
+          id: newOwned[symbol]?.id ?? "",
           amount,
           userId,
           symbol,
           baseCoin,
           quoteCoin,
-          firstPricePurchased: service.getCryptoBySymbol(symbol)?.price ?? 0,
           datePurchased: new Date().toISOString(),
+          firstPricePurchased: service.getCryptoBySymbol(symbol)?.price ?? 0,
         };
         return newOwned;
       });

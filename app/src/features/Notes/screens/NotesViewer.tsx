@@ -311,7 +311,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
     const recorder = audioRecorderRef.current;
     if (!recorder) return;
 
-    const stopResult = recorder.stop();
+    const stopResult = await recorder.stop();
     if (stopResult.status === "error") {
       Alert.alert(
         tTyped("common.errorOccurred", { error: "" }),
@@ -328,7 +328,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
       recordingAccumulatedMsRef.current += Math.max(0, Date.now() - startAt);
     recordingStartedAtMsRef.current = null;
 
-    const recordedUri = stopResult.path || "";
+    const recordedUri = stopResult.paths[0] || "";
     setRecordedDraftAudioUri(recordedUri);
     setAudioRecordedSeconds(
       Math.floor(recordingAccumulatedMsRef.current / 1000),
@@ -559,7 +559,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
       audioRecorderRef.current = recorder;
     }
 
-    const startResult = recorder.start();
+    const startResult = await recorder.start();
     if (startResult.status === "error") {
       Alert.alert(tTyped("common.error"), startResult.message);
       return;
@@ -583,10 +583,10 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
   const resetAudioRecordingDraft = useCallback(async () => {
     const recorder = audioRecorderRef.current;
     if (recorder) {
-      const stopResult = recorder.stop();
-      if (stopResult.status === "success" && stopResult.path) {
+      const stopResult = await recorder.stop();
+      if (stopResult.status === "success" && stopResult.paths[0]) {
         try {
-          new File(stopResult.path).delete();
+          new File(stopResult.paths[0]).delete();
         } catch {
           // Ignore errors
         }

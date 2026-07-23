@@ -12,14 +12,17 @@ import {
 } from "@utils";
 import { cloneDeep } from "lodash";
 import { CryptosWs, TIMES } from "./cryptoWs";
-import { Crypto, CryptosSettings, ValidClearTimeout } from "@types";
+import { ValidClearTimeout } from "@types";
 
-type AdditionsData = Omit<Crypto, "id" | "datePurchased" | "userId">[];
+type AdditionsData = Omit<
+  DB["TablesClient"]["Cryptos"],
+  "id" | "datePurchased" | "userId"
+>[];
 
 export class CryptosService extends CryptosWs {
   #pricesListener: ReturnType<typeof this.addEventListener> | null = null;
 
-  #settings: CryptosSettings | null = null;
+  #settings: DB["TablesClient"]["CryptosSettings"] | null = null;
 
   #deletes = {
     timeoutId: null as ValidClearTimeout,
@@ -82,8 +85,8 @@ export class CryptosService extends CryptosWs {
   public updateCrypto = async (
     symbol: string,
     cryptoData: Omit<
-      Crypto,
-      "uid" | "datePurchased" | "firstPricePurchased" | "userId"
+      DB["TablesClient"]["Cryptos"],
+      "id" | "datePurchased" | "firstPricePurchased" | "userId"
     >,
   ) => {
     this.#updates.shouldUpdate = true;
@@ -195,12 +198,12 @@ export class CryptosService extends CryptosWs {
     this.#removeHasInternetListener.remove();
   }
 
-  override getSettings(): CryptosSettings | null {
+  override getSettings(): DB["TablesClient"]["CryptosSettings"] | null {
     return this.#settings ? cloneDeep(this.#settings) : null;
   }
 
   #shouldUpdateSettingsOnDB = true;
-  override set settings(value: CryptosSettings) {
+  override set settings(value: DB["TablesClient"]["CryptosSettings"]) {
     this.#shouldUpdateSettingsOnDB = false;
     this.#settings = value;
     this.setAutoRefreshSettings(value.autoRefresh);
@@ -215,7 +218,7 @@ export class CryptosService extends CryptosWs {
     import("./cryptoZustand").then(({ useCryptoStore }) => {
       const state = useCryptoStore.getState();
       state.setSettings(settings);
-      state.setCurrency(settings.defaultCurrency);
+      if (settings.defaultCurrency) state.setCurrency(settings.defaultCurrency);
     });
 
     const shouldUpdateSettingsOnDB = this.#shouldUpdateSettingsOnDB;
@@ -235,27 +238,31 @@ export class CryptosService extends CryptosWs {
   };
 
   public setAutoRefreshSettings(
-    refreshSettings: CryptosSettings["autoRefresh"],
+    refreshSettings: DB["TablesClient"]["CryptosSettings"]["autoRefresh"],
   ): void;
-  public setAutoRefreshSettings<K extends keyof CryptosSettings["autoRefresh"]>(
+  public setAutoRefreshSettings<
+    K extends keyof NonNullable<
+      DB["TablesClient"]["CryptosSettings"]["autoRefresh"]
+    >,
+  >(
     key: K,
-    value: CryptosSettings["autoRefresh"][K],
+    value: NonNullable<DB["TablesClient"]["CryptosSettings"]["autoRefresh"]>[K],
   ): void;
   public setAutoRefreshSettings(
     refreshSettingsOrKey:
-      | CryptosSettings["autoRefresh"]
-      | keyof CryptosSettings["autoRefresh"],
-    value?: CryptosSettings["autoRefresh"][keyof CryptosSettings["autoRefresh"]],
+      | DB["TablesClient"]["CryptosSettings"]["autoRefresh"]
+      | keyof DB["TablesClient"]["CryptosSettings"]["autoRefresh"],
+    value?: DB["TablesClient"]["CryptosSettings"]["autoRefresh"][keyof DB["TablesClient"]["CryptosSettings"]["autoRefresh"]],
   ) {
     if (!this.#settings) return;
 
     if (typeof refreshSettingsOrKey === "object") {
       this.#settings.autoRefresh = refreshSettingsOrKey;
-    } else if (typeof value !== "undefined") {
+    } else if (typeof value !== "undefined" && this.#settings.autoRefresh) {
       this.#settings.autoRefresh[refreshSettingsOrKey] = value as never;
     } else return;
 
-    if (this.#settings.autoRefresh.enabled)
+    if (this.#settings.autoRefresh?.enabled)
       this.startAutoUpdate(this.#settings.autoRefresh.valueMs);
     else this.stopAutoUpdate();
 
@@ -263,23 +270,25 @@ export class CryptosService extends CryptosWs {
   }
 
   public setNotifiSettings(
-    intervalSettings: CryptosSettings["notifications"],
+    intervalSettings: DB["TablesClient"]["CryptosSettings"]["notifications"],
   ): void;
-  public setNotifiSettings<K extends keyof CryptosSettings["notifications"]>(
+  public setNotifiSettings<
+    K extends keyof DB["TablesClient"]["CryptosSettings"]["notifications"],
+  >(
     key: K,
-    value: CryptosSettings["notifications"][K],
+    value: DB["TablesClient"]["CryptosSettings"]["notifications"][K],
   ): void;
   public setNotifiSettings(
     intervalSettingsOrKey:
-      | CryptosSettings["notifications"]
-      | keyof CryptosSettings["notifications"],
-    value?: CryptosSettings["notifications"][keyof CryptosSettings["notifications"]],
+      | DB["TablesClient"]["CryptosSettings"]["notifications"]
+      | keyof DB["TablesClient"]["CryptosSettings"]["notifications"],
+    value?: DB["TablesClient"]["CryptosSettings"]["notifications"][keyof DB["TablesClient"]["CryptosSettings"]["notifications"]],
   ) {
     if (!this.#settings) return;
 
     if (typeof intervalSettingsOrKey === "object") {
       this.#settings.notifications = intervalSettingsOrKey;
-    } else if (typeof value !== "undefined") {
+    } else if (typeof value !== "undefined" && this.#settings.notifications) {
       this.#settings.notifications[intervalSettingsOrKey] = value as never;
     } else return;
 
@@ -292,7 +301,7 @@ export class CryptosService extends CryptosWs {
     enabled =
       typeof enabled === "boolean"
         ? enabled
-        : !this.#settings.autoRefresh.enabled;
+        : !this.#settings.autoRefresh?.enabled;
     this.setAutoRefreshSettings("enabled", enabled);
   }
 
@@ -314,7 +323,7 @@ export class CryptosService extends CryptosWs {
     const settings = storageManagement.get("CRYPTOS_SETTINGS");
 
     if (settings) this.settings = settings;
-    if (this.#settings?.autoRefresh.enabled) this.startAutoUpdate();
+    if (this.#settings?.autoRefresh?.enabled) this.startAutoUpdate();
 
     this.#pricesListener = this.addEventListener(
       CryptoEvents.UPDATE,

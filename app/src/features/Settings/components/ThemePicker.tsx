@@ -1,19 +1,14 @@
-import {
-  memoDeep,
-  fetchToServer,
-  sessionManager,
-  storageManagement,
-} from "@utils";
 import { List } from "react-native-paper";
 import { Theme } from "@types";
 import { useTheme } from "@/context/ThemeContext";
+import { ServerFetch } from "@common";
 import { useLanguage } from "@/context/LanguageContext";
-import { useBackgroundTask } from "@/context/BackgroundTaskContext";
 import React, { useMemo, useRef } from "react";
+import { logger, memoDeep, sessionManager, storageManagement } from "@utils";
+import { background } from "@/utils/services/background";
 
 const ThemePicker: React.FC = () => {
   const { t } = useLanguage();
-  const { addTaskQueueRef } = useBackgroundTask();
   const { themeState, setThemeState, colors } = useTheme();
 
   const changeThemeRef = useRef((newTheme: Theme) => {
@@ -21,33 +16,37 @@ const ThemePicker: React.FC = () => {
 
     setThemeState(newTheme);
     if (!userData?.userId || !sessionToken) return;
-    addTaskQueueRef.current({
-      requiresInternet: true,
-      func: async () => {
-        if (!userData?.userId || !sessionToken) return;
-        const deviceId = storageManagement.get("DEVICE_ID");
-        const lang = storageManagement.get("LANGUAGE");
 
-        await fetchToServer(
-          "/database/update",
-          {
-            lang,
-            table: "UserConfig",
-            deviceId,
-            match: { userId: userData?.userId },
-            values: { theme: newTheme },
-          },
-          sessionToken,
-        );
+    background.addTaskQueue(
+      {
+        function: async () => {
+          if (!userData?.userId || !sessionToken) return;
+          const deviceId = storageManagement.get("DEVICE_ID");
+
+          try {
+            await ServerFetch.put(
+              "/user-config/update",
+              {
+                values: { theme: newTheme },
+                deviceId,
+              },
+              sessionToken,
+            );
+          } catch (error) {
+            logger.error("Error updating user config:", error);
+          }
+        },
+        arguments: [],
       },
-    });
+      true,
+    );
   });
 
   const renderAccordionItem = useMemo(() => {
-    return ["auto", "light", "dark"].map((key) => (
+    return (["auto", "light", "dark"] as const).map((key) => (
       <List.Item
         key={key}
-        title={t(`settings.${key as Theme}`)}
+        title={t(`settings.${key}`)}
         left={(props) => (
           <List.Icon
             {...props}
@@ -55,7 +54,7 @@ const ThemePicker: React.FC = () => {
             icon={themeState === key ? "radiobox-marked" : "radiobox-blank"}
           />
         )}
-        onPress={() => changeThemeRef.current(key as Theme)}
+        onPress={() => changeThemeRef.current(key)}
       />
     ));
   }, [themeState, colors, t]);

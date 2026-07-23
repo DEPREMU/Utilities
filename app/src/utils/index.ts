@@ -8,4 +8,3 @@ export * from "./TOP_LEVEL";
 export * from "./functions";
 export * from "./constants";
 export * from "./translates";
-export * from "./taskRegistry";

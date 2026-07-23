@@ -2,18 +2,11 @@ import {
   ReconnectingWebSocket,
   OptionsReconnectingWS,
 } from "@/utils/reconnecting-websocket";
-import {
-  URLS,
-  logger,
-  parseData,
-  REPLACERS,
-  navigation,
-  storageManagement,
-} from "@utils";
+import { URLS, logger, REPLACERS, navigation, storageManagement } from "@utils";
 import Button from "@components/Button/screens";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
-import { Timers } from "@common";
+import { Helper, Timers } from "@common";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
@@ -90,7 +83,8 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
 
     const handleLoginWithQR = async () => {
       try {
-        const parsedMessage: LoginWithQRMobile | null = parseData(scannedData);
+        const parsedMessage: LoginWithQRMobile | null =
+          Helper.JSON.parseData(scannedData);
         if (!parsedMessage || parsedMessage?.type !== "scanned") return;
 
         const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
@@ -138,7 +132,7 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
         ws.onMessage = (event) => {
           try {
             const message: MessageWebSocketQRLogin<"sentByServer"> | null =
-              parseData(event.data.toString());
+              Helper.JSON.parseData(event.data.toString());
 
             if (!message) return ws?.close();
 

@@ -34,17 +34,19 @@ class Updates extends ServiceClass<never> {
           tTyped,
           openURL,
           deviceInfo,
-          fetchToServer,
+          ServerFetch,
           notificationsManager,
         } = await import("@utils");
 
-        const res = await fetchToServer("/is-update-available", {
-          buildType: "android",
-          platformOS: undefined,
-          currentVersion: APP_VERSION,
-        });
+        const res = await ServerFetch.get(
+          "/updates/is-update-available/:version/:buildType",
+          {
+            version: APP_VERSION,
+            buildType: "android",
+          },
+        );
         const result = res.data;
-        if (!result?.updateAvailable) return false;
+        if (!result?.isUpdateAvailable) return false;
 
         const hasInternet = await Network.waitForOnline(5);
         if (!hasInternet) {
@@ -81,7 +83,7 @@ class Updates extends ServiceClass<never> {
             "updates.updateAvailable",
             "updates.updateAvailableMessage",
             async (_, accepted) => {
-              if (!accepted) return;
+              if (!accepted || !result?.downloadUrl) return;
 
               openURL(result.downloadUrl);
             },

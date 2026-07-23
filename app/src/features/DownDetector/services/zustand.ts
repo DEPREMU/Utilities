@@ -1,18 +1,12 @@
-import {
-  logger,
-  tTyped,
-  fetchToServer,
-  sessionManager,
-  storageManagement,
-} from "@utils";
 import { create } from "zustand";
 import { openURL } from "expo-linking";
 import { modalRef } from "@/app/refs";
-import { Timers, getValueState } from "@common";
-import { DownDetector, GetStatesZustand } from "@types";
+import { GetStatesZustand } from "@types";
+import { ServerFetch, Timers, getValueState } from "@common";
+import { logger, tTyped, sessionManager, storageManagement } from "@utils";
 
 type States = GetStatesZustand<{
-  data: DownDetector[];
+  data: DB["TablesClient"]["DownDetector"][];
   isLoading: boolean;
 
   inputNewWebPage: string;
@@ -29,7 +23,10 @@ type Actions = {
 };
 
 export const useDownDetector = create<States & Actions>((set, get) => {
-  const skeletonData: DownDetector[] = Array.from({ length: 5 }).map(() => ({
+  const skeletonData: DB["TablesClient"]["DownDetector"][] = Array.from({
+    length: 5,
+  }).map(() => ({
+    id: "skeleton",
     url: "https://example.com",
     userId: "userId",
     createdAt: new Date().toISOString(),
@@ -71,51 +68,49 @@ export const useDownDetector = create<States & Actions>((set, get) => {
 
       set({ isLoading: true });
       try {
-        const language = storageManagement.get("LANGUAGE");
         const deviceId = storageManagement.get("DEVICE_ID");
 
-        const res = await fetchToServer(
-          "/database/insert",
+        const res = await ServerFetch.post(
+          "/down-detector/add",
           {
-            lang: language,
-            table: "DownDetector",
             deviceId,
             values: {
-              createdAt: new Date().toISOString(),
-              userId: userData?.userId,
               url: text,
               sendNotification: get().sendNotification,
             },
           },
           sessionToken,
         );
-        const { data, error } = res.data || {
-          error: res.errorText || "Unknown error",
-        };
-
-        if (error)
-          modalRef.openSnackBar?.(tTyped("common.errorOccurred", { error }));
-        else {
+        if ("error" in res.data) {
           modalRef.openSnackBar?.(
-            tTyped("downDetector.webPageAddedSuccessfully"),
+            tTyped("common.errorOccurred", { error: res.data.error }),
           );
-          set({
-            inputNewWebPage: "",
-            sendNotification: false,
-          });
+          return;
+        }
+        const data = res.data;
 
-          if (!data) return;
+        modalRef.openSnackBar?.(
+          tTyped("downDetector.webPageAddedSuccessfully"),
+        );
+        set({
+          inputNewWebPage: "",
+          sendNotification: false,
+        });
 
-          const newData = [...get().data, ...data].reduce((acc, val) => {
+        if (!data) return;
+
+        const newData = [...get().data, data].reduce(
+          (acc, val) => {
             if (val.id && !acc.some((item) => item.id === val.id))
               acc.push(val);
 
             return acc;
-          }, [] as DownDetector[]);
+          },
+          [] as DB["TablesClient"]["DownDetector"][],
+        );
 
-          set({ data: newData });
-          storageManagement.save("DOWN_DETECTOR_DATA", newData);
-        }
+        set({ data: newData });
+        storageManagement.save("DOWN_DETECTOR_DATA", newData);
       } catch {
         modalRef.openSnackBar?.(tTyped("common.failedToAddTextToDatabase"));
       } finally {
@@ -133,22 +128,20 @@ export const useDownDetector = create<States & Actions>((set, get) => {
       const deviceId = storageManagement.get("DEVICE_ID");
 
       try {
-        const res = await fetchToServer(
-          "/database/fetch",
-          {
-            lang: storageManagement.get("LANGUAGE"),
-            table: "DownDetector",
-            match: { userId: userData?.userId },
-            deviceId,
-          },
+        const res = await ServerFetch.get(
+          "/down-detector/:deviceId",
+          { deviceId },
           sessionToken,
         );
 
-        const { data, error } = res.data || {
-          error: res.errorText || "Unknown error",
-        };
+        if ("error" in res.data) {
+          logger.error("Error fetching downDetector data:", res.data.error);
+          return;
+        }
 
-        if (!error && data) {
+        const data = res.data.downDetectors;
+
+        if (data) {
           Timers.originalSetTimeout(
             () =>
               set({
@@ -189,30 +182,22 @@ export const useDownDetector = create<States & Actions>((set, get) => {
       if (!sessionToken) return;
 
       const deviceId = storageManagement.get("DEVICE_ID");
-      const language = storageManagement.get("LANGUAGE");
 
-      const res = await fetchToServer(
-        "/database/update",
+      const res = await ServerFetch.put(
+        "/down-detector/update",
         {
-          lang: language,
-          table: "DownDetector",
-          match: { id },
-          values: { sendNotification: newItem.sendNotification },
+          id,
           deviceId,
+          values: { sendNotification: newItem.sendNotification },
         },
         sessionToken,
       );
 
-      const { success, error } = res.data || {
-        error: res.errorText || "Unknown error",
-      };
-
-      if (error) {
-        logger.error("Error updating sendNotification status:", error);
-      } else if (!success) {
-        logger.error("Failed to update sendNotification status");
+      if ("error" in res.data) {
+        logger.error("Error updating sendNotification status:", res.data.error);
         return;
       }
+
       storageManagement.save("DOWN_DETECTOR_DATA", newData);
     },
 
@@ -229,24 +214,15 @@ export const useDownDetector = create<States & Actions>((set, get) => {
       if (!sessionToken || !isLoggedIn) return;
 
       const deviceId = storageManagement.get("DEVICE_ID");
-      const language = storageManagement.get("LANGUAGE");
 
-      const res = await fetchToServer(
-        "/database/delete",
-        {
-          lang: language,
-          match: { id },
-          table: "DownDetector",
-          deviceId,
-        },
+      const res = await ServerFetch.delete(
+        "/down-detector/:deviceId/:downDetectorId",
+        { deviceId, downDetectorId: id },
         sessionToken,
       );
-      const { error } = res.data || {
-        error: res.errorText || "Unknown error",
-      };
 
-      if (error) {
-        logger.error("Error deleting downDetector item:", error);
+      if (res.data.error) {
+        logger.error("Error deleting downDetector item:", res.data.error);
         return;
       }
 

@@ -1,16 +1,16 @@
+import {
+  KeyboardGestureArea,
+  KeyboardAvoidingView,
+} from "react-native-keyboard-controller";
 import { View } from "react-native";
 import TextInput from "@components/TextInput";
 import { cloneDeep } from "lodash";
 import { useLanguage } from "@context/LanguageContext";
 import { clipboardManager } from "@utils";
 import { Divider, Switch, Text } from "react-native-paper";
+import React, { useRef, useState } from "react";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import { useStylesSettingsClipboard } from "@screens/Clipboard/styles";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  KeyboardGestureArea,
-} from "react-native-keyboard-controller";
 
 const SettingsClipboard: React.FC = () => {
   const { t } = useLanguage();
@@ -25,18 +25,13 @@ const SettingsClipboard: React.FC = () => {
   const [maxItemsInput, setMaxItemsInput] = useState(
     String(clipboardData.maxClipboardItems),
   );
-  const [promise, setPromise] = useState<Promise<void> | null>(null);
-
-  const isPromise = useMemo(() => promise instanceof Promise, [promise]);
 
   const handlePressSwitchRef = useRef(() => {
     setClipboardData((prev) => {
       const newValue = cloneDeep(prev);
       newValue.enabled = !prev.enabled;
 
-      setPromise(
-        clipboardManager.setClipboardData("enabled", newValue.enabled),
-      );
+      clipboardManager.setClipboardData({ enabled: newValue.enabled });
 
       return newValue;
     });
@@ -56,7 +51,7 @@ const SettingsClipboard: React.FC = () => {
       return newValue;
     });
 
-    clipboardManager.setClipboardData("maxClipboardItems", newNumber);
+    clipboardManager.setClipboardData({ maxClipboardItems: newNumber });
   });
 
   const handleChangeMaxCharsRef = useRef((text: string) => {
@@ -72,21 +67,8 @@ const SettingsClipboard: React.FC = () => {
 
       return newValue;
     });
-    clipboardManager.setClipboardData("maxCharsInItem", newNumber);
+    clipboardManager.setClipboardData({ maxCharsInItem: newNumber });
   });
-
-  useEffect(() => {
-    if (!isPromise) return;
-
-    const wait = async () => {
-      try {
-        await promise;
-      } finally {
-        setPromise(null);
-      }
-    };
-    wait();
-  }, [promise, isPromise]);
 
   return (
     <KeyboardGestureArea style={styles.flex} interpolator="ios">
@@ -115,7 +97,6 @@ const SettingsClipboard: React.FC = () => {
 
               <Switch
                 value={clipboardData.enabled}
-                disabled={isPromise}
                 onValueChange={handlePressSwitchRef.current}
               />
             </View>
@@ -136,7 +117,6 @@ const SettingsClipboard: React.FC = () => {
               <TextInput
                 mode="outlined"
                 value={maxItemsInput}
-                disabled={isPromise}
                 keyboardType="number-pad"
                 onChangeText={handleChangeMaxItemsRef.current}
               />
@@ -158,7 +138,6 @@ const SettingsClipboard: React.FC = () => {
               <TextInput
                 mode="outlined"
                 value={maxCharsInput}
-                disabled={isPromise}
                 keyboardType="number-pad"
                 onChangeText={handleChangeMaxCharsRef.current}
               />

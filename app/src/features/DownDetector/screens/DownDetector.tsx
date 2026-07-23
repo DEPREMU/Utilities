@@ -1,6 +1,5 @@
 import { Text } from "react-native-paper";
 import { View } from "react-native";
-import { Tables } from "@types";
 import { useLanguage } from "@context/LanguageContext";
 import { useDownDetector } from "../services/zustand";
 import React, { useCallback } from "react";
@@ -9,7 +8,7 @@ import Animated, { LinearTransition } from "react-native-reanimated";
 import { useStylesDownDetectorScreen } from "@screens/DownDetector/styles/useStylesDownDetectorScreen";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const tableName: keyof Tables = "DownDetector";
+const tableName = "DownDetector" satisfies keyof DB["TablesClient"];
 const DownDetectorScreen: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesDownDetectorScreen();
@@ -17,7 +16,7 @@ const DownDetectorScreen: React.FC = () => {
   const data = useDownDetector((s) => s.data);
 
   const renderItems = useCallback(
-    ({ item }: { item: Tables[typeof tableName] }) => (
+    ({ item }: { item: DB["TablesClient"][typeof tableName] }) => (
       <RenderDownDetectorItemMemo item={item} />
     ),
     [],

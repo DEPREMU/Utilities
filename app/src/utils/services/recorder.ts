@@ -597,7 +597,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
           if (!recorder)
             throw new Error("Recorder could not be initialized correctly");
 
-          const startResult = recorder.start();
+          const startResult = await recorder.start();
           if (startResult.status === "error")
             throw new Error(startResult.message);
         };
@@ -664,10 +664,10 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
         return;
       }
 
-      const stopResult = currentRecorder.stop();
+      const stopResult = await currentRecorder.stop();
       if (stopResult.status === "error") throw new Error(stopResult.message);
 
-      const originalUri = stopResult.path || "";
+      const originalUri = stopResult.paths[0] || "";
       const uri = await this.moveRecordingToCache(originalUri);
       this.releaseRecorder();
 

@@ -3,7 +3,6 @@ import Animated, {
   FadeOutRight,
   LinearTransition,
 } from "react-native-reanimated";
-import { Crypto } from "@types";
 import EmptyState from "../components/CryptoEmptyState";
 import { FAB, Text } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
@@ -17,7 +16,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 
 const skeletonData = Array.from(
   { length: 6 },
-  (_, i) => [i.toString(), {}] as [string, Crypto],
+  (_, i) => [i.toString(), {}] as [string, DB["TablesClient"]["Cryptos"]],
 );
 
 const DisplayScreen: React.FC = () => {
@@ -36,7 +35,11 @@ const DisplayScreen: React.FC = () => {
   const renderEmptyState = useCallback(() => <EmptyState />, []);
 
   const renderCryptoItem = useCallback(
-    ({ item: [cryptoId, cryptoData] }: { item: [string, Crypto] }) => {
+    ({
+      item: [cryptoId, cryptoData],
+    }: {
+      item: [string, DB["TablesClient"]["Cryptos"]];
+    }) => {
       return <CryptoPrice key={cryptoId} cryptoData={cryptoData} />;
     },
     [],

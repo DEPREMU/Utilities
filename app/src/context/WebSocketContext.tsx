@@ -13,12 +13,12 @@ import {
   URLS,
   tTyped,
   logger,
-  parseData,
   deviceInfo,
   sessionManager,
   EventsDeviceInfo,
   storageManagement,
   notificationsManager,
+  Helper,
 } from "@utils";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
@@ -125,7 +125,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     socketRef.current.onMessage = async (event) => {
       try {
         const parsedMessage: WebSocketMessage<"sentByServer"> | null =
-          parseData(event.data.toString());
+          Helper.JSON.parseData(event.data.toString());
         if (!parsedMessage) return;
         logger.log("Message from server:", parsedMessage);
 

@@ -34,7 +34,7 @@ const DeviceInformation: React.FC<Screens["DeviceInformation"]> = () => {
         | "lowPowerMode",
       value: string | number | boolean,
     ) => {
-      let displayValue = "";
+      let displayValue;
       const keyLower = key.toLowerCase();
 
       if (typeof value === "boolean")

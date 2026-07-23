@@ -406,6 +406,7 @@ export const testCases: TestRoutes = {
         requestBody: () => ({
           lang: "en",
           deviceId: user.deviceId,
+          notificationToken: "Web",
         }),
         onFinish: (res) => {
           if (!res)
@@ -435,6 +436,7 @@ export const testCases: TestRoutes = {
         requestBody: {
           lang: "en",
           deviceId: "test-device-id",
+          notificationToken: "Web",
         },
       },
     ],

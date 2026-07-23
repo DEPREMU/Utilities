@@ -2,20 +2,20 @@ import {
   URLS,
   logger,
   Cryptos,
+  deviceInfo,
   elapsedTime,
   CryptoEvents,
   sessionManager,
   SelectedCryptos,
-  storageManagement,
-  deviceInfo,
   EventsDeviceInfo,
+  storageManagement,
 } from "@utils";
 import {
   OptionsReconnectingWS,
   ReconnectingWebSocket,
 } from "@/utils/reconnecting-websocket";
 import { Timers } from "@common";
-import { CryptosSettings, CryptosWebSocketMessage } from "@types";
+import { CryptosWebSocketMessage } from "@types";
 
 export const enum TIMES {
   PRICES_CACHE = 15 * 1000,
@@ -55,9 +55,9 @@ const options: OptionsReconnectingWS<CryptosWebSocketMessage<"sentByApp">> = {
 };
 
 export abstract class CryptosWs extends Cryptos {
-  abstract getSettings(): CryptosSettings | null;
+  abstract getSettings(): DB["TablesClient"]["CryptosSettings"] | null;
 
-  abstract set settings(settings: CryptosSettings);
+  abstract set settings(settings: DB["TablesClient"]["CryptosSettings"]);
 
   #ownedCryptos = {
     data: null as SelectedCryptos | null,
@@ -124,7 +124,8 @@ export abstract class CryptosWs extends Cryptos {
             state.setLoading(false);
             if (message.settings) {
               state.setSettings(message.settings);
-              state.setCurrency(message.settings.defaultCurrency);
+              if (message.settings.defaultCurrency)
+                state.setCurrency(message.settings.defaultCurrency);
 
               this.settings = message.settings;
             }

@@ -6,7 +6,6 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import TextInput from "@components/TextInput";
-import { Crypto } from "@types";
 import { memoDeep } from "@utils";
 import { useCryptoStore } from "../services";
 import { PriceBinanceAPI } from "@common";
@@ -16,7 +15,7 @@ import { useStylesCryptoItem } from "@screens/Cryptos/styles/useStylesCryptoItem
 
 interface CryptoItemProps {
   item: PriceBinanceAPI[0];
-  crypto: Crypto;
+  crypto: DB["TablesClient"]["Cryptos"];
   isSelected: boolean;
   onCheckBoxChange: (symbol: string) => void;
 }

@@ -138,7 +138,7 @@ const useStylesIPQuery = () => {
           ...getCommonStyles("shadow"),
         },
         map: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
         },
       }),
     [

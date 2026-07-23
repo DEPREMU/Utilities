@@ -11,12 +11,10 @@ import { logger } from "./debug";
 import { tTyped } from "../translates";
 import * as Sharing from "expo-sharing";
 import { REPLACERS } from "../TOP_LEVEL";
-import { fetchToServer } from "./APIManagement";
 import * as Localization from "expo-localization";
-import * as MediaLibrary from "expo-media-library";
 import * as DocumentPicker from "expo-document-picker";
 import { Directory, File, Paths } from "expo-file-system";
-import { stringifyData, wrapFunctionWithError } from "@common";
+import { Helper, wrapFunctionWithError } from "@common";
 
 export const getFormattedDate = (
   date: Date,
@@ -35,40 +33,6 @@ export const getFormattedDate = (
     };
 
   return new Intl.DateTimeFormat(locale, options).format(date);
-};
-
-/**
- * Capitalizes the first letter of a string.
- *
- * @param str - The string to capitalize.
- * @returns The string with the first letter capitalized, or the original string if it is empty.
- */
-export const capitalize = (str: string): string => {
-  if (!str) return str;
-  return str.charAt(0).toUpperCase() + str.slice(1);
-};
-
-/**
- * Checks whether the server is reachable by requesting a lightweight health-check endpoint.
- *
- * Sends a request to `"/generate204"` and returns `true` when the response is successful
- * (`Response.ok`), otherwise returns `false`.
- *
- * If the request throws, the error is logged and `false` is returned.
- *
- * @returns A promise that resolves to `true` if the server responds successfully; otherwise `false`.
- */
-export const isServerAlive = async (): Promise<boolean> => {
-  try {
-    const res = await fetchToServer("/generate204");
-    return res.ok;
-  } catch (error) {
-    logger.error(
-      "Error checking server status:",
-      error instanceof Error ? error.message : error,
-    );
-    return false;
-  }
 };
 
 /**
@@ -149,13 +113,19 @@ export const areEqualValues = (
 
   if (values.length < 3) {
     if (useStringify)
-      return stringifyData(values[0]) === stringifyData(values[1]);
+      return (
+        Helper.JSON.stringifyData(values[0]) ===
+        Helper.JSON.stringifyData(values[1])
+      );
     return isEqual(values[0], values[1]);
   } else {
-    const stringifiedValue = useStringify ? stringifyData(values[0]) : null;
+    const stringifiedValue = useStringify
+      ? Helper.JSON.stringifyData(values[0])
+      : null;
     for (let i = 1; i < values.length; i++) {
       if (useStringify) {
-        if (stringifiedValue !== stringifyData(values[i])) return false;
+        if (stringifiedValue !== Helper.JSON.stringifyData(values[i]))
+          return false;
       } else {
         if (!isEqual(values[0], values[i])) return false;
       }
@@ -229,6 +199,8 @@ export const selectImage = async (
  * @returns A promise that resolves to `true` if permission is granted, `false` otherwise.
  */
 const askMediaLibraryPermissions = async (): Promise<boolean> => {
+  const MediaLibrary = await import("expo-media-library");
+
   const { status } = await MediaLibrary.requestPermissionsAsync();
   if (status !== "granted") {
     Alert.alert(
@@ -404,12 +376,14 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
 
     options.albumName = options.albumName || "UtilitiesApp";
 
-    const asset = await MediaLibrary.createAssetAsync(file.uri);
-    const album = await MediaLibrary.getAlbumAsync(options.albumName);
+    const MediaLibrary = await import("expo-media-library");
+
+    const asset = await MediaLibrary.Asset.create(file.uri);
+    const album = await MediaLibrary.Album.get(options.albumName);
 
     if (!album)
-      await MediaLibrary.createAlbumAsync(options.albumName, asset, false);
-    else await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      await MediaLibrary.Album.create(options.albumName, [asset], false);
+    else await album.add([asset]);
 
     Alert.alert(
       tTyped("images.imageDownloadedInAlbumAlertTitle"),

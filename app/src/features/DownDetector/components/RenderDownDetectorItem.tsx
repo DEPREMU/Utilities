@@ -3,17 +3,16 @@ import Animated, {
   FadeOutRight,
   LinearTransition,
 } from "react-native-reanimated";
-import { Tables } from "@types";
 import { memoDeep } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
+import { useDownDetector } from "../services/zustand";
+import SkeletonLoadingMemo from "@/common/components/SkeletonLoading";
 import React, { useCallback } from "react";
 import { Switch, Text, Button, FAB } from "react-native-paper";
 import { useStylesDownDetectorScreen } from "@screens/DownDetector/styles/useStylesDownDetectorScreen";
-import { useDownDetector } from "../services/zustand";
-import SkeletonLoadingMemo from "@/common/components/SkeletonLoading";
 
 interface RenderDownDetectorItemProps {
-  item: Tables["DownDetector"];
+  item: DB["TablesClient"]["DownDetector"];
 }
 
 const RenderDownDetectorItem: React.FC<RenderDownDetectorItemProps> = ({

@@ -3,52 +3,45 @@ import {
   logger,
   openURL,
   tTyped,
-  capitalize,
   deviceInfo,
-  fetchToServer,
   sessionManager,
   storageManagement,
   notificationsManager,
 } from "@utils";
 import Button from "@components/Button/screens";
-import { Timers } from "@common";
 import { modalRef } from "@refs";
-import { Streamer } from "@types";
+import { capitalize } from "lodash";
 import { useLanguage } from "@context/LanguageContext";
 import { View, ScrollView } from "react-native";
 import { useStylesStreamers } from "@screens/SocialMedia/styles/useStylesStreamers";
+import { ServerFetch, Timers } from "@common";
 import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-type StreamerWithIsLive = Streamer & { isLive: boolean };
+type StreamerWithIsLive = DB["TablesClient"]["Streamers"] & { isLive: boolean };
 
 const Streamers: React.FC = () => {
+  const { t } = useLanguage();
   const { styles } = useStylesStreamers();
-  const { t, language } = useLanguage();
 
   const [streamer, setStreamer] = useState<string>("");
   const [streamers, setStreamers] = useState<StreamerWithIsLive[]>([]);
   const streamersLoaded = useRef<boolean | null>(false);
 
-  const deleteStreamerRef = useRef(async (id: string) => {
+  const deleteStreamerRef = useRef(async (streamerId: string) => {
     const { userData, sessionToken } = sessionManager.getSessionData();
 
     modalRef.closeModal?.();
-    if (!userData?.userId || !id || !sessionToken) return;
+    if (!userData?.userId || !streamerId || !sessionToken) return;
 
     const deviceId = storageManagement.get("DEVICE_ID");
 
-    const res = await fetchToServer(
-      "/database/delete",
-      {
-        lang: language,
-        table: "Streamers",
-        match: { id, userId: userData?.userId },
-        deviceId,
-      },
+    const res = await ServerFetch.delete(
+      "/streamers/:deviceId/:streamerId",
+      { deviceId, streamerId },
       sessionToken,
     );
-    const { error } = res.data || { error: res.errorText || "Unknown error" };
+    const { error } = res.data || { error: "Unknown error" };
 
     if (error) {
       logger.error(error);
@@ -64,29 +57,15 @@ const Streamers: React.FC = () => {
     }
 
     setStreamers((prev) => {
-      const streamerExists = prev.find((streamer) => streamer.id === id);
-      if (streamerExists)
-        fetchToServer(
-          "/database/delete",
-          {
-            lang: language,
-            table: "UserNotificationsConfig",
-            deviceId,
-            match: {
-              userId: userData?.userId,
-              reason: "streamers",
-              streamer: streamerExists.name,
-            },
-          },
-          sessionToken,
-        );
-
-      return prev.filter((streamer) => streamer.id !== id);
+      return prev.filter((streamer) => streamer.id !== streamerId);
     });
 
     notificationsManager.editNotification("streamers", (prev) => {
+      const streamer = streamers.find((s) => s.id === streamerId);
+      if (!streamer) return prev;
+
       const streamerExists = prev.streamersList.find(
-        (streamer) => streamer.name === id,
+        (streamer) => streamer.name === streamer.name,
       );
 
       if (!streamerExists) return prev;
@@ -101,26 +80,28 @@ const Streamers: React.FC = () => {
     });
   });
 
-  const askDeleteStreamerRef = useRef((streamer: Streamer) => {
-    if (!deviceInfo.hasInternet) return;
+  const askDeleteStreamerRef = useRef(
+    (streamer: DB["TablesClient"]["Streamers"]) => {
+      if (!deviceInfo.hasInternet) return;
 
-    const streamerName = capitalize(streamer.name || streamer.id || "");
-    modalRef.openModal?.(
-      t("streamers.askDeleteStreamer"),
-      t("streamers.askDeleteStreamerBody", { name: streamerName }),
-      <>
-        <Button
-          label={tTyped("common.yes")}
-          handlePress={deleteStreamerRef.current}
-          argsFuncHandlePress={[streamer.id || ""]}
-        />
-        <Button
-          label={tTyped("common.no")}
-          handlePress={() => modalRef.closeModal?.()}
-        />
-      </>,
-    );
-  });
+      const streamerName = capitalize(streamer.name || streamer.id || "");
+      modalRef.openModal?.(
+        t("streamers.askDeleteStreamer"),
+        t("streamers.askDeleteStreamerBody", { name: streamerName }),
+        <>
+          <Button
+            label={tTyped("common.yes")}
+            handlePress={deleteStreamerRef.current}
+            argsFuncHandlePress={[streamer.id || ""]}
+          />
+          <Button
+            label={tTyped("common.no")}
+            handlePress={() => modalRef.closeModal?.()}
+          />
+        </>,
+      );
+    },
+  );
 
   const handleOpenURLStreamerRef = useRef((url: string) => {
     if (!url) return;
@@ -170,29 +151,30 @@ const Streamers: React.FC = () => {
 
       const deviceId = storageManagement.get("DEVICE_ID");
 
-      await fetchToServer(
-        "/database/update",
-        {
-          lang: language,
-          table: "UserNotificationsConfig",
-          deviceId,
-          match: {
-            userId: userData?.userId,
-            reason: "streamers",
-            streamer: streamerName,
+      try {
+        await ServerFetch.put(
+          "/user-notifications-config/update",
+          {
+            deviceId,
+            match: {
+              reason: "streamers",
+              streamers: { some: { streamer: { contains: streamerName } } },
+            },
+            values: { enabled: newBool },
           },
-          values: { enabled: newBool },
-        },
-        sessionToken,
-      );
+          sessionToken,
+        );
+      } catch (error) {
+        logger.error("Error updating user notifications config:", error);
+      }
     },
   );
 
   const addingStreamer = useCallback(async () => {
     if (!streamer) return;
 
-    const { userData } = sessionManager.getSessionData();
-    if (!userData?.userId) return;
+    const { userData, sessionToken } = sessionManager.getSessionData();
+    if (!userData?.userId || !sessionToken) return;
 
     if (
       streamers.find(
@@ -213,20 +195,23 @@ const Streamers: React.FC = () => {
     }
 
     try {
-      const res = await fetchToServer("/addStreamer", {
-        name: streamer,
-        userId: userData?.userId || "",
-      });
+      const res = await ServerFetch.post(
+        "/streamers/add",
+        {
+          deviceId: storageManagement.get("DEVICE_ID"),
+          userId: userData?.userId || "",
+          streamerName: streamer,
+        },
+        sessionToken,
+      );
 
       const data = res.data;
 
       if (!data || data.error) {
-        logger.error(
-          data?.error || res.errorText || "Unknown error adding streamer",
-        );
+        logger.error(data?.error || "Unknown error adding streamer");
         return;
       }
-      if (!data.success || !data.streamer) {
+      if (!data.streamer) {
         logger.error("Failed to add streamer");
         return;
       }
@@ -297,20 +282,11 @@ const Streamers: React.FC = () => {
       try {
         if (!userData?.userId || !sessionToken) return;
 
-        const deviceId = storageManagement.get("DEVICE_ID");
-
-        const res = await fetchToServer(
-          "/database/fetch",
-          {
-            lang: storageManagement.get("LANGUAGE"),
-            table: "Streamers",
-            match: { userId: userData?.userId },
-            deviceId,
-          },
-          sessionToken,
-        );
-        const { data: internetData, error } = res.data || {
-          error: res.errorText || "Unknown error",
+        const res = await ServerFetch.get("/streamers/:userId", {
+          userId: userData?.userId,
+        });
+        const { streamers: internetData, error } = res.data || {
+          error: "Unknown error",
         };
 
         if (error) {
@@ -345,27 +321,8 @@ const Streamers: React.FC = () => {
           return;
         }
 
-        const allStreamers: StreamerWithIsLive[] = data.map(
-          (streamer: Streamer) => {
-            return { ...streamer, isLive: false } as StreamerWithIsLive;
-          },
-        );
-
-        let newData: StreamerWithIsLive[] | null = null;
-        if (deviceInfo.hasInternet)
-          newData = await Promise.all(
-            allStreamers.map(async (streamer: StreamerWithIsLive) => {
-              const res = await fetchToServer("/getIsLiveStreamer", {
-                streamer,
-              });
-              const result = res.data;
-
-              return result?.streamer || { ...streamer, isLive: false };
-            }),
-          );
-
-        setStreamers(newData ? newData : allStreamers);
-        storageManagement.save("STREAMERS", allStreamers);
+        setStreamers(data);
+        storageManagement.save("STREAMERS", data);
       } catch (error) {
         logger.error(error);
       }
