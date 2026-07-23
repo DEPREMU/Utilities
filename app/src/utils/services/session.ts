@@ -227,13 +227,13 @@ export const forgotPasswordWithEmail = async (
  */
 export const signOut = async (): Promise<{ error?: string | null }> => {
   try {
-    const storedValues: ALL_KEYS_STORAGE_TYPE[] = [
+    const storedValues = [
       "USER_DATA",
       "STREAMERS",
       "SESSION_EXPIRY",
       "HAS_ADMIN_ACCESS",
       "USER_SESSION_TOKEN_STORAGE",
-    ];
+    ] satisfies ALL_KEYS_STORAGE_TYPE[];
 
     await Promise.all(
       storedValues.map((key) => {

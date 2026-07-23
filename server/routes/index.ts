@@ -5,15 +5,16 @@ import { REPLACERS } from "@/config.ts";
 import { ROUTER_AUTH } from "./auth/";
 import { ROUTER_LOGS } from "./logs/index.ts";
 import { ROUTER_INFO } from "./info/index.ts";
+import { ROUTER_ADMIN } from "./admin/index.ts";
 import { ROUTER_CRYPTOS } from "./cryptos/";
 import { ROUTER_UPDATES } from "./updates/index.ts";
 import { ROUTER_STREAMERS } from "./streamers/index.ts";
 import { ROUTER_LANGUAGES } from "./languages/index.ts";
 import { ROUTER_ENCRYPTION } from "./encryption/index.ts";
-import { ROUTER_IMAGES, getMainRouter } from "@common";
 import { ROUTER_CLIPBOARD } from "./clipboard/index.ts";
 import { ROUTER_USER_CONFIG } from "./userconfig/index.ts";
 import { ROUTER_DOWN_DETECTOR } from "./downdetector/index.ts";
+import { ROUTER_IMAGES, getMainRouter } from "@common";
 import { ROUTER_USER_NOTIFICATIONS_CONFIG } from "./usernotificationsconfig/index.ts";
 
 const router = getMainRouter({
@@ -28,6 +29,7 @@ const router = getMainRouter({
   "/auth": { router: ROUTER_AUTH },
   "/info": { router: ROUTER_INFO },
   "/logs": { router: ROUTER_LOGS },
+  "/admin": { router: ROUTER_ADMIN },
   "/images": { router: ROUTER_IMAGES },
   "/cryptos": { router: ROUTER_CRYPTOS },
   "/updates": { router: ROUTER_UPDATES },

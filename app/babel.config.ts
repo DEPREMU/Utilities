@@ -65,6 +65,7 @@ const config: ConfigFunction = (api) => {
             "@context": "./src/context",
             "@screens": "./src/features",
             "@modules": "./src/utils/modules",
+            "@commonSrc": "../common",
             "@navigation": "./src/navigation",
             "@components": "./src/common/components",
           },

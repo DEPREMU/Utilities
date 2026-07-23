@@ -122,6 +122,10 @@ export class ListenersClipboard extends DataClipboard {
 
       if (content) this.handleInsertItem(content);
     } catch (error) {
+      if (REPLACERS.isProduction) return;
+
+      if (error instanceof Error && error.message.includes("denied")) return;
+
       logger.error(TAG, "Error handling interval clipboard web", error);
     }
   };

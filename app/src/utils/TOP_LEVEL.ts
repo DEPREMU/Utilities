@@ -25,12 +25,7 @@ export const REPLACERS: Record<REPLACERS_TYPE, boolean> = {
 if (REPLACERS.isNative) import("./global.native");
 
 const checkVariables = (): void => {
-  const NEEDED_VARIABLES = [
-    "version",
-    "WS_URL_BASE",
-    "API_URL_BASE",
-    "ADMIN_PASSWORD",
-  ];
+  const NEEDED_VARIABLES = ["version", "WS_URL_BASE", "API_URL_BASE"];
   for (const variable of NEEDED_VARIABLES) {
     if (
       !Constants.expoConfig?.extra ||
@@ -90,8 +85,6 @@ export const PRODUCTION_URLS = REPLACERS.isDev
   : null;
 
 export const APP_VERSION = Constants.expoConfig?.extra?.version as string;
-export const ADMIN_PASSWORD = Constants.expoConfig?.extra
-  ?.ADMIN_PASSWORD as string;
 
 if (REPLACERS.isDev) {
   checkVariables();
@@ -102,7 +95,6 @@ if (REPLACERS.isDev) {
   APP_VERSION: ${Constants.expoConfig?.extra?.version}
   WS_URL_BASE: ${Constants.expoConfig?.extra?.WS_URL_BASE}
   API_URL_BASE: ${Constants.expoConfig?.extra?.API_URL_BASE}
-  ADMIN_PASSWORD: ${Constants.expoConfig?.extra?.ADMIN_PASSWORD}
   REPLACERS: ${JSON.stringify(REPLACERS, null, 2)}
 --------------------------------`);
 }
