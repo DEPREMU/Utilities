@@ -7,9 +7,8 @@ try {
 
   registerRootComponent(App);
 } catch (error) {
-  const errMsg = error instanceof Error ? error.message : String(error);
   // eslint-disable-next-line no-console
-  console.error("Error loading the app:", errMsg);
+  console.error("Error loading the app:", error);
 
   const ErrorScreen = require("@screens/Error/screens")
     .default as typeof import("@screens/Error/screens").default;
