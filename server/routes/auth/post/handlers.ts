@@ -5,6 +5,7 @@ import {
   getHandlerPost,
   isValidPassword,
   STATUS_RESPONSE,
+  Helper,
 } from "@common";
 import chalk from "chalk";
 import bcrypt from "@node-rs/bcrypt";
@@ -121,7 +122,10 @@ export const handleLogin = getHandlerPost(
       const { password: _, ...userData } = user;
 
       sendResponse(STATUS_RESPONSE.SUCCESS, {
-        user: userData,
+        user: Helper.Object.changeType(userData, {
+          createdAt: "string",
+          updatedAt: "string",
+        }),
         token: userSession.token,
         success: true,
         storageValues,
@@ -282,7 +286,10 @@ export const handleRefreshSession = getHandlerPost(
       const { password: _, ...user } = updatedData.user;
 
       sendResponse(STATUS_RESPONSE.SUCCESS, {
-        user,
+        user: Helper.Object.changeType(user, {
+          createdAt: "string",
+          updatedAt: "string",
+        }),
         token: updatedData.token,
         success: true,
       });
