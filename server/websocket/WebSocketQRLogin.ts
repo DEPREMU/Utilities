@@ -83,7 +83,11 @@ const handleLoginWithQR = async (
       return;
     }
 
-    const userSafe = Helper.Object.removeProperties(user, "password");
+    const userSafe = Helper.Object.changeType(user, {
+      password: "undefined",
+      createdAt: "string",
+      updatedAt: "string",
+    });
 
     const responseAuth: ResponseAuth<"login"> = {
       storageValues,
