@@ -3,8 +3,6 @@ import {
   NotesSettings,
   Notifications,
   VaultSettings,
-  SerializableTask,
-  AvailableFunctions,
   LanguagesSupported,
 } from "@types";
 
@@ -96,7 +94,6 @@ export type ExpectedUnsecureStorageTypes = {
   LANGUAGE: LanguagesSupported;
   NOTIFICATIONS: Notifications;
   WEBSOCKET_URL: string | null;
-  PENDING_TASKS: SerializableTask<AvailableFunctions>[] | null;
   VAULT_SETTINGS: VaultSettings | null;
   NOTES_SETTINGS: NotesSettings | null;
   HAS_ADMIN_ACCESS: boolean | null;
@@ -158,7 +155,6 @@ export const UNSECURE_KEYS_STORAGE: Record<
   DEBUG: "@debug",
   API_URL: "@API_URL",
   LANGUAGE: "@languageKeyStorage",
-  PENDING_TASKS: "@pendingTasks",
   WEBSOCKET_URL: "@webSocketURL",
   NOTIFICATIONS: "@notifications",
   RECORDER_DATA: "@recorderData",

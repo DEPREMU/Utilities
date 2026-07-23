@@ -20,14 +20,14 @@ type ConvertOne<T, K extends keyof TypeOfJS> = K extends "string"
     ? T extends number
       ? T
       : number
-    : K extends "object"
-      ? T extends object
+    : K extends "boolean"
+      ? T extends boolean
         ? T
-        : object
-      : K extends "boolean"
-        ? T extends boolean
-          ? T
-          : boolean
+        : boolean
+      : K extends "object"
+        ? [Extract<T, object>] extends [never]
+          ? object
+          : Extract<T, object>
         : TypeOfJS[K];
 
 type MergeField<T, U> = U extends readonly (infer K extends keyof TypeOfJS)[]
