@@ -33,7 +33,7 @@ const CompressionScreen: React.FC = () => {
 
     const isSelecting = statesRef.current.filesSelected.selecting;
 
-    let files: string[] = [];
+    let files: string[];
 
     if (isSelecting) {
       files = Object.values(folders)
@@ -90,7 +90,7 @@ const CompressionScreen: React.FC = () => {
       );
     });
 
-    let pathZip = "";
+    let pathZip;
 
     if (REPLACERS.isWeb) {
       const path = await windowModule.askPath();

@@ -3,6 +3,7 @@ import {
   URI_EXTENSION,
   EXTENSION_ENCRYPTED,
   getMimeTypeFromExtension,
+  Helper,
 } from "@common";
 import {
   ZipFile,
@@ -365,30 +366,20 @@ export const zipFile: ZipFile = async (files, onProgress, password, onZip) => {
     // Ignore errors
   }
 
-  files = files
-    .map((f) => {
-      try {
-        const file = new ExpoFileSystem.File(f);
-        const destFile = new ExpoFileSystem.File(tempDir, file.name);
+  await Helper.Arrays.forEachQueue(3, files, async (f) => {
+    try {
+      const file = new ExpoFileSystem.File(f);
+      const destFile = new ExpoFileSystem.File(tempDir, file.name);
 
-        const destUri = destFile.uri.startsWith(URI_EXTENSION)
-          ? destFile.uri.slice(URI_EXTENSION.length)
-          : destFile.uri;
-
-        if (destFile.exists) return destUri;
-        file.copy(destFile);
-
-        return destUri;
-      } catch (error) {
-        logger.error(
-          "VAULT",
-          `Error copying file ${f} to temp directory:`,
-          error instanceof Error ? error.message : error,
-        );
-        return null;
-      }
-    })
-    .filter((f): f is string => !!f);
+      if (!destFile.exists) await file.copy(destFile);
+    } catch (error) {
+      logger.error(
+        "VAULT",
+        `Error copying file ${f} to temp directory:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  });
 
   const sub = ZIP.subscribe(({ progress }) => {
     onProgress(progress);

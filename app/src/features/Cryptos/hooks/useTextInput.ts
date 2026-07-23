@@ -3,6 +3,7 @@ import {
   withSequence,
   useSharedValue,
   useAnimatedStyle,
+  AnimatedStyle,
 } from "react-native-reanimated";
 import { Timers } from "@common";
 import { useTheme } from "@context/ThemeContext";
@@ -12,7 +13,7 @@ import React, { useCallback, useEffect } from "react";
 
 type UseTextInputReturn = {
   clear: () => void;
-  styles: [ViewStyle, ViewStyle] | null;
+  styles: [AnimatedStyle<ViewStyle>, ViewStyle] | null;
   isValid: boolean;
   valueStr: string;
   valueNum: number;

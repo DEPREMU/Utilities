@@ -6,7 +6,6 @@ import Animated, {
 } from "react-native-reanimated";
 import Markdown from "react-native-marked";
 import TextInput from "@components/TextInput";
-import { Tables } from "@types";
 import { ScrollView } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { useLanguage } from "@context/LanguageContext";
@@ -17,7 +16,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { getFormattedDate, memoDeep, REPLACERS } from "@utils";
 
 interface RenderClipboardItemProps {
-  item: Tables["ClipboardSync"];
+  item: DB["TablesClient"]["ClipboardSync"];
   deleteItem: (id: string, deleted: boolean) => Promise<void>;
 }
 

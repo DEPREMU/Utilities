@@ -12,31 +12,25 @@ import Animated, {
   FadeOutRight,
   LinearTransition,
 } from "react-native-reanimated";
-import {
-  logger,
-  REPLACERS,
-  fetchToServer,
-  sessionManager,
-  storageManagement,
-} from "@utils";
-import { Tables } from "@types";
-import { Timers } from "@common";
 import { useLanguage } from "@context/LanguageContext";
 import RenderClipboardItem from "@screens/Clipboard/components/RenderClipboardItem";
+import { ServerFetch, Timers } from "@common";
 import { useStylesClipboardScreen } from "@screens/Clipboard/styles";
 import { FAB, Searchbar, Switch, Text, Button } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { logger, REPLACERS, sessionManager, storageManagement } from "@utils";
 
 const getSkeletonData = (deleted: boolean) => {
   const createdAt = new Date().toISOString();
 
   return Array.from({ length: 5 }).map(() => {
-    const returnData: Tables["ClipboardSync"] = {
+    const returnData: DB["TablesClient"]["ClipboardSync"] = {
       deleted,
+      createdAt,
+      id: "id",
       userId: "userId",
       content: "Loading...",
       deviceId: "deviceId",
-      createdAt,
     };
     return returnData;
   });
@@ -45,7 +39,7 @@ const getSkeletonData = (deleted: boolean) => {
 const limitLoadMore = REPLACERS.isWeb ? 20 : 15;
 
 const ClipboardScreen: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { styles, colors } = useStylesClipboardScreen();
 
   const [deleted, setDeleted] = useState(false);
@@ -54,10 +48,10 @@ const ClipboardScreen: React.FC = () => {
   const [noMoreData, setNoMoreData] = useState<boolean>(false);
   const [isFarFromStart, setIsFarFromStart] = useState(false);
   const [searchData, setSearchData] = useState<
-    Tables["ClipboardSync"][] | null
+    DB["TablesClient"]["ClipboardSync"][] | null
   >(null);
   const [clipboardData, setClipboardData] = useState<
-    Tables["ClipboardSync"][] | null
+    DB["TablesClient"]["ClipboardSync"][] | null
   >(getSkeletonData(deleted));
 
   const pageRef = useRef<number | null>(0);
@@ -69,7 +63,9 @@ const ClipboardScreen: React.FC = () => {
   const prevSearchTextRef = useRef<string | null>("");
   const hasNoMoreDataSearch = useRef<boolean | null>(false);
   const isScrollingToTopRef = useRef<boolean | null>(false);
-  const allClipboardDataRef = useRef<Tables["ClipboardSync"][] | null>(null);
+  const allClipboardDataRef = useRef<
+    DB["TablesClient"]["ClipboardSync"][] | null
+  >(null);
   const isLoadingSkeletonRef = useRef<boolean | null>(true);
 
   const idTimeoutRef = useRef<number | null>(null);
@@ -105,21 +101,14 @@ const ClipboardScreen: React.FC = () => {
       if (!sessionToken) return logger.error("No session token available");
 
       const deviceId = storageManagement.get("DEVICE_ID");
-      const language = storageManagement.get("LANGUAGE");
 
-      const res = await fetchToServer(
-        "/database/update",
-        {
-          deviceId,
-          lang: language,
-          table: "ClipboardSync",
-          match: { id },
-          values: { deleted },
-        },
+      const res = await ServerFetch.put(
+        "/clipboard/delete/toggle-deleted",
+        { id, deleted, deviceId },
         sessionToken,
       );
 
-      const { error } = res.data || { error: res.errorText || "Unknown error" };
+      const { error } = res.data || { error: "Unknown error" };
 
       if (error) {
         logger.error("Error deleting clipboard item:", error);
@@ -143,10 +132,7 @@ const ClipboardScreen: React.FC = () => {
     const { userData, sessionToken } = sessionManager.getSessionData();
     if (!sessionToken || !userData?.userId) return;
 
-    const [language, deviceId] = [
-      storageManagement.get("LANGUAGE"),
-      storageManagement.get("DEVICE_ID"),
-    ];
+    const deviceId = storageManagement.get("DEVICE_ID");
 
     isLoadingRef.current = true;
     setNoMoreData(false);
@@ -158,32 +144,18 @@ const ClipboardScreen: React.FC = () => {
       else setClipboardData(getSkeletonData(!!deletedRef.current));
     }
 
-    const res = await fetchToServer(
-      "/database/fetch",
+    const res = await ServerFetch.get(
+      "/clipboard/search/:deviceId/:deleted-boolean/:query-string/:page-number-optional",
       {
-        match: {
-          userId: userData?.userId,
-          deleted: !!deletedRef.current,
-        },
-        lang: language,
-        limit: limitLoadMore,
-        table: "ClipboardSync",
-        search: searchText || undefined,
-        offset: page * limitLoadMore,
-        orderBy: "createdAt",
+        page,
         deviceId,
-        pagination: true,
-        orderDirection: "DESC",
-        columnsToSearch: "content",
+        query: searchText || "",
+        deleted: !!deletedRef.current,
       },
       sessionToken,
     );
 
-    const { data, error } = res.data || {
-      error: res.errorText || "Unknown error",
-    };
-
-    const handleSetVars = (data?: Tables["ClipboardSync"][]) => {
+    const handleSetVars = (data?: DB["TablesClient"]["ClipboardSync"][]) => {
       isLoadingRef.current = false;
       setRefreshing(false);
 
@@ -212,11 +184,14 @@ const ClipboardScreen: React.FC = () => {
       }
     };
 
-    if (error) {
-      logger.error("Error fetching clipboard data:", error);
+    if ("error" in res.data) {
+      logger.error("Error fetching clipboard data:", res.data.error);
       handleSetVars();
       return;
     }
+
+    const data = res.data.clipboardItems;
+
     Timers.clearTimeout(idTimeoutRef.current);
 
     idTimeoutRef.current = Timers.setTimeout(
@@ -307,21 +282,17 @@ const ClipboardScreen: React.FC = () => {
     const deviceId = storageManagement.get("DEVICE_ID");
 
     const newDeleted = !deletedRef.current;
-    const oldDeleted = !!deletedRef.current;
 
-    const res = await fetchToServer(
-      "/database/update",
+    const res = await ServerFetch.put(
+      "/clipboard/delete/toggle-deleted-all",
       {
-        lang: language,
-        match: { deleted: oldDeleted },
-        table: "ClipboardSync",
-        values: { deleted: newDeleted },
+        restore: !newDeleted,
         deviceId,
       },
       sessionToken,
     );
 
-    const { error } = res.data || { error: res.errorText || "Unknown error" };
+    const { error } = res.data || { error: "Unknown error" };
 
     if (error) {
       logger.error("Error deleting clipboard item:", error);
@@ -332,10 +303,10 @@ const ClipboardScreen: React.FC = () => {
     setDeleted(newDeleted);
     setDefaultStates.current?.();
     deletedRef.current = newDeleted;
-  }, [language, searchText]);
+  }, [searchText]);
 
   const renderItems = useCallback(
-    ({ item }: { item: Tables["ClipboardSync"] }) => (
+    ({ item }: { item: DB["TablesClient"]["ClipboardSync"] }) => (
       <RenderClipboardItem
         item={item}
         deleteItem={changeClipboardItemDeletedRef.current}

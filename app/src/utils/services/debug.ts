@@ -28,19 +28,25 @@ class Debug extends ServiceClass<ListenersDebug> {
   #appAliveCheck = {
     timer: 60 * 1000,
     func: async () => {
-      const { fetchToServer, getDevicePushToken, storageManagement, logger } =
+      const { ServerFetch, getDevicePushToken, storageManagement, logger } =
         await import("@utils");
 
       const pushToken = await getDevicePushToken();
 
       this.emit("appAliveCheck", "sent");
       try {
-        const res = await fetchToServer("/debug/appAlive", {
-          deviceId: storageManagement.get("DEVICE_ID"),
-          pushToken,
+        const res = await ServerFetch.get(
+          "/info/appAlive/:deviceId-string/:pushToken-string",
+          {
+            deviceId: storageManagement.get("DEVICE_ID"),
+            pushToken,
+          },
+        );
+        logger.log(TAG, "App alive check result:", res.data.success);
+        this.emit("appAliveCheck", "result", {
+          success: res.data.success,
+          timestamp: new Date().toISOString(),
         });
-        logger.log(TAG, "App alive check result:", res.data || res.errorText);
-        this.emit("appAliveCheck", "result", res.data ?? null);
       } catch (error) {
         logger.error(
           TAG,

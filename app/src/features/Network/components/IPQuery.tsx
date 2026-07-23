@@ -79,7 +79,7 @@ const IPQuery: React.FC<IPQueryProps> = ({ data }) => {
           >
         )[subKey];
 
-        let valueToShow: string = "";
+        let valueToShow: string;
         if (typeof subValue === "boolean")
           valueToShow = subValue ? t("common.yes") : t("common.no");
         else if (

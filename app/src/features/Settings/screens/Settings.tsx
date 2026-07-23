@@ -10,8 +10,6 @@ import {
   deviceInfo,
   navigation,
   APP_VERSION,
-  getRouteAPI,
-  fetchToServer,
   ADMIN_PASSWORD,
   sessionManager,
   DEBUG_SETTINGS,
@@ -21,7 +19,7 @@ import {
   getDevicePushToken,
 } from "@utils";
 import Button from "@components/Button/screens";
-import { Timers } from "@common";
+import { ServerFetch, Timers } from "@common";
 import ThemePicker from "@screens/Settings/components/ThemePicker";
 import { cloneDeep } from "lodash";
 import LanguagePicker from "@screens/Settings/components/LanguagePicker";
@@ -29,11 +27,11 @@ import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
-import { useBackgroundTask } from "@context/BackgroundTaskContext";
 import { AppTranslationsKeys } from "@types";
 import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
 import { ActivityIndicator, Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { background } from "@/utils/services/background";
 
 type Section = {
   subtitle: AppTranslationsKeys;
@@ -123,7 +121,6 @@ const SettingsScreen: React.FC = () => {
   const { t, dynamicT } = useLanguage();
   const { setSocketURL } = useWebSocket();
   const { styles, colors } = useStylesSettingsScreen();
-  const { addTaskQueueRef } = useBackgroundTask();
 
   const [hasInternet, setHasInternet] = useState<boolean>(
     deviceInfo.hasInternet,
@@ -191,107 +188,95 @@ const SettingsScreen: React.FC = () => {
     if (password !== ADMIN_PASSWORD) return;
 
     const deviceId = storageManagement.get("DEVICE_ID");
-    const url = await getRouteAPI("/database/update");
-    if (!url) return;
 
     setHasAdmin(true);
     storageManagement.save("HAS_ADMIN_ACCESS", true);
 
-    await fetchToServer(
-      "/database/update",
-      {
-        lang: storageManagement.get("LANGUAGE"),
-        match: { userId: userData?.userId },
-        table: "UserConfig",
-        values: { hasAdmin: true },
-        deviceId,
-      },
-      sessionToken,
-    );
+    try {
+      const res = await ServerFetch.put(
+        "/user-config/update",
+        {
+          values: { hasAdmin: true },
+          deviceId,
+        },
+        sessionToken,
+      );
+
+      logger.log("Admin access granted:", res.data.success);
+    } catch (error) {
+      logger.error("Error updating user config:", error);
+    }
   }, [password]);
 
   const saveApiURL = useCallback(async () => {
     const { userData, sessionToken } = sessionManager.getSessionData();
 
     if (!apiURL || !userData?.userId) return;
-    const id =
-      Date.now().toString() + Math.random().toString(36).substring(2, 8);
 
-    addTaskQueueRef.current(
+    background.addTaskQueue(
       {
-        requiresInternet: true,
-        func: async () => {
+        arguments: [],
+        function: async () => {
           if (!userData?.userId) return;
           if (!sessionToken) return;
 
           const deviceId = storageManagement.get("DEVICE_ID");
 
-          await fetchToServer(
-            "/database/update",
-            {
-              deviceId,
-              lang: storageManagement.get("LANGUAGE"),
-              match: { userId: userData.userId },
-              table: "UserConfig",
-              values: { API_URL: apiURL },
-            },
-            sessionToken,
-          );
-          storageManagement.save("API_URL", apiURL);
+          try {
+            const res = await ServerFetch.put(
+              "/user-config/update",
+              {
+                values: { API_URL: apiURL },
+                deviceId,
+              },
+              sessionToken,
+            );
+
+            if (res.data.success) storageManagement.save("API_URL", apiURL);
+          } catch (error) {
+            logger.error("Error updating user config:", error);
+          }
         },
       },
-      {
-        id,
-        functionName: "updateFromDatabase",
-        args: ["UserConfig", { API_URL: apiURL }, { userId: userData.userId }],
-      },
-      id,
+      true,
     );
-  }, [apiURL, addTaskQueueRef]);
+  }, [apiURL]);
 
   const saveSocketURL = useCallback(async () => {
     const { userData, sessionToken } = sessionManager.getSessionData();
 
     if (!socketURL || !userData?.userId) return;
-    const id =
-      Date.now().toString() + Math.random().toString(36).substring(2, 8);
 
     setSocketURL(socketURL);
-    addTaskQueueRef.current(
+    background.addTaskQueue(
       {
-        requiresInternet: true,
-        func: async () => {
+        arguments: [],
+        function: async () => {
           if (!userData?.userId) return;
           if (!sessionToken) return;
 
           const deviceId = storageManagement.get("DEVICE_ID");
 
-          await fetchToServer(
-            "/database/update",
-            {
-              lang: storageManagement.get("LANGUAGE"),
-              match: { userId: userData.userId },
-              table: "UserConfig",
-              deviceId,
-              values: { webSocketURL: socketURL },
-            },
-            sessionToken,
-          );
-          storageManagement.save("WEBSOCKET_URL", socketURL);
+          try {
+            const res = await ServerFetch.put(
+              "/user-config/update",
+              {
+                values: { webSocketURL: socketURL },
+                deviceId,
+              },
+              sessionToken,
+            );
+
+            if (res.data.success)
+              storageManagement.save("WEBSOCKET_URL", socketURL);
+          } catch (error) {
+            logger.error("Error updating user config:", error);
+          }
         },
       },
-      {
-        id,
-        functionName: "updateFromDatabase",
-        args: [
-          "UserConfig",
-          { webSocketURL: socketURL },
-          { userId: userData.userId },
-        ],
-      },
-      id,
+      true,
     );
-  }, [socketURL, setSocketURL, addTaskQueueRef]);
+  }, [socketURL, setSocketURL]);
 
   const renderSectionsAdmin = useCallback(() => {
     const sections: Section[] = [

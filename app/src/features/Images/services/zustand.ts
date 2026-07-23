@@ -10,14 +10,13 @@ import {
   tTyped,
   REPLACERS,
   selectImage,
-  fetchToServer,
   downloadBase64,
   storageManagement,
 } from "@utils";
 import axios from "axios";
 import { create } from "zustand";
 import { modalRef } from "@/app/refs";
-import { getValueState, wrapFunctionWithError } from "@common";
+import { getValueState, ServerFetch, wrapFunctionWithError } from "@common";
 
 export type Images = Exclude<ReturnSelectImage, { canceled: true }>;
 export type ImagesConverted = {
@@ -52,8 +51,10 @@ type Actions = {
   cleanup: () => void;
 };
 
-const getDataChangeImageFormat = wrapFunctionWithError(
-  async (body: RequestChangeImageFormat) => {
+const getDataChangeImageFormat = async (
+  body: RequestChangeImageFormat,
+): Promise<ResponseChangeImageFormat> => {
+  try {
     if (REPLACERS.isWeb) {
       const data = await wrapFunctionWithError(
         async () => {
@@ -68,22 +69,17 @@ const getDataChangeImageFormat = wrapFunctionWithError(
       if (data) return data;
     }
 
-    const res = await fetchToServer("/images/changeImageFormat", {
-      lang: body.lang,
-      format: body.format,
-      imageBufferInString: body.imageBufferInString,
-    });
+    const res = await ServerFetch.post("/images/change-format", body);
+
     return res.data;
-  },
-  true,
-  async (_, errorMessage) => {
-    logger.error(errorMessage);
+  } catch (error) {
+    logger.error("Error in getDataChangeImageFormat:", error);
     return {
-      success: false,
       error: tTyped("images.errorWhileConvertingImageMessage"),
-    } as ResponseChangeImageFormat;
-  },
-);
+      success: false,
+    };
+  }
+};
 
 export const useImagesStore = create<States & Actions>()((set, get) => {
   const value: States & Actions = {
@@ -146,7 +142,7 @@ export const useImagesStore = create<States & Actions>()((set, get) => {
       const data = await getDataChangeImageFormat({
         format,
         lang: storageManagement.get("LANGUAGE"),
-        imageBufferInString: image.base64 || "",
+        imageStr: image.base64 || "",
       });
       set((prev) => ({
         converting: prev.converting.filter((i) => i !== image.uri),

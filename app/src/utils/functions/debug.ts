@@ -4,7 +4,6 @@ import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
 import { REPLACERS } from "../TOP_LEVEL";
 import { storageManagement } from "../services/storage";
-import { wrapFunctionWithError } from "@common";
 
 type ReturnDeviceInfo = {
   deviceId: string;
@@ -13,12 +12,10 @@ type ReturnDeviceInfo = {
 
 const FILTER_BY_MESSAGE: string[] = [];
 
-const getCurrentDeviceInfo = wrapFunctionWithError(
-  async () => {
-    const [deviceId, deviceName] = await Promise.all([
-      storageManagement.get("DEVICE_ID"),
-      DeviceInfo.getDeviceName(),
-    ]);
+const getCurrentDeviceInfo = async () => {
+  try {
+    const deviceName = await DeviceInfo.getDeviceName();
+    const deviceId = storageManagement.get("DEVICE_ID");
 
     return {
       deviceId,
@@ -26,16 +23,50 @@ const getCurrentDeviceInfo = wrapFunctionWithError(
         !deviceName || deviceName === "unknown"
           ? "Platform: " + Platform.OS
           : deviceName,
-    } as ReturnDeviceInfo;
-  },
-  true,
-  () => {
+    } satisfies ReturnDeviceInfo;
+  } catch {
     return {
-      deviceId: "Platform: " + Platform.OS,
+      deviceId: storageManagement.get("DEVICE_ID"),
       deviceName: "Unknown Device",
-    } as ReturnDeviceInfo;
-  },
-);
+    } satisfies ReturnDeviceInfo;
+  }
+};
+
+const uploadLogToServer = async (
+  type: "log" | "warn" | "error",
+  message: string,
+) => {
+  try {
+    const [ServerFetch, getCurrentUserId] = await import("@utils").then(
+      (mod) => [mod.ServerFetch, mod.getCurrentUserId] as const,
+    );
+
+    const [userId, deviceInfo] = await Promise.all([
+      getCurrentUserId(),
+      getCurrentDeviceInfo(),
+    ]);
+
+    ServerFetch.post("/logs/add", {
+      ...deviceInfo,
+      type,
+      userId,
+      message,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Failed to upload log to server:", error);
+  }
+};
+
+const getMessage = (...args: unknown[]): unknown[] => {
+  return args
+    .filter(Boolean)
+    .map((arg) =>
+      typeof arg === "object" && arg !== null
+        ? JSON.stringify(arg, null, 2)
+        : arg,
+    );
+};
 
 /**
  * Logs a message to the console or sends it to a server.
@@ -48,7 +79,7 @@ const getCurrentDeviceInfo = wrapFunctionWithError(
  * - In production mode, does nothing.
  */
 const log = async (...args: unknown[]): Promise<void> => {
-  if (!REPLACERS.isPreview && !REPLACERS.isDev) return;
+  if (REPLACERS.isProduction) return;
   if (
     FILTER_BY_MESSAGE.length &&
     !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
@@ -58,42 +89,11 @@ const log = async (...args: unknown[]): Promise<void> => {
   const date = new Date();
 
   const firstMessage = `Log - ${date.toLocaleString()} ::\n`;
+  const message = getMessage(...args);
 
-  if (REPLACERS.isDev)
-    console.log(
-      Chalk.blue.bold(firstMessage),
-      ...args.map((arg) =>
-        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-      ),
-    );
-  else if (REPLACERS.isPreview) {
-    try {
-      const message = [firstMessage, ...args]
-        .filter(Boolean)
-        .map((arg) =>
-          typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-        )
-        .join(" ");
-      const [fetchToServer, getCurrentUserId] = await import("@utils").then(
-        (mod) => [mod.fetchToServer, mod.getCurrentUserId] as const,
-      );
-
-      const [userId, deviceInfo] = await Promise.all([
-        getCurrentUserId(),
-        getCurrentDeviceInfo(),
-      ]);
-
-      fetchToServer("/log", {
-        type: "log",
-        userId: userId || "",
-        message,
-        timestamp: date.toISOString(),
-        ...deviceInfo,
-      });
-    } catch (error) {
-      console.error("Failed to log message to server:", error);
-    }
-  }
+  if (REPLACERS.isDev) console.log(Chalk.blue.bold(firstMessage), ...message);
+  else if (REPLACERS.isPreview)
+    await uploadLogToServer("log", [firstMessage, ...message].join(" "));
 };
 
 /**
@@ -113,7 +113,7 @@ const log = async (...args: unknown[]): Promise<void> => {
  * ```
  */
 const warn = async (...args: unknown[]): Promise<void> => {
-  if (!REPLACERS.isPreview && !REPLACERS.isDev) return;
+  if (REPLACERS.isProduction) return;
   if (
     FILTER_BY_MESSAGE.length &&
     !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
@@ -123,37 +123,12 @@ const warn = async (...args: unknown[]): Promise<void> => {
   const date = new Date();
 
   const firstMessage = `Warning - ${date.toLocaleString()} ::\n`;
+  const message = getMessage(...args);
 
-  if (REPLACERS.isDev) console.warn(Chalk.yellow.bold(firstMessage), ...args);
-  else if (REPLACERS.isPreview) {
-    try {
-      const warningMessage = [firstMessage, ...args]
-        .filter(Boolean)
-        .map((arg) =>
-          typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-        )
-        .join(" ");
-      const [fetchToServer, getCurrentUserId] = await import("@utils").then(
-        (mod) => [mod.fetchToServer, mod.getCurrentUserId] as const,
-      );
-
-      const [userId, deviceInfo] = await Promise.all([
-        getCurrentUserId(),
-        getCurrentDeviceInfo(),
-      ]);
-
-      fetchToServer("/log", {
-        type: "warn",
-        userId: userId || "",
-        message: warningMessage,
-        timestamp: date.toISOString(),
-        deviceId: deviceInfo.deviceId || "",
-        deviceName: deviceInfo.deviceName,
-      });
-    } catch (error) {
-      console.error("Failed to log warning to server:", error);
-    }
-  }
+  if (REPLACERS.isDev)
+    console.warn(Chalk.yellow.bold(firstMessage), ...message);
+  else if (REPLACERS.isPreview)
+    await uploadLogToServer("warn", [firstMessage, ...message].join(" "));
 };
 
 /**
@@ -167,7 +142,7 @@ const warn = async (...args: unknown[]): Promise<void> => {
  * - In production mode, does nothing.
  */
 const error = async (...args: unknown[]): Promise<void> => {
-  if (!REPLACERS.isPreview && !REPLACERS.isDev) return;
+  if (REPLACERS.isProduction) return;
   if (
     FILTER_BY_MESSAGE.length &&
     !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
@@ -176,55 +151,15 @@ const error = async (...args: unknown[]): Promise<void> => {
 
   const date = new Date();
   const firstMessage = `Error - ${date.toLocaleString()} ::\n`;
+  const message = getMessage(...args);
 
-  if (REPLACERS.isDev)
-    console.error(
-      Chalk.red.bold(firstMessage),
-      ...args.map((arg) =>
-        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-      ),
-    );
-  else if (REPLACERS.isPreview) {
-    try {
-      const errorMessage = [firstMessage, ...args]
-        .filter(Boolean)
-        .map((arg) =>
-          typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg,
-        )
-        .join(" ");
-      const [fetchToServer, getCurrentUserId] = await import("@utils").then(
-        (mod) => [mod.fetchToServer, mod.getCurrentUserId] as const,
-      );
-
-      const [userId, deviceInfo] = await Promise.all([
-        getCurrentUserId(),
-        getCurrentDeviceInfo(),
-      ]);
-
-      fetchToServer("/log", {
-        type: "error",
-        userId: userId || "",
-        message: errorMessage,
-        timestamp: date.toISOString(),
-        deviceId: deviceInfo.deviceId || "",
-        deviceName: deviceInfo.deviceName,
-      });
-    } catch (error) {
-      console.error("Failed to log error to server:", error);
-    }
-  }
+  if (REPLACERS.isDev) console.error(Chalk.red.bold(firstMessage), ...message);
+  else if (REPLACERS.isPreview)
+    await uploadLogToServer("error", [firstMessage, ...message].join(" "));
 };
 
 const fun = async () => {};
 
 export const logger = !REPLACERS.isProduction
-  ? {
-      log,
-      warn,
-      error,
-    }
-  : {
-      log: fun,
-      warn: fun,
-      error: fun,
-    };
+  ? { log, warn, error }
+  : { log: fun, warn: fun, error: fun };

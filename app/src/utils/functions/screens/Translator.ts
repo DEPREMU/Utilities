@@ -1,22 +1,23 @@
+import { ServerFetch } from "@common";
 import { logger } from "../debug";
-import { fetchToServer } from "../APIManagement";
 
 export const translate = async (
   text: string,
-  targetLang: string,
+  targetLanguage: string,
 ): Promise<string> => {
-  if (!text || !targetLang) return `Error: ${text}`;
+  if (!text || !targetLanguage) return `Error: ${text}`;
+
   try {
-    const res = await fetchToServer("/translate", {
-      targetLang,
+    const res = await ServerFetch.post("/languages/translate", {
       text,
+      targetLanguage,
     });
 
-    if (!res.ok) {
+    if (!res.ok || res.data.error) {
       logger.error(
-        `Error while translating: ${res.errorText || "Unknown error"}`,
+        `Error while translating: ${res.data.error || "Unknown error"}`,
       );
-      return `Error: ${res.errorText || "Unknown error"}`;
+      return `Error: ${res.data.error || "Unknown error"}`;
     }
 
     return res.data?.translatedText || "No translation available";

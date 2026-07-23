@@ -7,23 +7,22 @@ import {
   wrapFunctionWithError,
   ALL_KEYS_STORAGE_TYPE,
   DO_NOT_DELETE_OR_SAVE,
+  ServerFetch,
 } from "@common";
 import { logger } from "../functions/debug";
 import { cloneDeep } from "lodash";
 import { REPLACERS } from "../TOP_LEVEL";
 import { navigation } from "./navigation";
-import { fetchToServer } from "../functions/APIManagement";
 import * as Notifications from "expo-notifications";
 import { EventsDeviceInfo } from "./deviceInfo";
 import { storageManagement } from "./storage";
 import { notificationsManager } from "./notifications";
 import { checkLanguage, tTyped } from "../translates";
-import { ResponseAuth, ResponseFetch } from "@types";
-import { NotificationAction, UserData } from "@types";
+import { ResponseAuth, NotificationAction } from "@types";
 import { NativeFunctionsModule, windowModule } from "@modules";
 
 type SessionData = {
-  userData: Omit<UserData, "password"> | null;
+  userData: Omit<DB["TablesClient"]["Users"], "password"> | null;
   rememberMe: boolean;
   isLoggedIn: boolean;
   isLoggingIn: boolean;
@@ -131,7 +130,7 @@ export const signInWithEmail = async (
     const deviceId = storageManagement.get("DEVICE_ID");
     const notificationToken = await getDevicePushToken();
 
-    const res = await fetchToServer("/auth/login", {
+    const res = await ServerFetch.post("/auth/login", {
       lang,
       email,
       password,
@@ -175,7 +174,7 @@ export const signUpWithEmail = async (
   password: string,
 ): Promise<ResponseAuth<"login">> => {
   try {
-    const res = await fetchToServer("/auth/signup", {
+    const res = await ServerFetch.post("/auth/signup", {
       lang: await checkLanguage(),
       email,
       password,
@@ -184,7 +183,7 @@ export const signUpWithEmail = async (
     const data = res.data;
 
     if (data?.error || !res.ok) {
-      const message = data?.error || res.errorText || "Unknown error";
+      const message = data?.error || "Unknown error";
       logger.error(TAG, "Error signing up:", message);
       return { success: false, error: message };
     }
@@ -231,7 +230,6 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
     const storedValues: ALL_KEYS_STORAGE_TYPE[] = [
       "USER_DATA",
       "STREAMERS",
-      "PENDING_TASKS",
       "SESSION_EXPIRY",
       "HAS_ADMIN_ACCESS",
       "USER_SESSION_TOKEN_STORAGE",
@@ -285,7 +283,7 @@ export const refreshSession = async (
     const deviceId = storageManagement.get("DEVICE_ID");
     const notificationToken = await getDevicePushToken();
 
-    const res: ResponseFetch<"/auth/refreshSession"> = await fetchToServer(
+    const res = await ServerFetch.post(
       "/auth/refreshSession",
       {
         lang,
@@ -295,10 +293,10 @@ export const refreshSession = async (
       token,
     );
 
-    if (res.errorText)
+    if (res.data.error)
       logger.error(
         TAG,
-        `Refresh session failed: ${res.errorText || "Unknown error"}`,
+        `Refresh session failed: ${res.data.error || "Unknown error"}`,
       );
 
     const data = res.data;
@@ -306,7 +304,6 @@ export const refreshSession = async (
       const errorMsg = [
         "No data received from refresh session",
         JSON.stringify(res.data || {}, null, 2),
-        res.errorText ? res.errorText : "",
       ].join(" ");
       logger.error(TAG, errorMsg);
       return { success: false, error: errorMsg };
@@ -349,7 +346,7 @@ export const refreshSession = async (
 export const getUserData = async (
   userId: string,
 ): Promise<{
-  userData?: Omit<UserData, "password"> | null;
+  userData?: Omit<DB["TablesClient"]["Users"], "password"> | null;
   error?: string | null;
 }> => {
   try {
@@ -455,11 +452,11 @@ class SessionManager extends ServiceClass<ListenersSession> {
       if (this.#data.isLoggingIn) return;
       this.#data.isLoggingIn = true;
 
-      const { deviceInfo, checkServerAlive } = await import("@utils");
+      const { deviceInfo } = await import("@utils");
 
       const [hasInternet, isServerAlive] = await Promise.all([
         Network.waitForOnline(5),
-        checkServerAlive(),
+        ServerFetch.isServerAlive(),
       ]);
       if (!hasInternet) {
         logger.error(TAG, "No internet connection, cannot refresh session");

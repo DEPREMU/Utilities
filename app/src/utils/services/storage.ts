@@ -1,9 +1,8 @@
 import {
   Timers,
-  parseData,
+  Helper,
   isSecureKey,
   ServiceClass,
-  stringifyData,
   ALL_KEYS_STORAGE,
   SECURE_KEYS_STORAGE,
   ExpectedStorageTypes,
@@ -84,7 +83,7 @@ const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
       return callback(err, errMsg) as void;
     };
 
-    const stringifiedValue = stringifyData(value);
+    const stringifiedValue = Helper.JSON.stringifyData(value);
 
     if (REPLACERS.isNative) {
       if (isSecureKey(keyStorage))
@@ -151,19 +150,19 @@ const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
       if (isSecureKey(keyStorage)) value = await SecureStore.getItemAsync(key);
       else value = await AsyncStorage.getItem(key);
 
-      const parsed = parseData(value);
+      const parsed = Helper.JSON.parseData(value);
       return returnValue(parsed);
     }
 
     const { DATA_PLATFORM } = await import("../cross");
-    let value: string | null = null;
+    let value: string | null;
 
     if (!DATA_PLATFORM.isElectron && !REPLACERS.isDev)
       throw new Error("Not an Electron build");
     else if (!DATA_PLATFORM.isElectron) value = localStorage.getItem(key);
     else value = await windowModule.loadData(keyStorage);
 
-    const parsedResponse = parseData(value);
+    const parsedResponse = Helper.JSON.parseData(value);
     return returnValue(parsedResponse);
   },
   true,

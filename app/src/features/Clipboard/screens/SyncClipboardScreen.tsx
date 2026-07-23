@@ -14,8 +14,8 @@ import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesSyncClipboard } from "@screens/Clipboard/styles";
 import React, { useCallback, useState } from "react";
+import { logger, ServerFetch, sessionManager, storageManagement } from "@utils";
 import { Text, Button, TextInput as PaperTextInput } from "react-native-paper";
-import { fetchToServer, sessionManager, storageManagement } from "@utils";
 
 const SyncClipboardScreen: React.FC = () => {
   const { t } = useLanguage();
@@ -39,30 +39,25 @@ const SyncClipboardScreen: React.FC = () => {
     try {
       const deviceId = storageManagement.get("DEVICE_ID");
 
-      const res = await fetchToServer(
-        "/database/insert",
+      const res = await ServerFetch.post(
+        "/clipboard/add",
         {
-          lang: storageManagement.get("LANGUAGE"),
-          table: "ClipboardSync",
           deviceId,
-          values: {
-            userId: userData?.userId,
-            content: inputText,
-            deviceId,
-            createdAt: new Date().toISOString(),
-          },
+          content: inputText,
         },
         sessionToken,
       );
-      const { error } = res.data || {
-        error: res.errorText || "Unknown error",
-      };
 
-      if (error) modalRef.openSnackBar?.(t("common.errorOccurred", { error }));
-      else {
-        modalRef.openSnackBar?.(t("common.textAddedToDatabase"));
-        setInputText("");
+      if ("error" in res.data) {
+        logger.error("Error adding text to database:", res.data.error);
+        modalRef.openSnackBar?.(
+          t("common.errorOccurred", { error: res.data.error }),
+        );
+        return;
       }
+
+      modalRef.openSnackBar?.(t("common.textAddedToDatabase"));
+      setInputText("");
     } catch {
       modalRef.openSnackBar?.(t("common.failedToAddTextToDatabase"));
     } finally {

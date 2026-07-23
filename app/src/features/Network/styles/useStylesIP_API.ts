@@ -132,7 +132,7 @@ const useStylesIP_API = () => {
           maxWidth: 500,
         },
         map: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
         },
       }),
     [

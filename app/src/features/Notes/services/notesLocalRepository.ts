@@ -1,12 +1,12 @@
-import { getRandomUUID, parseData, stringifyData } from "@utils";
 import type {
-  NotesAttachment,
-  NotesFolder,
   NotesItem,
+  NotesFolder,
   RichTextRun,
+  NotesAttachment,
 } from "@types";
-import { Directory, File, Paths } from "expo-file-system";
 import * as SQLite from "expo-sqlite";
+import { getRandomUUID, Helper } from "@utils";
+import { Directory, File, Paths } from "expo-file-system";
 
 type NoteRow = {
   id: string;
@@ -102,7 +102,8 @@ const convertNote = (
   isHidden: !!row.isHidden,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
-  richTextRuns: parseData<RichTextRun[]>(row.richTextRuns || "[]") || [],
+  richTextRuns:
+    Helper.JSON.parseData<RichTextRun[]>(row.richTextRuns || "[]") || [],
   attachments: attachmentsByNoteId[row.id] || [],
 });
 
@@ -264,7 +265,7 @@ export const notesLocalRepository = {
         note.isHidden ? 1 : 0,
         note.createdAt,
         note.updatedAt,
-        stringifyData(note.richTextRuns),
+        Helper.JSON.stringifyData(note.richTextRuns),
       ],
     );
 
@@ -305,7 +306,7 @@ export const notesLocalRepository = {
 
     if (Array.isArray(input.richTextRuns)) {
       setClauses.push("richTextRuns = ?");
-      args.push(stringifyData(input.richTextRuns));
+      args.push(Helper.JSON.stringifyData(input.richTextRuns));
     }
 
     setClauses.push("updatedAt = ?");
