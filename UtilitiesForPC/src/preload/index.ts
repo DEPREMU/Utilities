@@ -366,6 +366,14 @@ const contextBridgeType: ContextBridgeType = {
         return [];
       }
     },
+    hasInternetConnection: async () => {
+      try {
+        return await sendMessage("invoke", "has-internet-connection");
+      } catch (error) {
+        sendLog("error", "Error checking internet connection:", error);
+        return false;
+      }
+    },
   },
 };
 

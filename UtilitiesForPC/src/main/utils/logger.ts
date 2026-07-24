@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { app } from "electron";
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import { Helper } from "@common";
 import dataApp, { Paths } from "./variables";
 
@@ -8,19 +8,19 @@ const write = (message: string) => {
   if (!dataApp || !app.isPackaged) return console.log(message);
 
   if (dataApp.getValue("isWindows")) {
-    exec(`echo ${message.replace(/"/g, '\\"')} >> "${Paths.LOGS}"`, (e) => {
-      if (e) console.error("Error writing log:", e.message);
-    });
+    const ps = spawn("powershell.exe", [
+      "-Command",
+      "Add-Content -Path $args[0] -Value ([Console]::In.ReadToEnd())",
+      Paths.LOGS,
+    ]);
+
+    ps.stdin.end(message);
   } else {
-    exec(
-      `echo "${message.replace(
-        /"/g,
-        '\\"',
-      )}" | sudo tee -a "${Paths.LOGS}" > /dev/null`,
-      (e) => {
-        if (e) console.error("Error writing log:", e.message);
-      },
-    );
+    const tee = spawn("sudo", ["tee", "-a", Paths.LOGS], {
+      stdio: ["pipe", "ignore", "inherit"],
+    });
+
+    tee.stdin.end(message + "\n");
   }
 };
 

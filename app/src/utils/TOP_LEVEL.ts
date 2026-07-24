@@ -1,12 +1,8 @@
 import NetInfo from "@react-native-community/netinfo";
 import Constants from "expo-constants";
+import { Network } from "@common";
 import { Platform } from "react-native";
 import { Colors, REPLACERS_TYPE } from "@types";
-
-NetInfo.configure({
-  useNativeReachability: true,
-  reachabilityUrl: "https://www.google.com/generate_204",
-});
 
 const isDev: boolean = process.env.BUILD_PROFILE === "development";
 const isWeb: boolean = Platform.OS === "web";
@@ -22,7 +18,17 @@ export const REPLACERS: Record<REPLACERS_TYPE, boolean> = {
   isProduction,
 };
 
-if (REPLACERS.isNative) import("./global.native");
+if (REPLACERS.isNative) {
+  NetInfo.configure({
+    reachabilityUrl: "https://www.google.com/generate_204",
+    useNativeReachability: true,
+  });
+  import("./global.native");
+} else if (REPLACERS.isWeb)
+  import("./modules/WindowModule").then(({ windowModule }) => {
+    (Network as { isOnline: () => Promise<boolean> }).isOnline =
+      windowModule.hasInternetConnection;
+  });
 
 const checkVariables = (): void => {
   const NEEDED_VARIABLES = ["version", "WS_URL_BASE", "API_URL_BASE"];

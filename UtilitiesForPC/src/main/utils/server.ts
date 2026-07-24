@@ -230,7 +230,21 @@ export const initServer = (): void => {
 
     app.post("/log", (req, res) => {
       const { message, level } = req.body;
-      Logger[level as "log"](`Client log [${level}]: ${message}`);
+
+      switch (level || "log") {
+        case "log":
+          Logger.log(`Client log [${level}]: ${message}`);
+          break;
+        case "warn":
+          Logger.warn(`Client log [${level}]: ${message}`);
+          break;
+        case "error":
+          Logger.error(`Client log [${level}]: ${message}`);
+          break;
+        default:
+          Logger.log(`Client log [${level}]: ${message}`);
+      }
+
       res.json({ success: true });
     });
 

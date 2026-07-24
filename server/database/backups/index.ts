@@ -1,6 +1,6 @@
 import path from "path";
 import chalk from "chalk";
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import { REPLACERS } from "@/config.ts";
 import { getEnvValue } from "@/env.ts";
 import { Directory, File, Logger, Task } from "@common";
@@ -120,22 +120,43 @@ export const handleBackupDatabase = async () => {
       `backup-${timestamp}${encryptedExtension}`,
     );
 
-    const writeFile = `pg_dump --data-only --inserts --column-inserts \
-  --host=${getEnvValue("DB_HOST")} --port=${getEnvValue("DB_PORT")} --username=${getEnvValue("DB_USER")} --dbname=${getEnvValue("DB_NAME")} \
-| sed '/^INSERT INTO / s/);$/) ON CONFLICT DO NOTHING;/' > ${backupFileName}`;
+    const backupFile = new File(backupFileName).createWriteStream();
 
-    exec(writeFile, (error, _, stderr) => {
-      if (error) {
-        Logger.error(chalk.red("Error during database backup:"), error.message);
+    const pgDump = spawn("pg_dump", [
+      "--data-only",
+      "--inserts",
+      "--column-inserts",
+      `--host=${getEnvValue("DB_HOST")}`,
+      `--port=${getEnvValue("DB_PORT")}`,
+      `--username=${getEnvValue("DB_USER")}`,
+      `--dbname=${getEnvValue("DB_NAME")}`,
+    ]);
+
+    const sed = spawn("sed", [
+      "/^INSERT INTO / s/);$/) ON CONFLICT DO NOTHING;/",
+    ]);
+
+    pgDump.stdout.pipe(sed.stdin);
+    sed.stdout.pipe(backupFile);
+
+    pgDump.stderr.on("data", (data) => {
+      Logger.error(chalk.red("pg_dump error:"), data.toString());
+    });
+
+    sed.stderr.on("data", (data) => {
+      Logger.error(chalk.red("sed error:"), data.toString());
+    });
+
+    sed.on("close", (code) => {
+      if (code !== 0) {
+        Logger.error(chalk.red(`Backup failed with code ${code}`));
         return;
       }
-      if (stderr) {
-        Logger.error(chalk.red("Error output during database backup:"), stderr);
-        return;
-      }
+
       Logger.log(
         chalk.green(`Database backup created successfully: ${backupFileName}`),
       );
+
       void encryptFile(backupFileName, getEnvValue("DB_ENCRYPTION_PASS"));
     });
   } catch (error) {

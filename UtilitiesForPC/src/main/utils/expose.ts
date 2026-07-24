@@ -25,7 +25,7 @@ import { Paths } from "@utils";
 import { Logger } from "./logger";
 import { zipFolder } from "./zip";
 import { nativeData } from "./nativeData";
-import { Directory, File } from "@common";
+import { Directory, File, Network } from "@common";
 import { authenticateUser } from "./vault";
 import { sendNotification } from "./notifications";
 import { createPDFWithImages } from "./pdf";
@@ -34,7 +34,9 @@ import { createWindowClipboard } from "./clipboard";
 import { restartComputer, scheduleReconnect, turnOffComputer } from "./server";
 
 type IpcDictHybrid = {
-  [K in keyof ChannelsIpcRenderer]: ChannelsIpcRenderer[K]["typeIpc"] extends "send"
+  [
+    K in keyof ChannelsIpcRenderer
+  ]: ChannelsIpcRenderer[K]["typeIpc"] extends "send"
     ? {
         type: "on";
         func: (
@@ -505,6 +507,10 @@ const ipcDict: IpcDictHybrid = {
         return [];
       }
     },
+  },
+  "has-internet-connection": {
+    type: "handle",
+    func: async () => await Network.isOnline(),
   },
 };
 

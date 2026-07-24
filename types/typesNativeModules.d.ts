@@ -235,6 +235,11 @@ export type ChannelsIpcRenderer<
     functionArgs: [];
     typeIpc: "invoke";
   };
+  "has-internet-connection": {
+    functionReturn: Promise<boolean>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
 };
 
 type NotificationElectron = {
@@ -329,6 +334,7 @@ export type ContextBridgeType = {
       ...args: ChannelsIpcRenderer["rename-folder"]["functionArgs"]
     ) => ChannelsIpcRenderer["rename-folder"]["functionReturn"];
     getExistingVaultFolders: () => ChannelsIpcRenderer["get-existing-vault-folders"]["functionReturn"];
+    hasInternetConnection: () => ChannelsIpcRenderer["has-internet-connection"]["functionReturn"];
   };
 };
 

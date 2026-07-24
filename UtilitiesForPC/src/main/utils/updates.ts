@@ -4,8 +4,8 @@ import dotenv from "dotenv";
 import { app } from "electron";
 import dataApp from "./variables";
 import { Logger } from "./logger";
-import { exec, spawn } from "child_process";
 import { handleShutdown } from "./server";
+import { execFile, spawn } from "child_process";
 import { BuildTypeUpdates } from "@types";
 import { nativeData, Paths } from "@utils";
 import { File, Timers, Directory, Network, ServerFetch } from "@common";
@@ -33,13 +33,14 @@ export const deleteDownloadedUpdate = async () => {
   } catch {
     try {
       if (dataApp.getValue("isWindows"))
-        exec(
-          `powershell -NoProfile -Command "Remove-Item -LiteralPath '${downloadFilePath.replace(
-            /'/g,
-            "''",
-          )}' -Force"`,
-        );
-      else exec(`rm -f "${downloadFilePath.replace(/"/g, '\\"')}"`);
+        execFile("powershell.exe", [
+          "-NoProfile",
+          "-Command",
+          "Remove-Item -LiteralPath $args[0] -Force",
+          "--%",
+          downloadFilePath,
+        ]);
+      else execFile("rm", ["-f", downloadFilePath]);
     } catch (error) {
       Logger.error("Error deleting downloaded update file:", error);
     }

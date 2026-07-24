@@ -21,7 +21,7 @@ import dataApp, {
 } from "@utils";
 import os from "os";
 import path from "path";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { File, Directory, startMemoryMonitor } from "@common";
 import { verifyNewUpdate, deleteDownloadedUpdate } from "./utils/updates";
 
@@ -68,26 +68,34 @@ const setupAutostart = async () => {
         },
       );
     } else {
-      const sudo = (cmd: string) => {
+      const sudo = (command: string, args: string[] = [], stdin?: string) => {
         try {
-          return exec(
-            `sudo bash -c "${cmd.replace(/"/g, '\\"')}"`,
-            (error, stdout, stderr) => {
-              if (error) {
-                Logger.error(
-                  `Error executing command: ${cmd}\n${error.message}\n${stderr}`,
-                  "error",
-                );
-              }
-              if (stdout) {
-                Logger.log(`Command output: ${cmd}\n${stdout}`);
-              }
-              if (stderr) {
-                Logger.warn(`Command error output: ${cmd}\n${stderr}`);
-              }
-            },
-          );
-        } catch {
+          const child = spawn("sudo", [command, ...args], {
+            stdio: ["pipe", "pipe", "pipe"],
+          });
+
+          if (stdin !== undefined) {
+            child.stdin.write(stdin);
+            child.stdin.end();
+          } else {
+            child.stdin.end();
+          }
+
+          child.stdout.on("data", (data) => {
+            Logger.log(data.toString());
+          });
+
+          child.stderr.on("data", (data) => {
+            Logger.warn(data.toString());
+          });
+
+          child.on("error", (error) => {
+            Logger.error(error.message, "error");
+          });
+
+          return child;
+        } catch (error) {
+          Logger.error(String(error), "error");
           return null;
         }
       };
@@ -191,21 +199,23 @@ StartupNotify=false
           new File(desktopFilePath).writeFile(desktopFileContent, "utf-8"),
         ]);
 
-        sudo(`cp "${tempWrapper}" "${wrapperScriptPath}"`);
-        sudo(`chmod +x "${wrapperScriptPath}"`);
+        sudo("cp", [tempWrapper, wrapperScriptPath]);
 
-        sudo(`chmod +x "${startUpFile}"`);
-        sudo(`chmod +x "${desktopFilePath}"`);
-        sudo(`chown ${userName}:${userName} "${startUpFile}"`);
-        sudo(`chown ${userName}:${userName} "${desktopFilePath}"`);
+        sudo("chmod", ["+x", wrapperScriptPath]);
+
+        sudo("chmod", ["+x", startUpFile]);
+        sudo("chmod", ["+x", desktopFilePath]);
+
+        sudo("chown", [`${userName}:${userName}`, startUpFile]);
+        sudo("chown", [`${userName}:${userName}`, desktopFilePath]);
 
         const sudoersEntry = `# UtilitiesForPC auto-start with root privileges
 ${userName} ALL=(ALL) NOPASSWD: ${wrapperScriptPath}
 ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
 `;
 
-        sudo(`echo "${sudoersEntry}" > /etc/sudoers.d/utilitiesforpc`);
-        sudo(`chmod 0440 /etc/sudoers.d/utilitiesforpc`);
+        sudo("tee", ["/etc/sudoers.d/utilitiesforpc"], sudoersEntry);
+        sudo("chmod", ["0440", "/etc/sudoers.d/utilitiesforpc"]);
 
         Logger.log("Linux autostart configured successfully.");
       } catch (error) {
@@ -232,7 +242,7 @@ const createWindow = (): void => {
     webPreferences: {
       sandbox: false,
       preload: dataApp.getValue("preloadPath"),
-      webSecurity: false,
+      webSecurity: true, //TODO: Check if this is needed, it may cause issues with some features
       nodeIntegration: false,
       contextIsolation: true,
       backgroundThrottling: false,
