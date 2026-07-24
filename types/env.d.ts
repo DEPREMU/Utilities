@@ -5,12 +5,10 @@ export type Env<B extends boolean = false> = {
   JWT_SECRET: string;
   ADMIN_EMAIL: string;
   BUILD_PROFILE: "production" | "development" | string;
-  VAPID_PRIVATE_KEY: string;
   DEEPL_TRANSLATOR_API: string;
   SECRET_KEY_TO_ENCRYPTION: string;
   FIREBASE_SERVICE_ACCOUNT: string;
   DB_ENCRYPTION_PASS: string;
-  VAPID_PUBLIC_KEY: string;
   ADMIN_PASSWORD: string;
   USE_HTTPS: B extends true ? boolean : string;
   DB_NAME: string;
