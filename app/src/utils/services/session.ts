@@ -13,11 +13,11 @@ import { logger } from "../functions/debug";
 import { cloneDeep } from "lodash";
 import { REPLACERS } from "../TOP_LEVEL";
 import { navigation } from "./navigation";
-import * as Notifications from "expo-notifications";
 import { EventsDeviceInfo } from "./deviceInfo";
 import { storageManagement } from "./storage";
 import { notificationsManager } from "./notifications";
 import { checkLanguage, tTyped } from "../translates";
+import { getDevicePushTokenAsync } from "expo-notifications";
 import { ResponseAuth, NotificationAction } from "@types";
 import { NativeFunctionsModule, windowModule } from "@modules";
 
@@ -59,21 +59,18 @@ const TAG = "SESSION_MANAGER";
  * @returns A promise that resolves to the Expo push token string.
  * @throws Will throw an error if the project ID is not found or if there is an issue fetching the token.
  */
-export const getDevicePushToken = wrapFunctionWithError(
-  async () => {
-    if (REPLACERS.isWeb) return "Web";
+export const getDevicePushToken = async () => {
+  if (REPLACERS.isWeb) return "Web";
 
-    const token: string =
-      (await Notifications.getDevicePushTokenAsync()).data || "";
+  try {
+    const token: string = (await getDevicePushTokenAsync()).data || "";
 
     return token;
-  },
-  true,
-  (_, errMsg) => {
-    logger.error(TAG, "Error getting device push token:", errMsg);
+  } catch (error) {
+    logger.error(TAG, "Error getting device push token:", error);
     return "";
-  },
-);
+  }
+};
 
 export const saveStorageData = async (
   storageValues?: Partial<ExpectedStorageTypes<"BOTH">>,

@@ -68,24 +68,36 @@ type Response = {
   status: number;
 };
 
-export type FetchToServerMethod<M extends MethodsAPI> = <const R extends RoutesAPI[M]>(
+export type FetchToServerMethod<M extends MethodsAPI> = <
+  const R extends RoutesAPI[M],
+  B extends ResolveRoute<FetchAPI<M>, R>["body"],
+>(
   route: R,
-  body: ResolveRoute<FetchAPI<M>, R>["body"],
-  ...args: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
-    ? [authToken: string]
-    : []
+  ...args: B extends undefined
+    ? ResolveRoute<FetchAPI<M>, R>["auth"] extends true
+      ? [body: undefined, authToken: string]
+      : []
+    : [
+        body: NonNullable<B>,
+        ...args: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
+          ? [authToken: string]
+          : [],
+      ]
 ) => Promise<Response & { data: ResolveRoute<FetchAPI<M>, R>["response"] }>;
 
-export type FetchToServer = <
-  M extends MethodsAPI,
-  const R extends RoutesAPI[M],
->(
+export type FetchToServer = <M extends MethodsAPI, const R extends RoutesAPI[M]>(
   method: M,
   route: R,
-  body: NonNullable<ResolveRoute<FetchAPI<M>, R>["body"]>,
-  ...args: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
-    ? [authToken: string]
-    : []
+  ...args: B extends undefined
+    ? ResolveRoute<FetchAPI<M>, R>["auth"] extends true
+      ? [body: undefined, authToken: string]
+      : []
+    : [
+        body: NonNullable<B>,
+        ...args: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
+          ? [authToken: string]
+          : [],
+      ]
 ) => Promise<Response & { data: ResolveRoute<FetchAPI<M>, R>["response"] }>;
 
 export type FetchToServerPerMethod = {

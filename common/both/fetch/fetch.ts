@@ -51,12 +51,9 @@ export class ServerFetch {
     );
   }
 
-  static get: FetchToServerPerMethod["GET"] = async (
-    route,
-    params,
-    ...args
-  ) => {
-    const token = args[0] as string;
+  static get: FetchToServerPerMethod["GET"] = async (route, ...args) => {
+    const params = args[0];
+    const token = args[1] as string;
 
     const response = await axios.get(
       ServerFetch.getRoute(route, params as never),
@@ -72,16 +69,13 @@ export class ServerFetch {
     } satisfies Awaited<ReturnType<FetchToServerPerMethod["GET"]>>;
   };
 
-  static post: FetchToServerPerMethod["POST"] = async (
-    route,
-    body,
-    ...args
-  ) => {
-    const token = args[0] as string;
+  static post: FetchToServerPerMethod["POST"] = async (route, ...args) => {
+    const body = args[0];
+    const token = args[1] as string;
 
     const response = await axios.post(
       ServerFetch.getRoute(route, undefined as never),
-      body as never,
+      body,
       {
         ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
         validateStatus: () => true,
@@ -95,12 +89,9 @@ export class ServerFetch {
     } satisfies Awaited<ReturnType<FetchToServerPerMethod["POST"]>>;
   };
 
-  static delete: FetchToServerPerMethod["DELETE"] = async (
-    route,
-    body,
-    ...args
-  ) => {
-    const token = args[0] as string;
+  static delete: FetchToServerPerMethod["DELETE"] = async (route, ...args) => {
+    const body = args[0];
+    const token = args[1] as string;
 
     const response = await axios.delete(
       ServerFetch.getRoute(route, body as never),
@@ -117,8 +108,9 @@ export class ServerFetch {
     } satisfies Awaited<ReturnType<FetchToServerPerMethod["DELETE"]>>;
   };
 
-  static put: FetchToServerPerMethod["PUT"] = async (route, body, ...args) => {
-    const token = args[0] as string;
+  static put: FetchToServerPerMethod["PUT"] = async (route, ...args) => {
+    const body = args[0];
+    const token = args[1] as string;
 
     const response = await axios.put(
       ServerFetch.getRoute(route, undefined as never),
@@ -136,12 +128,11 @@ export class ServerFetch {
     } satisfies Awaited<ReturnType<FetchToServerPerMethod["PUT"]>>;
   };
 
-  static server: FetchToServer = async (method, route, body, ...args) => {
+  static server: FetchToServer = async (method, route, ...args) => {
     try {
       const res = await ServerFetch[method.toLowerCase() as "get"](
         route as "/info/generate204",
-        body,
-        ...(args as []),
+        ...(args as unknown as []),
       );
 
       return { ...res, data: res.data as never } satisfies Awaited<
@@ -154,12 +145,12 @@ export class ServerFetch {
     }
   };
 
-  static isServerAlive = async (): Promise<boolean> => {
+  static async isServerAlive(): Promise<boolean> {
     try {
-      const res = await ServerFetch.get("/info/generate204", undefined);
+      const res = await ServerFetch.get("/info/generate204");
       return res.status === 204 || res.status === 200;
     } catch {
       return false;
     }
-  };
+  }
 }

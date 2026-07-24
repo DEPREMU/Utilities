@@ -12,9 +12,11 @@ type ListenersDebug = {
 const TAG = "DEBUG_SERVICE";
 
 class Debug extends ServiceClass<ListenersDebug> {
-  #defaultSettings: DEBUG_SETTINGS = {
-    appAliveCheck: false,
-  };
+  #getDefaultSettings(): DEBUG_SETTINGS {
+    return {
+      appAliveCheck: false,
+    };
+  }
 
   #intervals: Record<keyof ListenersDebug, number | null> = {
     appAliveCheck: null,
@@ -22,7 +24,7 @@ class Debug extends ServiceClass<ListenersDebug> {
 
   public getSettings = async () => {
     const { storageManagement } = await import("@utils");
-    return storageManagement.get("DEBUG", this.#defaultSettings);
+    return storageManagement.get("DEBUG") || this.#getDefaultSettings();
   };
 
   #appAliveCheck = {
@@ -62,9 +64,7 @@ class Debug extends ServiceClass<ListenersDebug> {
     },
   };
 
-  public toggleInterval = async (
-    name: keyof ListenersDebug,
-  ): Promise<boolean> => {
+  public async toggleInterval(name: keyof ListenersDebug): Promise<boolean> {
     const { storageManagement } = await import("@utils");
 
     switch (name) {
@@ -80,10 +80,8 @@ class Debug extends ServiceClass<ListenersDebug> {
             this.#appAliveCheck.timer,
           );
         }
-        const prevSettings = storageManagement.get(
-          "DEBUG",
-          this.#defaultSettings,
-        );
+        const prevSettings =
+          storageManagement.get("DEBUG") || this.#getDefaultSettings();
         prevSettings.appAliveCheck = !exists;
         storageManagement.save("DEBUG", prevSettings);
 
@@ -92,12 +90,12 @@ class Debug extends ServiceClass<ListenersDebug> {
       default:
         return false;
     }
-  };
+  }
 
   private _initAppAliveCheck = async () => {
     const { storageManagement } = await import("@utils");
     const debugSettings: DEBUG_SETTINGS =
-      storageManagement.get("DEBUG") || this.#defaultSettings;
+      storageManagement.get("DEBUG") || this.#getDefaultSettings();
 
     if (!debugSettings.appAliveCheck) return;
 
@@ -114,7 +112,7 @@ class Debug extends ServiceClass<ListenersDebug> {
       await storageManagement.waitUntilInitialized();
       const data = storageManagement.get("DEBUG");
       if (!data) {
-        storageManagement.save("DEBUG", this.#defaultSettings);
+        storageManagement.save("DEBUG", this.#getDefaultSettings());
       }
       await Timers.sleep(1000);
 

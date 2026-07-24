@@ -1,7 +1,7 @@
 export class Arrays {
-  static readonly convertToArray = <T>(value: T | T[]): T[] => {
+   static convertToArray<T>(value: T | T[]): T[] {
     return Array.isArray(value) ? value : [value];
-  };
+  }
 
   /**
    * Execute an async callback for each item in an array with a limit on the number of concurrent executions.
@@ -10,11 +10,11 @@ export class Arrays {
    * @param callback - The async callback function to execute for each item.
    * @returns A promise that resolves when all items have been processed.
    */
-  static forEachQueue = async <T>(
+  static async forEachQueue<T>(
     concurrent: number,
     array: T[],
     callback: (item: T, index: number, array: T[]) => Promise<void>,
-  ): Promise<void> => {
+  ): Promise<void> {
     {
       if (concurrent <= 1) {
         for (let i = 0; i < array.length; i++) {
@@ -40,5 +40,5 @@ export class Arrays {
         i++;
       }
     }
-  };
+  }
 }

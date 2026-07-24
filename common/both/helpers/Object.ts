@@ -112,6 +112,15 @@ const changeType: ChangeType = (obj, newType) => {
           } else {
             copy[key] = String(obj[key]);
           }
+          break;
+        case "object":
+          if (typeof obj[key] !== "object" || obj[key] === null) {
+            copy[key] = {};
+          }
+          break;
+        case "undefined":
+          delete copy[key];
+          break;
       }
     }
 
@@ -124,19 +133,16 @@ const changeType: ChangeType = (obj, newType) => {
 };
 
 export class Objects {
-  static readonly removeProperties: <
-    T extends Record<string, unknown>,
-    K extends keyof T,
-  >(
+  static removeProperties<T extends Record<string, unknown>, K extends keyof T>(
     obj: T,
     ...keys: K[]
-  ) => Omit<T, K> = (obj, ...keys) => {
+  ): Omit<T, K> {
     const result = cloneDeep(obj);
     keys.forEach((key) => {
       delete result[key];
     });
     return result;
-  };
+  }
 
   static readonly fromEntries: <
     const T extends ReadonlyArray<readonly [PropertyKey, unknown]>,

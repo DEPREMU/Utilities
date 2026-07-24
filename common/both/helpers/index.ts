@@ -3,7 +3,7 @@ import { Arrays } from "./Array.ts";
 import { Objects } from "./Object.ts";
 
 export class Helper {
-  static readonly getMessage = (...args: unknown[]) => {
+  static getMessage(...args: unknown[]) {
     return args
       .map((arg) => {
         try {
@@ -21,7 +21,7 @@ export class Helper {
         return String(arg);
       })
       .join(" ");
-  };
+  }
 
   static readonly JSON = JSON;
 

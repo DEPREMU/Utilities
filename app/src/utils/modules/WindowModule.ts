@@ -2,43 +2,46 @@ import { REPLACERS } from "../TOP_LEVEL";
 import { ContextBridgeType } from "@types";
 
 const voidFunction = () => {};
-const nullFunction = async () => null;
-const falseFunction = async () => false;
-const successFunction = async () => ({ success: true });
+
+const asyncNullFunction = async () => null;
+const asyncEmptyStr = async () => "";
+const asyncFalseFunction = async () => false;
+const asyncSuccessFunction = async () => ({ success: true });
 const asyncVoidFunction = async () => {};
 
 const defaultWindow: ContextBridgeType["UtilitiesForPC"] = {
+  hasInternetConnection: async () => true,
   notifyLoginStatus: voidFunction,
-  readClipboard: async () => "",
+  readClipboard: asyncEmptyStr,
   setClipboard: voidFunction,
-  turnOffComputer: falseFunction,
-  restartComputer: falseFunction,
+  turnOffComputer: asyncFalseFunction,
+  restartComputer: asyncFalseFunction,
   setData: voidFunction,
-  saveData: successFunction,
-  loadData: async () => null,
-  isElectronBuild: falseFunction,
-  removeData: falseFunction,
-  sendNotification: () => {},
+  saveData: asyncSuccessFunction,
+  loadData: asyncNullFunction,
+  isElectronBuild: asyncFalseFunction,
+  removeData: asyncFalseFunction,
+  sendNotification: voidFunction,
   getNativeData: async () => "unknown",
-  executeCommand: async () => "",
-  createPdf: nullFunction,
+  executeCommand: asyncEmptyStr,
+  createPdf: asyncNullFunction,
   getClipboardHistory: async () => [],
   setClipboardHistory: asyncVoidFunction,
   hideClipboardWindow: voidFunction,
   onClipboardItemsUpdated: voidFunction,
   showClipboardWindow: voidFunction,
-  authenticate: falseFunction,
-  copyFileToTemp: successFunction,
-  removeFile: successFunction,
+  authenticate: asyncFalseFunction,
+  copyFileToTemp: asyncSuccessFunction,
+  removeFile: asyncSuccessFunction,
   getSafeFolder: async () => "unknown",
   pickFolder: async () => "canceled",
-  encryptFiles: successFunction,
-  renameVaultItem: successFunction,
+  encryptFiles: asyncSuccessFunction,
+  renameVaultItem: asyncSuccessFunction,
   loadEncryptedFiles: async () => [],
-  actionWithVaultItem: successFunction,
+  actionWithVaultItem: asyncSuccessFunction,
   getFileInfo: async () => null,
   clearDecryptedFolderDirectory: asyncVoidFunction,
-  askPath: async () => null,
+  askPath: asyncNullFunction,
   zipFolder: async (_1, _2, _3, _4, onError) =>
     onError?.(new Error("Not implemented")) || "",
   deleteFolderVault: asyncVoidFunction,

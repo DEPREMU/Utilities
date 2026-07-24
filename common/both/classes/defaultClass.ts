@@ -17,37 +17,37 @@ export abstract class ServiceClass<
     return this.#isInitialized;
   }
 
-  #init = async () => {
+  async #init() {
     try {
       await this._init();
     } finally {
       this.#isInitialized = true;
       this.#initPromise = null;
     }
-  };
+  }
 
-  public waitUntilInitialized = async () => {
-    if (this.#isInitialized) return;
-    if (this.#initPromise) return this.#initPromise;
+  public waitUntilInitialized(): Promise<void> {
+    if (this.#isInitialized) return Promise.resolve();
 
-    this.#initPromise = this.#init();
-  };
+    if (!this.#initPromise) this.#initPromise = this.#init();
+    return this.#initPromise;
+  }
 
-  public clearInit = () => {
+  public clearInit() {
     this.#isInitialized = false;
     this.#initPromise = null;
-  };
+  }
 
   override destroy() {
     super.destroy();
     this.clearInit();
   }
 
-  _reInit = async () => {
+  _reInit() {
     this.clearInit();
-    this.#initPromise = this.#init();
-    return this.#initPromise;
-  };
+
+    return this.waitUntilInitialized();
+  }
 
   abstract _init(): Promise<void>;
 

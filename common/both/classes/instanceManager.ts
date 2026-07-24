@@ -1,4 +1,5 @@
 import { Timers } from "../timer.ts";
+import { Function } from "@types";
 
 export class InstanceManager<T> {
   #deleteInstanceAfter: number;
@@ -8,10 +9,10 @@ export class InstanceManager<T> {
 
   #intervalId: number | null = null;
 
-  private _clearInterval = () => {
+  private _clearInterval() {
     if (this.#intervalId) Timers.clearInterval(this.#intervalId);
     this.#intervalId = null;
-  };
+  }
 
   public destroy() {
     this._clearInterval();
@@ -43,7 +44,7 @@ export class InstanceManager<T> {
   }
 
   constructor(
-    getClass: () => T & { destroy: () => void },
+    getClass: Function<[], T & { destroy: Function<[], void> }>,
     deleteInstanceAfter: number,
   ) {
     this.#getClass = getClass;
