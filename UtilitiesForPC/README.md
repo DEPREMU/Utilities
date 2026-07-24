@@ -4,53 +4,54 @@ Electron desktop runtime for the Utilities web app build, with a preload bridge 
 
 ## Documentation Map
 
-- Monorepo docs: `../README.md`
-- App docs: `../app/README.md`
-- Server docs: `../server/README.md`
-- Electron docs: `README.md`
+- Monorepo docs: [../README.md](../README.md)
+- App docs: [../app/README.md](../app/README.md)
+- Server docs: [../server/README.md](../server/README.md)
+- Electron docs: [README.md](README.md)
 
 ## Scope
 
 This workspace provides:
 
-- Electron main process (`src/main/app.ts` and related helpers)
-- Preload bridge (`src/preload/index.ts`)
-- Desktop packaging (`electron-builder` config in `package.json`)
-- IPC features used by the web renderer (clipboard, notifications, command execution, vault helpers, file/temp helpers, PDF creation, and more)
+- Electron main-process code in [src/main/app.ts](src/main/app.ts)
+- Preload bridge code in [src/preload/index.ts](src/preload/index.ts)
+- Desktop packaging through the `build` field in [package.json](package.json)
+- IPC features used by the web renderer for clipboard, notifications, command execution, vault helpers, file and temp helpers, PDF creation, zip handling, and native data access
 
 ## Runtime Architecture
 
 ### Main process
 
-Main entry: `build/index.cjs` (compiled from `src/main/app.ts`).
+Main entry: [build/index.cjs](build/index.cjs), compiled from [src/main/app.ts](src/main/app.ts).
 
 Main process responsibilities include:
 
-- Browser window/tray lifecycle
+- Browser window and tray lifecycle
 - Startup and shutdown handling
-- Auto-start setup (Windows/Linux packaged paths)
+- Auto-start setup for Windows and Linux packaged runs
 - Optional system dependency checks on Linux packaged runs
 - Internal local server startup, update checks, memory monitoring, and clipboard window setup
 
-In packaged mode, it loads built web assets from `dist/index.html`.
-In dev mode, it loads Expo web from `http://localhost:8081`.
+In packaged mode, it loads built web assets from [dist/index.html](dist/index.html).
+In development mode, it loads Expo web from `http://localhost:8081`.
 
 ### Preload bridge
 
-`src/preload/index.ts` exposes typed `window.UtilitiesForPC.*` APIs via IPC with `contextIsolation: true` and `nodeIntegration: false`.
+[src/preload/index.ts](src/preload/index.ts) exposes typed `window.UtilitiesForPC.*` APIs through IPC with `contextIsolation: true` and `nodeIntegration: false`.
 
-Bridge includes operations such as:
+The bridge currently covers:
 
 - Clipboard read/write/history
-- Native/system actions (shutdown/restart/auth)
+- Native and system power actions
 - App storage load/save/remove
 - Notifications
 - Command execution
-- PDF creation with progress callback
+- PDF creation with progress callbacks
 - Vault file actions and folder picking
-- Safe folder, file info, zip, and encrypted vault helpers
+- Safe-folder, file-info, zip, and encrypted vault helpers
+- Electron build detection and native data access
 
-## Scripts (From `UtilitiesForPC/package.json`)
+## Scripts From `UtilitiesForPC/package.json`
 
 Run from this folder:
 
@@ -61,34 +62,33 @@ yarn run before-commit
 
 The full build and packaging flows are driven from the repository root scripts.
 
-## Recommended Commands (From Repository Root)
+## Recommended Root Commands
 
 Use root orchestration scripts for full flows:
 
 ```bash
-yarn run start-electron              # starts Expo web + Electron
-yarn run build-web-app-electron      # exports app web build and stages dist
-yarn run build-resources-electron    # builds Electron main + preload outputs
-yarn run build-app-electron          # packages app (linux/windows flow)
-yarn run build-upload-electron       # upload helper flow
+yarn run start-electron
+yarn run build-web-app-electron
+yarn run build-resources-electron
+yarn run build-app-electron
+yarn run build-upload-electron
 ```
 
 `start-electron` interactive controls:
 
-- `r`: restart Electron (rebuild resources)
-- `q`: quit all managed processes
+- `r` restarts Electron after rebuilding resources
+- `q` quits the managed processes
 
 ## Packaging Configuration
 
-Configured in `package.json` `build` field:
+Configured in the `build` field of [package.json](package.json):
 
 - `appId`: `com.utilities.depremu`
 - `productName`: `UtilitiesForPC`
 - Output directory: `dist-electron`
-- Targets:
-  - Windows: `nsis`
-  - Linux: `deb`
-- Extra resources copied: `dist/`, `assets/`
+- Targets: Windows `nsis`, Linux `deb`
+- Extra resources copied: `dist/` and `assets/`
+- Windows packaging requests administrator privileges
 
 ## Dependencies
 
@@ -100,24 +100,18 @@ Key runtime dependencies include:
 - `bonjour-service`
 - `sharp`
 - `pdfkit`
-- `node-7z` + `7zip-bin`
+- `node-7z` and `7zip-bin`
 
 ## Development Notes
 
-- In dev, Electron expects Expo web dev server to be available at `http://localhost:8081`.
+- In development, Electron expects the Expo web dev server at `http://localhost:8081`.
 - In packaged runs, the main process loads `dist/index.html` and starts the internal server/update flow.
-- In packaged runs on Linux, setup may perform additional dependency/autostart steps requiring elevated privileges.
-- Renderer must not access Node directly; use preload IPC APIs.
+- In packaged runs on Linux, setup may perform additional dependency and autostart steps that require elevated privileges.
+- The renderer must not access Node directly; use the preload IPC APIs.
 
 ## Quality Gate
 
-Workspace-local:
-
-```bash
-yarn run before-commit
-```
-
-Repository-level canonical gate:
+Workspace-local and repository-level canonical gate:
 
 ```bash
 yarn run before-commit
@@ -125,14 +119,14 @@ yarn run before-commit
 
 ## Troubleshooting
 
-### Electron window does not load in dev
+### Electron window does not load in development
 
 Ensure Expo web is running and reachable at `http://localhost:8081`.
 
-### IPC methods unavailable in renderer
+### IPC methods unavailable in the renderer
 
-Check preload build output (`build/preload.cjs`) and confirm context bridge is loaded.
+Check the preload build output and confirm the context bridge is loaded.
 
 ### Linux package issues
 
-Install required system libs and run packaging commands with proper permissions where needed.
+Install the required system libraries and run packaging commands with proper permissions when needed.

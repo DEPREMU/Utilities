@@ -4,10 +4,10 @@ Expo React Native application for Android and Web.
 
 ## Documentation Map
 
-- Monorepo docs: `../README.md`
-- App docs: `README.md`
-- Server docs: `../server/README.md`
-- Electron docs: `../UtilitiesForPC/README.md`
+- Monorepo docs: [../README.md](../README.md)
+- App docs: [README.md](README.md)
+- Server docs: [../server/README.md](../server/README.md)
+- Electron docs: [../UtilitiesForPC/README.md](../UtilitiesForPC/README.md)
 
 ## Scope
 
@@ -15,59 +15,57 @@ This workspace contains the user-facing app UI, navigation, contexts, PDF deep-l
 
 Key areas:
 
-- Entry point: `src/index.tsx`
-- App shell: `src/app/App.tsx`
-- Navigation: `src/app/AppNavigator.tsx`
-- Features: `src/features/`
-- Context providers: `src/context/`
-- Native Android sources/templates: `native/`
+- Entry point: [src/index.tsx](src/index.tsx)
+- App shell: [src/app/App.tsx](src/app/App.tsx)
+- Navigation: [src/app/AppNavigator.tsx](src/app/AppNavigator.tsx)
+- Features: [src/features/](src/features/)
+- Context providers: [src/context/](src/context/)
+- Native Android sources and templates: [native/](native/)
 
 ## Supported Platforms
 
-- Android (native)
-- Web (used by Electron shell from `UtilitiesForPC`)
-- iOS is explicitly not supported by scripts (`ios` script prints `Not Supported`)
+- Android
+- Web, used by the Electron shell from [UtilitiesForPC/](../UtilitiesForPC/)
+- iOS is not supported by the current scripts; the `ios` script prints `Not Supported`
 
-## Features In Navigation
+## Navigation
 
-Current stack includes these screens and navigators:
+The current stack in [src/app/AppNavigator.tsx](src/app/AppNavigator.tsx) includes:
 
 - Auth: `Login`, `SignUp`, `forgotPassword`, `ScanQRCode`
 - Core: `Home`, `Settings`, `Clipboard`, `Vault`, `DeviceInformation`, `MarkdownViewer`, `QR`, `PDF`
 - Productivity: `Network`, `Cryptos`, `Translator`, `Calculator`, `Images`, `SocialMedia`, `DownDetector`
 - Games: `Games` and `Minesweeper`
-- Native or platform-aware tools: `Recorder`, `ComputerControl`, `TerminalCommands`
-- Native-only storage/content screen: `Notes`
+- Platform-aware tools: `Recorder`, `ComputerControl`, `TerminalCommands`, `Notes`
 - Development-only screen: `Test`
 
-Platform gating in `AppNavigator.tsx` currently redirects these screens away from web when needed:
+Platform gating currently works like this:
 
-- `Recorder`
-- `ScanQRCode`
-- `ComputerControl`
-- `TerminalCommands`
-- `Notes`
+- Web redirects away from `Recorder`, `ScanQRCode`, `ComputerControl`, and `Notes`
+- Native redirects away from `TerminalCommands`
+- `Test` only resolves to the test screen in development builds
 
 ## Configuration
 
-Main Expo config: `app.config.ts`
+Main Expo config: [app.config.ts](app.config.ts)
 
 Important behavior:
 
-- Build profile is required (`BUILD_PROFILE` must exist)
-- Platforms are configured as `android` and `web`
+- `BUILD_PROFILE` is required
+- Supported platforms are `android` and `web`
+- The app version is based on `0.4.0-beta`
 - Runtime version changes by profile
-- App version currently based on `0.4.0-beta`
-- `extra` includes values derived from root `.env` (WS/API URLs, admin password)
+- `extra` includes `version`, `WS_URL_BASE`, `API_URL_BASE`, and the EAS project id
+- The Android package name changes by build profile when the build is not production
 
-Babel behavior (`babel.config.ts`) depends on:
+Babel behavior in [babel.config.ts](babel.config.ts) depends on:
 
 - `PLATFORM`
 - `BUILD_PROFILE`
 
-Use root scripts when possible, because they inject these environment values.
+Use the root scripts when possible, because they set these values for common flows.
 
-## Scripts (From `app/package.json`)
+## Scripts From `app/package.json`
 
 Run from this folder:
 
@@ -76,57 +74,60 @@ yarn run before-commit
 yarn run lint:fix
 yarn run type-check
 yarn run android
-yarn run ios  # Not supported, prints a message and exits
+yarn run ios
 ```
 
-## Recommended Commands (From Repository Root)
+`before-commit` runs `lint:fix` and `type-check`. `ios` is intentionally unsupported.
+
+## Recommended Root Commands
 
 These are the most reliable commands for this workspace:
 
 ```bash
-yarn run app                     # expo start -c
-yarn run app-prebuild-android    # regenerate + patch android native tree
-yarn run app-build-dev-android   # dev build helper flow
-yarn expo run:android            # native Android run
+yarn run app
+yarn run app-prebuild-android
+yarn run app-build-dev-android
+yarn expo run:android
 ```
+
+`yarn run app` starts Expo with a cleared cache. `yarn run app-prebuild-android` regenerates the native Android tree before compilation.
 
 ## Native Android Integration
 
-Native templates and modules live in `native/`.
+Native templates and modules live in [native/](native/).
 
-The prebuild script (`yarn run app-prebuild-android` from root) performs actions such as:
+The root prebuild script [scripts/app/app-prebuild.ts](../scripts/app/app-prebuild.ts) performs the current Android sync flow:
 
-- Copies native Kotlin modules into generated Android package paths
-- Updates `MainApplication.kt` package registration
-- Applies manifest service/permission updates
-- Injects additional Gradle dependencies and packaging rules
-- Syncs localized native strings
+- Deletes the existing generated Android folder before prebuilding
+- Requires `google-services.json` in the app root
+- Runs `expo prebuild --platform android --clean`
+- Generates native modules from [native/modules.json](native/modules.json)
+- Updates `AndroidManifest.xml` with required permissions, service entries, and the PDF view intent filter
+- Updates `MainApplication.kt` with native package registration
+- Adds Gradle dependencies and packaging rules
+- Syncs localized native strings into Android resources
+- Updates `gradle.properties` memory settings when needed
 
-If native files changed, rerun prebuild before compiling Android.
+The plugin in [plugins/handleCreateFiles.js](plugins/handleCreateFiles.js) creates `android/app/google-services.json` from `GOOGLE_SERVICES_JSON` during EAS Android builds.
+
+If native files change, rerun `yarn run app-prebuild-android` before compiling Android.
 
 ## Environment Inputs
 
-This workspace reads values from root `.env` via Expo config/scripts.
+This workspace reads values from the root `.env` through Expo config and scripts.
 
-Commonly required:
+Commonly required inputs are:
 
 - `BUILD_PROFILE`
-- `PLATFORM` (set by scripts)
+- `PLATFORM`
 - `WS_URL`
 - `API_URL`
-- `ADMIN_PASSWORD`
 
-The Expo config also consumes `version` from `app.config.ts` and injects it into `extra.version`.
+For EAS Android builds, `GOOGLE_SERVICES_JSON` is also required so the plugin can write the native Google services file.
 
 ## Quality Gate
 
-Workspace-local:
-
-```bash
-yarn run before-commit
-```
-
-Repository-level canonical gate:
+Workspace-local and repository-level canonical gate:
 
 ```bash
 yarn run before-commit
@@ -136,7 +137,7 @@ yarn run before-commit
 
 ### `BUILD_PROFILE environment variable is not set`
 
-Run through root scripts (`yarn run app` or `yarn run app-prebuild-android`) or export `BUILD_PROFILE` before direct commands.
+Run through the root scripts (`yarn run app` or `yarn run app-prebuild-android`) or export `BUILD_PROFILE` before direct commands.
 
 ### Android compile or native module errors
 
@@ -150,4 +151,4 @@ Then compile again.
 
 ### Web build behaves differently than Android
 
-Some screens are platform-gated in navigation (`REPLACERS.isWeb` / `REPLACERS.isNative`). Validate behavior on both platforms.
+Some screens are platform-gated in navigation. Validate behavior on both platforms when changing those flows.
