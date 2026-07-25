@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "CommonJS",
+    "types": ["jest"]
+  },
+  "include": ["../**/*.test.ts"],
+  "exclude": ["node_modules"]
+}

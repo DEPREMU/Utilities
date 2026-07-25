@@ -38,7 +38,9 @@
     "build-android": "node scripts/run.ts build-android",
     "build-upload-electron": "node scripts/run.ts build-upload-electron",
     "build-upload-android": "node scripts/run.ts build-upload-android",
-    "build-autocomplete-dict": "node scripts/run.ts build-autocomplete-dict"
+    "build-autocomplete-dict": "node scripts/run.ts build-autocomplete-dict",
+    "__COMMON__": "___________________________________________",
+    "common-test": "yarn workspace common run test"
   },
   "repository": {
     "type": "git",
