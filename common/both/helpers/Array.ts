@@ -39,6 +39,8 @@ export class Arrays {
 
         i++;
       }
+
+      await Promise.all(queue);
     }
   }
 }

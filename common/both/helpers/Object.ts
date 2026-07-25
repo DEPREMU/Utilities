@@ -70,47 +70,89 @@ const changeType: ChangeType = (obj, newType) => {
 
       switch (type) {
         case "boolean":
-          if (typeof obj[key] === "string") {
-            copy[key] = obj[key] === "true" || obj[key] === "1";
-          } else if (typeof obj[key] === "number") {
-            copy[key] = obj[key] === 1;
-          } else if (typeof obj[key] !== "boolean") {
-            copy[key] = !!obj[key];
+          if (obj[key] instanceof Date) {
+            const time = obj[key].getTime();
+            copy[key] = !isNaN(time) && time !== 0;
+            break;
+          }
+
+          switch (typeof obj[key]) {
+            case "string":
+              copy[key] = obj[key] === "true" || obj[key] === "1";
+              break;
+            case "number":
+              copy[key] = obj[key] === 1;
+              break;
+            case "boolean":
+              copy[key] = obj[key];
+              break;
+            default:
+              copy[key] = !!obj[key];
+              break;
           }
           break;
         case "number":
           if (obj[key] instanceof Date) {
             copy[key] = obj[key].getTime();
-          } else if (
+            break;
+          }
+          if (
             typeof (obj[key] as { toNumber?: () => number })?.toNumber ===
             "function"
           ) {
-            copy[key] = (obj[key] as { toNumber: () => number }).toNumber();
-          } else if (typeof obj[key] === "string") {
-            const num = parseFloat(obj[key]);
-
+            const num = (obj[key] as { toNumber: () => number }).toNumber();
             if (!isNaN(num)) copy[key] = num;
-          } else if (typeof obj[key] === "boolean") {
-            copy[key] = obj[key] ? 1 : 0;
-          } else if (typeof obj[key] !== "number") {
-            copy[key] = 0;
+
+            break;
           }
+
+          switch (typeof obj[key]) {
+            case "string":
+              {
+                const num = parseFloat(obj[key]);
+                if (!isNaN(num)) {
+                  copy[key] = num;
+                }
+              }
+              break;
+            case "boolean":
+              copy[key] = obj[key] ? 1 : 0;
+              break;
+            case "number":
+              copy[key] = obj[key];
+              break;
+            default:
+              copy[key] = 0;
+              break;
+          }
+
           break;
         case "string":
           if (obj[key] instanceof Date) {
             copy[key] = obj[key].toISOString();
-          } else if (typeof obj[key] === "number") {
-            copy[key] = obj[key].toString();
-          } else if (typeof obj[key] === "boolean") {
-            copy[key] = obj[key] ? "true" : "false";
-          } else if (typeof obj[key] === "object") {
-            try {
-              copy[key] = JSON.stringify(obj[key]);
-            } catch {
-              // Ignore
-            }
-          } else {
-            copy[key] = String(obj[key]);
+            break;
+          }
+
+          switch (typeof obj[key]) {
+            case "string":
+              copy[key] = obj[key];
+              break;
+            case "number":
+              copy[key] = obj[key].toString();
+              break;
+            case "boolean":
+              copy[key] = obj[key] ? "true" : "false";
+              break;
+            case "object":
+              try {
+                copy[key] = JSON.stringify(obj[key]);
+              } catch {
+                // Ignore
+              }
+              break;
+            default:
+              copy[key] = String(obj[key]);
+              break;
           }
           break;
         case "object":
