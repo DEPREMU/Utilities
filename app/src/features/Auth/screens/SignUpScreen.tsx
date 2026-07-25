@@ -13,9 +13,8 @@ import {
   tTyped,
   logger,
   navigation,
-  isValidEmail,
+  Validations,
   sessionManager,
-  isValidPassword,
 } from "@utils";
 import { Timers } from "@common";
 import { Screens } from "@types";
@@ -53,8 +52,8 @@ const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
 
   const handlePressSignUp = useCallback(() => {
     if (signingUpRef.current) return;
-    if (!isValidEmail(email)) return;
-    if (!isValidPassword(password)) return;
+    if (!Validations.isValidEmail(email)) return;
+    if (!Validations.isValidPassword(password)) return;
 
     signingUpRef.current = true;
     setSigningUp(true);
@@ -128,32 +127,33 @@ const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
                 </Animated.Text>
               )}
 
-              {isValidEmail(email) && isValidPassword(password) && (
-                <Animated.View
-                  style={styles.loginButton}
-                  layout={LinearTransition.duration(300).springify()}
-                  exiting={FadeOutDown.duration(200)}
-                  entering={FadeInUp.duration(200)}
-                >
-                  <Button
-                    mode="contained"
-                    onPress={handlePressSignUp}
-                    disabled={signingUp}
-                    elevation={4}
-                    contentStyle={styles.loginButton}
+              {Validations.isValidEmail(email) &&
+                Validations.isValidPassword(password) && (
+                  <Animated.View
+                    style={styles.loginButton}
+                    layout={LinearTransition.duration(300).springify()}
+                    exiting={FadeOutDown.duration(200)}
+                    entering={FadeInUp.duration(200)}
                   >
-                    {signingUp ? (
-                      <ActivityIndicator
-                        size="small"
-                        color="#fff"
-                        style={styles.marginRight10}
-                      />
-                    ) : (
-                      <Text style={styles.h3}>{t("auth.signUp")}</Text>
-                    )}
-                  </Button>
-                </Animated.View>
-              )}
+                    <Button
+                      mode="contained"
+                      onPress={handlePressSignUp}
+                      disabled={signingUp}
+                      elevation={4}
+                      contentStyle={styles.loginButton}
+                    >
+                      {signingUp ? (
+                        <ActivityIndicator
+                          size="small"
+                          color="#fff"
+                          style={styles.marginRight10}
+                        />
+                      ) : (
+                        <Text style={styles.h3}>{t("auth.signUp")}</Text>
+                      )}
+                    </Button>
+                  </Animated.View>
+                )}
 
               <View style={styles.linksContainer}>
                 <Button

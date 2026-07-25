@@ -2,9 +2,8 @@ import {
   t,
   Logger,
   Helper,
-  isValidEmail,
+  Validations,
   getHandlerPost,
-  isValidPassword,
   STATUS_RESPONSE,
 } from "@common";
 import chalk from "chalk";
@@ -153,12 +152,12 @@ export const handleSignIn = getHandlerPost(
     try {
       const { email, password } = body;
 
-      if (!isValidPassword(password))
+      if (!Validations.isValidPassword(password))
         return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           success: false,
           error: t("auth.passwordNotStrong", lang),
         });
-      if (!isValidEmail(email))
+      if (!Validations.isValidEmail(email))
         return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
           success: false,
           error: t("auth.invalidEmailFormat", lang),

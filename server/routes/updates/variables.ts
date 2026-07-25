@@ -4,7 +4,7 @@ import { v4 } from "uuid";
 import { cloneDeep } from "lodash";
 import { getEnvValue } from "@/env";
 import { REPLACERS, serverPath, UPLOAD_DIR } from "@/config";
-import { Directory, File, isNewVersion, Logger } from "@common";
+import { Directory, File, Validations, Logger } from "@common";
 import { BuildTypeUpdates, PlatformsOS, RequestUploadUpdate } from "@types";
 
 new Directory(UPLOAD_DIR).mkdir({ recursive: true });
@@ -171,7 +171,7 @@ class DataUpdates {
       const latestVersion = this.getLatestVersion(buildType, platformOS);
       if (!latestVersion) return false;
 
-      return isNewVersion(version, latestVersion);
+      return Validations.isNewVersion(version, latestVersion);
     } catch (error) {
       Logger.error(chalk.red("Error checking for updates:"), error);
       return true;

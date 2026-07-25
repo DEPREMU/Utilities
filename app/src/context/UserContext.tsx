@@ -8,7 +8,7 @@ import React, {
 import {
   logger,
   navigation,
-  isValidEmail,
+  Validations,
   sessionManager,
   saveStorageData,
   forgotPasswordWithEmail as authForgotPassword,
@@ -64,7 +64,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       email: string,
       callback?: (success: boolean, error?: string) => void,
     ) => {
-      if (!isValidEmail(email)) {
+      if (!Validations.isValidEmail(email)) {
         callback?.(false, "Invalid email format");
         return;
       }

@@ -28,9 +28,8 @@ import {
   tTyped,
   REPLACERS,
   navigation,
-  isValidEmail,
+  Validations,
   sessionManager,
-  isValidPassword,
 } from "@utils";
 import { Timers } from "@common";
 import { Screens } from "@types";
@@ -192,8 +191,8 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
               )}
 
               {typeLogin === "email" &&
-                isValidEmail(email) &&
-                isValidPassword(password) && (
+                Validations.isValidEmail(email) &&
+                Validations.isValidPassword(password) && (
                   <Animated.View
                     style={styles.loginButton}
                     layout={LinearTransition.duration(200).springify()}

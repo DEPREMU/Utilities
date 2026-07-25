@@ -6,7 +6,7 @@ import {
 } from "@utils";
 import * as ExpoSQL from "expo-sqlite";
 import { FolderFiles } from "@types";
-import { isNewVersion, Timers } from "@common";
+import { Validations, Timers } from "@common";
 
 const TAG = "VaultService";
 const DB_NAME = "vault.db";
@@ -236,7 +236,7 @@ class VaultService {
         return;
       } else if (versionRow.value === DB_VERSION) return;
 
-      if (isNewVersion(versionRow.value, DB_VERSION)) {
+      if (Validations.isNewVersion(versionRow.value, DB_VERSION)) {
         await this.#migrateDB();
       }
     } catch (e) {

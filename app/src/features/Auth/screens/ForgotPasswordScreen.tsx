@@ -20,7 +20,7 @@ import { ScrollView, View } from "react-native";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import { Button, Divider, Text } from "react-native-paper";
 import React, { useRef, useState } from "react";
-import { logger, navigation, isValidEmail } from "@utils";
+import { logger, navigation, Validations } from "@utils";
 
 const ForgotPasswordScreen: React.FC<Screens["forgotPassword"]> = () => {
   const { t } = useLanguage();
@@ -46,7 +46,7 @@ const ForgotPasswordScreen: React.FC<Screens["forgotPassword"]> = () => {
   const handlePressForgotPassword = () => {
     if (emailSent) return;
     handlerBlurInputEmail();
-    if (!isValidEmail(email)) return;
+    if (!Validations.isValidEmail(email)) return;
 
     setEmailSent(true);
     setSendingEmail(true);
@@ -88,7 +88,7 @@ const ForgotPasswordScreen: React.FC<Screens["forgotPassword"]> = () => {
   };
 
   const handlerBlurInputEmail = () => {
-    if (isValidEmail(email)) return;
+    if (Validations.isValidEmail(email)) return;
 
     triggerShake();
   };
@@ -113,7 +113,7 @@ const ForgotPasswordScreen: React.FC<Screens["forgotPassword"]> = () => {
 
               {!!error && <Text style={styles.error}>{error}</Text>}
 
-              {isValidEmail(email) && (
+              {Validations.isValidEmail(email) && (
                 <Animated.View
                   style={styles.linksContainer}
                   exiting={FadeOutDown.duration(200)}

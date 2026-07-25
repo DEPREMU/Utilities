@@ -10,9 +10,9 @@ import Animated, {
 import TextInput from "@components/TextInput";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
+import { Validations, REPLACERS } from "@utils";
 import React, { useRef, useState } from "react";
 import { TextInput as TextInputPaper } from "react-native-paper";
-import { isValidEmail, isValidPassword, REPLACERS } from "@utils";
 
 type LoginTypeEmail = <T extends boolean>(
   props: LoginTypeEmailProps<T>,
@@ -89,7 +89,7 @@ const EmailAndPassword: LoginTypeEmail = (props) => {
   });
 
   const handlerBlurInputEmailRef = useRef(() => {
-    const isEmailValid = isValidEmail(refs.current.email || "");
+    const isEmailValid = Validations.isValidEmail(refs.current.email || "");
 
     setValidations((prev) => ({
       ...prev,
@@ -100,7 +100,9 @@ const EmailAndPassword: LoginTypeEmail = (props) => {
   });
 
   const handlerBlurInputPasswordRef = useRef(() => {
-    const isPasswordValid = isValidPassword(refs.current.password || "");
+    const isPasswordValid = Validations.isValidPassword(
+      refs.current.password || "",
+    );
 
     setValidations((prev) => ({
       ...prev,
