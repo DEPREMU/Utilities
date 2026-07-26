@@ -7,12 +7,16 @@ while (!DIR.endsWith("Utilities")) DIR = path.dirname(DIR);
 
 dotenv.config({ path: path.join(DIR, ".env") });
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not defined in the environment variables.");
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },
   datasource: {
-    url: `postgresql://${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+    url: process.env.DATABASE_URL,
   },
 });
