@@ -4,6 +4,7 @@ import { spawn } from "child_process";
 import { REPLACERS } from "@/config.ts";
 import { getEnvValue } from "@/env.ts";
 import { Directory, File, Logger, Task } from "@common";
+import { getDbConfig } from "../functions";
 
 const backupPath = path.join(path.resolve("."), "database", "backups");
 const timeIntervalBackup = 1 * 60 * 60 * 1000;
@@ -121,15 +122,16 @@ export const handleBackupDatabase = async () => {
     );
 
     const backupFile = new File(backupFileName).createWriteStream();
+    const { hostname, port, username, database } = getDbConfig();
 
     const pgDump = spawn("pg_dump", [
       "--data-only",
       "--inserts",
       "--column-inserts",
-      `--host=${getEnvValue("DB_HOST")}`,
-      `--port=${getEnvValue("DB_PORT")}`,
-      `--username=${getEnvValue("DB_USER")}`,
-      `--dbname=${getEnvValue("DB_NAME")}`,
+      `--host=${hostname}`,
+      `--port=${port}`,
+      `--username=${username}`,
+      `--dbname=${database}`,
     ]);
 
     const sed = spawn("sed", [

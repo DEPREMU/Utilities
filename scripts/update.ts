@@ -6,10 +6,9 @@ import type {
 } from "@types";
 import {
   env,
-  ARGS,
+  args,
   APP_PATH,
   versionExpo,
-  isNewVersion,
   UTILITIES_PATH,
   UTILITIES_FOR_PC_PATH,
 } from "./config.ts";
@@ -19,6 +18,8 @@ import axios from "axios";
 import FormData from "form-data";
 import { execSync } from "child_process";
 import { ZipArchive } from "archiver";
+import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
+import { Validations } from "@commonSrc/both/validations.ts";
 
 const isNewVersionWeb = {
   linux: false,
@@ -29,7 +30,7 @@ const checkIsNewVersion = async (
   buildType: "web" | "android" = "android",
 ): Promise<boolean> => {
   if (!versionExpo) {
-    console.error("Version not found");
+    Logger.error("Version not found");
     process.exit(1);
   }
 
@@ -38,7 +39,7 @@ const checkIsNewVersion = async (
       "api",
       "updates",
     )}/is-update-available`;
-    console.log("Checking for new version at URL:", url);
+    Logger.log("Checking for new version at URL:", url);
     if (buildType === "android") {
       const body: RequestIsUpdateAvailable<typeof buildType> = {
         buildType,
@@ -48,7 +49,7 @@ const checkIsNewVersion = async (
       const res = await axios.post<ResponseIsUpdateAvailable>(url, body, {
         timeout: 10000,
       });
-      return isNewVersion(versionExpo, res.data?.latestVersion);
+      return Validations.isNewVersion(versionExpo, res.data?.latestVersion);
     } else {
       const body: RequestIsUpdateAvailable<typeof buildType> = {
         buildType,
@@ -67,11 +68,14 @@ const checkIsNewVersion = async (
           },
         ),
       ]);
-      const isNewForWindows = isNewVersion(
+      const isNewForWindows = Validations.isNewVersion(
         versionExpo,
         res1.data?.latestVersion,
       );
-      const isNewForLinux = isNewVersion(versionExpo, res2.data?.latestVersion);
+      const isNewForLinux = Validations.isNewVersion(
+        versionExpo,
+        res2.data?.latestVersion,
+      );
 
       isNewVersionWeb.windows = isNewForWindows;
       isNewVersionWeb.linux = isNewForLinux;
@@ -79,7 +83,7 @@ const checkIsNewVersion = async (
       return isNewForWindows || isNewForLinux;
     }
   } catch (error) {
-    console.error(
+    Logger.error(
       "Error checking for new version:",
       error instanceof Error ? error.message : String(error),
     );
@@ -89,11 +93,11 @@ const checkIsNewVersion = async (
 
 const uploadWeb = async (): Promise<boolean> => {
   try {
-    console.log("Building web version:", versionExpo);
+    Logger.log("Building web version:", versionExpo);
 
     const buildPath = path.join(UTILITIES_FOR_PC_PATH, "dist");
 
-    if (!ARGS["testing"] || !fs.existsSync(buildPath))
+    if (!args.ARGS["testing"] || !fs.existsSync(buildPath))
       execSync("yarn run build-web-app-electron", {
         stdio: "inherit",
         cwd: UTILITIES_PATH,
@@ -141,10 +145,10 @@ const uploadWeb = async (): Promise<boolean> => {
       "api",
       "updates",
     )}/upload-update`;
-    console.log("Uploading updates to URL:", url);
+    Logger.log("Uploading updates to URL:", url);
 
-    if (ARGS["testing"]) {
-      console.log(
+    if (args.ARGS["testing"]) {
+      Logger.log(
         "Testing mode enabled - skipping actual upload. Zip file created at:",
         zipPath,
       );
@@ -159,7 +163,7 @@ const uploadWeb = async (): Promise<boolean> => {
           version: versionExpo,
         };
 
-        console.log(`Uploading web build for ${platformOS}...`, data);
+        Logger.log(`Uploading web build for ${platformOS}...`, data);
 
         const formData = new FormData();
         formData.append("data", JSON.stringify(data));
@@ -182,15 +186,15 @@ const uploadWeb = async (): Promise<boolean> => {
           timeout: 60000,
         });
 
-        console.log(`Upload successful for ${platformOS}:`, response.data);
+        Logger.log(`Upload successful for ${platformOS}:`, response.data);
         return {
           platformOS,
           success: !response.data.error,
           data: response.data,
         };
       } catch (error) {
-        console.error(`Failed to upload for ${platformOS}:`);
-        console.error(error instanceof Error ? error.message : String(error));
+        Logger.error(`Failed to upload for ${platformOS}:`);
+        Logger.error(error instanceof Error ? error.message : String(error));
         return {
           platformOS,
           success: false,
@@ -201,28 +205,26 @@ const uploadWeb = async (): Promise<boolean> => {
 
     const results = await Promise.all(uploadPromises);
 
-    console.log("\n=== Upload Summary ===");
+    Logger.log("\n=== Upload Summary ===");
     const successCount = results.filter((r) => r.success).length;
     results.forEach((result) => {
       const status = result.success ? "Success" : "Failed";
-      console.log(`${result.platformOS}: ${status}`);
+      Logger.log(`${result.platformOS}: ${status}`);
       if (!result.success) {
-        console.log(
+        Logger.log(
           `  Error: ${result.data?.error || result?.error || "Unknown error"}`,
         );
       }
     });
 
-    console.log(
-      `\nTotal: ${successCount}/${results.length} successful uploads`,
-    );
+    Logger.log(`\nTotal: ${successCount}/${results.length} successful uploads`);
 
     if (successCount === 0) {
       throw new Error("All uploads failed");
     }
     return true;
   } catch (error) {
-    console.error(
+    Logger.error(
       "Fatal error:",
       error instanceof Error ? error.message : String(error),
     );
@@ -231,7 +233,7 @@ const uploadWeb = async (): Promise<boolean> => {
 };
 
 const uploadAndroidAssets = async () => {
-  const BUILD_PROFILE = ARGS["BUILD_PROFILE"] || "production";
+  const BUILD_PROFILE = args.ARGS["BUILD_PROFILE"] || "production";
 
   execSync(
     ` eas update --channel ${BUILD_PROFILE} --platform android --clear-cache`,
@@ -249,14 +251,14 @@ const uploadAndroidAssets = async () => {
 };
 
 const run = async () => {
-  const platformUpdateAssets = ARGS["platform-update-assets"] ?? "both";
+  const platformUpdateAssets = args.ARGS["platform-update-assets"] ?? "both";
 
   const isBoth = platformUpdateAssets === "both";
   const isWeb = isBoth || platformUpdateAssets === "web";
   const isAndroid = isBoth || platformUpdateAssets === "android";
 
   const isNewVersionWeb =
-    ARGS["testing"] || (isWeb && (await checkIsNewVersion("web")));
+    args.ARGS["testing"] || (isWeb && (await checkIsNewVersion("web")));
 
   if (isNewVersionWeb) await uploadWeb();
 

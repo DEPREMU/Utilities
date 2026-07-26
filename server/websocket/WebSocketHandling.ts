@@ -1,6 +1,6 @@
 import { WebSocket } from "ws";
 import { getValueState } from "@common";
-import type { CommonUserDataWS } from "@types";
+import type { CommonUserDataWS, StateFunction } from "@types";
 
 const TIMEOUT_PING = 10000; // 10 seconds
 const INTERVAL_PING = 30000; // 30 seconds
@@ -109,10 +109,10 @@ class AdditionalData<T extends Record<string, unknown>> extends Timers {
   /**
    * Sets additional data for a user device. The value can be set directly or by providing a function that receives the previous value and returns the new value. This allows for easy updates based on the current state of the data.
    */
-  public setAdditionalData<
-    K extends keyof T,
-    Func extends (prev: T[K]) => T[K],
-  >(key: K, value: T[K] | Func) {
+  public setAdditionalData<K extends keyof T>(
+    key: K,
+    value: StateFunction<T[K]> | T[K],
+  ) {
     this.#data[key] = getValueState(value, () => this.#data[key]);
   }
 
@@ -120,7 +120,7 @@ class AdditionalData<T extends Record<string, unknown>> extends Timers {
    * Retrieves the additional data for a given key. The return type is inferred based on the key provided, ensuring type safety when accessing the data.
    */
   public getAdditionalData<K extends keyof T>(key: K): T[K] {
-    return this.#data[key] as T[typeof key];
+    return this.#data[key] as T[K];
   }
 
   protected getAllAdditionalData(): T {
@@ -210,6 +210,10 @@ class Device<
     if (onClose) onClose();
   }
 
+  public get userData() {
+    return { ...this.#userData };
+  }
+
   public get userId() {
     return this.#userData.userId;
   }
@@ -226,12 +230,16 @@ class Device<
     this.#userData.deviceId = deviceId;
   }
 
-  public isValidUserData(data: Partial<CommonUserDataWS>) {
+  public isValidUserData(
+    data: Partial<CommonUserDataWS> = this.#userData,
+  ): data is CommonUserDataWS {
     return (
       data !== null &&
       typeof data === "object" &&
       typeof data.userId === "string" &&
-      typeof data.deviceId === "string"
+      typeof data.deviceId === "string" &&
+      data.userId.length > 0 &&
+      data.deviceId.length > 0
     );
   }
 

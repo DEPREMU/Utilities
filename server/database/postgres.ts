@@ -7,14 +7,13 @@ import { exec } from "child_process";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { getEnvValue } from "@/env.ts";
 import { PrismaClient } from "@/generated/prisma/index.js";
+import { getDbConfig } from "./functions.ts";
 
 export let dbInitialized = false;
 
 if (!getEnvValue("DATABASE_URL")) {
   throw new Error(
-    chalk.red(
-      "DATABASE_URL is not defined in environment variables",
-    ),
+    chalk.red("DATABASE_URL is not defined in environment variables"),
   );
 }
 
@@ -37,20 +36,7 @@ if (!getEnvValue("DATABASE_URL")) {
  * to construct the password file content.
  */
 const handleCreatePgPassFile = () => {
-  //? "postgresql://username:password@hostname:port/database"
-  const dburl = getEnvValue("DATABASE_URL");
-  const dburlRegex = /postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/;
-  const match = dburl.match(dburlRegex);
-
-  if (!match) {
-    throw new Error(
-      chalk.red(
-        "DATABASE_URL is not in the correct format. Expected format: postgresql://username:password@hostname:port/database",
-      ),
-    );
-  }
-
-  const [, username, password, hostname, port, database] = match;
+  const { username, password, hostname, port, database } = getDbConfig();
 
   const pgpass = `${hostname}:${port}:${database}:${username}:${password}`;
 

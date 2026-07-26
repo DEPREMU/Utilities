@@ -2,7 +2,7 @@ import {
   env,
   args,
   APP_PATH,
-  versionExpo, 
+  versionExpo,
   UTILITIES_PATH,
   deleteAndroidFromGitIgnore,
 } from "../config.ts";
@@ -13,7 +13,7 @@ import FormData from "form-data";
 import { Logger } from "@commonSrc/serverOrElectron";
 import { execSync } from "child_process";
 import type * as Types from "@types";
-import { isNewVersion, ServerFetch } from "@commonSrc/both";
+import { Validations, ServerFetch } from "@commonSrc/both";
 
 /**
  * Uploads Android APK build to the update server.
@@ -36,7 +36,7 @@ const checkIsNewVersion = async () => {
 
     const result = res.data;
 
-    if (!isNewVersion(versionExpo, result.latestVersion)) {
+    if (!Validations.isNewVersion(versionExpo, result.latestVersion)) {
       Logger.log("Version already exists on the server.");
       process.exit(0);
     } else

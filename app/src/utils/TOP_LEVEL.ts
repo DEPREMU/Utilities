@@ -20,7 +20,7 @@ export const REPLACERS: Record<REPLACERS_TYPE, boolean> = {
 
 if (REPLACERS.isNative) {
   NetInfo.configure({
-    reachabilityUrl: "https://www.google.com/generate_204",
+    reachabilityUrl: Network.URL_GOOGLE_204,
     useNativeReachability: true,
   });
   import("./global.native");
