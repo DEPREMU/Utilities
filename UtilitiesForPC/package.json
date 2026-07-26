@@ -3,6 +3,7 @@
   "version": "0.1.0-beta",
   "description": "A collection of useful utilities for PC users.",
   "main": "build/index.cjs",
+  "private": true,
   "scripts": {
     "type-check": "tsc --noEmit",
     "before-commit": "yarn run type-check"

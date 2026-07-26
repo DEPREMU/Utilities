@@ -1,8 +1,7 @@
 {
   "name": "server",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.0.0", 
+  "private": true,
   "scripts": {
     "db-update": "prisma migrate dev && prisma generate",
     "db-migrate": "prisma migrate dev",
@@ -19,8 +18,7 @@
     "lint:fix": "eslint . --fix",
     "lint:check": "eslint . --max-warnings 0"
   },
-  "keywords": [],
-  "author": "",
+  "author": "DEPREMU",
   "license": "ISC",
   "type": "module",
   "dependencies": {
