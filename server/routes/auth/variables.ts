@@ -4,6 +4,7 @@ import {
   ExpectedStorageTypes,
   getDateWithTimeAhead,
   Helper,
+  Validations,
 } from "@common";
 import jwt from "jsonwebtoken";
 import chalk from "chalk";
@@ -113,9 +114,9 @@ export class JWT {
     return jwt.verify(token, this.#secret) as TokenJWT;
   }
 
-  public uploadToken = async (): Promise<
+  public async uploadToken(): Promise<
     DB["TablesServer"]["UserSessions"] | Error
-  > => {
+  > {
     try {
       const data = this.data;
       const token = this.token;
@@ -135,19 +136,21 @@ export class JWT {
           },
           update: { token },
         }),
-        prisma.pushTokens.upsert({
-          where: {
-            token_userId: {
-              token: data.notificationToken,
-              userId: data.userId,
-            },
-          },
-          create: {
-            token: data.notificationToken,
-            userId: this.#data.userId,
-          },
-          update: { createdAt: new Date() },
-        }),
+        Validations.isValidPushToken(data.notificationToken)
+          ? prisma.pushTokens.upsert({
+              update: { createdAt: new Date() },
+              where: {
+                token_userId: {
+                  token: data.notificationToken,
+                  userId: data.userId,
+                },
+              },
+              create: {
+                token: data.notificationToken,
+                userId: this.#data.userId,
+              },
+            })
+          : Promise.resolve(),
       ]);
 
       return userSession;
@@ -155,15 +158,17 @@ export class JWT {
       Logger.error(chalk.red("Error uploading JWT token:"), error);
       return error instanceof Error ? error : new Error(String(error));
     }
-  };
+  }
 
-  public get updatedToken(): string | null {
+  public get newToken(): string | null {
+    const prevToken = this.#token;
+
     try {
       if (this.#initToken === this.#token)
         return (this.#token = JWT.generateToken(this.#data));
       else return this.#token;
     } finally {
-      this.#initToken = this.#token;
+      this.#initToken = prevToken;
     }
   }
 
@@ -192,6 +197,7 @@ export class JWT {
 
       this.#data = data.content;
       this.#token = token;
+      this.#initToken = token;
     } else {
       throw new Error(
         "Either token or content must be provided to initialize JWT",

@@ -225,7 +225,7 @@ export const handleRefreshSession = getHandlerPost(
       const { token } = req.user || {};
       const { notificationToken } = body;
 
-      const newToken = token.updatedToken;
+      const newToken = token.newToken;
       if (!newToken) {
         Logger.error(
           chalk.red("Error refreshing token: No new token generated"),
@@ -237,7 +237,7 @@ export const handleRefreshSession = getHandlerPost(
         return;
       }
 
-      if (!notificationToken.includes("web"))
+      if (Validations.isValidPushToken(notificationToken))
         await prisma.pushTokens.upsert({
           update: { token: notificationToken },
           create: {
@@ -315,14 +315,6 @@ export const handleSignOut = getHandlerPost(
       const data = token?.data;
 
       await Promise.all([
-        prisma.pushTokens.delete({
-          where: {
-            token_userId: {
-              token: token.data.notificationToken,
-              userId: data.userId,
-            },
-          },
-        }),
         prisma.userSessions.delete({
           where: {
             userId_deviceId: {
@@ -331,6 +323,16 @@ export const handleSignOut = getHandlerPost(
             },
           },
         }),
+        Validations.isValidPushToken(data.notificationToken)
+          ? prisma.pushTokens.delete({
+              where: {
+                token_userId: {
+                  token: data.notificationToken,
+                  userId: data.userId,
+                },
+              },
+            })
+          : Promise.resolve(),
       ]);
 
       sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });

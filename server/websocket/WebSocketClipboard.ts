@@ -23,6 +23,7 @@ const handleInit = (
     userDevice.handleClose(1000, "Invalid init data");
     return;
   }
+
   userDevice.setUserData({
     userId: message.userId,
     deviceId: message.deviceId,
@@ -100,10 +101,9 @@ const onMessage = async (
       case "add-new-item":
         handleAddNewItem(message, userDevice);
         break;
-      case "pong": {
+      case "pong":
         userDevice.pongReceived();
         break;
-      }
       default:
         Logger.log(chalk.yellow("Unknown clipboard message type:"), message);
         break;
@@ -132,10 +132,7 @@ const onConnection = (wsClipboard: WebSocket) => {
   });
 
   wsClipboard.on("error", (error) => {
-    Logger.log(
-      "Clipboard WebSocket error:",
-      error instanceof Error ? error.message : error,
-    );
+    Logger.log("Clipboard WebSocket error:", error);
     userDevice.handleClose(1000, "WebSocket error");
   });
 };
@@ -146,18 +143,15 @@ export const initWebSocketClipboard = () => {
 
     if (idIntervalClipboard) clearInterval(idIntervalClipboard);
     idIntervalClipboard = setInterval(async () => {
-      const users = Object.entries(usersClipboard.getAllUsers());
+      const users = usersClipboard.getAllUsers();
 
-      users?.forEach(async ([userId, data]) => {
+      users.forEach(async (data, userId) => {
         try {
-          if (Object.keys(data.devices).length === 0) return;
+          if (data.devices.size === 0) return;
 
           const lastItem = await prisma.clipboardSync.findFirst({
-            where: {
-              userId,
-              deleted: false,
-            },
             take: 1,
+            where: { userId, deleted: false },
             orderBy: { createdAt: "desc" },
           });
 
@@ -165,7 +159,7 @@ export const initWebSocketClipboard = () => {
 
           usersClipboard.sendMessageToUser(
             {
-              id: lastItem.id as string,
+              id: lastItem.id,
               type: "new-clipboard-item",
               content: lastItem.content,
             },

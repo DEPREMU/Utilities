@@ -26,20 +26,22 @@ const OPTIONS_RECONNECT_WS: OptionsReconnectingWS = {
     async () => {
       await storageManagement.waitUntilInitialized();
 
-      const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
       const deviceId = storageManagement.get("DEVICE_ID");
+      const userData = sessionManager.getSessionData().userData;
 
-      if (!token || !deviceId) {
+      if (!deviceId || !userData?.userId) {
         logger.error(
           "No session token or device ID found for Clipboard WebSocket initialization message.",
         );
         return "";
       }
-      return JSON.stringify({
+      const data: ClipboardWebSocketMessage<"sentByApp"> = {
         type: "init",
-        token,
+        userId: userData.userId,
         deviceId,
-      });
+      };
+
+      return JSON.stringify(data);
     },
   ],
 };

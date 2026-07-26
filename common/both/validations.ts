@@ -101,4 +101,15 @@ export class Validations {
       Validations.getSumVersion(currentVersion)
     );
   }
+
+  /**
+   * Validates whether a given push token is valid.
+   *
+   * A valid push token is defined as a string that:
+   * - Is not equal to "Web".
+   * - Has a length greater than 10 characters after trimming whitespace.
+   */
+  static isValidPushToken(token: string): boolean {
+    return token !== "Web" && token.trim().length > 10;
+  }
 }
