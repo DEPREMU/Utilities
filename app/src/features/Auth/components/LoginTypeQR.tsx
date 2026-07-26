@@ -120,6 +120,8 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
     });
   }, [rememberMe]);
 
+  useEffect(() => () => handleCloseWebSocketRef.current("timeout"), []);
+
   return (
     <Animated.View
       style={styles.loginTypeContainer}
