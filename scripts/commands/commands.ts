@@ -5,7 +5,7 @@ const scriptsPath = path.resolve("scripts");
 const tsxPath = path.resolve(scriptsPath, "tsconfig.json");
 if (!fs.existsSync(tsxPath)) throw new Error(`File does not exist: ${tsxPath}`);
 
-export const TSX = `tsx --tsconfig ${tsxPath} `;
+export const TSX = `tsx --tsconfig ${tsxPath} ` as const;
 
 export const COMMANDS = {
   //? Root commands

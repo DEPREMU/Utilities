@@ -3,7 +3,7 @@ import { TSX, COMMANDS } from "./commands/commands.ts";
 
 const args = process.argv.slice(2);
 
-const argument: string | undefined = args[0];
+const argument: string | undefined = args.shift();
 
 if (!argument || !(argument in COMMANDS)) {
   // eslint-disable-next-line no-console
@@ -23,7 +23,10 @@ if (!command) {
 console.log("Executing command:", command);
 
 try {
-  execSync(TSX + command, { stdio: "inherit", env: process.env });
+  execSync([TSX, command, ...args].join(" "), {
+    env: process.env,
+    stdio: "inherit",
+  });
 } catch {
   // Ignore
 }

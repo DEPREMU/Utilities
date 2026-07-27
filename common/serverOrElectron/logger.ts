@@ -6,22 +6,16 @@ const isProduction = process.env.NODE_ENV === "production";
 const logger = isProduction
   ? null
   : pino({
-      formatters: {
-        level(label) {
-          return { level: label };
+      timestamp: pino.stdTimeFunctions.isoTime,
+      formatters: { level: (level) => ({ level }) },
+      transport: {
+        target: "pino-pretty",
+        options: {
+          ignore: "pid,hostname",
+          colorize: true,
+          translateTime: "HH:MM:ss",
         },
       },
-      timestamp: pino.stdTimeFunctions.isoTime,
-      transport: !isProduction
-        ? {
-            target: "pino-pretty",
-            options: {
-              colorize: true,
-              translateTime: "HH:MM:ss",
-              ignore: "pid,hostname",
-            },
-          }
-        : undefined,
     });
 
 export class Logger {

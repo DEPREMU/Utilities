@@ -9,6 +9,7 @@ import {
   isBuildUploadAndroid,
   isBuildResourcesElectron,
 } from "./filesCalled.ts";
+import { Helper } from "@commonSrc/both/index.ts";
 
 export type TYPE_ARGS = {
   dev?: boolean;
@@ -33,82 +34,135 @@ export type TYPE_ARGS = {
 const showHelp = () => {
   const options: Set<string> = new Set();
 
-  const args = Args.ArgumentsExplanation;
+  const args = Args.ARGUMENTS;
 
   if (isBuildUploadAndroid || isAppBuildDev) {
-    options.add(args["skip-build-android"]);
+    options.add(args["skip-build-android"].explanation);
   }
   if (isBuildAndroid || isBuildUploadAndroid) {
-    options.add(args["profile"]);
-    options.add(args["skip-prebuild-android"]);
+    options.add(args["BUILD_PROFILE"].explanation);
+    options.add(args["skip-prebuild-android"].explanation);
   }
   if (isBuildResourcesElectron) {
-    options.add(args["platform"]);
+    options.add(args["platform"].explanation);
   }
   if (isAppStart) {
-    options.add(args["lan"]);
-    options.add(args["dev"]);
+    options.add(args["lan"].explanation);
+    options.add(args["dev"].explanation);
   }
   if (isAppLint) {
-    options.add(args["fix"]);
-    options.add(args["check"]);
+    options.add(args["fix"].explanation);
+    options.add(args["check"].explanation);
   }
   if (isUpdate) {
-    options.add(args["platform-update-assets"]);
-    options.add(args["profile"]);
+    options.add(args["platform-update-assets"].explanation);
+    options.add(args["BUILD_PROFILE"].explanation);
   }
   if (isBuildAppElectron || isAndroidPrebuild) {
-    options.add(args["profile"]);
+    options.add(args["BUILD_PROFILE"].explanation);
   }
   if (isBuildResourcesElectron) {
-    options.add(args["isWindows"]);
+    options.add(args["isWindows"].explanation);
   }
 
   // eslint-disable-next-line no-console
   console.log(`Usage: [command] [options]
 Options:
 ${Array.from(options).join("\n")}
-  -y, --yes                    Automatically answer 'yes' to all prompts and use default values where applicable
-${args["testing"]}
+${args["yes"].explanation}
+${args["testing"].explanation}
   -h, --help                   Show this help message
 `);
   process.exit(0);
 };
 
-type ArgumentsExplanationType =
-  Exclude<keyof TYPE_ARGS, "yes" | "action" | "BUILD_PROFILE"> | "profile";
-
 class Args {
   static readonly args = process.argv.slice(2);
 
-  static readonly ArgumentsExplanation: Record<
-    ArgumentsExplanationType,
-    string
+  static readonly ARGUMENTS: Record<
+    keyof TYPE_ARGS,
+    { explanation: string; transformed: string | string[] }
   > = {
-    "skip-build-android":
-      "  -sba, --skip-build-android   Skip the Android build process and only upload the existing APK",
-    profile:
-      "  -f, --profile=<profile>      Specify the build profile (development, preview, production)",
-    platform:
-      "  -p, --platform=<platform>    Specify the platform to build for (windows or linux)",
-    "skip-build-electron":
-      "  -sbe, --skip-build-electron   Skip the Electron app build process and only export the web version",
-    "platform-update-assets":
-      "  -pua, --platform-update-assets=<platform>   Specify the platform to update assets for (android, web, both)",
-    "skip-prebuild-android":
-      "  -spa, --skip-prebuild-android   Skip the Android prebuild process and use existing build artifacts",
-    isWindows:
-      "  --isWindows=<true|false>     Specify if the current platform is Windows (required for build-resources-electron)",
-    dev: "  --dev                        Run with --dev flag",
-    fix: "  --fix                        Run eslint with --fix",
-    lan: "  --lan                        Run with --lan flag",
-    web: "  --web                        Build web version only",
-    check: "  --check                      Run eslint with --max-warnings 0",
-    install: "  --install                    Install dependencies",
-    testing:
-      "  -t, --testing                Run in testing mode with additional logging and no side effects",
-    PLATFORM:
-      "  --PLATFORM=<android|web>     Specify the platform for testing (android or web)",
+    yes: {
+      explanation:
+        "  -y, --yes                    Automatically answer 'yes' to all prompts and use default values where applicable",
+      transformed: ["-y", "--yes"],
+    },
+    action: {
+      explanation:
+        "  --action=<action>            Specify the action to perform",
+      transformed: "--action",
+    },
+    dev: {
+      explanation: "  --dev                        Run with --dev flag",
+      transformed: "--dev",
+    },
+    fix: {
+      explanation: "  --fix                        Run eslint with --fix",
+      transformed: "--fix",
+    },
+    lan: {
+      explanation: "  --lan                        Run with --lan flag",
+      transformed: "--lan",
+    },
+    web: {
+      explanation: "  --web                        Build web version only",
+      transformed: "--web",
+    },
+    check: {
+      explanation:
+        "  --check                      Run eslint with --max-warnings 0",
+      transformed: "--check",
+    },
+    install: {
+      explanation: "  --install                    Install dependencies",
+      transformed: "--install",
+    },
+    testing: {
+      explanation:
+        "  -t, --testing                Run in testing mode with additional logging and no side effects",
+      transformed: ["-t", "--testing"],
+    },
+    PLATFORM: {
+      explanation:
+        "  --PLATFORM=<android|web>     Specify the platform for testing (android or web)",
+      transformed: "--PLATFORM",
+    },
+    platform: {
+      explanation:
+        "  -p, --platform=<platform>    Specify the platform to build for (windows or linux)",
+      transformed: ["-p", "--platform"],
+    },
+    isWindows: {
+      explanation:
+        "  --isWindows=<true|false>     Specify if the current platform is Windows (required for build-resources-electron)",
+      transformed: "--isWindows",
+    },
+    BUILD_PROFILE: {
+      explanation:
+        "  -f, --profile=<profile>      Specify the build profile (development, preview, production)",
+      transformed: ["-f", "--profile"],
+    },
+    "skip-build-android": {
+      explanation:
+        "  -sba, --skip-build-android   Skip the Android build process and only upload the existing APK",
+      transformed: ["-sba", "--skip-build-android"],
+    },
+    "skip-build-electron": {
+      explanation:
+        "  -sbe, --skip-build-electron   Skip the Electron app build process and only export the web version",
+      transformed: ["-sbe", "--skip-build-electron"],
+    },
+    "skip-prebuild-android": {
+      explanation:
+        "  -spa, --skip-prebuild-android   Skip the Android prebuild process and use existing build artifacts",
+      transformed: ["-spa", "--skip-prebuild-android"],
+    },
+    "platform-update-assets": {
+      explanation:
+        "  -pua, --platform-update-assets=<platform>   Specify the platform to update assets for (android, web, both)",
+      transformed: ["-pua", "--platform-update-assets"],
+    },
   };
 
   static Args: Record<keyof TYPE_ARGS, 0> = {
@@ -299,8 +353,14 @@ class Args {
   public readonly getArgs = () => {
     const argsList: Set<string> = new Set();
     for (const [key, value] of Object.entries(this.ARGS)) {
-      if (typeof value === "boolean" && value) argsList.add(`--${key}`);
-      else argsList.add(`--${key}=${value}`);
+      const transformedKey = Args.ARGUMENTS[key as keyof TYPE_ARGS].transformed;
+      if (value === undefined) continue;
+      if (typeof value === "boolean" && !value) continue;
+
+      const keys = Helper.Arrays.convertToArray(transformedKey);
+
+      if (typeof value === "boolean" && value) argsList.add(keys[0]);
+      else argsList.add(`${keys[0]}=${value}`);
     }
 
     return Array.from(argsList).join(" ");
