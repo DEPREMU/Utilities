@@ -1,7 +1,7 @@
 import NetInfo from "@react-native-community/netinfo";
 import Constants from "expo-constants";
-import { Network } from "@common";
 import { Platform } from "react-native";
+import { Network, ServerFetch } from "@common";
 import { Colors, REPLACERS_TYPE } from "@types";
 
 const isDev: boolean = process.env.BUILD_PROFILE === "development";
@@ -18,13 +18,13 @@ export const REPLACERS: Record<REPLACERS_TYPE, boolean> = {
   isProduction,
 };
 
-if (REPLACERS.isNative) {
-  NetInfo.configure({
-    reachabilityUrl: Network.URL_GOOGLE_204,
-    useNativeReachability: true,
-  });
-  import("./global.native");
-} else if (REPLACERS.isWeb)
+NetInfo.configure({
+  reachabilityUrl: Network.URL_GOOGLE_204,
+  useNativeReachability: REPLACERS.isNative,
+});
+
+if (REPLACERS.isNative) import("./global.native");
+else if (REPLACERS.isWeb)
   import("./modules/WindowModule").then(({ windowModule }) => {
     (Network as { isOnline: () => Promise<boolean> }).isOnline =
       windowModule.hasInternetConnection;
@@ -72,6 +72,8 @@ const BASE_URL_WEB_SOCKET = REPLACERS.isProduction
     ? "ws://localhost:3000"
     : `ws://${ip}`;
 
+ServerFetch.API_URL = API_URL;
+
 export const URLS = {
   ws: BASE_URL_WEB_SOCKET + "/ws",
   api: API_URL,
@@ -105,7 +107,7 @@ if (REPLACERS.isDev) {
 --------------------------------`);
 }
 
-export const colors: Record<"dark" | "light", Record<Colors, string>> = {
+export const colors = {
   light: {
     primary: "#7c3aed",
     secondary: "#f5f3ff",
@@ -134,4 +136,4 @@ export const colors: Record<"dark" | "light", Record<Colors, string>> = {
     overlay: "rgba(0, 0, 0, 0.6)",
     shadow: "#000000",
   },
-} as const;
+} as const satisfies Record<"dark" | "light", Record<Colors, string>>;
