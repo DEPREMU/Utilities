@@ -6,10 +6,20 @@ import { Task } from "@commonSrc/serverOrElectron/Task";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { RequestChangeImageFormat, ResponseChangeImageFormat } from "@types";
 
-const task = new Task<ResponseChangeImageFormat, "IMAGES">({
-  fileWorker: "IMAGES",
-  doNotDestroy: true,
-});
+export class TaskImages extends Task<ResponseChangeImageFormat, "IMAGES"> {
+  static instance: TaskImages | null = null;
+
+  constructor() {
+    if (TaskImages.instance) return TaskImages.instance;
+
+    super({
+      fileWorker: "IMAGES",
+      doNotDestroy: true,
+    });
+
+    TaskImages.instance = this;
+  }
+}
 
 export const readImage = async (imagePath: string): Promise<string> => {
   imagePath = path.resolve(imagePath);
@@ -32,7 +42,7 @@ export const changeFormat = async (
   imageStr: string,
   format: RequestChangeImageFormat["format"],
 ): Promise<ResponseChangeImageFormat> => {
-  const res = await task.getResult({
+  const res = await new TaskImages().getResult({
     data: { imageStr, format, lang: "en" },
     abortAfter: 2 * 60 * 1000,
     functionName: "changeImageFormat",
