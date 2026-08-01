@@ -1,4 +1,8 @@
-# Copilot Instructions for Utilities Project
+---
+trigger: always_on
+---
+
+# Gemini Instructions for Utilities Project
 
 ## Purpose
 
@@ -8,10 +12,11 @@ If two rules conflict, prioritize: correctness, type safety, resource cleanup, a
 ## Project Layout
 
 - `app/`: React Native (Expo) app for Android + Web (Electron renderer).
-- `server/`: Node.js Express + PostgreSQL + WebSocket services.
+- `server/`: Node.js Express + prisma (PostgreSQL) + WebSocket services.
 - `UtilitiesForPC/`: Electron desktop shell for the web build.
 - `types/`: Shared type declarations used by all workspaces.
-- `common/`: Shared cross-workspace helpers and translations.
+- `common/`: Shared cross-workspace helpers, functions and variables.
+- `scripts/`: Build, dev, formatting, and automation scripts.
 
 ## Import Rules
 
@@ -23,9 +28,9 @@ Example:
 
 ```ts
 import Screen from "@screens/MyScreen";
+import { utility } from "@utils";
 import { useModal } from "@context/ModalContext";
 import { Something } from "@types";
-import { utility } from "@utils";
 ```
 
 ## Platform-Aware Pattern
@@ -33,14 +38,13 @@ import { utility } from "@utils";
 Use the Electron bridge on web/electron runtime and native modules on Android.
 
 ```ts
-import { Platform } from "react-native";
 import { REPLACERS } from "@utils";
 import { windowModule } from "@modules/WindowModule";
 import { BackgroundModule } from "@modules/BackgroundModule";
 
-if (REPLACERS.isDev) {
+if (REPLACERS.isWeb) {
   await windowModule.functionName();
-} else if (Platform.OS === "android") {
+} else if (REPLACERS.isNative) {
   await BackgroundModule.nativeFunction();
 }
 ```
@@ -51,12 +55,10 @@ if (REPLACERS.isDev) {
 - Always clear timers/intervals/subscriptions/sockets in `useEffect` cleanup.
 - Before creating a new timer/interval, clear an existing ref-backed instance first.
 - `WebSocketContext`: tear down sockets and ping timers on background/error.
-- `NotificationsContext`: clear clipboard/location intervals before creating new ones.
-- `BackgroundTaskContext`: keep queue bounded (max 100 pending tasks).
 
 ## WebSocket Expectations
 
-- Server maintains two channels: `ws` (general) and `clipboard` (clipboard sync).
+- Server maintains four channels: `ws` (general), `clipboard` (clipboard sync), `ws-cryptos` (crypto sync), and `ws-login-qr` (QR login).
 - Client should use ping/pong keepalive (~29s), exponential reconnect, and deterministic teardown.
 - General socket should close on app background where required.
 - Clipboard socket should suspend/resume correctly on supported mobile lifecycle events.
@@ -87,13 +89,15 @@ yarn install
 yarn run server-dev
 yarn run app
 yarn run start-electron
+yarn run type-check
+yarn run format-all
 ```
 
 Native Android workflow:
 
 ```bash
 yarn run app-prebuild-android
-yarn expo run:android
+yarn run app-build-dev-android
 ```
 
 Pre-merge check:
@@ -169,5 +173,4 @@ When adding or modifying features:
 
 ## Documentation Scope
 
-- Keep `copilot-instructions.md` focused on rules and workflows.
 - Place feature/function walkthrough docs in `implementation-md/` when needed.
