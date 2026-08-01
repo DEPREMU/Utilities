@@ -1,5 +1,5 @@
 {
-  "name": "common",
+  "name": "utilities-common",
   "version": "0.0.0",
   "private": true,
   "scripts": {

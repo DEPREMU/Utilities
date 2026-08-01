@@ -1,6 +1,6 @@
 {
   "license": "ISC",
-  "name": "types",
+  "name": "utilities-types",
   "private": true,
   "version": "0.0.0",
   "main": "index.d.ts",
