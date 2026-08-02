@@ -285,6 +285,15 @@ class Args {
             );
           }
           break;
+        case "PLATFORM":
+          if (new Set(["android", "web"]).has(value as string)) {
+            acc.PLATFORM = value as TYPE_ARGS["PLATFORM"];
+          } else {
+            throw new Error(
+              `Invalid platform: ${value}. Valid platforms: android, web`,
+            );
+          }
+          break;
         case "f":
         case "profile":
           if (

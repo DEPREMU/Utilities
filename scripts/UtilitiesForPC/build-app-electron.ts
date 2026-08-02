@@ -154,24 +154,32 @@ ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
       os.tmpdir(),
       `utilities-for-pc-root-${Date.now()}.sh`,
     );
-    fs.writeFileSync(tempWrapper, wrapperScriptContent);
-    execSync(`sudo mv ${tempWrapper} ${wrapperScriptPath}`);
-    execSync(`sudo chmod +x ${wrapperScriptPath}`);
+    if (!args.ARGS.testing) {
+      fs.writeFileSync(tempWrapper, wrapperScriptContent);
+      execSync(`sudo mv ${tempWrapper} ${wrapperScriptPath}`);
+      execSync(`sudo chmod +x ${wrapperScriptPath}`);
 
-    execSync(
-      `sudo sh -c 'echo "${sudoersEntry}" > /etc/sudoers.d/${fileSudoers}'`,
-    );
-    execSync(`sudo chmod 0440 /etc/sudoers.d/${fileSudoers}`);
+      execSync(
+        `sudo sh -c 'echo "${sudoersEntry}" > /etc/sudoers.d/${fileSudoers}'`,
+      );
+      execSync(`sudo chmod 0440 /etc/sudoers.d/${fileSudoers}`);
+    } else {
+      Logger.log("Testing mode: Skipping sudo configuration");
+    }
   } catch (error) {
     Logger.error("Failed to configure system files:", error);
     throw error;
   }
 
-  fs.writeFileSync(startUpFile, startupScriptContent);
-  execSync(`chmod +x ${startUpFile}`);
+  if (!args.ARGS.testing) {
+    fs.writeFileSync(startUpFile, startupScriptContent);
+    execSync(`chmod +x ${startUpFile}`);
 
-  fs.writeFileSync(desktopFilePath, desktopFileContent);
-  execSync(`chmod +x ${desktopFilePath}`);
+    fs.writeFileSync(desktopFilePath, desktopFileContent);
+    execSync(`chmod +x ${desktopFilePath}`);
+  } else {
+    Logger.log("Testing mode: Skipping autostart file generation");
+  }
 
   Logger.log(t("autoStartEnabled"));
 };
@@ -182,13 +190,19 @@ const buildApp = async () => {
   Logger.log(t("elevatingPermissions"));
 
   Logger.log(t("buildingApp") + ` (isWindows=${PLATFORM.isWindows})`);
-  execSync(
-    `yarn run build-resources-electron --isWindows=${PLATFORM.isWindows}`,
-    {
-      cwd: UTILITIES_PATH,
-      stdio: "inherit",
-    },
-  );
+  
+  if (!args.ARGS.testing) {
+    execSync(
+      `yarn run build-resources-electron --isWindows=${PLATFORM.isWindows}`,
+      {
+        cwd: UTILITIES_PATH,
+        stdio: "inherit",
+      },
+    );
+  } else {
+    Logger.log("Testing mode: Skipping build-resources-electron");
+  }
+
   const PATHS = [
     path.join(UTILITIES_FOR_PC_PATH, "dist"),
     path.join(UTILITIES_FOR_PC_PATH, "build"),
@@ -212,18 +226,26 @@ const buildApp = async () => {
 
   Logger.log(t("appBuildCommandExecuted"));
 
-  execSync("yarn install", {
-    cwd: TEMP_FOLDER,
-    stdio: "inherit",
-  });
+  if (!args.ARGS.testing) {
+    execSync("yarn install", {
+      cwd: TEMP_FOLDER,
+      stdio: "inherit",
+    });
+  } else {
+    Logger.log("Testing mode: Skipping yarn install in temp folder");
+  }
 
   if (buildPlatform === "windows") {
     Logger.log(t("buildingWindowsExecutable"));
 
-    execSync("yarn electron-builder --win", {
-      cwd: TEMP_FOLDER,
-      stdio: "inherit",
-    });
+    if (!args.ARGS.testing) {
+      execSync("yarn electron-builder --win", {
+        cwd: TEMP_FOLDER,
+        stdio: "inherit",
+      });
+    } else {
+      Logger.log("Testing mode: Skipping electron-builder --win");
+    }
 
     Logger.log(t("windowsBuildCompleted"));
   } else if (buildPlatform === "linux") {
@@ -231,18 +253,26 @@ const buildApp = async () => {
 
     Logger.log(t("installingLinuxDependencies"));
     try {
-      execSync(
-        "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
-        { stdio: "inherit" },
-      );
+      if (!args.ARGS.testing) {
+        execSync(
+          "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
+          { stdio: "inherit" },
+        );
+      } else {
+        Logger.log("Testing mode: Skipping apt install");
+      }
     } catch {
       Logger.log(t("someDependenciesInstalled"));
     }
 
-    execSync("yarn electron-builder --linux deb", {
-      cwd: TEMP_FOLDER,
-      stdio: "inherit",
-    });
+    if (!args.ARGS.testing) {
+      execSync("yarn electron-builder --linux deb", {
+        cwd: TEMP_FOLDER,
+        stdio: "inherit",
+      });
+    } else {
+      Logger.log("Testing mode: Skipping electron-builder --linux deb");
+    }
     Logger.log("\n" + t("appPackagedSuccessfully"));
   }
 
@@ -256,18 +286,27 @@ const buildApp = async () => {
 
   if (!fs.existsSync(pathDist)) fs.mkdirSync(pathDist, { recursive: true });
 
-  const dir = fs.readdirSync(dataBuild.distElectron);
+  let dir: string[] = [];
+  try {
+    dir = fs.readdirSync(dataBuild.distElectron);
+  } catch {
+    // ignore if directory doesn't exist yet
+  }
   const appPackage = dir.find((file) => file.endsWith(extension));
 
   const sourcePath = path.join(dataBuild.distElectron, appPackage || "error");
-  if (!fs.existsSync(sourcePath)) throw new Error(t("buildFailed"));
+  if (!args.ARGS.testing && !fs.existsSync(sourcePath)) throw new Error(t("buildFailed"));
 
-  if (fs.existsSync(destinationPath))
-    fs.rmSync(destinationPath, { force: true });
+  if (!args.ARGS.testing) {
+    if (fs.existsSync(destinationPath))
+      fs.rmSync(destinationPath, { force: true });
 
-  fs.renameSync(sourcePath, destinationPath);
+    fs.renameSync(sourcePath, destinationPath);
+  } else {
+    Logger.log("Testing mode: Skipping rename dist-electron package");
+  }
 
-  if (PLATFORM.isWindows) return;
+  if (PLATFORM.isWindows || args.ARGS.testing) return;
 
   const installAnswer = args.ARGS.yes
     ? "y"
@@ -307,7 +346,7 @@ const buildApp = async () => {
   );
 };
 
-const run = async () => {
+export const run = async () => {
   if (PLATFORM.isWindows) {
     const isElevated = () => {
       try {
@@ -318,7 +357,7 @@ const run = async () => {
       }
     };
 
-    if (!isElevated()) {
+    if (!isElevated() && !args.ARGS.testing) {
       const command = `cd ${UTILITIES_PATH}; yarn run build-app-electron ${args.getArgs()}; pause`;
 
       execSync(
@@ -329,10 +368,14 @@ const run = async () => {
     }
   }
 
-  execSync("yarn run build-web-app-electron", {
-    cwd: UTILITIES_PATH,
-    stdio: "inherit",
-  });
+  if (!args.ARGS.testing) {
+    execSync("yarn run build-web-app-electron", {
+      cwd: UTILITIES_PATH,
+      stdio: "inherit",
+    });
+  } else {
+    Logger.log("Testing mode: Skipping build-web-app-electron");
+  }
   Logger.log(t("webAppBuiltSuccessfully"));
 
   await buildApp();
@@ -340,8 +383,10 @@ const run = async () => {
 
 handleExitFromScript(async (err) => {
   if (err) Logger.error("An error occurred:", err.message);
-  if (!args.ARGS.yes) await ask(t("pressEnterToExit"), -1);
-  removeDirSafe(TEMP_FOLDER);
+  if (!args.ARGS.yes && !args.ARGS.testing) await ask(t("pressEnterToExit"), -1);
+  if (!args.ARGS.testing) removeDirSafe(TEMP_FOLDER);
 });
 
-run();
+if (process.env.NODE_ENV !== "test") {
+  run();
+}

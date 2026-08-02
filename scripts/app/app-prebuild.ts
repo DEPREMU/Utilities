@@ -10,6 +10,7 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import { execSync } from "child_process";
+import { args } from "../arguments.ts";
 
 const packageName = APP_CONFIG.android?.package;
 if (!packageName) throw new Error("Package name not found in app config");
@@ -35,7 +36,9 @@ const editMemorySettings = () => {
   let content = fs.readFileSync(gradlePropertiesPath, "utf8");
   if (!content.includes("org.gradle.jvmargs")) {
     content += `\norg.gradle.jvmargs=${GRADLE_OPTS}\n`;
-    fs.writeFileSync(gradlePropertiesPath, content);
+    if (!args.ARGS.testing) {
+      fs.writeFileSync(gradlePropertiesPath, content);
+    }
     console.log(chalk.green("Memory settings added to gradle.properties"));
   } else {
     const match = content.match(/org\.gradle\.jvmargs=[^\n]*/);
@@ -44,7 +47,9 @@ const editMemorySettings = () => {
     }
 
     content = content.replace(match[0], `org.gradle.jvmargs=${GRADLE_OPTS}`);
-    fs.writeFileSync(gradlePropertiesPath, content);
+    if (!args.ARGS.testing) {
+      fs.writeFileSync(gradlePropertiesPath, content);
+    }
   }
 };
 
@@ -56,7 +61,9 @@ const getPath = (relativePath: string) => {
         `Creating directory: ${pathLocal} with relative path: ${relativePath}`,
       ),
     );
-    fs.mkdirSync(pathLocal, { recursive: true });
+    if (!args.ARGS.testing) {
+      fs.mkdirSync(pathLocal, { recursive: true });
+    }
   }
 
   return pathLocal;
@@ -93,6 +100,11 @@ const addStringToXML = async () => {
     `${es.replace(/<\/?es>/g, "").trim()}\n</$1>`,
   );
 
+  if (args.ARGS.testing) {
+    console.log(chalk.yellow("Testing mode: Skipping strings.xml write"));
+    return;
+  }
+
   fs.writeFileSync(stringsXMLPathEn, newEn);
   fs.writeFileSync(path.join(stringsXMLPathEs, "strings.xml"), newEs);
 };
@@ -117,6 +129,11 @@ const editPackagingOptions = async () => {
         pickFirst "lib/x86/libcrypto.so"
         pickFirst "lib/x86_64/libcrypto.so"\n`,
   );
+
+  if (args.ARGS.testing) {
+    console.log(chalk.yellow("Testing mode: Skipping build.gradle write"));
+    return;
+  }
 
   fs.writeFileSync(
     buildGradlePath,
@@ -146,6 +163,11 @@ const addDependencies = async () => {
       );
     }
   });
+
+  if (args.ARGS.testing) {
+    console.log(chalk.yellow("Testing mode: Skipping build.gradle dependencies write"));
+    return;
+  }
 
   fs.writeFileSync(buildGradlePath, newContent);
   console.log(chalk.green("Dependencies added to build.gradle."));
@@ -202,6 +224,11 @@ const editMainApplication = async () => {
     "BackgroundServicePackage()",
   ];
 
+  if (args.ARGS.testing) {
+    console.log(chalk.yellow("Testing mode: Skipping MainApplication.kt write"));
+    return;
+  }
+
   fs.writeFileSync(
     mainApplicationPath,
     newContent.replace(curlyBraces, (match) => {
@@ -256,9 +283,13 @@ const createModules = async () => {
           module.finalPath +
           (name.endsWith(".kt") ? packageName.replace(/\./g, "/") : "");
 
-        fs.writeFileSync(path.resolve(getPath(finalPath), name), content, {
-          encoding: "utf8",
-        });
+        if (!args.ARGS.testing) {
+          fs.writeFileSync(path.resolve(getPath(finalPath), name), content, {
+            encoding: "utf8",
+          });
+        } else {
+          console.log(chalk.yellow(`Testing mode: Skipping module write for ${name}`));
+        }
       },
     );
   });
@@ -326,6 +357,12 @@ const addPermissionsToManifest = async (newPermissions: string[]) => {
         return;
       }
 
+      if (args.ARGS.testing) {
+        console.log(chalk.yellow("Testing mode: Skipping AndroidManifest.xml permissions write"));
+        resolve();
+        return;
+      }
+
       fs.writeFileSync(androidManifestPath, newManifestContent);
     } catch (error) {
       console.error(chalk.red("Error modifying AndroidManifest.xml:"), error);
@@ -367,10 +404,14 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
         [...services, "</application>"].join("\n"),
       );
 
-      fs.writeFileSync(
-        androidManifestPath,
-        manifestContent.replace(application, newApplication),
-      );
+      if (args.ARGS.testing) {
+        console.log(chalk.yellow("Testing mode: Skipping AndroidManifest.xml modification"));
+      } else {
+        fs.writeFileSync(
+          androidManifestPath,
+          manifestContent.replace(application, newApplication),
+        );
+      }
     } catch (error) {
       console.error(chalk.red("Error modifying AndroidManifest.xml:"), error);
       fs.copyFileSync(backupPath, androidManifestPath);
@@ -381,23 +422,32 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
   });
 };
 
-const runPrebuild = () => {
+export const runPrebuild = () => {
   const androidPath = path.join(APP_PATH, "android");
-  if (fs.existsSync(androidPath))
-    fs.rmSync(androidPath, { recursive: true, force: true });
+  if (fs.existsSync(androidPath)) {
+    if (!args.ARGS.testing) {
+      fs.rmSync(androidPath, { recursive: true, force: true });
+    } else {
+      console.log(chalk.yellow("Testing mode: Skipping android folder removal"));
+    }
+  }
 
   if (!fs.existsSync(path.join(APP_PATH, "google-services.json")))
     throw new Error("Missing google-services.json file");
 
   try {
     console.log(chalk.blue("Running prebuild script..."), env.BUILD_PROFILE);
-    const output = execSync("yarn expo prebuild --platform android --clean", {
-      cwd: APP_PATH,
-      env,
-    })?.toString();
+    if (!args.ARGS.testing) {
+      const output = execSync("yarn expo prebuild --platform android --clean", {
+        cwd: APP_PATH,
+        env,
+      })?.toString();
 
-    if (!output?.includes("Finished prebuild"))
-      throw new Error(["Prebuild failed", output].join("\n"));
+      if (!output?.includes("Finished prebuild"))
+        throw new Error(["Prebuild failed", output].join("\n"));
+    } else {
+      console.log(chalk.yellow("Testing mode: Skipping yarn expo prebuild"));
+    }
 
     console.log(chalk.green("Prebuild completed successfully."));
     createModules();
@@ -406,4 +456,6 @@ const runPrebuild = () => {
   }
 };
 
-runPrebuild();
+if (process.env.NODE_ENV !== "test") {
+  runPrebuild();
+}

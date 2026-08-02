@@ -42,44 +42,53 @@ const build = async () => {
   if (!args.ARGS["skip-prebuild-android"]) {
     fs.rmSync(ANDROID_PATH, { recursive: true, force: true });
 
-    execSync(`yarn run app-prebuild-android ${args.getArgs()}`, {
-      env,
-      stdio: "inherit",
-      cwd: UTILITIES_PATH,
-      killSignal: "SIGINT",
-    });
+    if (!args.ARGS.testing) {
+      execSync(`yarn run app-prebuild-android ${args.getArgs()}`, {
+        env,
+        stdio: "inherit",
+        cwd: UTILITIES_PATH,
+        killSignal: "SIGINT",
+      });
+    } else {
+      Logger.log("Testing mode: Skipping app-prebuild-android");
+    }
   }
-  if (!fs.existsSync(ANDROID_PATH))
+  if (!args.ARGS.testing && !fs.existsSync(ANDROID_PATH))
     throw new Error("Android directory does not exist.");
 
   const buildPath = path.join(APP_PATH, "builds", `android-${profile}.apk`);
 
-  expo = spawn(
-    "taskset",
-    [
-      "-c",
-      "0-5",
-      "eas",
-      "build",
-      "--platform",
-      "android",
-      "--profile",
-      profile,
-      "--local",
-      `--output=${buildPath}`,
-    ],
-    {
-      env,
-      stdio: "inherit",
-      cwd: APP_PATH,
-      killSignal: "SIGINT",
-    },
-  );
+  if (!args.ARGS.testing) {
+    expo = spawn(
+      "taskset",
+      [
+        "-c",
+        "0-5",
+        "eas",
+        "build",
+        "--platform",
+        "android",
+        "--profile",
+        profile,
+        "--local",
+        `--output=${buildPath}`,
+      ],
+      {
+        env,
+        stdio: "inherit",
+        cwd: APP_PATH,
+        killSignal: "SIGINT",
+      },
+    );
+  } else {
+    Logger.log(`Testing mode: Skipping eas build for android (${profile})`);
+    expo = { exitCode: 0, once: () => {}, kill: () => {} } as unknown as ReturnType<typeof spawn>;
+  }
 
   let timePassed = 0;
   let notWritten = true;
 
-  while (expo.exitCode === null) {
+  while (expo?.exitCode === null) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     timePassed += 1;
 
@@ -90,8 +99,8 @@ const build = async () => {
     }
   }
 
-  expo.once("message", (msg) => {
-    Logger.log("EAS Build message:", msg);
+  expo?.once("message", (msg) => {
+    Logger.log("Message from build:", msg);
   });
 
   if (!args.ARGS.yes) {
@@ -106,16 +115,20 @@ const build = async () => {
     if (!answerInstall.includes("y"))
       return Logger.log("Build process completed without installation.");
   }
-  if (!fs.existsSync(buildPath))
+  if (!args.ARGS.testing && !fs.existsSync(buildPath))
     throw new Error(`APK not found at path: ${buildPath}`);
 
   Logger.log("Installing APK on connected device...");
 
-  execSync(`adb install -r "${buildPath}"`, {
-    env,
-    stdio: "inherit",
-    cwd: APP_PATH,
-  });
+  if (!args.ARGS.testing) {
+    execSync(`adb install -r "${buildPath}"`, {
+      env,
+      stdio: "inherit",
+      cwd: APP_PATH,
+    });
+  } else {
+    Logger.log("Testing mode: Skipping adb install");
+  }
 };
 
 const handleExit = () => {
@@ -126,10 +139,12 @@ const handleExit = () => {
 
 handleExitFromScript(handleExit);
 
-const run = async () => {
+export const run = async () => {
   deleteAndroidFromGitIgnore();
   await build();
   handleExit();
 };
 
-run();
+if (process.env.NODE_ENV !== "test") {
+  run();
+}

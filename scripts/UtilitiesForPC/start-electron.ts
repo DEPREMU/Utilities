@@ -18,6 +18,7 @@ import * as readline from "readline";
 
 const values = {
   PLATFORM: "web",
+  platform: "linux",
   BUILD_PROFILE: "development",
 } as const;
 

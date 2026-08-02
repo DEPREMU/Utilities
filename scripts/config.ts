@@ -8,7 +8,7 @@ import APP_CONFIG_FUNC from "@appSrc/app.config.ts";
 import type PACKAGE_JSON_APP from "@appSrc/package.json";
 import type PACKAGE_JSON_UTILITIES_FOR_PC from "@utilitiesSrc/package.json";
 
-export const UTILITIES_PATH = path.resolve();
+export const UTILITIES_PATH = path.resolve().replace(/\\scripts$/, "").replace(/\/scripts$/, "");
 if (!UTILITIES_PATH.endsWith("Utilities"))
   throw new Error("This script must be run from the Utilities directory.");
 

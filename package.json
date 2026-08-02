@@ -34,13 +34,16 @@
     "build-resources-electron": "node scripts/run.ts build-resources-electron",
     "start-electron": "node scripts/run.ts start-electron",
     "__SCRIPTS__": "___________________________________________",
+    "scripts-test": "yarn workspace utilities-scripts run test",
     "update-assets": "node scripts/run.ts update-assets",
     "build-android": "node scripts/run.ts build-android",
     "build-upload-electron": "node scripts/run.ts build-upload-electron",
     "build-upload-android": "node scripts/run.ts build-upload-android",
     "build-autocomplete-dict": "node scripts/run.ts build-autocomplete-dict",
     "__COMMON__": "___________________________________________",
-    "common-test": "yarn workspace common run test"
+    "common-test": "yarn workspace utilities-common run test",
+    "__TESTS__": "___________________________________________",
+    "tests": "yarn run common-test && yarn run scripts-test"
   },
   "repository": {
     "type": "git",

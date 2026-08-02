@@ -24,7 +24,7 @@ const PATHS = {
   UtilitiesForPC: UTILITIES_FOR_PC_PATH,
 } as const;
 
-const run = async () => {
+export const run = async () => {
   const action = args.ARGS.action;
   if (!action) {
     throw new Error(
@@ -36,16 +36,20 @@ const run = async () => {
 
   switch (action) {
     case "compile-check":
-      execSync("yarn run app-prebuild-android", {
-        cwd: UTILITIES_PATH,
-        stdio: "inherit",
-        env,
-      });
-      execSync("cd android && ./gradlew :app:compileDebugKotlin --no-daemon", {
-        cwd: APP_PATH,
-        stdio: "inherit",
-        env,
-      });
+      if (!args.ARGS.testing) {
+        execSync("yarn run app-prebuild-android", {
+          cwd: UTILITIES_PATH,
+          stdio: "inherit",
+          env,
+        });
+        execSync("cd android && ./gradlew :app:compileDebugKotlin --no-daemon", {
+          cwd: APP_PATH,
+          stdio: "inherit",
+          env,
+        });
+      } else {
+        Logger.log("Testing mode: Skipping compile-check commands");
+      }
       break;
     case "clean":
       clean();
@@ -58,21 +62,33 @@ const run = async () => {
       formatAll();
       break;
     case "app":
-      execSync("yarn expo start -c", { cwd: APP_PATH, stdio: "inherit", env });
+      if (!args.ARGS.testing) {
+        execSync("yarn expo start -c", { cwd: APP_PATH, stdio: "inherit", env });
+      } else {
+        Logger.log("Testing mode: Skipping yarn expo start");
+      }
       break;
     case "server":
-      execSync("yarn run start", {
-        cwd: SERVER_PATH,
-        stdio: "inherit",
-        env: { ...env, SERVER_OR_ELECTRON: "server" },
-      });
+      if (!args.ARGS.testing) {
+        execSync("yarn run start", {
+          cwd: SERVER_PATH,
+          stdio: "inherit",
+          env: { ...env, SERVER_OR_ELECTRON: "server" },
+        });
+      } else {
+        Logger.log("Testing mode: Skipping server start");
+      }
       break;
     case "server-dev":
-      execSync("yarn run start-dev", {
-        cwd: SERVER_PATH,
-        stdio: "inherit",
-        env: { ...env, SERVER_OR_ELECTRON: "server" },
-      });
+      if (!args.ARGS.testing) {
+        execSync("yarn run start-dev", {
+          cwd: SERVER_PATH,
+          stdio: "inherit",
+          env: { ...env, SERVER_OR_ELECTRON: "server" },
+        });
+      } else {
+        Logger.log("Testing mode: Skipping server-dev start");
+      }
       break;
     case "type-check":
       execSync("yarn run type-check", { cwd: APP_PATH, stdio: "inherit", env });
@@ -86,14 +102,18 @@ const run = async () => {
         PLATFORM: "web",
         BUILD_PROFILE: env.BUILD_PROFILE || "production",
       };
-      execSync(
-        `yarn expo export -c -p web ${envWeb.BUILD_PROFILE === "production" ? "" : "--dev --no-minify"}`,
-        {
-          env: envWeb,
-          cwd: APP_PATH,
-          stdio: "inherit",
-        },
-      );
+      if (!args.ARGS.testing) {
+        execSync(
+          `yarn expo export -c -p web ${envWeb.BUILD_PROFILE === "production" ? "" : "--dev --no-minify"}`,
+          {
+            env: envWeb,
+            cwd: APP_PATH,
+            stdio: "inherit",
+          },
+        );
+      } else {
+        Logger.log("Testing mode: Skipping yarn expo export");
+      }
       break;
     }
     default:
@@ -124,22 +144,32 @@ const clean = async () => {
 
       // eslint-disable-next-line no-console
       console.log(`Removing ${p}`);
-      await fs.promises
-        .rm(p, {
-          force: true,
-          recursive: true,
-        })
-        .catch((error) => {
-          // eslint-disable-next-line no-console
-          console.warn(`Failed to remove ${p}, continuing...`, error);
-        });
+      if (!args.ARGS.testing) {
+        await fs.promises
+          .rm(p, {
+            force: true,
+            recursive: true,
+          })
+          .catch((error) => {
+            // eslint-disable-next-line no-console
+            console.warn(`Failed to remove ${p}, continuing...`, error);
+          });
+      } else {
+        // eslint-disable-next-line no-console
+        console.log("Testing mode: Skipping folder removal");
+      }
     }),
   );
 
   // eslint-disable-next-line no-console
   console.log("Cleaning yarn cache in app...");
   try {
-    execSync("yarn cache clean", { cwd: UTILITIES_PATH, stdio: "inherit" });
+    if (!args.ARGS.testing) {
+      execSync("yarn cache clean", { cwd: UTILITIES_PATH, stdio: "inherit" });
+    } else {
+      // eslint-disable-next-line no-console
+      console.log("Testing mode: Skipping yarn cache clean");
+    }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.warn(
@@ -153,10 +183,15 @@ const installAll = () => {
   // eslint-disable-next-line no-console
   console.log(`Installing dependencies in ${UTILITIES_PATH} using yarn...`);
 
-  execSync("yarn install", {
-    cwd: UTILITIES_PATH,
-    stdio: "inherit",
-  });
+  if (!args.ARGS.testing) {
+    execSync("yarn install", {
+      cwd: UTILITIES_PATH,
+      stdio: "inherit",
+    });
+  } else {
+    // eslint-disable-next-line no-console
+    console.log("Testing mode: Skipping yarn install");
+  }
 };
 
 const formatAll = async () => {
@@ -175,8 +210,16 @@ const beforeCommit = () => {
   Helper.Object.entries(PATHS).forEach(([name, cwd]) => {
     Logger.log(`Running before-commit in ${name}...`);
 
-    execSync("yarn run before-commit", { cwd, stdio: "inherit", env });
+    if (!args.ARGS.testing) {
+      execSync("yarn run before-commit", { cwd, stdio: "inherit", env });
+    } else {
+      Logger.log("Testing mode: Skipping before-commit script execution");
+    }
   });
 };
 
-run();
+export { clean, clean as cleanAll, formatAll, beforeCommit };
+
+if (process.env.NODE_ENV !== "test") {
+  run();
+}

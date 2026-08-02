@@ -7,6 +7,7 @@
   "license": "ISC",
   "type": "module",
   "scripts": {
+    "test": "jest",
     "type-check": "tsc --noEmit",
     "lint:fix": "eslint . --fix",
     "before-commit": "yarn run lint:fix && yarn run type-check"

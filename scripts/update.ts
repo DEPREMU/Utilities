@@ -235,22 +235,26 @@ const uploadWeb = async (): Promise<boolean> => {
 const uploadAndroidAssets = async () => {
   const BUILD_PROFILE = args.ARGS["BUILD_PROFILE"] || "production";
 
-  execSync(
-    ` eas update --channel ${BUILD_PROFILE} --platform android --clear-cache`,
-    {
-      stdio: "inherit",
-      cwd: APP_PATH,
-      env: {
-        ...env,
-        PLATFORM: "android",
-        EAS_BUILD: "true",
-        BUILD_PROFILE,
+  if (!args.ARGS.testing) {
+    execSync(
+      ` eas update --channel ${BUILD_PROFILE} --platform android --clear-cache`,
+      {
+        stdio: "inherit",
+        cwd: APP_PATH,
+        env: {
+          ...env,
+          PLATFORM: "android",
+          EAS_BUILD: "true",
+          BUILD_PROFILE,
+        },
       },
-    },
-  );
+    );
+  } else {
+    Logger.log("Testing mode: Skipping eas update for Android assets");
+  }
 };
 
-const run = async () => {
+export const run = async () => {
   const platformUpdateAssets = args.ARGS["platform-update-assets"] ?? "both";
 
   const isBoth = platformUpdateAssets === "both";
@@ -264,4 +268,7 @@ const run = async () => {
 
   if (isAndroid) await uploadAndroidAssets();
 };
-run();
+
+if (process.env.NODE_ENV !== "test") {
+  run();
+}
