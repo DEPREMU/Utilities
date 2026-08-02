@@ -14,11 +14,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { useLanguage } from "@context/LanguageContext";
 import RenderClipboardItem from "@screens/Clipboard/components/RenderClipboardItem";
-import { ServerFetch, Timers } from "@common";
 import { useStylesClipboardScreen } from "@screens/Clipboard/styles";
+import { Timers, REPLACERS, ServerFetch } from "@common";
+import { sessionManager, storageManagement } from "@utils";
 import { FAB, Searchbar, Switch, Text, Button } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { logger, REPLACERS, sessionManager, storageManagement } from "@utils";
 
 const getSkeletonData = (deleted: boolean) => {
   const createdAt = new Date().toISOString();
@@ -94,11 +94,12 @@ const ClipboardScreen: React.FC = () => {
 
   const changeClipboardItemDeletedRef = useRef(
     async (id: string, deleted: boolean) => {
-      if (!id) return logger.error("No ID provided for deletion");
+      if (!id) return REPLACERS.Logger.error("No ID provided for deletion");
 
       const { sessionToken } = sessionManager.getSessionData();
 
-      if (!sessionToken) return logger.error("No session token available");
+      if (!sessionToken)
+        return REPLACERS.Logger.error("No session token available");
 
       const deviceId = storageManagement.get("DEVICE_ID");
 
@@ -111,7 +112,7 @@ const ClipboardScreen: React.FC = () => {
       const { error } = res.data || { error: "Unknown error" };
 
       if (error) {
-        logger.error("Error deleting clipboard item:", error);
+        REPLACERS.Logger.error("Error deleting clipboard item:", error);
         return;
       }
 
@@ -185,7 +186,7 @@ const ClipboardScreen: React.FC = () => {
     };
 
     if ("error" in res.data) {
-      logger.error("Error fetching clipboard data:", res.data.error);
+      REPLACERS.Logger.error("Error fetching clipboard data:", res.data.error);
       handleSetVars();
       return;
     }
@@ -277,7 +278,8 @@ const ClipboardScreen: React.FC = () => {
 
   const handleDeleteRestoreAll = useCallback(async () => {
     const { sessionToken } = sessionManager.getSessionData();
-    if (!sessionToken) return logger.error("No session token available");
+    if (!sessionToken)
+      return REPLACERS.Logger.error("No session token available");
 
     const deviceId = storageManagement.get("DEVICE_ID");
 
@@ -295,7 +297,7 @@ const ClipboardScreen: React.FC = () => {
     const { error } = res.data || { error: "Unknown error" };
 
     if (error) {
-      logger.error("Error deleting clipboard item:", error);
+      REPLACERS.Logger.error("Error deleting clipboard item:", error);
       return;
     }
 

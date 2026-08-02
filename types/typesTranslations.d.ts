@@ -18,7 +18,7 @@ type Join<K, P> = K extends string
 
 type Prev = [never, 0, 1, 2, 3, 4, 5, 6];
 
-type Paths<T, D extends number = 5> = [D] extends [never]
+export type Paths<T, D extends number = 5> = [D] extends [never]
   ? never
   : T extends object
     ? {

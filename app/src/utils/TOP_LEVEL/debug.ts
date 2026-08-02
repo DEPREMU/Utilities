@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
 import Chalk from "chalk";
+import { Logger } from "@types";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
-import { REPLACERS } from "../TOP_LEVEL";
-import { storageManagement } from "../services/storage";
+import { Helper, REPLACERS } from "@common";
 
 type ReturnDeviceInfo = {
   deviceId: string;
@@ -13,9 +13,12 @@ type ReturnDeviceInfo = {
 const FILTER_BY_MESSAGE: string[] = [];
 
 const getCurrentDeviceInfo = async () => {
+  let deviceId: string = "";
+
   try {
+    const { storageManagement } = await import("@/utils/services/storage");
+    deviceId = storageManagement.get("DEVICE_ID");
     const deviceName = await DeviceInfo.getDeviceName();
-    const deviceId = storageManagement.get("DEVICE_ID");
 
     return {
       deviceId,
@@ -25,8 +28,10 @@ const getCurrentDeviceInfo = async () => {
           : deviceName,
     } satisfies ReturnDeviceInfo;
   } catch {
+    if (!deviceId) deviceId = "Unknown Device";
+
     return {
-      deviceId: storageManagement.get("DEVICE_ID"),
+      deviceId,
       deviceName: "Unknown Device",
     } satisfies ReturnDeviceInfo;
   }
@@ -58,16 +63,6 @@ const uploadLogToServer = async (
   }
 };
 
-const getMessage = (...args: unknown[]): unknown[] => {
-  return args
-    .filter(Boolean)
-    .map((arg) =>
-      typeof arg === "object" && arg !== null
-        ? JSON.stringify(arg, null, 2)
-        : arg,
-    );
-};
-
 /**
  * Logs a message to the console or sends it to a server.
  *
@@ -78,7 +73,7 @@ const getMessage = (...args: unknown[]): unknown[] => {
  * - In preview mode, sends the log to a server endpoint.
  * - In production mode, does nothing.
  */
-const log = async (...args: unknown[]): Promise<void> => {
+const log = (...args: unknown[]): void => {
   if (REPLACERS.isProduction) return;
   if (
     FILTER_BY_MESSAGE.length &&
@@ -88,12 +83,12 @@ const log = async (...args: unknown[]): Promise<void> => {
 
   const date = new Date();
 
-  const firstMessage = `Log - ${date.toLocaleString()} ::\n`;
-  const message = getMessage(...args);
+  const firstMessage = `Info - ${date.toLocaleString()} ::\n`;
+  const message = Helper.getMessage(...args);
 
-  if (REPLACERS.isDev) console.log(Chalk.blue.bold(firstMessage), ...message);
+  if (REPLACERS.isDev) console.log(Chalk.blue.bold(firstMessage), message);
   else if (REPLACERS.isPreview)
-    await uploadLogToServer("log", [firstMessage, ...message].join(" "));
+    uploadLogToServer("log", [firstMessage, message].join(" "));
 };
 
 /**
@@ -108,8 +103,8 @@ const log = async (...args: unknown[]): Promise<void> => {
  *
  * @example
  * ```typescript
- * logger.logWarn("User validation failed", { userId: 123, error: "Invalid email" });
- * logger.logWarn("API rate limit exceeded");
+ * REPLACERS.Logger.logWarn("User validation failed", { userId: 123, error: "Invalid email" });
+ * REPLACERS.Logger.logWarn("API rate limit exceeded");
  * ```
  */
 const warn = async (...args: unknown[]): Promise<void> => {
@@ -123,12 +118,11 @@ const warn = async (...args: unknown[]): Promise<void> => {
   const date = new Date();
 
   const firstMessage = `Warning - ${date.toLocaleString()} ::\n`;
-  const message = getMessage(...args);
+  const message = Helper.getMessage(...args);
 
-  if (REPLACERS.isDev)
-    console.warn(Chalk.yellow.bold(firstMessage), ...message);
+  if (REPLACERS.isDev) console.warn(Chalk.yellow.bold(firstMessage), message);
   else if (REPLACERS.isPreview)
-    await uploadLogToServer("warn", [firstMessage, ...message].join(" "));
+    await uploadLogToServer("warn", [firstMessage, message].join(" "));
 };
 
 /**
@@ -151,15 +145,15 @@ const error = async (...args: unknown[]): Promise<void> => {
 
   const date = new Date();
   const firstMessage = `Error - ${date.toLocaleString()} ::\n`;
-  const message = getMessage(...args);
+  const message = Helper.getMessage(...args);
 
-  if (REPLACERS.isDev) console.error(Chalk.red.bold(firstMessage), ...message);
+  if (REPLACERS.isDev) console.error(Chalk.red.bold(firstMessage), message);
   else if (REPLACERS.isPreview)
-    await uploadLogToServer("error", [firstMessage, ...message].join(" "));
+    await uploadLogToServer("error", [firstMessage, message].join(" "));
 };
 
-const fun = async () => {};
+const fun = () => {};
 
-export const logger = !REPLACERS.isProduction
+export const logger: Logger = !REPLACERS.isProduction
   ? { log, warn, error }
   : { log: fun, warn: fun, error: fun };

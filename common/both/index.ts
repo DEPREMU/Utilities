@@ -1,6 +1,6 @@
 export * from "./timer.ts";
 export * from "./images.ts";
-export * from "./cryptos.ts"; 
+export * from "./cryptos.ts";
 export * from "./unknown.ts";
 export * from "./zustand.ts";
 export * from "./mimeType.ts";
@@ -11,4 +11,5 @@ export * from "./errorHandling.ts";
 export * from "./notifications.ts";
 export * from "./classes/index.ts";
 export * from "./helpers/index.ts";
+export * from "./REPLACERS/index.ts";
 export * from "./translations/index.ts";

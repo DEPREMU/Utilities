@@ -1,14 +1,9 @@
 import path from "path";
 import { Directory } from "@common";
 import { TablesKeys } from "@types";
-import { getEnvValue } from "@/env.ts";
 
-export const REPLACERS = {
-  isDev: getEnvValue("__DEV__"),
-};
-
-export const host: string = REPLACERS.isDev ? "0.0.0.0" : "localhost";
 export const port: number = 3000;
+export const host: string = "0.0.0.0";
 export const serverPath = path.resolve();
 export const UPLOAD_DIR = path.join(serverPath, "routes", "updates", "uploads");
 export const PATH_WEB_PATH_UPDATES = path.join(

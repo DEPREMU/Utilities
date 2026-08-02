@@ -2,11 +2,10 @@ import {
   OptionsReconnectingWS,
   ReconnectingWebSocket,
 } from "@/utils/reconnecting-websocket";
-import { Helper } from "@common";
-import { logger } from "@/utils/functions";
+import { URLS } from "@/utils/TOP_LEVEL";
 import { sessionManager } from "../session";
 import { ClipboardServer } from "./server";
-import { REPLACERS, URLS } from "@/utils/TOP_LEVEL";
+import { Helper, REPLACERS } from "@common";
 import { storageManagement } from "../storage";
 import { BackgroundModule, windowModule } from "@/utils/modules";
 import { ClipboardItem, ClipboardWebSocketMessage } from "@types";
@@ -30,7 +29,7 @@ const OPTIONS_RECONNECT_WS: OptionsReconnectingWS = {
       const userData = sessionManager.getSessionData().userData;
 
       if (!deviceId || !userData?.userId) {
-        logger.error(
+        REPLACERS.Logger.error(
           "No session token or device ID found for Clipboard WebSocket initialization message.",
         );
         return "";
@@ -75,12 +74,15 @@ export class ClipboardWebSocket extends ClipboardServer {
     };
 
     this.#clipboardSocket.onError = (error) => {
-      logger.error("Clipboard WebSocket error:", error.message || error);
+      REPLACERS.Logger.error(
+        "Clipboard WebSocket error:",
+        error.message || error,
+      );
       this.emit("connection-status", false);
     };
 
     this.#clipboardSocket.onClose = () => {
-      logger.log("Clipboard WebSocket connection closed.");
+      REPLACERS.Logger.log("Clipboard WebSocket connection closed.");
       this.emit("connection-status", false);
     };
 
@@ -109,7 +111,10 @@ export class ClipboardWebSocket extends ClipboardServer {
         else if (REPLACERS.isWeb)
           windowModule.setClipboard(parsedMessage.content);
       } catch (error) {
-        logger.error("Error parsing Clipboard WebSocket message:", error);
+        REPLACERS.Logger.error(
+          "Error parsing Clipboard WebSocket message:",
+          error,
+        );
       }
     };
 

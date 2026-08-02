@@ -6,13 +6,13 @@ import React, {
   createContext,
 } from "react";
 import {
-  logger,
   navigation,
   Validations,
   sessionManager,
   saveStorageData,
   forgotPasswordWithEmail as authForgotPassword,
 } from "@utils";
+import { REPLACERS } from "@common";
 import { ResponseAuth } from "@types";
 
 type DataRef = {
@@ -50,14 +50,20 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     loginWithQR: async (response) => {
       if (!response.success || !response.user || !response.token) {
-        logger.error("Invalid QR login response");
+        REPLACERS.Logger.error("Invalid QR login response");
         return;
       }
-      logger.log("Logging in user with QR successfully:", response.user.email);
+      REPLACERS.Logger.log(
+        "Logging in user with QR successfully:",
+        response.user.email,
+      );
 
       setIsLoggedIn(true);
       await saveStorageData(response.storageValues);
-      logger.log("User logged in with QR successfully:", response.user.email);
+      REPLACERS.Logger.log(
+        "User logged in with QR successfully:",
+        response.user.email,
+      );
       navigation.replace("Home");
     },
     forgotPassword: async (
@@ -74,14 +80,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const { success, error } = await authForgotPassword(email);
 
         if (!success || error) {
-          logger.error("Forgot password error:", error);
+          REPLACERS.Logger.error("Forgot password error:", error);
           callback?.(false, error);
           return;
         }
 
         callback?.(true);
       } catch (error) {
-        logger.error("Unexpected forgot password error:", error);
+        REPLACERS.Logger.error("Unexpected forgot password error:", error);
         callback?.(false, error as string);
       } finally {
         setLoggingIn(false);

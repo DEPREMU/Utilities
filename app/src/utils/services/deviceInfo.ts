@@ -6,6 +6,7 @@ import {
 import {
   Timers,
   Network,
+  REPLACERS,
   ServiceClass,
   ExpectedSecureStorageTypes,
 } from "@common";
@@ -17,13 +18,12 @@ import {
 } from "@types";
 import { tTyped } from "../translates";
 import * as NetInfo from "@react-native-community/netinfo";
-import { REPLACERS } from "../TOP_LEVEL";
 import * as Location from "expo-location";
 import { navigation } from "./navigation";
 import { DATA_PLATFORM } from "../cross";
 import * as DeviceInfoRN from "react-native-device-info";
 import { storageManagement } from "./storage";
-import { logger, isLocationEnabled } from "../functions";
+import { isLocationEnabled } from "../functions";
 import { AppState, AppStateStatus, DeviceEventEmitter } from "react-native";
 
 export type typeDataReceivedState = { state: "suspended" | "resumed" };
@@ -308,7 +308,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
                 }),
               );
             } catch (error) {
-              logger.error("Error pausing notifications", error);
+              REPLACERS.Logger.error("Error pausing notifications", error);
             }
             break;
           case "stop":
@@ -517,7 +517,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
 
       await Promise.all(promises);
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         "Error initializing DeviceInfo service",
         error instanceof Error ? error.message : String(error),
       );

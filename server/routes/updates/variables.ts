@@ -3,8 +3,8 @@ import chalk from "chalk";
 import { v4 } from "uuid";
 import { cloneDeep } from "lodash";
 import { getEnvValue } from "@/env";
-import { REPLACERS, serverPath, UPLOAD_DIR } from "@/config";
-import { Directory, File, Validations, Logger } from "@common";
+import { serverPath, UPLOAD_DIR } from "@/config";
+import { File, Logger, Directory, REPLACERS, Validations } from "@common";
 import { BuildTypeUpdates, PlatformsOS, RequestUploadUpdate } from "@types";
 
 new Directory(UPLOAD_DIR).mkdir({ recursive: true });

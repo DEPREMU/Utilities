@@ -1,7 +1,7 @@
 import { v4 } from "uuid";
-import { Timers } from "@common";
 import { windowModule } from "@modules";
 import type { PdfProps } from "react-native-pdf";
+import { Timers, REPLACERS } from "@common";
 import { useResponsiveLayout } from "@context/LayoutContext";
 import React, { useEffect, useRef } from "react";
 import { CreatePdfFromImages, PlatformData } from "./platform";
@@ -99,9 +99,7 @@ export const PDF: React.FC<PdfProps> = ({ source }) => {
     if (typeof source === "string") uri = source;
     else if (typeof source === "object" && source.uri) uri = source.uri;
     else {
-      import("../functions/debug").then(({ logger }) => {
-        logger.error("PDF_RENDER_WEB", "Invalid PDF source:", source);
-      });
+      REPLACERS.Logger.error("PDF_RENDER_WEB", "Invalid PDF source:", source);
       return;
     }
     if (height) heightPX = `${height - 200}px`;

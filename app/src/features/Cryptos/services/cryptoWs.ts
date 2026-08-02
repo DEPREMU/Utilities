@@ -1,6 +1,5 @@
 import {
   URLS,
-  logger,
   Cryptos,
   deviceInfo,
   elapsedTime,
@@ -14,7 +13,7 @@ import {
   OptionsReconnectingWS,
   ReconnectingWebSocket,
 } from "@/utils/reconnecting-websocket";
-import { Timers } from "@common";
+import { REPLACERS, Timers } from "@common";
 import { CryptosWebSocketMessage } from "@types";
 
 export const enum TIMES {
@@ -149,11 +148,11 @@ export abstract class CryptosWs extends Cryptos {
           }
         }
       } catch (error) {
-        logger.error(
+        REPLACERS.Logger.error(
           TAG,
           "Failed to parse WebSocket message:",
           event.data.toString(),
-          error instanceof Error ? error.message : String(error),
+          error,
         );
       }
     };

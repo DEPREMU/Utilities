@@ -1,8 +1,9 @@
 import Button from "@/common/components/Button/screens";
+import { memoDeep } from "@utils";
+import { REPLACERS } from "@common";
 import { Icon, Text } from "react-native-paper";
-import { useStylesCalculator } from "@screens/Calculator/styles/useStylesCalculator";
-import { logger, memoDeep } from "@utils";
 import { ScrollView, View } from "react-native";
+import { useStylesCalculator } from "@screens/Calculator/styles/useStylesCalculator";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const layout: string[][] = [
@@ -69,7 +70,9 @@ const Calculator: React.FC = () => {
       if (!isFinite(value)) setResult("Error");
       else setResult(value.toString());
     } catch (error) {
-      logger.error(error instanceof Error ? error.message : String(error));
+      REPLACERS.Logger.error(
+        error instanceof Error ? error.message : String(error),
+      );
       setResult("Error");
     }
   }, [input]);

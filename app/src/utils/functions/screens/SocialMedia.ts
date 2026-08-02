@@ -1,5 +1,5 @@
-import { logger } from "../debug";
 import { Linking } from "react-native";
+import { REPLACERS } from "@common";
 
 /**
  * Opens the specified URL.
@@ -9,6 +9,6 @@ import { Linking } from "react-native";
  */
 export const openURL = (link: string): void => {
   Linking.openURL(link).catch((err) =>
-    logger.error("Failed to open URL:", err),
+    REPLACERS.Logger.error("Failed to open URL:", err),
   );
 };

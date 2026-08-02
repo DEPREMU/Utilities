@@ -1,12 +1,11 @@
 import {
-  logger,
   sanitizeFileName,
   getImageFromVideo,
   getMimeTypeFromExtension,
 } from "@utils";
 import * as ExpoSQL from "expo-sqlite";
 import { FolderFiles } from "@types";
-import { Validations, Timers } from "@common";
+import { Validations, Timers, REPLACERS } from "@common";
 
 const TAG = "VaultService";
 const DB_NAME = "vault.db";
@@ -157,7 +156,7 @@ class VaultService {
       await this.#db.closeAsync();
       this.#db = null as unknown as ExpoSQL.SQLiteDatabase;
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Failed to clean up database:",
         error instanceof Error ? error.message : String(error),
@@ -240,7 +239,7 @@ class VaultService {
         await this.#migrateDB();
       }
     } catch (e) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Failed to initialize database schema",
         e instanceof Error ? e.message : String(e),
@@ -255,7 +254,7 @@ class VaultService {
       this.#db = await ExpoSQL.openDatabaseAsync(DB_NAME);
       await this._initDB();
     } catch (e) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Failed to initialize VaultService",
         e instanceof Error ? e.message : String(e),
@@ -301,7 +300,7 @@ class VaultService {
 
       return res;
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Failed to save encrypted file:",
         encryptedFileUri,
@@ -325,7 +324,7 @@ class VaultService {
       );
       return rows;
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Failed to get encrypted files for folder:",
         folderId,
@@ -361,7 +360,7 @@ class VaultService {
 
       res.success = result.changes > 0;
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Failed to delete encrypted file with uri:",
         uri,
@@ -395,7 +394,7 @@ class VaultService {
 
       res.success = result.changes >= 0;
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Failed to delete encrypted files in folder:",
         folderId,
@@ -424,7 +423,7 @@ class VaultService {
       result.success = true;
       result.changes = updateRes.changes;
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Failed to rename folder in db:",
         previousFolderId,
@@ -453,7 +452,7 @@ class VaultService {
       );
       result.success = true;
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Failed to move encrypted file:",
         previousUri,
@@ -481,7 +480,7 @@ class VaultService {
       ]);
       result.success = true;
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Failed to rename encrypted file:",
         previousUri,

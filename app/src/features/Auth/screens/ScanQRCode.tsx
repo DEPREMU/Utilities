@@ -2,16 +2,16 @@ import {
   ReconnectingWebSocket,
   OptionsReconnectingWS,
 } from "@/utils/reconnecting-websocket";
-import { URLS, logger, REPLACERS, navigation, storageManagement } from "@utils";
 import Button from "@components/Button/screens";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
-import { Helper, Timers } from "@common";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useStylesScanQRCode } from "@screens/Auth/styles/useStylesScanQRCode";
+import { Helper, Timers, REPLACERS } from "@common";
 import React, { useEffect, useRef, useState } from "react";
+import { URLS, navigation, storageManagement } from "@utils";
 import { BarcodeScanningResult, Camera, CameraView } from "expo-camera";
 import { LoginWithQRMobile, MessageWebSocketQRLogin, Screens } from "@types";
 
@@ -89,7 +89,7 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
 
         const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
         if (!token) {
-          logger.error("No session token available for QR login");
+          REPLACERS.Logger.error("No session token available for QR login");
           navigation.replace("Home");
           return;
         }
@@ -121,7 +121,7 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
           ws?.send(JSON.stringify(message));
           idTimeoutRef.current = Timers.setTimeout(
             () => {
-              logger.error("QR login error: timeout");
+              REPLACERS.Logger.error("QR login error: timeout");
               ws?.close();
               navigation.replace("Home");
             },
@@ -162,16 +162,16 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
             ws?.close();
             navigation.replace("Home");
           } catch (error) {
-            logger.error("Error parsing WebSocket message:", error);
+            REPLACERS.Logger.error("Error parsing WebSocket message:", error);
           }
         };
 
         ws.onError = (error) => {
-          logger.error("WebSocket error:", error);
+          REPLACERS.Logger.error("WebSocket error:", error);
           handleError();
         };
       } catch (error) {
-        logger.error("Error handling QR login:", error);
+        REPLACERS.Logger.error("Error handling QR login:", error);
       }
     };
 

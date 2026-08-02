@@ -1,11 +1,10 @@
 import {
-  logger,
   tTyped,
+  Timers,
   REPLACERS,
   deviceInfo,
   navigation,
   EventsDeviceInfo,
-  Timers,
 } from "@utils";
 import { reloadAppAsync } from "expo";
 import { BackgroundModule } from "@modules";
@@ -125,14 +124,14 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       while (!BackgroundModule.start && attempt < 5) {
         attempt++;
         await Timers.sleep(1000);
-        logger.log(
+        REPLACERS.Logger.log(
           `Waiting for BackgroundModule to be ready... Attempt ${attempt}`,
         );
       }
 
       if (!BackgroundModule.start) return reloadAppAsync();
 
-      BackgroundModule?.start?.(
+      BackgroundModule.start?.(
         tTyped("notifications.foregroundNotificationTitle"),
         tTyped("notifications.foregroundNotificationMessage"),
       );

@@ -9,24 +9,18 @@ import Animated, {
   FadeOutLeft,
   LinearTransition,
 } from "react-native-reanimated";
-import {
-  tTyped,
-  logger,
-  navigation,
-  Validations,
-  sessionManager,
-} from "@utils";
-import { Timers } from "@common";
 import { Screens } from "@types";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
 import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
+import { Timers, REPLACERS } from "@common";
 import { ActivityIndicator } from "react-native-paper";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import { Button, Divider, Text } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { tTyped, navigation, Validations, sessionManager } from "@utils";
 
 const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
   const { t } = useLanguage();
@@ -70,7 +64,7 @@ const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
 
         signingUpRef.current = false;
         setSigningUp(false);
-        logger.log("Sign up failed:", error, email);
+        REPLACERS.Logger.log("Sign up failed:", error, email);
         return;
       }
 

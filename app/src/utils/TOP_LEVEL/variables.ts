@@ -1,46 +1,6 @@
-import NetInfo from "@react-native-community/netinfo";
 import Constants from "expo-constants";
-import { Platform } from "react-native";
-import { Network, ServerFetch } from "@common";
-import { Colors, REPLACERS_TYPE } from "@types";
-
-const isDev: boolean = process.env.BUILD_PROFILE === "development";
-const isWeb: boolean = Platform.OS === "web";
-const isNative: boolean = !isWeb;
-const isPreview: boolean = process.env.BUILD_PROFILE === "preview";
-const isProduction: boolean = process.env.BUILD_PROFILE === "production";
-
-export const REPLACERS: Record<REPLACERS_TYPE, boolean> = {
-  isDev,
-  isWeb,
-  isNative,
-  isPreview,
-  isProduction,
-};
-
-NetInfo.configure({
-  reachabilityUrl: Network.URL_GOOGLE_204,
-  useNativeReachability: REPLACERS.isNative,
-});
-
-if (REPLACERS.isNative) import("./global.native");
-else if (REPLACERS.isWeb)
-  import("./modules/WindowModule").then(({ windowModule }) => {
-    (Network as { isOnline: () => Promise<boolean> }).isOnline =
-      windowModule.hasInternetConnection;
-  });
-
-const checkVariables = (): void => {
-  const NEEDED_VARIABLES = ["version", "WS_URL_BASE", "API_URL_BASE"];
-  for (const variable of NEEDED_VARIABLES) {
-    if (
-      !Constants.expoConfig?.extra ||
-      !(variable in Constants.expoConfig.extra)
-    ) {
-      throw new Error(`Missing required environment variable: ${variable}`);
-    }
-  }
-};
+import { Colors } from "@types";
+import { REPLACERS, ServerFetch } from "@common";
 
 const getLocalIP = () => {
   // eslint-disable-next-line no-console
@@ -66,13 +26,14 @@ const API_URL = REPLACERS.isProduction
   : REPLACERS.isWeb
     ? "http://localhost:3000/api"
     : `http://${ip}/api`;
+
+ServerFetch.API_URL = API_URL;
+
 const BASE_URL_WEB_SOCKET = REPLACERS.isProduction
   ? wsUrlFormatted
   : REPLACERS.isWeb
     ? "ws://localhost:3000"
     : `ws://${ip}`;
-
-ServerFetch.API_URL = API_URL;
 
 export const URLS = {
   ws: BASE_URL_WEB_SOCKET + "/ws",
@@ -93,19 +54,6 @@ export const PRODUCTION_URLS = REPLACERS.isDev
   : null;
 
 export const APP_VERSION = Constants.expoConfig?.extra?.version as string;
-
-if (REPLACERS.isDev) {
-  checkVariables();
-  // eslint-disable-next-line no-console
-  console.log(`
---------------------------------
-  App Constants:
-  APP_VERSION: ${Constants.expoConfig?.extra?.version}
-  WS_URL_BASE: ${Constants.expoConfig?.extra?.WS_URL_BASE}
-  API_URL_BASE: ${Constants.expoConfig?.extra?.API_URL_BASE}
-  REPLACERS: ${JSON.stringify(REPLACERS, null, 2)}
---------------------------------`);
-}
 
 export const colors = {
   light: {

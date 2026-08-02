@@ -1,11 +1,11 @@
 import PDF from "react-native-pdf";
 import { Image } from "react-native";
-import { Timers } from "@common";
 import * as PDFLib from "pdf-lib";
 import { randomUUID } from "react-native-quick-crypto";
 import { Directories } from "./Directories";
 import * as ExpoFileSystem from "expo-file-system";
 import { ImageManipulator } from "expo-image-manipulator";
+import { REPLACERS, Timers } from "@common";
 import { CreatePdfFromImages, PlatformData } from "./platform";
 
 export const ready = async () => {};
@@ -112,12 +112,7 @@ export const createPdfFromImages: CreatePdfFromImages = async (
       const imagePdf = await doc.embedJpg(await newFile.bytes());
       newPage.drawImage(imagePdf);
     } catch (error) {
-      const { logger } = await import("@/utils/functions/debug");
-      logger.error(
-        "PDF",
-        "error processing image for PDF",
-        (error as Error).message,
-      );
+      REPLACERS.Logger.error("PDF", "error processing image for PDF", error);
     }
   }
 

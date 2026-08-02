@@ -8,11 +8,11 @@ import {
 } from "react-native-paper";
 import Button from "@components/Button/screens";
 import { Screens } from "@types";
-import { Command } from "@common";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { windowModule } from "@modules";
-import { logger, storageManagement } from "@utils";
+import { storageManagement } from "@utils";
+import { Command, REPLACERS } from "@common";
 import { useStylesTerminalCommands } from "@screens/Web/TerminalCommands/styles";
 import { FlatList, View, ScrollView } from "react-native";
 import React, { useCallback, useRef, useState } from "react";
@@ -73,7 +73,7 @@ const TerminalCommands: React.FC<Screens["TerminalCommands"]> = () => {
           />,
         );
       } catch (error) {
-        logger.error("Error executing command:", error);
+        REPLACERS.Logger.error("Error executing command:", error);
         const message = error instanceof Error ? error.message : String(error);
 
         modalRef.openModal?.(

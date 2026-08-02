@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { openURL } from "expo-linking";
 import { modalRef } from "@/app/refs";
 import { GetStatesZustand } from "@types";
-import { ServerFetch, Timers, getValueState } from "@common";
-import { logger, tTyped, sessionManager, storageManagement } from "@utils";
+import { tTyped, sessionManager, storageManagement } from "@utils";
+import { REPLACERS, ServerFetch, Timers, getValueState } from "@common";
 
 type States = GetStatesZustand<{
   data: DB["TablesClient"]["DownDetector"][];
@@ -123,7 +123,7 @@ export const useDownDetector = create<States & Actions>((set, get) => {
     sync: async () => {
       const { sessionToken, userData } = sessionManager.getSessionData();
       if (!sessionToken || !userData?.userId)
-        return logger.error("No session token available");
+        return REPLACERS.Logger.error("No session token available");
 
       const deviceId = storageManagement.get("DEVICE_ID");
 
@@ -135,7 +135,10 @@ export const useDownDetector = create<States & Actions>((set, get) => {
         );
 
         if ("error" in res.data) {
-          logger.error("Error fetching downDetector data:", res.data.error);
+          REPLACERS.Logger.error(
+            "Error fetching downDetector data:",
+            res.data.error,
+          );
           return;
         }
 
@@ -153,7 +156,7 @@ export const useDownDetector = create<States & Actions>((set, get) => {
           );
         }
       } catch (error) {
-        logger.error("Error fetching downDetector data:", error);
+        REPLACERS.Logger.error("Error fetching downDetector data:", error);
       }
       const fallbackData = storageManagement.get("DOWN_DETECTOR_DATA");
       Timers.originalSetTimeout(
@@ -194,7 +197,10 @@ export const useDownDetector = create<States & Actions>((set, get) => {
       );
 
       if ("error" in res.data) {
-        logger.error("Error updating sendNotification status:", res.data.error);
+        REPLACERS.Logger.error(
+          "Error updating sendNotification status:",
+          res.data.error,
+        );
         return;
       }
 
@@ -207,7 +213,7 @@ export const useDownDetector = create<States & Actions>((set, get) => {
     },
 
     deleteItem: async (id) => {
-      if (!id) return logger.error("No ID provided for deletion");
+      if (!id) return REPLACERS.Logger.error("No ID provided for deletion");
 
       const { sessionToken, isLoggedIn } = sessionManager.getSessionData();
 
@@ -222,7 +228,10 @@ export const useDownDetector = create<States & Actions>((set, get) => {
       );
 
       if (res.data.error) {
-        logger.error("Error deleting downDetector item:", res.data.error);
+        REPLACERS.Logger.error(
+          "Error deleting downDetector item:",
+          res.data.error,
+        );
         return;
       }
 

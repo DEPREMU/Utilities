@@ -1,7 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import ExpoUpdates from "expo-updates";
-import { REPLACERS } from "@/utils/TOP_LEVEL";
+import { REPLACERS } from "@common";
 import { reloadAppAsync } from "expo";
 import { useStylesErrorScreen } from "../styles";
 import { Button, Text, ProgressBar } from "react-native-paper";

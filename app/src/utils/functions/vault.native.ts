@@ -1,9 +1,10 @@
 import {
   Timers,
+  Helper,
+  REPLACERS,
   URI_EXTENSION,
   EXTENSION_ENCRYPTED,
   getMimeTypeFromExtension,
-  Helper,
 } from "@common";
 import {
   ZipFile,
@@ -17,7 +18,6 @@ import {
   ClearDecryptedFolderDirectory,
 } from "@types";
 import * as ZIP from "react-native-zip-archive";
-import { logger } from "../functions/debug";
 import { Directories } from "../cross";
 import * as ExpoFileSystem from "expo-file-system";
 import { createThumbnail } from "react-native-create-thumbnail";
@@ -44,7 +44,7 @@ export const clearDecryptedFolderDirectory: ClearDecryptedFolderDirectory =
 
       outputDir.delete();
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         "DECRYPT",
         "Error clearing decrypted folder directory:",
         error instanceof Error ? error.message : error,
@@ -94,11 +94,7 @@ export const encryptFile = async (
     return success;
   } catch (error) {
     remove();
-    logger.error(
-      "ENCRYPT",
-      "Encryption failed:",
-      error instanceof Error ? error.message : error,
-    );
+    REPLACERS.Logger.error("ENCRYPT", "Encryption failed:", error);
 
     try {
       if (file?.exists) file.delete();
@@ -157,7 +153,7 @@ export const decryptFile = async (
     return success;
   } catch (error) {
     remove();
-    logger.error("DECRYPT", "Decryption failed:", (error as Error).message);
+    REPLACERS.Logger.error("DECRYPT", "Decryption failed:", error);
     if (outputFile?.exists) outputFile.delete();
 
     return false;
@@ -232,10 +228,10 @@ export const decryptFolderFiles: DecryptFolderFiles = async (
 
         await Timers.sleep(10);
       } catch (error) {
-        logger.error(
+        REPLACERS.Logger.error(
           "DECRYPT",
           `Error decrypting file ${file.name}:`,
-          error instanceof Error ? error.message : error,
+          error,
         );
         continue;
       }
@@ -243,7 +239,7 @@ export const decryptFolderFiles: DecryptFolderFiles = async (
 
     return decryptedFiles.filter((f): f is FolderFiles[number] => !!f);
   } catch (error) {
-    logger.error(
+    REPLACERS.Logger.error(
       "DECRYPT",
       "Error decrypting folder files:",
       error instanceof Error ? error.message : error,
@@ -280,10 +276,10 @@ export const actionWithVaultItem: ActionWithVaultItem = async (
 
     return { success: true };
   } catch (error) {
-    logger.error(
+    REPLACERS.Logger.error(
       "ACTION_VAULT_ITEM",
       `Error performing ${action} on vault item:`,
-      error instanceof Error ? error.message : error,
+      error,
     );
     return { success: false, error: "An error occurred." };
   }
@@ -299,10 +295,10 @@ export const renameVaultItem = async (
 
     return { success: true };
   } catch (error) {
-    logger.error(
+    REPLACERS.Logger.error(
       "RENAME_VAULT_ITEM",
       `Error renaming vault item:`,
-      error instanceof Error ? error.message : error,
+      error,
     );
     return { success: false, error: "An error occurred." };
   }
@@ -341,10 +337,10 @@ export const hasPasswordZIP: HasPasswordZIP = async (zipPath) => {
   try {
     return await ZIP.isPasswordProtected(zipPath);
   } catch (error) {
-    logger.error(
+    REPLACERS.Logger.error(
       "ZIP_INFO",
       "Error checking if ZIP has password:",
-      error instanceof Error ? error.message : error,
+      error,
     );
     return false;
   }
@@ -373,10 +369,10 @@ export const zipFile: ZipFile = async (files, onProgress, password, onZip) => {
 
       if (!destFile.exists) await file.copy(destFile);
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         "VAULT",
         `Error copying file ${f} to temp directory:`,
-        error instanceof Error ? error.message : error,
+        error,
       );
     }
   });
@@ -422,11 +418,7 @@ export const zipFile: ZipFile = async (files, onProgress, password, onZip) => {
 
     return path;
   } catch (error) {
-    logger.error(
-      "VAULT",
-      "Error getting ZIP file list:",
-      error instanceof Error ? error.message : error,
-    );
+    REPLACERS.Logger.error("VAULT", "Error getting ZIP file list:", error);
     return "";
   }
 };
@@ -466,10 +458,10 @@ export const unzipFile: UnzipFile = async (
     const files = new ExpoFileSystem.Directory(extractedPath).list();
     return files.map((f) => f.uri);
   } catch (error) {
-    logger.error(
+    REPLACERS.Logger.error(
       "UNZIP_LIST",
       "Error getting UNZIP file list:",
-      error instanceof Error ? error.message : error,
+      error,
     );
     return [];
   }
@@ -535,7 +527,7 @@ export const getImageFromVideo: GetImageFromVideo = async (videoUri) => {
     if (new ExpoFileSystem.File(thumbnail.path).exists) {
       return thumbnail.path;
     } else {
-      logger.error(
+      REPLACERS.Logger.error(
         "GET_IMAGE_FROM_VIDEO",
         "Thumbnail file does not exist after creation:",
         thumbnail,
@@ -543,10 +535,10 @@ export const getImageFromVideo: GetImageFromVideo = async (videoUri) => {
       return null;
     }
   } catch (error) {
-    logger.error(
+    REPLACERS.Logger.error(
       "GET_IMAGE_FROM_VIDEO",
       "Error getting image from video:",
-      error instanceof Error ? error.message : error,
+      error,
     );
     return null;
   }

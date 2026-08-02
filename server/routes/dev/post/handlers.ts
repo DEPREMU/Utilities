@@ -1,9 +1,8 @@
 import chalk from "chalk";
 import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/database/postgres.ts";
-import { REPLACERS } from "@/config.ts";
 import { ResponseDoQuery } from "@types";
-import { Logger, STATUS_RESPONSE, getHandlerPost } from "@common";
+import { Logger, STATUS_RESPONSE, getHandlerPost, REPLACERS } from "@common";
 
 export const handleExecuteQuery = getHandlerPost(
   "/dev",

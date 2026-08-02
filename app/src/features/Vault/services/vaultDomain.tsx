@@ -9,8 +9,6 @@ import {
 import {
   alerts,
   tTyped,
-  logger,
-  REPLACERS,
   navigation,
   encryptFile,
   ServiceClass,
@@ -28,7 +26,6 @@ import {
   clearDecryptedFolderDirectory,
 } from "@utils";
 import Button from "@components/Button/screens";
-import { Timers } from "@common";
 import { modalRef } from "@refs";
 import { cloneDeep } from "lodash";
 import { TextInput } from "react-native-paper";
@@ -37,6 +34,7 @@ import { ModalData } from "@screens/Vault/screens/VaultViewer";
 import * as FileSystem from "expo-file-system";
 import { windowModule } from "@modules";
 import * as DocumentPicker from "expo-document-picker";
+import { Timers, REPLACERS } from "@common";
 import { vaultServiceManager } from "@screens/Vault/services/vault";
 
 export type VaultData = {
@@ -230,7 +228,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
         clearDecryptedFolderDirectory();
       }
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Error initializing VaultDomainService:",
         (error as Error).message,
@@ -462,7 +460,10 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
 
         callback?.(true);
       } catch (error) {
-        logger.error("Error during authentication:", (error as Error).message);
+        REPLACERS.Logger.error(
+          "Error during authentication:",
+          (error as Error).message,
+        );
         callback?.(false);
       }
     },
@@ -540,7 +541,10 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
 
                 return pickedFile;
               } catch (error) {
-                logger.error("Error picking file:", (error as Error).message);
+                REPLACERS.Logger.error(
+                  "Error picking file:",
+                  (error as Error).message,
+                );
                 return null;
               }
             }),
@@ -551,7 +555,10 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
 
         return files;
       } catch (error) {
-        logger.error("Error picking files:", (error as Error).message);
+        REPLACERS.Logger.error(
+          "Error picking files:",
+          (error as Error).message,
+        );
         return "canceled";
       }
     },
@@ -667,7 +674,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
                 previous.filter((f) => f.uri !== file.uri),
               );
             } catch (error) {
-              logger.error(
+              REPLACERS.Logger.error(
                 "ENCRYPT",
                 "Error encrypting file:",
                 (error as Error).message,

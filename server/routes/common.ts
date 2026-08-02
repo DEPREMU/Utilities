@@ -1,18 +1,17 @@
+import {
+  Get,
+  Post,
+  Delete,
+  MethodsAPI,
+  GetRoutesGet,
+  GetRouterObj,
+  GetMainRouter,
+  GetRoutesPost,
+  GetRoutesDelete,
+} from "@types";
 import chalk from "chalk";
 import { Router } from "express";
-import { REPLACERS } from "@/config";
-import { Helper, Logger, Timers } from "@common";
-import {
-  Delete,
-  Get,
-  GetMainRouter,
-  GetRoutesDelete,
-  GetRoutesGet,
-  GetRoutesPost,
-  MethodsAPI,
-  Post,
-} from "@types";
-import { GetRouterObj } from "../../types/API/Helpers";
+import { Helper, Logger, Timers, REPLACERS } from "@common";
 
 const ROUTES: Record<
   string,

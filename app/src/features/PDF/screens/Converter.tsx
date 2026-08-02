@@ -10,14 +10,6 @@ import {
   GestureResponderEvent,
 } from "react-native";
 import {
-  logger,
-  PDFDoc,
-  memoDeep,
-  createPdfFromImages,
-  REPLACERS,
-  elapsedTime,
-} from "@utils";
-import {
   Menu,
   Text,
   Button,
@@ -27,15 +19,16 @@ import {
   ActivityIndicator,
 } from "react-native-paper";
 import Sortable from "react-native-sortables";
-import { Timers } from "@common";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesPDF } from "@screens/PDF/styles/useStylesPDF";
 import { cloneDeep, isNaN } from "lodash";
 import * as DirectoryPicker from "expo-document-picker";
+import { Timers, REPLACERS } from "@common";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useAnimatedRef } from "react-native-reanimated";
 import React, { useRef, useState, useCallback, useMemo } from "react";
+import { PDFDoc, memoDeep, elapsedTime, createPdfFromImages } from "@utils";
 
 type PaperSizes = keyof typeof PDFDoc.PageSizes | "CUSTOM" | "GET_FROM_IMAGE";
 
@@ -183,7 +176,11 @@ const PDFConverter: React.FC = () => {
         await result.cleanup();
       }
     } catch (error) {
-      logger.error("PDF", "error converting to PDF", (error as Error).message);
+      REPLACERS.Logger.error(
+        "PDF",
+        "error converting to PDF",
+        (error as Error).message,
+      );
     } finally {
       setProgress(0);
       setConverting(false);

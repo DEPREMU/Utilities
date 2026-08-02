@@ -1,6 +1,6 @@
 import path from "path";
-import { REPLACERS, serverPath } from "@/config.ts";
-import { Cryptos, CryptoEvents, File } from "@common";
+import { serverPath } from "@/config.ts";
+import { Cryptos, CryptoEvents, File, REPLACERS } from "@common";
 
 export const CRYPTOS_FILE_PATH = path.join(serverPath, "dev", "cryptos.json");
 

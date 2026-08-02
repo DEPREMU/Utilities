@@ -32,12 +32,7 @@ import ForgotPasswordScreen from "@screens/Auth/screens/ForgotPasswordScreen";
 import DownDetectorNavigator from "@screens/DownDetector/screens";
 import { NavigationContainer } from "@react-navigation/native";
 import { Screens as RootStackParamList, ScreensAvailable } from "@types";
-import {
-  REPLACERS,
-  setupNotificationHandlers,
-  navigation,
-  logger,
-} from "@utils";
+import { REPLACERS, navigation, setupNotificationHandlers } from "@utils";
 
 type Screens = {
   [K in ScreensAvailable]: {
@@ -145,7 +140,7 @@ const AppNavigator: React.FC = () => {
 
             navigation.replace("PDF", { uri });
           } catch (error) {
-            logger.error(
+            REPLACERS.Logger.error(
               "Error handling PDF URL:",
               error instanceof Error ? error.message : String(error),
             );

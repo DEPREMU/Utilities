@@ -1,6 +1,5 @@
-import { REPLACERS } from "../TOP_LEVEL";
-import { Timers, ServiceClass } from "@common";
 import { createNavigationContainerRef } from "@react-navigation/native";
+import { Timers, REPLACERS, ServiceClass } from "@common";
 import { GetParamsScreen, Screens, ScreensAvailable } from "@types";
 
 type ListenersNavigation = {
@@ -49,8 +48,6 @@ class Navigation extends ServiceClass<ListenersNavigation> {
   };
 
   override async _init(): Promise<void> {
-    const { logger } = await import("@utils");
-
     try {
       if (this.ref.isReady()) return;
 
@@ -60,7 +57,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
         await Timers.sleep(50 + attempts);
       }
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Navigation initialization failed:",
         error instanceof Error ? error.message : String(error),

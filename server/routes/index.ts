@@ -1,7 +1,6 @@
 import "../Notifications/index.ts";
 
 import { Router } from "express";
-import { REPLACERS } from "@/config.ts";
 import { ROUTER_AUTH } from "./auth/";
 import { ROUTER_LOGS } from "./logs/index.ts";
 import { ROUTER_INFO } from "./info/index.ts";
@@ -14,8 +13,8 @@ import { ROUTER_ENCRYPTION } from "./encryption/index.ts";
 import { ROUTER_CLIPBOARD } from "./clipboard/index.ts";
 import { ROUTER_USER_CONFIG } from "./userconfig/index.ts";
 import { ROUTER_DOWN_DETECTOR } from "./downdetector/index.ts";
-import { ROUTER_IMAGES, getMainRouter } from "@common";
 import { ROUTER_USER_NOTIFICATIONS_CONFIG } from "./usernotificationsconfig/index.ts";
+import { ROUTER_IMAGES, getMainRouter, REPLACERS } from "@common";
 
 const router = getMainRouter({
   "/dev": {

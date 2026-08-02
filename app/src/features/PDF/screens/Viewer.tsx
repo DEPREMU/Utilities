@@ -1,12 +1,5 @@
-import {
-  PDF,
-  logger,
-  memoDeep,
-  REPLACERS,
-  URI_EXTENSION,
-  sanitizeFileName,
-} from "@utils";
 import { View } from "react-native";
+import { REPLACERS } from "@common";
 import { usePDFStore } from "../services/zustand";
 import { useLanguage } from "@context/LanguageContext";
 import { useStylesPDF } from "@screens/PDF/styles/useStylesPDF";
@@ -14,6 +7,7 @@ import * as ExpoFileSystem from "expo-file-system";
 import { Button, Divider } from "react-native-paper";
 import * as DocumentPicker from "expo-document-picker";
 import React, { useCallback, useEffect } from "react";
+import { PDF, memoDeep, URI_EXTENSION, sanitizeFileName } from "@utils";
 
 const Viewer: React.FC = () => {
   const { t } = useLanguage();
@@ -48,7 +42,7 @@ const Viewer: React.FC = () => {
       return;
     const filename = uri.split("/").pop();
     if (!filename) {
-      logger.error("Failed to extract filename from URI:", uri);
+      REPLACERS.Logger.error("Failed to extract filename from URI:", uri);
       return;
     }
 

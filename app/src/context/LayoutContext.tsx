@@ -6,7 +6,7 @@ import React, {
   createContext,
 } from "react";
 import { useTheme } from "./ThemeContext";
-import { REPLACERS } from "@/utils/TOP_LEVEL";
+import { REPLACERS } from "@common";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TextStyle, View, ViewStyle, useWindowDimensions } from "react-native";
 

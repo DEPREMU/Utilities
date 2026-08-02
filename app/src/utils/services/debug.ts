@@ -1,6 +1,5 @@
-import { REPLACERS } from "../TOP_LEVEL";
 import { ResponseDebugAppAlive } from "@types";
-import { Timers, DEBUG_SETTINGS, ServiceClass } from "@common";
+import { Timers, REPLACERS, DEBUG_SETTINGS, ServiceClass } from "@common";
 
 type ListenersDebug = {
   appAliveCheck:
@@ -30,7 +29,7 @@ class Debug extends ServiceClass<ListenersDebug> {
   #appAliveCheck = {
     timer: 60 * 1000,
     func: async () => {
-      const { ServerFetch, getDevicePushToken, storageManagement, logger } =
+      const { ServerFetch, getDevicePushToken, storageManagement } =
         await import("@utils");
 
       const pushToken = await getDevicePushToken();
@@ -44,13 +43,13 @@ class Debug extends ServiceClass<ListenersDebug> {
             pushToken,
           },
         );
-        logger.log(TAG, "App alive check result:", res.data.success);
+        REPLACERS.Logger.log(TAG, "App alive check result:", res.data.success);
         this.emit("appAliveCheck", "result", {
           success: res.data.success,
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
-        logger.error(
+        REPLACERS.Logger.error(
           TAG,
           "Error occurred while checking app alive status:",
           error,
@@ -106,7 +105,7 @@ class Debug extends ServiceClass<ListenersDebug> {
   };
 
   override async _init(): Promise<void> {
-    const { storageManagement, logger } = await import("@utils");
+    const { storageManagement } = await import("@utils");
 
     try {
       await storageManagement.waitUntilInitialized();
@@ -118,7 +117,7 @@ class Debug extends ServiceClass<ListenersDebug> {
 
       await Promise.all([this._initAppAliveCheck()]);
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         "Error initializing Debug service",
         error instanceof Error ? error.message : String(error),
       );

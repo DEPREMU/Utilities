@@ -1,10 +1,9 @@
 import { alerts } from "../services/alerts";
 import { AppState } from "react-native";
-import { REPLACERS } from "../TOP_LEVEL";
 import * as Location from "expo-location";
 import { permissionsData } from "@refs";
-import { Permission, Timers } from "@common";
 import { NativeFunctionsModule } from "@modules";
+import { Timers, REPLACERS, Permission } from "@common";
 
 const TAG = "PERMISSIONS";
 
@@ -98,7 +97,7 @@ const askLocationPermission = async (
 };
 
 export const waitForAppToBeActive = async (): Promise<void> => {
-  const { logger, elapsedTime } = await import("@utils");
+  const { elapsedTime } = await import("@utils");
 
   await Timers.sleep(500);
 
@@ -109,7 +108,10 @@ export const waitForAppToBeActive = async (): Promise<void> => {
   while (step !== "done") {
     const { hasElapsed } = elapsedTime(startTime, 60000);
     if (hasElapsed) {
-      logger.warn(TAG, "User did not return to the app within 60 seconds.");
+      REPLACERS.Logger.warn(
+        TAG,
+        "User did not return to the app within 60 seconds.",
+      );
       break;
     }
 
@@ -149,8 +151,6 @@ const askDisplayOverOtherAppsPermission = async (
   )
     return;
 
-  const { logger } = await import("@utils");
-
   const granted = await alerts.showAlert(
     "permissions.overlayPermission",
     "permissions.overlayPermissionMessage",
@@ -165,10 +165,16 @@ const askDisplayOverOtherAppsPermission = async (
 
   const state = await NativeFunctionsModule.requestOverlayPermission();
   if (state === "NOT_AVAILABLE") {
-    logger.warn(TAG, "Overlay permission is not available on this device");
+    REPLACERS.Logger.warn(
+      TAG,
+      "Overlay permission is not available on this device",
+    );
     return;
   } else if (state === "NOT_NEEDED") {
-    logger.log(TAG, "Overlay permission is not needed on this device");
+    REPLACERS.Logger.log(
+      TAG,
+      "Overlay permission is not needed on this device",
+    );
     return;
   } else if (state === "SETTINGS_OPENED") {
     await waitForAppToBeActive();
@@ -276,8 +282,6 @@ const askAutoStartPermission = async (
 
   if (permissionsData.hasOverlayPermission) NativeFunctionsModule?.openApp?.();
 
-  const { logger } = await import("@utils");
-
   const accepted = await alerts.showAlert(
     "permissions.autoStartPermission",
     "permissions.autoStartPermissionMessage",
@@ -300,7 +304,7 @@ const askAutoStartPermission = async (
       doNotAskAgain: false,
     };
   } else {
-    logger.warn(
+    REPLACERS.Logger.warn(
       TAG,
       "Auto-start permission settings could not be opened for this device.",
       "State returned:",

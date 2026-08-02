@@ -1,10 +1,8 @@
 import { TAG } from "./common";
-import { Timers } from "@common";
-import { logger } from "@/utils/functions";
-import { REPLACERS } from "@/utils/TOP_LEVEL";
 import { DataClipboard } from "./data";
 import { sessionManager } from "../session";
 import * as ExpoClipboard from "expo-clipboard";
+import { Timers, REPLACERS } from "@common";
 import { EventClipboardNative } from "@types";
 import { deviceInfo, EventsDeviceInfo } from "../deviceInfo";
 import { BackgroundModule, windowModule } from "@/utils/modules";
@@ -126,7 +124,11 @@ export class ListenersClipboard extends DataClipboard {
 
       if (error instanceof Error && error.message.includes("denied")) return;
 
-      logger.error(TAG, "Error handling interval clipboard web", error);
+      REPLACERS.Logger.error(
+        TAG,
+        "Error handling interval clipboard web",
+        error,
+      );
     }
   };
 

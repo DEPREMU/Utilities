@@ -1,18 +1,18 @@
 import {
   memoDeep,
   navigation,
+  ServerFetch,
   languagesNames,
   sessionManager,
   storageManagement,
-  logger,
-  ServerFetch,
 } from "@utils";
 import { List } from "react-native-paper";
 import { useTheme } from "@context/ThemeContext";
+import { REPLACERS } from "@common";
+import { background } from "@/utils/services/background";
 import { useLanguage } from "@context/LanguageContext";
 import { LanguagesSupported } from "@types";
 import React, { useMemo, useRef } from "react";
-import { background } from "@/utils/services/background";
 
 const LanguagePicker: React.FC = () => {
   const { colors } = useTheme();
@@ -39,7 +39,7 @@ const LanguagePicker: React.FC = () => {
                 sessionToken,
               );
             } catch (error) {
-              logger.error("Error updating user config:", error);
+              REPLACERS.Logger.error("Error updating user config:", error);
             }
           },
         },

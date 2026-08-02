@@ -1,6 +1,5 @@
-import { Timers } from "@common";
-import { logger } from "../functions/debug";
 import type WebSocketType from "ws";
+import { Timers, REPLACERS } from "@common";
 
 type FunctionOnOpenMessage<T = string> = (
   instance: ReconnectingWebSocket<T>,
@@ -148,7 +147,7 @@ export class ReconnectingWebSocket<T = string> {
     if (this.#options.queueMessages && !doNotQueue) {
       this.#messagesQueue.push(msg);
     } else {
-      logger.warn(
+      REPLACERS.Logger.warn(
         TAG,
         "Cannot send message: WebSocket is not open. Message discarded:",
         msg.slice(0, 50) + (msg.length > 50 ? "..." : ""),
@@ -172,7 +171,7 @@ export class ReconnectingWebSocket<T = string> {
         }
 
         this.#pongSettings.timeoutId = Timers.setTimeout(() => {
-          logger.warn(
+          REPLACERS.Logger.warn(
             TAG,
             "Ping timeout: No pong response received within expected time.",
           );
@@ -216,7 +215,7 @@ export class ReconnectingWebSocket<T = string> {
             this.#options.maxRetries >= 0 &&
             this.#retries >= this.#options.maxRetries
           ) {
-            logger.warn(
+            REPLACERS.Logger.warn(
               TAG,
               "Maximum reconnection attempts reached. Stopping further attempts.",
             );
@@ -233,7 +232,11 @@ export class ReconnectingWebSocket<T = string> {
           this.#ws.onopen = async (event) => {
             if (!this.#ws) return;
 
-            logger.log(TAG, "WebSocket connection established:", this.#url);
+            REPLACERS.Logger.log(
+              TAG,
+              "WebSocket connection established:",
+              this.#url,
+            );
 
             this.#retries = 0;
             for (
@@ -262,7 +265,7 @@ export class ReconnectingWebSocket<T = string> {
           this.#ws.onclose = (event) => {
             if (!this.#ws) return;
 
-            logger.warn(
+            REPLACERS.Logger.warn(
               TAG,
               "WebSocket connection closed:",
               this.#url,
@@ -288,7 +291,7 @@ export class ReconnectingWebSocket<T = string> {
           this.#ws.onerror = (event) => {
             if (!this.#ws) return;
 
-            logger.error(
+            REPLACERS.Logger.error(
               TAG,
               "WebSocket error occurred:",
               this.#url,
@@ -332,7 +335,7 @@ export class ReconnectingWebSocket<T = string> {
           );
       }
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Error during WebSocket reconnection:",
         error instanceof Error ? error.message : String(error),
@@ -349,7 +352,7 @@ export class ReconnectingWebSocket<T = string> {
     this.#ws = null;
     this.#connected = false;
 
-    logger.log(
+    REPLACERS.Logger.log(
       TAG,
       "Closing WebSocket connection:",
       this.#url,

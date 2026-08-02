@@ -4,23 +4,22 @@ import {
   NativeFunctionsModule,
 } from "@modules";
 import {
-  Timers,
-  ServiceClass,
-  reasonNotification,
-  objByReasonNotification,
-} from "@common";
-import {
   ChannelsId,
   Notification,
   Notifications,
   ScreensAvailable,
   ReasonNotification,
 } from "@types";
-import { logger } from "../functions";
+import {
+  Timers,
+  REPLACERS,
+  ServiceClass,
+  reasonNotification,
+  objByReasonNotification,
+} from "@common";
 import { tTyped } from "../translates";
 import { modalRef } from "@refs";
 import { cloneDeep } from "lodash";
-import { REPLACERS } from "../TOP_LEVEL";
 import { navigation } from "./navigation";
 import * as DeviceInfo from "react-native-device-info";
 import * as notifications from "expo-notifications";
@@ -159,7 +158,7 @@ export const setupNotificationHandlers = () => {
 
   const foregroundListener = notifications.addNotificationReceivedListener(
     (notification) => {
-      logger.log(
+      REPLACERS.Logger.log(
         "Notification received in foreground:",
         notification.request.content,
       );
@@ -460,7 +459,7 @@ class NotificationsManager extends ServiceClass<never> {
 
           return String(notificationId);
         } catch (error) {
-          logger.error("Error sending native notification", error);
+          REPLACERS.Logger.error("Error sending native notification", error);
         }
       }
 
@@ -473,7 +472,7 @@ class NotificationsManager extends ServiceClass<never> {
         trigger: notification.trigger || null,
       });
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         "NOTIFICATIONS",
         "Error checking paused notifications",
         error,

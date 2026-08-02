@@ -5,12 +5,13 @@ import Animated, {
   FadeOutRight,
   LinearTransition,
 } from "react-native-reanimated";
+import { REPLACERS } from "@common";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import { ReconnectingWebSocket } from "@/utils/reconnecting-websocket";
 import { MessageWebSocketQRLogin } from "@types";
-import { URLS, logger, storageManagement } from "@utils";
+import { URLS, storageManagement } from "@utils";
 import React, { useEffect, useRef, useState } from "react";
 
 interface LoginTypeQRProps {
@@ -36,7 +37,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
   const handleCloseWebSocketRef = useRef((reason?: "timeout" | "error") => {
     if (!wsRef.current) return;
 
-    logger.log(
+    REPLACERS.Logger.log(
       TAG,
       "Closing QR login WebSocket connection with reason:",
       reason,
@@ -49,7 +50,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
     const deviceId = storageManagement.get("DEVICE_ID");
 
     const handleError = (message: string) => {
-      logger.error(message);
+      REPLACERS.Logger.error(message);
       handleCloseWebSocketRef.current();
       wsRef.current?.reconnect();
     };
@@ -94,7 +95,10 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
             break;
         }
       } catch (error) {
-        logger.error("Error parsing WebSocket message for QR login", error);
+        REPLACERS.Logger.error(
+          "Error parsing WebSocket message for QR login",
+          error,
+        );
         handleError(
           "Error parsing WebSocket message for QR login" +
             (error instanceof Error ? ": " + error.message : String(error)),

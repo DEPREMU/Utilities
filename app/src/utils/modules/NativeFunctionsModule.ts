@@ -1,4 +1,4 @@
-import { REPLACERS } from "../TOP_LEVEL";
+import { REPLACERS } from "@common";
 import type { TurboModule } from "react-native";
 import { DeviceEventEmitter, TurboModuleRegistry } from "react-native";
 

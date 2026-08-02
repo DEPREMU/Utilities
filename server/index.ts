@@ -7,7 +7,6 @@ import {
 import {
   host,
   port,
-  REPLACERS,
   executeFunctions,
   PATH_WEB_PATH_UPDATES,
 } from "./config.ts";
@@ -23,8 +22,8 @@ import compression from "compression";
 import { handleInitDB } from "./database/postgres.ts";
 import { WebSocketPathname } from "@types";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
-import { Logger, startMemoryMonitor } from "@common";
 import { validateServerEnv, getEnvValue } from "./env.ts";
+import { Logger, REPLACERS, startMemoryMonitor } from "@common";
 
 const app = express();
 

@@ -1,5 +1,5 @@
 import { cloneDeep } from "lodash";
-import { PERMISSIONS, PermissionsData } from "@common";
+import { PERMISSIONS, PermissionsData, REPLACERS } from "@common";
 
 const defaultData = {
   enabled: false,
@@ -53,8 +53,8 @@ const ensureDataIntegrity = (data: any): PermissionsData => {
   }
 
   if (!allKeysValid) {
-    import("@utils").then(({ logger, storageManagement }) => {
-      logger.warn(
+    import("@utils").then(({ storageManagement }) => {
+      REPLACERS.Logger.warn(
         "PERMISSIONS",
         "Data integrity issues found in permissions data. Resetting to default values.",
       );
@@ -68,8 +68,10 @@ const initPermissionsData = async () => {
   if (permissionsData.initialized) return;
   if (permissionsData.initializing) return permissionsData.initializing;
 
-  const [{ storageManagement, logger }, { NativeFunctionsModule }] =
-    await Promise.all([import("@utils"), import("@modules")]);
+  const [{ storageManagement }, { NativeFunctionsModule }] = await Promise.all([
+    import("@utils"),
+    import("@modules"),
+  ]);
 
   try {
     await storageManagement.waitUntilInitialized();
@@ -83,7 +85,7 @@ const initPermissionsData = async () => {
     permissionsData.hasOverlayPermission =
       await NativeFunctionsModule.checkOverlayPermission();
   } catch (error) {
-    logger.error(
+    REPLACERS.Logger.error(
       "PERMISSIONS",
       "Failed to initialize permissions data",
       error instanceof Error ? error.message : String(error),

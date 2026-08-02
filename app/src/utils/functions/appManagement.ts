@@ -7,10 +7,9 @@ import {
 import React from "react";
 import isEqual from "react-fast-compare";
 import { Alert } from "react-native";
-import { logger } from "./debug";
 import { tTyped } from "../translates";
 import * as Sharing from "expo-sharing";
-import { REPLACERS } from "../TOP_LEVEL";
+import { REPLACERS } from "@common";
 import * as Localization from "expo-localization";
 import * as DocumentPicker from "expo-document-picker";
 import { Directory, File, Paths } from "expo-file-system";
@@ -184,9 +183,9 @@ export const selectImage = async (
         }),
       );
 
-    logger.log("Image selection was canceled.");
+    REPLACERS.Logger.log("Image selection was canceled.");
   } catch (error) {
-    logger.error("Error selecting image:", error);
+    REPLACERS.Logger.error("Error selecting image:", error);
   }
   return { canceled: true };
 };
@@ -292,15 +291,14 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
 
     const file = new File(destination, options.fileName);
 
-    wrapFunctionWithError(
-      async () => {
-        file.create({
-          overwrite: true,
-          intermediates: true,
-        });
-      },
-      async (_, errMsg) => logger.error("Error creating file:", errMsg),
-    );
+    try {
+      file.create({
+        overwrite: true,
+        intermediates: true,
+      });
+    } catch (error) {
+      REPLACERS.Logger.error("Error creating file:", error);
+    }
     file.write(base64, { encoding: "base64" });
 
     if (
@@ -346,7 +344,7 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
           return { success: true, uri: directory.uri.split("//")[1] };
         },
         async (_, errMsg) => {
-          logger.error("Error saving file:", errMsg);
+          REPLACERS.Logger.error("Error saving file:", errMsg);
           return { success: false, uri: tTyped("labels.noDirectorySelected") };
         },
       );
@@ -392,7 +390,7 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
       }),
     );
   } catch (error) {
-    logger.error("Error downloading image:", error);
+    REPLACERS.Logger.error("Error downloading image:", error);
     Alert.alert(
       tTyped("images.errorWhileSavingImageAlertTitle"),
       tTyped("images.errorWhileSavingImageAlertMessage", {

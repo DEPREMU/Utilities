@@ -6,7 +6,6 @@ import {
   ResponseChangeImageFormat,
 } from "@types";
 import {
-  logger,
   tTyped,
   REPLACERS,
   selectImage,
@@ -73,7 +72,7 @@ const getDataChangeImageFormat = async (
 
     return res.data;
   } catch (error) {
-    logger.error("Error in getDataChangeImageFormat:", error);
+    REPLACERS.Logger.error("Error in getDataChangeImageFormat:", error);
     return {
       error: tTyped("images.errorWhileConvertingImageMessage"),
       success: false,
@@ -126,15 +125,20 @@ export const useImagesStore = create<States & Actions>()((set, get) => {
           directory: "images",
         });
 
-        logger.log("Image saved:", image.name);
+        REPLACERS.Logger.log("Image saved:", image.name);
         modalRef.openSnackBar?.(tTyped("images.downloadImageSuccessMessage"));
       } catch (error) {
-        logger.error("Failed to download image:", error);
+        REPLACERS.Logger.error("Failed to download image:", error);
       }
     },
 
     changeImageFormat: async (image, format) => {
-      logger.log("Changing format for image:", image.name, "to", format);
+      REPLACERS.Logger.log(
+        "Changing format for image:",
+        image.name,
+        "to",
+        format,
+      );
       set((prev) => ({
         converting: [...prev.converting, image.uri],
       }));
@@ -149,7 +153,10 @@ export const useImagesStore = create<States & Actions>()((set, get) => {
       }));
 
       if (!data) {
-        logger.error("Failed to change image format, data fetched:", data);
+        REPLACERS.Logger.error(
+          "Failed to change image format, data fetched:",
+          data,
+        );
         return;
       }
 
@@ -183,7 +190,7 @@ export const useImagesStore = create<States & Actions>()((set, get) => {
         base64: true,
       });
       if (!Array.isArray(selectedImages) || selectedImages.length === 0) {
-        logger.error("Image selection was canceled or failed.");
+        REPLACERS.Logger.error("Image selection was canceled or failed.");
         return;
       }
 

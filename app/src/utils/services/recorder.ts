@@ -1,5 +1,6 @@
 import {
   Timers,
+  REPLACERS,
   ServiceClass,
   wrapFunctionWithError,
   ExpectedUnsecureStorageTypes,
@@ -19,7 +20,7 @@ import { storageManagement } from "./storage";
 import { NotificationAction } from "@types";
 import { notificationsManager } from "./notifications";
 import { Directory, File, Paths } from "expo-file-system";
-import { logger, areEqualValues, downloadBase64 } from "../functions";
+import { areEqualValues, downloadBase64 } from "../functions";
 
 type RecorderData = Exclude<
   ExpectedUnsecureStorageTypes["RECORDER_DATA"],
@@ -118,7 +119,7 @@ const createAudioPlayer = ({ uri = "" }: { uri?: string }): AudioPlayer => {
       audioBuffer = decoded;
     } catch (error) {
       if (!disposed)
-        logger.error(
+        REPLACERS.Logger.error(
           "RECORDER",
           "Error loading audio buffer:",
           error instanceof Error ? error.message : String(error),
@@ -439,7 +440,11 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
         return newFile.uri;
       },
       async (_: unknown, errorMsg: string) => {
-        logger.error("RECORDER", "Error moving recording file:", errorMsg);
+        REPLACERS.Logger.error(
+          "RECORDER",
+          "Error moving recording file:",
+          errorMsg,
+        );
         return uri;
       },
     );
@@ -571,7 +576,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
       this.setStatusMessage(tTyped("recorder.dataLoaded"));
       this.initPlayerInterval();
     } catch (error) {
-      logger.error(
+      REPLACERS.Logger.error(
         TAG,
         "Error during initialization:",
         error instanceof Error ? error.message : String(error),
@@ -605,7 +610,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
         try {
           await startWithFreshRecorder();
         } catch (error) {
-          logger.error(
+          REPLACERS.Logger.error(
             "RECORDER",
             error instanceof Error ? error : String(error),
           );
@@ -632,7 +637,11 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
         await this.updateRecordingNotification(false);
       },
       async (_, errorMsg) => {
-        logger.error("RECORDER", "Error starting recording:", errorMsg);
+        REPLACERS.Logger.error(
+          "RECORDER",
+          "Error starting recording:",
+          errorMsg,
+        );
         modalRef.openSnackBar?.(
           tTyped("recorder.failedToInitialize", { message: errorMsg }),
         );
@@ -717,7 +726,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
           message: (error as Error).message,
         }),
       );
-      logger.error("RECORDER", "Error stopping recording:", error);
+      REPLACERS.Logger.error("RECORDER", "Error stopping recording:", error);
     } finally {
       this.#isStopping = false;
       this.releaseRecorder();

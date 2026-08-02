@@ -1,8 +1,8 @@
+import { APP_VERSION } from "../TOP_LEVEL";
 import * as ExpoUpdates from "expo-updates";
 import { EventsDeviceInfo } from "./deviceInfo";
 import { EventEmitterService } from "@types";
-import { APP_VERSION, REPLACERS } from "../TOP_LEVEL";
-import { Timers, Network, ServiceClass } from "@common";
+import { Timers, Network, REPLACERS, ServiceClass } from "@common";
 
 type CheckUpdatesNatively = {
   time: number;
@@ -91,8 +91,7 @@ class Updates extends ServiceClass<never> {
         }
         return true;
       } catch (error) {
-        const { logger } = await import("@utils");
-        logger.error("Error while updating the app", error);
+        REPLACERS.Logger.error("Error while updating the app", error);
       }
 
       return false;
@@ -138,8 +137,7 @@ class Updates extends ServiceClass<never> {
 
       return true;
     } catch (error) {
-      const { logger } = await import("@utils");
-      logger.error(
+      REPLACERS.Logger.error(
         "Error while updating the app with Expo Updates",
         error instanceof Error ? error.message : String(error),
       );

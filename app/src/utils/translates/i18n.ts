@@ -8,7 +8,7 @@ import i18n from "i18next";
 import * as Localization from "expo-localization";
 import { initReactI18next } from "react-i18next";
 import { storageManagement } from "../services/storage";
-import { enApp, esApp, languagesSupported } from "@common";
+import { enApp, esApp, languagesSupported, REPLACERS } from "@common";
 
 i18n.use(initReactI18next).init({
   lng: "en",
@@ -63,11 +63,10 @@ export const getLanguageFromDevice = (): LanguagesSupported => {
     }
     return "en";
   } catch (error) {
-    import("@utils").then(({ logger }) => {
-      logger.error(
-        `getLanguageFromDevice() => ${error instanceof Error ? error.message : String(error)}`,
-      );
-    });
+    REPLACERS.Logger.error(
+      `getLanguageFromDevice() => ${error instanceof Error ? error.message : String(error)}`,
+    );
+
     return "en";
   }
 };
@@ -99,11 +98,8 @@ const configureLanguage = async () => {
 
     await i18n.changeLanguage(lng);
   } catch (error) {
-    const [{ logger }] = await Promise.all([
-      import("../functions"),
-      i18n.changeLanguage("en"),
-    ]);
-    logger.error?.(
+    await i18n.changeLanguage("en");
+    REPLACERS.Logger.error?.(
       "Error configuring language:",
       error instanceof Error ? error.message : String(error),
     );

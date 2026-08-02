@@ -1,6 +1,5 @@
 import {
   ASSETS,
-  logger,
   openURL,
   tTyped,
   deviceInfo,
@@ -14,7 +13,7 @@ import { capitalize } from "lodash";
 import { useLanguage } from "@context/LanguageContext";
 import { View, ScrollView } from "react-native";
 import { useStylesStreamers } from "@screens/SocialMedia/styles/useStylesStreamers";
-import { ServerFetch, Timers } from "@common";
+import { Timers, REPLACERS, ServerFetch } from "@common";
 import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -44,7 +43,7 @@ const Streamers: React.FC = () => {
     const { error } = res.data || { error: "Unknown error" };
 
     if (error) {
-      logger.error(error);
+      REPLACERS.Logger.error(error);
       modalRef.openModal?.(
         tTyped("common.error"),
         tTyped("common.errorOccurred", { error }),
@@ -165,7 +164,10 @@ const Streamers: React.FC = () => {
           sessionToken,
         );
       } catch (error) {
-        logger.error("Error updating user notifications config:", error);
+        REPLACERS.Logger.error(
+          "Error updating user notifications config:",
+          error,
+        );
       }
     },
   );
@@ -208,11 +210,11 @@ const Streamers: React.FC = () => {
       const data = res.data;
 
       if (!data || data.error) {
-        logger.error(data?.error || "Unknown error adding streamer");
+        REPLACERS.Logger.error(data?.error || "Unknown error adding streamer");
         return;
       }
       if (!data.streamer) {
-        logger.error("Failed to add streamer");
+        REPLACERS.Logger.error("Failed to add streamer");
         return;
       }
 
@@ -229,7 +231,7 @@ const Streamers: React.FC = () => {
         });
       }
     } catch (error) {
-      logger.error(error);
+      REPLACERS.Logger.error(error);
       return;
     }
 
@@ -290,7 +292,7 @@ const Streamers: React.FC = () => {
         };
 
         if (error) {
-          logger.error(error);
+          REPLACERS.Logger.error(error);
           modalRef.openModal?.(
             tTyped("common.error"),
             tTyped("streamers.errorLoadingStreamers"),
@@ -324,7 +326,7 @@ const Streamers: React.FC = () => {
         setStreamers(data);
         storageManagement.save("STREAMERS", data);
       } catch (error) {
-        logger.error(error);
+        REPLACERS.Logger.error(error);
       }
     };
 

@@ -1,4 +1,4 @@
-import { REPLACERS } from "../TOP_LEVEL";
+import { REPLACERS } from "@common";
 import { ClipboardItem } from "@types";
 import { TurboModule, TurboModuleRegistry } from "react-native";
 

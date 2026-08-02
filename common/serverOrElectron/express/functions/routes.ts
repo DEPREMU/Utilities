@@ -14,8 +14,7 @@ import type {
 import chalk from "chalk";
 import { Router } from "express";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
-import { REPLACERS } from "@commonSrc/serverOrElectron/utils";
-import { Helper, Timers } from "@commonSrc/both";
+import { Helper, Timers, REPLACERS } from "@commonSrc/both";
 
 const ROUTES: Record<
   string,

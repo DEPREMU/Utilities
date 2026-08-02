@@ -1,6 +1,5 @@
-import { logger } from "@/utils/functions";
-import { ServerFetch, ServiceClass } from "@common";
 import { ClipboardItem } from "@types";
+import { REPLACERS, ServerFetch, ServiceClass } from "@common";
 
 type ListenersClipboard = {
   "items-updated": (items: ClipboardItem[]) => void;
@@ -32,7 +31,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
 
       return !res.data.error;
     } catch (error) {
-      logger.error("Error deleting clipboard item:", error);
+      REPLACERS.Logger.error("Error deleting clipboard item:", error);
 
       return false;
     }
@@ -54,7 +53,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
 
       return !res.data.error;
     } catch (error) {
-      logger.error("Error deleting all clipboard items:", error);
+      REPLACERS.Logger.error("Error deleting all clipboard items:", error);
       return false;
     }
   };
@@ -83,7 +82,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
 
       return res.data;
     } catch (error) {
-      logger.error("Error fetching clipboard items:", error);
+      REPLACERS.Logger.error("Error fetching clipboard items:", error);
     }
   };
 }

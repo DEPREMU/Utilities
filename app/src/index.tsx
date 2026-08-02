@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
+import "@/utils/TOP_LEVEL";
 import { registerRootComponent } from "expo";
 
 try {
-  const App = require("./app/App")
-    .default as typeof import("./app/App").default;
+  const App = require("@/app/App")
+    .default as typeof import("@/app/App").default;
 
   registerRootComponent(App);
 } catch (error) {

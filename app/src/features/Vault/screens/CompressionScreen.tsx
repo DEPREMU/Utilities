@@ -9,12 +9,13 @@ import {
 import { View } from "react-native";
 import { modalRef } from "@refs";
 import { useVault } from "@screens/Vault/context/VaultContext";
+import { REPLACERS } from "@common";
 import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import { windowModule } from "@modules";
 import { useStylesVaultScreen } from "../styles/useStylesVaultScreen";
+import { FolderFiles, tTyped, zipFile } from "@utils";
 import React, { useCallback, useMemo, useState } from "react";
-import { FolderFiles, logger, REPLACERS, tTyped, zipFile } from "@utils";
 
 const getFileSelectionKey = (item: FolderFiles[number]) => {
   return item.originalUri || item.uri;
@@ -104,7 +105,7 @@ const CompressionScreen: React.FC = () => {
           setProgress(progressPercent / 100);
         },
         (error) => {
-          logger.error("VAULT", "Error zipping folder:", error);
+          REPLACERS.Logger.error("VAULT", "Error zipping folder:", error);
         },
       );
     } else {
@@ -119,7 +120,7 @@ const CompressionScreen: React.FC = () => {
             });
             deleteTempFile();
           } catch (error) {
-            logger.error("SHARE", "Error sharing zip file:", error);
+            REPLACERS.Logger.error("SHARE", "Error sharing zip file:", error);
           }
         },
       );

@@ -1,6 +1,7 @@
 import {
   Timers,
   Helper,
+  REPLACERS,
   isSecureKey,
   ServiceClass,
   ALL_KEYS_STORAGE,
@@ -14,7 +15,6 @@ import {
 } from "@common";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { cloneDeep } from "lodash";
-import { REPLACERS } from "../TOP_LEVEL";
 import { windowModule } from "@modules";
 import * as SecureStore from "expo-secure-store";
 import { reloadAppAsync } from "expo";
@@ -123,9 +123,7 @@ const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
     const callback = args?.[1]; // [value, callback]
     if (typeof callback === "function") return callback(err, errMsg);
 
-    import("@utils").then(({ logger }) => {
-      logger.error(`saveDataStorage("${keyStorage}") => ${errMsg}`);
-    });
+    REPLACERS.Logger.error(`saveDataStorage("${keyStorage}") => ${errMsg}`);
   },
 );
 
@@ -171,9 +169,8 @@ const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
     if (typeof arg === "function") return arg(null, err, errMsg);
     if (keyStorage === "DEVICE_ID" && !REPLACERS.isDev) reloadAppAsync();
 
-    import("@utils").then(({ logger }) => {
-      logger.error(`loadDataStorage("${keyStorage}") => ${errMsg}`);
-    });
+    REPLACERS.Logger.error(`loadDataStorage("${keyStorage}") => ${errMsg}`);
+
     if (typeof arg !== "undefined") return arg;
     return null;
   },
@@ -225,9 +222,7 @@ const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
     const errCallback = args?.[0];
     if (typeof errCallback === "function") return errCallback(err, errMsg);
 
-    import("@utils").then(({ logger }) => {
-      logger.error(`removeDataStorage("${keyStorage}") => ${errMsg}`);
-    });
+    REPLACERS.Logger.error(`removeDataStorage("${keyStorage}") => ${errMsg}`);
   },
 );
 
@@ -263,9 +258,7 @@ const cleanAllStorageData = wrapFunctionWithError(
   },
   true,
   async (_, errMsg) => {
-    import("@utils").then(({ logger }) => {
-      logger.error(`cleanAllStorageData() => ${errMsg}`);
-    });
+    REPLACERS.Logger.error(`cleanAllStorageData() => ${errMsg}`);
   },
 );
 
@@ -295,15 +288,17 @@ class StorageManagement extends ServiceClass<never> {
         if (hasElapsed) break;
       }
     } catch (error) {
-      import("@utils").then(({ logger }) => {
-        logger.error("StorageManagement", "Initialization error:", error);
-      });
+      REPLACERS.Logger.error(
+        "StorageManagement",
+        "Initialization error:",
+        error,
+      );
     }
   }
 
   #data = {} as ExpectedStorageTypes<"BOTH">;
   #loadData = async () => {
-    const { ready, getRandomUUID, logger } = await import("@utils");
+    const { ready, getRandomUUID } = await import("@utils");
 
     try {
       await ready();
@@ -324,7 +319,7 @@ class StorageManagement extends ServiceClass<never> {
             },
             true,
             async (_, errMsg, key) => {
-              logger.error(
+              REPLACERS.Logger.error(
                 "STORAGE",
                 `#loadData() => loadDataStorage("${key}") => ` + errMsg,
               );
@@ -336,7 +331,7 @@ class StorageManagement extends ServiceClass<never> {
 
       this.#data = data as ExpectedStorageTypes<"BOTH">;
     } catch (e) {
-      logger.error("STORAGE", "Failed to load storage data.", e);
+      REPLACERS.Logger.error("STORAGE", "Failed to load storage data.", e);
       if (!REPLACERS.isDev) reloadAppAsync("Failed to load storage data.");
     }
   };
@@ -414,9 +409,10 @@ class StorageManagement extends ServiceClass<never> {
         return;
       }
 
-      import("@utils").then(({ logger }) => {
-        logger.error(`STORAGE`, `saveDataStorage("${key}") => ` + errMsg);
-      });
+      REPLACERS.Logger.error(
+        `STORAGE`,
+        `saveDataStorage("${key}") => ` + errMsg,
+      );
     });
   };
 
@@ -452,9 +448,10 @@ class StorageManagement extends ServiceClass<never> {
         this.#data[key as "USER_DATA"] = null;
         return;
       }
-      import("@utils").then(({ logger }) => {
-        logger.error(`STORAGE`, `removeDataStorage("${key}") => ` + errMsg);
-      });
+      REPLACERS.Logger.error(
+        `STORAGE`,
+        `removeDataStorage("${key}") => ` + errMsg,
+      );
     });
   };
 

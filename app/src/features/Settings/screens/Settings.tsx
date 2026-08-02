@@ -2,11 +2,9 @@ import {
   URLS,
   debug,
   alerts,
-  logger,
   openURL,
   updates,
   memoDeep,
-  REPLACERS,
   deviceInfo,
   navigation,
   APP_VERSION,
@@ -18,9 +16,9 @@ import {
   getDevicePushToken,
 } from "@utils";
 import Button from "@components/Button/screens";
-import { ServerFetch, Timers } from "@common";
 import ThemePicker from "@screens/Settings/components/ThemePicker";
 import { cloneDeep } from "lodash";
+import { background } from "@/utils/services/background";
 import LanguagePicker from "@screens/Settings/components/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
@@ -28,9 +26,9 @@ import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
 import { AppTranslationsKeys } from "@types";
 import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
+import { Timers, REPLACERS, ServerFetch } from "@common";
 import { ActivityIndicator, Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { background } from "@/utils/services/background";
 
 type Section = {
   subtitle: AppTranslationsKeys;
@@ -169,7 +167,7 @@ const SettingsScreen: React.FC = () => {
 
   const openUrlUpdatesWebPageRef = useRef(async () => {
     const updatesWebPageUrl = URLS.api.replace("api", "updates/web-page");
-    logger.log("Opening updates web page URL:", updatesWebPageUrl);
+    REPLACERS.Logger.log("Opening updates web page URL:", updatesWebPageUrl);
     openURL(updatesWebPageUrl);
   });
 
@@ -215,7 +213,7 @@ const SettingsScreen: React.FC = () => {
         setError(res.data.error);
       }
     } catch (error) {
-      logger.error("Error checking admin password:", error);
+      REPLACERS.Logger.error("Error checking admin password:", error);
 
       setError((error as Error).message);
     }
@@ -247,7 +245,7 @@ const SettingsScreen: React.FC = () => {
 
             if (res.data.success) storageManagement.save("API_URL", apiURL);
           } catch (error) {
-            logger.error("Error updating user config:", error);
+            REPLACERS.Logger.error("Error updating user config:", error);
           }
         },
       },
@@ -283,7 +281,7 @@ const SettingsScreen: React.FC = () => {
             if (res.data.success)
               storageManagement.save("WEBSOCKET_URL", socketURL);
           } catch (error) {
-            logger.error("Error updating user config:", error);
+            REPLACERS.Logger.error("Error updating user config:", error);
           }
         },
       },

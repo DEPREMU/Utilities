@@ -23,15 +23,6 @@ import Animated, {
   FadeOutLeft,
   LinearTransition,
 } from "react-native-reanimated";
-import {
-  logger,
-  tTyped,
-  REPLACERS,
-  navigation,
-  Validations,
-  sessionManager,
-} from "@utils";
-import { Timers } from "@common";
 import { Screens } from "@types";
 import LoginTypeQR from "@screens/Auth/components/LoginTypeQR";
 import { modalRef } from "@refs";
@@ -39,7 +30,9 @@ import { useLanguage } from "@context/LanguageContext";
 import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
 import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
+import { Timers, REPLACERS } from "@common";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
+import { tTyped, navigation, Validations, sessionManager } from "@utils";
 
 const LoginScreen: React.FC<Screens["Login"]> = () => {
   const { t } = useLanguage();
@@ -96,7 +89,7 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
       if (error) {
         setErrorMessage.current(error || "Login failed");
         setLoggingIn(false);
-        logger.error("AUTH", "Login failed:", error, email);
+        REPLACERS.Logger.error("AUTH", "Login failed:", error, email);
         return;
       }
 

@@ -1,5 +1,4 @@
-import { ServerFetch } from "@common";
-import { logger } from "../debug";
+import { REPLACERS, ServerFetch } from "@common";
 
 export const translate = async (
   text: string,
@@ -14,7 +13,7 @@ export const translate = async (
     });
 
     if (!res.ok || res.data.error) {
-      logger.error(
+      REPLACERS.Logger.error(
         `Error while translating: ${res.data.error || "Unknown error"}`,
       );
       return `Error: ${res.data.error || "Unknown error"}`;

@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import { Env } from "@types";
-import { Logger } from "@common";
+import { Logger, REPLACERS } from "@common";
 
 dotenv.config({ path: "../.env" });
 
@@ -60,9 +60,9 @@ const trueArray = new Set(["true", "1", "yes", "on"]);
 
 const envTranslated: Env<true> = {
   IV: env.IV,
-  __DEV__: trueArray.has(env.__DEV__) && process.env.NODE_ENV !== "production",
   WS_URL: env.WS_URL,
   API_URL: env.API_URL,
+  __DEV__: REPLACERS.isDev,
   USE_HTTPS: trueArray.has(env.USE_HTTPS),
   JWT_SECRET: env.JWT_SECRET,
   ADMIN_EMAIL: env.ADMIN_EMAIL,

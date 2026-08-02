@@ -10,17 +10,17 @@ import Animated, {
   useSharedValue,
   LinearTransition,
 } from "react-native-reanimated";
-import { Timers } from "@common";
 import { Screens } from "@types";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import EmailAndPassword from "../components/EmailAndPassword";
 import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
+import { Timers, REPLACERS } from "@common";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import { Button, Divider, Text } from "react-native-paper";
 import React, { useRef, useState } from "react";
-import { logger, navigation, Validations } from "@utils";
+import { navigation, Validations } from "@utils";
 
 const ForgotPasswordScreen: React.FC<Screens["forgotPassword"]> = () => {
   const { t } = useLanguage();
@@ -63,7 +63,8 @@ const ForgotPasswordScreen: React.FC<Screens["forgotPassword"]> = () => {
 
         setEmailSent(false);
         setSendingEmail(false);
-        return logger.log("Sign up failed:", error, email);
+        REPLACERS.Logger.log("Sign up failed:", error, email);
+        return;
       }
 
       setSendingEmail(false);

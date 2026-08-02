@@ -1,5 +1,4 @@
-import { logger } from "../functions";
-import { Network } from "@common";
+import { Network, REPLACERS } from "@common";
 import { EventEmitterService, Function } from "@types";
 
 type Task<T extends unknown[] = unknown[]> = {
@@ -56,7 +55,7 @@ class Background {
         this.#tasks.set("internet", []);
       }
     } catch (error) {
-      logger.error("Error executing background tasks:", error);
+      REPLACERS.Logger.error("Error executing background tasks:", error);
     } finally {
       this.#executing = false;
     }

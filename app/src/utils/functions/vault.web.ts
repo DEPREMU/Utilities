@@ -1,4 +1,4 @@
-import { logger } from "./debug";
+import { REPLACERS } from "@common";
 import { windowModule } from "@modules";
 import { FetchFileInfo } from "@types";
 
@@ -8,7 +8,7 @@ export const fetchFileInfo: FetchFileInfo = async (filePath) => {
 
     return fileInfo;
   } catch (error) {
-    logger.error(
+    REPLACERS.Logger.error(
       "VAULT",
       "Error fetching file info:",
       (error as Error)?.message || error,

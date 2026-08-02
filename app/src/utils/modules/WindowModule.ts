@@ -1,4 +1,4 @@
-import { REPLACERS } from "../TOP_LEVEL";
+import { REPLACERS } from "@common";
 import { ContextBridgeType } from "@types";
 
 const voidFunction = () => {};

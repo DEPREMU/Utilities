@@ -1,10 +1,9 @@
 import path from "path";
 import chalk from "chalk";
 import { spawn } from "child_process";
-import { REPLACERS } from "@/config.ts";
 import { getEnvValue } from "@/env.ts";
-import { Directory, File, Logger, Task } from "@common";
 import { getDbConfig } from "../functions";
+import { Directory, REPLACERS, Logger, Task, File } from "@common";
 
 const backupPath = path.join(path.resolve("."), "database", "backups");
 const timeIntervalBackup = 1 * 60 * 60 * 1000;

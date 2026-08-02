@@ -15,12 +15,21 @@ export * from "./typesNotifications";
 export * from "./typesNativeModules";
 export * from "./typesUtilitiesForPC";
 
-export type REPLACERS_TYPE =
-  | "isDev"
-  | "isWeb"
-  | "isNative"
-  | "isPreview"
-  | "isProduction";
+export type Logger = {
+  log: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+};
+
+export type REPLACERS_TYPE = {
+  isDev: boolean;
+  isWeb: boolean;
+  Logger: Logger;
+  isNative: boolean;
+  isPreview: boolean;
+  isProduction: boolean;
+  isProduction: boolean;
+};
 
 export type Colors =
   | "info"
