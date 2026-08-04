@@ -4,12 +4,6 @@ import {
   initWebSocketClipboard,
   initWebSocketLoginQRCode,
 } from "./websocket/index.ts";
-import {
-  host,
-  port,
-  executeFunctions,
-  PATH_WEB_PATH_UPDATES,
-} from "./config.ts";
 import cors from "cors";
 import http from "http";
 import chalk from "chalk";
@@ -24,6 +18,7 @@ import { WebSocketPathname } from "@types";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
 import { validateServerEnv, getEnvValue } from "./env.ts";
 import { Logger, REPLACERS, startMemoryMonitor } from "@common";
+import { host, port, executeFunctions, getRoutes } from "./config.ts";
 
 const app = express();
 
@@ -59,6 +54,10 @@ const startApp = async () => {
       }),
     );
     app.set("trust proxy", 1);
+  } else {
+    app.get("/", (_, res) => {
+      res.redirect(301, "/updates");
+    });
   }
   app.use(cors());
   app.use(compression({ threshold: 0 }));
@@ -71,7 +70,7 @@ const startApp = async () => {
     }),
     routerAPI,
   );
-  app.use("/updates", express.static(PATH_WEB_PATH_UPDATES));
+  app.use("/updates", express.static(getRoutes("WEB_PATH_UPDATES")));
 
   const server = http.createServer(app);
   const cryptoWss = initWebSocketCryptos();

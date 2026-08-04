@@ -9,6 +9,7 @@ import axios from "axios";
 import chalk from "chalk";
 import { prisma } from "@/database/postgres";
 import { randomUUID } from "crypto";
+import { capitalize } from "lodash";
 import { host, port, TABLE_MAP } from "@/config";
 import { Helper, Logger, ServerFetch } from "@common";
 
@@ -236,7 +237,7 @@ export const createFakeData = async () => {
   await Promise.all(
     tables.map(async ([tableKey, tableName]) => {
       try {
-        const tableNamePrisma = tableKey[0].toLowerCase() + tableKey.slice(1);
+        const tableNamePrisma = capitalize(tableKey);
 
         let count = await getCountInTable(tableNamePrisma);
 

@@ -1,9 +1,7 @@
 import pino from "pino";
-import { Helper } from "../both/index.ts";
+import { REPLACERS, Helper } from "@commonSrc/both/";
 
-const isProduction = process.env.NODE_ENV === "production";
-
-const logger = isProduction
+const logger = REPLACERS.isProduction
   ? null
   : pino({
       timestamp: pino.stdTimeFunctions.isoTime,
@@ -20,17 +18,17 @@ const logger = isProduction
 
 export class Logger {
   static log(...args: unknown[]): void {
-    if (isProduction) return;
+    if (REPLACERS.isProduction) return;
     logger?.info(Helper.getMessage(...args));
   }
 
   static warn(...args: unknown[]): void {
-    if (isProduction) return;
+    if (REPLACERS.isProduction) return;
     logger?.warn(Helper.getMessage(...args));
   }
 
   static error(...args: unknown[]): void {
-    if (isProduction) return;
+    if (REPLACERS.isProduction) return;
     logger?.error(Helper.getMessage(...args));
   }
 }

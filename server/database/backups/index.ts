@@ -1,25 +1,38 @@
+import {
+  Task,
+  File,
+  Logger,
+  Directory,
+  REPLACERS,
+  InstanceManager,
+  getDateWithTimeAhead,
+} from "@common";
 import path from "path";
 import chalk from "chalk";
 import { spawn } from "child_process";
+import { prisma } from "../postgres";
 import { getEnvValue } from "@/env.ts";
 import { getDbConfig } from "../functions";
-import { Directory, REPLACERS, Logger, Task, File } from "@common";
+import { getRoutes, executeFunctionAfterInit } from "@/config";
 
-const backupPath = path.join(path.resolve("."), "database", "backups");
-const timeIntervalBackup = 1 * 60 * 60 * 1000;
+const timeIntervalBackup = 12 * 60 * 60 * 1000;
 const encryptedExtension = ".sql.gpg";
 
 export const getInterval = () => {
   Logger.log("Starting database backup interval...");
 
-  handleBackupDatabase();
+  executeFunctionAfterInit(handleBackupDatabase);
   return setInterval(handleBackupDatabase, timeIntervalBackup);
 };
 
-const encryptionTask = new Task<boolean, "ENCRYPTION">({
-  fileWorker: "ENCRYPTION",
-  doNotDestroy: true,
-});
+const encryptionManager = new InstanceManager(
+  () =>
+    new Task<boolean, "ENCRYPTION">({
+      fileWorker: "ENCRYPTION",
+      doNotDestroy: true,
+    }),
+  10 * 60 * 1000,
+);
 
 export const encryptFile = async (filePath: string, password: string) => {
   const file = new File(filePath);
@@ -33,11 +46,13 @@ export const encryptFile = async (filePath: string, password: string) => {
     return;
   }
 
-  const res = await encryptionTask.getResult({
+  const res = await encryptionManager.instance.getResult({
     data: { inputPath: copyFile.path, password, outputPath: filePath },
     abortAfter: 5 * 60 * 1000,
     functionName: "encryptFile",
   });
+  encryptionManager.startTimer();
+
   if (res instanceof Error) {
     Logger.error(chalk.red("Error encrypting file:"), res);
     return;
@@ -66,11 +81,13 @@ export const decryptFile = async (
     return;
   }
 
-  const res = await encryptionTask.getResult({
+  const res = await encryptionManager.instance.getResult({
     data: { inputPath: copyFile.path, password, outputPath: filePath },
     abortAfter: 5 * 60 * 1000,
     functionName: "decryptFile",
   });
+  encryptionManager.startTimer();
+
   if (res instanceof Error) {
     Logger.error(chalk.red("Error decrypting file:"), res);
     return;
@@ -115,13 +132,19 @@ export const handleBackupDatabase = async () => {
   await deletePreviousBackups();
   try {
     const timestamp = Date.now();
-    const backupFileName = path.join(
-      backupPath,
+    const dir = new Directory(getRoutes("DATABASE_BACKUPS"));
+    const file = await dir.createFile(
       `backup-${timestamp}${encryptedExtension}`,
+      "",
     );
 
-    const backupFile = new File(backupFileName).createWriteStream();
-    const { hostname, port, username, database } = getDbConfig();
+    if (file instanceof Error) {
+      Logger.error(chalk.red("Error creating backup file:"), file);
+      return;
+    }
+
+    const backupFile = file.createWriteStream();
+    const { port, hostname, username, database } = getDbConfig();
 
     const pgDump = spawn("pg_dump", [
       "--data-only",
@@ -148,17 +171,22 @@ export const handleBackupDatabase = async () => {
       Logger.error(chalk.red("sed error:"), data.toString());
     });
 
-    sed.on("close", (code) => {
+    sed.on("close", async (code) => {
       if (code !== 0) {
         Logger.error(chalk.red(`Backup failed with code ${code}`));
         return;
       }
 
+      const fileName = path.basename(file.path);
       Logger.log(
-        chalk.green(`Database backup created successfully: ${backupFileName}`),
+        chalk.green(`Database backup created successfully: ${fileName}`),
       );
 
-      void encryptFile(backupFileName, getEnvValue("DB_ENCRYPTION_PASS"));
+      await encryptFile(file.path, getEnvValue("DB_ENCRYPTION_PASS"));
+
+      await prisma.databaseBackups.create({
+        data: { relativeFilePath: fileName },
+      });
     });
   } catch (error) {
     Logger.error("Error during database backup:", error);
@@ -197,34 +225,22 @@ export const handleBackupDatabase = async () => {
  * @returns void — function performs work asynchronously and does not return a promise.
  */
 export const deletePreviousBackups = async () => {
-  const files = await new Directory(backupPath).readDir();
+  const oldDate = getDateWithTimeAhead({ days: -7 });
+
+  const oldBackups = await prisma.databaseBackups.findMany({
+    where: { createdAt: { lt: oldDate } },
+  });
 
   await Promise.all(
-    files.map(async (filename) => {
-      const file = new File(path.join(backupPath, filename));
-
-      if (filename.startsWith("backup-") && filename.endsWith("sql"))
-        return file.rm({ force: true });
-      if (
-        !filename.startsWith("backup-") ||
-        !filename.endsWith(encryptedExtension)
-      )
-        return;
-
-      const date = Number(
-        filename.replace("backup-", "").replace(encryptedExtension, ""),
+    oldBackups.map(async (backup) => {
+      const file = new File(
+        path.join(getRoutes("DATABASE_BACKUPS"), backup.relativeFilePath),
       );
-      const fileDate = new Date(date);
-      const now = new Date();
-      const diffTime = Math.abs(now.getTime() - fileDate.getTime());
-      const diffDays = Math.ceil(diffTime / timeIntervalBackup);
 
-      if (diffDays <= 7) return;
-
-      await file.rm();
+      await file.rm({ force: true });
+      await prisma.databaseBackups.delete({ where: { id: backup.id } });
 
       Logger.log(`Deleted old backup file: ${file.path}`);
-      return;
     }),
   );
 };

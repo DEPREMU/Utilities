@@ -1,31 +1,11 @@
 import path from "path";
-import { Directory } from "@common";
 import { TablesKeys } from "@types";
+import { Directory, REPLACERS } from "@common";
 
-export const port: number = 3000;
-export const host: string = "0.0.0.0";
-export const serverPath = path.resolve();
-export const UPLOAD_DIR = path.join(serverPath, "routes", "updates", "uploads");
-export const PATH_WEB_PATH_UPDATES = path.join(
-  serverPath,
-  "routes",
-  "updates",
-  "web-page",
-);
-export const PATH_DATA_UPDATES = path.join(
-  serverPath,
-  "routes",
-  "updates",
-  "data.json",
-);
+export const port = 3000;
+export const host = "0.0.0.0";
 
-const createUploadDir = async () => {
-  const dir = new Directory(UPLOAD_DIR);
-  if (!(await dir.exists())) await dir.mkdir({ recursive: true });
-};
-void createUploadDir();
-
-export const TABLE_MAP: Record<TablesKeys, string> = {
+export const TABLE_MAP = {
   Logs: "logs",
   Users: "users",
   Notes: "notes",
@@ -38,7 +18,7 @@ export const TABLE_MAP: Record<TablesKeys, string> = {
   ClipboardSync: "clipboard_sync",
   CryptosSettings: "cryptos_settings",
   UserNotificationsConfig: "user_notifications_config",
-};
+} as const satisfies Record<TablesKeys, string>;
 
 type Functions = () => Promise<unknown> | unknown;
 
@@ -59,4 +39,44 @@ export const executeFunctions = async () => {
     const func = functions.shift();
     if (typeof func === "function") await func();
   }
+};
+
+const ROOT = process.cwd() || path.resolve();
+
+const PATHS = {
+  ROOT,
+  UPLOAD_DIR: REPLACERS.isDev
+    ? path.join(ROOT, "routes", "updates", "uploads")
+    : path.join(ROOT, "uploads"),
+  WEB_PATH_UPDATES: REPLACERS.isDev
+    ? path.join(ROOT, "routes", "updates", "web-page")
+    : path.join(ROOT, "web-page"),
+  DATA_UPDATES: REPLACERS.isDev
+    ? path.join(ROOT, "routes", "updates", "data.json")
+    : path.join(ROOT, "data.json"),
+  DATABASE_BACKUPS: REPLACERS.isDev
+    ? path.join(ROOT, "database", "backups")
+    : path.join(ROOT, "backups"),
+  CRYPTOS_JSON_DEV: REPLACERS.isDev
+    ? path.join(ROOT, "routes", "cryptos", "cryptos.json")
+    : "",
+} as const;
+
+const createDirs = async () => {
+  const keys = [
+    "UPLOAD_DIR",
+    "DATABASE_BACKUPS",
+  ] as const satisfies (keyof typeof PATHS)[];
+
+  await Promise.all(
+    keys.map(async (key) => {
+      const dir = new Directory(PATHS[key]);
+      if (!(await dir.exists())) await dir.mkdir({ recursive: true });
+    }),
+  );
+};
+void createDirs();
+
+export const getRoutes = (key: keyof typeof PATHS): string => {
+  return PATHS[key];
 };

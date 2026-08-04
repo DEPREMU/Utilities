@@ -102,6 +102,15 @@ export class Directory extends CommonFS {
       .catch(failure);
   };
 
+  public mkdirSync(options?: fs.MakeDirectoryOptions): boolean {
+    try {
+      fs.mkdirSync(path.dirname(this.path), options);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   public readDir = async () => {
     return (await fs.promises.readdir(this.path).catch(() => [])) as string[];
   };
@@ -128,3 +137,65 @@ export class Directory extends CommonFS {
     super(_path);
   }
 }
+
+/**
+ * Returns all paths of the Utilities project:
+ * { root, app, types, common, server, utilitiesForPC }
+ */
+export const getAllPathsSync = () => {
+  let root = process.cwd();
+
+  let existsRequire = false;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require("fs") as typeof import("fs");
+    existsRequire = typeof fs?.existsSync === "function";
+  } catch {
+    // Ignore
+  }
+
+  let success = false;
+  let attempts = 0;
+  while (attempts++ < 10) {
+    try {
+      const packagePath = path.join(
+        root,
+        "../".repeat(attempts - 1),
+        "package.json",
+      );
+
+      const packageJSON = (
+        existsRequire
+          ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+            require(packagePath)
+          : JSON.parse(fs.readFileSync(packagePath, "utf-8"))
+      ) as typeof import("../../package.json");
+
+      if (packageJSON.name === "utilities") {
+        success = true;
+        break;
+      }
+    } catch {
+      // Ignore
+    }
+  }
+  if (!success) throw new Error(`Unexpected utilities path: ${process.cwd()}.`);
+  root = path.resolve(root, "../".repeat(attempts - 1));
+
+  const APP_PATH = path.resolve(root, "app");
+  const TYPES_PATH = path.resolve(root, "types");
+  const COMMON_PATH = path.resolve(root, "common");
+  const SERVER_PATH = path.resolve(root, "server");
+  const UTILITIES_FOR_PC_PATH = path.resolve(root, "UtilitiesForPC");
+
+  return {
+    root,
+
+    app: APP_PATH,
+    types: TYPES_PATH,
+    common: COMMON_PATH,
+    server: SERVER_PATH,
+    utilitiesForPC: UTILITIES_FOR_PC_PATH,
+  };
+};

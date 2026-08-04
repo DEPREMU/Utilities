@@ -1,13 +1,12 @@
 import chalk from "chalk";
-import { Logger } from "@common";
 import { prisma } from "./postgres.ts";
 import { executeFunctionAfterInit } from "@/config.ts";
+import { getDateWithTimeAhead, Logger } from "@common";
 
 const deleteOldSessions = async () => {
   Logger.log(chalk.blue("Deleting old sessions and push tokens..."));
   try {
-    const now = Date.now();
-    const oldDate = new Date(now - 20 * 24 * 60 * 60 * 1000);
+    const oldDate = getDateWithTimeAhead({ days: -20 });
 
     const [sessionDeleted, pushTokenDeleted] = await Promise.all([
       prisma.userSessions.deleteMany({

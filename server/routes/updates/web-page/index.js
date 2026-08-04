@@ -10,7 +10,7 @@ if (language.indexOf("_") !== -1) {
 }
 
 const UPDATES_SERVER_URL =
-  "https://utilities.depremu.com/updates/is-update-available";
+  "https://utilities.depremu.com/updates/is-update-available/0.0.0/{{UpdateType}}";
 
 const translations = {
   en: {
@@ -35,19 +35,15 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   const links = (
     await Promise.all(
-      ["windows", "linux", "android"].map(async (platform) => {
+      ["windows", "linux", "android"].map(async (buildType) => {
         try {
-          const res = await fetch(UPDATES_SERVER_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+          const res = await fetch(
+            UPDATES_SERVER_URL.replace("{{UpdateType}}", buildType),
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
             },
-            body: JSON.stringify({
-              platformOS: platform,
-              currentVersion: "0.0.0",
-              buildType: platform === "android" ? platform : "electron",
-            }),
-          });
+          );
 
           const data = await res.json();
 
@@ -62,7 +58,7 @@ window.addEventListener("DOMContentLoaded", async () => {
           button.addEventListener("click", () => handlePress(data.downloadUrl));
 
           const div = document.createElement("div");
-          div.textContent = platform.toUpperCase();
+          div.textContent = buildType.toUpperCase();
           div.className = "platform-link";
 
           div.appendChild(button);

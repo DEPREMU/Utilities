@@ -22,12 +22,20 @@ export type Logger = {
 };
 
 export type REPLACERS_TYPE = {
-  isDev: boolean;
+  //? App
   isWeb: boolean;
-  Logger: Logger;
   isNative: boolean;
+
+  //? ServerOrElectron
+  isLinux: boolean;
+  isWindows: boolean;
+
+  //? Common
+  Logger: Logger;
+
+  //? Env
+  isDev: boolean;
   isPreview: boolean;
-  isProduction: boolean;
   isProduction: boolean;
 };
 

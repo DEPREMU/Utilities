@@ -1,12 +1,8 @@
 import fs from "fs";
-import path from "path";
 import crypto from "crypto";
 import { pipeline } from "stream/promises";
 import { promisify } from "util";
 import { EncryptionWorkerData } from "@types";
-
-let PATH = path.resolve();
-while (!PATH.endsWith("Utilities")) PATH = path.dirname(PATH);
 
 const ENV_SECRET_KEY = process.env.SECRET_KEY_TO_ENCRYPTION;
 const ENV_IV = process.env.IV;

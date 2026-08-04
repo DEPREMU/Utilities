@@ -6,7 +6,7 @@ import {
   MethodsAPI,
   DEFAULT_RESPONSE,
 } from "@types";
-import type { STATUS_RESPONSE } from "../../common/serverOrElectron";
+import type { STATUS_RESPONSE } from "../../common/both";
 import { Handler, NextFunction, Request, Response } from "express";
 
 type RemoveOptional<M extends string> = M extends `${infer Rest}-optional`
@@ -199,3 +199,9 @@ export type DEFAULT_RESPONSE = {
   error?: string;
   success: boolean;
 };
+
+export type GetRouteData<
+  M extends MethodsAPI,
+  U extends keyof FetchAPI<M>,
+  URL extends FetchAPI<M>[U]["url"],
+> = Extract<FetchAPI<M>[U], { url: URL }>;

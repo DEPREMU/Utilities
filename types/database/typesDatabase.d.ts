@@ -1,10 +1,15 @@
 import type { UserData } from "./typesUser";
-import type { type Prisma } from "../../server/generated/prisma";
 import { LanguagesSupported } from "../typesTranslations";
+import { $Enums, type Prisma } from "../../server/generated/prisma";
 import type { ReasonNotification } from "../typesNotifications";
+
+export type Enums = {
+  [K in keyof typeof $Enums]: keyof (typeof $Enums)[K];
+};
 
 declare global {
   export type DB = {
+    Enums: Enums;
     TablesKeys: TablesKeys;
     TablesServer: TablesServer;
     TablesClient: TablesClient;

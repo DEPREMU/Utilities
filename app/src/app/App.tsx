@@ -8,7 +8,7 @@ import { REPLACERS, cleanupServices, storageManagement } from "@utils";
 
 if (REPLACERS.isDev) {
   import("@utils").then((utils) => {
-    (global as Record<string, unknown>).utils = utils;
+    (globalThis as Record<string, unknown>).utils = utils;
   });
 }
 

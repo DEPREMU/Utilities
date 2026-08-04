@@ -1,26 +1,22 @@
-import { Handler, Router } from "express";
-import { GetParams, GetRouterObj } from "./Helpers";
-import { PriceBinanceAPI } from "@common";
 import {
-  BuildTypeUpdates,
-  DEFAULT_RESPONSE,
-  GetUrlFetch,
-  GetUrlFetchOptionalParameter,
-  PlatformsOS,
-  Post,
-  Prisma,
   Put,
-  ResponseDownloadUpload,
+  Post,
+  Enums,
+  Prisma,
+  GetUrlFetch,
+  DEFAULT_RESPONSE,
 } from "@types";
 import { Delete } from "./DeleteAPI";
+import { Handler, Router } from "express";
+import { PriceBinanceAPI } from "@common";
+import { GetParams, GetRouterObj } from "./Helpers";
 
 export type UpdatesFetch =
   | GetUrlFetch<
-      "/is-update-available/:version/:buildType/:platform-optional",
+      "/is-update-available/:version/:buildType",
       {
         version: string;
-        buildType: BuildTypeUpdates;
-        platform?: PlatformsOS;
+        buildType: Enums["UpdateType"];
       },
       {},
       {

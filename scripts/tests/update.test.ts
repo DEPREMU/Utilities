@@ -1,24 +1,35 @@
-import { describe, it, expect, beforeEach, afterAll, jest } from '@jest/globals';
-import { args } from "../arguments.ts";
-import { run } from "../update.ts";
-import child_process from "child_process";
-import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
+import {
+  it,
+  jest,
+  expect,
+  afterAll,
+  describe,
+  beforeEach,
+} from "@jest/globals";
 import axios from "axios";
+import { run } from "../update.ts";
+import { args } from "../arguments.ts";
+import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
+import child_process from "child_process";
 
 jest.mock("child_process", () => ({
   execSync: jest.fn(),
 }));
 
 jest.mock("axios", () => ({
-  post: jest.fn<() => Promise<{ data: { latestVersion: string } }>>().mockResolvedValue({ data: { latestVersion: "1.0.0" } }),
+  get: jest
+    .fn<() => Promise<{ data: { latestVersion: string } }>>()
+    .mockResolvedValue({ data: { latestVersion: "1.0.0" } }),
 }));
 
 jest.mock("fs", () => ({
   ...(jest.requireActual("fs") as Record<string, unknown>),
   existsSync: jest.fn().mockReturnValue(true),
-  readdirSync: jest.fn().mockReturnValue([
-    { isFile: () => true, isDirectory: () => false, name: "index.html" }
-  ]),
+  readdirSync: jest
+    .fn()
+    .mockReturnValue([
+      { isFile: () => true, isDirectory: () => false, name: "index.html" },
+    ]),
   createWriteStream: jest.fn().mockReturnValue({
     on: jest.fn(),
     once: jest.fn(),
@@ -61,11 +72,11 @@ describe("update script", () => {
     await run();
 
     // Axios should be called to check for versions and upload
-    expect(axios.post).toHaveBeenCalled();
+    expect(axios.get).toHaveBeenCalled();
     // eas update should be called for Android
     expect(child_process.execSync).toHaveBeenCalledWith(
       expect.stringContaining("eas update"),
-      expect.anything()
+      expect.anything(),
     );
   });
 
@@ -78,16 +89,18 @@ describe("update script", () => {
     // Verify eas update was skipped
     expect(child_process.execSync).not.toHaveBeenCalledWith(
       expect.stringContaining("eas update"),
-      expect.anything()
+      expect.anything(),
     );
     expect(Logger.log).toHaveBeenCalledWith(
-      expect.stringContaining("Testing mode: Skipping eas update for Android assets")
+      expect.stringContaining(
+        "Testing mode: Skipping eas update for Android assets",
+      ),
     );
 
     // Verify axios upload was skipped due to testing mode check in uploadWeb
     expect(Logger.log).toHaveBeenCalledWith(
       expect.stringContaining("Testing mode enabled - skipping actual upload"),
-      expect.anything()
+      expect.anything(),
     );
   });
 });

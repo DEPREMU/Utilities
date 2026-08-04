@@ -12,20 +12,16 @@ import FormData from "form-data";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { execSync } from "child_process";
 import { ServerFetch } from "@commonSrc/both/index.ts";
-import type { PlatformsOS, RequestUploadUpdate } from "@types";
+import type { Enums, RequestUploadUpdate } from "@types";
 
 let isNewVersionLinux: boolean;
 let isNewVersionWindows: boolean;
 
-const isNewVersionPlatform = async (platform: PlatformsOS) => {
+const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
   try {
     const res = await ServerFetch.get(
-      "/updates/is-update-available/:version/:buildType/:platform-optional",
-      {
-        platform,
-        version: versionElectron,
-        buildType: "electron",
-      },
+      "/updates/is-update-available/:version/:buildType",
+      { version: versionElectron, buildType },
     );
 
     return res.data.isUpdateAvailable;
@@ -56,21 +52,21 @@ const uploadElectronBuilds = async () => {
     const windowsExeFile = files.find((file) => file.endsWith(".exe"));
 
     const availablePlatforms: Array<{
-      platformOS: PlatformsOS;
       file: string;
+      buildType: Enums["UpdateType"];
     }> = [];
 
     if (linuxDebFile && isNewVersionLinux) {
       availablePlatforms.push({
-        platformOS: "linux",
         file: path.join(distElectronPath, linuxDebFile),
+        buildType: "linux",
       });
     }
 
     if (windowsExeFile && isNewVersionWindows) {
       availablePlatforms.push({
-        platformOS: "windows",
         file: path.join(distElectronPath, windowsExeFile),
+        buildType: "windows",
       });
     }
 
@@ -83,30 +79,29 @@ const uploadElectronBuilds = async () => {
     Logger.log(
       `Found ${availablePlatforms.length} build(s):`,
       availablePlatforms
-        .map((p) => `${p.platformOS} (${path.basename(p.file)})`)
+        .map((p) => `${p.buildType} (${path.basename(p.file)})`)
         .join(", "),
     );
 
     const uploadPromises = availablePlatforms.map(
-      async ({ platformOS, file }) => {
+      async ({ buildType, file }) => {
         try {
           if (
-            !(platformOS === "linux" ? isNewVersionLinux : isNewVersionWindows)
+            !(buildType === "linux" ? isNewVersionLinux : isNewVersionWindows)
           ) {
             return {
-              platformOS,
+              buildType,
               success: false,
-              error: `Version ${versionElectron} already exists on the server for ${platformOS}`,
+              error: `Version ${versionElectron} already exists on the server for ${buildType}`,
             };
           }
           const data: RequestUploadUpdate = {
-            buildType: "electron",
-            platformOS,
+            buildType,
             version: versionElectron,
           };
 
           Logger.log(
-            `Uploading ${platformOS} build: ${path.basename(file)}...`,
+            `Uploading ${buildType} build: ${path.basename(file)}...`,
             data,
           );
 
@@ -135,17 +130,17 @@ const uploadElectronBuilds = async () => {
             },
           );
 
-          Logger.log(`Upload successful for ${platformOS}:`, response.data);
+          Logger.log(`Upload successful for ${buildType}:`, response.data);
           return {
-            platformOS,
+            buildType,
             success: !response.data?.error,
             data: response.data,
           };
         } catch (error) {
-          Logger.error(`Failed to upload ${platformOS} build:`);
+          Logger.error(`Failed to upload ${buildType} build:`);
           Logger.error(error instanceof Error ? error.message : String(error));
           return {
-            platformOS,
+            buildType,
             success: false,
             error: error instanceof Error ? error.message : String(error),
           };
@@ -159,7 +154,7 @@ const uploadElectronBuilds = async () => {
     const successCount = results.filter((r) => r.success).length;
     results.forEach((result) => {
       const status = result.success ? "Success" : "Failed";
-      Logger.log(`${result.platformOS}: ${status}`);
+      Logger.log(`${result.buildType}: ${status}`);
       if (!result.success && "error" in result) {
         Logger.log(`  Error: ${result.error}`);
       }

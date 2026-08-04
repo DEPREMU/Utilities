@@ -358,3 +358,30 @@ model RichTextRun {
 
   @@map("rich_text_runs")
 }
+
+model DatabaseBackups {
+  id               String   @id @default(uuid()) @db.Uuid
+  relativeFilePath String   @unique
+  createdAt        DateTime @default(now()) @db.Timestamptz
+
+  @@map("database_backups")
+}
+
+enum UpdateType {
+  web
+  linux
+  android
+  windows
+}
+
+model UpdatesData {
+  id String @id @default(uuid()) @db.Uuid
+
+  type      UpdateType
+  version String @unique
+  relativeFilePath  String
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  @@map("updates_data")
+}

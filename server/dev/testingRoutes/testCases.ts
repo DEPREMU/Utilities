@@ -7,10 +7,10 @@ import {
 import path from "path";
 import { user } from "../utils.ts";
 import { prisma } from "@/database/postgres";
+import { getRoutes } from "@/config";
 import { randomUUID } from "crypto";
-import { serverPath } from "@/config";
-import { readImage, PriceBinanceAPI, STATUS_RESPONSE } from "@common";
 import { getEnvValue } from "@/env.ts";
+import { readImage, PriceBinanceAPI, STATUS_RESPONSE } from "@common";
 
 export const expect = {
   any: (constructor: unknown): AnyMatcher => ({ __type: "any", constructor }),
@@ -408,8 +408,6 @@ export const testCases: TestRoutes = {
           version: "0.0.0",
         },
       },
-    ],
-    "/updates/is-update-available/:version/:buildType/:platform-optional": [
       {
         description: "Should fetch successfully",
         shouldSucceed: true,
@@ -419,8 +417,7 @@ export const testCases: TestRoutes = {
         },
         requestBody: {
           version: "0.0.0",
-          platform: "linux",
-          buildType: "electron",
+          buildType: "linux",
         },
       },
     ],
@@ -569,7 +566,7 @@ export const testCases: TestRoutes = {
         expectedResponse: { success: true },
         requestBody: async () => {
           const imageStr = await readImage(
-            path.join(serverPath, "dev/testingRoutes/sample.jpeg"),
+            path.join(getRoutes("ROOT"), "dev/testingRoutes/sample.jpeg"),
           );
 
           return { imageStr, lang: "en", format: "png" };

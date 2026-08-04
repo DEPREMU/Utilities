@@ -6,23 +6,8 @@ import {
   MethodsAvailableInAPI,
 } from "./typesAPI";
 import { LanguagesSupported } from "../typesTranslations";
-import { Tables, TablesKeys } from "../database";
-import { BuildTypeUpdates, PlatformsOS, UpdatesRoutes } from "./typesUpdates";
-
-export type ResponseFetch<
-  T extends RoutesAPI | UpdatesRoutes,
-  B = RequestBody<T>,
-> = {
-  ok: boolean;
-  data:
-    | (B extends { table: infer Table }
-        ? Table extends TablesKeys
-          ? Extract<FetchAPI<Table>, { url: T }>["response"]
-          : never
-        : Extract<FetchAPI, { url: T }>["response"])
-    | null;
-  errorText?: string;
-};
+import { Prisma, Tables, TablesKeys } from "../database";
+import { PlatformsOS, UpdatesRoutes } from "./typesUpdates";
 
 export type RequestCryptoPrice = {
   symbol: string;
@@ -150,23 +135,21 @@ export type RequestDecrypt = {
 };
 
 export type RequestIsUpdateAvailable<
-  T extends BuildTypeUpdates = BuildTypeUpdates,
+  T extends DB["Enums"]["UpdateType"] = DB["Enums"]["UpdateType"],
 > = {
   buildType: T;
   currentVersion: string;
-  platformOS: T extends "android" ? undefined : PlatformsOS;
 };
 
-export type RequestUploadUpdate<T extends BuildTypeUpdates = BuildTypeUpdates> =
-  {
-    version: string;
-    buildType: T;
-    platformOS?: T extends "android" ? never : PlatformsOS;
-  };
+export type RequestUploadUpdate<
+  T extends DB["Enums"]["UpdateType"] = DB["Enums"]["UpdateType"],
+> = {
+  version: string;
+  buildType: T;
+};
 
 export type RequestDownloadViaTempUrl = {
-  buildType: BuildTypeUpdates;
-  platformOS: PlatformsOS;
+  buildType: DB["Enums"]["UpdateType"];
   version: string;
   id: string;
 };

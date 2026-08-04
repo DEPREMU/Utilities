@@ -1,129 +1,87 @@
 import path from "path";
 import chalk from "chalk";
 import { v4 } from "uuid";
-import { cloneDeep } from "lodash";
-import { getEnvValue } from "@/env";
-import { serverPath, UPLOAD_DIR } from "@/config";
-import { File, Logger, Directory, REPLACERS, Validations } from "@common";
-import { BuildTypeUpdates, PlatformsOS, RequestUploadUpdate } from "@types";
-
-new Directory(UPLOAD_DIR).mkdir({ recursive: true });
+import { prisma } from "@/database/postgres";
+import { getRoutes } from "@/config";
+import { Prisma, RequestUploadUpdate } from "@types";
+import { File, Logger, ServerFetch, Validations } from "@common";
 
 const extensions = {
-  web: ".zip",
-  linux: ".deb",
-  android: ".apk",
-  windows: ".exe",
-} as const;
+  web: "web-{{version}}.zip",
+  linux: "linux-{{version}}.deb",
+  android: "android-{{version}}.apk",
+  windows: "windows-{{version}}.exe",
+} as const satisfies Record<DB["Enums"]["UpdateType"], string>;
 
 export const getFinalFileName = (
   dataFile: Omit<RequestUploadUpdate, "timestamp">,
 ) => {
-  const extension =
-    extensions[dataFile.buildType as keyof typeof extensions] ??
-    extensions[dataFile.platformOS as keyof typeof extensions];
+  const filename = extensions[dataFile.buildType].replace(
+    "{{version}}",
+    dataFile.version,
+  );
 
-  return `${dataFile.version}-${dataFile.buildType}${extension === ".apk" ? "" : `-${dataFile.platformOS}`}${extension}`;
+  return filename;
 };
 
-type TempUrl = Record<
+type TempUrl = Map<
   string,
   {
     id: string;
     version: string;
     maxTime: number;
-    buildType: BuildTypeUpdates;
-    platformOS?: PlatformsOS;
+    buildType: DB["Enums"]["UpdateType"];
   }
 >;
 
-type UpdateData = typeof import("./data.json");
+type Data = Prisma.UpdatesDataGetPayload<true>;
 
 class DataUpdates {
   static instance: DataUpdates;
 
-  #file = new File(path.join(serverPath, "routes", "updates", "data.json"));
-  #data: UpdateData = {} as never;
+  #data: Data[] = [];
 
-  #cleanAPI = getEnvValue("API_URL").endsWith("/")
-    ? getEnvValue("API_URL").slice(0, -1)
-    : getEnvValue("API_URL");
-
-  #tempUrls: TempUrl = {};
+  #tempUrls: TempUrl = new Map();
 
   _intervalId = setInterval(() => {
     const now = Date.now();
 
-    Object.entries(this.#tempUrls).forEach(([id, info]) => {
+    this.#tempUrls.forEach((info, id) => {
       if (info.maxTime > now) return;
 
-      delete this.#tempUrls[id];
+      this.#tempUrls.delete(id);
     });
   }, 60 * 1000);
 
   public updateDataUploads = async (
     version: string,
-    buildType: BuildTypeUpdates,
-    platformOS?: PlatformsOS,
+    buildType: Data["type"],
   ) => {
-    let success = false;
-    const data = cloneDeep(this.#data);
-
     const file = new File(
       path.join(
-        UPLOAD_DIR,
+        getRoutes("UPLOAD_DIR"),
         getFinalFileName({
           version,
           buildType,
-          platformOS,
         }),
       ),
     );
 
     try {
-      this.#data.old = data.new;
-
       if (!(await file.exists())) return false;
 
-      const newData: UpdateData["new"]["android"] = {
-        version,
-        timestamp: Date.now(),
-        relativePath: path.relative(serverPath, file.path),
-      };
+      const data = await prisma.updatesData.create({
+        data: {
+          version,
+          type: buildType,
+          relativeFilePath: path.relative(getRoutes("ROOT"), file.path),
+        },
+      });
 
-      if (buildType === "android" || buildType === "web") {
-        const oldFile = new File(
-          path.join(serverPath, this.#data.new[buildType].relativePath),
-        );
-        if (await oldFile.exists()) await oldFile.rm();
-
-        this.#data.new[buildType] = newData;
-      } else {
-        if (!platformOS)
-          throw new Error("Platform OS is required for non-Android builds");
-        const oldFile = new File(
-          path.join(serverPath, this.#data.new[platformOS].relativePath),
-        );
-        if (await oldFile.exists()) await oldFile.rm();
-
-        this.#data.new[platformOS] = newData;
-      }
-      success =
-        REPLACERS.isDev ||
-        (await this.#file.writeFile(
-          JSON.stringify(this.#data, null, 2),
-          "utf-8",
-        ));
-
-      return success;
+      return !!data.id;
     } catch (error) {
       Logger.error(chalk.red("Error updating data uploads:"), error);
       return false;
-    } finally {
-      if (!success) {
-        this.#data = data;
-        await file.rm({ force: true });
-      }
     }
   };
 
@@ -132,29 +90,25 @@ class DataUpdates {
   }
 
   public deleteTempUrl = (id: string) => {
-    delete this.#tempUrls[id];
+    this.#tempUrls.delete(id);
   };
 
-  public getInfoTempUrl = (id: string): TempUrl[string] | null => {
-    return this.#tempUrls[id] || null;
+  public getInfoTempUrl = (id: string): ReturnType<TempUrl["get"]> => {
+    return this.#tempUrls.get(id);
   };
 
-  public createTempDownloadUrl = (
-    version: string,
-    buildType: BuildTypeUpdates,
-    platformOS?: PlatformsOS,
-  ) => {
+  public createTempDownloadUrl = (version: string, buildType: Data["type"]) => {
     try {
       const id = v4();
-      const url = this.#cleanAPI + `/updates/download/${id}`;
+      const url = ServerFetch.getRoute("/updates/download/:id", { id });
 
-      this.#tempUrls[id] = {
+      this.#tempUrls.set(id, {
         id,
         version,
         buildType,
-        platformOS,
+
         maxTime: Date.now() + 5 * 60 * 1000,
-      };
+      });
 
       return url;
     } catch {
@@ -164,11 +118,10 @@ class DataUpdates {
 
   public isUpdateAvailable = (
     version: string,
-    buildType: BuildTypeUpdates,
-    platformOS?: PlatformsOS,
+    buildType: Data["type"],
   ): boolean => {
     try {
-      const latestVersion = this.getLatestVersion(buildType, platformOS);
+      const latestVersion = this.getLatestVersion(buildType);
       if (!latestVersion) return false;
 
       return Validations.isNewVersion(version, latestVersion);
@@ -178,12 +131,9 @@ class DataUpdates {
     }
   };
 
-  public getLatestVersion = (
-    buildType: BuildTypeUpdates,
-    platformOS?: PlatformsOS,
-  ): string | null => {
+  public getLatestVersion = (buildType: Data["type"]): string | null => {
     try {
-      const data = this.getDataUpdate(buildType, platformOS);
+      const data = this.getDataUpdate(buildType);
       return data ? data.version : null;
     } catch (error) {
       Logger.error(chalk.red("Error getting latest version:"), error);
@@ -191,17 +141,9 @@ class DataUpdates {
     }
   };
 
-  public getDataUpdate = (
-    buildType: BuildTypeUpdates,
-    platformOS?: PlatformsOS,
-  ): UpdateData["new"][keyof UpdateData["new"]] | null => {
+  public getDataUpdate = (buildType: Data["type"]): Data | null => {
     try {
-      if (buildType === "android" || buildType === "web") {
-        return this.#data.new[buildType] ?? null;
-      } else {
-        if (!platformOS || !(platformOS in this.#data.new)) return null;
-        return this.#data.new[platformOS] ?? null;
-      }
+      return this.#data.find((u) => u.type === buildType) ?? null;
     } catch (error) {
       Logger.error(chalk.red("Error getting update data:"), error);
       return null;
@@ -209,8 +151,8 @@ class DataUpdates {
   };
 
   constructor() {
-    this.#file.readFile("utf-8").then((c) => {
-      this.#data = JSON.parse(c);
+    prisma.updatesData.findMany().then((data) => {
+      this.#data = data;
     });
 
     if (DataUpdates.instance) return DataUpdates.instance;

@@ -1,11 +1,18 @@
+import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import { defineConfig } from "prisma/config";
 
-let DIR = path.resolve();
-while (!DIR.endsWith("Utilities")) DIR = path.dirname(DIR);
+let root = path.resolve();
 
-dotenv.config({ path: path.join(DIR, ".env") });
+let attempts = 5;
+while (attempts-- > 0) {
+  root = path.dirname(root);
+  if (fs.existsSync(path.join(root, ".env"))) {
+    dotenv.config({ path: path.join(root, ".env") });
+    break;
+  }
+}
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not defined in the environment variables.");

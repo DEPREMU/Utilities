@@ -1,9 +1,3 @@
-import type {
-  PlatformsOS,
-  RequestUploadUpdate,
-  RequestIsUpdateAvailable,
-  ResponseIsUpdateAvailable,
-} from "@types";
 import {
   env,
   args,
@@ -16,10 +10,11 @@ import fs from "fs";
 import path from "path";
 import axios from "axios";
 import FormData from "form-data";
+import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { execSync } from "child_process";
 import { ZipArchive } from "archiver";
-import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { Validations } from "@commonSrc/both/validations.ts";
+import type { RequestUploadUpdate } from "@types";
+import { ServerFetch, Validations } from "@commonSrc/both/index.ts";
 
 const isNewVersionWeb = {
   linux: false,
@@ -35,46 +30,33 @@ const checkIsNewVersion = async (
   }
 
   try {
-    const url = `${process.env.API_URL?.replace(
-      "api",
-      "updates",
-    )}/is-update-available`;
-    Logger.log("Checking for new version at URL:", url);
     if (buildType === "android") {
-      const body: RequestIsUpdateAvailable<typeof buildType> = {
-        buildType,
-        platformOS: undefined,
-        currentVersion: versionExpo,
-      };
-      const res = await axios.post<ResponseIsUpdateAvailable>(url, body, {
-        timeout: 10000,
-      });
+      const res = await ServerFetch.get(
+        "/updates/is-update-available/:version/:buildType",
+        {
+          buildType,
+          version: versionExpo,
+        },
+      );
       return Validations.isNewVersion(versionExpo, res.data?.latestVersion);
     } else {
-      const body: RequestIsUpdateAvailable<typeof buildType> = {
-        buildType,
-        platformOS: "windows",
-        currentVersion: versionExpo,
-      };
-      const [res1, res2] = await Promise.all([
-        axios.post<ResponseIsUpdateAvailable>(url, body, {
-          timeout: 10000,
+      const [resLinux, resWindows] = await Promise.all([
+        ServerFetch.get("/updates/is-update-available/:version/:buildType", {
+          version: versionExpo,
+          buildType: "linux",
         }),
-        axios.post<ResponseIsUpdateAvailable>(
-          url,
-          { ...body, platformOS: "linux" },
-          {
-            timeout: 10000,
-          },
-        ),
+        ServerFetch.get("/updates/is-update-available/:version/:buildType", {
+          version: versionExpo,
+          buildType: "windows",
+        }),
       ]);
       const isNewForWindows = Validations.isNewVersion(
         versionExpo,
-        res1.data?.latestVersion,
+        resLinux.data?.latestVersion,
       );
       const isNewForLinux = Validations.isNewVersion(
         versionExpo,
-        res2.data?.latestVersion,
+        resWindows.data?.latestVersion,
       );
 
       isNewVersionWeb.windows = isNewForWindows;
@@ -110,10 +92,6 @@ const uploadWeb = async (): Promise<boolean> => {
       withFileTypes: true,
     });
 
-    const platformsOS: PlatformsOS[] = [];
-    if (isNewVersionWeb.windows) platformsOS.push("windows");
-    if (isNewVersionWeb.linux) platformsOS.push("linux");
-
     const zipPath = path.join(
       UTILITIES_FOR_PC_PATH,
       "dist",
@@ -141,12 +119,6 @@ const uploadWeb = async (): Promise<boolean> => {
     if (!fs.existsSync(zipPath))
       throw new Error(`Zip file not found at ${zipPath}`);
 
-    const url = `${process.env.API_URL?.replace(
-      "api",
-      "updates",
-    )}/upload-update`;
-    Logger.log("Uploading updates to URL:", url);
-
     if (args.ARGS["testing"]) {
       Logger.log(
         "Testing mode enabled - skipping actual upload. Zip file created at:",
@@ -155,74 +127,42 @@ const uploadWeb = async (): Promise<boolean> => {
       return true;
     }
 
-    const uploadPromises = platformsOS.map(async (platformOS) => {
-      try {
-        const data: RequestUploadUpdate = {
-          buildType: "web",
-          platformOS,
-          version: versionExpo,
-        };
+    try {
+      const data: RequestUploadUpdate = {
+        version: versionExpo,
+        buildType: "web",
+      };
 
-        Logger.log(`Uploading web build for ${platformOS}...`, data);
+      Logger.log(`Uploading web build...`, data);
 
-        const formData = new FormData();
-        formData.append("data", JSON.stringify(data));
-        formData.append("file", fs.createReadStream(zipPath));
+      const formData = new FormData();
+      formData.append("data", JSON.stringify(data));
+      formData.append("file", fs.createReadStream(zipPath));
 
-        const contentLength = await new Promise<number>((resolve, reject) => {
-          formData.getLength((err, length) => {
-            if (err) reject(err);
-            else resolve(length);
-          });
+      const contentLength = await new Promise<number>((resolve, reject) => {
+        formData.getLength((err, length) => {
+          if (err) reject(err);
+          else resolve(length);
         });
+      });
 
-        const response = await axios.post(url, formData, {
-          headers: {
-            ...formData.getHeaders(),
-            "Content-Length": contentLength,
-          },
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-          timeout: 60000,
-        });
+      const url = ServerFetch.getRoute("/updates/upload");
+      const response = await axios.post(url, formData, {
+        headers: {
+          ...formData.getHeaders(),
+          "Content-Length": contentLength,
+        },
+        timeout: 60000,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+      });
 
-        Logger.log(`Upload successful for ${platformOS}:`, response.data);
-        return {
-          platformOS,
-          success: !response.data.error,
-          data: response.data,
-        };
-      } catch (error) {
-        Logger.error(`Failed to upload for ${platformOS}:`);
-        Logger.error(error instanceof Error ? error.message : String(error));
-        return {
-          platformOS,
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-    });
-
-    const results = await Promise.all(uploadPromises);
-
-    Logger.log("\n=== Upload Summary ===");
-    const successCount = results.filter((r) => r.success).length;
-    results.forEach((result) => {
-      const status = result.success ? "Success" : "Failed";
-      Logger.log(`${result.platformOS}: ${status}`);
-      if (!result.success) {
-        Logger.log(
-          `  Error: ${result.data?.error || result?.error || "Unknown error"}`,
-        );
-      }
-    });
-
-    Logger.log(`\nTotal: ${successCount}/${results.length} successful uploads`);
-
-    if (successCount === 0) {
-      throw new Error("All uploads failed");
+      Logger.log(`Upload successful:`, response.data);
+      return true;
+    } catch (error) {
+      Logger.error(`Failed to upload web build`, error);
+      return false;
     }
-    return true;
   } catch (error) {
     Logger.error(
       "Fatal error:",
