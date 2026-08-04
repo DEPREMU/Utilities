@@ -55,6 +55,7 @@ uploads/
 .temp/
 *.sql.gpg
 server/generated/prisma/
+server/vps/docker/nginx/
 
 android/
 cryptos.json

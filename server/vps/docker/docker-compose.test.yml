@@ -9,12 +9,16 @@ services:
       - TOKEN=${NORD_TOKEN}
       - CONNECT=Mexico
       - TECHNOLOGY=NordLynx
+      - PORTS=3000
     restart: always
+    expose:
+      - "3000"
 
   server:
     image: utilities-server
     container_name: utilities-server
     restart: always
+    network_mode: "service:nordvpn"
     env_file:
       - .env
     ports:
@@ -22,6 +26,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      nordvpn:
+        condition: service_started
 
   postgres:
     image: postgres:17
@@ -38,11 +44,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
