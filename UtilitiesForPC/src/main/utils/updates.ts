@@ -3,10 +3,10 @@ import axios from "axios";
 import dotenv from "dotenv";
 import { app } from "electron";
 import dataApp from "./variables";
+import { Enums } from "@types";
 import { Logger } from "./logger";
 import { handleShutdown } from "./server";
 import { execFile, spawn } from "child_process";
-import { BuildTypeUpdates } from "@types";
 import { nativeData, Paths } from "@utils";
 import { File, Timers, Directory, Network, ServerFetch } from "@common";
 
@@ -192,9 +192,9 @@ export const updateWeb = async (downloadUrl: string): Promise<void> => {
   }
 };
 
-export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
+export const verifyNewUpdate = async (buildType: Enums["UpdateType"]) => {
   const currentVersion =
-    buildType === "electron"
+    buildType !== "web"
       ? nativeData.getValue("version")
       : dataApp.getValue("currentWebVersion");
 
@@ -206,19 +206,15 @@ export const verifyNewUpdate = async (buildType: BuildTypeUpdates) => {
     }
 
     const res = await ServerFetch.get(
-      "/updates/is-update-available/:version/:buildType/:platform-optional",
-      {
-        buildType,
-        platform: dataApp.getValue("isWindows") ? "windows" : "linux",
-        version: currentVersion,
-      },
+      "/updates/is-update-available/:version/:buildType",
+      { version: currentVersion, buildType },
     );
 
     const data = res.data;
     if (!data?.isUpdateAvailable || !data.downloadUrl) return;
     dataApp.setValue("isUpdating", true);
 
-    if (buildType === "electron") {
+    if (buildType !== "web") {
       const path = dataApp.getValue("downloadFilePath");
       const res = await downloadNewUpdate(data.downloadUrl, path);
       if (res === "error") {

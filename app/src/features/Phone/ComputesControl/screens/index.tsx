@@ -367,7 +367,6 @@ const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
       const currentZeroconf = zeroconfRef.current;
       currentZeroconf.stop("DNSSD");
-      currentZeroconf.removeAllListeners();
       currentZeroconf.removeDeviceListeners();
     };
   }, []);

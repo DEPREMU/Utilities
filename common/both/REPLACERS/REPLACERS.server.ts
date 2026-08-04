@@ -16,4 +16,6 @@ export const REPLACERS: REPLACERS_TYPE = {
   isNative: false,
   isPreview: false,
   isProduction: process.env.NODE_ENV === "production",
+  isLinux: process.platform === "linux",
+  isWindows: process.platform === "win32",
 };

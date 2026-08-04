@@ -5,23 +5,20 @@ import readline from "readline";
 import { args } from "./arguments.ts";
 import type * as Types from "@types";
 import APP_CONFIG_FUNC from "@appSrc/app.config.ts";
+import { getAllPathsSync } from "@commonSrc/serverOrElectron/fs.ts";
 import type PACKAGE_JSON_APP from "@appSrc/package.json";
 import type PACKAGE_JSON_UTILITIES_FOR_PC from "@utilitiesSrc/package.json";
 
-export const UTILITIES_PATH = path.resolve().replace(/\\scripts$/, "").replace(/\/scripts$/, "");
-if (!UTILITIES_PATH.endsWith("Utilities"))
-  throw new Error("This script must be run from the Utilities directory.");
+const paths = getAllPathsSync();
+export const UTILITIES_PATH = paths.root;
+export const APP_PATH = paths.app;
+export const TYPES_PATH = paths.types;
+export const COMMON_PATH = paths.common;
+export const SERVER_PATH = paths.server;
+export const UTILITIES_FOR_PC_PATH = paths.utilitiesForPC;
 
-export const APP_PATH = path.resolve(UTILITIES_PATH, "app");
-export const TYPES_PATH = path.resolve(UTILITIES_PATH, "types");
-export const COMMON_PATH = path.resolve(UTILITIES_PATH, "common");
-export const SERVER_PATH = path.resolve(UTILITIES_PATH, "server");
-export const SCRIPTS_PATH = path.resolve(UTILITIES_PATH, "scripts");
-export const ANDROID_PATH = path.resolve(APP_PATH, "android");
-export const UTILITIES_FOR_PC_PATH = path.resolve(
-  UTILITIES_PATH,
-  "UtilitiesForPC",
-);
+export const SCRIPTS_PATH = path.join(UTILITIES_PATH, "scripts");
+export const ANDROID_PATH = path.join(APP_PATH, "android");
 
 export const PLATFORM = {
   isLinux: process.platform === "linux",

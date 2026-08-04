@@ -13,7 +13,7 @@ export class Timers {
    */
   static readonly clearAllTimeouts = () => {
     this.#timeouts.forEach((id) => {
-      global.clearTimeout(id);
+      globalThis.clearTimeout(id);
     });
     this.#timeouts.clear();
   };
@@ -26,7 +26,7 @@ export class Timers {
    */
   static readonly clearAllIntervals = () => {
     this.#intervals.forEach((id) => {
-      global.clearInterval(id);
+      globalThis.clearInterval(id);
     });
     this.#intervals.clear();
   };
@@ -42,13 +42,13 @@ export class Timers {
     this.clearAllIntervals();
   };
 
-  static readonly originalSetTimeout = global.setTimeout.bind(global);
-  static readonly originalSetInterval = global.setInterval.bind(global);
-  static readonly originalClearTimeout = global.clearTimeout.bind(global);
-  static readonly originalClearInterval = global.clearInterval.bind(global);
+  static readonly originalSetTimeout = globalThis.setTimeout.bind(globalThis);
+  static readonly originalSetInterval = globalThis.setInterval.bind(globalThis);
+  static readonly originalClearTimeout = globalThis.clearTimeout.bind(globalThis);
+  static readonly originalClearInterval = globalThis.clearInterval.bind(globalThis);
 
   static setTimeout: SetTimeoutFunction = (...args) => {
-    const id = global.setTimeout(() => {
+    const id = globalThis.setTimeout(() => {
       this.#timeouts.delete(id);
 
       (args[0] as (...args: unknown[]) => void)?.(...args.slice(2));
@@ -59,7 +59,7 @@ export class Timers {
   };
 
   static setInterval: SetTimeoutFunction = (...args) => {
-    const id = global.setInterval(() => {
+    const id = globalThis.setInterval(() => {
       this.#intervals.delete(id);
 
       (args[0] as (...args: unknown[]) => void)?.(...args.slice(2));
@@ -74,7 +74,7 @@ export class Timers {
       if (!id) return;
 
       this.#timeouts.delete(id);
-      global.clearTimeout(id);
+      globalThis.clearTimeout(id);
     });
   };
 
@@ -83,7 +83,7 @@ export class Timers {
       if (!id) return;
 
       this.#intervals.delete(id);
-      global.clearInterval(id);
+      globalThis.clearInterval(id);
     });
   };
 
@@ -94,7 +94,7 @@ export class Timers {
    * @returns A promise that resolves after the specified time.
    */
   static readonly sleep = (ms: number): Promise<void> =>
-    new Promise((resolve) => global.setTimeout(resolve, ms));
+    new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 
   /**
    * Creates a promise that resolves after a specified number of milliseconds using the original setTimeout.

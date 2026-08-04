@@ -1,12 +1,7 @@
 {
   "extends": "expo/tsconfig.base",
   "typeRoutes": ["../types/index.d.ts"],
-  "include": [
-    "./**/*.ts",
-    "./**/*.tsx",
-    "**/types/*",
-    "../common/both/index.ts"
-  ],
+  "include": ["./**/*.ts", "./**/*.tsx", "../common/both/index.ts"],
   "exclude": ["../common/serverOrElectron/**/*"],
   "compilerOptions": {
     "strict": true,

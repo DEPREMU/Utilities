@@ -190,7 +190,7 @@ export class Objects {
     const T extends ReadonlyArray<readonly [PropertyKey, unknown]>,
   >(
     entries: T,
-  ) => FromEntries<T> = global.Object.fromEntries as <
+  ) => FromEntries<T> = globalThis.Object.fromEntries as <
     const T extends ReadonlyArray<readonly [PropertyKey, unknown]>,
   >(
     entries: T,

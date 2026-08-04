@@ -1,7 +1,7 @@
 import path from "path";
 import chalk from "chalk";
 import Busboy from "busboy";
-import { UPLOAD_DIR } from "@/config";
+import { getRoutes } from "@/config";
 import { RequestUploadUpdate } from "@types";
 import { dataUpdates, getFinalFileName } from "../variables";
 import { File, Logger, STATUS_RESPONSE, getHandlerPost } from "@common";
@@ -24,10 +24,7 @@ export const handleUpload = getHandlerPost(
         try {
           dataFile = JSON.parse(val) as RequestUploadUpdate;
 
-          const existingData = dataUpdates.getDataUpdate(
-            dataFile.buildType,
-            dataFile.platformOS,
-          );
+          const existingData = dataUpdates.getDataUpdate(dataFile.buildType);
 
           if (!existingData) {
             Logger.log("Invalid platform or OS");
@@ -65,7 +62,7 @@ export const handleUpload = getHandlerPost(
         }
 
         const finalName = getFinalFileName(dataFile);
-        const saveTo = path.join(UPLOAD_DIR, finalName);
+        const saveTo = path.join(getRoutes("UPLOAD_DIR"), finalName);
 
         Logger.log(`Saving file to: ${saveTo}`);
 
@@ -110,7 +107,6 @@ export const handleUpload = getHandlerPost(
           const success = await dataUpdates.updateDataUploads(
             dataFile.version,
             dataFile.buildType,
-            dataFile.platformOS,
           );
           Logger.log("All files written successfully");
 

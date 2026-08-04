@@ -9,8 +9,8 @@ import {
 import fs from "fs";
 import path from "path";
 import chalk from "chalk";
-import { execSync } from "child_process";
 import { args } from "../arguments.ts";
+import { execSync } from "child_process";
 
 const packageName = APP_CONFIG.android?.package;
 if (!packageName) throw new Error("Package name not found in app config");
@@ -165,7 +165,9 @@ const addDependencies = async () => {
   });
 
   if (args.ARGS.testing) {
-    console.log(chalk.yellow("Testing mode: Skipping build.gradle dependencies write"));
+    console.log(
+      chalk.yellow("Testing mode: Skipping build.gradle dependencies write"),
+    );
     return;
   }
 
@@ -225,7 +227,9 @@ const editMainApplication = async () => {
   ];
 
   if (args.ARGS.testing) {
-    console.log(chalk.yellow("Testing mode: Skipping MainApplication.kt write"));
+    console.log(
+      chalk.yellow("Testing mode: Skipping MainApplication.kt write"),
+    );
     return;
   }
 
@@ -288,7 +292,9 @@ const createModules = async () => {
             encoding: "utf8",
           });
         } else {
-          console.log(chalk.yellow(`Testing mode: Skipping module write for ${name}`));
+          console.log(
+            chalk.yellow(`Testing mode: Skipping module write for ${name}`),
+          );
         }
       },
     );
@@ -358,7 +364,11 @@ const addPermissionsToManifest = async (newPermissions: string[]) => {
       }
 
       if (args.ARGS.testing) {
-        console.log(chalk.yellow("Testing mode: Skipping AndroidManifest.xml permissions write"));
+        console.log(
+          chalk.yellow(
+            "Testing mode: Skipping AndroidManifest.xml permissions write",
+          ),
+        );
         resolve();
         return;
       }
@@ -405,7 +415,11 @@ const modifyAndroidManifest = async (newServices: string | string[]) => {
       );
 
       if (args.ARGS.testing) {
-        console.log(chalk.yellow("Testing mode: Skipping AndroidManifest.xml modification"));
+        console.log(
+          chalk.yellow(
+            "Testing mode: Skipping AndroidManifest.xml modification",
+          ),
+        );
       } else {
         fs.writeFileSync(
           androidManifestPath,
@@ -428,7 +442,9 @@ export const runPrebuild = () => {
     if (!args.ARGS.testing) {
       fs.rmSync(androidPath, { recursive: true, force: true });
     } else {
-      console.log(chalk.yellow("Testing mode: Skipping android folder removal"));
+      console.log(
+        chalk.yellow("Testing mode: Skipping android folder removal"),
+      );
     }
   }
 

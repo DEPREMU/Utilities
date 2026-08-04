@@ -113,10 +113,10 @@ export const parseData = <T = object | null>(
     if (!value) return value as T;
 
     if (value.includes("<<Symbol>>") || value.includes("<<Function>>")) {
-      const parsedValue = global.JSON.parse(value);
+      const parsedValue = globalThis.JSON.parse(value);
 
       return getCorrectParsed<T>(parsedValue);
-    } else parsed = global.JSON.parse(value || "null") as T;
+    } else parsed = globalThis.JSON.parse(value || "null") as T;
   } catch {
     parsed = value as T;
   }
@@ -126,12 +126,12 @@ export const parseData = <T = object | null>(
 export const JSON = {
   parseData,
   stringifyData,
-  parse: global.JSON.parse as unknown as <T>(
+  parse: globalThis.JSON.parse as unknown as <T>(
     value: string,
-    ...args: Slice<Parameters<typeof global.JSON.parse>, 1>
+    ...args: Slice<Parameters<typeof globalThis.JSON.parse>, 1>
   ) => T,
-  stringify: global.JSON.stringify as <T>(
+  stringify: globalThis.JSON.stringify as <T>(
     value: T,
-    ...args: Slice<Parameters<typeof global.JSON.stringify>, 1>
+    ...args: Slice<Parameters<typeof globalThis.JSON.stringify>, 1>
   ) => string,
 } as const;

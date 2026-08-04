@@ -1,15 +1,15 @@
 import path from "path";
-import { serverPath } from "@/config.ts";
+import { getRoutes } from "@/config";
 import { Cryptos, CryptoEvents, File, REPLACERS } from "@common";
-
-export const CRYPTOS_FILE_PATH = path.join(serverPath, "dev", "cryptos.json");
 
 export const cryptos = new Cryptos(500);
 void cryptos.fetchDataBinance(true);
 
 if (REPLACERS.isDev) {
   void cryptos.addEventListener(CryptoEvents.UPDATE, async (d) => {
-    void new File(CRYPTOS_FILE_PATH).writeFile(JSON.stringify(d), {
+    void new File(
+      path.join(getRoutes("ROOT"), "dev", "cryptos.json"),
+    ).writeFile(JSON.stringify(d), {
       encoding: "utf-8",
     });
   });

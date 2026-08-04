@@ -14,7 +14,7 @@
     },
     "typeRoots": ["../types/index.d.ts", "./generated/*.d.ts"]
   },
-  "include": ["./**/*.ts", "../common/index.ts"],
+  "include": ["./**/*.ts", "../common/**/*"],
   "exclude": [
     "config-vps",
     "node_modules",

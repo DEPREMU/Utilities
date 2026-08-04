@@ -22,8 +22,8 @@ import dataApp, {
 import os from "os";
 import path from "path";
 import { exec, spawn } from "child_process";
-import { File, Directory, startMemoryMonitor } from "@common";
 import { verifyNewUpdate, deleteDownloadedUpdate } from "./utils/updates";
+import { File, Directory, startMemoryMonitor, REPLACERS } from "@common";
 
 const loadSevenZip = async () => {
   const sevenZipPath = path.join(
@@ -334,7 +334,7 @@ const createTray = (): void => {
 };
 
 app.whenReady().then(async () => {
-  await verifyNewUpdate("electron");
+  await verifyNewUpdate(REPLACERS.isLinux ? "linux" : "windows");
   await verifyNewUpdate("web");
   powerSaveBlocker.start("prevent-app-suspension");
   deleteDownloadedUpdate();

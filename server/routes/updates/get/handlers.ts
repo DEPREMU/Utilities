@@ -1,16 +1,14 @@
 import path from "path";
 import chalk from "chalk";
-import { UPLOAD_DIR } from "@/config.ts";
-import { PlatformsOS } from "@types";
+import { getRoutes } from "@/config.ts";
 import { dataUpdates, getFinalFileName } from "../variables.ts";
 import { File, Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 
 export const handleIsUpdateAvailable = getHandlerGet(
   "/updates",
-  "/is-update-available/:version/:buildType/:platform-optional",
+  "/is-update-available/:version/:buildType",
   {
     version: "string",
-    platform: ["string", "undefined"],
     buildType: "string",
   },
   async (body, sendResponse) => {
@@ -20,24 +18,21 @@ export const handleIsUpdateAvailable = getHandlerGet(
     };
 
     try {
-      const { version, buildType, platform } = body;
+      const { version, buildType } = body;
 
       res.isUpdateAvailable = dataUpdates.isUpdateAvailable(
         version,
         buildType as Parameters<typeof dataUpdates.isUpdateAvailable>[1],
-        platform as PlatformsOS | undefined,
       );
       res.latestVersion =
         dataUpdates.getLatestVersion(
           buildType as Parameters<typeof dataUpdates.getLatestVersion>[0],
-          platform as Parameters<typeof dataUpdates.getLatestVersion>[1],
         ) || "";
 
       if (res.isUpdateAvailable) {
         res.downloadUrl = dataUpdates.createTempDownloadUrl(
           version,
           buildType as Parameters<typeof dataUpdates.createTempDownloadUrl>[1],
-          platform as PlatformsOS | undefined,
         );
       }
 
@@ -64,11 +59,10 @@ export const handleDownload = getHandlerGet(
         });
 
       const filePath = path.join(
-        UPLOAD_DIR,
+        getRoutes("UPLOAD_DIR"),
         getFinalFileName({
           version: infoUrl.version,
           buildType: infoUrl.buildType,
-          platformOS: infoUrl.platformOS,
         }),
       );
 

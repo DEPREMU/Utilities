@@ -1,0 +1,5 @@
+# Keep shell scripts Linux-compatible
+*.sh text eol=lf
+
+# Let other text files follow normal Git rules
+* text=auto
