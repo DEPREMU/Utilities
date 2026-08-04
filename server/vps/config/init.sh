@@ -48,15 +48,20 @@ sudo apt upgrade -y
 sudo apt install -y git ufw wget curl
 
 # --- 3. Docker Installation ---
-if ! command -v docker &> /dev/null; then
-    echo -e "${YELLOW}Installing Docker...${NC}"
+# --- 3. Docker e Instalación de Compose ---
+if ! docker compose version &> /dev/null; then
+    echo -e "${YELLOW}Instalando Docker y el plugin de Compose...${NC}"
     curl -fsSL https://get.docker.com -o get-docker.sh
     sudo sh get-docker.sh
+    sudo apt-get install docker-compose-plugin -y
     sudo usermod -aG docker $USER
     rm get-docker.sh
 else
-    echo -e "${GREEN}Docker is already installed.${NC}"
+    echo -e "${GREEN}Docker y Docker Compose ya están instalados.${NC}"
 fi
+
+sudo systemctl enable docker
+sudo systemctl enable containerd
 
 # --- 4. Repository Setup ---
 REPO_DIR="$HOME/Utilities"
@@ -104,7 +109,7 @@ if [[ "$IS_VM" =~ ^[Yy]$ ]]; then
             fi
             
             # We proxy to the 'server' container in docker-compose network
-            DEFAULT_CONFIG="proxy_pass http://server:3000; \
+            DEFAULT_CONFIG="proxy_pass http://nordvpn:3000; \
 proxy_set_header Host \$host; \
 proxy_set_header X-Real-IP \$remote_addr; \
 proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
@@ -134,7 +139,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
     location = / {
-        return 302 /updates/web-page;
+        return 302 /updates;
     }
     location /updates {
         client_max_body_size 500M;

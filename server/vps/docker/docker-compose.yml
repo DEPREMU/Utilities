@@ -9,24 +9,34 @@ services:
       - TOKEN=${NORD_TOKEN}
       - CONNECT=Mexico
       - TECHNOLOGY=NordLynx
+      - LOCAL_NETWORK=172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
+      - PORTS=3000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "https://icanhazip.com"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: always
 
   server:
     image: depremu/utilities-server:latest
     container_name: utilities-server
     restart: always
+    network_mode: "service:nordvpn"
     env_file:
       - .env
-    expose:
-      - "3000"
     depends_on:
       postgres:
+        condition: service_healthy
+      nordvpn:
         condition: service_healthy
 
   postgres:
     image: postgres:17
     container_name: utilities-postgres
     restart: always
+    network_mode: service:nordvpn
     env_file:
       - .env
     environment:
@@ -35,13 +45,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1"
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1",
         ]
       interval: 5s
       timeout: 5s
@@ -58,7 +66,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/ssl:/etc/ssl/domain
     depends_on:
-      - server
+      - nordvpn
 
 volumes:
   postgres_data:

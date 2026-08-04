@@ -23,7 +23,7 @@ git pull
 cd server/vps/docker
 
 echo "Starting Docker containers..."
-docker compose down
-docker compose up -d
+sudo docker compose down
+sudo docker compose up -d
 
 echo "Server started successfully via Docker."
