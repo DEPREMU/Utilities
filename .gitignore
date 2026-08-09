@@ -57,5 +57,11 @@ uploads/
 server/generated/prisma/
 server/vps/docker/nginx/
 
-android/
+# specify
+feature.json
+extensions/*/local-config.yml
+specs/
+__pycache__/
+
 cryptos.json
+android/
