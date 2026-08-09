@@ -57,7 +57,7 @@ export type TestRoutes = {
       expectedResponse: GetResponseWithType<GetResponse<K, R>>;
 
       onFinish?: GetFunction<void, [response: GetResponse<K, R> | null]>;
-    } & (ResolveRoute<FetchAPI<K>, R>["auth"] extends true
+    } & (ResolveRoute<FetchAPI<K>, R> extends { auth: true }
       ? { auth: GetFunction<string, []> | string }
       : { auth?: never }) &
       (GetRequestBody<K, R> extends null | undefined

@@ -18,6 +18,7 @@ type States = GetStatesZustand<{
   refreshing: boolean;
   isDestroyed: boolean;
   selectedCryptos: SelectedCryptos;
+  isServiceUnavailable: boolean;
 }>;
 
 type Actions = {
@@ -35,7 +36,7 @@ type Actions = {
 export const useCryptoStore = create<States & Actions>((set, get) => {
   const service = CryptoManager.instance;
 
-  const prices = service.prices;
+  const prices = service.prices || [];
   const settings =
     service.getSettings() || ({} as DB["TablesClient"]["CryptosSettings"]);
   const selectedCryptos = service.ownedCryptos;
@@ -84,6 +85,10 @@ export const useCryptoStore = create<States & Actions>((set, get) => {
         selectedCryptos: getValueState(v, () => get().selectedCryptos),
       }),
 
+    isServiceUnavailable: false,
+    setIsServiceUnavailable: (v) =>
+      set({ isServiceUnavailable: getValueState(v, () => get().isServiceUnavailable) }),
+
     // actions
 
     sync: async () => {
@@ -119,13 +124,13 @@ export const useCryptoStore = create<States & Actions>((set, get) => {
 
         const crypto: SelectedCryptos[string] = {
           id: "",
+          userId: "",
           amount: "0",
           symbol: cryptoId,
           baseCoin: cryptoPrice.baseCoin,
           quoteCoin: cryptoPrice.quoteCoin,
-          firstPricePurchased: cryptoPrice.price ?? 0,
           datePurchased: new Date().toISOString(),
-          userId: "",
+          firstPricePurchased: cryptoPrice.price ?? 0,
         };
 
         service.addCrypto(crypto);

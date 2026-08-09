@@ -1,4 +1,3 @@
-import type { UserData } from "./typesUser";
 import { LanguagesSupported } from "../typesTranslations";
 import { $Enums, type Prisma } from "../../server/generated/prisma";
 import type { ReasonNotification } from "../typesNotifications";
@@ -34,26 +33,26 @@ export type CryptosSettings = Prisma.CryptosSettingsGetPayload<{
   };
 }>;
 
-export type Logs = Prisma.LogsGetPayload<{}>;
+export type Logs = Prisma.LogsGetPayload<true>;
 
-export type Users = Prisma.UsersGetPayload<{}>;
+export type Users = Prisma.UsersGetPayload<true>;
 
-export type Cryptos = Prisma.CryptosGetPayload<{}>;
+export type Cryptos = Prisma.CryptosGetPayload<true>;
 
 export type UserNotificationConfig =
-  Prisma.UserNotificationsConfigGetPayload<{}>;
+  Prisma.UserNotificationsConfigGetPayload<true>;
 
-export type Streamers = Prisma.StreamersGetPayload<{}>;
+export type Streamers = Prisma.StreamersGetPayload<true>;
 
-export type PushTokens = Prisma.PushTokensGetPayload<{}>;
+export type PushTokens = Prisma.PushTokensGetPayload<true>;
 
-export type UserConfig = Prisma.UserConfigGetPayload<{}>;
+export type UserConfig = Prisma.UserConfigGetPayload<true>;
 
-export type UserSessions = Prisma.UserSessionsGetPayload<{}>;
+export type UserSessions = Prisma.UserSessionsGetPayload<true>;
 
-export type DownDetector = Prisma.DownDetectorGetPayload<{}>;
+export type DownDetector = Prisma.DownDetectorGetPayload<true>;
 
-export type ClipboardSync = Prisma.ClipboardSyncGetPayload<{}>;
+export type ClipboardSync = Prisma.ClipboardSyncGetPayload<true>;
 
 type Serialized<T> = T extends string | number | boolean | null | undefined
   ? T

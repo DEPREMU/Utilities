@@ -331,7 +331,7 @@ export class CryptosService extends CryptosWs {
         const { useCryptoStore } = await import("./cryptoZustand");
 
         const state = useCryptoStore.getState();
-        state.setPrices(this.prices);
+        state.setPrices(this.prices || []);
       },
     );
   }

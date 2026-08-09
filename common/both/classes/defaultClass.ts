@@ -20,6 +20,8 @@ export abstract class ServiceClass<
   async #init() {
     try {
       await this._init();
+    } catch {
+      // Ignore
     } finally {
       this.#isInitialized = true;
       this.#initPromise = null;

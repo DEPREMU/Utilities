@@ -7,16 +7,25 @@ import {
   ResponseSignOut,
   ResponseDoQuery,
   RequestRefreshSession,
-  ResponseChangeImageFormat,
   RequestChangeImageFormat,
+  ResponseChangeImageFormat,
 } from "@types";
-import type { Handler } from "express";
 import { RequestSignOut } from "./Request";
 import { GetRouterObj, DEFAULT_RESPONSE } from "./Helpers";
 
 export type AuthFetch =
-  | GetUrlFetch<"/login", RequestAuth<"login">, {}, ResponseAuth<"login">>
-  | GetUrlFetch<"/signup", RequestAuth<"signup">, {}, ResponseAuth<"signup">>
+  | GetUrlFetch<
+      "/login",
+      RequestAuth<"login">,
+      Record<string, never>,
+      ResponseAuth<"login">
+    >
+  | GetUrlFetch<
+      "/signup",
+      RequestAuth<"signup">,
+      Record<string, never>,
+      ResponseAuth<"signup">
+    >
   | GetUrlFetch<"/signout", RequestSignOut, { auth: true }, ResponseSignOut>
   | GetUrlFetch<
       "/refreshSession",
@@ -28,37 +37,42 @@ export type AuthFetch =
 export type DevFetch = GetUrlFetch<
   "/executeQuery",
   RequestDoQuery,
-  {},
+  Record<string, never>,
   ResponseDoQuery
 >;
 
 export type LogsFetch = GetUrlFetch<
   "/add",
   Prisma.LogsCreateArgs["data"],
-  {},
+  Record<string, never>,
   DEFAULT_RESPONSE
 >;
 
 export type EncryptionFetch = GetUrlFetch<
   "/encrypt" | "/decrypt",
   { value: string },
-  {},
+  Record<string, never>,
   { value?: string; error?: string }
 >;
 
 export type TranslateFetch = GetUrlFetch<
   "/translate",
   { text: string; targetLanguage: string },
-  {},
+  Record<string, never>,
   { translatedText?: string; error?: string }
 >;
 
-export type UpdatesFetch = GetUrlFetch<"/upload", {}, {}, DEFAULT_RESPONSE>;
+export type UpdatesFetch = GetUrlFetch<
+  "/upload",
+  null,
+  Record<string, never>,
+  DEFAULT_RESPONSE
+>;
 
 export type ImagesFetch = GetUrlFetch<
   "/change-format",
   RequestChangeImageFormat,
-  {},
+  Record<string, never>,
   ResponseChangeImageFormat
 >;
 
@@ -88,7 +102,9 @@ export type StreamersFetch = GetUrlFetch<
   { auth: true },
   {
     error?: string;
-    streamer?: ResponseStreamersFetch & { isLive: boolean };
+    streamer?: Omit<DB["TablesClient"]["Streamers"], "createdAt"> & {
+      isLive: boolean;
+    };
   }
 >;
 

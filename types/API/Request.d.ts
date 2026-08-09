@@ -1,13 +1,5 @@
-import {
-  FetchAPI,
-  RoutesAPI,
-  RoutesPutAPI,
-  RoutesPostAPI,
-  MethodsAvailableInAPI,
-} from "./typesAPI";
+import { Tables, TablesKeys } from "../database";
 import { LanguagesSupported } from "../typesTranslations";
-import { Prisma, Tables, TablesKeys } from "../database";
-import { PlatformsOS, UpdatesRoutes } from "./typesUpdates";
 
 export type RequestCryptoPrice = {
   symbol: string;
@@ -41,7 +33,7 @@ export type RequestAuth<T extends "login" | "signup"> = {
       rememberMe: boolean;
       notificationToken: string;
     }
-  : {});
+  : unknown);
 
 export type RequestRefreshSession = {
   lang: LanguagesSupported;

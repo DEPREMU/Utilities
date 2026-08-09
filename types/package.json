@@ -5,6 +5,8 @@
   "version": "0.0.0",
   "main": "index.d.ts",
   "scripts": {
-    "before-commit": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint:fix": "eslint . --fix",
+    "before-commit": "yarn run type-check && yarn run lint:fix"
   }
 }

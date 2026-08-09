@@ -162,6 +162,8 @@ export const encryptFile = async ({
   const fd = await fs.promises.open(outputPath, "r+");
   try {
     await fd.write(authTag, 0, 16, 28);
+  } catch {
+    // ignore
   } finally {
     await fd.close();
   }

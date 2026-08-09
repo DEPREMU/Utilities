@@ -733,6 +733,7 @@ export type AppTranslations = BatteryStateTranslations &
       };
     };
     common: {
+      serviceUnavailable: string;
       available: string;
       error: string;
       textAddedToDatabase: string;

@@ -1,5 +1,5 @@
+import { GetRouterObj } from "./Helpers";
 import { DEFAULT_RESPONSE, GetUrlFetch } from "@types";
-import { GetParams, GetRouterObj } from "./Helpers";
 
 export type LogsDelete = GetUrlFetch<
   "/:logId",

@@ -5,7 +5,7 @@ import { Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 export const authMiddleware = getHandlerGet(
   "/logs",
   "/",
-  {} as never,
+  {},
   async (_, sendResponse, { req, next }) => {
     try {
       const authHeader = req.headers?.authorization;

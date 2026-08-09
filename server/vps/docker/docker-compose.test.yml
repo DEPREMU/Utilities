@@ -9,10 +9,17 @@ services:
       - TOKEN=${NORD_TOKEN}
       - CONNECT=Mexico
       - TECHNOLOGY=NordLynx
+      - LOCAL_NETWORK=172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
       - PORTS=3000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "https://icanhazip.com"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: always
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
 
   server:
     image: utilities-server
@@ -21,18 +28,17 @@ services:
     network_mode: "service:nordvpn"
     env_file:
       - .env
-    ports:
-      - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
       nordvpn:
-        condition: service_started
+        condition: service_healthy
 
   postgres:
     image: postgres:17
     container_name: utilities-postgres
     restart: always
+    network_mode: service:nordvpn
     env_file:
       - .env
     environment:
@@ -41,13 +47,16 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
+
 
 volumes:
   postgres_data:

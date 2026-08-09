@@ -26,7 +26,6 @@ export default defineConfig([
       "**/images/**",
       "**/coverage/**",
       "**/*.generated.*",
-      "**/*.d.ts",
       "**/*.log",
       "**/.env*",
       "**/.DS_Store",

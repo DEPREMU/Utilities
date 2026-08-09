@@ -41,7 +41,7 @@ export type typeBehaviorNotification = {
   };
 };
 
-export type typeBehaviorBatteryNotification = {};
+export type typeBehaviorBatteryNotification = Record<string, unknown>;
 
 export type Notifications = {
   [reason in ReasonNotification]: {
@@ -49,10 +49,12 @@ export type Notifications = {
     enabled: boolean;
     interval: number;
     behavior: typeBehaviorNotification &
-      (reason extends "batteryAlerts" ? typeBehaviorBatteryNotification : {});
+      (reason extends "batteryAlerts"
+        ? typeBehaviorBatteryNotification
+        : unknown);
   } & (reason extends "streamers"
     ? { streamersList: typeStreamerNotification[] }
-    : {});
+    : unknown);
 };
 
 export type Notification = {

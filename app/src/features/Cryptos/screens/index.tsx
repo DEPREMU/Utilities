@@ -10,6 +10,7 @@ import { useIsLoggedIn } from "@/common/hooks/useIsLoggedIn";
 import { useCryptoStore } from "../services/cryptoZustand";
 import GetBottomNavigation from "@components/BottomNavigator/components/GetBottomNavigation";
 import React, { useEffect } from "react";
+import ServiceUnavailable from "../components/ServiceUnavailable";
 
 const Navigator = GetBottomNavigation([
   {
@@ -41,6 +42,7 @@ const CryptosNavigator: React.FC<Screens["Cryptos"]> = () => {
   useIsLoggedIn();
   const sync = useCryptoStore((s) => s.sync);
   const loading = useCryptoStore((s) => s.loading);
+  const isServiceUnavailable = useCryptoStore((s) => s.isServiceUnavailable);
 
   useEffect(() => {
     sync();
@@ -49,6 +51,8 @@ const CryptosNavigator: React.FC<Screens["Cryptos"]> = () => {
       CryptoManager.startTimer();
     };
   }, [sync]);
+
+  if (isServiceUnavailable) return <ServiceUnavailable />;
 
   return (
     <>

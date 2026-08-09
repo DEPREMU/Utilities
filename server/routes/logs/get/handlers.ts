@@ -4,7 +4,7 @@ import { getHandlerGet, Helper, STATUS_RESPONSE } from "@common";
 export const handleGetLogs = getHandlerGet(
   "/logs",
   "/",
-  {} as never,
+  {},
   async (_, sendResponse) => {
     try {
       const logs = await prisma.logs.findMany({

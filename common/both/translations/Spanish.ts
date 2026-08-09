@@ -162,6 +162,7 @@ export const esApp: AppTranslations = {
     setDefaults: "Restablecer valores predeterminados",
   },
   common: {
+    serviceUnavailable: "Servicio no disponible. Por favor, inténtelo de nuevo más tarde.",
     available: "Disponible",
     showDeleted: "Mostrar eliminados",
     error: "Error",

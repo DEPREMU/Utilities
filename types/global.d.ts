@@ -1,5 +1,4 @@
 import { Falsy } from "./API";
-import type { RefObject } from "react";
 
 type ReturnTimeout = number;
 type ValidClearTimeout = ReturnTimeout | Falsy;

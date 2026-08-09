@@ -1,6 +1,6 @@
 import { DEFAULT_RESPONSE, GetRouterObj, GetUrlFetch, Prisma } from "@types";
 
-type LogsFetch = GetUrlFetch<"/", {}, {}, DEFAULT_RESPONSE>;
+type LogsFetch = GetUrlFetch<"/", null, Record<string, never>, DEFAULT_RESPONSE>;
 
 type UserConfigFetch = GetUrlFetch<
   "/update",

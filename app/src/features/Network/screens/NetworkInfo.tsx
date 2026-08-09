@@ -46,6 +46,8 @@ const NetworkInfo: React.FC = () => {
       const info = await NetInfo.fetch();
       setNetworkInfo(info);
       setLastUpdated(new Date());
+    } catch {
+      // Ignore
     } finally {
       setIsRefreshing(false);
     }

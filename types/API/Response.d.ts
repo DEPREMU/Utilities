@@ -1,5 +1,5 @@
-import { TablesKeys } from "../database";
 import type { Falsy } from "react-native";
+import { AvailableServices } from "../typesThirdPartyStateManager";
 import { RequestChangeImageFormat } from "./Request";
 import type { PriceBinanceAPI, ExpectedStorageTypes } from "@common";
 
@@ -122,4 +122,10 @@ export type ResponseChangeImageFormat = {
 export type ResponseDebugAppAlive = {
   success: boolean;
   timestamp: string;
+};
+
+export type ResponseUnavailableService = {
+  error: string;
+  message: string;
+  dependency: AvailableServices;
 };

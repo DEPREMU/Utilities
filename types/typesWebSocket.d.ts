@@ -1,15 +1,8 @@
-import type {
-  ChannelsId,
-  Notification,
-  NotificationAction,
-  ReasonNotification,
-  Notifications as typeNotifications,
-} from "./typesNotifications";
 import type { WebSocket } from "ws";
-import type { ResponseAuth } from "./API";
-import type { CryptosSettings } from "@types";
-import type { LanguagesSupported } from "./typesTranslations";
 import { SelectedCryptos } from "@common";
+import type { ResponseAuth } from "./API";
+import type { Notification } from "./typesNotifications";
+import type { LanguagesSupported } from "./typesTranslations";
 
 export type CommonUserDataWS = {
   userId: string;
@@ -96,6 +89,10 @@ export type CryptosWebSocketMessage<T extends "sentByApp" | "sentByServer"> =
       | {
           type: "synced";
           settings?: DB["TablesClient"]["CryptosSettings"];
+        }
+      | {
+          type: "error";
+          error: "service_unavailable";
         }
       | {
           type: "cryptos";

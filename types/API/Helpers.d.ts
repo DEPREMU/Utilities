@@ -1,10 +1,8 @@
 import {
-  Get,
-  Post,
-  Delete,
   TypeOfJS,
   MethodsAPI,
   DEFAULT_RESPONSE,
+  ResponseUnavailableService,
 } from "@types";
 import type { STATUS_RESPONSE } from "../../common/both";
 import { Handler, NextFunction, Request, Response } from "express";
@@ -71,16 +69,20 @@ type GetParams<
   : T extends `${string}:${infer Param}`
     ? ParamToObject<Param>
     : Found extends true
-      ? {}
+      ? Record<string, never>
       : never;
 
 export type GetRouterObj<T extends { url: string }, U extends string> = {
   handler: Handler;
-} & (Extract<T, { url: P }> extends { auth: true }
+} & (Extract<T, { url: U }> extends
+  { auth: true } | { canBeUnavailableService: true }
   ? { middlewares: [Handler, ...Handler] }
   : { middlewares?: Handler[] });
 
-type RouterFetch = Record<string, GetUrlFetch<string, unknown, {}>>;
+type RouterFetch = Record<
+  string,
+  GetUrlFetch<string, unknown, Record<string, never>>
+>;
 
 export type RequestParams<
   H extends RouterFetch,
@@ -116,7 +118,9 @@ export type GetUrlFetch<
   [P in ExpandOptionalPath<Url>]: {
     url: P;
     body?: Body extends null ? GetParams<P> : Body;
-    response: Response;
+    response: Extra extends { canBeUnavailableService: true }
+      ? Response | ResponseUnavailableService
+      : Response;
   } & Extra;
 }[ExpandOptionalPath<Url>];
 
@@ -180,7 +184,9 @@ export type GetHandlerType<H extends RouterFetch, M extends MethodsAPI> = <
 >(
   path: K,
   url: U,
-  keys: O,
+  keys: [O] extends [Record<string, never> | undefined | null]
+    ? Record<string, never>
+    : O,
   callback: (
     body: T,
     sendResponse: (

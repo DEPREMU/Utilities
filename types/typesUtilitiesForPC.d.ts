@@ -1,4 +1,5 @@
 import { Server } from "http";
+import type Electron from "electron";
 import type { Bonjour } from "bonjour-service";
 import { ClipboardItem } from "./screens";
 import { LanguagesSupported } from "./typesTranslations";

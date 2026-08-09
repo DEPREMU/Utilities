@@ -158,6 +158,7 @@ export const enApp: AppTranslations = {
     setDefaults: "Set Defaults",
   },
   common: {
+    serviceUnavailable: "Service Unavailable. Please try again later.",
     available: "Available",
     showDeleted: "Show Deleted",
     error: "Error",

@@ -1,13 +1,9 @@
 <!--
 Sync Impact Report:
-- Version change: 1.0.0 → 1.1.0
+- Version change: 1.1.0 → 1.1.1
 - Modified principles:
-  - I. Strict Import & Type Safety (expanded to include strict "no any" and generic accessor typing)
-- Added sections:
-  - VI. Code Placement & Dependencies
-  - VII. DRY (Don't Repeat Yourself)
-  - VIII. Build-Time Replacers
-  - IX. Documentation & Comments
+  - Quality Gate (updated to mandate running before-commit and fixing all errors/warnings before finishing a feature)
+- Added sections: None
 - Removed sections: None
 - Follow-up TODOs: None
 -->
@@ -47,7 +43,7 @@ Do NOT add inline comments to the code. The only permitted documentation format 
 
 - **Pre-requisites**: Read affected files to confirm existing patterns before editing. Define or update shared types first.
 - **Implementation**: Implement the smallest safe change. Validate behavior on both Android and Web/Electron. 
-- **Quality Gate**: `yarn run before-commit` is the canonical quality gate for the repository. External tools' reports are considered false positives if `before-commit` passes unless a real failure is reproducible. For native code, use `yarn run app-compile-check`.
+- **Quality Gate**: `yarn run before-commit` is the canonical quality gate for the repository. Before finishing a feature or an addition, you MUST run `yarn run before-commit` and fix any errors or linting warnings it returns. The task is not considered finished until `before-commit` passes without errors or warnings. External tools' reports are considered false positives if `before-commit` passes unless a real failure is reproducible. For native code, use `yarn run app-compile-check`.
 - **Documentation**: Document any known caveats introduced in `ProblemsDetected.md`. For new features, add walkthrough docs in `implementation-md/` if needed.
 
 ## Coding Style & Pull Request Readiness
@@ -59,4 +55,4 @@ Do NOT add inline comments to the code. The only permitted documentation format 
 
 The Constitution supersedes all other practices. All work must align with the defined standard work protocol. Changes to shared contracts, resources teardown, and cross-platform logic MUST be rigorously tested and comply with `yarn run before-commit`. Amendments require documentation and compliance with the core principles.
 
-**Version**: 1.1.0 | **Ratified**: 2026-08-08 | **Last Amended**: 2026-08-08
+**Version**: 1.1.1 | **Ratified**: 2026-08-08 | **Last Amended**: 2026-08-09

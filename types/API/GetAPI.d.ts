@@ -1,15 +1,8 @@
-import {
-  Put,
-  Post,
-  Enums,
-  Prisma,
-  GetUrlFetch,
-  DEFAULT_RESPONSE,
-} from "@types";
+import { Router } from "express";
 import { Delete } from "./DeleteAPI";
-import { Handler, Router } from "express";
+import { GetRouterObj } from "./Helpers";
 import { PriceBinanceAPI } from "@common";
-import { GetParams, GetRouterObj } from "./Helpers";
+import { Put, Post, Enums, GetUrlFetch, DEFAULT_RESPONSE } from "@types";
 
 export type UpdatesFetch =
   | GetUrlFetch<
@@ -18,37 +11,52 @@ export type UpdatesFetch =
         version: string;
         buildType: Enums["UpdateType"];
       },
-      {},
+      Record<string, never>,
       {
         downloadUrl?: string;
         latestVersion: string;
         isUpdateAvailable: boolean;
       }
     >
-  | GetUrlFetch<"/download/:id", null, {}, ResponseDownloadUpload>;
+  | GetUrlFetch<
+      "/download/:id",
+      null,
+      Record<string, never>,
+      { error: string }
+    >;
 
 export type CryptosFetch =
-  | GetUrlFetch<"/", null, {}, { cryptos: PriceBinanceAPI; error?: string }>
+  | GetUrlFetch<
+      "/",
+      null,
+      { canBeUnavailableService: true },
+      { cryptos: PriceBinanceAPI; error?: string }
+    >
   | GetUrlFetch<
       "/:symbol",
       null,
-      {},
+      { canBeUnavailableService: true },
       { crypto: PriceBinanceAPI[0] | null; error?: string }
     >
   | GetUrlFetch<
       "/price/:symbol",
       null,
-      {},
+      { canBeUnavailableService: true },
       { price: number; priceMXN?: number } | { error: string }
     >;
 
 export type ServerInfoFetch =
-  | GetUrlFetch<"/health", null, {}, { upTime: number; timestamp: string }>
-  | GetUrlFetch<"/generate204", null, {}, "">
+  | GetUrlFetch<
+      "/health",
+      null,
+      Record<string, never>,
+      { upTime: number; timestamp: string }
+    >
+  | GetUrlFetch<"/generate204", null, Record<string, never>, "">
   | GetUrlFetch<
       "/appAlive/:deviceId-string/:pushToken-string",
       null,
-      {},
+      Record<string, never>,
       DEFAULT_RESPONSE
     >;
 
@@ -93,13 +101,13 @@ export type StreamersFetch =
   | GetUrlFetch<
       "/page/:page-number-optional",
       null,
-      {},
+      Record<string, never>,
       { streamers?: DB["TablesClient"]["Streamers"][]; error?: string }
     >
   | GetUrlFetch<
       "/streamer/:streamerId",
       null,
-      {},
+      Record<string, never>,
       {
         error?: string;
         streamer?: DB["TablesClient"]["Streamers"] & { isLive: boolean };
@@ -108,13 +116,13 @@ export type StreamersFetch =
   | GetUrlFetch<
       "/",
       null,
-      {},
+      Record<string, never>,
       { streamers?: DB["TablesClient"]["Streamers"][]; error?: string }
     >
   | GetUrlFetch<
       "/:userId/:streamerId-optional",
       null,
-      {},
+      Record<string, never>,
       {
         error?: string;
         streamers?: (DB["TablesClient"]["Streamers"] & { isLive: boolean })[];

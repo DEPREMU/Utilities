@@ -7,7 +7,7 @@ const START_TIME = Date.now();
 export const handleHealthCheck = getHandlerGet(
   "/info",
   "/health",
-  null as never,
+  {},
   (_, sendRes) => {
     const now = new Date();
     const upTime = now.getTime() - START_TIME;
@@ -19,7 +19,7 @@ export const handleHealthCheck = getHandlerGet(
 export const handleGenerate204 = getHandlerGet(
   "/info",
   "/generate204",
-  null as never,
+  {},
   (_, sendRes) => {
     sendRes(STATUS_RESPONSE.NO_CONTENT, "");
   },

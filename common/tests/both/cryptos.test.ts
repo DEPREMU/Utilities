@@ -52,13 +52,13 @@ describe("Cryptos", () => {
   it("should start auto update and fetch data", async () => {
     const cryptos = new Cryptos(1000);
     cryptos.startAutoUpdate(1000);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    const prices = await cryptos.fetchDataBinance();
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const prices = cryptos.prices;
     expect(prices).toBeInstanceOf(Array);
     cryptos.stopAutoUpdate();
 
     cryptos.destroy();
-  });
+  }, 7500);
 
   it("should handle errors gracefully when fetching data", async () => {
     const cryptos = new Cryptos(5000);

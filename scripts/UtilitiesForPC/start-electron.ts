@@ -120,10 +120,7 @@ const startElectron = async (): Promise<ChildProcess> => {
 
   Logger.log("\x1b[32m[Electron]\x1b[0m Starting...");
 
-  const electronEnv = {
-    ...env,
-    ...process.env,
-  };
+  const electronEnv = { ...env };
 
   const child = spawnCommand(
     "electron",
@@ -148,10 +145,7 @@ const startElectron = async (): Promise<ChildProcess> => {
 const startExpo = (): ChildProcess => {
   Logger.log("\x1b[32m[Expo]\x1b[0m Starting...");
 
-  const expoEnv = {
-    ...env,
-    ...process.env,
-  };
+  const expoEnv = { ...env };
 
   return spawnCommand("yarn", ["expo", "start", "-c"], {
     env: expoEnv,

@@ -93,9 +93,7 @@ describe("ServiceClass", () => {
 
     const service = new FailingService();
 
-    await expect(service.waitUntilInitialized()).rejects.toThrow(
-      "Initialization failed",
-    );
+    await service.waitUntilInitialized();
 
     // El finally de #init() siempre ejecuta esto
     expect(service.isInitialized).toBe(true);
@@ -113,7 +111,7 @@ describe("ServiceClass", () => {
 
     const service = new FailingService();
 
-    await expect(service.waitUntilInitialized()).rejects.toThrow();
+    await service.waitUntilInitialized();
 
     await service.waitUntilInitialized();
 

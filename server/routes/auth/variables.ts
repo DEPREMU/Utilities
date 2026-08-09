@@ -167,6 +167,8 @@ export class JWT {
       if (this.#initToken === this.#token)
         return (this.#token = JWT.generateToken(this.#data));
       else return this.#token;
+    } catch {
+      return null;
     } finally {
       this.#initToken = prevToken;
     }

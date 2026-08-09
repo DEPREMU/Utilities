@@ -2,28 +2,15 @@ import type {
   ExpectedStorageTypes,
   ALL_KEYS_STORAGE_TYPE,
 } from "../common/both/keysStorage";
+import {
+  PdfCreateResult,
+  PdfCreateRequest,
+  ExpectedNativeWebData,
+} from "./typesUtilitiesForPC";
 import { FolderFiles } from "./typesVault";
 import { ClipboardItem } from "./screens";
 import { LanguagesSupported } from "./typesTranslations";
-import {
-  ExpectedNativeWebData,
-  PdfCreateRequest,
-  PdfCreateResult,
-} from "./typesUtilitiesForPC";
-
-import type {
-  ProgressEvent,
-  VaultImportScanEntry,
-  VaultFolder,
-  VaultFolderDraft,
-  VaultItem,
-  VaultSettings,
-  VaultWrappedMasterKey,
-  VaultAuthVerifier,
-  FileInfo,
-  PickedFile,
-} from "./typesVault";
-
+import type { FileInfo, PickedFile } from "./typesVault";
 import { ActionNotification, ReasonNotification } from "./typesNotifications";
 
 export type EventNativeModule = {

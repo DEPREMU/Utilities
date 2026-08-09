@@ -1,4 +1,10 @@
 import {
+  Logger,
+  REPLACERS,
+  startMemoryMonitor,
+  ThirdPartyStateManager,
+} from "@common";
+import {
   initWebSocket,
   initWebSocketCryptos,
   initWebSocketClipboard,
@@ -14,11 +20,10 @@ import routerAPI from "./routes/index.ts";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 import { handleInitDB } from "./database/postgres.ts";
-import { WebSocketPathname } from "@types";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
 import { validateServerEnv, getEnvValue } from "./env.ts";
-import { Logger, REPLACERS, startMemoryMonitor } from "@common";
 import { host, port, executeFunctions, getRoutes } from "./config.ts";
+import { CryptosWebSocketMessage, WebSocketPathname } from "@types";
 
 const app = express();
 
@@ -36,23 +41,22 @@ const sourceProtocolWs = getEnvValue("USE_HTTPS") ? "wss" : "ws";
 
 const startApp = async () => {
   if (!REPLACERS.isDev) {
-    app.use(
-      helmet({
-        contentSecurityPolicy: {
-          directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'"],
-            styleSrc: ["'self'", `${sourceProtocol}:`],
-            imgSrc: ["'self'", "data:", `${sourceProtocol}:`],
-            connectSrc: ["'self'"],
-            fontSrc: ["'self'", `${sourceProtocol}:`],
-            objectSrc: ["'none'"],
-            upgradeInsecureRequests: [],
-          },
+    const helmetMiddleware = helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", `${sourceProtocol}:`],
+          imgSrc: ["'self'", "data:", `${sourceProtocol}:`],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'", `${sourceProtocol}:`],
+          objectSrc: ["'none'"],
+          upgradeInsecureRequests: [],
         },
-        crossOriginEmbedderPolicy: false,
-      }),
-    );
+      },
+      crossOriginEmbedderPolicy: false,
+    }) as unknown as express.RequestHandler;
+    app.use(helmetMiddleware);
     app.set("trust proxy", 1);
   } else {
     app.get("/", (_, res) => {
@@ -119,6 +123,25 @@ const startApp = async () => {
     if (!wsCalled) {
       Logger.error("WebSocket server not found for pathname:", pathname);
       socket.destroy();
+      return;
+    }
+
+    if (
+      pathname === "/ws-cryptos" &&
+      !ThirdPartyStateManager.isAvailable("cryptos")
+    ) {
+      wsCalled.handleUpgrade(request, socket, head, (ws) => {
+        Logger.error(
+          "WebSocket connection rejected for /ws-cryptos due to unavailable dependency",
+        );
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            error: "service_unavailable",
+          } satisfies CryptosWebSocketMessage<"sentByServer">),
+        );
+        ws.close(1011, "Service Unavailable");
+      });
       return;
     }
 

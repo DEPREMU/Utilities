@@ -5,6 +5,7 @@ export * from "./logger.ts";
 export * from "./piscina.ts";
 export * from "../both/index.ts";
 export * from "./memoryMonitor.ts";
+export * from "./ThirdPartyStateManager/index.ts";
 
 type Function = () => unknown;
 

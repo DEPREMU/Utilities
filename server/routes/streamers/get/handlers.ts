@@ -6,7 +6,7 @@ import { Helper, Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 export const handleGetStreamers = getHandlerGet(
   "/streamers",
   "/",
-  {} as never,
+  {},
   async (_, sendResponse) => {
     try {
       const streamers = await prisma.streamers.findMany();

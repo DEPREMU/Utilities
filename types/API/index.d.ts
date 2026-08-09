@@ -2,7 +2,6 @@ import { Get } from "./GetAPI";
 import { Put } from "./PutAPI";
 import { Post } from "./PostAPI";
 import { Delete } from "./DeleteAPI";
-import { CleanUrlParameters } from "@types";
 
 export * from "./Request";
 export * from "./Helpers";
@@ -70,35 +69,35 @@ type Response = {
 
 export type FetchToServerMethod<M extends MethodsAPI> = <
   const R extends RoutesAPI[M],
-  B extends ResolveRoute<FetchAPI<M>, R>["body"],
+  Route extends ResolveRoute<FetchAPI<M>, R>,
 >(
   route: R,
-  ...args: B extends undefined
-    ? ResolveRoute<FetchAPI<M>, R>["auth"] extends true
+  ...args: Route["body"] extends undefined | Record<string, never>
+    ? Route extends { auth: true }
       ? [body: undefined, authToken: string]
       : []
     : [
-        body: NonNullable<B>,
-        ...args: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
-          ? [authToken: string]
-          : [],
+        body: NonNullable<Route["body"]>,
+        ...(Route extends { auth: true } ? [authToken: string] : []),
       ]
-) => Promise<Response & { data: ResolveRoute<FetchAPI<M>, R>["response"] }>;
+) => Promise<Response & { data: Route["response"] }>;
 
-export type FetchToServer = <M extends MethodsAPI, const R extends RoutesAPI[M]>(
+export type FetchToServer = <
+  M extends MethodsAPI,
+  const R extends RoutesAPI[M],
+  Route extends ResolveRoute<FetchAPI<M>, R>,
+>(
   method: M,
   route: R,
-  ...args: B extends undefined
-    ? ResolveRoute<FetchAPI<M>, R>["auth"] extends true
+  ...args: Route["body"] extends undefined | Record<string, never>
+    ? Route extends { auth: true }
       ? [body: undefined, authToken: string]
       : []
     : [
-        body: NonNullable<B>,
-        ...args: ResolveRoute<FetchAPI<M>, R>["auth"] extends true
-          ? [authToken: string]
-          : [],
+        body: NonNullable<Route["body"]>,
+        ...(Route extends { auth: true } ? [authToken: string] : []),
       ]
-) => Promise<Response & { data: ResolveRoute<FetchAPI<M>, R>["response"] }>;
+) => Promise<Response & { data: Route["response"] }>;
 
 export type FetchToServerPerMethod = {
   GET: FetchToServerMethod<"GET">;

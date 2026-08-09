@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { EventHandler } from "./classes/events.ts";
 import type { PriceBinanceAPI, SelectedCryptos } from "./keysStorage";
 
@@ -20,8 +20,11 @@ export enum CryptoEvents {
   REFRESH = "refreshing",
   SYNCED_STATUS = "syncStatus",
   SETTINGS_UPDATED = "settingsUpdated",
+  SERVICE_UNAVAILABLE = "serviceUnavailable",
   UPDATE_OWNED_CRYPTOS = "updateOwnedCryptos",
 }
+
+const MAX_TIME_CRYPTOS = 2 * 60 * 1000;
 
 type Listeners = {
   [CryptoEvents.UPDATE]: (newData: PriceBinanceAPI) => void;
@@ -33,18 +36,19 @@ type Listeners = {
   [CryptoEvents.SETTINGS_UPDATED]: (
     settings: DB["TablesClient"]["CryptosSettings"],
   ) => void;
+  [CryptoEvents.SERVICE_UNAVAILABLE]: (isUnavailable: boolean) => void;
   [CryptoEvents.UPDATE_OWNED_CRYPTOS]: (cryptos: SelectedCryptos) => void;
 };
 
 export class Cryptos extends EventHandler<Listeners> {
   #lastFetch: number = 0;
-  #pricesData: PriceBinanceAPI = [];
+  #pricesData: PriceBinanceAPI | null = null;
 
   #intervalId: number | null = null;
   #autoUpdateInterval: number;
 
   #fetching: boolean = false;
-  #fetchDataBinance = async (): Promise<PriceBinanceAPI | undefined> => {
+  async #fetchDataBinance(): Promise<PriceBinanceAPI | undefined> {
     try {
       if (this.#fetching) return;
       this.#fetching = true;
@@ -82,13 +86,19 @@ export class Cryptos extends EventHandler<Listeners> {
         .filter((v): v is PriceBinanceAPI[0] => !!v);
 
       return data;
+    } catch (e) {
+      if (e instanceof AxiosError && e.response?.status === 503)
+        this.emit(CryptoEvents.SERVICE_UNAVAILABLE, true);
     } finally {
       this.#fetching = false;
     }
-  };
+  }
 
-  public get prices(): PriceBinanceAPI {
-    return this.#pricesData;
+  public get prices(): PriceBinanceAPI | null {
+    return (this.#pricesData =
+      Date.now() - this.#lastFetch > MAX_TIME_CRYPTOS
+        ? null
+        : this.#pricesData);
   }
 
   /**
@@ -104,7 +114,7 @@ export class Cryptos extends EventHandler<Listeners> {
 
   public getCryptoBySymbol(symbol: string): PriceBinanceAPI[0] | null {
     try {
-      const cryptoData = this.#pricesData.find((c) => c.symbol === symbol);
+      const cryptoData = this.#pricesData?.find((c) => c.symbol === symbol);
 
       return cryptoData ?? null;
     } catch {
@@ -118,12 +128,14 @@ export class Cryptos extends EventHandler<Listeners> {
     ...args: string[]
   ): PriceBinanceAPI[0] | null {
     try {
-      const cryptoData = this.#pricesData.filter(
+      const cryptoData = this.#pricesData?.filter(
         (c) => c.baseCoin === baseCoin,
       );
-      for (const arg of [quoteCoin, ...(args ?? [])]) {
-        const found = cryptoData.find((c) => c.quoteCoin === arg);
-        if (found) return found;
+      if (cryptoData) {
+        for (const arg of [quoteCoin, ...(args ?? [])]) {
+          const found = cryptoData.find((c) => c.quoteCoin === arg);
+          if (found) return found;
+        }
       }
       return null;
     } catch {
@@ -131,23 +143,28 @@ export class Cryptos extends EventHandler<Listeners> {
     }
   }
 
-  public async fetchDataBinance(force?: boolean): Promise<PriceBinanceAPI> {
+  public async fetchDataBinance(
+    force?: boolean,
+  ): Promise<PriceBinanceAPI | null> {
     if (
+      !force &&
+      this.#pricesData &&
       this.#pricesData.length > 0 &&
-      this.#lastFetch + 5000 > Date.now() &&
-      !force
+      this.#lastFetch + 5000 > Date.now()
     )
       return this.#pricesData;
 
     this.emit(CryptoEvents.REFRESH, true);
     const data = await this.#fetchDataBinance();
-    this.emit(CryptoEvents.REFRESH, false);
 
     if (data) {
-      this.#pricesData = data;
+      this.emit(CryptoEvents.SERVICE_UNAVAILABLE, false);
+      this.prices = data;
       this.#lastFetch = Date.now();
       this.emit(CryptoEvents.UPDATE, data);
     }
+
+    this.emit(CryptoEvents.REFRESH, false);
     return this.#pricesData;
   }
 
@@ -157,7 +174,7 @@ export class Cryptos extends EventHandler<Listeners> {
 
     this.#autoUpdateInterval = interval;
     this.#intervalId = setInterval(() => {
-      this.fetchDataBinance();
+      void this.fetchDataBinance();
     }, interval) as never;
   }
 

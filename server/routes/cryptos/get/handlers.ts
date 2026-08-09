@@ -4,9 +4,9 @@ import { getHandlerGet, STATUS_RESPONSE } from "@common";
 export const handleGetCryptos = getHandlerGet(
   "/cryptos",
   "/",
-  null as never,
+  {},
   (_, sendResponse) => {
-    sendResponse(STATUS_RESPONSE.SUCCESS, { cryptos: cryptos.prices });
+    sendResponse(STATUS_RESPONSE.SUCCESS, { cryptos: cryptos.prices || [] });
   },
 );
 
