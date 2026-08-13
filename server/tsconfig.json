@@ -17,6 +17,7 @@
   "include": ["./**/*.ts", "../common/**/*"],
   "exclude": [
     "config-vps",
+    "tests/**/*",
     "node_modules",
     "build/index.cjs",
     "eslint.config.ts"

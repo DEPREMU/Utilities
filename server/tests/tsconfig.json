@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "types": ["jest", "node"],
+  "compilerOptions": {
+    "paths": {
+      "@types": ["../../types/index.d.ts"],
+      "@common": ["../../common/both"],
+      "@commonSrc": ["../../common"]
+    }
+  },
+  "include": ["./**/*", "../../common/**/*"],
+  "exclude": ["node_modules"]
+}

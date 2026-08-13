@@ -44,6 +44,7 @@
     "__COMMON__": "___________________________________________",
     "common-test": "yarn workspace utilities-common run test",
     "__SERVER__": "___________________________________________",
+    "server-test": "yarn workspace utilities-server run test",
     "test-vps": "docker compose -f server/vps/docker/docker-compose.test.yml up",
     "test-vps:bg": "docker compose -f server/vps/docker/docker-compose.test.yml up -d",
     "open-vps": "yarn run test-vps:bg && yarn workspace utilities-server run sleep && docker compose -f server/vps/docker/docker-compose.test.yml exec server bash",
@@ -53,7 +54,7 @@
     "push-vps": "docker push depremu/utilities-server:latest",
     "update-vps": "yarn run build-vps && yarn run tag-vps && yarn run push-vps",
     "__TESTS__": "___________________________________________",
-    "tests": "yarn run common-test && yarn run scripts-test"
+    "tests": "yarn run common-test && yarn run scripts-test && yarn run server-test"
   },
   "repository": {
     "type": "git",

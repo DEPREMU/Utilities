@@ -34,20 +34,26 @@ const checkIsNewVersion = async (
       const res = await ServerFetch.get(
         "/updates/is-update-available/:version/:buildType",
         {
-          buildType,
-          version: versionExpo,
+          params: {
+            buildType,
+            version: versionExpo,
+          },
         },
       );
       return Validations.isNewVersion(versionExpo, res.data?.latestVersion);
     } else {
       const [resLinux, resWindows] = await Promise.all([
         ServerFetch.get("/updates/is-update-available/:version/:buildType", {
-          version: versionExpo,
-          buildType: "linux",
+          params: {
+            version: versionExpo,
+            buildType: "linux",
+          },
         }),
         ServerFetch.get("/updates/is-update-available/:version/:buildType", {
-          version: versionExpo,
-          buildType: "windows",
+          params: {
+            version: versionExpo,
+            buildType: "windows",
+          },
         }),
       ]);
       const isNewForWindows = Validations.isNewVersion(
@@ -146,7 +152,7 @@ const uploadWeb = async (): Promise<boolean> => {
         });
       });
 
-      const url = ServerFetch.getRoute("/updates/upload");
+      const url = ServerFetch.getRoute("POST", "/updates/upload");
       const response = await axios.post(url, formData, {
         headers: {
           ...formData.getHeaders(),
