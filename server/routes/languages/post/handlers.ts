@@ -13,10 +13,12 @@ export const handleTranslate = getHandlerPost(
   "/languages",
   "/translate",
   {
-    text: "string",
-    targetLanguage: "string",
+    body: {
+      text: "string",
+      targetLanguage: "string",
+    },
   },
-  async (body, sendResponse) => {
+  async ({ body }, sendResponse) => {
     try {
       const { text, targetLanguage } = body;
       if (!text) {

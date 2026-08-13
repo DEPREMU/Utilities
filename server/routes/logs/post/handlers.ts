@@ -5,16 +5,18 @@ export const handleAddLog = getHandlerPost(
   "/logs",
   "/add",
   {
-    id: "undefined",
-    type: "string",
-    user: "undefined",
-    userId: ["string", "undefined"],
-    message: "string",
-    deviceId: "string",
-    timestamp: "string",
-    deviceName: "string",
+    body: {
+      id: "undefined",
+      type: "string",
+      user: "undefined",
+      userId: ["string", "undefined"],
+      message: "string",
+      deviceId: "string",
+      timestamp: "string",
+      deviceName: "string",
+    },
   },
-  async (body, sendResponse) => {
+  async ({ body }, sendResponse) => {
     try {
       const log = await prisma.logs.create({
         data: {

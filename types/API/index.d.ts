@@ -72,12 +72,12 @@ export type FetchToServerMethod<M extends MethodsAPI> = <
   Route extends ResolveRoute<FetchAPI<M>, R>,
 >(
   route: R,
-  ...args: Route["body"] extends undefined | Record<string, never>
+  ...args: Route["requestInput"] extends undefined | Record<string, never>
     ? Route extends { auth: true }
-      ? [body: undefined, authToken: string]
+      ? [requestInput: undefined, authToken: string]
       : []
     : [
-        body: NonNullable<Route["body"]>,
+        requestInput: NonNullable<Route["requestInput"]>,
         ...(Route extends { auth: true } ? [authToken: string] : []),
       ]
 ) => Promise<Response & { data: Route["response"] }>;
@@ -89,12 +89,12 @@ export type FetchToServer = <
 >(
   method: M,
   route: R,
-  ...args: Route["body"] extends undefined | Record<string, never>
+  ...args: Route["requestInput"] extends undefined | Record<string, never>
     ? Route extends { auth: true }
-      ? [body: undefined, authToken: string]
+      ? [requestInput: undefined, authToken: string]
       : []
     : [
-        body: NonNullable<Route["body"]>,
+        requestInput: NonNullable<Route["requestInput"]>,
         ...(Route extends { auth: true } ? [authToken: string] : []),
       ]
 ) => Promise<Response & { data: Route["response"] }>;

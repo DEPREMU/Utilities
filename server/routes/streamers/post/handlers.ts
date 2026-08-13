@@ -5,8 +5,8 @@ import { getLinkImageStreamer, isLiveStreamer } from "../common";
 export const handleAddStreamerByUserId = getHandlerPost(
   "/streamers",
   "/add",
-  { userId: "string", streamerName: "string" },
-  async (params, sendResponse) => {
+  { body: { userId: "string", streamerName: "string" } },
+  async ({ body: params }, sendResponse) => {
     try {
       const { streamerName, userId } = params;
 

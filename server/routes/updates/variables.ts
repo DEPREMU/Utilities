@@ -100,7 +100,9 @@ class DataUpdates {
   public createTempDownloadUrl = (version: string, buildType: Data["type"]) => {
     try {
       const id = v4();
-      const url = ServerFetch.getRoute("/updates/download/:id", { id });
+      const url = ServerFetch.getRoute("GET", "/updates/download/:id", {
+        params: { id },
+      });
 
       this.#tempUrls.set(id, {
         id,

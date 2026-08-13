@@ -1,10 +1,10 @@
 import { getRouterPost } from "@common";
+import { authMiddlewarePost } from "@/routes/auth/middlewares";
 import { handleAddStreamerByUserId } from "./handlers";
-import { authMiddleware } from "@/routes/auth/middlewares";
 
 export const routerStreamersPost = getRouterPost("/streamers", {
   "/add": {
     handler: handleAddStreamerByUserId,
-    middlewares: [authMiddleware],
+    middlewares: [authMiddlewarePost],
   },
 });

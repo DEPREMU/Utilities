@@ -5,14 +5,16 @@ export const handleDeleteDownDetector = getHandlerDelete(
   "/down-detector",
   "/:deviceId/:downDetectorId",
   {
-    deviceId: "string",
-    downDetectorId: "string",
+    params: {
+      deviceId: "string",
+      downDetectorId: "string",
+    },
   },
-  async (body, sendResponse, { req }) => {
+  async ({ params }, sendResponse, { req }) => {
     try {
       const deletedItem = await prisma.downDetector.delete({
         where: {
-          id: body.downDetectorId,
+          id: params.downDetectorId,
           userId: req.user.token.data.userId,
         },
       });

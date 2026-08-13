@@ -13,8 +13,8 @@ export const handleGetCryptos = getHandlerGet(
 export const handleGetCryptoBySymbol = getHandlerGet(
   "/cryptos",
   "/:symbol",
-  { symbol: "string" },
-  (params, sendResponse) => {
+  { params: { symbol: "string" } },
+  ({ params }, sendResponse) => {
     const crypto = cryptos.getCryptoBySymbol(params.symbol);
 
     sendResponse(STATUS_RESPONSE.SUCCESS, {
@@ -27,8 +27,8 @@ export const handleGetCryptoBySymbol = getHandlerGet(
 export const handleGetCryptoPrice = getHandlerGet(
   "/cryptos",
   "/price/:symbol",
-  { symbol: "string" },
-  (params, sendResponse) => {
+  { params: { symbol: "string" } },
+  ({ params }, sendResponse) => {
     const crypto = cryptos.getCryptoBySymbol(params.symbol);
     let priceMXN: number | undefined;
     if (crypto) {

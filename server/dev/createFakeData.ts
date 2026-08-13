@@ -22,9 +22,11 @@ const createRandomUser = async (): Promise<{
     const password = "Test123!";
 
     const res = await ServerFetch.post("/auth/signup", {
-      lang: "en",
-      email,
-      password,
+      body: {
+        lang: "en",
+        email,
+        password,
+      },
     });
     const resData = res.data;
 

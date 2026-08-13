@@ -1,14 +1,10 @@
 import { getRouterGet } from "@common";
+import { authMiddlewareGet } from "@/routes/auth/middlewares";
 import { handleGetDownDetector } from "./handlers";
-import { authMiddleware } from "@/routes/auth/middlewares";
 
 export const routerDownDetectorGet = getRouterGet("/down-detector", {
-  "/:deviceId": {
+  "/:deviceId{/:page}": {
     handler: handleGetDownDetector,
-    middlewares: [authMiddleware],
-  },
-  "/:deviceId/:page-number-optional": {
-    handler: handleGetDownDetector,
-    middlewares: [authMiddleware],
+    middlewares: [authMiddlewareGet],
   },
 });

@@ -36,8 +36,7 @@ const matchesExpectation = (actual: unknown, expected: unknown): boolean => {
       if (typeof actual !== "object" || actual === null) return false;
       const actualObj = actual as Record<string, unknown>;
       const expectedProps = expectObj.obj as
-        | Record<string, unknown>
-        | Record<string, unknown>[];
+        Record<string, unknown> | Record<string, unknown>[];
 
       if (Array.isArray(expectedProps)) {
         return expectedProps.some((item) =>
@@ -181,7 +180,7 @@ export const throwTestError = (testResult: TestResult): never => {
     .join("\n| ")}
 |================================================================
 | Actual Response:
-| ${JSON.stringify(testResult.response, null, 2).split("\n").join("\n| ")}
+| ${JSON.stringify(testResult.response, null, 2)?.split("\n").join("\n| ")}
 |================================================================
   `.trim();
 

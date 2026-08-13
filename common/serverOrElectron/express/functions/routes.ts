@@ -52,17 +52,6 @@ const getRouter = (
     ([path, { handler, middlewares = [] }]) => {
       if (REPLACERS.isDev) addRoute(method, key, path);
 
-      path = path
-        .split("/")
-        .map((segment) => {
-          if (segment[0] !== ":") return segment;
-          else {
-            const paramName = segment.slice(1).split("-")[0];
-            return `:${paramName}`;
-          }
-        })
-        .join("/");
-
       router[method.toLowerCase() as Lowercase<MethodsAPI>](
         path,
         ...middlewares,

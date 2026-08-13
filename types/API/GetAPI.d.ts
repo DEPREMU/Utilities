@@ -8,8 +8,10 @@ export type UpdatesFetch =
   | GetUrlFetch<
       "/is-update-available/:version/:buildType",
       {
-        version: string;
-        buildType: Enums["UpdateType"];
+        params: {
+          version: string;
+          buildType: Enums["UpdateType"];
+        };
       },
       Record<string, never>,
       {
@@ -20,7 +22,7 @@ export type UpdatesFetch =
     >
   | GetUrlFetch<
       "/download/:id",
-      null,
+      { params: { id: string } },
       Record<string, never>,
       { error: string }
     >;
@@ -54,7 +56,7 @@ export type ServerInfoFetch =
     >
   | GetUrlFetch<"/generate204", null, Record<string, never>, "">
   | GetUrlFetch<
-      "/appAlive/:deviceId-string/:pushToken-string",
+      "/appAlive/:deviceId/:pushToken",
       null,
       Record<string, never>,
       DEFAULT_RESPONSE
@@ -62,14 +64,14 @@ export type ServerInfoFetch =
 
 export type ClipboardFetch =
   | GetUrlFetch<
-      "/:deviceId/:page-number-optional",
+      "/:deviceId{/:page-number}",
       null,
       { auth: true },
       | { clipboardItems: DB["TablesClient"]["ClipboardSync"][] }
       | { error: string }
     >
   | GetUrlFetch<
-      "/search/:deviceId/:deleted-boolean/:query-string/:page-number-optional",
+      "/search/:deviceId/:query{/:page-number}?deleted-boolean-optional",
       null,
       { auth: true },
       | { clipboardItems: DB["TablesClient"]["ClipboardSync"][] }
@@ -77,7 +79,7 @@ export type ClipboardFetch =
     >;
 
 export type DownDetectorFetch = GetUrlFetch<
-  "/:deviceId/:page-number-optional",
+  "/:deviceId{/:page-number}",
   null,
   { auth: true },
   { downDetectors: DB["TablesClient"]["DownDetector"][] } | { error: string }
@@ -91,7 +93,7 @@ export type LogsFetch =
       { logs: DB["TablesClient"]["Logs"][] } | { error: string }
     >
   | GetUrlFetch<
-      "/page/:page-number-optional",
+      "/page{/:page-number}",
       null,
       { auth: true },
       { logs?: DB["TablesClient"]["Logs"][]; error?: string }
@@ -99,7 +101,7 @@ export type LogsFetch =
 
 export type StreamersFetch =
   | GetUrlFetch<
-      "/page/:page-number-optional",
+      "/page{/:page-number}",
       null,
       Record<string, never>,
       { streamers?: DB["TablesClient"]["Streamers"][]; error?: string }
@@ -120,7 +122,7 @@ export type StreamersFetch =
       { streamers?: DB["TablesClient"]["Streamers"][]; error?: string }
     >
   | GetUrlFetch<
-      "/:userId/:streamerId-optional",
+      "/:userId{/:streamerId}",
       null,
       Record<string, never>,
       {

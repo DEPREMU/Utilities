@@ -31,12 +31,14 @@ class UserDev {
 
   initUserData = async () => {
     const res = await ServerFetch.post("/auth/login", {
-      lang: "en",
-      email: this.email,
-      deviceId: this.deviceId,
-      password: this.password,
-      rememberMe: false,
-      notificationToken: `Web-${this.deviceId}`,
+      body: {
+        lang: "en",
+        email: this.email,
+        deviceId: this.deviceId,
+        password: this.password,
+        rememberMe: false,
+        notificationToken: `Web-${this.deviceId}`,
+      },
     });
 
     const { success: _0, error, ...rest } = res.data;

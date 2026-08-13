@@ -5,14 +5,14 @@ import {
   handleRefreshSession,
 } from "./handlers";
 import { getRouterPost } from "@common";
-import { authMiddleware } from "../middlewares";
+import { authMiddlewarePost } from "../middlewares";
 
 export const routerAuthPost = getRouterPost("/auth", {
   "/login": { handler: handleLogin },
   "/signup": { handler: handleSignIn },
-  "/signout": { handler: handleSignOut, middlewares: [authMiddleware] },
+  "/signout": { handler: handleSignOut, middlewares: [authMiddlewarePost] },
   "/refreshSession": {
     handler: handleRefreshSession,
-    middlewares: [authMiddleware],
+    middlewares: [authMiddlewarePost],
   },
 });

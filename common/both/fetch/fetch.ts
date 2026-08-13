@@ -1,16 +1,10 @@
 import type {
-  GetParams,
   MethodsAPI,
-  FetchToServerPerMethod,
+  ResolveRoute,
   FetchToServer,
+  FetchToServerPerMethod,
 } from "@types";
 import axios from "axios";
-
-// const RESPONSE_STATUS: {
-//   [method in MethodsAPI]: Record<RoutesAPI[method], number>;
-// } = {
-//   GET: {},
-// };
 
 /**
  * Fetch class to handle server requests using axios. It provides methods for GET, POST, DELETE, and PUT requests, ensuring type safety and proper route handling.
@@ -21,34 +15,90 @@ export class ServerFetch {
 
   static getValidRoute<T extends string>(
     route: T,
-    params?: Record<string, unknown>,
+    options: Partial<Record<"params" | "query", Record<string, unknown>>> = {},
   ): string {
-    if (route[0] !== "/") {
+    const { params = {}, query = {} } = options;
+    if (!route.startsWith("/")) {
       route = `/${route}` as T;
     }
-
-    return route
-      .split("/")
-      .map((segment) => {
-        if (segment.startsWith(":")) {
-          const paramName = segment.slice(1).split("-")[0];
-          if (params && paramName in params) {
-            return encodeURIComponent(params[paramName] as string);
+    const replaceParams = (value: string, optional = false): string | null => {
+      let missing = false;
+      const result = value.replace(
+        /:([a-zA-Z0-9_]+)/g,
+        (_, paramName: string) => {
+          if (!(paramName in params)) {
+            missing = true;
+            return "";
           }
-          throw new Error(`Missing parameter: ${paramName}`);
+          return encodeURIComponent(String(params[paramName]));
+        },
+      );
+      if (optional && missing) {
+        return null;
+      }
+      if (missing) {
+        throw new Error(`Missing parameter: ${value}`);
+      }
+      return result;
+    };
+    const resolveOptionals = (value: string): string => {
+      let result = "";
+      let i = 0;
+      while (i < value.length) {
+        if (value[i] !== "{") {
+          result += value[i];
+          i++;
+          continue;
         }
-        return segment;
-      })
-      .join("/");
+        let depth = 1;
+        let j = i + 1;
+        while (j < value.length && depth > 0) {
+          if (value[j] === "{") {
+            depth++;
+          } else if (value[j] === "}") {
+            depth--;
+          }
+          j++;
+        }
+        if (depth !== 0) {
+          throw new Error(
+            `Invalid route: unclosed optional group in "${route}"`,
+          );
+        }
+        const content = value.slice(i + 1, j - 1);
+        const resolved = resolveOptionals(content);
+        const replaced = replaceParams(resolved, true);
+        if (replaced !== null) {
+          result += replaced;
+        }
+        i = j;
+      }
+      return result;
+    };
+    const resolvedRoute = replaceParams(resolveOptionals(route)) ?? "";
+    const searchParams = new URLSearchParams();
+    Object.entries(query).forEach(([key, value]) => {
+      if (value === undefined || value === null) {
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.forEach((item) => {
+          searchParams.append(key, String(item));
+        });
+      } else {
+        searchParams.append(key, String(value));
+      }
+    });
+    const queryString = searchParams.toString();
+    return queryString ? `${resolvedRoute}?${queryString}` : resolvedRoute;
   }
 
-  static getRoute<T extends RoutesAPI[MethodsAPI]>(
-    route: T,
-    params?: GetParams<T>,
+  static getRoute<M extends MethodsAPI, R extends RoutesAPI[MethodsAPI]>(
+    _method: M,
+    route: R,
+    params?: ResolveRoute<FetchAPI<M>, R>["requestInput"],
   ): string {
-    return (
-      ServerFetch.API_URL + ServerFetch.getValidRoute(route as string, params)
-    );
+    return ServerFetch.API_URL + ServerFetch.getValidRoute(route, params);
   }
 
   static get: FetchToServerPerMethod["GET"] = async (route, ...args) => {
@@ -56,7 +106,7 @@ export class ServerFetch {
     const token = args[1] as string;
 
     const response = await axios.get(
-      ServerFetch.getRoute(route, params as never),
+      ServerFetch.getRoute("GET", route, params as never),
       {
         ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
         validateStatus: () => true,
@@ -74,8 +124,8 @@ export class ServerFetch {
     const token = args[1] as string;
 
     const response = await axios.post(
-      ServerFetch.getRoute(route, undefined as never),
-      body,
+      ServerFetch.getRoute("POST", route),
+      body?.body ?? body,
       {
         ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
         validateStatus: () => true,
@@ -94,7 +144,7 @@ export class ServerFetch {
     const token = args[1] as string;
 
     const response = await axios.delete(
-      ServerFetch.getRoute(route, body as never),
+      ServerFetch.getRoute("DELETE", route, body as never),
       {
         ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
         validateStatus: () => true,
@@ -113,8 +163,8 @@ export class ServerFetch {
     const token = args[1] as string;
 
     const response = await axios.put(
-      ServerFetch.getRoute(route, undefined as never),
-      body as never,
+      ServerFetch.getRoute("PUT", route, undefined as never),
+      (body?.body ?? body) as never,
       {
         ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
         validateStatus: () => true,

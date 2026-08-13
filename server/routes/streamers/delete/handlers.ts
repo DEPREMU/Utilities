@@ -5,12 +5,14 @@ export const handleDeleteStreamerByUserId = getHandlerDelete(
   "/streamers",
   "/:deviceId/:streamerId",
   {
-    deviceId: "string",
-    streamerId: "string",
+    params: {
+      deviceId: "string",
+      streamerId: "string",
+    },
   },
-  async (body, sendResponse, { req }) => {
+  async ({ params }, sendResponse, { req }) => {
     try {
-      const { streamerId } = body;
+      const { streamerId } = params;
 
       const res = await prisma.userStreamers.delete({
         where: {

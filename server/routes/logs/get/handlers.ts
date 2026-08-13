@@ -28,11 +28,11 @@ const LOGS_PER_PAGE = 10;
 
 export const handleGetLogsPage = getHandlerGet(
   "/logs",
-  "/page/:page-number-optional",
-  { page: ["number", "undefined"] },
-  async (params, sendResponse) => {
+  "/page{/:page}",
+  { params: { page: ["number", "undefined"] } },
+  async ({ params }, sendResponse) => {
     try {
-      const page = params.page || 1;
+      const page = Helper.Object.getValue(params, "page", 1);
       const skip = (page - 1) * LOGS_PER_PAGE;
 
       const logs = await prisma.logs.findMany({

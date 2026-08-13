@@ -19,9 +19,11 @@ const initDev = async () => {
   }
 
   const res = await ServerFetch.post("/auth/signup", {
-    lang: "en",
-    email: user.email,
-    password: user.password,
+    body: {
+      lang: "en",
+      email: user.email,
+      password: user.password,
+    },
   });
 
   Logger.log(chalk.green("Test user created:"), res);

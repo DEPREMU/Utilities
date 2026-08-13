@@ -1,5 +1,4 @@
 import { prisma } from "@/database/postgres";
-import { StreamersFetch } from "@types";
 import { isLiveStreamer } from "../common";
 import { Helper, Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 
@@ -29,11 +28,11 @@ const STREAMERS_PER_PAGE = 10;
 
 export const handleGetStreamersPage = getHandlerGet(
   "/streamers",
-  "/page/:page-number-optional",
-  { page: ["number", "undefined"] },
-  async (params, sendResponse) => {
+  "/page{/:page}",
+  { params: { page: ["number", "undefined"] } },
+  async ({ params }, sendResponse) => {
     try {
-      const page = params.page || 1;
+      const page = Helper.Object.getValue(params, "page", 1);
 
       const streamers = await prisma.streamers.findMany({
         take: STREAMERS_PER_PAGE,
@@ -57,8 +56,8 @@ export const handleGetStreamersPage = getHandlerGet(
 export const handleGetStreamerById = getHandlerGet(
   "/streamers",
   "/streamer/:streamerId",
-  { streamerId: "string" },
-  async (params, sendResponse) => {
+  { params: { streamerId: "string" } },
+  async ({ params }, sendResponse) => {
     try {
       const streamer = await prisma.streamers.findUnique({
         where: { id: params.streamerId },
@@ -89,11 +88,12 @@ export const handleGetStreamerById = getHandlerGet(
 
 export const handleGetStreamersByUserId = getHandlerGet(
   "/streamers",
-  "/:userId/:streamerId-optional",
-  { userId: "string", streamerId: ["string", "undefined"] },
-  async (params, sendResponse) => {
+  "/:userId{/:streamerId}",
+  { params: { userId: "string", streamerId: ["string", "undefined"] } },
+  async ({ params }, sendResponse, { req }) => {
     try {
-      const { streamerId, userId } = params;
+      const userId = Helper.Object.getValue(params, "userId", "");
+      const streamerId = Helper.Object.getValue(params, "streamerId", "");
 
       if (!streamerId) {
         const streamers = await prisma.userStreamers.findMany({
@@ -108,13 +108,11 @@ export const handleGetStreamersByUserId = getHandlerGet(
           })),
         );
 
-        const res = {
+        sendResponse(STATUS_RESPONSE.SUCCESS, {
           streamers: streamersWithLiveStatus.map((s) =>
             Helper.Object.changeType(s, { createdAt: "string" }),
           ),
-        } satisfies (StreamersFetch & { url: "/:userId" })["response"];
-
-        sendResponse(STATUS_RESPONSE.SUCCESS, res as never);
+        });
         return;
       }
 

@@ -1,25 +1,18 @@
+import { GetUrlFetch } from "@types";
 import { GetRouterObj } from "./Helpers";
-import { DEFAULT_RESPONSE, GetUrlFetch } from "@types";
 
-export type LogsDelete = GetUrlFetch<
-  "/:logId",
-  null,
-  { auth: true },
-  DEFAULT_RESPONSE
->;
+export type LogsDelete = GetUrlFetch<"/:logId", null, { auth: true }>;
 
 export type DownDetectorDelete = GetUrlFetch<
   "/:deviceId/:downDetectorId",
   null,
-  { auth: true },
-  DEFAULT_RESPONSE
+  { auth: true }
 >;
 
 export type StreamersDelete = GetUrlFetch<
   "/:deviceId/:streamerId",
   null,
-  { auth: true },
-  DEFAULT_RESPONSE
+  { auth: true }
 >;
 
 export type Delete = {

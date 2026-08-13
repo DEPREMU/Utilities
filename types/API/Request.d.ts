@@ -114,7 +114,7 @@ export type RequestDatabaseDelete<T extends TablesKeys = TablesKeys> = {
 export type RequestLogs = DB["Tables"]["Logs"];
 
 export type RequestDoQuery = {
-  query: string;
+  value: string;
   showFields?: boolean;
 };
 

@@ -5,10 +5,12 @@ export const handleAddDownDetector = getHandlerPost(
   "/down-detector",
   "/add",
   {
-    values: "object",
-    deviceId: "string",
+    body: {
+      values: "object",
+      deviceId: "string",
+    },
   },
-  async (body, sendResponse, { req }) => {
+  async ({ body }, sendResponse, { req }) => {
     try {
       const res = await prisma.downDetector.create({
         data: { ...body.values, userId: req.user.token.data.userId },

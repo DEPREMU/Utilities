@@ -52,13 +52,15 @@ export const handleLogin = getHandlerPost(
   "/auth",
   "/login",
   {
-    email: "string",
-    password: "string",
-    deviceId: "string",
-    rememberMe: "boolean",
-    notificationToken: "string",
+    body: {
+      email: "string",
+      password: "string",
+      deviceId: "string",
+      rememberMe: "boolean",
+      notificationToken: "string",
+    },
   },
-  async (body, sendResponse) => {
+  async ({ body }, sendResponse) => {
     const lang = body.lang || "en";
 
     try {
@@ -143,10 +145,12 @@ export const handleSignIn = getHandlerPost(
   "/auth",
   "/signup",
   {
-    email: "string",
-    password: "string",
+    body: {
+      email: "string",
+      password: "string",
+    },
   },
-  async (body, sendResponse) => {
+  async ({ body }, sendResponse) => {
     const lang = body.lang || "en";
 
     try {
@@ -217,8 +221,8 @@ export const handleSignIn = getHandlerPost(
 export const handleRefreshSession = getHandlerPost(
   "/auth",
   "/refreshSession",
-  { deviceId: "string", notificationToken: "string" },
-  async (body, sendResponse, { req }) => {
+  { body: { deviceId: "string", notificationToken: "string" } },
+  async ({ body }, sendResponse, { req }) => {
     const lang = body.lang || "en";
 
     try {
@@ -306,8 +310,8 @@ export const handleRefreshSession = getHandlerPost(
 export const handleSignOut = getHandlerPost(
   "/auth",
   "/signout",
-  {},
-  async (body, sendResponse, { req }) => {
+  { body: {} },
+  async ({ body }, sendResponse, { req }) => {
     const lang = body.lang || "en";
 
     try {

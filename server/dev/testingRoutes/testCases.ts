@@ -48,20 +48,15 @@ const getEncryptedValue = (): string => {
 
 export const testCases: TestRoutes = {
   GET: {
-    "/info/appAlive/:deviceId-string/:pushToken-string": [],
+    "/info/appAlive/:deviceId/:pushToken": [],
     "/updates/download/:id": [],
-    "/clipboard/:deviceId/:page-number-optional": [],
-    "/clipboard/search/:deviceId/:deleted-boolean/:query-string/:page-number-optional":
-      [],
-    "/down-detector/:deviceId/:page-number-optional": [],
-
-    "/down-detector/:deviceId": [
+    "/down-detector/:deviceId{/:page}": [
       {
         auth: user.getSessionToken,
         description: "Should fetch down-detector status successfully",
         shouldSucceed: true,
         expectedResponse: { downDetectors: expect.any(Object) },
-        requestBody: { deviceId: user.deviceId },
+        requestInput: { params: { deviceId: user.deviceId } },
       },
       {
         auth: "InvalidToken",
@@ -69,17 +64,17 @@ export const testCases: TestRoutes = {
           "Should return an error when fetching down-detector status with invalid auth",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
-        requestBody: { deviceId: user.deviceId },
+        requestInput: { params: { deviceId: user.deviceId } },
       },
     ],
-    "/clipboard/search/:deviceId/:deleted-boolean/:query-string": [
+    "/clipboard/search/:deviceId/:query{/:page}": [
       {
         auth: user.getSessionToken,
         description:
           "Should search clipboard entries successfully with valid auth",
         shouldSucceed: true,
         expectedResponse: { clipboardItems: expect.any(Array) },
-        requestBody: async () => {
+        requestInput: async () => {
           const deviceId = user.deviceId;
           const userId = user.getUserData().user?.userId;
 
@@ -99,9 +94,8 @@ export const testCases: TestRoutes = {
           });
 
           return {
-            deviceId,
-            query: entry.content.slice(0, uuid.length),
-            deleted: false,
+            query: { deleted: false },
+            params: { deviceId, query: entry.content.slice(0, uuid.length) },
           };
         },
       },
@@ -111,7 +105,7 @@ export const testCases: TestRoutes = {
           "Should return an error when searching clipboard entries with invalid auth",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
-        requestBody: async () => {
+        requestInput: async () => {
           const deviceId = user.deviceId;
 
           const entries = await prisma.clipboardSync.findMany({
@@ -124,17 +118,23 @@ export const testCases: TestRoutes = {
             );
           }
 
-          return { deviceId, deleted: false, query: entries[0].content };
+          return {
+            params: {
+              deviceId,
+              query: entries[0].content,
+            },
+            query: { deleted: false },
+          };
         },
       },
     ],
-    "/clipboard/:deviceId": [
+    "/clipboard/:deviceId{/:page}": [
       {
         auth: user.getSessionToken,
         description: "Should fetch clipboard entries successfully",
         shouldSucceed: true,
         expectedResponse: { clipboardItems: expect.any(Array) },
-        requestBody: async () => {
+        requestInput: async () => {
           const deviceId = user.deviceId;
 
           const entries = await prisma.clipboardSync.findMany({
@@ -147,7 +147,7 @@ export const testCases: TestRoutes = {
             );
           }
 
-          return { deviceId };
+          return { params: { deviceId } };
         },
       },
       {
@@ -156,7 +156,7 @@ export const testCases: TestRoutes = {
           "Should return an error when fetching clipboard entries with invalid auth",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
-        requestBody: async () => {
+        requestInput: async () => {
           const deviceId = user.deviceId;
 
           const entries = await prisma.clipboardSync.findMany({
@@ -169,7 +169,7 @@ export const testCases: TestRoutes = {
             );
           }
 
-          return { deviceId };
+          return { params: { deviceId } };
         },
       },
     ],
@@ -186,7 +186,7 @@ export const testCases: TestRoutes = {
     ],
     "/cryptos/:symbol": [
       {
-        requestBody: { symbol: "BTCUSDT" },
+        requestInput: { params: { symbol: "BTCUSDT" } },
         description: "Should fetch the price of a specific crypto successfully",
         shouldSucceed: true,
         expectedResponse: {
@@ -199,7 +199,7 @@ export const testCases: TestRoutes = {
         },
       },
       {
-        requestBody: { symbol: "NonValidSymbol" },
+        requestInput: { params: { symbol: "NonValidSymbol" } },
         description: "Should return an error for an invalid crypto symbol",
         shouldSucceed: false,
         expectedResponse: {
@@ -209,14 +209,14 @@ export const testCases: TestRoutes = {
     ],
     "/cryptos/price/:symbol": [
       {
-        requestBody: { symbol: "ETHUSDT" },
+        requestInput: { params: { symbol: "ETHUSDT" } },
         shouldSucceed: true,
         expectedResponse: { price: expect.any(Number) },
         description:
           "Should fetch the price of a specific crypto successfully using price route",
       },
       {
-        requestBody: { symbol: "NonValidSymbol" },
+        requestInput: { params: { symbol: "NonValidSymbol" } },
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
         description:
@@ -257,9 +257,25 @@ export const testCases: TestRoutes = {
         expectedResponse: { error: expect.any(String) },
       },
     ],
-    "/logs/page": [
+    "/logs/page{/:page}": [
       {
         auth: user.getSessionToken,
+        description: "Should fetch a page of logs successfully",
+        shouldSucceed: true,
+        expectedResponse: { logs: expect.any(Array) },
+        requestInput: {},
+      },
+      {
+        auth: "InvalidToken",
+        description:
+          "Should return an error when fetching a page of logs with invalid auth",
+        shouldSucceed: false,
+        expectedResponse: { error: expect.any(String) },
+        requestInput: {},
+      },
+      {
+        auth: user.getSessionToken,
+        requestInput: { params: { page: 1 } },
         description: "Should fetch a page of logs successfully",
         shouldSucceed: true,
         expectedResponse: { logs: expect.any(Array) },
@@ -268,37 +284,20 @@ export const testCases: TestRoutes = {
         auth: "InvalidToken",
         description:
           "Should return an error when fetching a page of logs with invalid auth",
+        requestInput: { params: { page: 1 } },
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
       },
     ],
-    "/logs/page/:page-number-optional": [
-      {
-        auth: user.getSessionToken,
-        requestBody: { page: 1 },
-        description: "Should fetch a page of logs successfully",
-        shouldSucceed: true,
-        expectedResponse: { logs: expect.any(Array) },
-      },
-      {
-        auth: "InvalidToken",
-        description:
-          "Should return an error when fetching a page of logs with invalid auth",
-        requestBody: { page: 1 },
-        shouldSucceed: false,
-        expectedResponse: { error: expect.any(String) },
-      },
-    ],
-    "/streamers/page": [
+    "/streamers/page{/:page}": [
       {
         description: "Should fetch a page of streamers successfully",
         shouldSucceed: true,
         expectedResponse: { streamers: expect.any(Array) },
+        requestInput: {},
       },
-    ],
-    "/streamers/page/:page-number-optional": [
       {
-        requestBody: { page: 1 },
+        requestInput: { params: { page: 1 } },
         description: "Should fetch a page of streamers successfully",
         shouldSucceed: true,
         expectedResponse: { streamers: expect.any(Array) },
@@ -316,7 +315,7 @@ export const testCases: TestRoutes = {
         description: "Should fetch a streamer by ID successfully",
         shouldSucceed: true,
         expectedResponse: { streamer: expect.any(Object) },
-        requestBody: async () => {
+        requestInput: async () => {
           const streamer = await prisma.streamers.findFirst();
 
           if (!streamer) {
@@ -325,22 +324,22 @@ export const testCases: TestRoutes = {
             );
           }
 
-          return { streamerId: streamer.id };
+          return { params: { streamerId: streamer.id } };
         },
       },
       {
         description: "Should not fetch a streamer by ID with invalid ID",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
-        requestBody: { streamerId: "invalid-streamer-id" },
+        requestInput: { params: { streamerId: "invalid-streamer-id" } },
       },
     ],
-    "/streamers/:userId": [
+    "/streamers/:userId{/:streamerId}": [
       {
         description: "Should fetch streamers by user ID successfully",
         shouldSucceed: true,
         expectedResponse: { streamers: expect.any(Array) },
-        requestBody: async () => {
+        requestInput: async () => {
           const userData = user.getUserData();
           const userId = userData.user?.userId;
 
@@ -350,23 +349,21 @@ export const testCases: TestRoutes = {
             );
           }
 
-          return { userId };
+          return { params: { userId } };
         },
       },
       {
-        requestBody: { userId: "invalid-user-id" },
         description: "Should not fetch streamers by user ID with invalid ID",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
+        requestInput: { params: { userId: "invalid-user-id" } },
       },
-    ],
-    "/streamers/:userId/:streamerId-optional": [
       {
         description:
           "Should fetch streamers by user ID and optional streamer ID successfully",
         shouldSucceed: true,
         expectedResponse: { streamers: expect.any(Array) },
-        requestBody: async () => {
+        requestInput: async () => {
           const userData = user.getUserData();
           const userId = userData.user?.userId;
 
@@ -376,22 +373,24 @@ export const testCases: TestRoutes = {
             );
           }
 
-          const streamer = await prisma.userStreamers.findFirst({
-            where: { userId },
-            include: { streamer: true },
-          });
-
-          return { userId, streamerId: streamer?.id || "" };
+          return { params: { userId } };
         },
       },
       {
-        description:
-          "Should not fetch streamers by user ID and optional streamer ID with invalid IDs",
-        shouldSucceed: false,
-        expectedResponse: { error: expect.any(String) },
-        requestBody: {
-          userId: "invalid-user-id",
-          streamerId: "invalid-streamer-id",
+        description: "Should fetch streamers by user ID successfully",
+        shouldSucceed: true,
+        expectedResponse: { streamers: expect.any(Array) },
+        requestInput: async () => {
+          const userData = user.getUserData();
+          const userId = userData.user?.userId;
+
+          if (!userId) {
+            throw new Error(
+              "User ID not found in session data. Please ensure the user is logged in for this test.",
+            );
+          }
+
+          return { params: { userId } };
         },
       },
     ],
@@ -403,9 +402,11 @@ export const testCases: TestRoutes = {
           latestVersion: expect.any(String),
           isUpdateAvailable: expect.any(Boolean),
         },
-        requestBody: {
-          buildType: "android",
-          version: "0.0.0",
+        requestInput: {
+          params: {
+            buildType: "android",
+            version: "0.0.0",
+          },
         },
       },
       {
@@ -415,9 +416,11 @@ export const testCases: TestRoutes = {
           latestVersion: expect.any(String),
           isUpdateAvailable: expect.any(Boolean),
         },
-        requestBody: {
-          version: "0.0.0",
-          buildType: "linux",
+        requestInput: {
+          params: {
+            version: "0.0.0",
+            buildType: "linux",
+          },
         },
       },
     ],
@@ -433,9 +436,11 @@ export const testCases: TestRoutes = {
           "Should unlock admin access successfully with valid password",
         shouldSucceed: true,
         expectedResponse: { success: true },
-        requestBody: {
-          deviceId: user.deviceId,
-          password: getEnvValue("ADMIN_PASSWORD"),
+        requestInput: {
+          body: {
+            deviceId: user.deviceId,
+            password: getEnvValue("ADMIN_PASSWORD"),
+          },
         },
       },
       {
@@ -444,9 +449,11 @@ export const testCases: TestRoutes = {
           "Should not unlock admin access successfully with invalid token",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
-        requestBody: {
-          deviceId: user.deviceId,
-          password: getEnvValue("ADMIN_PASSWORD"),
+        requestInput: {
+          body: {
+            deviceId: user.deviceId,
+            password: getEnvValue("ADMIN_PASSWORD"),
+          },
         },
       },
     ],
@@ -457,7 +464,7 @@ export const testCases: TestRoutes = {
         description: "Should add a clipboard entry successfully",
         shouldSucceed: true,
         expectedResponse: { id: expect.any(String) },
-        requestBody: async () => {
+        requestInput: async () => {
           const userData = user.getUserData();
           const userId = userData.user?.userId;
 
@@ -468,9 +475,11 @@ export const testCases: TestRoutes = {
           }
 
           return {
-            userId,
-            deviceId: user.deviceId,
-            content: "Test clipboard content",
+            body: {
+              userId,
+              deviceId: user.deviceId,
+              content: "Test clipboard content",
+            },
           };
         },
       },
@@ -480,9 +489,11 @@ export const testCases: TestRoutes = {
           "Should not add a clipboard entry successfully with invalid token",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
-        requestBody: {
-          content: "Test clipboard content",
-          deviceId: user.deviceId,
+        requestInput: {
+          body: {
+            content: "Test clipboard content",
+            deviceId: user.deviceId,
+          },
         },
       },
     ],
@@ -492,7 +503,7 @@ export const testCases: TestRoutes = {
         description: "Should add a down-detector entry successfully",
         shouldSucceed: true,
         expectedResponse: { id: expect.any(String) },
-        requestBody: async () => {
+        requestInput: async () => {
           const userData = user.getUserData();
           const userId = userData.user?.userId;
 
@@ -503,11 +514,13 @@ export const testCases: TestRoutes = {
           }
 
           return {
-            userId,
-            deviceId: user.deviceId,
-            values: {
-              url: "https://example.com",
-              sendNotification: Math.random() < 0.5,
+            body: {
+              userId,
+              deviceId: user.deviceId,
+              values: {
+                url: "https://example.com",
+                sendNotification: Math.random() < 0.5,
+              },
             },
           };
         },
@@ -518,11 +531,13 @@ export const testCases: TestRoutes = {
           "Should not add a down-detector entry successfully with invalid token",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
-        requestBody: {
-          deviceId: user.deviceId,
-          values: {
-            url: "https://example.com",
-            sendNotification: Math.random() < 0.5,
+        requestInput: {
+          body: {
+            deviceId: user.deviceId,
+            values: {
+              url: "https://example.com",
+              sendNotification: Math.random() < 0.5,
+            },
           },
         },
       },
@@ -532,7 +547,7 @@ export const testCases: TestRoutes = {
         description: "Should add a streamer successfully for a user",
         shouldSucceed: true,
         expectedResponse: { streamer: expect.any(Object) },
-        requestBody: async () => {
+        requestInput: async () => {
           const userData = user.getUserData();
           const userId = userData.user?.userId;
 
@@ -542,7 +557,13 @@ export const testCases: TestRoutes = {
             );
           }
 
-          return { userId, streamerName: "ElMariana", deviceId: user.deviceId };
+          return {
+            body: {
+              userId,
+              streamerName: "ElMariana",
+              deviceId: user.deviceId,
+            },
+          };
         },
         auth: user.getSessionToken,
       },
@@ -552,10 +573,12 @@ export const testCases: TestRoutes = {
           "Should not add a streamer successfully for a user with invalid user ID",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
-        requestBody: {
-          userId: "invalid-user-id",
-          deviceId: user.deviceId,
-          streamerName: "invalid-streamer-name",
+        requestInput: {
+          body: {
+            userId: "invalid-user-id",
+            deviceId: user.deviceId,
+            streamerName: "invalid-streamer-name",
+          },
         },
       },
     ],
@@ -564,12 +587,12 @@ export const testCases: TestRoutes = {
         description: "Should change image format successfully",
         shouldSucceed: true,
         expectedResponse: { success: true },
-        requestBody: async () => {
+        requestInput: async () => {
           const imageStr = await readImage(
             path.join(getRoutes("ROOT"), "dev/testingRoutes/sample.jpeg"),
           );
 
-          return { imageStr, lang: "en", format: "png" };
+          return { body: { imageStr, lang: "en", format: "png" } };
         },
       },
     ],
@@ -581,13 +604,15 @@ export const testCases: TestRoutes = {
         expectedResponse: {
           token: expect.any(String),
         },
-        requestBody: {
-          lang: "en",
-          email: user.email,
-          password: user.password,
-          deviceId: user.deviceId,
-          rememberMe: false,
-          notificationToken: "Web",
+        requestInput: {
+          body: {
+            lang: "en",
+            email: user.email,
+            password: user.password,
+            deviceId: user.deviceId,
+            rememberMe: false,
+            notificationToken: "Web",
+          },
         },
         onFinish: (res) => {
           if (!res)
@@ -610,13 +635,15 @@ export const testCases: TestRoutes = {
         expectedResponse: {
           error: expect.any(String),
         },
-        requestBody: {
-          lang: "en",
-          email: user.email,
-          password: "wrong-password",
-          deviceId: "test-device-id",
-          rememberMe: false,
-          notificationToken: "Web",
+        requestInput: {
+          body: {
+            lang: "en",
+            email: user.email,
+            password: "wrong-password",
+            deviceId: "test-device-id",
+            rememberMe: false,
+            notificationToken: "Web",
+          },
         },
       },
     ],
@@ -627,10 +654,12 @@ export const testCases: TestRoutes = {
         expectedResponse: {
           token: expect.any(String),
         },
-        requestBody: () => ({
-          lang: "en",
-          deviceId: user.deviceId,
-          notificationToken: "Web",
+        requestInput: () => ({
+          body: {
+            lang: "en",
+            deviceId: user.deviceId,
+            notificationToken: "Web",
+          },
         }),
         onFinish: (res) => {
           if (!res)
@@ -657,24 +686,26 @@ export const testCases: TestRoutes = {
         expectedResponse: {
           error: expect.any(String),
         },
-        requestBody: {
-          lang: "en",
-          deviceId: "test-device-id",
-          notificationToken: "Web",
+        requestInput: {
+          body: {
+            lang: "en",
+            deviceId: "test-device-id",
+            notificationToken: "Web",
+          },
         },
       },
     ],
     "/auth/signout": [
       {
         auth: user.getSessionToken,
-        requestBody: { deviceId: user.deviceId, lang: "en" },
+        requestInput: { body: { deviceId: user.deviceId, lang: "en" } },
         description: "Should sign out successfully with valid token",
         shouldSucceed: true,
         expectedResponse: { success: true },
       },
       {
         auth: "InvalidToken",
-        requestBody: { deviceId: "test-device-id", lang: "en" },
+        requestInput: { body: { deviceId: "test-device-id", lang: "en" } },
         description: "Should not sign out successfully with invalid token",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
@@ -685,20 +716,24 @@ export const testCases: TestRoutes = {
         description: "Should sign up successfully with valid credentials",
         shouldSucceed: true,
         expectedResponse: { success: true },
-        requestBody: {
-          lang: "en",
-          email: `user${Date.now()}@test.test`,
-          password: "Test123!",
+        requestInput: {
+          body: {
+            lang: "en",
+            email: `user${Date.now()}@test.test`,
+            password: "Test123!",
+          },
         },
       },
       {
         description: "Should not sign up with invalid credentials",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
-        requestBody: {
-          lang: "en",
-          email: "invalid-email",
-          password: "invalid-password",
+        requestInput: {
+          body: {
+            lang: "en",
+            email: "invalid-email",
+            password: "invalid-password",
+          },
         },
       },
     ],
@@ -707,7 +742,7 @@ export const testCases: TestRoutes = {
         description: "Should encrypt successfully with valid data",
         expectedResponse: { value: expect.any(String) },
         shouldSucceed: true,
-        requestBody: () => ({ value: decryptedValue }),
+        requestInput: () => ({ body: { value: decryptedValue } }),
         onFinish: (res) => {
           if (!res)
             throw new Error(
@@ -724,7 +759,7 @@ export const testCases: TestRoutes = {
         },
       },
       {
-        requestBody: { value: undefined as unknown as string },
+        requestInput: { body: { value: undefined as unknown as string } },
         description: "Should not encrypt with invalid data",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
@@ -735,7 +770,7 @@ export const testCases: TestRoutes = {
         description: "Should decrypt successfully with valid data",
         shouldSucceed: true,
         expectedResponse: { value: expect.any(String) },
-        requestBody: () => ({ value: getEncryptedValue() }),
+        requestInput: () => ({ body: { value: getEncryptedValue() } }),
         onFinish: (res) => {
           if (!res)
             throw new Error(
@@ -754,7 +789,7 @@ export const testCases: TestRoutes = {
         description: "Should not decrypt with invalid data",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
-        requestBody: () => ({ value: "invalid-encrypted-value" }),
+        requestInput: { body: { value: "invalid-encrypted-value" } },
       },
     ],
     "/languages/translate": [
@@ -762,7 +797,7 @@ export const testCases: TestRoutes = {
         description: "Should translate text successfully with valid data",
         shouldSucceed: true,
         expectedResponse: { translatedText: expect.any(String) },
-        requestBody: { text: "Hello", targetLanguage: "es" },
+        requestInput: { body: { text: "Hello", targetLanguage: "es" } },
         onFinish: (res) => {
           if (!res)
             throw new Error(
@@ -780,7 +815,7 @@ export const testCases: TestRoutes = {
         },
       },
       {
-        requestBody: { text: "", targetLanguage: "es" },
+        requestInput: { body: { text: "", targetLanguage: "es" } },
         description: "Should not translate text with invalid data",
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
@@ -791,32 +826,35 @@ export const testCases: TestRoutes = {
         description: "Should add a log successfully with valid data",
         shouldSucceed: true,
         expectedResponse: { success: true },
-        requestBody: {
-          type: "log",
-          message: "Test log message",
-          deviceId: "test-device-id",
-          timestamp: new Date().toISOString(),
-          deviceName: "Test Device",
+        requestInput: {
+          body: {
+            type: "log",
+            message: "Test log message",
+            deviceId: "test-device-id",
+            timestamp: new Date().toISOString(),
+            deviceName: "Test Device",
+          },
         },
       },
       {
         description: "Should add a log successfully with valid data and userId",
         shouldSucceed: true,
         expectedResponse: { success: true },
-        requestBody: () => ({
-          type: "log",
-          userId: user.getUserData().user?.userId,
-          message: "Test log message",
-          deviceId: user.deviceId,
-          timestamp: new Date().toISOString(),
-          deviceName: "Test Device",
+        requestInput: () => ({
+          body: {
+            type: "log",
+            userId: user.getUserData().user?.userId,
+            message: "Test log message",
+            deviceId: user.deviceId,
+            timestamp: new Date().toISOString(),
+            deviceName: "Test Device",
+          },
         }),
       },
     ],
   },
 
   PUT: {
-    "/logs/": [],
     "/clipboard/delete/toggle-deleted": [
       {
         auth: user.getSessionToken,
@@ -824,7 +862,7 @@ export const testCases: TestRoutes = {
           "Should toggle the deleted status of a clipboard entry successfully",
         shouldSucceed: true,
         expectedResponse: {},
-        requestBody: async () => {
+        requestInput: async () => {
           const clipboardEntry = await prisma.clipboardSync.findFirst({
             where: { deviceId: user.deviceId },
           });
@@ -836,8 +874,10 @@ export const testCases: TestRoutes = {
           }
 
           return {
-            deviceId: user.deviceId,
-            id: clipboardEntry.id || "",
+            body: {
+              id: clipboardEntry.id || "",
+              deviceId: user.deviceId,
+            },
           };
         },
       },
@@ -849,10 +889,12 @@ export const testCases: TestRoutes = {
           "Should toggle the deleted status of all clipboard entries successfully",
         shouldSucceed: true,
         expectedResponse: {},
-        requestBody: async () => {
+        requestInput: async () => {
           return {
-            restore: Math.random() < 0.5,
-            deviceId: user.deviceId,
+            body: {
+              restore: Math.random() < 0.5,
+              deviceId: user.deviceId,
+            },
           };
         },
       },
@@ -863,7 +905,7 @@ export const testCases: TestRoutes = {
         description: "Should update down-detector status successfully",
         shouldSucceed: true,
         expectedResponse: {},
-        requestBody: async () => {
+        requestInput: async () => {
           const deviceId = user.deviceId;
 
           const downDetectorEntry = await prisma.downDetector.create({
@@ -879,9 +921,11 @@ export const testCases: TestRoutes = {
             );
 
           return {
-            deviceId,
-            id: downDetectorEntry.id,
-            values: { sendNotification: Math.random() < 0.5 },
+            body: {
+              deviceId,
+              id: downDetectorEntry.id,
+              values: { sendNotification: Math.random() < 0.5 },
+            },
           };
         },
       },
@@ -892,7 +936,7 @@ export const testCases: TestRoutes = {
         description: "Should update user config successfully",
         shouldSucceed: true,
         expectedResponse: { success: true },
-        requestBody: async () => {
+        requestInput: async () => {
           const userData = user.getUserData();
           const userId = userData.user?.userId;
 
@@ -903,9 +947,11 @@ export const testCases: TestRoutes = {
           }
 
           return {
-            userId,
-            values: { theme: "dark" },
-            deviceId: user.deviceId,
+            body: {
+              userId,
+              values: { theme: "dark" },
+              deviceId: user.deviceId,
+            },
           };
         },
       },
@@ -916,7 +962,7 @@ export const testCases: TestRoutes = {
         description: "Should update user notifications config successfully",
         shouldSucceed: true,
         expectedResponse: {},
-        requestBody: async () => {
+        requestInput: async () => {
           const userData = user.getUserData();
           const userId = userData.user?.userId;
 
@@ -927,10 +973,12 @@ export const testCases: TestRoutes = {
           }
 
           return {
-            userId,
-            match: { reason: "downDetector" },
-            values: { enabled: Math.random() < 0.5 },
-            deviceId: user.deviceId,
+            body: {
+              userId,
+              match: { reason: "downDetector" },
+              values: { enabled: Math.random() < 0.5 },
+              deviceId: user.deviceId,
+            },
           };
         },
       },
@@ -944,7 +992,7 @@ export const testCases: TestRoutes = {
         description: "Should delete a down-detector entry successfully",
         shouldSucceed: true,
         expectedResponse: { success: true },
-        requestBody: async () => {
+        requestInput: async () => {
           const deviceId = user.deviceId;
           const downDetectorId = await prisma.downDetector
             .create({
@@ -962,7 +1010,7 @@ export const testCases: TestRoutes = {
             );
           }
 
-          return { deviceId, downDetectorId };
+          return { params: { deviceId, downDetectorId } };
         },
       },
     ],
@@ -972,7 +1020,7 @@ export const testCases: TestRoutes = {
         description: "Should delete a streamer successfully",
         shouldSucceed: true,
         expectedResponse: { success: true },
-        requestBody: async () => {
+        requestInput: async () => {
           const deviceId = user.deviceId;
           const streamerId = await prisma.streamers
             .findFirst({
@@ -990,7 +1038,7 @@ export const testCases: TestRoutes = {
             );
           }
 
-          return { deviceId, streamerId };
+          return { params: { deviceId, streamerId } };
         },
       },
     ],
@@ -998,7 +1046,7 @@ export const testCases: TestRoutes = {
       {
         auth: user.getSessionToken,
         description: "Should delete a log successfully with valid logId",
-        requestBody: async () => {
+        requestInput: async () => {
           const logs = await prisma.logs.findMany({
             take: 5,
             where: { userId: user.getUserData().user?.userId },
@@ -1015,7 +1063,7 @@ export const testCases: TestRoutes = {
             );
           }
 
-          return { logId: logs.filter((log) => !!log.id)[0]?.id };
+          return { params: { logId } };
         },
         shouldSucceed: true,
         expectedResponse: { success: true },
@@ -1023,7 +1071,7 @@ export const testCases: TestRoutes = {
       {
         auth: user.getSessionToken,
         description: "Should not delete a log with invalid logId",
-        requestBody: { logId: "invalid-log-id" },
+        requestInput: { params: { logId: "invalid-log-id" } },
         shouldSucceed: false,
         expectedResponse: { error: expect.any(String) },
       },

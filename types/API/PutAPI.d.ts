@@ -1,15 +1,15 @@
 import { DEFAULT_RESPONSE, GetRouterObj, GetUrlFetch, Prisma } from "@types";
 
-type LogsFetch = GetUrlFetch<"/", null, Record<string, never>, DEFAULT_RESPONSE>;
-
 type UserConfigFetch = GetUrlFetch<
   "/update",
   {
-    values: Omit<
-      Prisma.UserConfigUpdateInput,
-      "id" | "createdAt" | "updatedAt" | "user"
-    >;
-    deviceId: string;
+    body: {
+      values: Omit<
+        Prisma.UserConfigUpdateInput,
+        "id" | "createdAt" | "updatedAt" | "user"
+      >;
+      deviceId: string;
+    };
   },
   { auth: true },
   DEFAULT_RESPONSE
@@ -18,13 +18,13 @@ type UserConfigFetch = GetUrlFetch<
 export type ClipboardFetch =
   | GetUrlFetch<
       "/delete/toggle-deleted-all",
-      { deviceId: string; restore: boolean },
+      { body: { deviceId: string; restore: boolean } },
       { auth: true },
       { error?: string }
     >
   | GetUrlFetch<
       "/delete/toggle-deleted",
-      { deviceId: string; id: string; deleted?: boolean },
+      { body: { deviceId: string; id: string; deleted?: boolean } },
       { auth: true },
       { error?: string }
     >;
@@ -32,9 +32,11 @@ export type ClipboardFetch =
 export type DownDetectorFetch = GetUrlFetch<
   "/update",
   {
-    id: string;
-    values: Omit<Prisma.DownDetectorUpdateInput, "id" | "createdAt" | "user">;
-    deviceId: string;
+    body: {
+      id: string;
+      values: Omit<Prisma.DownDetectorUpdateInput, "id" | "createdAt" | "user">;
+      deviceId: string;
+    };
   },
   { auth: true },
   { error?: string }
@@ -43,22 +45,23 @@ export type DownDetectorFetch = GetUrlFetch<
 export type UserNotificationsConfigFetch = GetUrlFetch<
   "/update",
   {
-    deviceId: string;
-    values: Omit<
-      Prisma.UserNotificationsConfigUpdateInput,
-      "id" | "createdAt" | "updatedAt" | "user"
-    >;
-    match: Omit<
-      Prisma.UserNotificationsConfigWhereInput,
-      "id" | "userId" | "user" | "AND" | "OR" | "NOT"
-    >;
+    body: {
+      deviceId: string;
+      values: Omit<
+        Prisma.UserNotificationsConfigUpdateInput,
+        "id" | "createdAt" | "updatedAt" | "user"
+      >;
+      match: Omit<
+        Prisma.UserNotificationsConfigWhereInput,
+        "id" | "userId" | "user" | "AND" | "OR" | "NOT"
+      >;
+    };
   },
   { auth: true },
   { error?: string }
 >;
 
 export type Put = {
-  "/logs": LogsFetch;
   "/clipboard": ClipboardFetch;
   "/user-config": UserConfigFetch;
   "/down-detector": DownDetectorFetch;

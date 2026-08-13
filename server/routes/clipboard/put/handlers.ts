@@ -4,8 +4,8 @@ import { getHandlerPut, Logger, STATUS_RESPONSE } from "@common";
 export const handleToggleDeletedClipboardItem = getHandlerPut(
   "/clipboard",
   "/delete/toggle-deleted",
-  { deviceId: "string", id: "string" },
-  async (body, sendResponse) => {
+  { body: { deviceId: "string", id: "string" } },
+  async ({ body }, sendResponse) => {
     try {
       const item = await prisma.clipboardSync.findUnique({
         where: { id: body.id },
@@ -44,8 +44,8 @@ export const handleToggleDeletedClipboardItem = getHandlerPut(
 export const handleToggleDeletedAllClipboardItems = getHandlerPut(
   "/clipboard",
   "/delete/toggle-deleted-all",
-  { deviceId: "string", restore: "boolean" },
-  async (body, sendResponse, { req }) => {
+  { body: { deviceId: "string", restore: "boolean" } },
+  async ({ body }, sendResponse, { req }) => {
     try {
       const updatedItems = await prisma.clipboardSync.updateMany({
         data: { deleted: !body.restore },

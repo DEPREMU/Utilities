@@ -3,15 +3,15 @@ import {
   handleToggleDeletedClipboardItem,
 } from "./handlers";
 import { getRouterPut } from "@common";
-import { authMiddleware } from "@/routes/auth/middlewares";
+import { authMiddlewarePost } from "@/routes/auth/middlewares";
 
 export const routerClipboardPut = getRouterPut("/clipboard", {
   "/delete/toggle-deleted": {
     handler: handleToggleDeletedClipboardItem,
-    middlewares: [authMiddleware],
+    middlewares: [authMiddlewarePost],
   },
   "/delete/toggle-deleted-all": {
     handler: handleToggleDeletedAllClipboardItems,
-    middlewares: [authMiddleware],
+    middlewares: [authMiddlewarePost],
   },
 });

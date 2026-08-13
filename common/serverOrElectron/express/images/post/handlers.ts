@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { getHandlerPost } from "@commonSrc/serverOrElectron/express/functions/getHandlerPost";
+import { getHandlerPost } from "@commonSrc/serverOrElectron/express/functions";
 import { t, supportedFormatsImages, STATUS_RESPONSE } from "@commonSrc/both";
 import { changeFormat, isImageBuffer } from "../utils";
 
@@ -8,10 +8,12 @@ export const handleChangeImageFormat = getHandlerPost(
   "/images",
   "/change-format",
   {
-    format: "string",
-    imageStr: "string",
+    body: {
+      format: "string",
+      imageStr: "string",
+    },
   },
-  async (body, sendResponse) => {
+  async ({ body }, sendResponse) => {
     const lang = body.lang || "en";
 
     try {

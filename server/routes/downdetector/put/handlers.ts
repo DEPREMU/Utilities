@@ -5,11 +5,13 @@ export const handleUpdateDownDetector = getHandlerPut(
   "/down-detector",
   "/update",
   {
-    id: "string",
-    values: "object",
-    deviceId: "string",
+    body: {
+      id: "string",
+      values: "object",
+      deviceId: "string",
+    },
   },
-  async (body, sendResponse, { req }) => {
+  async ({ body }, sendResponse, { req }) => {
     try {
       await prisma.downDetector.update({
         data: body.values,

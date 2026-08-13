@@ -5,21 +5,22 @@ const PAGE_SIZE = 20;
 
 export const handleGetClipboard = getHandlerGet(
   "/clipboard",
-  "/:deviceId/:page-number-optional",
-  { deviceId: "string", page: ["number", "undefined"] },
-  async (body, sendResponse) => {
-    const page = body.page ?? 1;
+  "/:deviceId{/:page}",
+  {
+    params: {
+      deviceId: "string",
+      page: ["number", "undefined"],
+    },
+  },
+  async ({ params }, sendResponse) => {
+    const page = Helper.Object.getValue(params, "page", 1);
 
     try {
       const result = await prisma.clipboardSync.findMany({
-        where: {
-          deviceId: body.deviceId,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
         skip: (page - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
+        where: { deviceId: params.deviceId },
+        orderBy: { createdAt: "desc" },
       });
 
       sendResponse(STATUS_RESPONSE.SUCCESS, {
@@ -39,25 +40,26 @@ export const handleGetClipboard = getHandlerGet(
 
 export const handleSearchClipboard = getHandlerGet(
   "/clipboard",
-  "/search/:deviceId/:deleted-boolean/:query-string/:page-number-optional",
+  "/search/:deviceId/:query{/:page}",
   {
-    page: ["number", "undefined"],
-    query: "string",
-    deleted: ["boolean", "undefined"],
-    deviceId: "string",
+    params: {
+      page: ["number", "undefined"],
+      query: ["string", "undefined"],
+      deviceId: "string",
+    },
+    query: {
+      deleted: ["boolean", "undefined"],
+    },
   },
-  async (body, sendResponse) => {
-    const page = body.page ?? 1;
-    const deleted = !!body.deleted;
+  async ({ params, query }, sendResponse) => {
+    const page = Helper.Object.getValue(params, "page", 1);
+    const deleted = !!query.deleted;
 
     try {
       const result = await prisma.clipboardSync.findMany({
-        where: {
-          deleted,
-          content: { contains: body.query },
-        },
         skip: (page - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
+        where: { deleted, content: { contains: params.query } },
         orderBy: { createdAt: "desc" },
       });
 

@@ -1,10 +1,10 @@
 import { getRouterPost } from "@common";
-import { authMiddleware } from "@/routes/auth/middlewares";
 import { handlerAdminUnlock } from "./handlers";
+import { authMiddlewarePost } from "@/routes/auth/middlewares";
 
 export const routerAdminPost = getRouterPost("/admin", {
   "/unlock": {
     handler: handlerAdminUnlock,
-    middlewares: [authMiddleware],
+    middlewares: [authMiddlewarePost],
   },
 });

@@ -37,7 +37,7 @@ const executeTest = async (
       method,
       route,
       body as never,
-      ...((authorizationToken ? [authorizationToken] : []) as []),
+      authorizationToken as never,
     );
 
     const duration = Date.now() - startTime;
@@ -97,9 +97,9 @@ const executeRouteTests = async <M extends MethodsAPI>(
 
   for (const test of tests) {
     const resolvedBody =
-      typeof test.requestBody === "function"
-        ? await test.requestBody()
-        : test.requestBody;
+      typeof test.requestInput === "function"
+        ? await test.requestInput()
+        : test.requestInput;
 
     const result = await executeTest(
       route,

@@ -4,8 +4,8 @@ import { getHandlerPost, Helper, Logger, STATUS_RESPONSE } from "@common";
 export const handleAddClipboardItem = getHandlerPost(
   "/clipboard",
   "/add",
-  { content: "string", deviceId: "string" },
-  async (body, sendResponse, { req }) => {
+  { body: { content: "string", deviceId: "string" } },
+  async ({ body }, sendResponse, { req }) => {
     try {
       const res = await prisma.clipboardSync.create({
         data: {

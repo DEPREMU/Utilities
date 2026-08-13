@@ -35,12 +35,14 @@ const timers: {
 
 export const handleAppAlive = getHandlerGet(
   "/info",
-  "/appAlive/:deviceId-string/:pushToken-string",
+  "/appAlive/:deviceId/:pushToken",
   {
-    deviceId: "string",
-    pushToken: "string",
+    params: {
+      deviceId: "string",
+      pushToken: "string",
+    },
   },
-  async (params, sendResponse) => {
+  async ({ params }, sendResponse) => {
     try {
       const { deviceId, pushToken } = params;
 

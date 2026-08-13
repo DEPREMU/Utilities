@@ -10,7 +10,10 @@ type StrictEntries<T> = Array<{ [K in keyof T]: [K, T[K]] }[keyof T]>;
 type StrictKeys<T> = Array<keyof T>;
 type StrictValues<T> = Array<T[keyof T]>;
 
-type Types = keyof Omit<TypeOfJS, "function" | "symbol" | "bigint">;
+export type TypesOfValue = keyof Omit<
+  TypeOfJS,
+  "function" | "symbol" | "bigint"
+>;
 
 type ConvertOne<T, K extends keyof TypeOfJS> = K extends "string"
   ? T extends string
@@ -38,7 +41,7 @@ type MergeField<T, U> = U extends readonly (infer K extends keyof TypeOfJS)[]
 
 type Converted<
   T extends Record<string, unknown>,
-  M extends Partial<Record<keyof T, Types | readonly Types[]>>,
+  M extends Partial<Record<keyof T, TypesOfValue | readonly TypesOfValue[]>>,
 > = {
   [
     K in keyof T as K extends keyof M
@@ -51,7 +54,7 @@ type Converted<
 
 type ChangeType = <
   T extends Record<string, unknown>,
-  M extends Partial<Record<keyof T, Types | Types[]>>,
+  M extends Partial<Record<keyof T, TypesOfValue | TypesOfValue[]>>,
 >(
   obj: T,
   map: M,
@@ -63,10 +66,12 @@ const changeType: ChangeType = (obj, newType) => {
   Object.keys(newType).forEach((key) => {
     if (!(key in copy)) return;
 
-    const set = new Set<Types>(Arrays.convertToArray(newType[key]) as Types[]);
+    const set = new Set<TypesOfValue>(
+      Arrays.convertToArray(newType[key]) as TypesOfValue[],
+    );
 
     for (const type of set) {
-      if (set.has(typeof copy[key] as Types)) return;
+      if (set.has(typeof copy[key] as TypesOfValue)) return;
 
       switch (type) {
         case "boolean":
@@ -166,12 +171,25 @@ const changeType: ChangeType = (obj, newType) => {
       }
     }
 
-    if (!set.has(typeof copy[key] as Types)) {
+    if (!set.has(typeof copy[key] as TypesOfValue)) {
       delete copy[key];
     }
   });
 
   return copy as never;
+};
+
+const getValue = <T extends object, K extends PropertyKey>(
+  obj: T,
+  key: K,
+  fallbackValue: T extends Record<K, infer V> ? V : never,
+): T extends Record<K, infer V> ? V : never => {
+  if (!(key in obj)) return fallbackValue;
+
+  const value = (obj as Record<K, unknown>)[key] as T extends Record<K, infer V>
+    ? V
+    : never;
+  return value !== undefined ? value : fallbackValue;
 };
 
 export class Objects {
@@ -209,4 +227,6 @@ export class Objects {
   ) => StrictKeys<T>;
 
   static readonly changeType = changeType;
+
+  static readonly getValue = getValue;
 }

@@ -8,17 +8,19 @@ export const handleIsUpdateAvailable = getHandlerGet(
   "/updates",
   "/is-update-available/:version/:buildType",
   {
-    version: "string",
-    buildType: "string",
+    params: {
+      version: "string",
+      buildType: "string",
+    },
   },
-  async (body, sendResponse) => {
+  async ({ params }, sendResponse) => {
     const res: Parameters<typeof sendResponse>[1] = {
       latestVersion: "",
       isUpdateAvailable: false,
     };
 
     try {
-      const { version, buildType } = body;
+      const { version, buildType } = params;
 
       res.isUpdateAvailable = dataUpdates.isUpdateAvailable(
         version,
@@ -47,8 +49,8 @@ export const handleIsUpdateAvailable = getHandlerGet(
 export const handleDownload = getHandlerGet(
   "/updates",
   "/download/:id",
-  { id: "string" },
-  async (params, sendResponse, { res }) => {
+  { params: { id: "string" } },
+  async ({ params }, sendResponse, { res }) => {
     try {
       const { id } = params;
 

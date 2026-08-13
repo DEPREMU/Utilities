@@ -1,76 +1,203 @@
-import {
-  TypeOfJS,
-  MethodsAPI,
-  DEFAULT_RESPONSE,
-  ResponseUnavailableService,
-} from "@types";
 import type { STATUS_RESPONSE } from "../../common/both";
+import { TypeOfJS, MethodsAPI, DEFAULT_RESPONSE } from "@types";
 import { Handler, NextFunction, Request, Response } from "express";
 
-type RemoveOptional<M extends string> = M extends `${infer Rest}-optional`
-  ? Rest
-  : M extends `optional-${infer Rest}`
-    ? Rest
-    : M extends "optional"
-      ? ""
-      : M;
+// #####################################################
+// #################### GetUrlFetch ####################
+// #####################################################
 
-type BaseType<T extends string> = T extends "string"
-  ? string
-  : T extends "number"
-    ? number
-    : T extends "boolean"
-      ? boolean
-      : T extends "bigint"
-        ? bigint
-        : never;
+// Core simplification utility
+export type Simplify<T> = { [K in keyof T]: T[K] } & {};
 
-type ApplyModifiers<
-  T,
-  Mods extends string,
-> = Mods extends `${infer Mod}-${infer Rest}`
-  ? ApplyModifiers<
-      Mod extends "array" ? T[] : Mod extends "nullable" ? T | null : T,
-      Rest
-    >
-  : Mods extends "array"
-    ? T[]
-    : Mods extends "nullable"
-      ? T | null
-      : T;
+// Utility to verify if a union of objects results exclusively in empty objects
+type IsUnionEmpty<T> = true extends (
+  T extends T ? ([keyof T] extends [never] ? false : true) : never
+)
+  ? false
+  : true;
 
-type StripOptional<P extends string> = P extends `${infer R}-optional`
-  ? [R, true]
-  : [P, false];
+// String parsing helpers
+type RemoveTrailingHyphen<T extends string> = T extends `${infer Core}-`
+  ? RemoveTrailingHyphen<Core>
+  : T;
 
-type ParamToObject<P extends string> =
-  StripOptional<P> extends [
-    infer Core extends string,
-    infer IsOpt extends boolean,
-  ]
-    ? Core extends `${infer Name}-${infer Type}-${infer Mods}`
-      ? IsOpt extends true
-        ? { [K in Name]?: ApplyModifiers<BaseType<Type>, Mods> }
-        : { [K in Name]: ApplyModifiers<BaseType<Type>, Mods> }
-      : Core extends `${infer Name}-${infer Type}`
-        ? IsOpt extends true
-          ? { [K in Name]?: BaseType<Type> }
-          : { [K in Name]: BaseType<Type> }
-        : IsOpt extends true
-          ? { [K in Core]?: string }
-          : { [K in Core]: string }
-    : never;
-
-type GetParams<
+type CleanParamString<
   T extends string,
-  Found extends boolean = false,
-> = T extends `${string}:${infer Param}/${infer Rest}`
-  ? ParamToObject<Param> & GetParams<`/${Rest}`, true>
-  : T extends `${string}:${infer Param}`
-    ? ParamToObject<Param>
-    : Found extends true
-      ? Record<string, never>
-      : never;
+  Acc extends string = "",
+> = T extends `${infer Char}${infer Rest}`
+  ? Char extends "/" | "{" | "}" | "?" | ":" | ";" | "&" | "."
+    ? RemoveTrailingHyphen<Acc>
+    : CleanParamString<Rest, `${Acc}${Char}`>
+  : RemoveTrailingHyphen<Acc>;
+
+// Parses exact modifiers into strongly typed objects
+type ParseModifiers<T extends string> =
+  T extends `${infer Name}-number-optional`
+    ? { name: Name; type: number; optional: true }
+    : T extends `${infer Name}-optional-number`
+      ? { name: Name; type: number; optional: true }
+      : T extends `${infer Name}-string-optional`
+        ? { name: Name; type: string; optional: true }
+        : T extends `${infer Name}-optional-string`
+          ? { name: Name; type: string; optional: true }
+          : T extends `${infer Name}-boolean-optional`
+            ? { name: Name; type: boolean; optional: true }
+            : T extends `${infer Name}-optional-boolean`
+              ? { name: Name; type: boolean; optional: true }
+              : T extends `${infer Name}-number`
+                ? { name: Name; type: number; optional: false }
+                : T extends `${infer Name}-string`
+                  ? { name: Name; type: string; optional: false }
+                  : T extends `${infer Name}-boolean`
+                    ? { name: Name; type: boolean; optional: false }
+                    : T extends `${infer Name}-optional`
+                      ? { name: Name; type: string; optional: true }
+                      : { name: T; type: string; optional: false };
+
+// Recursively strips modifier suffixes from the final URL string
+type RemoveModifiers<T extends string> =
+  T extends `${infer Prefix}-number-optional${infer Suffix}`
+    ? RemoveModifiers<`${Prefix}${Suffix}`>
+    : T extends `${infer Prefix}-optional-number${infer Suffix}`
+      ? RemoveModifiers<`${Prefix}${Suffix}`>
+      : T extends `${infer Prefix}-string-optional${infer Suffix}`
+        ? RemoveModifiers<`${Prefix}${Suffix}`>
+        : T extends `${infer Prefix}-optional-string${infer Suffix}`
+          ? RemoveModifiers<`${Prefix}${Suffix}`>
+          : T extends `${infer Prefix}-boolean-optional${infer Suffix}`
+            ? RemoveModifiers<`${Prefix}${Suffix}`>
+            : T extends `${infer Prefix}-optional-boolean${infer Suffix}`
+              ? RemoveModifiers<`${Prefix}${Suffix}`>
+              : T extends `${infer Prefix}-number${infer Suffix}`
+                ? RemoveModifiers<`${Prefix}${Suffix}`>
+                : T extends `${infer Prefix}-string${infer Suffix}`
+                  ? RemoveModifiers<`${Prefix}${Suffix}`>
+                  : T extends `${infer Prefix}-boolean${infer Suffix}`
+                    ? RemoveModifiers<`${Prefix}${Suffix}`>
+                    : T extends `${infer Prefix}-optional${infer Suffix}`
+                      ? RemoveModifiers<`${Prefix}${Suffix}`>
+                      : T;
+
+// Safely isolates structural delimiters
+type StripToDelimiter<T extends string> = T extends `${infer Char}${infer Rest}`
+  ? Char extends "/" | "-" | "}" | "&" | ";" | "."
+    ? T
+    : StripToDelimiter<Rest>
+  : "";
+
+type StripDefaults<T extends string> = T extends `${infer Prefix}?${infer Rest}`
+  ? `${Prefix}${StripDefaults<StripToDelimiter<Rest>>}`
+  : T;
+
+type SplitQuery<
+  T extends string,
+  PathAcc extends string = "",
+> = T extends `${infer Part}?${infer Rest}`
+  ? Rest extends `${string}?${string}`
+    ? SplitQuery<Rest, `${PathAcc}${Part}?`>
+    : Rest extends `${string}}${string}`
+      ? [`${PathAcc}${Part}?${Rest}`, ""]
+      : [`${PathAcc}${Part}`, Rest]
+  : [`${PathAcc}${T}`, ""];
+
+type ScanClosing<
+  T extends string,
+  Depth extends 1[],
+  Acc extends string = "",
+> = T extends `${infer Char}${infer Rest}`
+  ? Char extends "{"
+    ? ScanClosing<Rest, [...Depth, 1], `${Acc}{`>
+    : Char extends "}"
+      ? Depth extends [1, ...infer RestDepth extends 1[]]
+        ? RestDepth extends []
+          ? [Acc, Rest]
+          : ScanClosing<Rest, RestDepth, `${Acc}}`>
+        : never
+      : ScanClosing<Rest, Depth, `${Acc}${Char}`>
+  : never;
+
+type ExpandPaths<T extends string> = T extends `${infer Before}{${infer Rest}`
+  ? ScanClosing<Rest, [1]> extends [
+      infer Inside extends string,
+      infer After extends string,
+    ]
+    ? | ExpandPaths<`${Before}${After}`>
+      | ExpandPaths<`${Before}${Inside}${After}`>
+    : T
+  : T;
+
+type ParseFlatParams<T extends string> = T extends `${string}:${infer Param}`
+  ? Param extends `${infer P1}:${infer Rest}`
+    ? [ParseModifiers<CleanParamString<P1>>, ...ParseFlatParams<`:${Rest}`>]
+    : [ParseModifiers<CleanParamString<Param>>]
+  : [];
+
+type ParseQueryString<T extends string> = T extends `${infer K};${infer Rest}`
+  ? [ParseModifiers<CleanParamString<K>>, ...ParseQueryString<Rest>]
+  : T extends `${infer K}&${infer Rest}`
+    ? [ParseModifiers<CleanParamString<K>>, ...ParseQueryString<Rest>]
+    : T extends ""
+      ? []
+      : [ParseModifiers<CleanParamString<T>>];
+
+type ParsedParam = { name: string; type: unknown; optional: boolean };
+
+type ParamsToObj<T extends ParsedParam[]> = Simplify<
+  {
+    [
+      K in T[number] as K extends { optional: false } ? K["name"] : never
+    ]: K["type"];
+  } & {
+    [
+      K in T[number] as K extends { optional: true } ? K["name"] : never
+    ]?: K["type"];
+  }
+>;
+
+type ParsedPathParams<T extends string> = T extends string
+  ? ParamsToObj<ParseFlatParams<T>>
+  : never;
+
+type BuildBodyProp<Params, Query> =
+  IsUnionEmpty<Params> extends true
+    ? IsUnionEmpty<Query> extends true
+      ? { requestInput: never }
+      : { requestInput: { query: Query } }
+    : IsUnionEmpty<Query> extends true
+      ? { requestInput: { params: Params } }
+      : { requestInput: { params: Params; query: Query } };
+
+type BodyFinished = {
+  requestInput: Record<"body" | "query" | "params", Record<string, never>>;
+};
+
+type FinalBody<B, Params, Query> = B extends null
+  ? BuildBodyProp<Params, Query>
+  : { requestInput: B };
+
+export type GetUrlFetch<
+  Url extends string,
+  RequestInput,
+  Extra extends Record<string, unknown> = Record<string, never>,
+  Response = DEFAULT_RESPONSE,
+> = Url extends unknown
+  ? SplitQuery<Url> extends [
+      infer Path extends string,
+      infer QueryStr extends string,
+    ]
+    ? Simplify<
+        {
+          url: StripDefaults<RemoveModifiers<Path>>;
+          response: Response;
+        } & FinalBody<
+          RequestInput,
+          ParsedPathParams<ExpandPaths<Path>>,
+          ParamsToObj<ParseQueryString<QueryStr>>
+        > &
+          Extra
+      >
+    : never
+  : never;
 
 export type GetRouterObj<T extends { url: string }, U extends string> = {
   handler: Handler;
@@ -81,78 +208,24 @@ export type GetRouterObj<T extends { url: string }, U extends string> = {
 
 type RouterFetch = Record<
   string,
-  GetUrlFetch<string, unknown, Record<string, never>>
+  {
+    url: string;
+    response: unknown;
+    requestInput: Partial<Record<"body" | "query" | "params", unknown>>;
+  }
 >;
 
-export type RequestParams<
+export type GetBody<
   H extends RouterFetch,
   K extends keyof H = keyof H,
   U extends H[K]["url"] = H[K]["url"],
-> = GetParams<U>;
-
-type SplitAtLastSlash<
-  T extends string,
-  Acc extends string = "",
-> = T extends `${infer Head}/${infer Tail}`
-  ? Tail extends `${string}/${string}`
-    ? SplitAtLastSlash<Tail, `${Acc}${Head}/`>
-    : [`${Acc}${Head}`, Tail]
-  : [Acc, T];
-
-type ExpandOptionalPath<T extends string> =
-  SplitAtLastSlash<T> extends [
-    infer Rest extends string,
-    infer Last extends string,
-  ]
-    ? Last extends `${string}-optional`
-      ? T | ExpandOptionalPath<Rest>
-      : T
-    : T;
-
-export type GetUrlFetch<
-  Url extends string,
-  Body,
-  Extra extends Record<string, unknown>,
-  Response,
-> = {
-  [P in ExpandOptionalPath<Url>]: {
-    url: P;
-    body?: Body extends null ? GetParams<P> : Body;
-    response: Extra extends { canBeUnavailableService: true }
-      ? Response | ResponseUnavailableService
-      : Response;
-  } & Extra;
-}[ExpandOptionalPath<Url>];
-
-type CleanParam<T extends string> = T extends `${infer Name}-${string}`
-  ? Name
-  : T;
-
-export type CleanUrlParameters<T extends string> =
-  T extends `${infer Start}:${infer Param}/${infer Rest}`
-    ? `${Start}:${CleanParam<Param>}/${CleanUrlParameters<Rest>}`
-    : T extends `${infer Start}:${infer Param}`
-      ? `${Start}:${CleanParam<Param>}`
-      : T;
+> = Extract<H[K], { url: U }>["requestInput"];
 
 type GetRequest<M extends MethodsAPI, K> = M extends "POST" | "PUT"
   ? Request<unknown, unknown, K>
   : M extends "GET" | "DELETE"
     ? Request<K, unknown>
     : never;
-
-type GetBody<
-  M extends MethodsAPI,
-  H extends RouterFetch,
-  K extends keyof H,
-  U extends H[K]["url"],
-> = M extends "POST" | "PUT"
-  ? Extract<H[K], { url: U }>["body"] extends infer Body
-    ? Body extends undefined | null
-      ? never
-      : Body
-    : never
-  : GetParams<U>;
 
 type ExpandType<Original, JsType> = Original extends JsType ? Original : JsType;
 
@@ -171,16 +244,50 @@ export type MergeField<Original, O> =
       : never
     : never;
 
+type FieldSelector = keyof TypeOfJS | readonly (keyof TypeOfJS)[];
+
+type Selectors<T> = {
+  [P in keyof T]?: FieldSelector;
+};
+
+type GetKeys<B> = {
+  [P in keyof B]?: NonNullable<B[P]> extends object
+    ? Selectors<NonNullable<B[P]>>
+    : never;
+};
+
+type MergeSelectors<B, O> = {
+  [P in keyof B]: P extends keyof O
+    ? O[P] extends FieldSelector
+      ? MergeField<B[P], O[P]>
+      : B[P]
+    : B[P];
+};
+
+type MergeNestedSelectors<B, O> = {
+  [P in keyof B]: P extends keyof O
+    ? O[P] extends object
+      ? MergeSelectors<NonNullable<B[P]>, O[P]>
+      : B[P]
+    : B[P];
+};
+
+type MergeGetBody<B, O> = {
+  [P in keyof B]: NonNullable<B[P]> extends object
+    ? P extends keyof O
+      ? O[P] extends object
+        ? MergeNestedSelectors<B[P], O[P]>
+        : B[P]
+      : B[P]
+    : B[P];
+};
+
 export type GetHandlerType<H extends RouterFetch, M extends MethodsAPI> = <
   K extends keyof H,
   U extends H[K]["url"],
-  B extends GetBody<M, H, K, U>,
-  O extends { [P in keyof B]?: keyof TypeOfJS | (keyof TypeOfJS)[] },
-  T extends {
-    [P in keyof B]: O[P] extends keyof TypeOfJS | readonly (keyof TypeOfJS)[]
-      ? MergeField<B[P], O[P]>
-      : B[P];
-  },
+  B extends GetBody<H, K, U>,
+  O extends GetKeys<B>,
+  T extends MergeGetBody<B, O>,
 >(
   path: K,
   url: U,
@@ -188,7 +295,7 @@ export type GetHandlerType<H extends RouterFetch, M extends MethodsAPI> = <
     ? Record<string, never>
     : O,
   callback: (
-    body: T,
+    requestInput: T,
     sendResponse: (
       status: STATUS_RESPONSE,
       message: Extract<H[K], { url: U }>["response"],
@@ -199,7 +306,7 @@ export type GetHandlerType<H extends RouterFetch, M extends MethodsAPI> = <
       next: NextFunction;
     },
   ) => unknown,
-) => (req: Request, res: Response, next: NextFunction) => Promise<void>;
+) => (req: Request, res: Response, next: NextFunction) => Promise;
 
 export type DEFAULT_RESPONSE = {
   error?: string;

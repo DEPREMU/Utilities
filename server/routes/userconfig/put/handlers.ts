@@ -5,10 +5,12 @@ export const handleUpdateUserConfig = getHandlerPut(
   "/user-config",
   "/update",
   {
-    values: "object",
-    deviceId: "string",
+    body: {
+      values: "object",
+      deviceId: "string",
+    },
   },
-  async (body, sendResponse, { req }) => {
+  async ({ body }, sendResponse, { req }) => {
     try {
       const jwt = req.user.token;
 

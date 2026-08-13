@@ -1,22 +1,14 @@
 import { getRouterGet } from "@common";
 import { handleGetClipboard, handleSearchClipboard } from "./handlers";
-import { authMiddleware } from "@/routes/auth/middlewares";
+import { authMiddlewareGet } from "@/routes/auth/middlewares";
 
 export const routerClipboardGet = getRouterGet("/clipboard", {
-  "/:deviceId": {
+  "/:deviceId{/:page}": {
     handler: handleGetClipboard,
-    middlewares: [authMiddleware],
+    middlewares: [authMiddlewareGet],
   },
-  "/:deviceId/:page-number-optional": {
-    handler: handleGetClipboard,
-    middlewares: [authMiddleware],
-  },
-  "/search/:deviceId/:deleted-boolean/:query-string/:page-number-optional": {
+  "/search/:deviceId/:query{/:page}": {
     handler: handleSearchClipboard,
-    middlewares: [authMiddleware],
-  },
-  "/search/:deviceId/:deleted-boolean/:query-string": {
-    handler: handleSearchClipboard,
-    middlewares: [authMiddleware],
+    middlewares: [authMiddlewareGet],
   },
 });

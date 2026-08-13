@@ -37,9 +37,9 @@ type GetResponse<T extends MethodsAPI, R extends RoutesAPI[T]> = ResolveRoute<
 type GetRequestBody<
   T extends MethodsAPI,
   R extends RoutesAPI[T],
-> = ResolveRoute<FetchAPI<T>, R>["body"] extends object
-  ? Partial<ResolveRoute<FetchAPI<T>, R>["body"]>
-  : ResolveRoute<FetchAPI<T>, R>["body"];
+> = ResolveRoute<FetchAPI<T>, R>["requestInput"] extends object
+  ? Partial<ResolveRoute<FetchAPI<T>, R>["requestInput"]>
+  : ResolveRoute<FetchAPI<T>, R>["requestInput"];
 
 type GetResponseWithType<T> = T extends object
   ? {
@@ -60,12 +60,13 @@ export type TestRoutes = {
     } & (ResolveRoute<FetchAPI<K>, R> extends { auth: true }
       ? { auth: GetFunction<string, []> | string }
       : { auth?: never }) &
-      (GetRequestBody<K, R> extends null | undefined
-        ? { requestBody?: never }
-        : {
-            requestBody:
-              GetRequestBody<K, R> | GetFunction<GetRequestBody<K, R>, []>;
-          }))[];
+      (GetRequestBody<K, R> extends infer RequestInput
+        ? [RequestInput] extends [null | never | undefined]
+          ? { requestInput?: never }
+          : {
+              requestInput: RequestInput | GetFunction<RequestInput, []>;
+            }
+        : { requestInput?: never }))[];
   };
 };
 

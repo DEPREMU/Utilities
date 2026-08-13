@@ -2,6 +2,7 @@ import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { TypeOfJS } from "@types";
 import { Request, Response } from "express";
 import { Helper, STATUS_RESPONSE } from "@commonSrc/both";
+import { TypesOfValue } from "@commonSrc/both/helpers/Object";
 
 export const isValidValue = (
   value: unknown,
@@ -84,8 +85,19 @@ export const sendResponse = (
   }
 };
 
+type GetBodyParsedReturn = {
+  body: Record<string, unknown>;
+  query: Record<string, unknown>;
+  params: Record<string, unknown>;
+};
+
 export const getBodyParsed = (
-  keys: Record<string, string | string[]>,
+  keys: Partial<
+    Record<
+      "params" | "query" | "body",
+      Record<string, TypesOfValue | TypesOfValue[]>
+    >
+  >,
   {
     req,
     res,
@@ -93,38 +105,37 @@ export const getBodyParsed = (
     req: Request;
     res: Response;
   },
-) => {
-  const body: Record<string, unknown> =
-    req.body || req.params || req.query || {};
+): GetBodyParsedReturn | null => {
+  const parsedValues: GetBodyParsedReturn & { invalid?: true } = {
+    body: {},
+    query: {},
+    params: {},
+  };
 
-  const parsedParams = Helper.Object.fromEntries(
-    Helper.Object.entries(keys || {}).map(([key, expectedType]) => {
-      const expectedTypes = Array.isArray(expectedType)
-        ? expectedType
-        : expectedType !== undefined
-          ? [expectedType]
-          : [];
+  for (const key of ["params", "query", "body"] as const) {
+    if (!(key in keys)) continue;
 
-      if (!expectedType?.length) return [key, body[key as string]];
+    try {
+      if (typeof keys[key] !== "object" || keys[key] === null) {
+        parsedValues.invalid = true;
+      } else {
+        parsedValues[key] = Helper.Object.changeType(
+          { ...(req[key] || {}) },
+          keys[key],
+        );
+      }
+    } catch {
+      parsedValues.invalid = true;
+    }
 
-      const validValue = getValidValue(
-        body[key as string],
-        expectedTypes as (keyof TypeOfJS)[],
-      );
-
-      if (validValue === null) return ["invalid", true];
-
-      return [key, validValue];
-    }),
-  );
-
-  if (!parsedParams || (parsedParams as { invalid: boolean })["invalid"]) {
-    sendResponse(res, STATUS_RESPONSE.BAD_REQUEST, {
-      error: "Invalid request parameters.",
-      success: false,
-    } as never);
-    return null;
+    if (parsedValues.invalid) {
+      sendResponse(res, STATUS_RESPONSE.BAD_REQUEST, {
+        error: `Invalid "${key}" parameters.`,
+        success: false,
+      });
+      return null;
+    }
   }
 
-  return parsedParams;
+  return parsedValues as Omit<Required<typeof parsedValues>, "invalid">;
 };

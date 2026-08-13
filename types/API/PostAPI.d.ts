@@ -10,68 +10,67 @@ import {
   RequestChangeImageFormat,
   ResponseChangeImageFormat,
 } from "@types";
+import { GetRouterObj } from "./Helpers";
 import { RequestSignOut } from "./Request";
-import { GetRouterObj, DEFAULT_RESPONSE } from "./Helpers";
 
 export type AuthFetch =
   | GetUrlFetch<
       "/login",
-      RequestAuth<"login">,
+      { body: RequestAuth<"login"> },
       Record<string, never>,
       ResponseAuth<"login">
     >
   | GetUrlFetch<
       "/signup",
-      RequestAuth<"signup">,
+      { body: RequestAuth<"signup"> },
       Record<string, never>,
       ResponseAuth<"signup">
     >
-  | GetUrlFetch<"/signout", RequestSignOut, { auth: true }, ResponseSignOut>
+  | GetUrlFetch<
+      "/signout",
+      { body: RequestSignOut },
+      { auth: true },
+      ResponseSignOut
+    >
   | GetUrlFetch<
       "/refreshSession",
-      RequestRefreshSession,
+      { body: RequestRefreshSession },
       { auth: true },
       ResponseAuth<"login">
     >;
 
 export type DevFetch = GetUrlFetch<
   "/executeQuery",
-  RequestDoQuery,
+  { body: RequestDoQuery },
   Record<string, never>,
   ResponseDoQuery
 >;
 
 export type LogsFetch = GetUrlFetch<
   "/add",
-  Prisma.LogsCreateArgs["data"],
-  Record<string, never>,
-  DEFAULT_RESPONSE
+  { body: Prisma.LogsCreateArgs["data"] },
+  Record<string, never>
 >;
 
 export type EncryptionFetch = GetUrlFetch<
   "/encrypt" | "/decrypt",
-  { value: string },
+  { body: { value: string } },
   Record<string, never>,
   { value?: string; error?: string }
 >;
 
 export type TranslateFetch = GetUrlFetch<
   "/translate",
-  { text: string; targetLanguage: string },
+  { body: { text: string; targetLanguage: string } },
   Record<string, never>,
   { translatedText?: string; error?: string }
 >;
 
-export type UpdatesFetch = GetUrlFetch<
-  "/upload",
-  null,
-  Record<string, never>,
-  DEFAULT_RESPONSE
->;
+export type UpdatesFetch = GetUrlFetch<"/upload", null, Record<string, never>>;
 
 export type ImagesFetch = GetUrlFetch<
   "/change-format",
-  RequestChangeImageFormat,
+  { body: RequestChangeImageFormat },
   Record<string, never>,
   ResponseChangeImageFormat
 >;
@@ -79,11 +78,13 @@ export type ImagesFetch = GetUrlFetch<
 export type DownDetectorFetch = GetUrlFetch<
   "/add",
   {
-    deviceId: string;
-    values: Omit<
-      DB["TablesClient"]["DownDetector"],
-      "id" | "userId" | "createdAt"
-    >;
+    body: {
+      deviceId: string;
+      values: Omit<
+        DB["TablesClient"]["DownDetector"],
+        "id" | "userId" | "createdAt"
+      >;
+    };
   },
   { auth: true },
   DB["TablesClient"]["DownDetector"] | { error: string }
@@ -91,14 +92,20 @@ export type DownDetectorFetch = GetUrlFetch<
 
 export type ClipboardFetch = GetUrlFetch<
   "/add",
-  { deviceId: string; content: string },
+  { body: { deviceId: string; content: string } },
   { auth: true },
   DB["TablesClient"]["ClipboardSync"] | { error: string }
 >;
 
 export type StreamersFetch = GetUrlFetch<
   "/add",
-  { deviceId: string; userId: string; streamerName: string },
+  {
+    body: {
+      userId: string;
+      deviceId: string;
+      streamerName: string;
+    };
+  },
   { auth: true },
   {
     error?: string;
@@ -110,7 +117,7 @@ export type StreamersFetch = GetUrlFetch<
 
 export type AdminFetch = GetUrlFetch<
   "/unlock",
-  { deviceId: string; password: string },
+  { body: { deviceId: string; password: string } },
   { auth: true },
   { error?: string; success?: boolean }
 >;

@@ -8,10 +8,12 @@ export const handleExecuteQuery = getHandlerPost(
   "/dev",
   "/executeQuery",
   {
-    query: "string",
-    showFields: ["boolean", "undefined"],
+    body: {
+      value: "string",
+      showFields: ["boolean", "undefined"],
+    },
   },
-  async (body, sendResponse) => {
+  async ({ body }, sendResponse) => {
     if (!REPLACERS.isDev) {
       sendResponse(STATUS_RESPONSE.FORBIDDEN, {
         success: false,
@@ -21,7 +23,7 @@ export const handleExecuteQuery = getHandlerPost(
     }
 
     try {
-      const { query, showFields = false } = body;
+      const { value: query, showFields = false } = body;
 
       try {
         const result: Record<string, unknown> = await prisma.$queryRaw(

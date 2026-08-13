@@ -5,14 +5,16 @@ const PAGE_SIZE = 10;
 
 export const handleGetDownDetector = getHandlerGet(
   "/down-detector",
-  "/:deviceId/:page-number-optional",
+  "/:deviceId{/:page}",
   {
-    page: ["number", "undefined"],
-    deviceId: "string",
+    params: {
+      page: ["number", "undefined"],
+      deviceId: "string",
+    },
   },
-  async (body, sendResponse, { req }) => {
+  async ({ params }, sendResponse, { req }) => {
     try {
-      const page = body.page ?? 1;
+      const page = Helper.Object.getValue(params, "page", 1);
 
       const res = await prisma.downDetector.findMany({
         take: PAGE_SIZE,
