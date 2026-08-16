@@ -127,12 +127,14 @@ export const signInWithEmail = async (
     const notificationToken = await getDevicePushToken();
 
     const res = await ServerFetch.post("/auth/login", {
-      lang,
-      email,
-      password,
-      deviceId,
-      rememberMe,
-      notificationToken,
+      body: {
+        lang,
+        email,
+        password,
+        deviceId,
+        rememberMe,
+        notificationToken,
+      },
     });
 
     const dataInsert = res.data;
@@ -175,9 +177,11 @@ export const signUpWithEmail = async (
 ): Promise<ResponseAuth<"login">> => {
   try {
     const res = await ServerFetch.post("/auth/signup", {
-      lang: await checkLanguage(),
-      email,
-      password,
+      body: {
+        lang: await checkLanguage(),
+        email,
+        password,
+      },
     });
 
     const data = res.data;
@@ -294,9 +298,11 @@ export const refreshSession = async (
     const res = await ServerFetch.post(
       "/auth/refreshSession",
       {
-        lang,
-        deviceId,
-        notificationToken,
+        body: {
+          lang,
+          deviceId,
+          notificationToken,
+        },
       },
       token,
     );

@@ -17,11 +17,12 @@ export class Arrays {
   ): Promise<void> {
     const queue: Set<Promise<unknown>> = new Set();
 
-    for (let i = 0; i < array.length; i++) {
+    let i = 0;
+    while (i < array.length) {
       if (queue.size >= concurrent) await Promise.race(queue);
       else {
         const value = array[i];
-        const promise = callback(value, i, array).finally(() => {
+        const promise = callback(value, i++, array).finally(() => {
           queue.delete(promise);
         });
         queue.add(promise);

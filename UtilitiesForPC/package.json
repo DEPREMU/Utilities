@@ -6,7 +6,9 @@
   "private": true,
   "scripts": {
     "type-check": "tsc --noEmit",
-    "before-commit": "yarn run type-check"
+    "lint:fix": "eslint . --fix",
+    "before-commit": "yarn run lint:fix && yarn run type-check",
+    "test": "echo \"Not Implemented Yet\""
   },
   "homepage": "https://example.com",
   "author": {

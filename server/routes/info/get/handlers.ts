@@ -10,9 +10,17 @@ export const handleHealthCheck = getHandlerGet(
   {},
   (_, sendRes) => {
     const now = new Date();
-    const upTime = now.getTime() - START_TIME;
+    const uptime = now.getTime() - START_TIME;
 
-    sendRes(STATUS_RESPONSE.SUCCESS, { upTime, timestamp: now.toISOString() });
+    sendRes(STATUS_RESPONSE.SUCCESS, {
+      uptime,
+      timestamp: now.toISOString(),
+      status: "running",
+      uptimeString: humanizeDuration(uptime, {
+        largest: 2,
+        units: ["d", "h", "m", "s"],
+      }),
+    });
   },
 );
 

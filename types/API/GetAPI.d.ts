@@ -2,7 +2,14 @@ import { Router } from "express";
 import { Delete } from "./DeleteAPI";
 import { GetRouterObj } from "./Helpers";
 import { PriceBinanceAPI } from "@common";
-import { Put, Post, Enums, GetUrlFetch, DEFAULT_RESPONSE } from "@types";
+import {
+  Put,
+  Post,
+  Enums,
+  GetUrlFetch,
+  DEFAULT_RESPONSE,
+  ResponseHealth,
+} from "@types";
 
 export type UpdatesFetch =
   | GetUrlFetch<
@@ -48,12 +55,7 @@ export type CryptosFetch =
     >;
 
 export type ServerInfoFetch =
-  | GetUrlFetch<
-      "/health",
-      null,
-      Record<string, never>,
-      { upTime: number; timestamp: string }
-    >
+  | GetUrlFetch<"/health", null, Record<string, never>, ResponseHealth>
   | GetUrlFetch<"/generate204", null, Record<string, never>, "">
   | GetUrlFetch<
       "/appAlive/:deviceId/:pushToken",

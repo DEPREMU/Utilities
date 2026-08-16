@@ -3,7 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "type-check": "tsc --noEmit",
+    "lint:fix": "eslint . --fix",
+    "before-commit": "yarn run lint:fix && yarn run type-check"
   },
   "author": "DEPREMU",
   "license": "ISC",

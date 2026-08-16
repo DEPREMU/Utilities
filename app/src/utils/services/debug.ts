@@ -37,15 +37,17 @@ class Debug extends ServiceClass<ListenersDebug> {
       this.emit("appAliveCheck", "sent");
       try {
         const res = await ServerFetch.get(
-          "/info/appAlive/:deviceId-string/:pushToken-string",
+          "/info/appAlive/:deviceId/:pushToken",
           {
-            deviceId: storageManagement.get("DEVICE_ID"),
-            pushToken,
+            params: {
+              deviceId: storageManagement.get("DEVICE_ID"),
+              pushToken,
+            },
           },
         );
-        REPLACERS.Logger.log(TAG, "App alive check result:", res.data.success);
+        REPLACERS.Logger.log(TAG, "App alive check result:", res.ok);
         this.emit("appAliveCheck", "result", {
-          success: res.data.success,
+          success: res.ok,
           timestamp: new Date().toISOString(),
         });
       } catch (error) {

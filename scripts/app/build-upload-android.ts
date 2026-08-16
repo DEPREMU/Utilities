@@ -29,8 +29,10 @@ const checkIsNewVersion = async () => {
     const res = await ServerFetch.get(
       "/updates/is-update-available/:version/:buildType",
       {
-        version: versionExpo,
-        buildType: "android",
+        params: {
+          version: versionExpo,
+          buildType: "android",
+        },
       },
     );
 
@@ -85,7 +87,7 @@ const uploadAndroidBuild = async () => {
       });
     });
 
-    const url = ServerFetch.getRoute("/updates/upload");
+    const url = ServerFetch.getRoute("GET", "/updates/upload");
     const response = await axios.post(url, formData, {
       headers: {
         ...formData.getHeaders(),

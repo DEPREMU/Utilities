@@ -1,11 +1,6 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true,
-    "esModuleInterop": true,
-    "strict": true,
-    "allowImportingTsExtensions": true,
-    "skipLibCheck": true,
     "paths": {
       "@/*": ["./*"],
       "@types": ["../types/index.d.ts"],

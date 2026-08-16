@@ -105,7 +105,7 @@ const ClipboardScreen: React.FC = () => {
 
       const res = await ServerFetch.put(
         "/clipboard/delete/toggle-deleted",
-        { id, deleted, deviceId },
+        { body: { id, deleted, deviceId } },
         sessionToken,
       );
 
@@ -146,12 +146,16 @@ const ClipboardScreen: React.FC = () => {
     }
 
     const res = await ServerFetch.get(
-      "/clipboard/search/:deviceId/:deleted-boolean/:query-string/:page-number-optional",
+      "/clipboard/search/:deviceId/:query{/:page}",
       {
-        page,
-        deviceId,
-        query: searchText || "",
-        deleted: !!deletedRef.current,
+        params: {
+          page: page,
+          deviceId,
+          query: searchText || "",
+        },
+        query: {
+          deleted: !!deletedRef.current,
+        },
       },
       sessionToken,
     );
@@ -288,8 +292,10 @@ const ClipboardScreen: React.FC = () => {
     const res = await ServerFetch.put(
       "/clipboard/delete/toggle-deleted-all",
       {
-        restore: !newDeleted,
-        deviceId,
+        body: {
+          restore: !newDeleted,
+          deviceId,
+        },
       },
       sessionToken,
     );

@@ -27,8 +27,7 @@ const ThemePicker: React.FC = () => {
             await ServerFetch.put(
               "/user-config/update",
               {
-                values: { theme: newTheme },
-                deviceId,
+                body: { values: { theme: newTheme }, deviceId },
               },
               sessionToken,
             );

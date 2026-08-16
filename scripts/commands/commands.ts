@@ -16,7 +16,6 @@ export const COMMANDS = {
   server: "scripts/root-commands.ts --action=server",
   "server-dev": "scripts/root-commands.ts --action=server-dev",
   "type-check": "scripts/root-commands.ts --action=type-check",
-  "before-commit": "scripts/root-commands.ts --action=before-commit",
   "build-web": "scripts/root-commands.ts --action=build-web",
   "app-compile-check": "scripts/root-commands.ts --action=compile-check",
 

@@ -43,8 +43,10 @@ const SyncClipboardScreen: React.FC = () => {
       const res = await ServerFetch.post(
         "/clipboard/add",
         {
-          deviceId,
-          content: inputText,
+          body: {
+            deviceId,
+            content: inputText,
+          },
         },
         sessionToken,
       );

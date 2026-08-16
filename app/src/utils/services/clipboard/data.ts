@@ -114,8 +114,8 @@ export class DataClipboard extends ClipboardWebSocket {
     if (!sessionToken) return;
 
     const res = await ServerFetch.get(
-      "/clipboard/:deviceId/:page-number-optional",
-      { deviceId, page },
+      "/clipboard/:deviceId{/:page}",
+      { params: { deviceId, page } },
       sessionToken,
     );
 

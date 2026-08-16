@@ -37,7 +37,7 @@ const Streamers: React.FC = () => {
 
     const res = await ServerFetch.delete(
       "/streamers/:deviceId/:streamerId",
-      { deviceId, streamerId },
+      { params: { deviceId: deviceId, streamerId: streamerId } },
       sessionToken,
     );
     const { error } = res.data || { error: "Unknown error" };
@@ -154,12 +154,14 @@ const Streamers: React.FC = () => {
         await ServerFetch.put(
           "/user-notifications-config/update",
           {
-            deviceId,
-            match: {
-              reason: "streamers",
-              streamers: { some: { streamer: { contains: streamerName } } },
+            body: {
+              deviceId,
+              match: {
+                reason: "streamers",
+                streamers: { some: { streamer: { contains: streamerName } } },
+              },
+              values: { enabled: newBool },
             },
-            values: { enabled: newBool },
           },
           sessionToken,
         );
@@ -200,9 +202,11 @@ const Streamers: React.FC = () => {
       const res = await ServerFetch.post(
         "/streamers/add",
         {
-          deviceId: storageManagement.get("DEVICE_ID"),
-          userId: userData?.userId || "",
-          streamerName: streamer,
+          body: {
+            deviceId: storageManagement.get("DEVICE_ID"),
+            userId: userData?.userId || "",
+            streamerName: streamer,
+          },
         },
         sessionToken,
       );
@@ -284,8 +288,8 @@ const Streamers: React.FC = () => {
       try {
         if (!userData?.userId || !sessionToken) return;
 
-        const res = await ServerFetch.get("/streamers/:userId", {
-          userId: userData?.userId,
+        const res = await ServerFetch.get("/streamers/:userId{/:streamerId}", {
+          params: { userId: userData?.userId },
         });
         const { streamers: internetData, error } = res.data || {
           error: "Unknown error",

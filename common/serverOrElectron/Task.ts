@@ -68,7 +68,6 @@ export class Task<ReturnValue, F extends WorkerFiles> extends ServiceClass<
   >(
     data?: Data<F, FunctionName>,
   ): Promise<ReturnValue | Error> => {
-    let x = 0;
     if (!this.isInitialized) await this.waitUntilInitialized();
     if (!this.existsFile) return new Error("File does not exist.");
 
@@ -104,7 +103,7 @@ export class Task<ReturnValue, F extends WorkerFiles> extends ServiceClass<
 
       return await res;
     } catch (error) {
-      Logger.error(++x, "Error getting task result:", error);
+      Logger.error("Task", "Error getting task result:", error);
       return error instanceof Error ? error : new Error(String(error));
     } finally {
       handleFinish();

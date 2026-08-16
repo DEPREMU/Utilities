@@ -6,7 +6,6 @@ import {
   SERVER_PATH,
   SCRIPTS_PATH,
   UTILITIES_PATH,
-  handleExitFromScript,
   UTILITIES_FOR_PC_PATH,
 } from "./config.ts";
 import fs from "fs";
@@ -42,11 +41,14 @@ export const run = async () => {
           stdio: "inherit",
           env,
         });
-        execSync("cd android && ./gradlew :app:compileDebugKotlin --no-daemon", {
-          cwd: APP_PATH,
-          stdio: "inherit",
-          env,
-        });
+        execSync(
+          "cd android && ./gradlew :app:compileDebugKotlin --no-daemon",
+          {
+            cwd: APP_PATH,
+            stdio: "inherit",
+            env,
+          },
+        );
       } else {
         Logger.log("Testing mode: Skipping compile-check commands");
       }
@@ -63,7 +65,11 @@ export const run = async () => {
       break;
     case "app":
       if (!args.ARGS.testing) {
-        execSync("yarn expo start -c", { cwd: APP_PATH, stdio: "inherit", env });
+        execSync("yarn expo start -c", {
+          cwd: APP_PATH,
+          stdio: "inherit",
+          env,
+        });
       } else {
         Logger.log("Testing mode: Skipping yarn expo start");
       }
@@ -93,9 +99,6 @@ export const run = async () => {
     case "type-check":
       execSync("yarn run type-check", { cwd: APP_PATH, stdio: "inherit", env });
       break;
-    case "before-commit":
-      beforeCommit();
-      break;
     case "build-web": {
       const envWeb = {
         ...env,
@@ -121,7 +124,7 @@ export const run = async () => {
   }
 };
 
-const clean = async () => {
+export const clean = async () => {
   const pathsToClean = [
     path.join(APP_PATH, ".expo"),
     path.join(APP_PATH, "android"),
@@ -194,7 +197,7 @@ const installAll = () => {
   }
 };
 
-const formatAll = async () => {
+export const formatAll = async () => {
   await Promise.all(
     Helper.Object.entries(PATHS).map(([name, cwd]) => {
       Logger.log(`Formatting ${name}...`);
@@ -203,22 +206,6 @@ const formatAll = async () => {
     }),
   );
 };
-
-const beforeCommit = () => {
-  handleExitFromScript(() => {});
-
-  Helper.Object.entries(PATHS).forEach(([name, cwd]) => {
-    Logger.log(`Running before-commit in ${name}...`);
-
-    if (!args.ARGS.testing) {
-      execSync("yarn run before-commit", { cwd, stdio: "inherit", env });
-    } else {
-      Logger.log("Testing mode: Skipping before-commit script execution");
-    }
-  });
-};
-
-export { clean, clean as cleanAll, formatAll, beforeCommit };
 
 if (process.env.NODE_ENV !== "test") {
   run();

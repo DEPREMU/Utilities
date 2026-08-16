@@ -25,7 +25,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
       const deviceId = storageManagement.get("DEVICE_ID");
       const res = await ServerFetch.put(
         "/clipboard/delete/toggle-deleted",
-        { id, deviceId, deleted: true },
+        { body: { id, deviceId, deleted: true } },
         token,
       );
 
@@ -47,7 +47,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
       const deviceId = storageManagement.get("DEVICE_ID");
       const res = await ServerFetch.put(
         "/clipboard/delete/toggle-deleted-all",
-        { restore, deviceId },
+        { body: { restore, deviceId } },
         token,
       );
 
@@ -75,8 +75,8 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
 
       const deviceId = storageManagement.get("DEVICE_ID");
       const res = await ServerFetch.get(
-        "/clipboard/:deviceId/:page-number-optional",
-        { deviceId, page: pageNumber },
+        "/clipboard/:deviceId{/:page}",
+        { params: { deviceId, page: pageNumber } },
         token,
       );
 

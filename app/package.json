@@ -20,7 +20,8 @@
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
     "android": "yarn expo run:android",
-    "ios": "echo \"Not Supported\""
+    "ios": "echo \"Not Supported\"",
+    "test": "echo \"Not Implemented Yet\""
   },
   "dependencies": {
     "@expo/dom-webview": "~57.0.1",

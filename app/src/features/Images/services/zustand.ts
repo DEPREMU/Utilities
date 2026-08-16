@@ -68,7 +68,7 @@ const getDataChangeImageFormat = async (
       if (data) return data;
     }
 
-    const res = await ServerFetch.post("/images/change-format", body);
+    const res = await ServerFetch.post("/images/change-format", { body });
 
     return res.data;
   } catch (error) {

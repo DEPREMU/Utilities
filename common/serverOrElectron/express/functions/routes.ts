@@ -100,6 +100,7 @@ export const getMainRouter = (routes: GetMainRouter): Router => {
         `Error setting up sub-router for path ${path}: ${
           err instanceof Error ? err.message : String(err)
         }`,
+        { cause: err },
       );
     }
   });

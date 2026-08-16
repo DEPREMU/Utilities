@@ -90,7 +90,7 @@ export const handleGetStreamersByUserId = getHandlerGet(
   "/streamers",
   "/:userId{/:streamerId}",
   { params: { userId: "string", streamerId: ["string", "undefined"] } },
-  async ({ params }, sendResponse, { req }) => {
+  async ({ params }, sendResponse) => {
     try {
       const userId = Helper.Object.getValue(params, "userId", "");
       const streamerId = Helper.Object.getValue(params, "streamerId", "");

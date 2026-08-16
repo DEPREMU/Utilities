@@ -41,8 +41,10 @@ class Updates extends ServiceClass<never> {
         const res = await ServerFetch.get(
           "/updates/is-update-available/:version/:buildType",
           {
-            version: APP_VERSION,
-            buildType: "android",
+            params: {
+              version: APP_VERSION,
+              buildType: "android",
+            },
           },
         );
         const result = res.data;

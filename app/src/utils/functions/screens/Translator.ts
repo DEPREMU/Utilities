@@ -8,8 +8,7 @@ export const translate = async (
 
   try {
     const res = await ServerFetch.post("/languages/translate", {
-      text,
-      targetLanguage,
+      body: { text, targetLanguage },
     });
 
     if (!res.ok || res.data.error) {

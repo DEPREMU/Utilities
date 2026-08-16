@@ -33,8 +33,7 @@ const LanguagePicker: React.FC = () => {
               await ServerFetch.put(
                 "/user-config/update",
                 {
-                  values: { language: lang },
-                  deviceId,
+                  body: { values: { language: lang }, deviceId },
                 },
                 sessionToken,
               );

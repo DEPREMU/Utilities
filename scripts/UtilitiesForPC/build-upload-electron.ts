@@ -21,7 +21,12 @@ const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
   try {
     const res = await ServerFetch.get(
       "/updates/is-update-available/:version/:buildType",
-      { version: versionElectron, buildType },
+      {
+        params: {
+          version: versionElectron,
+          buildType,
+        },
+      },
     );
 
     return res.data.isUpdateAvailable;
@@ -117,7 +122,7 @@ const uploadElectronBuilds = async () => {
           });
 
           const response = await axios.post(
-            ServerFetch.getRoute("/updates/upload"),
+            ServerFetch.getRoute("POST", "/updates/upload"),
             formData,
             {
               headers: {

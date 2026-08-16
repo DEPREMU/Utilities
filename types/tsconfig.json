@@ -1,13 +1,7 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true,
-    "strict": true,
-    "allowImportingTsExtensions": true,
-    "lib": ["esnext"],
-    "types": ["node"],
     "typeRoots": ["../node_modules/@types"],
-    "skipLibCheck": true,
     "paths": {
       "@types": ["./index.d.ts"],
       "@common": ["../common/both"],

@@ -22,8 +22,8 @@
     "server": "node scripts/run.ts server",
     "server-dev": "node scripts/run.ts server-dev",
     "type-check": "node scripts/run.ts type-check",
-    "before-commit": "node scripts/run.ts before-commit",
-    "before-commit:testing": "node scripts/run.ts before-commit && yarn run tests",
+    "before-commit": "yarn workspaces run before-commit",
+    "before-commit:testing": "yarn run before-commit && yarn run tests",
     "build-web": "node scripts/run.ts build-web",
     "app-compile-check": "node scripts/run.ts app-compile-check",
     "__APP__": "_______________________________________________",
@@ -54,7 +54,7 @@
     "push-vps": "docker push depremu/utilities-server:latest",
     "update-vps": "yarn run build-vps && yarn run tag-vps && yarn run push-vps",
     "__TESTS__": "___________________________________________",
-    "tests": "yarn run common-test && yarn run scripts-test && yarn run server-test"
+    "tests": "yarn workspaces run test"
   },
   "repository": {
     "type": "git",

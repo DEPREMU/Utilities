@@ -1,4 +1,4 @@
-import { REPLACERS } from "../REPLACERS";
+import { REPLACERS } from "../REPLACERS/REPLACERS";
 import humanizeDuration from "humanize-duration";
 
 export class DebugTime {

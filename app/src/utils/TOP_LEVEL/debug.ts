@@ -52,11 +52,13 @@ const uploadLogToServer = async (
     ]);
 
     ServerFetch.post("/logs/add", {
-      ...deviceInfo,
-      type,
-      userId,
-      message,
-      timestamp: new Date().toISOString(),
+      body: {
+        ...deviceInfo,
+        type,
+        userId,
+        message,
+        timestamp: new Date().toISOString(),
+      },
     });
   } catch (error) {
     console.error("Failed to upload log to server:", error);

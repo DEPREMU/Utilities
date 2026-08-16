@@ -202,7 +202,7 @@ const SettingsScreen: React.FC = () => {
 
       const res = await ServerFetch.post(
         "/admin/unlock",
-        { deviceId, password },
+        { body: { deviceId, password } },
         sessionToken,
       );
 
@@ -237,8 +237,7 @@ const SettingsScreen: React.FC = () => {
             const res = await ServerFetch.put(
               "/user-config/update",
               {
-                values: { API_URL: apiURL },
-                deviceId,
+                body: { values: { API_URL: apiURL }, deviceId },
               },
               sessionToken,
             );
@@ -272,8 +271,10 @@ const SettingsScreen: React.FC = () => {
             const res = await ServerFetch.put(
               "/user-config/update",
               {
-                values: { webSocketURL: socketURL },
-                deviceId,
+                body: {
+                  values: { webSocketURL: socketURL },
+                  deviceId,
+                },
               },
               sessionToken,
             );

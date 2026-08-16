@@ -73,10 +73,12 @@ export const useDownDetector = create<States & Actions>((set, get) => {
         const res = await ServerFetch.post(
           "/down-detector/add",
           {
-            deviceId,
-            values: {
-              url: text,
-              sendNotification: get().sendNotification,
+            body: {
+              deviceId,
+              values: {
+                url: text,
+                sendNotification: get().sendNotification,
+              },
             },
           },
           sessionToken,
@@ -129,8 +131,8 @@ export const useDownDetector = create<States & Actions>((set, get) => {
 
       try {
         const res = await ServerFetch.get(
-          "/down-detector/:deviceId",
-          { deviceId },
+          "/down-detector/:deviceId{/:page}",
+          { params: { deviceId } },
           sessionToken,
         );
 
@@ -189,9 +191,11 @@ export const useDownDetector = create<States & Actions>((set, get) => {
       const res = await ServerFetch.put(
         "/down-detector/update",
         {
-          id,
-          deviceId,
-          values: { sendNotification: newItem.sendNotification },
+          body: {
+            id,
+            deviceId,
+            values: { sendNotification: newItem.sendNotification },
+          },
         },
         sessionToken,
       );
@@ -223,7 +227,7 @@ export const useDownDetector = create<States & Actions>((set, get) => {
 
       const res = await ServerFetch.delete(
         "/down-detector/:deviceId/:downDetectorId",
-        { deviceId, downDetectorId: id },
+        { params: { deviceId, downDetectorId: id } },
         sessionToken,
       );
 
