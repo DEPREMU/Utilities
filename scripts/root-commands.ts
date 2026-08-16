@@ -74,28 +74,6 @@ export const run = async () => {
         Logger.log("Testing mode: Skipping yarn expo start");
       }
       break;
-    case "server":
-      if (!args.ARGS.testing) {
-        execSync("yarn run start", {
-          cwd: SERVER_PATH,
-          stdio: "inherit",
-          env: { ...env, SERVER_OR_ELECTRON: "server" },
-        });
-      } else {
-        Logger.log("Testing mode: Skipping server start");
-      }
-      break;
-    case "server-dev":
-      if (!args.ARGS.testing) {
-        execSync("yarn run start-dev", {
-          cwd: SERVER_PATH,
-          stdio: "inherit",
-          env: { ...env, SERVER_OR_ELECTRON: "server" },
-        });
-      } else {
-        Logger.log("Testing mode: Skipping server-dev start");
-      }
-      break;
     case "type-check":
       execSync("yarn run type-check", { cwd: APP_PATH, stdio: "inherit", env });
       break;

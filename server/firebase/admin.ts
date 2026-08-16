@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import admin from "firebase-admin";
-import { Logger } from "@common";
 import { prisma } from "@/database/postgres.ts";
 import { getEnvValue } from "../env.ts";
+import { Logger, REPLACERS } from "@common";
 import { ScreensAvailable, ChannelsId } from "@types";
 
 let firebaseApp: admin.app.App | null = null;
@@ -39,6 +39,8 @@ export const sendFCMNotification = async (
   channelId: ChannelsId,
   data?: { screen: ScreensAvailable } & Record<string, string>,
 ) => {
+  if (REPLACERS.isDev) return;
+
   try {
     const messaging = getFirebaseAdmin().messaging();
     tokens = tokens.filter(

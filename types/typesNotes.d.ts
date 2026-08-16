@@ -23,11 +23,7 @@ export type RichTextRun = {
 };
 
 export type NotesAttachmentType =
-  | "image"
-  | "video"
-  | "audio"
-  | "document"
-  | "other";
+  "image" | "video" | "audio" | "document" | "other";
 
 export type NotesAttachment = {
   id: string;

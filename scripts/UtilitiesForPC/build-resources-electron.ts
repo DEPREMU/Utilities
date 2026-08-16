@@ -100,11 +100,6 @@ build({
         replace: /{{WEB_VERSION}}/g,
         replacer: () => versionExpo,
       },
-      {
-        filter: /\.ts|\.js$/,
-        replace: /process\.env\.SERVER_OR_ELECTRON/g,
-        replacer: () => JSON.stringify("electron"),
-      },
     ]),
   ],
 }).catch((err: unknown) => {
