@@ -32,3 +32,7 @@ export class Logger {
     logger?.error(Helper.getMessage(...args));
   }
 }
+
+if (!REPLACERS.isProduction) {
+  REPLACERS.Logger = Logger;
+}

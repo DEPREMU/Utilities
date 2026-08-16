@@ -1,123 +1,120 @@
 import chalk from "chalk";
 import { prisma } from "@/database/postgres.ts";
 import { sendFCMNotification } from "@/firebase/admin.ts";
-import { getInterval, getPagination } from "./utils";
+import { getPagination, IntervalTimer } from "./utils";
 import { LanguagesSupported, ReasonNotification } from "@types";
-import { t, Logger, languagesSupported, Network } from "@common";
+import { t, Logger, languagesSupported, Network, Helper } from "@common";
 
 const handleCheckDownServers = async () => {
   try {
     Logger.log("Running DownDetector check...");
 
+    const reason = "downDetector" satisfies ReasonNotification;
+
     const callback = (skip: number, take: number) =>
-      prisma.users.findMany({
-        where: {
-          pushTokens: { some: { token: { not: "" } } },
-          downDetectors: { some: { url: { not: "" } } },
-        },
-        include: {
-          userConfig: { select: { language: true } },
-          pushTokens: {
-            where: { token: { not: "" } },
-            select: { token: true },
-          },
-          downDetectors: {
-            where: { url: { startsWith: "http" } },
-            select: { url: true },
-          },
-        },
+      prisma.downDetector.findMany({
         take,
         skip,
-        orderBy: { userId: "asc" },
+        select: { url: true },
+        orderBy: [{ userId: "asc" }, { id: "asc" }],
       });
 
-    let USERS: Awaited<ReturnType<typeof callback>>;
+    const usersCallback =
+      (url: string, language: LanguagesSupported) =>
+      (skip: number, take: number) =>
+        prisma.users.findMany({
+          where: {
+            pushTokens: { some: { token: { not: "" } } },
+            userConfig: { language },
+            downDetectors: { some: { url } },
+          },
+          select: {
+            pushTokens: {
+              where: { token: { not: "" } },
+              select: { token: true },
+            },
+          },
+          take,
+          skip,
+          orderBy: { userId: "asc" },
+        });
 
-    const { getNext } = getPagination(callback);
+    let DownDetectors: Awaited<ReturnType<typeof callback>>;
 
-    while ((USERS = await getNext()).length > 0) {
-      const users = USERS.map((u) => ({
-        ...u,
-        downDetectors: u.downDetectors.map((dd) => ({
-          ...dd,
-          url: dd.url.toLowerCase(),
-        })),
-      })).filter(
-        (user) => user.pushTokens.length > 0 && user.downDetectors.length > 0,
-      );
+    const { getNext } = getPagination(callback, 50);
+    const urlsChecked: Record<string, boolean | undefined> = {};
+    const set = new Set<string>();
 
-      const downWebURLs = new Set<string>(
-        users.flatMap((u) => u.downDetectors.map((dd) => dd.url)),
-      );
+    while ((DownDetectors = await getNext()).length > 0) {
+      DownDetectors.forEach((dd) => set.add(dd.url));
+      DownDetectors = [];
 
-      await Promise.all(
-        [...downWebURLs].map(async (url) => {
-          if (await Network.isOnlineUrl(url, "get", 2000)) return;
-          downWebURLs.delete(url);
-        }),
-      );
+      await Helper.Arrays.forEachQueue(5, [...set], async (url) => {
+        set.delete(url);
+        if (!url) return;
 
-      const usersData: {
-        urls: Set<string>;
-        lang: LanguagesSupported;
-        tokens: Set<string>;
-        userId: string;
-      }[] = [];
+        let urlChecked = urlsChecked[url];
+        if (urlChecked === undefined) {
+          const isOnline = await Network.isOnlineUrl(url, "get", 2000);
+          urlsChecked[url] = isOnline;
+          urlChecked = isOnline;
+        }
+        if (urlChecked) return;
 
-      users.forEach((user) => {
-        if (!user.userConfig) return;
-
-        const urls = new Set(
-          user.downDetectors
-            .filter((dd) => downWebURLs.has(dd.url))
-            .map((dd) => dd.url),
+        const translations = Helper.Object.fromEntries(
+          languagesSupported.map((lang) => [
+            lang,
+            {
+              title: t("downDetectorNotificationTitle", lang, {
+                service: url,
+              }),
+              body: t("downDetectorNotificationBody", lang, {
+                service: url,
+              }),
+            },
+          ]),
         );
-        if (urls.size === 0) return;
 
-        const tokens = new Set(user.pushTokens.map((pt) => pt.token));
+        await Helper.Arrays.forEachQueue(
+          1,
+          languagesSupported,
+          async (lang) => {
+            const { getNext: getNextUsers } = getPagination(
+              usersCallback(url, lang),
+            );
+            let users: Awaited<ReturnType<ReturnType<typeof usersCallback>>>;
 
-        usersData.push({
-          urls,
-          tokens,
-          lang: user.userConfig.language,
-          userId: user.userId,
-        });
-      });
+            while ((users = await getNextUsers()).length > 0) {
+              const tokens = users.flatMap((u) =>
+                u.pushTokens.map((v) => v.token),
+              );
+              if (tokens.length === 0) continue;
 
-      downWebURLs.forEach((webURL) => {
-        const users = usersData.filter((ud) => ud.urls.has(webURL));
-        if (users.length === 0) return;
+              const { title, body } = translations[lang];
 
-        languagesSupported.forEach((lang) => {
-          const usersLang = users.filter((u) => u.lang === lang);
-          if (usersLang.length === 0) return;
+              while (tokens.length > 0) {
+                const tokenGroup = tokens.splice(0, 400);
 
-          const tokens = usersLang.flatMap((u) => [...u.tokens]);
-          if (tokens.length === 0) return;
-
-          const title = t("downDetectorNotificationTitle", lang, {
-            service: webURL,
-          });
-          const body = t("downDetectorNotificationBody", lang, {
-            service: webURL,
-          });
-          const reason = "downDetector" satisfies ReasonNotification;
-
-          sendFCMNotification(tokens, { title, body }, reason, {
-            url: webURL,
-            reason,
-            screen: "DownDetector",
-          });
-        });
+                await sendFCMNotification(tokenGroup, { title, body }, reason, {
+                  url,
+                  reason,
+                  screen: "DownDetector",
+                });
+              }
+            }
+          },
+        );
       });
     }
+
+    Logger.log(chalk.green("DownDetector check completed"));
   } catch (error) {
     Logger.error(chalk.red("Error in handleCheckDownServers:"), error);
   }
 };
 
-export default getInterval(
+export default new IntervalTimer(
   handleCheckDownServers,
-  5 * 60 * 1000,
+  2 * 60 * 1000,
   "downDetector",
 );

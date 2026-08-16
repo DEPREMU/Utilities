@@ -80,21 +80,18 @@ export const sendFCMNotification = async (
 
     if (response.failureCount > 0) {
       Logger.error(chalk.red(`Failures: ${response.failureCount}`));
-      response.responses.forEach((resp, idx) => {
-        if (resp.success || !resp.error) return;
 
-        Logger.error(
-          chalk.red(
-            `Error in token ${tokens[idx].slice(0, 20)}...: ${resp.error}`,
-          ),
-        );
+      const invalidTokens = response.responses
+        .map((r, idx) => (!r.success || r.error ? tokens[idx] : null))
+        .filter((token): token is string => !!token);
 
-        if (resp.error.message.includes("Requested entity was not found.")) {
-          void prisma.pushTokens.delete({
-            where: { token: tokens[idx] },
-          });
-        }
+      const { count } = await prisma.pushTokens.deleteMany({
+        where: { token: { in: invalidTokens } },
       });
+
+      Logger.error(
+        chalk.red(`Deleted ${count}/${invalidTokens.length} tokens`),
+      );
     }
 
     return response;

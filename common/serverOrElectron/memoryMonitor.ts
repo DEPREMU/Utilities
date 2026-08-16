@@ -1,8 +1,13 @@
+import chalk from "chalk";
+import pidUsage from "pidusage";
 import { Logger } from "./logger.ts";
+import bytes, { BytesOptions } from "bytes";
 
 let monitorIntervalId: ReturnType<typeof setInterval> | null = null;
-const MEMORY_THRESHOLD_MB = 500; // Alert if RSS exceeds 500MB
+const MEMORY_THRESHOLD = 750 * 1024 * 1024; // Alert if RSS exceeds 750MB
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // Check every 5 minutes
+
+const bytesOptions: BytesOptions = { unit: "MB", decimalPlaces: 2 };
 
 export const startMemoryMonitor = (): void => {
   if (monitorIntervalId) {
@@ -16,37 +21,39 @@ export const startMemoryMonitor = (): void => {
     if (typeof process.memoryUsage !== "function") return;
 
     const memUsage = process.memoryUsage();
-    const rssMB = Math.round(memUsage.rss / 1024 / 1024);
-    const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-    const externalMB = Math.round(memUsage.external / 1024 / 1024);
 
-    Logger.log(
-      `Memory usage - Heap: ${heapUsedMB}MB, RSS: ${rssMB}MB, External: ${externalMB}MB`,
-    );
+    pidUsage(process.pid, (e, s) => {
+      if (e) {
+        Logger.error(
+          chalk.red("[Runtime Health] PID:"),
+          process.pid,
+          "| Error:",
+          e,
+        );
+        return;
+      }
 
-    if (rssMB <= MEMORY_THRESHOLD_MB) return;
+      Logger.log(
+        chalk.cyan(
+          [
+            `[Runtime Health] PID: ${s.pid} | CPU: ${s.cpu.toFixed(2)}%`,
+            `HeapUsed: ${bytes(memUsage.heapUsed, bytesOptions)}`,
+            `HeapTotal: ${bytes(memUsage.heapTotal, bytesOptions)}`,
+            `External: ${bytes(memUsage.external, bytesOptions)}`,
+            `Process Memory: ${bytes(s.memory, bytesOptions)}`,
+            `Array Buffer: ${bytes(memUsage.arrayBuffers, bytesOptions)}`,
+          ].join("\t| "),
+        ),
+      );
+    });
+
+    if (memUsage.rss <= MEMORY_THRESHOLD) return;
 
     Logger.warn(
-      `⚠️ HIGH MEMORY USAGE DETECTED: ${rssMB}MB (threshold: ${MEMORY_THRESHOLD_MB}MB)`,
+      chalk.yellow(
+        `⚠️ HIGH MEMORY USAGE DETECTED: ${bytes(memUsage.rss, bytesOptions)} (threshold: ${bytes(MEMORY_THRESHOLD, bytesOptions)})`,
+      ),
     );
-
-    if (typeof global.gc === "function") {
-      Logger.log("Forcing garbage collection...");
-      try {
-        global.gc();
-        const newMemUsage = process.memoryUsage();
-        const newRssMB = Math.round(newMemUsage.rss / 1024 / 1024);
-        Logger.log(
-          `Memory after GC - RSS: ${newRssMB}MB (freed: ${rssMB - newRssMB}MB)`,
-        );
-      } catch (error) {
-        Logger.error("Error forcing GC:", error);
-      }
-    } else {
-      Logger.warn(
-        "Garbage collection not available. Run with --expose-gc flag.",
-      );
-    }
   };
 
   checkMemoryUsage();
@@ -74,31 +81,4 @@ export const getMemoryReport = (): {
     rssMB: Math.round(memUsage.rss / 1024 / 1024),
     externalMB: Math.round(memUsage.external / 1024 / 1024),
   };
-};
-
-export const forceGarbageCollection = (): boolean => {
-  if (!global.gc) {
-    Logger.warn("Garbage collection not available. Run with --expose-gc flag.");
-    return false;
-  }
-
-  try {
-    const beforeMem = getMemoryReport();
-    Logger.log(
-      `Memory before GC - RSS: ${beforeMem.rssMB}MB, Heap: ${beforeMem.heapUsedMB}MB`,
-    );
-
-    global.gc();
-
-    const afterMem = getMemoryReport();
-    const freedMB = beforeMem.rssMB - afterMem.rssMB;
-    Logger.log(
-      `Memory after GC - RSS: ${afterMem.rssMB}MB, Heap: ${afterMem.heapUsedMB}MB (freed: ${freedMB}MB)`,
-    );
-
-    return true;
-  } catch (error) {
-    Logger.error("Error forcing GC:", error);
-    return false;
-  }
 };

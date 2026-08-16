@@ -8,10 +8,13 @@ import { sendFCMNotification } from "@/firebase/admin.ts";
 
 const handleSendNotificationToAdmin = async () => {
   try {
+    const email = getEnvValue("ADMIN_EMAIL");
+    if (!email) return;
+
     const callback = (skip: number, take: number) =>
       prisma.users.findMany({
         where: {
-          email: getEnvValue("ADMIN_EMAIL"),
+          email,
           pushTokens: { some: { token: { not: "" } } },
         },
         include: {
@@ -79,11 +82,12 @@ const handleSendNotificationToAdmin = async () => {
       }
     }
 
-    Logger.log(
-      chalk.green(
-        `Notification sent to admin/s. Success: ${success}, Failure: ${failure}`,
-      ),
-    );
+    if (success > 0 || failure > 0)
+      Logger.log(
+        chalk.green(
+          `Notification sent to admin/s. Success: ${success}, Failure: ${failure}`,
+        ),
+      );
   } catch (error) {
     Logger.error(
       "Error fetching admin user for notification:",

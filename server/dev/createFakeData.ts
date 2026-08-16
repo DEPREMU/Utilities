@@ -9,7 +9,7 @@ import axios from "axios";
 import chalk from "chalk";
 import { prisma } from "@/database/postgres";
 import { randomUUID } from "crypto";
-import { capitalize } from "lodash";
+import { lowerFirst } from "lodash";
 import { host, port, TABLE_MAP } from "@/config";
 import { Helper, Logger, ServerFetch } from "@common";
 
@@ -91,199 +91,187 @@ const getCountInTable = async (tableKey: string): Promise<number> => {
 };
 
 const insertFakeDataIntoTable = async (
-  tableName: string,
+  _tableName: string,
   tableKey: TablesKeys,
   chunk: number,
   userId: string,
 ) => {
-  if (tableName === TABLE_MAP.Users) {
-    await Promise.all(Array.from({ length: chunk }, createRandomUser));
-  } else {
-    switch (tableKey) {
-      case "ClipboardSync":
-        await prisma.clipboardSync.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            content: "",
-            deviceId: `device-${Math.random().toString(16).slice(2, 10)}`,
-          })),
-        });
-        break;
-      case "Cryptos":
-        await prisma.cryptos.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            symbol: `BTC-${randomUUID()}${Date.now()}`,
-            amount: String(1000 + Math.random() * 1000),
-            baseCoin: "USD",
-            quoteCoin: "BTC",
-            datePurchased: new Date(),
-            firstPricePurchased: Date.now(),
-          })),
-        });
-        break;
-      case "CryptosSettings":
-        await prisma.cryptosSettings.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            defaultCurrency: "USDT",
-          })),
-        });
-        break;
-      case "DownDetector":
-        await prisma.downDetector.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            url: `https://fakeurl${Math.random().toString(16).slice(2, 10)}.com`,
-            sendNotification: true,
-          })),
-        });
-        break;
-      case "Logs":
-        await prisma.logs.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            type:
-              Math.random() < 0.33
-                ? "log"
-                : Math.random() < 0.5
-                  ? "warn"
-                  : "error",
-            userId,
-            message: "This is a fake log message",
-            deviceId: `device-${Math.random().toString(16).slice(2, 10)}`,
-            timestamp: new Date(),
-            deviceName: `Device ${Math.random().toString(16).slice(2, 10)}`,
-          })),
-        });
-        break;
-      case "Notes":
-        await prisma.notes.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            title: "Fake Note",
-            content: "This is a fake note content",
-          })),
-        });
-        break;
-      case "PushTokens":
-        await prisma.pushTokens.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            token: `fake-push-token-${Math.random().toString(16).slice(2, 10)}`,
-          })),
-        });
-        break;
-      case "Streamers":
-        await prisma.streamers.createMany({
-          data: Array.from({ length: chunk }).map(
-            () =>
-              ({
-                name: `Fake Streamer ${Math.random().toString(16).slice(2, 10)}`,
-                linkImage: `https://fakeimage${Math.random().toString(16).slice(2, 10)}.com/image.png`,
-              }) satisfies Prisma.StreamersCreateArgs["data"],
-          ),
-        });
-        break;
-      case "UserConfig":
-        await prisma.userConfig.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            theme: Math.random() < 0.5 ? "light" : "dark",
-            hasAdmin: Math.random() < 0.5,
-          })),
-        });
-        break;
-      case "UserNotificationsConfig":
-        await prisma.userNotificationsConfig.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            paused: Math.random() < 0.5,
-            reason: "locationEnabled",
-            enabled: Math.random() < 0.5,
-            pauseTime: Math.random() < 0.5 ? 60 * 60 * 1000 : -1,
-          })),
-        });
-        break;
-      case "UserSessions":
-        await prisma.userSessions.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            token: `fake-session-token-${Math.random().toString(16).slice(2, 10)}`,
-            deviceId: `device-${Math.random().toString(16).slice(2, 10)}`,
-          })),
-        });
-        break;
-      case "Users":
-        await prisma.users.createMany({
-          data: Array.from({ length: chunk }).map(() => ({
-            userId,
-            name: `Fake User ${Math.random().toString(16).slice(2, 10)}`,
-            phone: `+1234567890${Math.random().toString(16).slice(2, 10)}`,
-            email: `user${Math.random().toString(16).slice(2, 10)}@example.com`,
-            password: `hashedpassword${Math.random().toString(16).slice(2, 10)}`,
-            description: `This is a fake user description for user-${Math.random().toString(16).slice(2, 10)}`,
-          })),
-        });
-        break;
-    }
+  switch (tableKey) {
+    case "ClipboardSync":
+      await prisma.clipboardSync.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          userId,
+          content: "",
+          deviceId: `device-${Math.random().toString(16).slice(2, 10)}`,
+        })),
+      });
+      break;
+    case "Cryptos":
+      await prisma.cryptos.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          userId,
+          symbol: `BTC-${randomUUID()}${Date.now()}`,
+          amount: String(1000 + Math.random() * 1000),
+          baseCoin: "USD",
+          quoteCoin: "BTC",
+          datePurchased: new Date(),
+          firstPricePurchased: Date.now(),
+        })),
+      });
+      break;
+    case "CryptosSettings":
+      await prisma.cryptosSettings.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          userId,
+          defaultCurrency: "USDT",
+        })),
+      });
+      break;
+    case "DownDetector":
+      await prisma.downDetector.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          userId,
+          url: `https://fakeurl${Math.random().toString(16).slice(2, 10)}.com`,
+          sendNotification: true,
+        })),
+      });
+      break;
+    case "Logs":
+      await prisma.logs.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          type:
+            Math.random() < 0.33
+              ? "log"
+              : Math.random() < 0.5
+                ? "warn"
+                : "error",
+          userId,
+          message: "This is a fake log message",
+          deviceId: `device-${Math.random().toString(16).slice(2, 10)}`,
+          timestamp: new Date(),
+          deviceName: `Device ${Math.random().toString(16).slice(2, 10)}`,
+        })),
+      });
+      break;
+    case "Notes":
+      await prisma.notes.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          userId,
+          title: "Fake Note",
+          content: "This is a fake note content",
+        })),
+      });
+      break;
+    case "PushTokens":
+      await prisma.pushTokens.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          userId,
+          token: `fake-push-token-${Math.random().toString(16).slice(2, 10)}`,
+        })),
+      });
+      break;
+    case "Streamers":
+      await prisma.streamers.createMany({
+        data: Array.from({ length: chunk }).map(
+          () =>
+            ({
+              name: `Fake Streamer ${Math.random().toString(16).slice(2, 10)}`,
+              linkImage: `https://fakeimage${Math.random().toString(16).slice(2, 10)}.com/image.png`,
+            }) satisfies Prisma.StreamersCreateArgs["data"],
+        ),
+      });
+      break;
+    case "UserConfig":
+      await prisma.userConfig.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          userId,
+          theme: Math.random() < 0.5 ? "light" : "dark",
+          hasAdmin: Math.random() < 0.5,
+        })),
+      });
+      break;
+    case "UserNotificationsConfig":
+      await prisma.userNotificationsConfig.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          userId,
+          paused: Math.random() < 0.5,
+          reason: "locationEnabled",
+          enabled: Math.random() < 0.5,
+          pauseTime: Math.random() < 0.5 ? 60 * 60 * 1000 : -1,
+        })),
+      });
+      break;
+    case "UserSessions":
+      await prisma.userSessions.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          userId,
+          token: `fake-session-token-${Math.random().toString(16).slice(2, 10)}`,
+          deviceId: `device-${Math.random().toString(16).slice(2, 10)}`,
+        })),
+      });
+      break;
+    case "Users":
+      await prisma.users.createMany({
+        data: Array.from({ length: chunk }).map(() => ({
+          name: `Fake User ${Math.random().toString(16).slice(2, 10)}`,
+          phone: `+1234567890${Math.random().toString(16).slice(2, 10)}`,
+          email: `user${Math.random().toString(16).slice(2, 10)}@example.com`,
+          password: `hashedpassword${Math.random().toString(16).slice(2, 10)}`,
+          description: `This is a fake user description for user-${Math.random().toString(16).slice(2, 10)}`,
+        })),
+      });
+      break;
   }
 };
 
 export const createFakeData = async () => {
-  const tables = Helper.Object.entries(TABLE_MAP);
-  const MIN_RECORDS = 5000;
+  const tables = Helper.Object.keys(TABLE_MAP);
+  const MIN_RECORDS = 10000;
   const chunkSize = 100;
 
   const userId = await userIdPromise;
 
-  await Promise.all(
-    tables.map(async ([tableKey, tableName]) => {
-      try {
-        const tableNamePrisma = capitalize(tableKey);
+  await Helper.Arrays.forEachQueue(3, tables, async (tableKey) => {
+    try {
+      const tableNamePrisma = lowerFirst(tableKey);
 
-        let count = await getCountInTable(tableNamePrisma);
+      let count = await getCountInTable(tableNamePrisma);
 
-        if (count >= MIN_RECORDS) {
-          Logger.log(
-            chalk.green(
-              `Table "${tableName}" already has ${count} records. Skipping fake data insertion.`,
-            ),
-          );
-          return;
-        }
-
-        while (MIN_RECORDS > count) {
-          Logger.log(
-            chalk.blue(
-              `Current record count in table "${tableName}": ${count}. Creating fake data until it reaches at least ${MIN_RECORDS} records...`,
-            ),
-          );
-
-          const chunk = Math.min(chunkSize, MIN_RECORDS - count);
-
-          await insertFakeDataIntoTable(
-            tableNamePrisma,
-            tableKey,
-            chunk,
-            userId,
-          );
-
-          count = await getCountInTable(tableKey);
-        }
-
+      if (count >= MIN_RECORDS) {
         Logger.log(
           chalk.green(
-            `Inserted fake data into table ${tableKey}. Current count: ${count}`,
+            `Table "${tableNamePrisma}" already has ${count} records. Skipping fake data insertion.`,
           ),
         );
-      } catch (error) {
-        Logger.log(
-          chalk.red(
-            `Error occurred while inserting fake data into table ${tableKey}:`,
-          ),
-          error,
-        );
+        return;
       }
-    }),
-  );
+
+      while (MIN_RECORDS > count) {
+        Logger.log(
+          chalk.blue(
+            `Current record count in table "${tableNamePrisma}": ${count}. Creating fake data until it reaches at least ${MIN_RECORDS} records...`,
+          ),
+        );
+
+        const chunk = Math.min(chunkSize, MIN_RECORDS - count);
+
+        await insertFakeDataIntoTable(tableNamePrisma, tableKey, chunk, userId);
+
+        count = await getCountInTable(tableKey);
+      }
+
+      Logger.log(
+        chalk.green(
+          `Inserted fake data into table ${tableKey}. Current count: ${count}`,
+        ),
+      );
+    } catch (error) {
+      Logger.log(
+        chalk.red(
+          `Error occurred while inserting fake data into table ${tableKey}:`,
+        ),
+        error,
+      );
+    }
+  });
 };
