@@ -12,6 +12,7 @@ export * from "./GetAPI";
 export * from "./PutAPI";
 export * from "./PostAPI";
 export * from "./DeleteAPI";
+export * from "./WebSocketLogs";
 
 export type MethodsAPI = "GET" | "PUT" | "POST" | "DELETE";
 

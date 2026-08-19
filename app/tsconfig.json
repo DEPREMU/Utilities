@@ -15,8 +15,9 @@
       "@modules": ["./src/utils/modules/"],
       "@hooks/*": ["./src/hooks/*"],
       "@assets/*": ["./src/assets/*"],
-      "@screens/*": ["./src/features/*"],
       "@context/*": ["./src/context/*"],
+      "@screens/*": ["./src/features/*"],
+      "@REPLACERS": ["../common/both/REPLACERS/REPLACERS.expo.ts"],
       "@commonSrc/*": ["../common/*"],
       "@navigation/*": ["./src/app/navigation/*"],
       "@components/*": ["./src/common/components/*"]

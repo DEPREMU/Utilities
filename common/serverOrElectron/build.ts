@@ -36,6 +36,7 @@ const REPLACERS_REPLACED: Record<keyof REPLACERS_TYPE, string> = {
   isNative: `${REPLACERS.isNative}`,
   isWindows: `${REPLACERS.isWindows}`,
   isPreview: `${REPLACERS.isPreview}`,
+  typeBuild: `"${REPLACERS.typeBuild}"`,
   isProduction: `${REPLACERS.isProduction}`,
 };
 

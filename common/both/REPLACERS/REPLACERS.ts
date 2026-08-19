@@ -13,6 +13,7 @@ export const REPLACERS: REPLACERS_TYPE = {
   isLinux: false,
   isNative: false,
   isWindows: false,
+  typeBuild: "normal",
   isPreview: process.env.BUILD_PROFILE === "preview",
 };
 

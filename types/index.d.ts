@@ -31,6 +31,9 @@ export type REPLACERS_TYPE = {
   isLinux: boolean;
   isWindows: boolean;
 
+  //? Frontend
+  typeBuild: "clipboard" | "test" | "normal";
+
   //? Common
   Logger: Logger;
 

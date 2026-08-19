@@ -5,6 +5,7 @@
     "paths": {
       "@types": ["../types/index.d.ts"],
       "@appSrc/*": ["../app/*"],
+      "@REPLACERS": ["../common/both/REPLACERS/REPLACERS.server.ts"],
       "@commonSrc/*": ["../common/*"],
       "@utilitiesSrc/*": ["../UtilitiesForPC/*"]
     }

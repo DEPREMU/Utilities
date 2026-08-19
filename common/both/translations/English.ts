@@ -1,4 +1,37 @@
-import type { AppTranslations, ServerTranslations } from "@types";
+import type {
+  AppTranslations,
+  ServerTranslations,
+  FrontendTranslations,
+} from "@types";
+
+export const enFrontend: FrontendTranslations = {
+  serverLogsViewer: {
+    title: "Server Logs Viewer",
+    date: "Date:",
+    tag: "Tag:",
+    clearAll: "Clear All",
+    del: "Del",
+    noLogsFound: "No logs found",
+    clearSearch: "✕",
+    loading: "Loading logs...",
+    newLogs: "↓ New Logs Available",
+    occurrences: " occurrences",
+    searchPlaceholder: "Search logs...",
+    allTags: "All Tags",
+    sortChronological: "Chronological",
+    sortReverseChronological: "Reverse Chronological",
+    sortTagAz: "Tag A-Z",
+    sortTagZa: "Tag Z-A",
+    themeToggle: "Toggle Theme",
+    showMore: "Show More",
+    showLess: "Show Less",
+  },
+  common: {
+    bullet: "•",
+    openBracket: "[",
+    closeBracket: "]",
+  },
+};
 
 export const enServer: ServerTranslations = {
   notificationCryptoTitle: "Crypto Update: {{cryptos}}",

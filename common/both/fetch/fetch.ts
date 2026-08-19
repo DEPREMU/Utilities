@@ -5,13 +5,14 @@ import type {
   FetchToServerPerMethod,
 } from "@types";
 import axios from "axios";
+import { REPLACERS } from "@REPLACERS";
 
 /**
  * Fetch class to handle server requests using axios. It provides methods for GET, POST, DELETE, and PUT requests, ensuring type safety and proper route handling.
  * Before using this class, make sure to set the `API_URL` static property to the base URL of your API.
  */
 export class ServerFetch {
-  static API_URL = process.env.API_URL || "http://localhost:3000/api";
+  static API_URL: string;
 
   static getValidRoute<T extends string>(
     route: T,
@@ -203,4 +204,11 @@ export class ServerFetch {
       return false;
     }
   }
+}
+
+try {
+  ServerFetch.API_URL = process.env.API_URL ?? "http://localhost:3000/api";
+} catch {
+  if (REPLACERS.isProduction) throw new Error("API_URL not defined");
+  ServerFetch.API_URL = "http://localhost:3000/api";
 }

@@ -1,4 +1,37 @@
-import type { AppTranslations, ServerTranslations } from "@types";
+import type {
+  AppTranslations,
+  ServerTranslations,
+  FrontendTranslations,
+} from "@types";
+
+export const esFrontend: FrontendTranslations = {
+  serverLogsViewer: {
+    title: "Visor de Registros del Servidor",
+    date: "Fecha:",
+    tag: "Etiqueta:",
+    clearAll: "Borrar todo",
+    del: "Borrar",
+    noLogsFound: "No se encontraron registros",
+    clearSearch: "✕",
+    loading: "Cargando registros...",
+    newLogs: "↓ Nuevos registros disponibles",
+    occurrences: " ocurrencias",
+    searchPlaceholder: "Buscar registros...",
+    allTags: "Todas las etiquetas",
+    sortChronological: "Cronológico",
+    sortReverseChronological: "Cronológico Inverso",
+    sortTagAz: "Etiqueta A-Z",
+    sortTagZa: "Etiqueta Z-A",
+    themeToggle: "Cambiar Tema",
+    showMore: "Mostrar más",
+    showLess: "Mostrar menos",
+  },
+  common: {
+    bullet: "•",
+    openBracket: "[",
+    closeBracket: "]",
+  },
+};
 
 export const esServer: ServerTranslations = {
   notificationCryptoTitle: "Actualización de criptomonedas: {{cryptos}}",
@@ -162,7 +195,8 @@ export const esApp: AppTranslations = {
     setDefaults: "Restablecer valores predeterminados",
   },
   common: {
-    serviceUnavailable: "Servicio no disponible. Por favor, inténtelo de nuevo más tarde.",
+    serviceUnavailable:
+      "Servicio no disponible. Por favor, inténtelo de nuevo más tarde.",
     available: "Disponible",
     showDeleted: "Mostrar eliminados",
     error: "Error",
