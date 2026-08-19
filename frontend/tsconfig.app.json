@@ -22,6 +22,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
+      "@/*": ["./src/*"],
       "@types": ["../types/index.d.ts"],
       "@utils": ["./src/utils/index.ts"],
       "@common": ["../common/both/index.ts"],

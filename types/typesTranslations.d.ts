@@ -933,11 +933,29 @@ export type FrontendTranslations = {
     themeToggle: string;
     showMore: string;
     showLess: string;
+    connected: string;
+    disconnected: string;
+    deleteLogTitle: string;
+    deleteLogMessage: string;
+    deleteLogGroupTitle: string;
+    deleteLogGroupMessage: `${string}{{count}}${string}`;
+    clearAllLogsTitle: string;
+    clearAllLogsMessage: string;
   };
   common: {
     bullet: string;
     openBracket: string;
     closeBracket: string;
+  };
+  updatesWebPage: {
+    downloadLatestVersion: string;
+    windows: string;
+    linux: string;
+    android: string;
+    errorLoadingUpdates: string;
+    options: string;
+    language: string;
+    themeToggle: string;
   };
 };
 

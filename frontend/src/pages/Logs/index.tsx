@@ -1,28 +1,25 @@
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  useRef,
-  useCallback,
-} from "react";
-import type { LogsWebSocketMessage } from "@types";
-import { REPLACERS } from "@common";
-import { t } from "../../utils/t";
-import { ConfirmationModal } from "./ConfirmationModal";
-import { LeftMenu } from "./components/LeftMenu";
-import { LogList } from "./components/LogList";
-import { Controls } from "./components/Controls";
-import type { LogEntry, GroupedLog } from "./types";
 import "./index.css";
-
-type Theme = "dark" | "light";
+import { t } from "@utils";
+import { LogList } from "./components/LogList";
+import { LeftMenu } from "./components/LeftMenu";
+import { LogsHeader } from "./components/LogsHeader";
+import type { GroupedLog } from "./types";
+import { useLogsWebSocket } from "./hooks/useLogsWebSocket";
+import { ConfirmationModal } from "./ConfirmationModal";
+import React, { useState, useMemo, useCallback } from "react";
 
 const Logs: React.FC = () => {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [connected, setConnected] = useState(false);
-
-  // Theme State
-  const [theme, setTheme] = useState<Theme>("dark");
+  const {
+    logs,
+    connected,
+    hasNewLogs,
+    listRef,
+    handleScroll,
+    scrollToBottom,
+    sendDelete,
+    sendDeleteGroup,
+    sendDeleteAll,
+  } = useLogsWebSocket();
 
   // Filtering & Sorting State
   const [search, setSearch] = useState("");
@@ -32,131 +29,12 @@ const Logs: React.FC = () => {
 
   // UI State
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
-  const [hasNewLogs, setHasNewLogs] = useState(false);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     title: string;
     message: string;
     action: (() => void) | null;
   }>({ isOpen: false, title: "", message: "", action: null });
-
-  const wsRef = useRef<WebSocket | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  const toggleTheme = useCallback(() => {
-    setTheme((prev) => {
-      const newTheme: Theme = prev === "light" ? "dark" : "light";
-
-      localStorage.setItem("theme", newTheme);
-      document.documentElement.setAttribute("data-theme", newTheme);
-
-      return newTheme;
-    });
-  }, []);
-
-  useEffect(() => {
-    const storedTheme: Theme =
-      (localStorage.getItem("theme") as Theme) === "light" ? "light" : "dark";
-
-    document.documentElement.setAttribute("data-theme", storedTheme);
-    setTheme(storedTheme);
-  }, []);
-
-  useEffect(() => {
-    const connect = () => {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = window.location.hostname;
-      const port = import.meta.env.DEV ? "3000" : window.location.port;
-      const wsUrl = `${protocol}//${host}${port ? `:${port}` : ""}/ws-logs`;
-
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        setConnected(true);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(
-            event.data,
-          ) as LogsWebSocketMessage<"sentByServer">;
-
-          switch (message.type) {
-            case "sync_logs":
-              setLogs(message.payload.logs);
-              break;
-            case "new_log":
-              setLogs((prev) => {
-                setAutoScrollEnabled((prev) => {
-                  if (!prev) {
-                    setHasNewLogs(true);
-                  }
-                  return prev;
-                });
-                return [message.payload, ...prev];
-              });
-              break;
-            case "delete_log":
-              setLogs((prev) =>
-                prev.filter((l) => l.id !== message.payload.id),
-              );
-              break;
-            case "delete_bulk":
-              if (message.payload.ids) {
-                const idSet = new Set(message.payload.ids);
-                setLogs((prev) => prev.filter((l) => !idSet.has(l.id)));
-              } else {
-                setLogs([]); // delete all
-              }
-              break;
-          }
-        } catch (e) {
-          REPLACERS.Logger.error("Failed to parse log message", e);
-        }
-      };
-
-      ws.onclose = () => {
-        setConnected(false);
-        setTimeout(connect, 3000);
-      };
-    };
-
-    connect();
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (autoScrollEnabled && listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
-  }, [logs, autoScrollEnabled]);
-
-  const handleScroll = useCallback(() => {
-    if (!listRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = listRef.current;
-
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
-    setAutoScrollEnabled(isAtBottom);
-
-    if (isAtBottom && hasNewLogs) {
-      setHasNewLogs(false);
-    }
-  }, [hasNewLogs]);
-
-  const scrollToBottom = useCallback(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-      setAutoScrollEnabled(true);
-      setHasNewLogs(false);
-    }
-  }, []);
 
   const executeModalAction = useCallback(() => {
     if (modalState.action) {
@@ -169,32 +47,12 @@ const Logs: React.FC = () => {
     setModalState((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
-  const sendDelete = useCallback(
-    (type: "request_delete_log", payload: { id: string }) => {
-      wsRef.current?.send(JSON.stringify({ type, payload }));
-    },
-    [],
-  );
-
-  const sendDeleteGroup = useCallback((cleanedContent: string) => {
-    wsRef.current?.send(
-      JSON.stringify({
-        type: "request_delete_group",
-        payload: { cleanedContent },
-      }),
-    );
-  }, []);
-
-  const sendDeleteAll = useCallback(() => {
-    wsRef.current?.send(JSON.stringify({ type: "request_delete_all" }));
-  }, []);
-
   const requestDeleteLog = useCallback(
     (id: string) => {
       setModalState({
         isOpen: true,
-        title: "Delete Log",
-        message: "Are you sure you want to delete this log entry?",
+        title: t("serverLogsViewer.deleteLogTitle"),
+        message: t("serverLogsViewer.deleteLogMessage"),
         action: () => sendDelete("request_delete_log", { id }),
       });
     },
@@ -205,8 +63,10 @@ const Logs: React.FC = () => {
     (cleanedContent: string, count: number) => {
       setModalState({
         isOpen: true,
-        title: "Delete Log Group",
-        message: `Delete all ${count} occurrences of this log?`,
+        title: t("serverLogsViewer.deleteLogGroupTitle"),
+        message: t("serverLogsViewer.deleteLogGroupMessage", {
+          count: String(count),
+        }),
         action: () => sendDeleteGroup(cleanedContent),
       });
     },
@@ -216,9 +76,8 @@ const Logs: React.FC = () => {
   const requestDeleteAllUI = useCallback(() => {
     setModalState({
       isOpen: true,
-      title: "Clear All Logs",
-      message:
-        "Are you sure you want to permanently delete all server logs? This action cannot be undone.",
+      title: t("serverLogsViewer.clearAllLogsTitle"),
+      message: t("serverLogsViewer.clearAllLogsMessage"),
       action: () => sendDeleteAll(),
     });
   }, [sendDeleteAll]);
@@ -300,8 +159,6 @@ const Logs: React.FC = () => {
         availableTags={availableTags}
         selectedTags={selectedTags}
         setSelectedTags={setSelectedTags}
-        theme={theme}
-        toggleTheme={toggleTheme}
       />
 
       <LogList
@@ -318,26 +175,14 @@ const Logs: React.FC = () => {
         handleScroll={handleScroll}
       />
 
-      <div className="logs-header-container">
-        <div className="logs-header">
-          <h2>
-            {t("serverLogsViewer.title")}
-            <span
-              className={`logs-status-indicator logs-ml-half ${connected ? "connected" : "disconnected"}`}
-              title={connected ? "Connected" : "Disconnected"}
-            >
-              {connected ? "● Connected" : "○ Disconnected"}
-            </span>
-          </h2>
-          <Controls
-            sortDate={sortDate}
-            setSortDate={setSortDate}
-            sortTag={sortTag}
-            setSortTag={setSortTag}
-            requestDeleteAllUI={requestDeleteAllUI}
-          />
-        </div>
-      </div>
+      <LogsHeader
+        connected={connected}
+        sortDate={sortDate}
+        setSortDate={setSortDate}
+        sortTag={sortTag}
+        setSortTag={setSortTag}
+        requestDeleteAllUI={requestDeleteAllUI}
+      />
 
       <ConfirmationModal
         isOpen={modalState.isOpen}
