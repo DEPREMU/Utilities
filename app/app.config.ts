@@ -9,8 +9,8 @@ export default (
 ): ExpoConfig => {
   if (!BUILD_PROFILE) BUILD_PROFILE = process.env.BUILD_PROFILE;
 
-  if (!BUILD_PROFILE)
-    throw new Error("BUILD_PROFILE environment variable is not set");
+  // if (!BUILD_PROFILE)
+  //   throw new Error("BUILD_PROFILE environment variable is not set");
 
   const isProduction = BUILD_PROFILE === "production";
 

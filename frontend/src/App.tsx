@@ -6,6 +6,7 @@ import { Routes, Route } from "react-router-dom";
 if (!REPLACERS.typeBuild) throw new Error("REPLACERS.typeBuild is not defined");
 
 import Logs from "./pages/Logs";
+import Updates from "./pages/updates";
 
 const App: React.FC = () => {
   return (
@@ -17,6 +18,8 @@ const App: React.FC = () => {
       {REPLACERS.typeBuild === "test" && (
         <Route path="/logs" element={<Logs />} />
       )}
+      
+      <Route path="/updates" element={<Updates />} />
     </Routes>
   );
 };

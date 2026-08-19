@@ -1,5 +1,6 @@
 import React from "react";
 import { t } from "../../../utils/t";
+import { ThemeLanguageToggle } from "../../common/components/ThemeLanguageToggle";
 
 interface LeftMenuProps {
   search: string;
@@ -7,8 +8,6 @@ interface LeftMenuProps {
   availableTags: string[];
   selectedTags: string[];
   setSelectedTags: (tags: string[] | ((prev: string[]) => string[])) => void;
-  theme: "light" | "dark";
-  toggleTheme: () => void;
 }
 
 export const LeftMenu: React.FC<LeftMenuProps> = React.memo(
@@ -18,8 +17,6 @@ export const LeftMenu: React.FC<LeftMenuProps> = React.memo(
     availableTags,
     selectedTags,
     setSelectedTags,
-    theme,
-    toggleTheme,
   }) => {
     const handleTagToggle = (tag: string) => {
       setSelectedTags((prev) =>
@@ -71,12 +68,7 @@ export const LeftMenu: React.FC<LeftMenuProps> = React.memo(
         </div>
 
         <div className="logs-mt-auto-pt-1rem">
-          <button className="logs-btn" onClick={toggleTheme}>
-            {/* eslint-disable-next-line react-native/no-raw-text */}
-            {t("serverLogsViewer.themeToggle")} {t("common.openBracket")}
-            {theme}
-            {t("common.closeBracket")}
-          </button>
+          <ThemeLanguageToggle showLanguage={false} />
         </div>
       </div>
     );

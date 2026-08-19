@@ -5,13 +5,15 @@ import type { Paths, REPLACERS_TYPE } from "@types";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 
 const config = (): ReturnType<ConfigFunction> => {
+  const API_URL = process.env.API_URL;
   const TYPE_BUILD = process.env.TYPE_BUILD;
-  const BUILD_PROFILE = process.env?.BUILD_PROFILE;
+  const BUILD_PROFILE = process.env.BUILD_PROFILE;
 
   if (!BUILD_PROFILE)
     throw new Error("BUILD_PROFILE environment variable is not set");
   if (!TYPE_BUILD || !["clipboard", "test", "normal"].includes(TYPE_BUILD))
     throw new Error("TYPE_BUILD environment variable is not set");
+  if (!API_URL) throw new Error("API_URL environment variable is not set");
 
   const replacers: Record<Exclude<Paths<REPLACERS_TYPE>, "Logger">, string> = {
     isDev: `${BUILD_PROFILE === "development"}`,
@@ -35,6 +37,7 @@ const config = (): ReturnType<ConfigFunction> => {
 
   const finalReplacers = {
     ...REPLACERS,
+    "process.env.API_URL": JSON.stringify(API_URL),
     "process.env.TYPE_BUILD": JSON.stringify(TYPE_BUILD),
     "process.env.BUILD_PROFILE": JSON.stringify(BUILD_PROFILE),
   };
