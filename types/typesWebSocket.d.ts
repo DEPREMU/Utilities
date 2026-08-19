@@ -100,7 +100,11 @@ export type CryptosWebSocketMessage<T extends "sentByApp" | "sentByServer"> =
         };
 
 export type WebSocketPathname =
-  "/ws" | "/clipboard" | "/ws-cryptos" | "/ws-login-qr";
+  | "/ws"
+  | "/clipboard"
+  | "/ws-cryptos"
+  | "/ws-login-qr"
+  | "/ws-logs";
 
 type UsersWebSocketQR = {
   [deviceId: string]: {

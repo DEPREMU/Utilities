@@ -912,5 +912,36 @@ export type ServerTranslations = {
   };
 };
 
+export type FrontendTranslations = {
+  serverLogsViewer: {
+    title: string;
+    date: string;
+    tag: string;
+    clearAll: string;
+    del: string;
+    noLogsFound: string;
+    clearSearch: string;
+    loading: string;
+    newLogs: string;
+    occurrences: string;
+    searchPlaceholder: string;
+    allTags: string;
+    sortChronological: string;
+    sortReverseChronological: string;
+    sortTagAz: string;
+    sortTagZa: string;
+    themeToggle: string;
+    showMore: string;
+    showLess: string;
+  };
+  common: {
+    bullet: string;
+    openBracket: string;
+    closeBracket: string;
+  };
+};
+
+export type FrontendTranslationsKeys = Paths<FrontendTranslations>;
+
 export type AppTranslationsKeys = Paths<AppTranslations>;
 export type ServerTranslationsKeys = Paths<ServerTranslations>;

@@ -5,15 +5,16 @@ import {
   TYPES_PATH,
   SERVER_PATH,
   SCRIPTS_PATH,
+  FRONTEND_PATH,
   UTILITIES_PATH,
   UTILITIES_FOR_PC_PATH,
 } from "./config.ts";
 import fs from "fs";
 import path from "path";
+import { Helper } from "@commonSrc/both/index.ts";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { execSync } from "child_process";
 import { formatFolder } from "./format-folder.ts";
-import { Helper } from "@commonSrc/both/index.ts";
 
 const PATHS = {
   App: APP_PATH,
@@ -94,6 +95,42 @@ export const run = async () => {
         );
       } else {
         Logger.log("Testing mode: Skipping yarn expo export");
+      }
+      break;
+    }
+    case "dev-frontend": {
+      if (!args.ARGS.testing) {
+        const envWeb = {
+          ...env,
+          TYPE_BUILD: "test",
+          BUILD_PROFILE: "development",
+        };
+        execSync("yarn run dev", {
+          env: envWeb,
+          cwd: FRONTEND_PATH,
+          stdio: "inherit",
+        });
+      } else {
+        Logger.log("Testing mode: Skipping yarn run dev");
+      }
+      break;
+    }
+    case "build-frontend":
+    case "build-clipboard-frontend": {
+      if (!args.ARGS.testing) {
+        const envWeb = {
+          ...env,
+          TYPE_BUILD:
+            action === "build-clipboard-frontend" ? "clipboard" : "normal",
+          BUILD_PROFILE: env.BUILD_PROFILE || "production",
+        };
+        execSync("yarn run build", {
+          env: envWeb,
+          cwd: FRONTEND_PATH,
+          stdio: "inherit",
+        });
+      } else {
+        Logger.log("Testing mode: Skipping yarn run build");
       }
       break;
     }

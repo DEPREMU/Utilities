@@ -13,17 +13,7 @@ import { build, type Plugin } from "esbuild";
 
 const { server: SERVER_PATH, common: COMMON_PATH } = getAllPathsSync();
 
-const plugins: Plugin[] = [
-  {
-    name: "platform",
-    setup: (build) => {
-      build.onResolve({ filter: /.\/REPLACERS$/ }, () => ({
-        path: path.join(COMMON_PATH, "both/REPLACERS/REPLACERS.server.ts"),
-      }));
-    },
-  },
-  pluginReplace([...REPLACERS_PLUGIN]),
-];
+const plugins: Plugin[] = [pluginReplace([...REPLACERS_PLUGIN])];
 
 build({
   ...options,

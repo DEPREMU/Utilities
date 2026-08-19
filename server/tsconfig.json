@@ -5,6 +5,7 @@
       "@/*": ["./*"],
       "@types": ["../types/index.d.ts"],
       "@common": ["../common/serverOrElectron/index.ts"],
+      "@REPLACERS": ["../common/both/REPLACERS/REPLACERS.server.ts"],
       "@commonSrc/*": ["../common/*"]
     },
     "typeRoots": ["../types/index.d.ts", "./generated/*.d.ts"]

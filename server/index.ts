@@ -9,6 +9,7 @@ import {
   initWebSocketCryptos,
   initWebSocketClipboard,
   initWebSocketLoginQRCode,
+  initWebSocketServerLogs,
 } from "./websocket/index.ts";
 import cors from "cors";
 import http from "http";
@@ -81,6 +82,7 @@ const startApp = async () => {
   const generalWss = initWebSocket();
   const clipboardWss = initWebSocketClipboard();
   const webSocketLoginQRCode = initWebSocketLoginQRCode();
+  const serverLogsWss = initWebSocketServerLogs();
 
   server.on("upgrade", (request, socket, head) => {
     if (!request.url) {
@@ -99,6 +101,7 @@ const startApp = async () => {
       | typeof generalWss
       | typeof clipboardWss
       | typeof webSocketLoginQRCode
+      | typeof serverLogsWss
       | null = null;
 
     switch (pathname) {
@@ -113,6 +116,9 @@ const startApp = async () => {
         break;
       case "/ws-login-qr":
         wsCalled = webSocketLoginQRCode;
+        break;
+      case "/ws-logs":
+        wsCalled = serverLogsWss;
         break;
       default:
         Logger.error("Invalid WebSocket pathname:", pathname);
@@ -166,6 +172,10 @@ const startApp = async () => {
       "\n",
       chalk.green(
         `Clipboard WebSocket is running on ${sourceProtocolWs}://${host}:${port}/clipboard`,
+      ),
+      "\n",
+      chalk.green(
+        `Logs WebSocket is running on ${sourceProtocolWs}://${host}:${port}/ws-logs`,
       ),
     );
 

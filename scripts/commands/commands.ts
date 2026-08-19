@@ -28,6 +28,12 @@ export const COMMANDS = {
     "scripts/UtilitiesForPC/build-resources-electron.ts",
   "start-electron": "scripts/UtilitiesForPC/start-electron.ts",
 
+  //? Frontend
+  "dev-frontend": "scripts/root-commands.ts --action=dev-frontend",
+  "build-frontend": "scripts/root-commands.ts --action=build-frontend",
+  "build-clipboard-frontend":
+    "scripts/root-commands.ts --action=build-clipboard-frontend",
+
   //? Other commands
   "update-assets": "scripts/update.ts",
   "build-android": "scripts/app/build-android.ts",

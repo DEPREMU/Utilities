@@ -11,7 +11,7 @@
     "sleep:windows": "powershell -Command \"Start-Sleep -Seconds 5\"",
     "sleep:linux": "sleep 5",
     "start": "tsx ./build.ts && node ./build/index.cjs",
-    "start-dev": "yarn nodemon -w ./ -w ../common/* -i build/ -i cryptos.json -i generated/prisma -e ts,json --exec \"yarn run sleep && yarn --cwd dev/logger run build && yarn run db-update && yarn run start\"",
+    "start-dev": "yarn nodemon -w ./ -w ../common/* -i build/ -i cryptos.json -i generated/prisma -e ts,json --exec \"yarn run sleep && yarn run db-update && yarn run start\"",
     "format-all": "yarn prettier --write \"**/*.{ts,json}\" --ignore-path ../.gitignore",
     "before-commit": "yarn run lint:fix && yarn run type-check",
     "type-check": "tsc --noEmit",

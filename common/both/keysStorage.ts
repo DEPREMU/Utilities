@@ -1,4 +1,4 @@
-import {
+import type {
   Prisma,
   NotesSettings,
   Notifications,
@@ -6,9 +6,10 @@ import {
   LanguagesSupported,
 } from "@types";
 
-export type ALL_KEYS_STORAGE_TYPE = keyof typeof ALL_KEYS_STORAGE;
-export type SECURE_KEYS_STORAGE_TYPE = keyof typeof SECURE_KEYS_STORAGE;
-export type UNSECURE_KEYS_STORAGE_TYPE = keyof typeof UNSECURE_KEYS_STORAGE;
+export type SECURE_KEYS_STORAGE_TYPE = keyof ExpectedSecureStorageTypes;
+export type UNSECURE_KEYS_STORAGE_TYPE = keyof ExpectedUnsecureStorageTypes;
+export type ALL_KEYS_STORAGE_TYPE =
+  SECURE_KEYS_STORAGE_TYPE | UNSECURE_KEYS_STORAGE_TYPE;
 
 export type KeyStorageValues<
   T extends "SECURE" | "UNSECURE" | "ALL" = "SECURE",

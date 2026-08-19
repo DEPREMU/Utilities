@@ -10,6 +10,7 @@ import pluginReactHooks from "eslint-plugin-react-hooks";
 import typescriptParser from "@typescript-eslint/parser";
 // @ts-expect-error - no types available for this package
 import pluginReactNative from "eslint-plugin-react-native";
+import pluginReactRefresh from "eslint-plugin-react-refresh";
 
 export default defineConfig([
   {
@@ -61,11 +62,12 @@ export default defineConfig([
       },
     },
     plugins: {
-      "@typescript-eslint": tseslint as any,
+      "@typescript-eslint": tseslint as unknown as typeof pluginReact,
       "@stylistic": stylistic,
       react: pluginReact,
       "react-native": pluginReactNative,
-      "react-hooks": pluginReactHooks as any,
+      "react-hooks": pluginReactHooks as unknown as typeof pluginReact,
+      "react-refresh": pluginReactRefresh,
     },
     rules: {
       "@typescript-eslint/no-unused-vars": [

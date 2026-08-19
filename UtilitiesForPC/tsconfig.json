@@ -11,7 +11,8 @@
       "@utils": ["./src/main/utils"],
       "@types": ["../types/index.d.ts"],
       "@common": ["../common/serverOrElectron/index.ts"],
-      "@commonSrc/*": ["../common/*"]
+      "@commonSrc/*": ["../common/*"],
+      "@REPLACERS": ["../common/both/REPLACERS/REPLACERS.ts"]
     }
   },
   "include": ["./src/main/**/*.ts", "../../common/index.ts"],

@@ -385,3 +385,14 @@ model UpdatesData {
 
   @@map("updates_data")
 }
+
+model ServerLogs {
+  id             String   @id @default(uuid()) @db.Uuid
+  type           LogType
+  originalContent String
+  cleanedContent  String
+  tag            String   @default("untagged")
+  timestamp      DateTime @default(now()) @db.Timestamptz
+
+  @@map("server_logs")
+}

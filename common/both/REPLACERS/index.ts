@@ -1,1 +1,1 @@
-export * from "./REPLACERS";
+export * from "@REPLACERS";

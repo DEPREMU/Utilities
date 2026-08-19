@@ -3,7 +3,8 @@
   "compilerOptions": {
     "paths": {
       "@commonSrc/*": ["./*"],
-      "@types": ["../types/index.d.ts"]
+      "@types": ["../types/index.d.ts"],
+      "@REPLACERS": ["./both/REPLACERS/REPLACERS"]
     },
     "typeRoots": ["../types/index.d.ts"]
   },

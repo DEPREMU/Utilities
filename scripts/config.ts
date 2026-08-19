@@ -15,6 +15,7 @@ export const APP_PATH = paths.app;
 export const TYPES_PATH = paths.types;
 export const COMMON_PATH = paths.common;
 export const SERVER_PATH = paths.server;
+export const FRONTEND_PATH = paths.frontend;
 export const UTILITIES_FOR_PC_PATH = paths.utilitiesForPC;
 
 export const SCRIPTS_PATH = path.join(UTILITIES_PATH, "scripts");
