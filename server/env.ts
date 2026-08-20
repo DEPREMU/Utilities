@@ -4,36 +4,34 @@ import { Logger, REPLACERS } from "@common";
 
 dotenv.config({ path: "../.env" });
 
-const REQUIRED_VARS: (keyof Env)[] = [
-  "IV",
-  "WS_URL",
-  "__DEV__",
-  "API_URL",
-  "USE_HTTPS",
-  "JWT_SECRET",
-  "ADMIN_EMAIL",
-  "DATABASE_URL",
-  "ADMIN_PASSWORD",
-  "DB_ENCRYPTION_PASS",
-  "DEEPL_TRANSLATOR_API",
-  "FIREBASE_SERVICE_ACCOUNT",
-  "SECRET_KEY_TO_ENCRYPTION",
-];
-
 export const validateServerEnv = () => {
-  const missing = REQUIRED_VARS.filter((k) => !process.env[k]);
+  const REQUIRED_VARS: (keyof Env)[] = [
+    "IV",
+    "WS_URL",
+    "__DEV__",
+    "API_URL",
+    "USE_HTTPS",
+    "JWT_SECRET",
+    "ADMIN_EMAIL",
+    "DATABASE_URL",
+    "ADMIN_PASSWORD",
+    "DB_ENCRYPTION_PASS",
+    "DEEPL_TRANSLATOR_API",
+    "FIREBASE_SERVICE_ACCOUNT",
+    "SECRET_KEY_TO_ENCRYPTION",
+  ];
+
+  const missing = REQUIRED_VARS.filter((k) => !(k in process.env));
   if (missing.length) {
     Logger.warn(
-      `Missing environment variables: ${missing.join(
-        ", ",
-      )}. Default values are used where applicable.`,
+      `Missing environment variables: ${missing.map((k) => `"${k}"`).join(", ")}. Default values are used where applicable.`,
     );
   }
   const iv = process.env.IV;
 
   if (!iv || iv.length !== 16)
     throw new Error(
-      "IV must be a valid 16-byte hex string. " + iv + " " + iv?.length,
+      `IV must be a valid 16-byte hex string. "${iv}" ${iv?.length}`,
     );
 };
 
