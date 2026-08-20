@@ -1,4 +1,4 @@
-name: Android Conditional Build
+name: Android Build
 
 on:
   push:
@@ -78,12 +78,19 @@ jobs:
       - name: Prebuild Android
         # if: steps.version_check.outputs.should_build == 'true'
         run: yarn run app-prebuild-android
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Build Android App (Docker)
         # if: steps.version_check.outputs.should_build == 'true'
         run: |
           docker build -f scripts/app/Dockerfile.android -t app-android-build .
-          docker run --rm -v ${{ github.workspace }}/app/builds:/utilities/app/builds -e EXPO_TOKEN=${EXPO_TOKEN} -e BUILD_PROFILE=production app-android-build
+          docker run --rm \
+            -v "${{ github.workspace }}/.git:/utilities/.git" \
+            -v "${{ github.workspace }}/app/builds:/utilities/app/builds" \
+            -e EXPO_TOKEN="${EXPO_TOKEN}" \
+            -e BUILD_PROFILE=production \
+            app-android-build
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}

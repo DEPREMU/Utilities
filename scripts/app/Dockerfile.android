@@ -24,4 +24,5 @@ CMD eas build \
   --platform android \
   --profile ${BUILD_PROFILE:-production} \
   --local \
+  --non-interactive \
   --output=/utilities/app/builds/android-${BUILD_PROFILE:-production}.apk
