@@ -20,10 +20,20 @@ const withGoogleServices = (config) => {
       );
 
       const projectRoot = config._internal?.projectRoot || process.cwd();
+      const files = fs.readdirSync(projectRoot, { recursive: true });
+
+      const MainActivity = files.find((file) =>
+        file.endsWith("MainActivity.kt"),
+      );
+
+      console.log(
+        chalk.red("Main Activity path:"),
+        path.join(projectRoot, path.dirname(MainActivity)),
+      );
+
       const googleServicesPath = path.join(
         projectRoot,
-        "android",
-        "app",
+        path.dirname(MainActivity),
         "google-services.json",
       );
       if (fs.existsSync(googleServicesPath)) {
@@ -46,7 +56,8 @@ const withGoogleServices = (config) => {
       );
 
       //TODO: Delete after feature finished
-      execSync("tree ../ -L 8", { stdio: "inherit", cwd: projectRoot });
+      execSync("sudo apt-get install tree", { stdio: "inherit" });
+      execSync("tree -L 8", { stdio: "inherit", cwd: projectRoot });
 
       try {
         fs.mkdirSync(path.dirname(googleServicesPath), { recursive: true });

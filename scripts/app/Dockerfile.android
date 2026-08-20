@@ -20,6 +20,8 @@ COPY . .
 
 WORKDIR /utilities/app
 
+RUN sed -i '/^android\/$/d' .gitignore
+
 CMD eas build \
   --platform android \
   --profile ${BUILD_PROFILE:-production} \
