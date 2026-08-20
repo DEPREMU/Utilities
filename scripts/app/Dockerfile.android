@@ -1,0 +1,21 @@
+FROM reactnativecommunity/react-native-android:latest
+
+WORKDIR /utilities
+
+RUN npm install -g eas-cli
+
+COPY package.json yarn.lock ./
+COPY common/package.json ./common/package.json
+COPY app/package.json ./app/package.json
+
+RUN yarn install --immutable
+
+COPY . .
+
+WORKDIR /utilities/app
+
+CMD eas build \
+  --platform android \
+  --profile ${BUILD_PROFILE:-production} \
+  --local \
+  --output=/utilities/app/builds/android-${BUILD_PROFILE:-production}.apk

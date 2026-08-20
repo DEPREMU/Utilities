@@ -3,7 +3,8 @@ import {
   isAppLint,
   isAppStart,
   isAppBuildDev,
-  isBuildAndroid,
+  //TODO: Delete if not necessary to build android on github actions.
+  // isBuildAndroid,
   isAndroidPrebuild,
   isBuildAppElectron,
   isBuildUploadAndroid,
@@ -41,7 +42,11 @@ const showHelp = () => {
   if (isBuildUploadAndroid || isAppBuildDev) {
     options.add(args["skip-build-android"].explanation);
   }
-  if (isBuildAndroid || isBuildUploadAndroid) {
+  if (
+    //TODO: Delete if not necessary to build android on github actions.
+    // isBuildAndroid ||
+    isBuildUploadAndroid
+  ) {
     options.add(args["BUILD_PROFILE"].explanation);
     options.add(args["skip-prebuild-android"].explanation);
   }
@@ -171,7 +176,8 @@ class Args {
       transformed: ["-pua", "--platform-update-assets"],
     },
     ci: {
-      explanation: "  --ci                         Run in CI environment, bypassing prompts",
+      explanation:
+        "  --ci                         Run in CI environment, bypassing prompts",
       transformed: "--ci",
     },
   };

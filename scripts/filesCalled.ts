@@ -4,7 +4,8 @@ export const isUpdate = fileCalled?.includes("update");
 export const isAppLint = fileCalled?.includes("app-lint");
 export const isAppStart = fileCalled?.includes("app-start");
 export const isBuildWeb = fileCalled?.includes("build-web");
-export const isBuildAndroid = fileCalled?.includes("build-android");
+//TODO: Delete if not necessary to build android on github actions
+// export const isBuildAndroid = fileCalled?.includes("build-android");
 export const isUploadElectron = fileCalled?.includes("build-upload-electron");
 export const isBuildUploadAndroid = fileCalled?.includes(
   "build-upload-android",

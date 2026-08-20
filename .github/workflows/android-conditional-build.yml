@@ -1,0 +1,105 @@
+name: Android Conditional Build
+
+on:
+  push:
+    branches:
+      - main
+      - create-ci-cd
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: build-android
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # - name: Check version change
+      #   id: version_check
+      #   run: |
+      #     # Get the previous version of app.config.ts (if exists in previous commit)
+      #     PREV_VERSION=$(git show HEAD^:app/app.config.ts 2>/dev/null | grep -oP 'const version = "\K[^"]+' | head -n 1) || true
+
+      #     # Get the current version
+      #     NEW_VERSION=$(grep -oP 'const version = "\K[^"]+' app/app.config.ts | head -n 1)
+
+      #     echo "Previous version: $PREV_VERSION"
+      #     echo "New version: $NEW_VERSION"
+
+      #     SHOULD_BUILD="false"
+
+      #     if [ -z "$PREV_VERSION" ] || [ -z "$NEW_VERSION" ]; then
+      #       echo "Could not extract versions, defaulting to build"
+      #       SHOULD_BUILD="true"
+      #     elif [ "$PREV_VERSION" == "$NEW_VERSION" ]; then
+      #       echo "Version is identical. Skipping build."
+      #     else
+      #       # Strip anything after dash (like -beta)
+      #       PREV_CLEAN=$(echo "$PREV_VERSION" | cut -d'-' -f1)
+      #       NEW_CLEAN=$(echo "$NEW_VERSION" | cut -d'-' -f1)
+
+      #       # Split versions into arrays
+      #       IFS='.' read -r -a PREV_ARRAY <<< "$PREV_CLEAN"
+      #       IFS='.' read -r -a NEW_ARRAY <<< "$NEW_CLEAN"
+
+      #       PREV_MAJOR=${PREV_ARRAY[0]:-0}
+      #       PREV_MINOR=${PREV_ARRAY[1]:-0}
+      #       PREV_PATCH=${PREV_ARRAY[2]:-0}
+
+      #       NEW_MAJOR=${NEW_ARRAY[0]:-0}
+      #       NEW_MINOR=${NEW_ARRAY[1]:-0}
+      #       NEW_PATCH=${NEW_ARRAY[2]:-0}
+
+      #       if [ "$NEW_MAJOR" -gt "$PREV_MAJOR" ]; then
+      #         echo "Major version changed."
+      #         SHOULD_BUILD="true"
+      #       elif [ "$NEW_MAJOR" -eq "$PREV_MAJOR" ] && [ "$NEW_MINOR" -gt "$PREV_MINOR" ]; then
+      #         echo "Minor version changed."
+      #         SHOULD_BUILD="true"
+      #       else
+      #         echo "No major or minor version change detected."
+      #       fi
+      #     fi
+
+      #     echo "should_build=$SHOULD_BUILD" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        # if: steps.version_check.outputs.should_build == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        # if: steps.version_check.outputs.should_build == 'true'
+        run: yarn install
+
+      - name: Prebuild Android
+        # if: steps.version_check.outputs.should_build == 'true'
+        run: yarn run app-prebuild-android
+
+      - name: Build Android App (Docker)
+        # if: steps.version_check.outputs.should_build == 'true'
+        run: |
+          docker build -f scripts/app/Dockerfile.android -t app-android-build .
+          docker run --rm -v ${{ github.workspace }}/app/builds:/utilities/app/builds -e EXPO_TOKEN=${EXPO_TOKEN} -e BUILD_PROFILE=production app-android-build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
+      - name: Upload Artifact (Primary)
+        # if: steps.version_check.outputs.should_build == 'true'
+        run: yarn run build-upload-android
+        env:
+          WS_URL: ${{ secrets.WS_URL }}
+          API_URL: ${{ secrets.API_URL }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Upload Artifact (Fallback)
+        if: failure() && steps.version_check.outputs.should_build == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-fallback
+          path: app/builds/
+          retention-days: 5
