@@ -90,6 +90,7 @@ jobs:
             -v "${{ github.workspace }}/app/builds:/utilities/app/builds" \
             -e EXPO_TOKEN="${EXPO_TOKEN}" \
             -e BUILD_PROFILE=production \
+            -e GOOGLE_SERVICES_JSON="${GOOGLE_SERVICES_JSON}" \
             app-android-build
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
