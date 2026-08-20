@@ -2,6 +2,11 @@ FROM reactnativecommunity/react-native-android:latest
 
 WORKDIR /utilities
 
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+    && apt-get install -y nodejs \
+    && node --version \
+    && npm --version
+
 RUN npm install -g eas-cli
 
 COPY package.json yarn.lock ./
