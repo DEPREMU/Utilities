@@ -18,8 +18,6 @@ RUN yarn install --immutable
 
 COPY . .
 
-RUN sed -i '/^android\/$/d' .gitignore
-
 WORKDIR /utilities/app
 
 
