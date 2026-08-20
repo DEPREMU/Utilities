@@ -166,7 +166,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
   private _initHasInternet = async () => {
     const event = EventsDeviceInfo.hasInternetChange;
     if (this.#listeners[event]) return;
-    const reason: ReasonNotification = "noInternetConnection";
+    const reason = "noInternetConnection" satisfies ReasonNotification;
 
     const { notificationsManager } = await import("@utils");
 

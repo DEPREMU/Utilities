@@ -30,6 +30,7 @@ jobs:
       - name: Build and Upload Electron App
         run: yarn run build-upload-electron --ci
         env:
+          WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
 
       - name: Upload Fallback Artifacts

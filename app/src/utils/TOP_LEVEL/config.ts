@@ -6,13 +6,15 @@ if (!REPLACERS.isProduction) {
   REPLACERS.Logger = (require("./debug") as typeof import("./debug")).logger;
 }
 
-if (REPLACERS.isNative) {
-  NetInfo.configure({
-    reachabilityUrl: Network.URL_GOOGLE_204,
-    useNativeReachability: true,
-  });
-  import("./global.native");
-} else if (REPLACERS.isWeb)
+NetInfo.configure({
+  reachabilityUrl: Network.URL_GOOGLE_204,
+  useNativeReachability: REPLACERS.isNative,
+  //? Handled by deviceInfo service
+  reachabilityShouldRun: () => false,
+});
+
+if (REPLACERS.isNative) import("./global.native");
+else if (REPLACERS.isWeb)
   import("../modules/WindowModule").then(({ windowModule }) => {
     (Network as { isOnline: () => Promise<boolean> }).isOnline =
       windowModule.hasInternetConnection;
