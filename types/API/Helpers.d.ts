@@ -235,14 +235,13 @@ type JsTypes<O> = O extends readonly (keyof TypeOfJS)[]
     ? TypeOfJS[O]
     : never;
 
-export type MergeField<Original, O> =
-  JsTypes<O> extends infer J
-    ? J extends unknown
-      ? Original extends J
-        ? Original
-        : J
+type MergeField<Original, O> = O extends FieldSelector
+  ? Original extends unknown
+    ? Original extends JsTypes<O>
+      ? Original
       : never
-    : never;
+    : never
+  : never;
 
 type FieldSelector = keyof TypeOfJS | readonly (keyof TypeOfJS)[];
 

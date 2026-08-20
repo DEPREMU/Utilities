@@ -46,6 +46,7 @@
     "common-test": "yarn workspace utilities-common run test",
     "__FRONTEND__": "___________________________________________",
     "dev-frontend": "node scripts/run.ts dev-frontend",
+    "dev-clipboard-frontend": "node scripts/run.ts dev-clipboard-frontend",
     "build-frontend": "node scripts/run.ts build-frontend",
     "build-clipboard-frontend": "node scripts/run.ts build-clipboard-frontend",
     "__SERVER__": "___________________________________________",

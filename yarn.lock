@@ -4745,7 +4745,7 @@ body-parser@^2.2.1:
     raw-body "^3.0.2"
     type-is "^2.1.0"
 
-bonjour-service@^1.4.2:
+bonjour-service@^1.4.4:
   version "1.4.4"
   resolved "https://registry.yarnpkg.com/bonjour-service/-/bonjour-service-1.4.4.tgz#8ff5b85fa0641e0996bf40bcf61fc0c6727b66d3"
   integrity sha512-jCZcVv7eoc4QesRscwEZtSROBen+6LpKAmBIsQYQrsAeVHLyMXWX/t6eIV5KiRZYNUBl8eVqImEEMQ8L5+c/Kw==
@@ -5956,10 +5956,10 @@ electron-builder@^26.15.3:
     simple-update-notifier "2.0.0"
     yargs "^17.6.2"
 
-electron-edge-js@^42.0.0:
-  version "42.0.0"
-  resolved "https://registry.yarnpkg.com/electron-edge-js/-/electron-edge-js-42.0.0.tgz#899bbba6800a893c2f723d376718bbb420ec6cad"
-  integrity sha512-RErXR7B2C4fOJCkFwZ05fBL9JfAZrl9rGeVeTrwwH/o+zaJQGShQdxnXGYmqNi7kBadULdJpRKbVAZgF4EgVVg==
+electron-edge-js@^43.0.0:
+  version "43.0.0"
+  resolved "https://registry.yarnpkg.com/electron-edge-js/-/electron-edge-js-43.0.0.tgz#4f025b9970719abd897a192c646aac3b88f5c701"
+  integrity sha512-b5EeATaTnbMHnPt/i3HoNLCW1kD6DhClgB+aaYu0rFQCpXXvlN0YqZza7i66J3YcgzrITEHdoAqWOvZEFdEPfg==
   dependencies:
     edge-cs "npm:@agracio/edge-cs@^1.3.7"
     nan "npm:@agracio/nan@^2.26.3"
@@ -5992,10 +5992,10 @@ electron-to-chromium@^1.5.393:
   resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.5.399.tgz#d4522e98338d65ca4fea49a3c9220474c7c028a7"
   integrity sha512-lEcqhErbHjXRvd41rnWLpzbyU/IXfIYo7QwaFWmxGeLiLyY2TBCdHnWY88vB+p3ubnihRypDm66panXl7TylLA==
 
-electron@42.5.0:
-  version "42.5.0"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-42.5.0.tgz#09de6f3f10146ed03c401405da695b5743ecdec7"
-  integrity sha512-cYEKS9XFz+c9fAB4jI0x49yz1FFzB55r3q96wu9YkwwJMv7t9202IE/ltlgy6yitl/J4M7C8JQcmUqdzDvPl/w==
+electron@43.4.1:
+  version "43.4.1"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-43.4.1.tgz#38fe7deff46c1c848b30ac46ad8e57c942704a34"
+  integrity sha512-5b+EuiwkgG5iRcsEL34rimgRpkYp15SsfZOa0pC5kXs0Tb82TH4n95rpQzTZa7yRCbA7tm0WoEbuBL6NaAhAcA==
   dependencies:
     "@electron-internal/extract-zip" "^1.0.1"
     "@electron/get" "^5.0.0"

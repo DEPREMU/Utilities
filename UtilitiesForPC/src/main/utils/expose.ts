@@ -25,11 +25,11 @@ import { Paths } from "@utils";
 import { Logger } from "./logger";
 import { zipFolder } from "./zip";
 import { nativeData } from "./nativeData";
-import { Directory, File, Network } from "@common";
+import { Directory, File, Helper, Network } from "@common";
 import { authenticateUser } from "./vault";
 import { sendNotification } from "./notifications";
 import { createPDFWithImages } from "./pdf";
-import { ChannelsIpcRenderer } from "@types";
+import { ChannelsIpcRenderer, MessagesClipboard } from "@types";
 import { createWindowClipboard } from "./clipboard";
 import { restartComputer, scheduleReconnect, turnOffComputer } from "./server";
 
@@ -58,6 +58,49 @@ const ipcDict: IpcDictHybrid = {
     type: "handle",
     func: async () => {
       return clipboard.readText("clipboard");
+    },
+  },
+  "delete-clipboard-item": {
+    type: "handle",
+    func: async (_event, id) => {
+      try {
+        const mainWindow = dataApp.getValue("mainWindow");
+        if (!mainWindow) return false;
+
+        mainWindow.webContents.send("clipboard-message", {
+          type: "delete",
+          id,
+        } satisfies MessagesClipboard);
+        return true;
+      } catch (error) {
+        Logger.error("Error deleting clipboard item:", error);
+      }
+      return false;
+    },
+  },
+  "delete-all-clipboard-items": {
+    type: "handle",
+    func: async (_event) => {
+      try {
+        const mainWindow = dataApp.getValue("mainWindow");
+        if (!mainWindow) return false;
+
+        mainWindow.webContents.send("clipboard-message", {
+          type: "delete-all",
+        } satisfies MessagesClipboard);
+        return true;
+      } catch (error) {
+        Logger.error("Error deleting clipboard item:", error);
+      }
+      return false;
+    },
+  },
+  "on-clipboard-message": {
+    type: "handle",
+    func: () => {
+      return {
+        remove: () => {},
+      };
     },
   },
   "set-clipboard": {
@@ -231,7 +274,7 @@ const ipcDict: IpcDictHybrid = {
       Logger.log(
         `Received set-clipboard-history request with ${items.length} items`,
       );
-      const itemsCleaned = Array.isArray(items) ? items : [];
+      const itemsCleaned = Helper.Arrays.convertToArray(items);
 
       dataApp.setValue("clipboardHistory", itemsCleaned);
       const clipboardWindow = dataApp.getValue("clipboardWindow");

@@ -101,11 +101,10 @@ export class DataClipboard extends ClipboardWebSocket {
     this.listItemsClipboard = newItems;
     this.updatedItems = true;
 
-    this.syncClipboardSuggestionsToModule();
     this.emit("items-updated", this.listItemsClipboard);
   };
 
-  private initClipboardItems = async (page: number = 1) => {
+  private initClipboardItems = async () => {
     const { userData, sessionToken } = sessionManager.getSessionData();
     if (!userData?.userId || !sessionToken) return;
 
@@ -113,32 +112,44 @@ export class DataClipboard extends ClipboardWebSocket {
 
     if (!sessionToken) return;
 
-    const res = await ServerFetch.get(
-      "/clipboard/:deviceId{/:page}",
-      { params: { deviceId, page } },
-      sessionToken,
-    );
+    let page = 0;
+    while (
+      page < 5 &&
+      this.listItemsClipboard.length < this.clipboardData.maxClipboardItems
+    ) {
+      const res = await ServerFetch.get(
+        "/clipboard/:deviceId{/:page}",
+        { params: { deviceId, page: ++page }, query: {} },
+        sessionToken,
+      );
 
-    if ("error" in res.data) {
-      REPLACERS.Logger.error("Error fetching clipboard items:", res.data.error);
-      return;
+      if ("error" in res.data) {
+        REPLACERS.Logger.error(
+          "Error fetching clipboard items:",
+          res.data.error,
+        );
+        return;
+      }
+
+      const { clipboardItems } = res.data;
+      if (!clipboardItems) return;
+
+      if (clipboardItems.length === 0) continue;
+
+      await this.addItemToClipboard(
+        clipboardItems
+          .filter((item) => !!item.content)
+          .slice(
+            0,
+            this.clipboardData.maxClipboardItems -
+              this.listItemsClipboard.length,
+          )
+          .map((item) => ({
+            id: item.id,
+            content: item.content,
+          })),
+      );
     }
-
-    const { clipboardItems } = res.data;
-    if (!clipboardItems) return;
-
-    if (clipboardItems.length === 0) return;
-    await this.addItemToClipboard(
-      clipboardItems
-        .filter((item) => !!item.content)
-        .map((item) => ({
-          id: item.id || "",
-          content: item.content,
-        })),
-    );
-    if (clipboardItems.length === this.clipboardData.maxClipboardItems) return;
-
-    await this.initClipboardItems(page + 1);
   };
 
   public setClipboardData = (data: Partial<ClipboardStorage>) => {

@@ -32,7 +32,8 @@ export const enFrontend: FrontendTranslations = {
     deleteLogGroupTitle: "Delete Log Group",
     deleteLogGroupMessage: "Delete all {{count}} occurrences of this log?",
     clearAllLogsTitle: "Clear All Logs",
-    clearAllLogsMessage: "Are you sure you want to permanently delete all server logs? This action cannot be undone.",
+    clearAllLogsMessage:
+      "Are you sure you want to permanently delete all server logs? This action cannot be undone.",
   },
   common: {
     bullet: "•",
@@ -48,6 +49,18 @@ export const enFrontend: FrontendTranslations = {
     options: "Options",
     language: "Language",
     themeToggle: "Toggle Theme",
+  },
+  labels: {
+    delete: "Delete",
+    deleteAll: "Delete All",
+  },
+  clipboard: {
+    history: "History",
+    searchPlaceholder: "Search by id or content...",
+    noResults: "No results",
+    errorLoading: "Error loading clipboard",
+    copiedToClipboard: "Copied to clipboard",
+    title: "Clipboard",
   },
 };
 

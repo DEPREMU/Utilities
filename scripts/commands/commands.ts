@@ -33,6 +33,8 @@ export const COMMANDS = {
   "build-frontend": "scripts/root-commands.ts --action=build-frontend",
   "build-clipboard-frontend":
     "scripts/root-commands.ts --action=build-clipboard-frontend",
+  "dev-clipboard-frontend":
+    "scripts/root-commands.ts --action=dev-clipboard-frontend",
 
   //? Other commands
   "update-assets": "scripts/update.ts",

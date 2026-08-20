@@ -179,18 +179,39 @@ const changeType: ChangeType = (obj, newType) => {
   return copy as never;
 };
 
-const getValue = <T extends object, K extends PropertyKey>(
+type ValueOf<T, K extends PropertyKey> = T extends unknown
+  ? K extends keyof T
+    ? T[K]
+    : never
+  : never;
+
+function getValue<T extends object, K extends PropertyKey>(
   obj: T,
   key: K,
-  fallbackValue: T extends Record<K, infer V> ? V : never,
-): T extends Record<K, infer V> ? V : never => {
-  if (!(key in obj)) return fallbackValue;
+): ValueOf<T, K> | undefined;
+function getValue<
+  T extends object,
+  K extends PropertyKey,
+  V extends ValueOf<T, K>,
+>(obj: T, key: K, fallbackValue: V): NonNullable<ValueOf<T, K>>;
+function getValue<T extends object, K extends PropertyKey, R>(
+  obj: T,
+  key: K,
+  fallbackValue: (value: ValueOf<T, K>) => R,
+): R;
+function getValue<T extends object, K extends PropertyKey>(
+  obj: T,
+  key: K,
+  fallbackValue?: unknown | ((value: ValueOf<T, K>) => unknown),
+) {
+  const value = (obj as Record<PropertyKey, unknown>)[key] as ValueOf<T, K>;
 
-  const value = (obj as Record<K, unknown>)[key] as T extends Record<K, infer V>
-    ? V
-    : never;
-  return value !== undefined ? value : fallbackValue;
-};
+  if (typeof fallbackValue === "function") {
+    return fallbackValue(value);
+  }
+
+  return value ?? fallbackValue;
+}
 
 export class Objects {
   static removeProperties<T extends Record<string, unknown>, K extends keyof T>(

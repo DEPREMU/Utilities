@@ -10,6 +10,8 @@ import {
   APP_PATH,
   PLATFORM,
   UTILITIES_FOR_PC_PATH,
+  TYPE_ARGS,
+  FRONTEND_PATH,
 } from "../config.ts";
 import axios from "axios";
 import { Helper } from "@commonSrc/both/index.ts";
@@ -19,11 +21,12 @@ import * as readline from "readline";
 const values = {
   PLATFORM: "web",
   platform: "linux",
+  TYPE_BUILD: "test",
   BUILD_PROFILE: "development",
-} as const;
+} as const satisfies Partial<TYPE_ARGS>;
 
 for (const [key, value] of Helper.Object.entries(values)) {
-  env[key] = value;
+  env[key as never] = value;
   process.env[key] = value;
   args.editArg(key, value as never);
 }
@@ -31,12 +34,14 @@ for (const [key, value] of Helper.Object.entries(values)) {
 interface ProcessState {
   expo: ChildProcess | null;
   electron: ChildProcess | null;
+  frontend: ChildProcess | null;
   isRestarting: boolean;
 }
 
 const state: ProcessState = {
   expo: null,
   electron: null,
+  frontend: null,
   isRestarting: false,
 };
 
@@ -153,6 +158,17 @@ const startExpo = (): ChildProcess => {
   });
 };
 
+const startFrontend = (): ChildProcess => {
+  Logger.log("\x1b[32m[Frontend]\x1b[0m Starting...");
+
+  const frontendEnv = { ...env };
+
+  return spawnCommand("yarn", ["run", "dev"], {
+    env: frontendEnv,
+    cwd: FRONTEND_PATH,
+  });
+};
+
 const performRestart = async () => {
   if (state.isRestarting) return;
   state.isRestarting = true;
@@ -182,8 +198,10 @@ const performExit = async () => {
   await Promise.allSettled([
     killProcess(state.expo, "Expo"),
     killProcess(state.electron, "Electron"),
+    killProcess(state.frontend, "Frontend"),
   ]);
   if (state.expo && !state.expo.killed) state.expo?.kill("SIGKILL");
+  if (state.frontend && !state.frontend.killed) state.frontend?.kill("SIGKILL");
 
   Logger.log("\x1b[32m[Manager]\x1b[0m Goodbye.");
   process.exit(0);
@@ -191,6 +209,7 @@ const performExit = async () => {
 
 const run = async () => {
   state.expo = startExpo();
+  state.frontend = startFrontend();
 
   state.electron = await startElectron();
 

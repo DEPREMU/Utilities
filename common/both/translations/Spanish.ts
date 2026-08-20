@@ -30,9 +30,11 @@ export const esFrontend: FrontendTranslations = {
     deleteLogTitle: "Eliminar Registro",
     deleteLogMessage: "¿Estás seguro de que deseas eliminar este registro?",
     deleteLogGroupTitle: "Eliminar Grupo de Registros",
-    deleteLogGroupMessage: "¿Eliminar todas las {{count}} ocurrencias de este registro?",
+    deleteLogGroupMessage:
+      "¿Eliminar todas las {{count}} ocurrencias de este registro?",
     clearAllLogsTitle: "Borrar Todos los Registros",
-    clearAllLogsMessage: "¿Estás seguro de que deseas eliminar permanentemente todos los registros del servidor? Esta acción no se puede deshacer.",
+    clearAllLogsMessage:
+      "¿Estás seguro de que deseas eliminar permanentemente todos los registros del servidor? Esta acción no se puede deshacer.",
   },
   common: {
     bullet: "•",
@@ -48,6 +50,18 @@ export const esFrontend: FrontendTranslations = {
     options: "Opciones",
     language: "Idioma",
     themeToggle: "Cambiar Tema",
+  },
+  labels: {
+    delete: "Eliminar",
+    deleteAll: "Eliminar todo",
+  },
+  clipboard: {
+    history: "Historial",
+    searchPlaceholder: "Buscar por id o contenido...",
+    noResults: "Sin resultados",
+    errorLoading: "Error al cargar el portapapeles",
+    copiedToClipboard: "Copiado al portapapeles",
+    title: "Portapapeles",
   },
 };
 

@@ -1,5 +1,7 @@
 import { ClipboardItem } from "@types";
 import { REPLACERS, ServerFetch, ServiceClass } from "@common";
+import { logger } from "@/utils/TOP_LEVEL/debug";
+import { TAG } from "./common";
 
 type ListenersClipboard = {
   "items-updated": (items: ClipboardItem[]) => void;
@@ -15,7 +17,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
   protected abstract listItemsClipboard: ClipboardItem[];
   protected abstract addItemToClipboard(item: ClipboardItem): Promise<void>;
 
-  readonly deleteItem = async (id: string) => {
+  readonly deleteItem = async (id: string | string[]) => {
     try {
       const { sessionManager, storageManagement } = await import("@utils");
 
@@ -29,7 +31,24 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
         token,
       );
 
-      return !res.data.error;
+      if (res.data.error) {
+        logger.error(
+          TAG,
+          "Error while deleting clipboard item:",
+          res.data.error,
+        );
+      }
+
+      const success = !res.data.error;
+
+      const set = new Set(id);
+
+      this.listItemsClipboard = this.listItemsClipboard.filter(
+        (i) => !set.has(i.id),
+      );
+      this.emit("items-updated", this.listItemsClipboard);
+
+      return success;
     } catch (error) {
       REPLACERS.Logger.error("Error deleting clipboard item:", error);
 
@@ -50,6 +69,9 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
         { body: { restore, deviceId } },
         token,
       );
+
+      this.listItemsClipboard = [];
+      this.emit("items-updated", this.listItemsClipboard);
 
       return !res.data.error;
     } catch (error) {
@@ -76,7 +98,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
       const deviceId = storageManagement.get("DEVICE_ID");
       const res = await ServerFetch.get(
         "/clipboard/:deviceId{/:page}",
-        { params: { deviceId, page: pageNumber } },
+        { params: { deviceId, page: pageNumber }, query: {} },
         token,
       );
 

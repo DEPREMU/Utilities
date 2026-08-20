@@ -12,6 +12,7 @@ import { ClipboardItem } from "./screens";
 import { LanguagesSupported } from "./typesTranslations";
 import type { FileInfo, PickedFile } from "./typesVault";
 import { ActionNotification, ReasonNotification } from "./typesNotifications";
+import { Function } from "@types";
 
 export type EventNativeModule = {
   actionId: ActionNotification;
@@ -21,6 +22,13 @@ export type EventNativeModule = {
   reasonNotification: ReasonNotification;
   data: Record<string, unknown>;
 };
+
+export type MessagesClipboard =
+  | {
+      id: string;
+      type: "delete";
+    }
+  | { type: "delete-all" };
 
 type ExpectedStorageTypesBoth = ExpectedStorageTypes &
   ExpectedStorageTypes<"UNSECURE">;
@@ -37,6 +45,21 @@ export type ChannelsIpcRenderer<
     functionArgs: [text: string];
     functionReturn: void;
     typeIpc: "send";
+  };
+  "delete-clipboard-item": {
+    functionArgs: [itemId: string];
+    functionReturn: Promise<boolean>;
+    typeIpc: "invoke";
+  };
+  "delete-all-clipboard-items": {
+    functionArgs: [];
+    functionReturn: Promise<boolean>;
+    typeIpc: "invoke";
+  };
+  "on-clipboard-message": {
+    functionArgs: [callback: Function<[MessagesClipboard], void>];
+    functionReturn: { remove: () => void };
+    typeIpc: "on";
   };
   "user-login-status": {
     functionArgs: [isLoggedIn: boolean];
@@ -244,6 +267,14 @@ export type ContextBridgeType = {
   UtilitiesForPC: {
     readClipboard: () => Promise<string>;
     setClipboard: (text: string) => void;
+    deleteClipboardItem: (
+      ...args: ChannelsIpcRenderer["delete-clipboard-item"]["functionArgs"]
+    ) => ChannelsIpcRenderer["delete-clipboard-item"]["functionReturn"];
+    deleteAllClipboardItems: () => ChannelsIpcRenderer["delete-all-clipboard-items"]["functionReturn"];
+    onMessageClipboard: (
+      ...args: ChannelsIpcRenderer["on-clipboard-message"]["functionArgs"]
+    ) => ChannelsIpcRenderer["on-clipboard-message"]["functionReturn"];
+
     notifyLoginStatus: (isLoggedIn: boolean) => void;
     turnOffComputer: () => ChannelsIpcRenderer["turn-off-computer"]["functionReturn"];
     restartComputer: () => ChannelsIpcRenderer["restart-computer"]["functionReturn"];
@@ -282,7 +313,7 @@ export type ContextBridgeType = {
     hideClipboardWindow: () => void;
     showClipboardWindow: () => void;
     onClipboardItemsUpdated: (
-      callback: (items: Array<{ id: string; content: string }>) => void,
+      callback: (items: ClipboardItem[]) => void,
     ) => void;
 
     authenticate: () => Promise<boolean>;

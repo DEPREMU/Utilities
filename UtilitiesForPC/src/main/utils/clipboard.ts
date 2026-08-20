@@ -39,11 +39,17 @@ export const createWindowClipboard = (showOnCreate: boolean = false): void => {
       window.hide();
     });
 
-    const htmlPath = Paths.getPath("ASSETS", "index-clipboard.html");
+    if (app.isPackaged) {
+      const htmlPath = Paths.getPath("ASSETS", "clipboard", "index.html");
 
-    window.loadFile(htmlPath).catch((err) => {
-      Logger.error("Error loading clipboard file:", err);
-    });
+      window.loadFile(htmlPath).catch((err) => {
+        Logger.error("Error loading file:", err);
+      });
+    } else {
+      window.loadURL("http://localhost:5173").catch((err) => {
+        Logger.error("Error loading URL:", err);
+      });
+    }
     dataApp.setValue("clipboardWindow", window);
 
     Logger.log("Clipboard context menu created successfully");
