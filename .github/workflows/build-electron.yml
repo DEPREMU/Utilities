@@ -5,6 +5,13 @@ on:
     branches:
       - main
       - create-ci-cd
+    paths:
+      - "yarn.lock"
+      - "common/both/**"
+      - "UtilitiesForPC/**"
+      - "common/serverOrElectron/**"
+      - "frontend/src/pages/Clipboard/**"
+      - ".github/workflows/build-electron.yml"
   workflow_dispatch:
 
 jobs:
