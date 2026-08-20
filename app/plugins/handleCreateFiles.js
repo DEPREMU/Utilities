@@ -46,8 +46,7 @@ const withGoogleServices = (config) => {
       );
 
       //TODO: Delete after feature finished
-      execSync("sudo apt install tree", { stdio: "inherit" });
-      execSync("tree -L 3", { stdio: "inherit" });
+      execSync("tree ../ -L 8", { stdio: "inherit", cwd: projectRoot });
 
       try {
         fs.mkdirSync(path.dirname(googleServicesPath), { recursive: true });
