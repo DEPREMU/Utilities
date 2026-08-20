@@ -1,0 +1,41 @@
+name: build-electron
+
+on:
+  push:
+    branches:
+      - main
+      - create-ci-cd
+  workflow_dispatch:
+
+jobs:
+  build-and-upload:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Dependencies
+        run: yarn install
+        working-directory: .
+
+      - name: Build and Upload Electron App
+        run: yarn run build-upload-electron --ci
+        env:
+          API_URL: ${{ secrets.API_URL }}
+
+      - name: Upload Fallback Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-builds-${{ matrix.os }}
+          path: UtilitiesForPC/dist-electron/
+          retention-days: 7

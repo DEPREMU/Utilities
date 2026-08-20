@@ -306,7 +306,7 @@ const buildApp = async () => {
     Logger.log("Testing mode: Skipping rename dist-electron package");
   }
 
-  if (PLATFORM.isWindows || args.ARGS.testing) return;
+  if (PLATFORM.isWindows || args.ARGS.testing || args.ARGS.ci) return;
 
   const installAnswer = args.ARGS.yes
     ? "y"
@@ -383,7 +383,7 @@ export const run = async () => {
 
 handleExitFromScript(async (err) => {
   if (err) Logger.error("An error occurred:", err.message);
-  if (!args.ARGS.yes && !args.ARGS.testing) await ask(t("pressEnterToExit"), -1);
+  if (!args.ARGS.yes && !args.ARGS.testing && !args.ARGS.ci) await ask(t("pressEnterToExit"), -1);
   if (!args.ARGS.testing) removeDirSafe(TEMP_FOLDER);
 });
 

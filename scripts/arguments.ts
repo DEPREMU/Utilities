@@ -30,6 +30,7 @@ export type TYPE_ARGS = {
   "skip-build-electron"?: boolean;
   "skip-prebuild-android"?: boolean;
   "platform-update-assets"?: "android" | "web" | "both";
+  ci?: boolean;
 };
 
 const showHelp = () => {
@@ -169,6 +170,10 @@ class Args {
         "  -pua, --platform-update-assets=<platform>   Specify the platform to update assets for (android, web, both)",
       transformed: ["-pua", "--platform-update-assets"],
     },
+    ci: {
+      explanation: "  --ci                         Run in CI environment, bypassing prompts",
+      transformed: "--ci",
+    },
   };
 
   static Args: Record<keyof TYPE_ARGS, 0> = {
@@ -190,6 +195,7 @@ class Args {
     "skip-build-electron": 0,
     "skip-prebuild-android": 0,
     "platform-update-assets": 0,
+    ci: 0,
   };
 
   static readonly showHelp = showHelp;
@@ -259,6 +265,9 @@ class Args {
           case "-t":
           case "--testing":
             acc["testing"] = true;
+            return acc;
+          case "--ci":
+            acc["ci"] = true;
             return acc;
           default:
             break;
