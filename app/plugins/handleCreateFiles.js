@@ -2,6 +2,7 @@
 import fs from "fs";
 import path from "path";
 import { Chalk } from "chalk";
+import { execSync } from "child_process";
 const chalk = new Chalk({ level: 1 });
 
 const withGoogleServices = (config) => {
@@ -44,6 +45,18 @@ const withGoogleServices = (config) => {
         parsed.project_info?.project_id,
       );
 
+      //TODO: Delete after feature finished
+      execSync("sudo apt install tree", { stdio: "inherit" });
+      execSync("tree -L 3", { stdio: "inherit" });
+
+      try {
+        fs.mkdirSync(path.dirname(googleServicesPath), { recursive: true });
+      } catch (e) {
+        console.error(
+          chalk.red("Error creating directory:"),
+          e instanceof Error ? e.message : e,
+        );
+      }
       fs.writeFileSync(googleServicesPath, googleServicesContent);
       console.log(
         chalk.green("google-services.json created successfully in:"),

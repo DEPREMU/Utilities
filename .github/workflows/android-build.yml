@@ -88,11 +88,15 @@ jobs:
           docker run --rm \
             -v "${{ github.workspace }}/.git:/utilities/.git" \
             -v "${{ github.workspace }}/app/builds:/utilities/app/builds" \
-            -e EXPO_TOKEN="${EXPO_TOKEN}" \
+            -e WS_URL="${WS_URL}" \
+            -e API_URL="${API_URL}" \
             -e BUILD_PROFILE=production \
+            -e EXPO_TOKEN="${EXPO_TOKEN}" \
             -e GOOGLE_SERVICES_JSON="${GOOGLE_SERVICES_JSON}" \
             app-android-build
         env:
+          WS_URL: ${{ secrets.WS_URL }}
+          API_URL: ${{ secrets.API_URL }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
