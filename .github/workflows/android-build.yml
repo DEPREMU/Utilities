@@ -81,9 +81,9 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
-      - name: Clear android from .gitignore
+      - name: Clear android and google-services.json from .gitignore
         # if: steps.version_check.outputs.should_build == 'true'
-        run: sed -i '/^android\/$/d' .gitignore
+        run: sed -i '/^android\/$/d; /^google-services.json$/d' .gitignore
 
       - name: Build Android App (Docker)
         # if: steps.version_check.outputs.should_build == 'true'
@@ -96,13 +96,11 @@ jobs:
             -e API_URL="${API_URL}" \
             -e BUILD_PROFILE=production \
             -e EXPO_TOKEN="${EXPO_TOKEN}" \
-            -e GOOGLE_SERVICES_JSON="${GOOGLE_SERVICES_JSON}" \
             app-android-build
         env:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Upload Artifact (Primary)
         # if: steps.version_check.outputs.should_build == 'true'
