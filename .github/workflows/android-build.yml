@@ -75,7 +75,7 @@ jobs:
         # if: steps.version_check.outputs.should_build == 'true'
         run: yarn install
 
-      - name: Prebuild Android
+      - name: Pre-build Android
         # if: steps.version_check.outputs.should_build == 'true'
         run: yarn run app-prebuild-android
         env:

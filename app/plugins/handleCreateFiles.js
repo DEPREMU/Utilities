@@ -22,18 +22,19 @@ const withGoogleServices = (config) => {
       const projectRoot = config._internal?.projectRoot || process.cwd();
       const files = fs.readdirSync(projectRoot, { recursive: true });
 
-      const MainActivity = files.find((file) =>
-        file.endsWith("MainActivity.kt"),
+      const buildGradle = files.find((file) =>
+        file.endsWith("app/build.gradle"),
       );
+      console.log(files.filter((f) => f.includes("google-services.json")));
 
       console.log(
-        chalk.red("Main Activity path:"),
-        path.join(projectRoot, path.dirname(MainActivity)),
+        chalk.red("build.gradle path:"),
+        path.join(projectRoot, path.dirname(buildGradle)),
       );
 
       const googleServicesPath = path.join(
         projectRoot,
-        path.dirname(MainActivity),
+        path.dirname(buildGradle),
         "google-services.json",
       );
       if (fs.existsSync(googleServicesPath)) {
