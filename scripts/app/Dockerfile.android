@@ -14,11 +14,11 @@ COPY package.json yarn.lock ./
 COPY app/package.json ./app/package.json
 COPY common/package.json ./common/package.json
 
-RUN sed -i '/^android\/$/d' .gitignore
-
 RUN yarn install --immutable
 
 COPY . .
+
+RUN sed -i '/^android\/$/d' .gitignore
 
 WORKDIR /utilities/app
 
