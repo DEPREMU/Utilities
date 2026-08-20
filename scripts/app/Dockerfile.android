@@ -11,8 +11,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
 RUN npm install -g eas-cli
 
 COPY package.json yarn.lock ./
-COPY common/package.json ./common/package.json
 COPY app/package.json ./app/package.json
+COPY common/package.json ./common/package.json
+
+RUN sed -i '/^android\/$/d' .gitignore
 
 RUN yarn install --immutable
 
@@ -20,7 +22,6 @@ COPY . .
 
 WORKDIR /utilities/app
 
-RUN sed -i '/^android\/$/d' .gitignore
 
 CMD eas build \
   --platform android \

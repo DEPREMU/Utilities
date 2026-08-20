@@ -81,6 +81,10 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
+      - name: Clear android from .gitignore
+        # if: steps.version_check.outputs.should_build == 'true'
+        run: sed -i '/^android\/$/d' .gitignore
+
       - name: Build Android App (Docker)
         # if: steps.version_check.outputs.should_build == 'true'
         run: |
