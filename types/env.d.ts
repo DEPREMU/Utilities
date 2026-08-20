@@ -1,6 +1,7 @@
 export type Env<B extends boolean = false> = {
   API_URL: string;
   JWT_SECRET: string;
+  TYPE_BUILD: "normal" | "clipboard" | "test";
   ADMIN_EMAIL: string;
   BUILD_PROFILE: "production" | "development" | string;
   DEEPL_TRANSLATOR_API: string;

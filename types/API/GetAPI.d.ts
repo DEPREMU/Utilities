@@ -64,21 +64,12 @@ export type ServerInfoFetch =
       DEFAULT_RESPONSE
     >;
 
-export type ClipboardFetch =
-  | GetUrlFetch<
-      "/:deviceId{/:page-number}",
-      null,
-      { auth: true },
-      | { clipboardItems: DB["TablesClient"]["ClipboardSync"][] }
-      | { error: string }
-    >
-  | GetUrlFetch<
-      "/search/:deviceId/:query{/:page-number}?deleted-boolean-optional",
-      null,
-      { auth: true },
-      | { clipboardItems: DB["TablesClient"]["ClipboardSync"][] }
-      | { error: string }
-    >;
+export type ClipboardFetch = GetUrlFetch<
+  "/:deviceId{/:page-number}?deleted-boolean-optional;query-optional;",
+  null,
+  { auth: true },
+  { clipboardItems: DB["TablesClient"]["ClipboardSync"][] } | { error: string }
+>;
 
 export type DownDetectorFetch = GetUrlFetch<
   "/:deviceId{/:page-number}",

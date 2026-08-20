@@ -4,8 +4,9 @@ import {
   UTILITIES_PATH,
   UTILITIES_FOR_PC_PATH,
   PACKAGE_JSON_UtilitiesForPC,
+  FRONTEND_PATH,
 } from "../config.ts";
-import fs from "fs";
+import fs, { existsSync } from "fs";
 import path from "path";
 import { t } from "./translations.ts";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
@@ -30,7 +31,6 @@ const removeDirSafe = (dirPath: string) => {
 const exportWebApp = () => {
   if (!fs.existsSync(APP_PATH))
     throw new Error(t("appPathDoesNotExist") + APP_PATH);
-
 
   Logger.log(t("installingDependencies"));
   execSync("yarn install", { cwd: UTILITIES_PATH });
@@ -62,9 +62,29 @@ const exportWebApp = () => {
   fs.rmSync(distPath, { recursive: true });
 };
 
+const exportClipboardApp = () => {
+  const pathDist = path.resolve(UTILITIES_FOR_PC_PATH, "assets", "clipboard");
+  const pathFrontendDist = path.resolve(FRONTEND_PATH, "dist");
+
+  if (fs.existsSync(pathDist)) return;
+
+  if (!fs.existsSync(pathFrontendDist)) {
+    execSync(`yarn run build-clipboard-frontend`, {
+      cwd: UTILITIES_PATH,
+    });
+
+    if (!existsSync(pathFrontendDist))
+      throw new Error(t("failedToBuildWebApp") + pathFrontendDist);
+  }
+
+  fs.cpSync(pathFrontendDist, pathDist, { recursive: true });
+  fs.rmSync(pathFrontendDist, { recursive: true });
+};
+
 const run = async () => {
   try {
     exportWebApp();
+    exportClipboardApp();
   } catch (error) {
     Logger.error(t("buildFailed"), error);
     process.exit(1);

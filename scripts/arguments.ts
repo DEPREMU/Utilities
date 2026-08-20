@@ -24,6 +24,7 @@ export type TYPE_ARGS = {
   PLATFORM?: "android" | "web";
   platform?: "linux" | "windows";
   isWindows?: boolean;
+  TYPE_BUILD?: "clipboard" | "normal" | "test";
   BUILD_PROFILE?: "development" | "preview" | "production";
   "skip-build-android"?: boolean;
   "skip-build-electron"?: boolean;
@@ -83,6 +84,11 @@ class Args {
     keyof TYPE_ARGS,
     { explanation: string; transformed: string | string[] }
   > = {
+    TYPE_BUILD: {
+      explanation:
+        "  -tb, --type-build=<type-build>     Specify the frontend type build (normal, clipboard, test)",
+      transformed: ["-tb", "--type-build"],
+    },
     yes: {
       explanation:
         "  -y, --yes                    Automatically answer 'yes' to all prompts and use default values where applicable",
@@ -178,6 +184,7 @@ class Args {
     platform: 0,
     PLATFORM: 0,
     isWindows: 0,
+    TYPE_BUILD: 0,
     BUILD_PROFILE: 0,
     "skip-build-android": 0,
     "skip-build-electron": 0,
@@ -275,6 +282,16 @@ class Args {
         throw new Error(`Duplicate argument: ${key}`);
 
       switch (key) {
+        case "tb":
+        case "type-build":
+          if (new Set(["clipboard", "normal", "test"]).has(value as string)) {
+            acc.TYPE_BUILD = value as TYPE_ARGS["TYPE_BUILD"];
+          } else {
+            throw new Error(
+              `Invalid TYPE_BUILD: ${value}. Valid options: clipboard, normal, test`,
+            );
+          }
+          break;
         case "p":
         case "platform":
           if (new Set(["linux", "windows", "both"]).has(value as string)) {

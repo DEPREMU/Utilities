@@ -98,11 +98,13 @@ export const run = async () => {
       }
       break;
     }
-    case "dev-frontend": {
+    case "dev-frontend":
+    case "dev-clipboard-frontend": {
       if (!args.ARGS.testing) {
         const envWeb = {
           ...env,
-          TYPE_BUILD: "test",
+          TYPE_BUILD:
+            action === "dev-clipboard-frontend" ? "clipboard" : "test",
           BUILD_PROFILE: "development",
         };
         execSync("yarn run dev", {

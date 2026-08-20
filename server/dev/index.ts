@@ -6,23 +6,19 @@ import { Logger, ServerFetch } from "@common";
 import { executeFunctionAfterInit } from "@/config";
 
 const initDev = async () => {
-  try {
-    await prisma.users.delete({
-      where: { email: user.email },
+  const count = await prisma.users.count({ where: { email: user.email } });
+
+  if (count === 0) {
+    const res = await ServerFetch.post("/auth/signup", {
+      body: {
+        lang: "en",
+        email: user.email,
+        password: user.password,
+      },
     });
-  } catch {
-    // Ignore errors
+
+    Logger.log(chalk.green("Test user created:"), res);
   }
-
-  const res = await ServerFetch.post("/auth/signup", {
-    body: {
-      lang: "en",
-      email: user.email,
-      password: user.password,
-    },
-  });
-
-  Logger.log(chalk.green("Test user created:"), res);
 
   await createFakeData();
 };

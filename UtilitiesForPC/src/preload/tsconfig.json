@@ -9,7 +9,8 @@
     "paths": {
       "@/*": ["./*"],
       "@types": ["../../../types/index.d.ts"],
-      "@common": ["../../../common/both/index.ts"]
+      "@common": ["../../../common/both/index.ts"],
+      "@REPLACERS": ["../../../common/both/REPLACERS/REPLACERS.frontend.ts"]
     }
   },
   "include": ["./**/*.ts", "../../../common/both/index.ts"],

@@ -20,8 +20,8 @@
   "dependencies": {
     "7zip-bin": "^5.2.0",
     "archiver": "^8.0.0",
-    "bonjour-service": "^1.4.2",
-    "electron-edge-js": "^42.0.0",
+    "bonjour-service": "^1.4.4",
+    "electron-edge-js": "^43.0.0",
     "node-7z": "^3.0.0",
     "pdfkit": "^0.19.1",
     "pino": "^10.3.1",
@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "dmg-builder": "^26.15.3",
-    "electron": "42.5.0",
+    "electron": "43.4.1",
     "electron-builder": "^26.15.3",
     "electron-store": "^11.0.2",
     "node-machine-id": "^1.1.12"

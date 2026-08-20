@@ -23,11 +23,11 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 const getSkeletonData = (deleted: boolean) => {
   const createdAt = new Date().toISOString();
 
-  return Array.from({ length: 5 }).map(() => {
+  return Array.from({ length: 5 }).map((_, i) => {
     const returnData: DB["TablesClient"]["ClipboardSync"] = {
       deleted,
       createdAt,
-      id: "id",
+      id: `id ${i}`,
       userId: "userId",
       content: "Loading...",
       deviceId: "deviceId",
@@ -54,11 +54,11 @@ const ClipboardScreen: React.FC = () => {
     DB["TablesClient"]["ClipboardSync"][] | null
   >(getSkeletonData(deleted));
 
-  const pageRef = useRef<number | null>(0);
+  const pageRef = useRef<number | null>(1);
   const deletedRef = useRef<boolean | null>(deleted);
   const flatListRef = useRef<FlatList | null>(null);
   const isLoadingRef = useRef<boolean | null>(false);
-  const pageRefSearch = useRef<number | null>(0);
+  const pageRefSearch = useRef<number | null>(1);
   const hasNoMoreData = useRef<boolean | null>(false);
   const prevSearchTextRef = useRef<string | null>("");
   const hasNoMoreDataSearch = useRef<boolean | null>(false);
@@ -81,9 +81,9 @@ const ClipboardScreen: React.FC = () => {
         setClipboardData(getSkeletonData(!!deletedRef.current));
       }
 
-      pageRef.current = setNull ? null : 0;
+      pageRef.current = setNull ? null : 1;
       isLoadingRef.current = setNull ? null : false;
-      pageRefSearch.current = setNull ? null : 0;
+      pageRefSearch.current = setNull ? null : 1;
       hasNoMoreData.current = setNull ? null : false;
       prevSearchTextRef.current = setNull ? null : "";
       hasNoMoreDataSearch.current = setNull ? null : false;
@@ -138,23 +138,23 @@ const ClipboardScreen: React.FC = () => {
     isLoadingRef.current = true;
     setNoMoreData(false);
 
-    const page = (searchText ? pageRefSearch.current : pageRef.current) || 0;
-    if (page === 0) {
+    const page = (searchText ? pageRefSearch.current : pageRef.current) || 1;
+    if (page === 1) {
       isLoadingSkeletonRef.current = true;
       if (searchText) setSearchData(getSkeletonData(!!deletedRef.current));
       else setClipboardData(getSkeletonData(!!deletedRef.current));
     }
 
     const res = await ServerFetch.get(
-      "/clipboard/search/:deviceId/:query{/:page}",
+      "/clipboard/:deviceId{/:page}",
       {
         params: {
           page: page,
           deviceId,
-          query: searchText || "",
         },
         query: {
-          deleted: !!deletedRef.current,
+          query: searchText || undefined,
+          deleted: deletedRef.current || undefined,
         },
       },
       sessionToken,
@@ -173,7 +173,11 @@ const ClipboardScreen: React.FC = () => {
       refSet((prev) => {
         const oldData = prevIsLoadingSkeleton ? [] : prev || [];
 
-        const newData = [...oldData, ...data];
+        const newData = [...oldData];
+
+        data.forEach((item) => {
+          if (!newData.some((i) => i.id === item.id)) newData.push(item);
+        });
 
         allClipboardDataRef.current = newData;
         return newData;

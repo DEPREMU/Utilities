@@ -1,28 +1,32 @@
 import { prisma } from "@/database/postgres";
-import { getHandlerPut, Logger, STATUS_RESPONSE } from "@common";
+import { getHandlerPut, Helper, Logger, STATUS_RESPONSE } from "@common";
 
 export const handleToggleDeletedClipboardItem = getHandlerPut(
   "/clipboard",
   "/delete/toggle-deleted",
-  { body: { deviceId: "string", id: "string" } },
-  async ({ body }, sendResponse) => {
+  { body: { deviceId: "string", id: ["object", "string"] } },
+  async ({ body }, sendResponse, { req }) => {
     try {
-      const item = await prisma.clipboardSync.findUnique({
-        where: { id: body.id },
+      const id = Helper.Arrays.convertToArray(body.id);
+      const userId = req.user.token.data.userId;
+
+      const items = await prisma.clipboardSync.findMany({
+        where: { id: { in: id }, userId },
       });
 
-      if (!item) {
+      if (!items.length) {
         sendResponse(STATUS_RESPONSE.NOT_FOUND, {
           error: "Item not found",
         });
         return;
       }
 
-      const updatedItem = await prisma.clipboardSync.update({
+      const updatedItem = await prisma.clipboardSync.updateMany({
         data: {
-          deleted: body.deleted !== undefined ? body.deleted : !item.deleted,
+          deleted:
+            body.deleted !== undefined ? body.deleted : !items[0].deleted,
         },
-        where: { id: body.id },
+        where: { id: { in: id }, userId },
       });
 
       sendResponse(STATUS_RESPONSE.SUCCESS, {

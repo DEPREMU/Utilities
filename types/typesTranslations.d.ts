@@ -957,6 +957,18 @@ export type FrontendTranslations = {
     language: string;
     themeToggle: string;
   };
+  labels: {
+    delete: string;
+    deleteAll: string;
+  };
+  clipboard: {
+    history: string;
+    searchPlaceholder: string;
+    noResults: string;
+    errorLoading: string;
+    copiedToClipboard: string;
+    title: string;
+  };
 };
 
 export type FrontendTranslationsKeys = Paths<FrontendTranslations>;

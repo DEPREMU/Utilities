@@ -1,4 +1,5 @@
 import {
+  Helper,
   Logger,
   REPLACERS,
   startMemoryMonitor,
@@ -25,6 +26,8 @@ import { initializeFirebaseAdmin } from "./firebase/admin.ts";
 import { validateServerEnv, getEnvValue } from "./env.ts";
 import { host, port, executeFunctions, getRoutes } from "./config.ts";
 import { CryptosWebSocketMessage, WebSocketPathname } from "@types";
+
+type ServerWebSocket = ReturnType<typeof initWebSocket>;
 
 const app = express();
 
@@ -78,11 +81,13 @@ const startApp = async () => {
   app.use("/updates", express.static(getRoutes("WEB_PATH_UPDATES")));
 
   const server = http.createServer(app);
-  const cryptoWss = initWebSocketCryptos();
-  const generalWss = initWebSocket();
-  const clipboardWss = initWebSocketClipboard();
-  const webSocketLoginQRCode = initWebSocketLoginQRCode();
-  const serverLogsWss = initWebSocketServerLogs();
+  const webSockets: Record<WebSocketPathname, ServerWebSocket> = {
+    "/ws": initWebSocket(),
+    "/ws-logs": initWebSocketServerLogs(),
+    "/clipboard": initWebSocketClipboard(),
+    "/ws-cryptos": initWebSocketCryptos(),
+    "/ws-login-qr": initWebSocketLoginQRCode(),
+  };
 
   server.on("upgrade", (request, socket, head) => {
     if (!request.url) {
@@ -96,35 +101,7 @@ const startApp = async () => {
       `${sourceProtocol}://${request.headers.host}`,
     ).pathname as WebSocketPathname;
 
-    let wsCalled:
-      | typeof cryptoWss
-      | typeof generalWss
-      | typeof clipboardWss
-      | typeof webSocketLoginQRCode
-      | typeof serverLogsWss
-      | null = null;
-
-    switch (pathname) {
-      case "/clipboard":
-        wsCalled = clipboardWss;
-        break;
-      case "/ws-cryptos":
-        wsCalled = cryptoWss;
-        break;
-      case "/ws":
-        wsCalled = generalWss;
-        break;
-      case "/ws-login-qr":
-        wsCalled = webSocketLoginQRCode;
-        break;
-      case "/ws-logs":
-        wsCalled = serverLogsWss;
-        break;
-      default:
-        Logger.error("Invalid WebSocket pathname:", pathname);
-        socket.destroy();
-        return;
-    }
+    const wsCalled = webSockets[pathname];
 
     if (!wsCalled) {
       Logger.error("WebSocket server not found for pathname:", pathname);
@@ -163,20 +140,19 @@ const startApp = async () => {
 
   server.listen(port, host, async () => {
     Logger.log(
-      "",
-      chalk.green(`Server is running on ${sourceProtocol}://${host}:${port}`),
       "\n",
-      chalk.green(
-        `WebSocket is running on ${sourceProtocolWs}://${host}:${port}/ws`,
-      ),
+      "\t" +
+        chalk.green(`Server is running on ${sourceProtocol}://${host}:${port}`),
       "\n",
-      chalk.green(
-        `Clipboard WebSocket is running on ${sourceProtocolWs}://${host}:${port}/clipboard`,
-      ),
-      "\n",
-      chalk.green(
-        `Logs WebSocket is running on ${sourceProtocolWs}://${host}:${port}/ws-logs`,
-      ),
+      ...Helper.Object.keys(webSockets).map((pathname) => {
+        return (
+          "\t" +
+          chalk.green(
+            `WebSocket is running on ${sourceProtocolWs}://${host}:${port}${pathname}`,
+          ) +
+          "\n"
+        );
+      }),
     );
 
     if (REPLACERS.isDev) await import("@/dev/index.ts");

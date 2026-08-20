@@ -15,9 +15,11 @@ export class ListenersClipboard extends DataClipboard {
 
   #listenerClipboard: EmitterSubscription | null = null;
   #listenerSession: Listener = null;
+  #listenerItemsUpdated: Listener = null;
   #isRunningNativeService: boolean = false;
   #removeInternetListener: Listener = null;
   #removeStatePhoneListener: Listener = null;
+  #removeMessageClipboardListener: Listener = null;
 
   private initClipboardNativeListener = () => {
     if (!REPLACERS.isNative) return;
@@ -107,6 +109,14 @@ export class ListenersClipboard extends DataClipboard {
     };
   };
 
+  private initItemsUpdatedListener = () => {
+    if (this.#listenerItemsUpdated) return;
+
+    this.#listenerItemsUpdated = this.addEventListener("items-updated", () => {
+      this.syncClipboardSuggestionsToModule();
+    });
+  };
+
   private handleIntervalClipboardWeb = async () => {
     if (!REPLACERS.isWeb) return;
 
@@ -130,6 +140,25 @@ export class ListenersClipboard extends DataClipboard {
         error,
       );
     }
+  };
+
+  private handleDeleteItem = async () => {
+    if (!REPLACERS.isWeb) return;
+
+    this.#removeMessageClipboardListener = windowModule?.onMessageClipboard(
+      (message) => {
+        if (
+          !message ||
+          typeof message !== "object" ||
+          Object.keys(message || {}).length === 0
+        )
+          return;
+
+        if (message.type === "delete") this.deleteItem(message.id);
+        else if (message.type === "delete-all")
+          this.deleteItem(this.listItemsClipboard.map((i) => i.id));
+      },
+    );
   };
 
   override async resume(): Promise<void> {
@@ -172,6 +201,16 @@ export class ListenersClipboard extends DataClipboard {
       BackgroundModule.stopClipboardService();
       this.#isRunningNativeService = false;
     }
+
+    if (this.#removeMessageClipboardListener) {
+      this.#removeMessageClipboardListener.remove();
+      this.#removeMessageClipboardListener = null;
+    }
+
+    if (this.#listenerItemsUpdated) {
+      this.#listenerItemsUpdated.remove();
+      this.#listenerItemsUpdated = null;
+    }
   }
 
   override async _init(): Promise<void> {
@@ -192,6 +231,8 @@ export class ListenersClipboard extends DataClipboard {
       this.#intervalId = Timers.setInterval(() => {
         this.handleIntervalClipboardWeb();
       }, 500);
+
+      this.handleDeleteItem();
     } else {
       this.initClipboardNativeListener();
       this.#removeStatePhoneListener = deviceInfo.addEventListener(
@@ -205,5 +246,6 @@ export class ListenersClipboard extends DataClipboard {
 
     this.initSessionListener();
     this.initInternetListener();
+    this.initItemsUpdatedListener();
   }
 }

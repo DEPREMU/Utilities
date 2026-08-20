@@ -54,6 +54,7 @@ const env: Env = {
     process.env.SECRET_KEY_TO_ENCRYPTION || "0123456789abcdef0123456789abcdef",
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || "",
   IV: process.env.IV || "abcdef9876543210",
+  TYPE_BUILD: (process.env.TYPE_BUILD as Env["TYPE_BUILD"]) || "normal",
 };
 
 const trueArray = new Set(["true", "1", "yes", "on"]);
@@ -65,9 +66,10 @@ const envTranslated: Env<true> = {
   __DEV__: REPLACERS.isDev,
   USE_HTTPS: trueArray.has(env.USE_HTTPS),
   JWT_SECRET: env.JWT_SECRET,
+  TYPE_BUILD: env.TYPE_BUILD,
   ADMIN_EMAIL: env.ADMIN_EMAIL,
   DATABASE_URL: env.DATABASE_URL,
-  BUILD_PROFILE: env.BUILD_PROFILE as "production",
+  BUILD_PROFILE: env.BUILD_PROFILE,
   ADMIN_PASSWORD: env.ADMIN_PASSWORD,
   DB_ENCRYPTION_PASS: env.DB_ENCRYPTION_PASS,
   DEEPL_TRANSLATOR_API: env.DEEPL_TRANSLATOR_API,

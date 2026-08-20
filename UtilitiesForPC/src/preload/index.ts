@@ -1,11 +1,12 @@
 import {
-  ClipboardItem,
+  Function,
   ContextBridgeType,
+  MessagesClipboard,
   LanguagesSupported,
   ChannelsIpcRenderer,
 } from "@types";
-import { Timers, ALL_KEYS_STORAGE_TYPE, Helper } from "@common";
 import { ipcRenderer, contextBridge, IpcRendererEvent } from "electron";
+import { Timers, ALL_KEYS_STORAGE_TYPE, Helper, REPLACERS } from "@common";
 
 const sendLog = (level: "log" | "warn" | "error", ...args: unknown[]) => {
   void fetch("http://localhost:3005/log", {
@@ -28,10 +29,25 @@ const sendMessage = async <
   channel: K,
   ...args: V
 ): Promise<ChannelsIpcRenderer<T>[K]["functionReturn"]> => {
-  return await ipcRenderer?.[type]?.(channel, ...args);
+  const method = ipcRenderer?.[type] as
+    | ((
+        channel: string,
+        ...rest: unknown[]
+      ) => Promise<ChannelsIpcRenderer<T>[K]["functionReturn"]>)
+    | undefined;
+  return await method?.(channel as string, ...args);
 };
 
 let idleTimeout: number | null = null;
+
+const listenersClipboard = new Set<Function<[MessagesClipboard], void>>();
+
+ipcRenderer.on(
+  "clipboard-message",
+  (_event: unknown, message: MessagesClipboard) => {
+    listenersClipboard.forEach((c) => c(message));
+  },
+);
 
 const contextBridgeType: ContextBridgeType = {
   UtilitiesForPC: {
@@ -42,13 +58,35 @@ const contextBridgeType: ContextBridgeType = {
         return "";
       }
     },
-    setClipboard: (text: string) => {
+    setClipboard: (text) => {
       try {
         sendMessage("send", "set-clipboard", text);
       } catch {
         // ignore
       }
     },
+    deleteClipboardItem: async (id) => {
+      try {
+        return await sendMessage("invoke", "delete-clipboard-item", id);
+      } catch {
+        return false;
+      }
+    },
+    deleteAllClipboardItems: async () => {
+      try {
+        return await sendMessage("invoke", "delete-all-clipboard-items");
+      } catch {
+        return false;
+      }
+    },
+    onMessageClipboard: (callback) => {
+      listenersClipboard.add(callback);
+
+      return {
+        remove: () => listenersClipboard.delete(callback),
+      };
+    },
+
     notifyLoginStatus: (isLoggedIn: boolean) => {
       if (process.env.BUILD_PROFILE === "development") return;
 
@@ -74,9 +112,7 @@ const contextBridgeType: ContextBridgeType = {
       return await sendMessage("invoke", "restart-computer");
     },
 
-    getNativeData: async (
-      ...args: ChannelsIpcRenderer["get-native-data"]["functionArgs"]
-    ) => {
+    getNativeData: async (...args) => {
       try {
         return await sendMessage("invoke", "get-native-data", ...args);
       } catch (error) {
@@ -168,7 +204,7 @@ const contextBridgeType: ContextBridgeType = {
         return [];
       }
     },
-    setClipboardHistory: (items: ClipboardItem[]) => {
+    setClipboardHistory: (items) => {
       sendMessage("send", "set-clipboard-history", items);
     },
     hideClipboardWindow: () => {
@@ -197,7 +233,7 @@ const contextBridgeType: ContextBridgeType = {
         return false;
       }
     },
-    copyFileToTemp: async (base64: string, fileName: string) => {
+    copyFileToTemp: async (base64, fileName) => {
       try {
         const result = await sendMessage(
           "invoke",
@@ -211,7 +247,7 @@ const contextBridgeType: ContextBridgeType = {
         return { success: false };
       }
     },
-    removeFile: async (uri: string) => {
+    removeFile: async (uri) => {
       try {
         return await sendMessage("invoke", "remove-file-with-uri", uri);
       } catch (error) {
@@ -289,7 +325,7 @@ const contextBridgeType: ContextBridgeType = {
         return { success: false };
       }
     },
-    getFileInfo: async (filePath: string) => {
+    getFileInfo: async (filePath) => {
       try {
         const result = await sendMessage("invoke", "get-file-info", filePath);
         return result;
@@ -314,9 +350,7 @@ const contextBridgeType: ContextBridgeType = {
         return null;
       }
     },
-    zipFolder: async (
-      ...args: ChannelsIpcRenderer["zip-folder"]["functionArgs"]
-    ) => {
+    zipFolder: async (...args) => {
       try {
         ipcRenderer.on("zip-folder-data", (_event, progress, error) => {
           if (error) args[4]?.(error);
@@ -340,14 +374,14 @@ const contextBridgeType: ContextBridgeType = {
         return "";
       }
     },
-    deleteFolderVault: async (folderId: string) => {
+    deleteFolderVault: async (folderId) => {
       try {
         await sendMessage("invoke", "delete-folder", folderId);
       } catch (error) {
         sendLog("error", "Error deleting folder vault:", error);
       }
     },
-    renameFolderVault: async (oldFolderId: string, newFolderId: string) => {
+    renameFolderVault: async (oldFolderId, newFolderId) => {
       try {
         await sendMessage("invoke", "rename-folder", oldFolderId, newFolderId);
       } catch (error) {
@@ -380,3 +414,9 @@ const contextBridgeType: ContextBridgeType = {
 Object.entries(contextBridgeType).forEach(([key, value]) => {
   contextBridge.exposeInMainWorld(key, value);
 });
+
+if (REPLACERS.isDev)
+  import("@common").then((common) => {
+    const windowRef = window as unknown as Record<string, unknown>;
+    windowRef.common = common;
+  });

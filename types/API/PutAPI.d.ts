@@ -24,7 +24,7 @@ export type ClipboardFetch =
     >
   | GetUrlFetch<
       "/delete/toggle-deleted",
-      { body: { deviceId: string; id: string; deleted?: boolean } },
+      { body: { deviceId: string; id: string | string[]; deleted?: boolean } },
       { auth: true },
       { error?: string }
     >;
