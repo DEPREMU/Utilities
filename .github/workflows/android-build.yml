@@ -3,8 +3,7 @@ name: Android Build
 on:
   push:
     branches:
-      - main
-      - create-ci-cd
+      - production
 
 jobs:
   build:
@@ -16,77 +15,78 @@ jobs:
         with:
           fetch-depth: 2
 
-      # - name: Check version change
-      #   id: version_check
-      #   run: |
-      #     # Get the previous version of app.config.ts (if exists in previous commit)
-      #     PREV_VERSION=$(git show HEAD^:app/app.config.ts 2>/dev/null | grep -oP 'const version = "\K[^"]+' | head -n 1) || true
+      - name: Check version change
+        id: version_check
+        run: |
+          PREV_VERSION=$(git show HEAD^:app/app.config.ts 2>/dev/null \
+            | grep -oP 'const version = "\K[0-9]+\.[0-9]+\.[0-9]+' \
+            | head -n 1) || true
 
-      #     # Get the current version
-      #     NEW_VERSION=$(grep -oP 'const version = "\K[^"]+' app/app.config.ts | head -n 1)
+          NEW_VERSION=$(grep -oP 'const version = "\K[0-9]+\.[0-9]+\.[0-9]+' \
+            app/app.config.ts \
+            | head -n 1)
 
-      #     echo "Previous version: $PREV_VERSION"
-      #     echo "New version: $NEW_VERSION"
+          echo "Previous version: $PREV_VERSION"
+          echo "New version: $NEW_VERSION"
 
-      #     SHOULD_BUILD="false"
+          SHOULD_BUILD="false"
 
-      #     if [ -z "$PREV_VERSION" ] || [ -z "$NEW_VERSION" ]; then
-      #       echo "Could not extract versions, defaulting to build"
-      #       SHOULD_BUILD="true"
-      #     elif [ "$PREV_VERSION" == "$NEW_VERSION" ]; then
-      #       echo "Version is identical. Skipping build."
-      #     else
-      #       # Strip anything after dash (like -beta)
-      #       PREV_CLEAN=$(echo "$PREV_VERSION" | cut -d'-' -f1)
-      #       NEW_CLEAN=$(echo "$NEW_VERSION" | cut -d'-' -f1)
+          if [ -z "$PREV_VERSION" ] || [ -z "$NEW_VERSION" ]; then
+            echo "Could not extract versions, defaulting to build"
+            SHOULD_BUILD="true"
 
-      #       # Split versions into arrays
-      #       IFS='.' read -r -a PREV_ARRAY <<< "$PREV_CLEAN"
-      #       IFS='.' read -r -a NEW_ARRAY <<< "$NEW_CLEAN"
+          elif [ "$PREV_VERSION" == "$NEW_VERSION" ]; then
+            echo "Version is identical. Skipping build."
 
-      #       PREV_MAJOR=${PREV_ARRAY[0]:-0}
-      #       PREV_MINOR=${PREV_ARRAY[1]:-0}
-      #       PREV_PATCH=${PREV_ARRAY[2]:-0}
+          else
+            IFS='.' read -r -a PREV_ARRAY <<< "$PREV_VERSION"
+            IFS='.' read -r -a NEW_ARRAY <<< "$NEW_VERSION"
 
-      #       NEW_MAJOR=${NEW_ARRAY[0]:-0}
-      #       NEW_MINOR=${NEW_ARRAY[1]:-0}
-      #       NEW_PATCH=${NEW_ARRAY[2]:-0}
+            PREV_MAJOR=${PREV_ARRAY[0]:-0}
+            PREV_MINOR=${PREV_ARRAY[1]:-0}
+            PREV_PATCH=${PREV_ARRAY[2]:-0}
 
-      #       if [ "$NEW_MAJOR" -gt "$PREV_MAJOR" ]; then
-      #         echo "Major version changed."
-      #         SHOULD_BUILD="true"
-      #       elif [ "$NEW_MAJOR" -eq "$PREV_MAJOR" ] && [ "$NEW_MINOR" -gt "$PREV_MINOR" ]; then
-      #         echo "Minor version changed."
-      #         SHOULD_BUILD="true"
-      #       else
-      #         echo "No major or minor version change detected."
-      #       fi
-      #     fi
+            NEW_MAJOR=${NEW_ARRAY[0]:-0}
+            NEW_MINOR=${NEW_ARRAY[1]:-0}
+            NEW_PATCH=${NEW_ARRAY[2]:-0}
 
-      #     echo "should_build=$SHOULD_BUILD" >> "$GITHUB_OUTPUT"
+            if [ "$NEW_MAJOR" -gt "$PREV_MAJOR" ]; then
+              echo "Major version changed."
+              SHOULD_BUILD="true"
+
+            elif [ "$NEW_MAJOR" -eq "$PREV_MAJOR" ] && [ "$NEW_MINOR" -gt "$PREV_MINOR" ]; then
+              echo "Minor version changed."
+              SHOULD_BUILD="true"
+
+            else
+              echo "No major or minor version change detected."
+            fi
+          fi
+
+          echo "should_build=$SHOULD_BUILD" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
-        # if: steps.version_check.outputs.should_build == 'true'
+        if: steps.version_check.outputs.should_build == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
       - name: Install dependencies
-        # if: steps.version_check.outputs.should_build == 'true'
+        if: steps.version_check.outputs.should_build == 'true'
         run: yarn install
 
       - name: Pre-build Android
-        # if: steps.version_check.outputs.should_build == 'true'
+        if: steps.version_check.outputs.should_build == 'true'
         run: yarn run app-prebuild-android
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Clear android and google-services.json from .gitignore
-        # if: steps.version_check.outputs.should_build == 'true'
+        if: steps.version_check.outputs.should_build == 'true'
         run: sed -i '/^android\/$/d; /^google-services.json$/d' .gitignore
 
       - name: Build Android App (Docker)
-        # if: steps.version_check.outputs.should_build == 'true'
+        if: steps.version_check.outputs.should_build == 'true'
         run: |
           docker build -f scripts/app/Dockerfile.android -t app-android-build .
           docker run --rm \
@@ -103,7 +103,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Upload Artifact (Primary)
-        # if: steps.version_check.outputs.should_build == 'true'
+        if: steps.version_check.outputs.should_build == 'true'
         run: yarn run build-upload-android
         env:
           WS_URL: ${{ secrets.WS_URL }}

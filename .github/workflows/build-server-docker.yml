@@ -3,8 +3,7 @@ name: Build Server Docker Image
 on:
   push:
     branches:
-      - main
-      - create-ci-cd
+      - production
     paths:
       - "server/**"
       - "yarn.lock"
