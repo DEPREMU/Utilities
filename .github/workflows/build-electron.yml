@@ -1,0 +1,91 @@
+name: build-electron
+
+on:
+  push:
+    branches:
+      - production
+    paths:
+      - "yarn.lock"
+      - "common/both/**"
+      - "UtilitiesForPC/**"
+      - "common/serverOrElectron/**"
+      - "frontend/src/pages/Clipboard/**"
+      - ".github/workflows/build-electron.yml"
+  workflow_dispatch:
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+
+    outputs:
+      changed: ${{ steps.version-check.outputs.changed }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Check if version changed
+        id: version-check
+        shell: bash
+        run: |
+          CURRENT_VERSION=$(node -p "require('./UtilitiesForPC/package.json').version")
+          PREVIOUS_VERSION=$(git show HEAD^:UtilitiesForPC/package.json | node -p "JSON.parse(require('fs').readFileSync(0)).version")
+
+          echo "Current version:  $CURRENT_VERSION"
+          echo "Previous version: $PREVIOUS_VERSION"
+
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "Version changed"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version did not change"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-and-upload:
+    needs: check-version
+
+    if: needs.check-version.outputs.changed == 'true'
+
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    runs-on: ${{ matrix.os }}
+
+    environment: build-electron
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Dependencies
+        run: yarn install
+
+      - name: Build and Upload Electron App
+        run: yarn run build-upload-electron --ci
+        env:
+          WS_URL: ${{ secrets.WS_URL }}
+          API_URL: ${{ secrets.API_URL }}
+
+      - name: Upload Fallback Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-builds-${{ matrix.os }}
+          path: UtilitiesForPC/dist-electron/
+          retention-days: 7

@@ -16,7 +16,10 @@ const logger = REPLACERS.isProduction
       },
     });
 
-type LoggerInterceptor = (type: "log" | "warn" | "error", message: string) => boolean;
+type LoggerInterceptor = (
+  type: "log" | "warn" | "error",
+  message: string,
+) => boolean;
 const interceptors: LoggerInterceptor[] = [];
 
 export class Logger {
@@ -56,5 +59,5 @@ export class Logger {
 }
 
 if (!REPLACERS.isProduction) {
-  REPLACERS.Logger = Logger;
+  REPLACERS["Logger"] = Logger;
 }

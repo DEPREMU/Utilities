@@ -1,18 +1,10 @@
-import {
-  env,
-  args,
-  APP_PATH,
-  versionExpo,
-  UTILITIES_PATH,
-  deleteAndroidFromGitIgnore,
-} from "../config.ts";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
 import FormData from "form-data";
 import { Logger } from "@commonSrc/serverOrElectron";
-import { execSync } from "child_process";
 import type * as Types from "@types";
+import { APP_PATH, versionExpo } from "../config.ts";
 import { Validations, ServerFetch } from "@commonSrc/both";
 
 /**
@@ -21,8 +13,6 @@ import { Validations, ServerFetch } from "@commonSrc/both";
  * Usage: node build-android-upload.ts [profile]
  * Profiles: development, preview, production (default: production)
  */
-
-deleteAndroidFromGitIgnore();
 
 const checkIsNewVersion = async () => {
   try {
@@ -118,13 +108,6 @@ Logger.log("=== Android Build and Upload Process ===\n");
 
 const run = async () => {
   await checkIsNewVersion();
-  if (!args.ARGS["skip-build-android"])
-    execSync(`yarn run build-android ${args.getArgs()}`, {
-      env,
-      cwd: UTILITIES_PATH,
-      stdio: "inherit",
-      killSignal: "SIGINT",
-    });
   await uploadAndroidBuild();
 };
 

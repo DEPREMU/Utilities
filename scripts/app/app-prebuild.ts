@@ -448,8 +448,15 @@ export const runPrebuild = () => {
     }
   }
 
-  if (!fs.existsSync(path.join(APP_PATH, "google-services.json")))
-    throw new Error("Missing google-services.json file");
+  if (!fs.existsSync(path.join(APP_PATH, "google-services.json"))) {
+    if (typeof process.env.GOOGLE_SERVICES_JSON === "undefined")
+      throw new Error("Missing google-services.json file");
+
+    fs.writeFileSync(
+      path.join(APP_PATH, "google-services.json"),
+      Buffer.from(process.env.GOOGLE_SERVICES_JSON, "base64"),
+    );
+  }
 
   try {
     console.log(chalk.blue("Running prebuild script..."), env.BUILD_PROFILE);

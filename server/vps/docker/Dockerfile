@@ -22,6 +22,9 @@ COPY . .
 
 WORKDIR /utilities/server
 
+# Generate prisma files
+RUN DATABASE_URL="1" yarn prisma generate
+
 # Build server
 RUN NODE_ENV=production yarn tsx build.ts
 

@@ -37,8 +37,7 @@ export const COMMANDS = {
     "scripts/root-commands.ts --action=dev-clipboard-frontend",
 
   //? Other commands
-  "update-assets": "scripts/update.ts",
-  "build-android": "scripts/app/build-android.ts",
+  "update-assets": "scripts/update.ts", 
   "build-upload-electron": "scripts/UtilitiesForPC/build-upload-electron.ts",
   "build-upload-android": "scripts/app/build-upload-android.ts",
   "build-autocomplete-dict": "scripts/app/build-autocomplete-dict.ts",

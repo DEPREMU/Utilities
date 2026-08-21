@@ -41,6 +41,12 @@ const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
 
 const uploadElectronBuilds = async () => {
   try {
+    const isAlive = await ServerFetch.isServerAlive();
+    if (!isAlive)
+      throw new Error(
+        `Server is not alive, check connection and env API_URL=${ServerFetch.API_URL}`,
+      );
+
     Logger.log("Uploading Electron builds, version:", versionElectron);
 
     const distElectronPath = path.join(UTILITIES_FOR_PC_PATH, "dist-electron");

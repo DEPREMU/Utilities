@@ -1,0 +1,28 @@
+FROM reactnativecommunity/react-native-android:latest
+
+WORKDIR /utilities
+
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+  && apt-get install -y nodejs \
+  && ln -sf /usr/bin/node /usr/local/bin/node \
+  && node --version \
+  && npm --version
+
+RUN npm install -g eas-cli
+
+COPY package.json yarn.lock ./
+COPY app/package.json ./app/package.json
+COPY common/package.json ./common/package.json
+
+RUN yarn install --immutable
+
+COPY . .
+
+WORKDIR /utilities/app
+
+CMD eas build \
+  --platform android \
+  --profile ${BUILD_PROFILE:-production} \
+  --local \
+  --non-interactive \
+  --output=/utilities/app/builds/android-${BUILD_PROFILE:-production}.apk

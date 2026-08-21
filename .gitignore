@@ -56,6 +56,7 @@ uploads/
 *.sql.gpg
 server/generated/prisma/
 server/vps/docker/nginx/
+UtilitiesForPC/assets/clipboard
 
 # specify
 feature.json

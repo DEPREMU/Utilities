@@ -90,47 +90,48 @@ export const ask = async (
   });
 };
 
-/**
- * Deletes the "android/" line from the .gitignore file in the Utilities directory.
- * This is useful when you want to temporarily include the android/ directory in version control.
- * The original .gitignore content is restored when the process exits.
- */
-export const deleteAndroidFromGitIgnore = () => {
-  const lines = gitignore
-    .split("\n")
-    .filter((line) => !line.trim().includes("android/"));
+//TODO: Delete if not necessary to build android on github actions.
+// /**
+//  * Deletes the "android/" line from the .gitignore file in the Utilities directory.
+//  * This is useful when you want to temporarily include the android/ directory in version control.
+//  * The original .gitignore content is restored when the process exits.
+//  */
+// export const deleteAndroidFromGitIgnore = () => {
+//   const lines = gitignore
+//     .split("\n")
+//     .filter((line) => !line.trim().includes("android/"));
 
-  fs.writeFileSync(
-    path.resolve(UTILITIES_PATH, ".gitignore"),
-    lines.join("\n"),
-  );
+//   fs.writeFileSync(
+//     path.resolve(UTILITIES_PATH, ".gitignore"),
+//     lines.join("\n"),
+//   );
 
-  let isRestored = false;
-  const restoreGitIgnore = () => {
-    if (isRestored) return;
-    isRestored = true;
+//   let isRestored = false;
+//   const restoreGitIgnore = () => {
+//     if (isRestored) return;
+//     isRestored = true;
 
-    let prev = gitignore;
-    if (!prev.includes("android/")) prev += "\nandroid/";
+//     let prev = gitignore;
+//     if (!prev.includes("android/")) prev += "\nandroid/";
 
-    fs.writeFileSync(path.resolve(UTILITIES_PATH, ".gitignore"), prev);
-  };
+//     fs.writeFileSync(path.resolve(UTILITIES_PATH, ".gitignore"), prev);
+//   };
 
-  const events: Set<keyof process.ProcessEventMap> = new Set([
-    "exit", //? On exit
-    "SIGINT", //? On Ctrl+C
-    "SIGHUP", //? On terminal close
-    "SIGQUIT", //? On quit signal
-    "SIGTERM", //? On termination signal
-    "beforeExit", //? Before the event loop ends
-    "uncaughtException", //? On uncaught exceptions
-    "unhandledRejection", //? On unhandled promise rejections
-  ]);
+//   const events: Set<keyof process.ProcessEventMap> = new Set([
+//     "exit", //? On exit
+//     "SIGINT", //? On Ctrl+C
+//     "SIGHUP", //? On terminal close
+//     "SIGQUIT", //? On quit signal
+//     "SIGTERM", //? On termination signal
+//     "beforeExit", //? Before the event loop ends
+//     "uncaughtException", //? On uncaught exceptions
+//     "unhandledRejection", //? On unhandled promise rejections
+//   ]);
 
-  events.forEach((event) => {
-    process.on(event, restoreGitIgnore);
-  });
-};
+//   events.forEach((event) => {
+//     process.on(event, restoreGitIgnore);
+//   });
+// };
 
 export const handleExitFromScript = (fun: (err?: Error) => void) => {
   const wrappedFun = (err?: Error) => {
