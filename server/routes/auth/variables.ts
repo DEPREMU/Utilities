@@ -10,6 +10,7 @@ import jwt from "jsonwebtoken";
 import chalk from "chalk";
 import { prisma } from "@/database/postgres";
 import { getEnvValue } from "@/env.ts";
+import { withTransaction } from "@/database/transaction.ts";
 
 export const DATA_REASONS = reasonNotification.map((reason) => ({ reason }));
 
@@ -121,37 +122,41 @@ export class JWT {
       const data = this.data;
       const token = this.token;
 
-      const [userSession] = await Promise.all([
-        prisma.userSessions.upsert({
-          where: {
-            userId_deviceId: {
+      const userSession = await withTransaction(async (tx) => {
+        const [session] = await Promise.all([
+          tx.userSessions.upsert({
+            where: {
+              userId_deviceId: {
+                userId: data.userId,
+                deviceId: data.deviceId,
+              },
+            },
+            create: {
+              token,
               userId: data.userId,
               deviceId: data.deviceId,
             },
-          },
-          create: {
-            token,
-            userId: data.userId,
-            deviceId: data.deviceId,
-          },
-          update: { token },
-        }),
-        Validations.isValidPushToken(data.notificationToken)
-          ? prisma.pushTokens.upsert({
-              update: { createdAt: new Date() },
-              where: {
-                token_userId: {
-                  token: data.notificationToken,
-                  userId: data.userId,
+            update: { token },
+          }),
+          Validations.isValidPushToken(data.notificationToken)
+            ? tx.pushTokens.upsert({
+                update: { createdAt: new Date() },
+                where: {
+                  token_userId: {
+                    token: data.notificationToken,
+                    userId: data.userId,
+                  },
                 },
-              },
-              create: {
-                token: data.notificationToken,
-                userId: this.#data.userId,
-              },
-            })
-          : Promise.resolve(),
-      ]);
+                create: {
+                  token: data.notificationToken,
+                  userId: this.#data.userId,
+                },
+              })
+            : Promise.resolve(),
+        ]);
+
+        return session;
+      });
 
       return userSession;
     } catch (error) {

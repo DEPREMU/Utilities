@@ -21,10 +21,21 @@ export const getHandlerGet: GetHandlerType<Get, "GET"> = (
         { req: req as never, next, res: res as never },
       );
     } catch (error) {
+      const statusCode =
+        error instanceof Error &&
+        "statusCode" in error &&
+        typeof error.statusCode === "number"
+          ? error.statusCode
+          : STATUS_RESPONSE.INTERNAL_SERVER_ERROR;
+
       Logger.error(chalk.red(`Error processing request: ${path}${url}`), error);
-      sendResponse(res, STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
+      sendResponse(res, statusCode, {
         success: false,
-        error: "An error occurred while processing the request.",
+        error:
+          statusCode !== STATUS_RESPONSE.INTERNAL_SERVER_ERROR &&
+          error instanceof Error
+            ? error.message
+            : "An error occurred while processing the request.",
       } as never);
     }
   };

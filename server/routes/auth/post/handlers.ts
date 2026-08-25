@@ -9,6 +9,7 @@ import {
 import chalk from "chalk";
 import bcrypt from "@node-rs/bcrypt";
 import { prisma } from "@/database/postgres.ts";
+import { withTransaction } from "@/database/transaction.ts";
 import { JWT, DATA_REASONS, getStorageData } from "../variables.ts";
 
 /**
@@ -241,30 +242,32 @@ export const handleRefreshSession = getHandlerPost(
         return;
       }
 
-      if (Validations.isValidPushToken(notificationToken))
-        await prisma.pushTokens.upsert({
-          update: { token: notificationToken },
-          create: {
-            token: notificationToken,
-            userId: token.data.userId,
-          },
-          where: {
-            token_userId: {
-              token: token.data.notificationToken,
+      const updatedData = await withTransaction(async (tx) => {
+        if (Validations.isValidPushToken(notificationToken))
+          await tx.pushTokens.upsert({
+            update: { token: notificationToken },
+            create: {
+              token: notificationToken,
               userId: token.data.userId,
             },
-          },
-        });
+            where: {
+              token_userId: {
+                token: token.data.notificationToken,
+                userId: token.data.userId,
+              },
+            },
+          });
 
-      const updatedData = await prisma.userSessions.update({
-        data: { token: newToken },
-        where: {
-          userId_deviceId: {
-            userId: token.data.userId,
-            deviceId: token.data.deviceId,
+        return tx.userSessions.update({
+          data: { token: newToken },
+          where: {
+            userId_deviceId: {
+              userId: token.data.userId,
+              deviceId: token.data.deviceId,
+            },
           },
-        },
-        include: { user: true },
+          include: { user: true },
+        });
       });
 
       if (updatedData?.token !== newToken) {
@@ -318,26 +321,28 @@ export const handleSignOut = getHandlerPost(
       const { token } = req.user;
       const data = token?.data;
 
-      await Promise.all([
-        prisma.userSessions.delete({
-          where: {
-            userId_deviceId: {
-              userId: data.userId,
-              deviceId: data.deviceId,
-            },
-          },
-        }),
-        Validations.isValidPushToken(data.notificationToken)
-          ? prisma.pushTokens.delete({
-              where: {
-                token_userId: {
-                  token: data.notificationToken,
-                  userId: data.userId,
-                },
+      await withTransaction(async (tx) => {
+        await Promise.all([
+          tx.userSessions.delete({
+            where: {
+              userId_deviceId: {
+                userId: data.userId,
+                deviceId: data.deviceId,
               },
-            })
-          : Promise.resolve(),
-      ]);
+            },
+          }),
+          Validations.isValidPushToken(data.notificationToken)
+            ? tx.pushTokens.delete({
+                where: {
+                  token_userId: {
+                    token: data.notificationToken,
+                    userId: data.userId,
+                  },
+                },
+              })
+            : Promise.resolve(),
+        ]);
+      });
 
       sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
     } catch (error) {

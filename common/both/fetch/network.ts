@@ -3,14 +3,17 @@ import { Timers } from "../timer.ts";
 
 export const enum STATUS_RESPONSE {
   SUCCESS = 200,
-  FORBIDDEN = 403,
-  NOT_FOUND = 404,
   NO_CONTENT = 204,
+
   BAD_REQUEST = 400,
   UNAUTHORIZED = 401,
+  FORBIDDEN = 403,
+  NOT_FOUND = 404,
+  CONFLICT = 409,
   PAYLOAD_TOO_LARGE = 413,
-  SERVICE_UNAVAILABLE = 503,
+
   INTERNAL_SERVER_ERROR = 500,
+  SERVICE_UNAVAILABLE = 503,
 }
 
 export class Network {

@@ -1,6 +1,6 @@
-import { prisma } from "@/database/postgres";
-import { getHandlerPost, Logger, STATUS_RESPONSE } from "@common";
+import { withTransaction } from "@/database/transaction.ts";
 import { getLinkImageStreamer, isLiveStreamer } from "../common";
+import { getHandlerPost, Logger, STATUS_RESPONSE } from "@common";
 
 export const handleAddStreamerByUserId = getHandlerPost(
   "/streamers",
@@ -10,42 +10,49 @@ export const handleAddStreamerByUserId = getHandlerPost(
     try {
       const { streamerName, userId } = params;
 
-      let existingStreamer = await prisma.streamers.findUnique({
-        omit: { createdAt: true },
-        where: { name: streamerName },
-      });
-
-      if (!existingStreamer) {
-        const newStreamer = await prisma.userStreamers.create({
-          data: {
-            user: { connect: { userId } },
-            streamer: {
-              create: {
-                name: streamerName,
-                linkImage: (await getLinkImageStreamer(streamerName)) ?? null,
-              },
-            },
-          },
-          include: { streamer: { omit: { createdAt: true } } },
+      const existingStreamer = await withTransaction(async (tx) => {
+        let streamer = await tx.streamers.findUnique({
+          omit: { createdAt: true },
+          where: { name: streamerName },
         });
 
-        existingStreamer = newStreamer.streamer;
-      } else {
-        const userStreamer = await prisma.userStreamers.findUnique({
-          where: {
-            userId_streamerId: { userId, streamerId: existingStreamer.id },
-          },
-        });
-
-        if (!userStreamer) {
-          await prisma.userStreamers.create({
+        if (!streamer) {
+          const newStreamer = await tx.userStreamers.create({
             data: {
               user: { connect: { userId } },
-              streamer: { connect: { id: existingStreamer.id } },
+              streamer: {
+                create: {
+                  name: streamerName,
+                  linkImage: (await getLinkImageStreamer(streamerName)) ?? null,
+                },
+              },
+            },
+            include: { streamer: { omit: { createdAt: true } } },
+          });
+
+          streamer = newStreamer.streamer;
+        } else {
+          const userStreamer = await tx.userStreamers.findUnique({
+            where: {
+              userId_streamerId: {
+                userId,
+                streamerId: streamer.id,
+              },
             },
           });
+
+          if (!userStreamer) {
+            await tx.userStreamers.create({
+              data: {
+                user: { connect: { userId } },
+                streamer: { connect: { id: streamer.id } },
+              },
+            });
+          }
         }
-      }
+
+        return streamer;
+      });
 
       const streamerWithLiveStatus = {
         ...existingStreamer,
