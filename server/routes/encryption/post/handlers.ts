@@ -9,7 +9,6 @@ const taskEncryption = new Task<string, "ENCRYPTION">({
 export const handleEncrypt = getHandlerPost(
   "/encryption",
   "/encrypt",
-  { body: { value: "string" } },
   async ({ body }, sendResponse) => {
     try {
       const { value } = body;
@@ -45,7 +44,6 @@ export const handleEncrypt = getHandlerPost(
 export const handleDecrypt = getHandlerPost(
   "/encryption",
   "/decrypt",
-  { body: { value: "string" } },
   async ({ body }, sendResponse) => {
     try {
       const { value } = body;

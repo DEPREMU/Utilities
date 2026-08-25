@@ -52,15 +52,6 @@ const insertTokenToDB = async (
 export const handleLogin = getHandlerPost(
   "/auth",
   "/login",
-  {
-    body: {
-      email: "string",
-      password: "string",
-      deviceId: "string",
-      rememberMe: "boolean",
-      notificationToken: "string",
-    },
-  },
   async ({ body }, sendResponse) => {
     const lang = body.lang || "en";
 
@@ -145,12 +136,6 @@ export const handleLogin = getHandlerPost(
 export const handleSignIn = getHandlerPost(
   "/auth",
   "/signup",
-  {
-    body: {
-      email: "string",
-      password: "string",
-    },
-  },
   async ({ body }, sendResponse) => {
     const lang = body.lang || "en";
 
@@ -222,7 +207,6 @@ export const handleSignIn = getHandlerPost(
 export const handleRefreshSession = getHandlerPost(
   "/auth",
   "/refreshSession",
-  { body: { deviceId: "string", notificationToken: "string" } },
   async ({ body }, sendResponse, { req }) => {
     const lang = body.lang || "en";
 
@@ -313,7 +297,6 @@ export const handleRefreshSession = getHandlerPost(
 export const handleSignOut = getHandlerPost(
   "/auth",
   "/signout",
-  { body: {} },
   async ({ body }, sendResponse, { req }) => {
     const lang = body.lang || "en";
 

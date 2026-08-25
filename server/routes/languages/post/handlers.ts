@@ -12,12 +12,6 @@ const headers = {
 export const handleTranslate = getHandlerPost(
   "/languages",
   "/translate",
-  {
-    body: {
-      text: "string",
-      targetLanguage: "string",
-    },
-  },
   async ({ body }, sendResponse) => {
     try {
       const { text, targetLanguage } = body;

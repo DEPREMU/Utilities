@@ -3,6 +3,7 @@
     "dist",
     ".git",
     "build",
+    "tests",
     "*.d.ts",
     "generated",
     "cryptos.json",

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
 import { ServerFetch } from "@common";
-import { generateUniqueEmail, generateUniqueDeviceId } from "../../../utils/testHelpers";
+import {
+  generateUniqueEmail,
+  generateUniqueDeviceId,
+} from "../../../utils/testHelpers";
+import { randomUUID } from "crypto";
+
+const password = `Test123!${randomUUID()}`;
 
 describe("POST /auth", () => {
   describe("/auth/signup", () => {
@@ -9,7 +15,7 @@ describe("POST /auth", () => {
         body: {
           lang: "en",
           email: generateUniqueEmail(),
-          password: "Test123!",
+          password,
         },
       });
       expect(res.ok).toBe(true);
@@ -19,10 +25,10 @@ describe("POST /auth", () => {
     it("should reject duplicate email registration", async () => {
       const email = generateUniqueEmail();
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       const res = await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       expect(res.data).toHaveProperty("error");
     });
@@ -32,7 +38,7 @@ describe("POST /auth", () => {
         body: {
           lang: "en",
           email: generateUniqueEmail(),
-          password: "Test123!",
+          password,
         },
       });
       expect(typeof res.data.success).toBe("boolean");
@@ -44,14 +50,14 @@ describe("POST /auth", () => {
 
     it("should login an existing user", async () => {
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email: loginEmail, password: "Test123!" },
+        body: { lang: "en", email: loginEmail, password },
       });
 
       const res = await ServerFetch.post("/auth/login", {
         body: {
           lang: "en",
           email: loginEmail,
-          password: "Test123!",
+          password,
           deviceId: generateUniqueDeviceId(),
           rememberMe: false,
           notificationToken: `Web-${generateUniqueDeviceId()}`,
@@ -81,7 +87,7 @@ describe("POST /auth", () => {
         body: {
           lang: "en",
           email: generateUniqueEmail(),
-          password: "Test123!",
+          password,
           deviceId: generateUniqueDeviceId(),
           rememberMe: false,
           notificationToken: `Web-${generateUniqueDeviceId()}`,
@@ -96,13 +102,13 @@ describe("POST /auth", () => {
       const email = generateUniqueEmail();
       const deviceId = generateUniqueDeviceId();
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       const loginRes = await ServerFetch.post("/auth/login", {
         body: {
           lang: "en",
           email,
-          password: "Test123!",
+          password,
           deviceId,
           rememberMe: false,
           notificationToken: `Web-${deviceId}`,
@@ -131,13 +137,13 @@ describe("POST /auth", () => {
       const email = generateUniqueEmail();
       const deviceId = generateUniqueDeviceId();
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       const loginRes = await ServerFetch.post("/auth/login", {
         body: {
           lang: "en",
           email,
-          password: "Test123!",
+          password,
           deviceId,
           rememberMe: false,
           notificationToken: `Web-${deviceId}`,
@@ -159,13 +165,13 @@ describe("POST /auth", () => {
       const email = generateUniqueEmail();
       const deviceId = generateUniqueDeviceId();
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       const loginRes = await ServerFetch.post("/auth/login", {
         body: {
           lang: "en",
           email,
-          password: "Test123!",
+          password,
           deviceId,
           rememberMe: true,
           notificationToken: `Web-${deviceId}`,
@@ -206,27 +212,29 @@ describe("POST /auth", () => {
     it("should return a response with success field", async () => {
       const email = generateUniqueEmail();
       const deviceId = generateUniqueDeviceId();
+
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       const loginRes = await ServerFetch.post("/auth/login", {
         body: {
           lang: "en",
           email,
-          password: "Test123!",
+          password,
           deviceId,
           rememberMe: true,
           notificationToken: `Web-${deviceId}`,
         },
       });
-      const token = (loginRes.data as { token?: string }).token ?? "";
+      const token = loginRes.data.token;
+      if (!token) throw new Error("Token not returned");
 
       const res = await ServerFetch.post(
         "/auth/refreshSession",
         {
           body: {
-            lang: "en",
             deviceId,
+            lang: "en",
             notificationToken: `Web-${deviceId}`,
           },
         },

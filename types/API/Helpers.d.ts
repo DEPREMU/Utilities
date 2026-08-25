@@ -285,23 +285,18 @@ export type GetHandlerType<H extends RouterFetch, M extends MethodsAPI> = <
   K extends keyof H,
   U extends H[K]["url"],
   B extends GetBody<H, K, U>,
-  O extends GetKeys<B>,
-  T extends MergeGetBody<B, O>,
 >(
   path: K,
   url: U,
-  keys: [O] extends [Record<string, never> | undefined | null]
-    ? Record<string, never>
-    : O,
   callback: (
-    requestInput: T,
+    requestInput: B,
     sendResponse: (
       status: STATUS_RESPONSE,
       message: Extract<H[K], { url: U }>["response"],
     ) => void,
     express: {
       res: Response<Extract<H[K], { url: U }>["response"]>;
-      req: GetRequest<M, T>;
+      req: GetRequest<M, B>;
       next: NextFunction;
     },
   ) => unknown,

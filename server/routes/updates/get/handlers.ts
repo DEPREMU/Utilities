@@ -7,12 +7,6 @@ import { File, Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 export const handleIsUpdateAvailable = getHandlerGet(
   "/updates",
   "/is-update-available/:version/:buildType",
-  {
-    params: {
-      version: "string",
-      buildType: "string",
-    },
-  },
   async ({ params }, sendResponse) => {
     const res: Parameters<typeof sendResponse>[1] = {
       latestVersion: "",
@@ -49,7 +43,6 @@ export const handleIsUpdateAvailable = getHandlerGet(
 export const handleDownload = getHandlerGet(
   "/updates",
   "/download/:id",
-  { params: { id: "string" } },
   async ({ params }, sendResponse, { res }) => {
     try {
       const { id } = params;

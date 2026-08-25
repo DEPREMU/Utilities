@@ -7,7 +7,6 @@ const START_TIME = Date.now();
 export const handleHealthCheck = getHandlerGet(
   "/info",
   "/health",
-  {},
   (_, sendRes) => {
     const now = new Date();
     const uptime = now.getTime() - START_TIME;
@@ -27,7 +26,6 @@ export const handleHealthCheck = getHandlerGet(
 export const handleGenerate204 = getHandlerGet(
   "/info",
   "/generate204",
-  {},
   (_, sendRes) => {
     sendRes(STATUS_RESPONSE.NO_CONTENT, "");
   },
@@ -44,12 +42,6 @@ const timers: {
 export const handleAppAlive = getHandlerGet(
   "/info",
   "/appAlive/:deviceId/:pushToken",
-  {
-    params: {
-      deviceId: "string",
-      pushToken: "string",
-    },
-  },
   async ({ params }, sendResponse) => {
     try {
       const { deviceId, pushToken } = params;

@@ -5,12 +5,6 @@ import { getHandlerPost, Logger, STATUS_RESPONSE } from "@common";
 export const handlerAdminUnlock = getHandlerPost(
   "/admin",
   "/unlock",
-  {
-    body: {
-      deviceId: "string",
-      password: "string",
-    },
-  },
   async ({ body }, sendResponse, { req }) => {
     try {
       const jwt = req.user.token;

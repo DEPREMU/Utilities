@@ -6,16 +6,6 @@ const PAGE_SIZE = 20;
 export const handleGetClipboard = getHandlerGet(
   "/clipboard",
   "/:deviceId{/:page}",
-  {
-    params: {
-      deviceId: "string",
-      page: ["number", "undefined"],
-    },
-    query: {
-      query: ["string", "undefined"],
-      deleted: ["boolean", "undefined"],
-    },
-  },
   async ({ params, query }, sendResponse, { req }) => {
     const page = Helper.Object.getValue(params, "page", (v) =>
       typeof v === "number" && v > 0 ? v : 1,

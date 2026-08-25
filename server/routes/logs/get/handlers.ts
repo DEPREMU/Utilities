@@ -4,7 +4,6 @@ import { getHandlerGet, Helper, STATUS_RESPONSE } from "@common";
 export const handleGetLogs = getHandlerGet(
   "/logs",
   "/",
-  {},
   async (_, sendResponse) => {
     try {
       const logs = await prisma.logs.findMany({
@@ -29,7 +28,6 @@ const LOGS_PER_PAGE = 10;
 export const handleGetLogsPage = getHandlerGet(
   "/logs",
   "/page{/:page}",
-  { params: { page: ["number", "undefined"] } },
   async ({ params }, sendResponse) => {
     try {
       const page = Helper.Object.getValue(params, "page", 1);

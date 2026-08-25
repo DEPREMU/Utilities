@@ -5,7 +5,6 @@ import { getHandlerPost, Logger, STATUS_RESPONSE } from "@common";
 export const handleAddStreamerByUserId = getHandlerPost(
   "/streamers",
   "/add",
-  { body: { userId: "string", streamerName: "string" } },
   async ({ body: params }, sendResponse) => {
     try {
       const { streamerName, userId } = params;

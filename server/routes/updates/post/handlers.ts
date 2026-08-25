@@ -9,7 +9,6 @@ import { File, Logger, STATUS_RESPONSE, getHandlerPost } from "@common";
 export const handleUpload = getHandlerPost(
   "/updates",
   "/upload",
-  {},
   async (_, sendResponse, { req }) => {
     try {
       const busboy = Busboy({ headers: req.headers });

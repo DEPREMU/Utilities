@@ -4,13 +4,6 @@ import { getHandlerPut, Logger, STATUS_RESPONSE } from "@common";
 export const handleUpdateDownDetector = getHandlerPut(
   "/down-detector",
   "/update",
-  {
-    body: {
-      id: "string",
-      values: "object",
-      deviceId: "string",
-    },
-  },
   async ({ body }, sendResponse, { req }) => {
     try {
       await prisma.downDetector.update({

@@ -4,7 +4,6 @@ import { getHandlerGet, STATUS_RESPONSE } from "@common";
 export const handleGetCryptos = getHandlerGet(
   "/cryptos",
   "/",
-  {},
   (_, sendResponse) => {
     sendResponse(STATUS_RESPONSE.SUCCESS, { cryptos: cryptos.prices || [] });
   },
@@ -13,7 +12,6 @@ export const handleGetCryptos = getHandlerGet(
 export const handleGetCryptoBySymbol = getHandlerGet(
   "/cryptos",
   "/:symbol",
-  { params: { symbol: "string" } },
   ({ params }, sendResponse) => {
     const crypto = cryptos.getCryptoBySymbol(params.symbol);
 
@@ -27,7 +25,6 @@ export const handleGetCryptoBySymbol = getHandlerGet(
 export const handleGetCryptoPrice = getHandlerGet(
   "/cryptos",
   "/price/:symbol",
-  { params: { symbol: "string" } },
   ({ params }, sendResponse) => {
     const crypto = cryptos.getCryptoBySymbol(params.symbol);
     let priceMXN: number | undefined;

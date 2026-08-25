@@ -4,12 +4,6 @@ import { getHandlerPost, Helper, Logger, STATUS_RESPONSE } from "@common";
 export const handleAddDownDetector = getHandlerPost(
   "/down-detector",
   "/add",
-  {
-    body: {
-      values: "object",
-      deviceId: "string",
-    },
-  },
   async ({ body }, sendResponse, { req }) => {
     try {
       const res = await prisma.downDetector.create({

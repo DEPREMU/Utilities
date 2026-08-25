@@ -4,7 +4,6 @@ import { getHandlerPut, Helper, Logger, STATUS_RESPONSE } from "@common";
 export const handleToggleDeletedClipboardItem = getHandlerPut(
   "/clipboard",
   "/delete/toggle-deleted",
-  { body: { deviceId: "string", id: ["object", "string"] } },
   async ({ body }, sendResponse, { req }) => {
     try {
       const id = Helper.Arrays.convertToArray(body.id);
@@ -48,7 +47,6 @@ export const handleToggleDeletedClipboardItem = getHandlerPut(
 export const handleToggleDeletedAllClipboardItems = getHandlerPut(
   "/clipboard",
   "/delete/toggle-deleted-all",
-  { body: { deviceId: "string", restore: "boolean" } },
   async ({ body }, sendResponse, { req }) => {
     try {
       const updatedItems = await prisma.clipboardSync.updateMany({

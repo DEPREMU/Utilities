@@ -6,12 +6,6 @@ const PAGE_SIZE = 10;
 export const handleGetDownDetector = getHandlerGet(
   "/down-detector",
   "/:deviceId{/:page}",
-  {
-    params: {
-      page: ["number", "undefined"],
-      deviceId: "string",
-    },
-  },
   async ({ params }, sendResponse, { req }) => {
     try {
       const page = Helper.Object.getValue(params, "page", 1);

@@ -4,13 +4,6 @@ import { getHandlerPut, Logger, STATUS_RESPONSE } from "@common";
 export const handleUpdateUserNotificationsConfig = getHandlerPut(
   "/user-notifications-config",
   "/update",
-  {
-    body: {
-      match: "object",
-      values: "object",
-      deviceId: "string",
-    },
-  },
   async ({ body }, sendResponse, { req }) => {
     try {
       const updatedConfig = await prisma.userNotificationsConfig.updateMany({

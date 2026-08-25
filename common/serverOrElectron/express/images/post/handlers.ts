@@ -7,12 +7,6 @@ import { changeFormat, isImageBuffer } from "../utils";
 export const handleChangeImageFormat = getHandlerPost(
   "/images",
   "/change-format",
-  {
-    body: {
-      format: "string",
-      imageStr: "string",
-    },
-  },
   async ({ body }, sendResponse) => {
     const lang = body.lang || "en";
 

@@ -5,7 +5,6 @@ import { Helper, Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 export const handleGetStreamers = getHandlerGet(
   "/streamers",
   "/",
-  {},
   async (_, sendResponse) => {
     try {
       const streamers = await prisma.streamers.findMany();
@@ -29,7 +28,6 @@ const STREAMERS_PER_PAGE = 10;
 export const handleGetStreamersPage = getHandlerGet(
   "/streamers",
   "/page{/:page}",
-  { params: { page: ["number", "undefined"] } },
   async ({ params }, sendResponse) => {
     try {
       const page = Helper.Object.getValue(params, "page", 1);
@@ -56,7 +54,6 @@ export const handleGetStreamersPage = getHandlerGet(
 export const handleGetStreamerById = getHandlerGet(
   "/streamers",
   "/streamer/:streamerId",
-  { params: { streamerId: "string" } },
   async ({ params }, sendResponse) => {
     try {
       const streamer = await prisma.streamers.findUnique({
@@ -89,7 +86,6 @@ export const handleGetStreamerById = getHandlerGet(
 export const handleGetStreamersByUserId = getHandlerGet(
   "/streamers",
   "/:userId{/:streamerId}",
-  { params: { userId: "string", streamerId: ["string", "undefined"] } },
   async ({ params }, sendResponse) => {
     try {
       const userId = Helper.Object.getValue(params, "userId", "");
