@@ -709,6 +709,9 @@ export const enApp: AppTranslations = {
     adminSection: "Admin Section",
     allNotifications: "All Notifications",
     apiURL: "API URL",
+    doNotUseAnimations: "Do Not Use Animations",
+    doNotUseAnimationsExplanation:
+      "If you enable this option, the app will not use animations, which can save battery and improve performance. This is especially useful for users with older devices or those who prefer a simpler interface. The app will still function normally, but without any animations.",
     appTheme: "App Theme",
     auto: "Auto",
     dark: "Dark",

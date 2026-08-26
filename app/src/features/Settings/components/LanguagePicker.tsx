@@ -7,15 +7,15 @@ import {
   storageManagement,
 } from "@utils";
 import { List } from "react-native-paper";
-import { useTheme } from "@context/ThemeContext";
 import { REPLACERS } from "@common";
 import { background } from "@/utils/services/background";
 import { useLanguage } from "@context/LanguageContext";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import { LanguagesSupported } from "@types";
 import React, { useMemo, useRef } from "react";
 
 const LanguagePicker: React.FC = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppBehavior();
   const { changeLanguageRef: changeLanguage, t, language } = useLanguage();
 
   const changeLanguageRef = useRef(async (lang: LanguagesSupported) => {

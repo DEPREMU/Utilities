@@ -701,8 +701,10 @@ export type AppTranslations = BatteryStateTranslations &
       description: string;
       setLanguage: string;
       adminSection: string;
+      doNotUseAnimations: string;
       passwordAdminSection: string;
       toggleFetchCellularData: string;
+      doNotUseAnimationsExplanation: string;
       toggleFetchCellularDataExplanation: string;
       setNotifications: string;
       notificationInterval: string;

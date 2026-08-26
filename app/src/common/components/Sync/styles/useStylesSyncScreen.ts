@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { useTheme } from "@context/ThemeContext";
-import { DimensionValue, StyleSheet } from "react-native";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import { useResponsiveLayout } from "@context/LayoutContext";
+import { DimensionValue, StyleSheet } from "react-native";
 
 export const useStylesSyncScreen = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppBehavior();
   const { texts, getCommonStyles, getResponsiveValue, height } =
     useResponsiveLayout();
 

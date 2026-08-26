@@ -1,4 +1,5 @@
 import type {
+  Theme,
   Prisma,
   NotesSettings,
   Notifications,
@@ -89,7 +90,6 @@ export type ExpectedSecureStorageTypes = {
 };
 
 export type ExpectedUnsecureStorageTypes = {
-  THEME: "light" | "dark" | "auto";
   API_URL: string | null;
   DEBUG: DEBUG_SETTINGS;
   LANGUAGE: LanguagesSupported;
@@ -110,6 +110,10 @@ export type ExpectedUnsecureStorageTypes = {
     intervalOfSaves: number;
     shouldAutoStart: boolean;
   } | null;
+  APP_BEHAVIOR: {
+    theme: Theme;
+    useAnimations: boolean;
+  };
 };
 
 export type ExpectedStorageTypes<
@@ -152,10 +156,10 @@ export const UNSECURE_KEYS_STORAGE: Record<
   keyof ExpectedUnsecureStorageTypes,
   string
 > = {
-  THEME: "@theme",
   DEBUG: "@debug",
   API_URL: "@API_URL",
   LANGUAGE: "@languageKeyStorage",
+  APP_BEHAVIOR: "@appBehavior",
   WEBSOCKET_URL: "@webSocketURL",
   NOTIFICATIONS: "@notifications",
   RECORDER_DATA: "@recorderData",

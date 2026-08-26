@@ -13,10 +13,10 @@ import {
 import Slider from "@react-native-community/slider";
 import { Timers } from "@common";
 import * as Haptics from "expo-haptics";
-import { useTheme } from "@context/ThemeContext";
 import * as FileSystem from "expo-file-system";
 import { useLanguage } from "@context/LanguageContext";
 import { useRecorder } from "@context/RecorderContext";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import { StyleSheet, View } from "react-native";
 import { Svg, Rect, Circle } from "react-native-svg";
 import { createAudioPlayer } from "expo-audio";
@@ -77,8 +77,8 @@ const ListeningScreen: React.FC = () => {
     playSelectedAudio,
   } = useRecorder();
   const { t } = useLanguage();
-  const { colors } = useTheme();
   const paperTheme = usePaperTheme();
+  const { colors } = useAppBehavior();
   const { styles } = useStylesRecorderScreen();
 
   const emptyIllustration = useMemo(

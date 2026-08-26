@@ -10,8 +10,8 @@ import {
   APP_VERSION,
   sessionManager,
   DEBUG_SETTINGS,
-  EventsDeviceInfo,
   getFormattedDate,
+  EventsDeviceInfo,
   storageManagement,
   getDevicePushToken,
 } from "@utils";
@@ -23,6 +23,7 @@ import LanguagePicker from "@screens/Settings/components/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import { ScrollView, View } from "react-native";
 import { AppTranslationsKeys } from "@types";
 import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
@@ -118,6 +119,7 @@ const SettingsScreen: React.FC = () => {
   const { t, dynamicT } = useLanguage();
   const { setSocketURL } = useWebSocket();
   const { styles, colors } = useStylesSettingsScreen();
+  const { appBehavior, setAppBehavior } = useAppBehavior();
 
   const [hasInternet, setHasInternet] = useState<boolean>(
     deviceInfo.hasInternet,
@@ -163,6 +165,15 @@ const SettingsScreen: React.FC = () => {
         }),
       );
     }, 1000);
+  });
+
+  const toggleUseAnimations = useRef(() => {
+    setAppBehavior((v) => {
+      const newValue = { ...v, useAnimations: !v.useAnimations };
+      storageManagement.save("APP_BEHAVIOR", newValue);
+
+      return newValue;
+    });
   });
 
   const openUrlUpdatesWebPageRef = useRef(async () => {
@@ -437,6 +448,22 @@ const SettingsScreen: React.FC = () => {
               color={colors.primary}
               value={fetchWithCellularData}
               onValueChange={toggleNetworkCellular.current}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.subtitle}>
+              {t("settings.doNotUseAnimations")}
+            </Text>
+
+            <Text style={styles.infoText}>
+              {t("settings.doNotUseAnimationsExplanation")}
+            </Text>
+
+            <Switch
+              color={colors.primary}
+              value={appBehavior.useAnimations}
+              onValueChange={toggleUseAnimations.current}
             />
           </View>
 

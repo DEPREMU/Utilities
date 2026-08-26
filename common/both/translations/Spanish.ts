@@ -728,6 +728,9 @@ export const esApp: AppTranslations = {
     keyWords: "ajustes, idioma, notificaciones, tema",
     language: "Idioma",
     light: "Claro",
+    doNotUseAnimations: "No usar animaciones",
+    doNotUseAnimationsExplanation:
+      "Si habilitas esta opción, la aplicación no usará animaciones, lo que puede ahorrar batería y mejorar el rendimiento. Esto es especialmente útil para usuarios con dispositivos más antiguos o aquellos que prefieren una interfaz más simple. La aplicación seguirá funcionando normalmente, pero sin animaciones.",
     notificationDetails: {
       behavior: "Comportamiento",
       bypassDoNotDisturb: "Omitir No molestar",

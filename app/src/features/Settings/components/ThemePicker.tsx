@@ -1,20 +1,20 @@
 import { List } from "react-native-paper";
 import { Theme } from "@types";
-import { useTheme } from "@/context/ThemeContext";
 import { background } from "@/utils/services/background";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage } from "@context/LanguageContext";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import React, { useMemo, useRef } from "react";
 import { REPLACERS, ServerFetch } from "@common";
 import { memoDeep, sessionManager, storageManagement } from "@utils";
 
 const ThemePicker: React.FC = () => {
   const { t } = useLanguage();
-  const { themeState, setThemeState, colors } = useTheme();
+  const { appBehavior, setAppBehavior, colors } = useAppBehavior();
 
   const changeThemeRef = useRef((newTheme: Theme) => {
     const { sessionToken, userData } = sessionManager.getSessionData();
 
-    setThemeState(newTheme);
+    setAppBehavior((v) => ({ ...v, theme: newTheme }));
     if (!userData?.userId || !sessionToken) return;
 
     background.addTaskQueue(
@@ -49,14 +49,16 @@ const ThemePicker: React.FC = () => {
         left={(props) => (
           <List.Icon
             {...props}
-            color={themeState === key ? colors.primary : colors.text}
-            icon={themeState === key ? "radiobox-marked" : "radiobox-blank"}
+            color={appBehavior.theme === key ? colors.primary : colors.text}
+            icon={
+              appBehavior.theme === key ? "radiobox-marked" : "radiobox-blank"
+            }
           />
         )}
         onPress={() => changeThemeRef.current(key)}
       />
     ));
-  }, [themeState, colors, t]);
+  }, [appBehavior.theme, colors, t]);
 
   return (
     <List.Accordion

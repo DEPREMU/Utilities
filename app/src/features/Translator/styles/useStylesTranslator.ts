@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { useTheme } from "@/context/ThemeContext";
 import { StyleSheet } from "react-native";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import { useResponsiveLayout } from "@/context/LayoutContext";
 
 const useStylesTranslator = () => {
   const { getCommonStyles, getResponsiveValue } = useResponsiveLayout();
-  const colors = useTheme();
+  const colors = useAppBehavior();
 
   const styles = useMemo(
     () =>

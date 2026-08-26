@@ -1,9 +1,9 @@
-import { useTheme } from "@context/ThemeContext";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import { useResponsiveLayout } from "@context/LayoutContext";
 import { DimensionValue, StyleSheet } from "react-native";
 
 export const useStylesGamesNavigator = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppBehavior();
   const { getCommonStyles, getResponsiveValue, texts } = useResponsiveLayout();
 
   const styles = StyleSheet.create({

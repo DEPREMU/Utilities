@@ -41,7 +41,6 @@ export const getStorageData = async (
     if (rememberMe) date = getDateWithTimeAhead({ days: 15 }).getTime();
 
     let storageData: Partial<ExpectedStorageTypes<"BOTH">> = {
-      THEME: userConfig.theme,
       LANGUAGE: userConfig.language,
       USER_DATA: Helper.Object.changeType(user, {
         updatedAt: "string",

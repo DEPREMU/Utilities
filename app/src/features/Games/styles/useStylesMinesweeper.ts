@@ -1,10 +1,10 @@
-import { useTheme } from "@/context/ThemeContext";
-import { DimensionValue, StyleSheet, ViewStyle } from "react-native";
-import { useResponsiveLayout } from "@/context/LayoutContext";
 import { useMemo } from "react";
+import { useAppBehavior } from "@context/AppBehaviorContext";
+import { useResponsiveLayout } from "@context/LayoutContext";
+import { DimensionValue, StyleSheet, ViewStyle } from "react-native";
 
 export const useStylesMinesweeper = () => {
-  const useColors = useTheme();
+  const useColors = useAppBehavior();
   const {
     width,
     isPhone,

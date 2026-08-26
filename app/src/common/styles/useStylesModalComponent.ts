@@ -1,12 +1,12 @@
 import { useMemo } from "react";
-import { useTheme } from "@/context/ThemeContext";
-import { useResponsiveLayout } from "@/context/LayoutContext";
+import { useAppBehavior } from "@context/AppBehaviorContext";
+import { useResponsiveLayout } from "@context/LayoutContext";
 import { DimensionValue, StatusBar, StyleSheet } from "react-native";
 
 export const useStylesModalComponent = () => {
+  const { colors } = useAppBehavior();
   const { height, width, getCommonStyles, getResponsiveValue } =
     useResponsiveLayout();
-  const { colors } = useTheme();
 
   const styles = useMemo(
     () =>

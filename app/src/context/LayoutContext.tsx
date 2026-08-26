@@ -5,8 +5,8 @@ import React, {
   useCallback,
   createContext,
 } from "react";
-import { useTheme } from "./ThemeContext";
 import { REPLACERS } from "@common";
+import { useAppBehavior } from "./AppBehaviorContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TextStyle, View, ViewStyle, useWindowDimensions } from "react-native";
 
@@ -86,7 +86,7 @@ interface LayoutContextProps {
 const LayoutContext = createContext<LayoutContextProps | undefined>(undefined);
 
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
-  const { colors } = useTheme();
+  const { colors } = useAppBehavior();
 
   const { width, height } = useWindowDimensions();
 

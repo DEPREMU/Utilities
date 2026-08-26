@@ -12,7 +12,6 @@ import LoginScreen from "@screens/Auth/screens/LoginScreen";
 import Minesweeper from "@screens/Games/Minesweeper/screens/Minesweeper";
 import * as Linking from "expo-linking";
 import PDFNavigator from "@screens/PDF/screens";
-import { useTheme } from "@context/ThemeContext";
 import SignUpScreen from "@screens/Auth/screens/SignUpScreen";
 import GamesNavigator from "@screens/Games/screens";
 import VaultNavigator from "@screens/Vault/screens";
@@ -24,6 +23,7 @@ import CryptosNavigator from "@screens/Cryptos/screens";
 import TerminalCommands from "@screens/Web/TerminalCommands/screens";
 import RecorderNavigator from "@screens/Phone/Recorder/screens";
 import DeviceInformation from "@screens/DeviceInformation/screens";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import ClipboardNavigator from "@screens/Clipboard/screens";
 import CalculatorNavigator from "@screens/Calculator/screens";
 import React, { useEffect } from "react";
@@ -118,7 +118,7 @@ const allScreens = Object.entries(screens).map(
 );
 
 const AppNavigator: React.FC = () => {
-  const { navigationTheme } = useTheme();
+  const { navigationTheme } = useAppBehavior();
 
   useEffect(() => {
     if (REPLACERS.isNative) {
