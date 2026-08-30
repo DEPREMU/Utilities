@@ -50,7 +50,7 @@ export const createPDFWithImages = async (
     totalSize > maxSizePdfInBytes * (multiply ?? 1);
 
   const doc = new PDFDocument({ autoFirstPage: false });
-  const writeStream = dir.createWriteStream();
+  const writeStream = dir.createStream.write();
   doc.pipe(writeStream);
 
   let i = 0;

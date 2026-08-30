@@ -25,12 +25,12 @@ import { Paths } from "@utils";
 import { Logger } from "./logger";
 import { zipFolder } from "./zip";
 import { nativeData } from "./nativeData";
-import { Directory, File, Helper, Network } from "@common";
 import { authenticateUser } from "./vault";
 import { sendNotification } from "./notifications";
 import { createPDFWithImages } from "./pdf";
-import { ChannelsIpcRenderer, MessagesClipboard } from "@types";
 import { createWindowClipboard } from "./clipboard";
+import { Directory, File, Helper, Network } from "@common";
+import { ChannelsIpcRenderer, MessagesClipboard } from "@types";
 import { restartComputer, scheduleReconnect, turnOffComputer } from "./server";
 
 type IpcDictHybrid = {
@@ -57,7 +57,7 @@ const ipcDict: IpcDictHybrid = {
   "read-clipboard": {
     type: "handle",
     func: async () => {
-      return clipboard.readText("clipboard");
+      return clipboard.readText();
     },
   },
   "delete-clipboard-item": {
@@ -109,7 +109,7 @@ const ipcDict: IpcDictHybrid = {
       Logger.log(
         `Received set-clipboard request with text length: ${text.length}`,
       );
-      clipboard.writeText(text, "clipboard");
+      clipboard.writeText(text);
     },
   },
   "user-login-status": {
@@ -536,7 +536,7 @@ const ipcDict: IpcDictHybrid = {
 
       try {
         const dir = new Directory(directory);
-        const folderNames = await dir.readDirWithFileTypes();
+        const folderNames = await dir.readDir.withFileTypes();
         const existingFolders = folderNames
           .filter((dirent) => dirent.isDirectory())
           .map((dirent) => dirent.name);

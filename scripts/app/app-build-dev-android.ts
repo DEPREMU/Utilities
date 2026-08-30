@@ -1,20 +1,37 @@
-import {
-  env,
-  args,
-  APP_PATH,
-  PLATFORM,
-  UTILITIES_PATH,
-  handleExitFromScript,
-} from "../config.ts";
-import fs from "fs";
 import path from "path";
+import chalk from "chalk";
+import { spawn } from "child_process";
+import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron";
-import { execSync, spawn } from "child_process";
+import { env, args, APP_PATH } from "../config";
 
 const localEnv = {
   ...env,
   PLATFORM: "android",
   BUILD_PROFILE: "development",
+};
+
+const script = new Script(() => {
+  Logger.log("Finished app-build-dev-android script.");
+  killProcessTree(expo);
+
+  if (script.PLATFORM.isWindows) return;
+
+  Logger.log("Cleaning up java processes...");
+  spawn("pkill", ["-f", "java"]);
+});
+
+const killProcessTree = (child?: ReturnType<typeof spawn> | null): void => {
+  if (!child || child.killed || child.exitCode !== null) return;
+
+  if (script.PLATFORM.isWindows && child.pid) {
+    spawn("taskkill", ["/PID", `${child.pid}`, "/T", "/F"], {
+      stdio: "ignore",
+    });
+    return;
+  }
+
+  child.kill("SIGINT");
 };
 
 let expo: ReturnType<typeof spawn>;
@@ -26,65 +43,49 @@ const spawnCommand = (
 ): ReturnType<typeof spawn> => {
   return spawn(command, argsList, {
     ...options,
-    shell: PLATFORM.isWindows,
+    shell: script.PLATFORM.isWindows,
     stdio: "inherit",
   });
 };
 
-const killProcessTree = (child?: ReturnType<typeof spawn> | null): void => {
-  if (!child || child.killed || child.exitCode !== null) return;
+script.addValue("androidPath", path.join(APP_PATH, "android"));
 
-  if (PLATFORM.isWindows && child.pid) {
-    spawn("taskkill", ["/PID", `${child.pid}`, "/T", "/F"], {
-      stdio: "ignore",
+if (!args.ARGS["skip-build-android"]) {
+  script.addStep("Remove android directory", async () => {
+    await new script.Directory(script.getValue("androidPath") as string).rm({
+      recursive: true,
+      force: true,
     });
-    return;
-  }
-
-  child.kill("SIGINT");
-};
-
-handleExitFromScript(() => {
-  Logger.log("Finished app-build-dev-android script.");
-  killProcessTree(expo);
-
-  if (PLATFORM.isWindows) return;
-  Logger.log("Cleaning up java processes...");
-  spawn("pkill", ["-f", "java"]);
-});
-
-const run = () => {
-  const androidPath = path.join(APP_PATH, "android");
-  if (fs.existsSync(androidPath)) {
-    Logger.log("Removing android directory...");
-    fs.rmSync(androidPath, { recursive: true, force: true });
-  }
-
-  Logger.log("Running prebuild...");
-  execSync("yarn run app-prebuild-android", {
-    env: localEnv,
-    cwd: UTILITIES_PATH,
-    stdio: "inherit",
   });
 
-  Logger.log("Running android build...");
-  expo = spawnCommand(
-    PLATFORM.isWindows ? "yarn" : "taskset",
-    PLATFORM.isWindows
-      ? ["expo", "run:android", "--no-build-cache"]
-      : ["-c", "0-5", "yarn", "expo", "run:android", "--no-build-cache"],
-    { cwd: APP_PATH, env: localEnv },
-  );
-};
+  script.addStep("Run prebuild", async () => {
+    const exec = new script.Exec();
 
-const runExpo = () => {
-  Logger.log("Running expo...");
-
-  expo = spawnCommand("expo", ["start", "--clear", "--dev-client"], {
-    cwd: APP_PATH,
-    env: localEnv,
+    await exec.async
+      .onData((chunk) => {
+        Logger.log(chalk.magentaBright("Prebuild:"), chunk);
+      })
+      .run("yarn run app-prebuild-android");
   });
-};
 
-if (!args.ARGS["skip-build-android"]) run();
-else runExpo();
+  script.addStep("Run android build", async (_, abortController) => {
+    Logger.log("Running android build...");
+    expo = spawnCommand(
+      script.PLATFORM.isWindows ? "yarn" : "taskset",
+      script.PLATFORM.isWindows
+        ? ["expo", "run:android", "--no-build-cache"]
+        : ["-c", "0-5", "yarn", "expo", "run:android", "--no-build-cache"],
+      { cwd: APP_PATH, env: localEnv, signal: abortController.signal },
+    );
+  });
+} else {
+  script.addStep("Run expo", (_, abortController) => {
+    Logger.log("Running expo...");
+
+    expo = spawnCommand("expo", ["start", "--clear", "--dev-client"], {
+      cwd: APP_PATH,
+      env: localEnv,
+      signal: abortController.signal,
+    });
+  });
+}

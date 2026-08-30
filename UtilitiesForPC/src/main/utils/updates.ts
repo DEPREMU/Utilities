@@ -100,7 +100,7 @@ export const downloadNewUpdate = async (
   const file = _file instanceof File ? _file : new File(_file);
 
   return new Promise<"success" | "error">((resolve) => {
-    const writer = file.createWriteStream();
+    const writer = file.createStream.write();
 
     let handleFinishCalled = false;
     const handleFinish = (err?: string) => {
@@ -172,8 +172,8 @@ export const updateWeb = async (downloadUrl: string): Promise<void> => {
     }
 
     await new Promise<void>((resolve) => {
-      file
-        .createWriteStream()
+      file.createStream
+        .write()
         .pipe(
           unzipper.Extract({
             path: distPath,

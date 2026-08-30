@@ -50,7 +50,7 @@ export default defineConfig([
       globals: {
         ...globals.browser,
         ...globals.node,
-        ...globals.es2021,
+        ...globals.es2025,
         __DEV__: "readonly",
         NodeJS: "readonly",
         Express: "readonly",
@@ -72,12 +72,17 @@ export default defineConfig([
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "warn",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
       ],
+
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-non-null-assertion": "warn",
+
       "react/react-in-jsx-scope": "off",
       "react/jsx-no-literals": [
         "error",
@@ -87,25 +92,22 @@ export default defineConfig([
         },
       ],
       "react/prop-types": "off",
+
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
-      "react-native/no-inline-styles": "warn",
+
+      "react-native/no-inline-styles": "error",
       "react-native/no-unused-styles": "error",
       "react-native/split-platform-components": "warn",
-      "react-native/no-raw-text": "warn",
+      "react-native/no-raw-text": "error",
+
       "no-console": "warn",
       "no-unused-vars": "off",
       "no-undef": "warn",
       "no-empty": "warn",
+
       "prefer-const": "error",
       "no-var": "error",
-      semi: ["error", "always"],
-      quotes: ["warn", "double"],
-      indent: "off",
-      "@stylistic/indent": ["warn", 2],
-      "comma-dangle": ["warn", "always-multiline"],
-      "object-curly-spacing": ["error", "always"],
-      "array-bracket-spacing": ["error", "never"],
       "require-yield": "warn",
     },
     settings: {

@@ -19,13 +19,11 @@
   "type": "module",
   "dependencies": {
     "7zip-bin": "^5.2.0",
-    "archiver": "^8.0.0",
     "bonjour-service": "^1.4.4",
     "electron-edge-js": "^43.0.0",
     "node-7z": "^3.0.0",
-    "pdfkit": "^0.19.1",
     "pino": "^10.3.1",
-    "pino-pretty": "^13.1.3",
+    "pdfkit": "^0.20.1",
     "piscina": "^5.2.0",
     "sharp": "^0.35.2",
     "unzipper": "^0.12.5"

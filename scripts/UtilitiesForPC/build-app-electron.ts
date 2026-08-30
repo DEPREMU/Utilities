@@ -1,46 +1,15 @@
-/**
- * This script builds the Electron app for Windows and Linux.
- * It first builds the web version of the app, then packages it using Electron Builder.
- * Make sure to run this script in an environment where you have the necessary permissions.
- * Requires Node.js and yarn to be installed.
- * Run this script from the root directory Utilities/ where the UtilitiesForPC folder is located, or from the UtilitiesForPC directory.
- * Usage: `node createApp.js` or `node UtilitiesForPC/createApp.js`
- *
- * Platform-specific builds:
- * - Linux → Linux: Native build
- * - Windows → Windows: Native build
- *
- * @example
- * yarn run build-app --platform=linux  # Build only for Linux
- * yarn run build-app --platform=windows  # Build only for Windows
- */
-
 import {
-  ask,
   args,
-  PLATFORM,
   UTILITIES_PATH,
-  handleExitFromScript,
   UTILITIES_FOR_PC_PATH,
   PACKAGE_JSON_UtilitiesForPC,
 } from "../config.ts";
-import fs from "fs";
-import os from "os";
 import path from "path";
+import chalk from "chalk";
 import { t } from "./translations.ts";
+import { Script } from "../common.ts";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { execSync } from "child_process";
-
-type BuildPlatform = "linux" | "windows";
-
-const removeDirSafe = (dirPath: string) => {
-  try {
-    if (fs.existsSync(dirPath))
-      fs.rmSync(dirPath, { recursive: true, force: true });
-  } catch {
-    // Ignore
-  }
-};
+import { Directory } from "@commonSrc/serverOrElectron/fs.ts";
 
 const TEMP_FOLDER = path.join(
   UTILITIES_PATH,
@@ -57,207 +26,168 @@ const dataBuild = {
   productName: PACKAGE_JSON_UtilitiesForPC.build.productName,
 } as const;
 
-removeDirSafe(TEMP_FOLDER);
-fs.mkdirSync(TEMP_FOLDER, { recursive: true });
+let executeCleanup = false;
 
-const addAutostartLinux = async () => {
-  const answer0 = args.ARGS.yes ? "y" : await ask(t("enableAutoStartQuestion"));
-  if (answer0.toLowerCase() !== "y") return;
+export const script = new Script(async (err) => {
+  if (!executeCleanup) return;
 
-  const homePath = process.env.HOME;
-  if (!homePath) throw new Error("HOME environment variable is not set");
+  if (err) Logger.error("An error occurred:", err.message);
 
-  const userName = process.env.USER || process.env.USERNAME;
-  if (!userName) throw new Error("USER environment variable is not set");
+  if (!args.ARGS.yes && !args.ARGS.testing && !args.ARGS.ci)
+    await script.ask("Press enter to exit...", -1);
 
-  const configDir = path.join(homePath, ".config");
-  const startUpFile = path.join(configDir, "utilities-for-pc-autostart.sh");
-  const autoStartDir = path.join(configDir, "autostart");
-  const wrapperScriptPath = `/opt/${dataBuild.productName}/utilities-for-pc-root.sh`;
+  if (!args.ARGS.testing)
+    await new script.Directory(TEMP_FOLDER).rm({
+      recursive: true,
+      force: true,
+    });
+});
 
-  if (!fs.existsSync(autoStartDir))
-    fs.mkdirSync(autoStartDir, { recursive: true });
+script.elevate(
+  `cd ${UTILITIES_PATH}; yarn run build-app-electron ${args.getArgs()}; pause`,
+);
 
-  const desktopFilePath = path.join(autoStartDir, "utilities-for-pc.desktop");
+script.addStep("Clean up temp dir", async (instance) => {
+  const dir = new instance.Directory(TEMP_FOLDER);
+  const res = await dir.rm({ recursive: true, force: true });
 
-  const wrapperScriptContent = `#!/bin/bash
+  if (!res) throw new Error(`Failed to remove temp dir: ${dir}`);
 
-USER_ID=$1
-USER_HOME=$2
-USER_NAME=$3
-DBUS_ADDR=$4
+  await dir.mkdir({ recursive: true });
+});
 
-if [ -z "$USER_ID" ] || [ -z "$USER_HOME" ]; then
-    echo "Error: Missing arguments"
-    exit 1
-fi
-
-export DISPLAY=:0
-export XAUTHORITY="$USER_HOME/.Xauthority"
-export DBUS_SESSION_BUS_ADDRESS="$DBUS_ADDR"
-export XDG_RUNTIME_DIR="/run/user/$USER_ID"
-export ORIGINAL_USER="$USER_NAME"
-export ORIGINAL_HOME="$USER_HOME"
-
-echo "Starting app as root..."
-echo "User: $USER_NAME (ID: $USER_ID)"
-echo "DBus: $DBUS_SESSION_BUS_ADDRESS"
-
-exec /opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11 "\${@:5}"
-`;
-
-  const startupScriptContent = `#!/bin/bash
-
-xhost +si:localuser:root 2>/dev/null || true
-
-USER_ID=$(id -u ${userName})
-USER_HOME="${homePath}"
-USER_NAME="${userName}"
-
-DBUS_ADDR="$DBUS_SESSION_BUS_ADDRESS"
-if [ -z "$DBUS_ADDR" ]; then
-    DBUS_ADDR="unix:path=/run/user/$USER_ID/bus"
-fi
-
-LOG_FILE="${homePath}/.config/utilities-for-pc-startup.log"
-mkdir -p "$(dirname "$LOG_FILE")"
-
-echo "[$(date)] Starting Utilities for PC (Autostart)..." >> "$LOG_FILE"
-echo "DBUS_ADDR: $DBUS_ADDR" >> "$LOG_FILE"
-
-sudo ${wrapperScriptPath} "$USER_ID" "$USER_HOME" "$USER_NAME" "$DBUS_ADDR" >> "$LOG_FILE" 2>&1 &
-
-echo "[$(date)] Startup script completed" >> "$LOG_FILE"
-`;
-
-  const desktopFileContent = `[Desktop Entry]
-Type=Application
-Exec=${startUpFile}
-Terminal=false
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-Name=Utilities for PC
-Comment=Start Utilities for PC on login with root privileges
-Categories=Utility;
-StartupNotify=false
-`;
-
-  const fileSudoers = "utilitiesforpc";
-  const sudoersEntry = `
-${userName} ALL=(ALL) NOPASSWD: ${wrapperScriptPath}
-${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
-`;
-
-  try {
-    const tempWrapper = path.join(
-      os.tmpdir(),
-      `utilities-for-pc-root-${Date.now()}.sh`,
-    );
+script.addStep(
+  "Building electron resources",
+  async (instance, abortController) => {
     if (!args.ARGS.testing) {
-      fs.writeFileSync(tempWrapper, wrapperScriptContent);
-      execSync(`sudo mv ${tempWrapper} ${wrapperScriptPath}`);
-      execSync(`sudo chmod +x ${wrapperScriptPath}`);
+      const exec = new instance.Exec();
 
-      execSync(
-        `sudo sh -c 'echo "${sudoersEntry}" > /etc/sudoers.d/${fileSudoers}'`,
-      );
-      execSync(`sudo chmod 0440 /etc/sudoers.d/${fileSudoers}`);
+      await exec.async
+        .onData((chunk) => {
+          Logger.log(chalk.blueBright("Building electron resources: "), chunk);
+        })
+        .run(
+          `yarn run build-resources-electron --isWindows=${instance.PLATFORM.isWindows}`,
+          { signal: abortController.signal },
+        );
     } else {
-      Logger.log("Testing mode: Skipping sudo configuration");
+      Logger.log("Testing mode: Skipping build-resources-electron");
     }
-  } catch (error) {
-    Logger.error("Failed to configure system files:", error);
-    throw error;
-  }
+  },
+);
 
+script.addStep("Building web app", async (instance, abortController) => {
   if (!args.ARGS.testing) {
-    fs.writeFileSync(startUpFile, startupScriptContent);
-    execSync(`chmod +x ${startUpFile}`);
+    const exec = new instance.Exec();
 
-    fs.writeFileSync(desktopFilePath, desktopFileContent);
-    execSync(`chmod +x ${desktopFilePath}`);
+    await exec.async
+      .onData((chunk) => {
+        Logger.log(chalk.blueBright("Building web app: "), chunk);
+      })
+      .run("yarn run build-web-app-electron", {
+        signal: abortController.signal,
+      });
   } else {
-    Logger.log("Testing mode: Skipping autostart file generation");
+    Logger.log("Testing mode: Skipping build-web-app-electron");
   }
+});
 
-  Logger.log(t("autoStartEnabled"));
-};
-
-const buildApp = async () => {
-  const buildPlatform: BuildPlatform = PLATFORM.isWindows ? "windows" : "linux";
-
-  Logger.log(t("elevatingPermissions"));
-
-  Logger.log(t("buildingApp") + ` (isWindows=${PLATFORM.isWindows})`);
-  
-  if (!args.ARGS.testing) {
-    execSync(
-      `yarn run build-resources-electron --isWindows=${PLATFORM.isWindows}`,
-      {
-        cwd: UTILITIES_PATH,
-        stdio: "inherit",
-      },
-    );
-  } else {
-    Logger.log("Testing mode: Skipping build-resources-electron");
-  }
-
+script.addStep("Init temp folder", async (instance) => {
   const PATHS = [
     path.join(UTILITIES_FOR_PC_PATH, "dist"),
     path.join(UTILITIES_FOR_PC_PATH, "build"),
     path.join(UTILITIES_FOR_PC_PATH, "assets"),
     path.join(UTILITIES_FOR_PC_PATH, "package.json"),
   ];
-  PATHS.forEach((dir) => {
-    if (!fs.existsSync(dir))
-      throw new Error(t("failedToFindAFolderRequiredForBuild") + dir);
 
-    if (
-      dir.endsWith("build") ||
-      dir.endsWith("assets") ||
-      dir.endsWith("package.json")
-    )
-      fs.cpSync(dir, path.join(TEMP_FOLDER, path.basename(dir)), {
-        recursive: !path.basename(dir).includes("."),
-      });
-    else fs.renameSync(dir, path.join(TEMP_FOLDER, path.basename(dir)));
-  });
+  await Promise.all(
+    PATHS.map(async (localPath) => {
+      const tempPath = path.join(TEMP_FOLDER, path.basename(localPath));
 
-  Logger.log(t("appBuildCommandExecuted"));
+      if (localPath.endsWith("package.json")) {
+        const file = new instance.File(localPath);
 
+        if (!(await file.exists()))
+          throw new Error(`Failed to find a file required for build: ${file}`);
+
+        const result = await file.copyFile(tempPath);
+        if (result instanceof Error) throw result;
+
+        return;
+      }
+
+      const dir = new instance.Directory(localPath);
+
+      if (!(await dir.exists()))
+        throw new Error(`Failed to find a folder required for build: ${dir}`);
+      let res: Directory | Error;
+      if (localPath.endsWith("assets")) res = await dir.copyDir(tempPath);
+      else res = await dir.rename(tempPath);
+
+      if (res instanceof Error) throw res;
+    }),
+  );
+
+  executeCleanup = true;
+});
+
+script.addStep("Install dependencies", async (instance, abortController) => {
   if (!args.ARGS.testing) {
-    execSync("yarn install", {
-      cwd: TEMP_FOLDER,
-      stdio: "inherit",
-    });
+    const exec = new instance.Exec();
+
+    await exec.async
+      .onData((chunk) => {
+        Logger.log(chalk.blueBright("Installing dependencies: "), chunk);
+      })
+      .run("yarn install --ignore-optional", {
+        cwd: TEMP_FOLDER,
+        signal: abortController.signal,
+      });
   } else {
     Logger.log("Testing mode: Skipping yarn install in temp folder");
   }
+});
 
-  if (buildPlatform === "windows") {
-    Logger.log(t("buildingWindowsExecutable"));
+script.addStep("Build electron app", async (instance, abortController) => {
+  if (instance.PLATFORM.isWindows) {
+    Logger.log("Building windows executable");
 
     if (!args.ARGS.testing) {
-      execSync("yarn electron-builder --win", {
-        cwd: TEMP_FOLDER,
-        stdio: "inherit",
-      });
+      const exec = new instance.Exec();
+
+      await exec.async
+        .onData((chunk) => {
+          Logger.log(chalk.blueBright("Building electron app: "), chunk);
+        })
+        .run("yarn electron-builder --win", {
+          cwd: TEMP_FOLDER,
+          signal: abortController.signal,
+        });
     } else {
       Logger.log("Testing mode: Skipping electron-builder --win");
     }
+  } else if (instance.PLATFORM.isLinux) {
+    Logger.log(chalk.cyan("Building linux package"));
 
-    Logger.log(t("windowsBuildCompleted"));
-  } else if (buildPlatform === "linux") {
-    Logger.log(t("buildingLinuxPackage"));
-
-    Logger.log(t("installingLinuxDependencies"));
+    Logger.log(chalk.cyan("Installing linux dependencies"));
     try {
       if (!args.ARGS.testing) {
-        execSync(
-          "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y",
-          { stdio: "inherit" },
-        );
+        const command =
+          "sudo apt install -y build-essential fakeroot dpkg-dev libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools; sudo apt update -y; sudo apt upgrade -y";
+
+        const exec = new instance.Exec();
+
+        await exec.async
+          .onData((chunk) => {
+            Logger.log(
+              chalk.blueBright("Installing linux dependencies: "),
+              chunk,
+            );
+          })
+          .run(command, {
+            cwd: TEMP_FOLDER,
+            signal: abortController.signal,
+          });
       } else {
         Logger.log("Testing mode: Skipping apt install");
       }
@@ -266,127 +196,78 @@ const buildApp = async () => {
     }
 
     if (!args.ARGS.testing) {
-      execSync("yarn electron-builder --linux deb", {
-        cwd: TEMP_FOLDER,
-        stdio: "inherit",
-      });
+      const exec = new instance.Exec();
+
+      await exec.async
+        .onData((chunk) => {
+          Logger.log(chalk.blueBright("Building electron app: "), chunk);
+        })
+        .run("yarn electron-builder --linux deb", {
+          cwd: TEMP_FOLDER,
+          signal: abortController.signal,
+        });
     } else {
       Logger.log("Testing mode: Skipping electron-builder --linux deb");
     }
-    Logger.log("\n" + t("appPackagedSuccessfully"));
   }
+});
 
-  const extension = PLATFORM.isWindows ? ".exe" : ".deb";
+script.addStep("Move app", async (instance) => {
+  const extension = instance.PLATFORM.isWindows ? ".exe" : ".deb";
 
-  const pathDist = path.join(UTILITIES_FOR_PC_PATH, "dist-electron");
-  const destinationPath = path.join(
-    pathDist,
-    `${dataBuild.appName}${extension}`,
+  const destFile = new instance.File(
+    path.join(
+      UTILITIES_FOR_PC_PATH,
+      "dist-electron",
+      `${dataBuild.appName}${extension}`,
+    ),
+  );
+  if (await destFile.exists()) await destFile.rm({ force: true });
+  else await destFile.mkdir();
+
+  const files = await new instance.Directory(dataBuild.distElectron).readDir();
+
+  const appPackage = files.find((file) => file.endsWith(extension));
+
+  if (!appPackage)
+    throw new Error(
+      `Failed to find the built package: ${JSON.stringify(files, null, 2)}`,
+    );
+
+  const sourceFile = new instance.File(
+    path.join(dataBuild.distElectron, appPackage),
   );
 
-  if (!fs.existsSync(pathDist)) fs.mkdirSync(pathDist, { recursive: true });
-
-  let dir: string[] = [];
-  try {
-    dir = fs.readdirSync(dataBuild.distElectron);
-  } catch {
-    // ignore if directory doesn't exist yet
-  }
-  const appPackage = dir.find((file) => file.endsWith(extension));
-
-  const sourcePath = path.join(dataBuild.distElectron, appPackage || "error");
-  if (!args.ARGS.testing && !fs.existsSync(sourcePath)) throw new Error(t("buildFailed"));
+  if (!args.ARGS.testing && !(await sourceFile.exists()))
+    throw new Error(
+      `Failed to find the built package: ${sourceFile.path}: ${JSON.stringify(
+        files,
+        null,
+        2,
+      )}`,
+    );
 
   if (!args.ARGS.testing) {
-    if (fs.existsSync(destinationPath))
-      fs.rmSync(destinationPath, { force: true });
+    const success = await sourceFile.rename(destFile);
 
-    fs.renameSync(sourcePath, destinationPath);
+    if (!success)
+      throw new Error(
+        `Failed to rename file: ${JSON.stringify({ sourcePath: sourceFile.path, destinationPath: destFile.path }, null, 2)}`,
+      );
   } else {
     Logger.log("Testing mode: Skipping rename dist-electron package");
   }
 
-  if (PLATFORM.isWindows || args.ARGS.testing || args.ARGS.ci) return;
-
-  const installAnswer = args.ARGS.yes
-    ? "y"
-    : await ask(t("installDebPackagePrompt"), -1);
-  if (installAnswer.toLowerCase() === "y") {
-    execSync(
-      `sudo dpkg -i ${destinationPath} && sudo apt-get install -f -y; sudo apt autoremove -y`,
-      { stdio: "inherit" },
-    );
-    execSync("sudo ufw allow 5353/udp && sudo ufw reload");
-
-    const runAppCommand = `/opt/${dataBuild.productName}/${dataBuild.appName} --no-sandbox --disable-gpu --ozone-platform=x11`;
-
-    await addAutostartLinux();
-
-    const answer = await ask(t("pleaseRestartComputer"), 10000);
-    if (answer.toLowerCase() === "y") {
-      Logger.log(t("restartNow"));
-      execSync("sudo reboot", { stdio: "inherit" });
-    } else {
-      Logger.log(t("restartingComputer"));
-    }
-
-    const answer2 = await ask(t("openAppNow"), 60000);
-    if (answer2.toLowerCase() === "y") {
-      execSync(`${runAppCommand}`, {
-        cwd: UTILITIES_FOR_PC_PATH,
-        stdio: "inherit",
-      });
-    }
-  }
-
   Logger.log(
-    `\n${t("appPackagedSuccessMessage")} ${
-      PLATFORM.isWindows ? t("appPackagedSuccessMessage") : ""
-    }`,
+    chalk.green(
+      `Build moved successfully to ${path.join(
+        UTILITIES_FOR_PC_PATH,
+        "dist-electron",
+      )}`,
+    ),
   );
-};
-
-export const run = async () => {
-  if (PLATFORM.isWindows) {
-    const isElevated = () => {
-      try {
-        execSync("net session", { stdio: "ignore" });
-        return true;
-      } catch {
-        return false;
-      }
-    };
-
-    if (!isElevated() && !args.ARGS.testing) {
-      const command = `cd ${UTILITIES_PATH}; yarn run build-app-electron ${args.getArgs()}; pause`;
-
-      execSync(
-        `powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process PowerShell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command ${command}'"`,
-        { stdio: "inherit" },
-      );
-      process.exit(0);
-    }
-  }
-
-  if (!args.ARGS.testing) {
-    execSync("yarn run build-web-app-electron", {
-      cwd: UTILITIES_PATH,
-      stdio: "inherit",
-    });
-  } else {
-    Logger.log("Testing mode: Skipping build-web-app-electron");
-  }
-  Logger.log(t("webAppBuiltSuccessfully"));
-
-  await buildApp();
-};
-
-handleExitFromScript(async (err) => {
-  if (err) Logger.error("An error occurred:", err.message);
-  if (!args.ARGS.yes && !args.ARGS.testing && !args.ARGS.ci) await ask(t("pressEnterToExit"), -1);
-  if (!args.ARGS.testing) removeDirSafe(TEMP_FOLDER);
 });
 
 if (process.env.NODE_ENV !== "test") {
-  run();
+  script.run();
 }

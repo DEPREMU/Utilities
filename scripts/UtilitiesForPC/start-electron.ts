@@ -2,10 +2,8 @@ import {
   env,
   args,
   APP_PATH,
-  PLATFORM,
   TYPE_ARGS,
   FRONTEND_PATH,
-  handleExitFromScript,
   UTILITIES_FOR_PC_PATH,
 } from "../config.ts";
 import axios from "axios";
@@ -14,6 +12,7 @@ import { Helper } from "@commonSrc/both/index.ts";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import * as readline from "readline";
 import { spawn, execSync, ChildProcess, SpawnOptions } from "child_process";
+import { Script } from "../common.ts";
 
 const values = {
   PLATFORM: "web",
@@ -42,6 +41,8 @@ const state: ProcessState = {
   isRestarting: false,
 };
 
+const script = new Script();
+
 const spawnCommand = (
   command: string,
   argsList: string[],
@@ -49,7 +50,7 @@ const spawnCommand = (
 ): ChildProcess => {
   return spawn(command, argsList, {
     ...options,
-    shell: PLATFORM.isWindows,
+    shell: script.PLATFORM.isWindows,
     stdio: options.stdio ?? ["ignore", "inherit", "inherit"],
   });
 };
@@ -94,7 +95,7 @@ const killProcess = (
 
     Logger.log(chalk.red(`[Manager] Force killing ${name}...`));
 
-    if (PLATFORM.isWindows && process.pid) {
+    if (script.PLATFORM.isWindows && process.pid) {
       const killer = spawn("taskkill", ["/PID", `${process.pid}`, "/T", "/F"], {
         stdio: "ignore",
       });
@@ -246,6 +247,6 @@ const run = async () => {
   });
 };
 
-handleExitFromScript(performExit);
+script.onExit(performExit);
 
 run();

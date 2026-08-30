@@ -2,7 +2,8 @@ process.env.IS_SERVER = "true";
 
 import {
   options,
-  external,
+  externalServer,
+  externalWorkers,
   REPLACERS_PLUGIN,
 } from "@commonSrc/serverOrElectron/build";
 import fs from "fs";
@@ -18,7 +19,7 @@ const plugins: Plugin[] = [pluginReplace([...REPLACERS_PLUGIN])];
 build({
   ...options,
   plugins,
-  external,
+  external: externalServer,
 
   outfile: path.join(SERVER_PATH, "build", "index.cjs"),
   entryPoints: [path.join(SERVER_PATH, "index.ts")],
@@ -40,7 +41,7 @@ fs.readdir(piscinaWorkerPath, async (err, files) => {
       return build({
         ...options,
         plugins,
-        external,
+        external: externalWorkers,
 
         outfile: path.join(
           SERVER_PATH,

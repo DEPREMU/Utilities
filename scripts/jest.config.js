@@ -14,5 +14,6 @@ export default {
     "^@commonSrc/(.*)$": "<rootDir>/../common/$1",
     "^@utilitiesSrc/(.*)$": "<rootDir>/../UtilitiesForPC/$1",
     "^chalk$": "<rootDir>/tests/__mocks__/chalk.js",
+    "^@REPLACERS$": "<rootDir>/../common/both/REPLACERS/REPLACERS.server.ts",
   },
 };

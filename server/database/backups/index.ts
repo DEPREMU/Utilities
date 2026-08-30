@@ -143,7 +143,7 @@ export const handleBackupDatabase = async () => {
       return;
     }
 
-    const backupFile = file.createWriteStream();
+    const backupFile = file.createStream.write();
     const { port, hostname, username, database } = getDbConfig();
 
     const pgDump = spawn("pg_dump", [

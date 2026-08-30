@@ -1,5 +1,9 @@
 /* eslint-disable no-console */
 import {
+  externalWorkers,
+  externalElectron,
+} from "@commonSrc/serverOrElectron/build.ts";
+import {
   args,
   versionExpo,
   COMMON_PATH,
@@ -64,19 +68,7 @@ build({
 build({
   ...baseConfig,
   outfile: path.join(UTILITIES_FOR_PC_PATH, "build", "index.cjs"),
-  external: [
-    "pino",
-    "sharp",
-    "pdfkit",
-    "node-7z",
-    "piscina",
-    "7zip-bin",
-    "archiver",
-    "electron",
-    "unzipper",
-    "bonjour-service",
-    "electron-edge-js",
-  ],
+  external: externalElectron,
   entryPoints: [path.join(UTILITIES_FOR_PC_PATH, "src", "main", "index.ts")],
   plugins: [
     pluginReplace([
@@ -132,7 +124,7 @@ const piscinaCallback = (
     build({
       ...baseConfig,
       outfile: destPath,
-      external: ["pino", "sharp"],
+      external: externalWorkers,
       entryPoints: [srcPath],
     }).catch((err: unknown) => {
       console.error(`Build failed for ${file}:`, err);

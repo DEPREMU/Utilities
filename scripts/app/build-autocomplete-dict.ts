@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
-import { APP_PATH } from "../config.ts";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
+import { APP_PATH } from "../config.ts";
 
 const HEADER = "UDICT1";
 const MAX_WORDS = 300_000;

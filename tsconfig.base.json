@@ -13,5 +13,6 @@
     "allowJs": true,
     "noEmit": true,
     "isolatedModules": false
-  }
+  },
+  "exclude": ["node_modules"]
 }

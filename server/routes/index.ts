@@ -1,20 +1,21 @@
-import "../Notifications/index.ts";
+import "../Notifications";
 
 import { Router } from "express";
 import { ROUTER_AUTH } from "./auth/";
-import { ROUTER_LOGS } from "./logs/index.ts";
-import { ROUTER_INFO } from "./info/index.ts";
-import { ROUTER_ADMIN } from "./admin/index.ts";
-import { ROUTER_CRYPTOS } from "./cryptos/";
-import { ROUTER_UPDATES } from "./updates/index.ts";
-import { ROUTER_STREAMERS } from "./streamers/index.ts";
-import { ROUTER_LANGUAGES } from "./languages/index.ts";
-import { ROUTER_ENCRYPTION } from "./encryption/index.ts";
-import { ROUTER_CLIPBOARD } from "./clipboard/index.ts";
-import { ROUTER_USER_CONFIG } from "./userconfig/index.ts";
-import { ROUTER_DOWN_DETECTOR } from "./downdetector/index.ts";
-import { ROUTER_USER_NOTIFICATIONS_CONFIG } from "./usernotificationsconfig/index.ts";
-import { ROUTER_IMAGES, getMainRouter, REPLACERS } from "@common";
+import { ROUTER_LOGS } from "./logs";
+import { ROUTER_INFO } from "./info";
+import { ROUTER_ADMIN } from "./admin";
+import { ROUTER_IMAGES } from "@commonSrc/serverOrElectron/express/images";
+import { ROUTER_CRYPTOS } from "./cryptos";
+import { ROUTER_UPDATES } from "./updates";
+import { ROUTER_STREAMERS } from "./streamers";
+import { ROUTER_LANGUAGES } from "./languages";
+import { ROUTER_CLIPBOARD } from "./clipboard";
+import { ROUTER_ENCRYPTION } from "./encryption";
+import { ROUTER_USER_CONFIG } from "./userconfig";
+import { ROUTER_DOWN_DETECTOR } from "./downdetector";
+import { getMainRouter, REPLACERS } from "@common";
+import { ROUTER_USER_NOTIFICATIONS_CONFIG } from "./usernotificationsconfig";
 
 const router = getMainRouter({
   "/dev": {

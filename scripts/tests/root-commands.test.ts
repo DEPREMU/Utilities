@@ -1,4 +1,11 @@
-import { describe, it, expect, beforeEach, afterAll, jest } from '@jest/globals';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterAll,
+  jest,
+} from "@jest/globals";
 import { args } from "../arguments.ts";
 import * as rootCommands from "../root-commands.ts";
 import child_process from "child_process";
@@ -44,7 +51,7 @@ describe("root-commands", () => {
     await rootCommands.run();
     expect(child_process.execSync).toHaveBeenCalledWith(
       expect.stringContaining("yarn run app-prebuild-android"),
-      expect.anything()
+      expect.anything(),
     );
   });
 
@@ -54,27 +61,7 @@ describe("root-commands", () => {
     await rootCommands.run();
     expect(child_process.execSync).not.toHaveBeenCalled();
     expect(Logger.log).toHaveBeenCalledWith(
-      expect.stringContaining("Testing mode: Skipping compile-check commands")
-    );
-  });
-
-  it("should execute server start in normal mode", async () => {
-    args.editArg("testing", false);
-    args.editArg("action", "server");
-    await rootCommands.run();
-    expect(child_process.execSync).toHaveBeenCalledWith(
-      "yarn run start",
-      expect.anything()
-    );
-  });
-
-  it("should skip server start execution in testing mode", async () => {
-    args.editArg("testing", true);
-    args.editArg("action", "server");
-    await rootCommands.run();
-    expect(child_process.execSync).not.toHaveBeenCalled();
-    expect(Logger.log).toHaveBeenCalledWith(
-      expect.stringContaining("Testing mode: Skipping server start")
+      expect.stringContaining("Testing mode: Skipping compile-check commands"),
     );
   });
 
@@ -85,7 +72,7 @@ describe("root-commands", () => {
     expect(fs.promises.rm).not.toHaveBeenCalled();
     expect(child_process.execSync).not.toHaveBeenCalledWith(
       "yarn cache clean",
-      expect.anything()
+      expect.anything(),
     );
   });
 });

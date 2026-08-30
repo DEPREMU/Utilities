@@ -3,7 +3,8 @@ import {
   handleGetCryptoPrice,
   handleGetCryptoBySymbol,
 } from "./handlers";
-import { getRouterGet, requireDependency } from "@common";
+import { getRouterGet } from "@common";
+import { requireDependency } from "@commonSrc/serverOrElectron/express/middlewares";
 
 export const routerCryptosGet = getRouterGet("/cryptos", {
   "/": {

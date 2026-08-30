@@ -6,10 +6,11 @@ import { exec } from "child_process";
 import machineId from "node-machine-id";
 import { Server } from "http";
 import { Logger } from "./logger";
+import { ROUTER_IMAGES } from "@commonSrc/serverOrElectron/express/images";
 import { AdvertisementTXT } from "@types";
 import Bonjour, { ServiceConfig } from "bonjour-service";
+import { Timers, stopMemoryMonitor } from "@common";
 import { clearTempFiles, executeTerminalCommands } from "./storage";
-import { Timers, stopMemoryMonitor, ROUTER_IMAGES } from "@common";
 
 let idTimeoutServer: NodeJS.Timeout | number | null = null;
 let isReconnecting = false;
