@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
-import { Validations } from "@commonSrc/both/validations.ts";
-import { ServerFetch } from "@commonSrc/both/fetch/fetch.ts";
 import dotenv from "dotenv";
+import { execSync } from "child_process";
+import { Validations } from "../common/both/validations.ts";
+import { ServerFetch } from "../common/both/fetch/fetch.ts";
 
 if (fs.existsSync(path.join(process.cwd(), ".env")))
   dotenv.config({ path: path.join(process.cwd(), ".env") });
