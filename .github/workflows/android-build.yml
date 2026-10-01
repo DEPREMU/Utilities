@@ -19,16 +19,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Install dependencies
+        run: yarn install
 
       - name: Check version change
         id: version_check
         run: node scripts/check-version-ci.ts --platform=android
         env:
           API_URL: ${{ secrets.API_URL }}
-
-      - name: Install dependencies
-        if: steps.version_check.outputs.should_build == 'true'
-        run: yarn install
 
       - name: Pre-build Android
         if: steps.version_check.outputs.should_build == 'true'
