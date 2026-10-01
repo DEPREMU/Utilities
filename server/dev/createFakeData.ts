@@ -1,13 +1,27 @@
 import chalk from "chalk";
 import { prisma } from "@/database/postgres";
 import cliProgress from "cli-progress";
-import { TABLE_MAP } from "@/config";
 import { randomUUID } from "crypto";
 import { TablesKeys } from "@types";
 import { Helper, Logger, reasonNotification } from "@common";
 
 const MIN_USERS_RECORDS = 5000;
 const MIN_OTHER_RECORDS_PER_USER = 10;
+
+export const TABLE_MAP = {
+  Logs: "logs",
+  Users: "users",
+  Notes: "notes",
+  Cryptos: "cryptos",
+  Streamers: "streamer",
+  PushTokens: "push_tokens",
+  UserConfig: "user_config",
+  DownDetector: "down_detector",
+  UserSessions: "user_sessions",
+  ClipboardSync: "clipboard_sync",
+  CryptosSettings: "cryptos_settings",
+  UserNotificationsConfig: "user_notifications_config",
+} as const satisfies Record<TablesKeys, string>;
 
 class Random {
   static bool = () => Math.random() < 0.5;

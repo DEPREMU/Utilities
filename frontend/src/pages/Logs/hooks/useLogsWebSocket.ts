@@ -10,7 +10,7 @@ export function useLogsWebSocket() {
   const [hasNewLogs, setHasNewLogs] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null as unknown as HTMLDivElement);
 
   useEffect(() => {
     const connect = () => {

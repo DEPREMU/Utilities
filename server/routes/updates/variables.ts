@@ -2,7 +2,7 @@ import path from "path";
 import chalk from "chalk";
 import { v4 } from "uuid";
 import { prisma } from "@/database/postgres";
-import { getRoutes } from "@/config";
+import { config } from "@/config";
 import { Prisma, RequestUploadUpdate } from "@types";
 import { File, Logger, ServerFetch, Validations } from "@common";
 
@@ -59,7 +59,7 @@ class DataUpdates {
   ) => {
     const file = new File(
       path.join(
-        getRoutes("UPLOAD_DIR"),
+        config.getRoutes("UPLOAD_DIR"),
         getFinalFileName({
           version,
           buildType,
@@ -74,7 +74,7 @@ class DataUpdates {
         data: {
           version,
           type: buildType,
-          relativeFilePath: path.relative(getRoutes("ROOT"), file.path),
+          relativeFilePath: path.relative(config.getRoutes("ROOT"), file.path),
         },
       });
 
