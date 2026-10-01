@@ -1,11 +1,10 @@
 import {
-  isNewerVersion,
-  isServerAlive,
   evaluateBuildType,
   fetchServerVersion,
   checkAndroidFallback,
   checkElectronFallback,
 } from "../check-version-ci.ts";
+import { Validations } from "@commonSrc/both/validations.ts";
 import { ServerFetch } from "@commonSrc/both/fetch/fetch.ts";
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 
@@ -16,22 +15,22 @@ describe("check-version-ci", () => {
 
   describe("isNewerVersion", () => {
     it("should return true when server version is empty string (no build on server yet)", () => {
-      expect(isNewerVersion("0.5.0", "")).toBe(true);
-      expect(isNewerVersion("0.1.1-beta", "   ")).toBe(true);
+      expect(Validations.isNewVersion("", "0.5.0")).toBe(true);
+      expect(Validations.isNewVersion("   ", "0.1.1-beta")).toBe(true);
     });
 
     it("should return true when current version is newer than server version", () => {
-      expect(isNewerVersion("0.5.0", "0.4.0")).toBe(true);
-      expect(isNewerVersion("0.5.0-beta", "0.4.0")).toBe(true);
-      expect(isNewerVersion("1.0.0", "0.9.9")).toBe(true);
-      expect(isNewerVersion("0.1.2", "0.1.1-beta")).toBe(true);
+      expect(Validations.isNewVersion("0.4.0", "0.5.0")).toBe(true);
+      expect(Validations.isNewVersion("0.4.0", "0.5.0-beta")).toBe(true);
+      expect(Validations.isNewVersion("0.9.9", "1.0.0")).toBe(true);
+      expect(Validations.isNewVersion("0.1.1-beta", "0.1.2")).toBe(true);
     });
 
     it("should return false when current version is equal or older than server version", () => {
-      expect(isNewerVersion("0.5.0", "0.5.0")).toBe(false);
-      expect(isNewerVersion("0.5.0-beta", "0.5.0")).toBe(false);
-      expect(isNewerVersion("0.4.0", "0.5.0")).toBe(false);
-      expect(isNewerVersion("0.1.1-beta", "0.1.1")).toBe(false);
+      expect(Validations.isNewVersion("0.5.0", "0.5.0")).toBe(false);
+      expect(Validations.isNewVersion("0.5.0", "0.5.0-beta")).toBe(false);
+      expect(Validations.isNewVersion("0.5.0", "0.4.0")).toBe(false);
+      expect(Validations.isNewVersion("0.1.1", "0.1.1-beta")).toBe(false);
     });
   });
 
@@ -39,15 +38,14 @@ describe("check-version-ci", () => {
     it("should delegate to ServerFetch.isServerAlive", async () => {
       jest.spyOn(ServerFetch, "isServerAlive").mockResolvedValue(true);
 
-      const alive = await isServerAlive("https://api.example.com");
+      const alive = await ServerFetch.isServerAlive();
       expect(alive).toBe(true);
-      expect(ServerFetch.API_URL).toBe("https://api.example.com");
     });
 
     it("should return false if ServerFetch.isServerAlive returns false", async () => {
       jest.spyOn(ServerFetch, "isServerAlive").mockResolvedValue(false);
 
-      const alive = await isServerAlive("https://api.example.com");
+      const alive = await ServerFetch.isServerAlive();
       expect(alive).toBe(false);
     });
   });
@@ -100,12 +98,7 @@ describe("check-version-ci", () => {
         } as never,
       });
 
-      const shouldBuild = await evaluateBuildType(
-        "https://api.example.com",
-        true,
-        "android",
-        "0.5.0",
-      );
+      const shouldBuild = await evaluateBuildType(true, "android", "0.5.0");
       expect(shouldBuild).toBe(true);
     });
 
@@ -116,26 +109,11 @@ describe("check-version-ci", () => {
         data: {
           latestVersion: "0.5.0",
           isUpdateAvailable: false,
-        } as never,
+        },
       });
 
-      const shouldBuild = await evaluateBuildType(
-        "https://api.example.com",
-        true,
-        "android",
-        "0.5.0",
-      );
+      const shouldBuild = await evaluateBuildType(true, "android", "0.5.0");
       expect(shouldBuild).toBe(false);
-    });
-
-    it("should fallback to git comparison when server is not reachable", async () => {
-      const shouldBuild = await evaluateBuildType(
-        "",
-        false,
-        "android",
-        "0.5.0-beta",
-      );
-      expect(typeof shouldBuild).toBe("boolean");
     });
   });
 

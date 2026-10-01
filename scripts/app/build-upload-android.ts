@@ -49,7 +49,7 @@ script.addValue(
 );
 
 script.addStep("Verify APK exists", async () => {
-  const dir = script.getValue("appBuild") as Directory;
+  const dir = script.getValue("appBuildDir") as Directory;
 
   if (await dir.exists()) return;
 
@@ -87,7 +87,7 @@ script.addStep(`Upload APK ${script.appConfig.version}`, async () => {
     });
   });
 
-  const url = ServerFetch.getRoute("GET", "/updates/upload");
+  const url = ServerFetch.getRoute("POST", "/updates/upload");
   const response = await axios.post(url, formData, {
     headers: {
       ...formData.getHeaders(),
