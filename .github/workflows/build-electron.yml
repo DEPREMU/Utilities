@@ -34,6 +34,9 @@ jobs:
         with:
           node-version: 24
 
+      - name: Install Dependencies
+        run: yarn install
+
       - name: Check if version changed
         id: version-check
         shell: bash
