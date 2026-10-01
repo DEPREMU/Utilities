@@ -1,6 +1,6 @@
 import path from "path";
 import chalk from "chalk";
-import { getRoutes } from "@/config.ts";
+import { config } from "@/config.ts";
 import { RequestError } from "@commonSrc/both/errors/Error.ts";
 import { dataUpdates, getFinalFileName } from "../variables.ts";
 import { File, Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
@@ -55,7 +55,7 @@ export const handleDownload = getHandlerGet(
       );
 
     const filePath = path.join(
-      getRoutes("UPLOAD_DIR"),
+      config.getRoutes("UPLOAD_DIR"),
       getFinalFileName({
         version: infoUrl.version,
         buildType: infoUrl.buildType,

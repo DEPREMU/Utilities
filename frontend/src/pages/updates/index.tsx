@@ -1,10 +1,10 @@
 import "./index.css";
-import { t } from "../../utils/t";
 import { TopNav } from "./components/TopNav";
-import { UpdatesGrid } from "./components/UpdatesGrid";
-import { Helper, REPLACERS, ServerFetch } from "@common";
-import React, { useEffect, useState } from "react";
 import type { Enums } from "@types";
+import { UpdatesGrid } from "./components/UpdatesGrid";
+import { useTranslation } from "react-i18next";
+import React, { useEffect, useState } from "react";
+import { Helper, REPLACERS, ServerFetch } from "@common";
 
 interface UpdateInfo {
   downloadUrl: string;
@@ -12,6 +12,8 @@ interface UpdateInfo {
 }
 
 const Updates: React.FC = () => {
+  const { t } = useTranslation();
+
   const [updates, setUpdates] = useState<
     Record<Exclude<Enums["UpdateType"], "web">, UpdateInfo | null>
   >({
@@ -39,7 +41,7 @@ const Updates: React.FC = () => {
               `/updates/is-update-available/:version/:buildType`,
               { params: { version: "0.0.0", buildType } },
             );
-            if (res.data && res.data.downloadUrl) {
+            if ("downloadUrl" in res.data && res.data.downloadUrl) {
               results[buildType] = {
                 downloadUrl: res.data.downloadUrl,
                 latestVersion: res.data.latestVersion,

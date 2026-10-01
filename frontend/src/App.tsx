@@ -1,7 +1,7 @@
 import "./index.css";
 import React from "react";
-import { Routes, Route } from "react-router-dom";
 import { REPLACERS, Timers } from "@common";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 if (!REPLACERS.typeBuild) throw new Error("REPLACERS.typeBuild is not defined");
 
@@ -32,7 +32,17 @@ const App: React.FC = () => {
       )}
 
       <Route path="/updates" element={<Updates />} />
-      <Route path="/clipboard" element={<Clipboard />} />
+
+      {"UtilitiesForPC" in window && (
+        <Route
+          path="/clipboard"
+          element={React.createElement(
+            React.lazy(() => import("./pages/Clipboard")),
+          )}
+        />
+      )}
+
+      <Route path="*" element={<Navigate to="/updates" replace />} />
     </Routes>
   );
 };

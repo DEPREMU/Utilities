@@ -1,9 +1,9 @@
 import chalk from "chalk";
 import { user } from "./utils.ts";
+import { config } from "@/config";
 import { prisma } from "@/database/postgres.ts";
 import { createFakeData } from "./createFakeData";
 import { Logger, ServerFetch } from "@common";
-import { executeFunctionAfterInit } from "@/config";
 
 const initDev = async () => {
   const count = await prisma.users.count({ where: { email: user.email } });
@@ -23,6 +23,6 @@ const initDev = async () => {
   await createFakeData();
 };
 
-executeFunctionAfterInit(initDev);
+config.executeFunctionAfterInit(initDev);
 
 export * from "./createFakeData.ts";

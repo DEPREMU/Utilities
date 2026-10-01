@@ -1,5 +1,5 @@
 import "./index.css";
-import { t } from "@utils";
+import { useTranslation } from "react-i18next";
 import { REPLACERS, Timers } from "@common";
 import type { ContextBridgeType } from "@types";
 import React, { useEffect, useState } from "react";
@@ -14,6 +14,8 @@ const windowTyped = (
 ).UtilitiesForPC;
 
 const Clipboard: React.FC = () => {
+  const { t } = useTranslation();
+
   const [retry, setRetry] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<ClipboardItem[]>([]);
@@ -61,7 +63,7 @@ const Clipboard: React.FC = () => {
         cleanup();
       }
     };
-  }, [retry]);
+  }, [retry, t]);
 
   const handleCopy = async (item: ClipboardItem) => {
     if (!windowTyped?.setClipboard) return;

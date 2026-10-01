@@ -1,6 +1,6 @@
 import chalk from "chalk";
+import { config } from "@/config.ts";
 import { prisma } from "./postgres.ts";
-import { executeFunctionAfterInit } from "@/config.ts";
 import { getDateWithTimeAhead, Logger } from "@common";
 
 const deleteOldSessions = async () => {
@@ -30,5 +30,5 @@ const deleteOldSessions = async () => {
   }
 };
 
-executeFunctionAfterInit(deleteOldSessions);
+config.executeFunctionAfterInit(deleteOldSessions);
 export default setInterval(deleteOldSessions, 24 * 60 * 60 * 1000);

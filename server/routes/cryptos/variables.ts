@@ -5,8 +5,7 @@ import {
   CryptoEvents,
   ThirdPartyStateManager,
 } from "@common";
-import path from "path";
-import { getRoutes } from "@/config";
+import { config } from "@/config";
 
 export const cryptos = new Cryptos(500);
 void cryptos.fetchDataBinance(true);
@@ -20,10 +19,9 @@ cryptos.addEventListener(CryptoEvents.REFRESH, (refreshing) => {
 
 if (REPLACERS.isDev) {
   void cryptos.addEventListener(CryptoEvents.UPDATE, async (d) => {
-    void new File(
-      path.join(getRoutes("ROOT"), "dev", "cryptos.json"),
-    ).writeFile(JSON.stringify(d), {
-      encoding: "utf-8",
-    });
+    void new File(config.getRoutes("CRYPTOS_JSON_DEV")).writeFile(
+      JSON.stringify(d),
+      { encoding: "utf-8" },
+    );
   });
 }

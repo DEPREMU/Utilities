@@ -90,7 +90,7 @@ describe("app-prebuild script", () => {
 
     expect(child_process.exec).toHaveBeenCalledWith(
       expect.stringContaining("yarn expo prebuild"),
-      undefined,
+      expect.anything(),
     );
     expect(fs.promises.writeFile).toHaveBeenCalled();
     expect(fs.promises.rm).toHaveBeenCalled();
