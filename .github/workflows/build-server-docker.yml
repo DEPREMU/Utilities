@@ -41,3 +41,14 @@ jobs:
             depremu/utilities-server:main-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            cd $HOME/Utilities/server/vps/docker
+            docker compose pull server
+            docker compose up -d --force-recreate server
