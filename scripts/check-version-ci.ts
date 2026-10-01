@@ -35,7 +35,7 @@ export const fetchServerVersion = async (
       };
     }
     const data = res.data;
-    const latestVersion = data.latestVersion ?? "";
+    const latestVersion = data.latestVersion || "0.0.0";
     const isGreater = Validations.isNewVersion(version, latestVersion);
     return { reachable: true, latestVersion, isGreater };
   } catch (err) {
