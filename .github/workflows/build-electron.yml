@@ -6,6 +6,9 @@ on:
       - production
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   check-version:
     runs-on: ubuntu-latest
