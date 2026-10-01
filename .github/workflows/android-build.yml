@@ -45,6 +45,8 @@ jobs:
       - name: Build Android App (Docker)
         if: steps.version_check.outputs.should_build == 'true'
         run: |
+          mkdir -p "${{ github.workspace }}/app/builds"
+          chmod -R 777 "${{ github.workspace }}/app/builds"
           docker build -f scripts/app/Dockerfile.android -t app-android-build .
           docker run --rm \
             -v "${{ github.workspace }}/.git:/utilities/.git" \
@@ -54,6 +56,7 @@ jobs:
             -e BUILD_PROFILE=production \
             -e EXPO_TOKEN="${EXPO_TOKEN}" \
             app-android-build
+          ls -lah "${{ github.workspace }}/app/builds"
         env:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
@@ -74,3 +77,4 @@ jobs:
           name: android-build-fallback
           path: app/builds/
           retention-days: 5
+          if-no-files-found: warn

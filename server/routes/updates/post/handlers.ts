@@ -23,11 +23,23 @@ export const handleUpload = getHandlerPost(
         try {
           dataFile = JSON.parse(val) as RequestUploadUpdate;
 
+          const { buildType } = dataFile;
+
+          if (
+            buildType !== "web" &&
+            buildType !== "linux" &&
+            buildType !== "android" &&
+            buildType !== "windows"
+          ) {
+            Logger.log("Invalid platform or OS");
+            isNewVersion = false;
+            return;
+          }
+
           const existingData = dataUpdates.getDataUpdate(dataFile.buildType);
 
           if (!existingData) {
-            Logger.log("Invalid platform or OS");
-            isNewVersion = false;
+            isNewVersion = true;
             return;
           }
 
