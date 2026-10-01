@@ -5,6 +5,7 @@ import {
   isAppBuildDev,
   //TODO: Delete if not necessary to build android on github actions.
   // isBuildAndroid,
+  isUploadElectron,
   isAndroidPrebuild,
   isBuildAppElectron,
   isBuildUploadAndroid,
@@ -67,6 +68,9 @@ const showHelp = () => {
   }
   if (isBuildAppElectron || isAndroidPrebuild) {
     options.add(args["BUILD_PROFILE"].explanation);
+  }
+  if (isUploadElectron) {
+    options.add(args["skip-build-electron"].explanation);
   }
   if (isBuildResourcesElectron) {
     options.add(args["isWindows"].explanation);

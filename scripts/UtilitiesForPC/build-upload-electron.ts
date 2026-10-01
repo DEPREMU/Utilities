@@ -35,7 +35,7 @@ const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
 
     if ("error" in res.data) throw new Error(ServerError.getMessage(res.data));
 
-    return res.data.isUpdateAvailable;
+    return !res.data.isUpdateAvailable;
   } catch (error) {
     Logger.error(
       "Error checking for new version:",
