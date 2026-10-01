@@ -7,12 +7,6 @@ import { Logger, STATUS_RESPONSE, getHandlerPost, REPLACERS } from "@common";
 export const handleExecuteQuery = getHandlerPost(
   "/dev",
   "/executeQuery",
-  {
-    body: {
-      value: "string",
-      showFields: ["boolean", "undefined"],
-    },
-  },
   async ({ body }, sendResponse) => {
     if (!REPLACERS.isDev) {
       sendResponse(STATUS_RESPONSE.FORBIDDEN, {

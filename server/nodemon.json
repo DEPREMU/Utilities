@@ -1,0 +1,15 @@
+{
+  "ignore": [
+    "dist",
+    ".git",
+    "build",
+    "tests",
+    "*.d.ts",
+    "generated",
+    "cryptos.json",
+    "node_modules"
+  ],
+  "ext": "ts,json",
+  "exec": "yarn run sleep && yarn run db-update && yarn run start",
+  "watch": [".", "../common/*"]
+}

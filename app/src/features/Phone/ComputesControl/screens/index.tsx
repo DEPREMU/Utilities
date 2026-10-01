@@ -88,6 +88,8 @@ const devicesDev: Device[] = Array.from({ length: 5 }).map((_, i) => {
     addresses: [ip],
     fullName: "Test-PC._http._tcp.local.",
     deviceId: "test-device-id",
+    ipv4: [],
+    ipv6: [],
     txt: {
       deviceId: "test-device-id",
       lanIP: ip,

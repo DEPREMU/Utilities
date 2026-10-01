@@ -9,6 +9,7 @@ export default {
   moduleNameMapper: {
     "^@types$": "<rootDir>/../types/index.d.ts",
     "^@common$": "<rootDir>/../common/both/index.ts",
+    "^@REPLACERS$": "<rootDir>/../common/both/REPLACERS/REPLACERS.server.ts",
     "^@commonSrc/(.*)$": "<rootDir>/../common/$1",
   },
   globalSetup: "<rootDir>/tests/utils/setup-test.ts",

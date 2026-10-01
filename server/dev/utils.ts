@@ -1,12 +1,13 @@
 import { randomUUID } from "crypto";
 import { ServerFetch } from "@common";
 import { ResponseAuth } from "@types";
+import { ServerError } from "@commonSrc/both/errors/Error";
 
 class UserDev {
   #userData: Omit<ResponseAuth<"login">, "success" | "error"> = {} as never;
 
   #email = "test@test.test";
-  #password = "Test123!";
+  #password = "Test0123456789!";
   #deviceId = `${Date.now()}-${randomUUID()}`;
 
   public get email() {
@@ -41,11 +42,10 @@ class UserDev {
       },
     });
 
-    const { success: _0, error, ...rest } = res.data;
+    if ("error" in res.data)
+      throw new Error(`Failed to login: ${ServerError.getMessage(res.data)}`);
 
-    if (error) throw new Error(`Failed to login: ${error}`);
-
-    Object.assign(this.#userData, rest);
+    Object.assign(this.#userData, res.data);
   };
 
   getSessionToken = async (): Promise<string> => {

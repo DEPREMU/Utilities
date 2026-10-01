@@ -1,20 +1,29 @@
-import { describe, expect, it } from "@jest/globals";
 import { ServerFetch } from "@common";
+import { ServerError } from "../../../../../common/both/errors/Error";
+import { describe, expect, it } from "@jest/globals";
 
 describe("GET /info", () => {
   describe("/info/health", () => {
     it("should return server health with upTime and timestamp", async () => {
       const res = await ServerFetch.get("/info/health");
       expect(res.ok).toBe(true);
+      if ("error" in res.data)
+        throw new Error("error: " + ServerError.getMessage(res.data));
+
       expect(res.data).toHaveProperty("uptime");
       expect(res.data).toHaveProperty("timestamp");
       expect(res.data).toHaveProperty("uptimeString");
+
       expect(res.data.status).toBe("running");
     });
 
     it("should return a numeric upTime value", async () => {
       const res = await ServerFetch.get("/info/health");
       expect(res.ok).toBe(true);
+
+      if ("error" in res.data)
+        throw new Error("error: " + ServerError.getMessage(res.data));
+
       expect(typeof res.data.uptime).toBe("number");
     });
 

@@ -1,9 +1,10 @@
-import fs from "fs";
 import path from "path";
 import prettier from "prettier";
+import { Script } from "./common";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { UTILITIES_PATH } from "./config.ts";
 import { Directory, File } from "@commonSrc/serverOrElectron/fs.ts";
+
+const script = new Script();
 
 const validExtensions = [
   ".ts",
@@ -18,18 +19,28 @@ const validExtensions = [
   ".mdx",
 ];
 
-const exclude = fs
-  .readFileSync(path.join(UTILITIES_PATH, ".gitignore"), "utf-8")
-  .split("\n")
-  .map((line) => line.replace(/\/$/, ""))
-  .filter((line) => line && !line.startsWith("#"));
+let exclude: string[] = [];
+
+const getExclude = async () => {
+  if (exclude.length > 0) return exclude;
+  exclude = await new File(path.join(script.PATHS.root, ".gitignore"))
+    .readFile("utf-8")
+    .then((content) =>
+      content
+        .split("\n")
+        .map((line) => line.replace(/\/$/, ""))
+        .filter((line) => line && !line.startsWith("#")),
+    );
+  return exclude;
+};
 
 const isValidFileExtension = (fileName: string): boolean => {
   return validExtensions.includes(path.extname(fileName));
 };
 
-const isExcludedPath = (filePath: string): boolean => {
-  return exclude.some((excludedPath) => filePath.includes(excludedPath));
+const isExcludedPath = async (filePath: string): Promise<boolean> => {
+  const excl = await getExclude();
+  return excl.some((excludedPath) => filePath.includes(excludedPath));
 };
 
 export const formatFolder = async (
@@ -59,7 +70,7 @@ export const formatFolder = async (
 
       const stats = await file.stats();
 
-      if (isExcludedPath(file.path) || !stats) return;
+      if ((await isExcludedPath(file.path)) || !stats) return;
       Logger.log(`Formatting: ${file.path}`);
       if (stats.isDirectory()) {
         return await formatFolder(file.path, prettierConfig, false);

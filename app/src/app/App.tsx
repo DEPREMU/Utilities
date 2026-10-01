@@ -4,6 +4,7 @@ import AppProviders from "@context/AppProviders";
 import LoadingScreen from "@screens/Loading/screens/LoadingScreen";
 import { useEffect, useState } from "react";
 import { NativeFunctionsModule } from "@modules";
+import { ReducedMotionConfig, ReduceMotion } from "react-native-reanimated";
 import { REPLACERS, cleanupServices, storageManagement } from "@utils";
 
 if (REPLACERS.isDev) {
@@ -36,7 +37,13 @@ const App = () => {
     return cleanup();
   }, []);
 
-  if (isLoading) return <LoadingScreen setIsLoading={setIsLoading} />;
+  if (isLoading)
+    return (
+      <>
+        <ReducedMotionConfig mode={ReduceMotion.Never} />
+        <LoadingScreen setIsLoading={setIsLoading} />
+      </>
+    );
 
   return (
     <AppProviders>

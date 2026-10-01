@@ -1,6 +1,5 @@
 import { BackHandler } from "react-native";
 import { UserProvider } from "@context/UserContext";
-import { ThemeProvider } from "@context/ThemeContext";
 import { ModalProvider } from "@context/ModalContext";
 import { LayoutProvider } from "@context/LayoutContext";
 import React, { useEffect } from "react";
@@ -10,6 +9,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { WebSocketProvider } from "@context/WebSocketContext";
 import { BackgroundProvider } from "@context/BackgroundContext";
+import { AppBehaviorProvider } from "@context/AppBehaviorContext";
 import { DeviceInformationProvider } from "@context/DeviceInformationContext";
 import { alerts, navigation, REPLACERS } from "@utils";
 
@@ -63,7 +63,7 @@ const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     <KeyboardProvider>
       <BackgroundProvider>
         <SafeAreaProvider>
-          <ThemeProvider>
+          <AppBehaviorProvider>
             <DeviceInformationProvider>
               <LayoutProvider>
                 <UserProvider>
@@ -81,7 +81,7 @@ const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                 </UserProvider>
               </LayoutProvider>
             </DeviceInformationProvider>
-          </ThemeProvider>
+          </AppBehaviorProvider>
         </SafeAreaProvider>
       </BackgroundProvider>
     </KeyboardProvider>

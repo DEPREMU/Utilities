@@ -3,16 +3,11 @@ import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { getHandlerPost } from "@commonSrc/serverOrElectron/express/functions";
 import { t, supportedFormatsImages, STATUS_RESPONSE } from "@commonSrc/both";
 import { changeFormat, isImageBuffer } from "../utils";
+import { ServerError } from "@commonSrc/both/errors/Error";
 
 export const handleChangeImageFormat = getHandlerPost(
   "/images",
   "/change-format",
-  {
-    body: {
-      format: "string",
-      imageStr: "string",
-    },
-  },
   async ({ body }, sendResponse) => {
     const lang = body.lang || "en";
 
@@ -26,10 +21,10 @@ export const handleChangeImageFormat = getHandlerPost(
         });
 
       if (!imageStr)
-        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
-          error: t("images.invalidImageBuffer", lang),
-          success: false,
-        });
+        return sendResponse(
+          STATUS_RESPONSE.BAD_REQUEST,
+          ServerError.requestError(t("images.invalidImageBuffer", lang)),
+        );
 
       const base64Data = imageStr.replace(/^data:image\/\w+;base64,/, "");
       const imageBuffer = Buffer.from(base64Data, "base64");
@@ -42,6 +37,10 @@ export const handleChangeImageFormat = getHandlerPost(
       }
 
       const convertedRes = await changeFormat(base64Data, format);
+      if ("error" in convertedRes) {
+        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, convertedRes);
+      }
+
       const convertedString = convertedRes.imageUri;
       if (convertedRes.success && convertedString && convertedRes.newFormat) {
         const dataUri = `data:image/${convertedRes.newFormat};base64,${convertedString}`;
@@ -55,9 +54,9 @@ export const handleChangeImageFormat = getHandlerPost(
     } catch (error) {
       Logger.error(chalk?.red("Error changing image format:"), error);
     }
-    sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-      success: false,
-      error: t("images.formatChangeError", lang),
-    });
+    sendResponse(
+      STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+      ServerError.requestError(t("images.formatChangeError", lang)),
+    );
   },
 );

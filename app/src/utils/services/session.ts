@@ -1,4 +1,10 @@
 import {
+  ResponseAuth,
+  GetRouteData,
+  ErrorResponse,
+  NotificationAction,
+} from "@types";
+import {
   Timers,
   Network,
   REPLACERS,
@@ -12,12 +18,12 @@ import {
 } from "@common";
 import { cloneDeep } from "lodash";
 import { navigation } from "./navigation";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { EventsDeviceInfo } from "./deviceInfo";
 import { storageManagement } from "./storage";
 import { notificationsManager } from "./notifications";
 import { checkLanguage, tTyped } from "../translates";
 import { getDevicePushTokenAsync } from "expo-notifications";
-import { ResponseAuth, NotificationAction } from "@types";
 import { NativeFunctionsModule, windowModule } from "@modules";
 
 type SessionData = {
@@ -46,7 +52,7 @@ type Login = (
 type SignUp = (
   email: string,
   password: string,
-  callback?: (success: boolean, error?: string) => void,
+  callback?: (success: boolean, error?: ErrorResponse) => void,
 ) => Promise<void>;
 
 const TAG = "SESSION_MANAGER";
@@ -120,7 +126,7 @@ export const signInWithEmail = async (
   email: string,
   password: string,
   rememberMe: boolean = false,
-): Promise<ResponseAuth<"login">> => {
+): Promise<GetRouteData<"POST", "/auth", "/login">["response"]> => {
   try {
     const lang = storageManagement.get("LANGUAGE");
     const deviceId = storageManagement.get("DEVICE_ID");
@@ -139,20 +145,20 @@ export const signInWithEmail = async (
 
     const dataInsert = res.data;
 
-    if (!dataInsert || !dataInsert?.user) {
+    if (!dataInsert || ("success" in dataInsert && !dataInsert.user)) {
       const errorMsg = "No session or user data received from Database";
       REPLACERS.Logger.error(TAG, errorMsg);
-      return { success: false, error: errorMsg };
+      return ServerError.requestError(errorMsg);
     }
-    if (dataInsert.error) {
+    if ("error" in dataInsert) {
       REPLACERS.Logger.error(TAG, "Error signing in:", dataInsert.error);
-      return { success: false, error: dataInsert.error };
+      return ServerError.requestError(dataInsert.error);
     }
 
     REPLACERS.Logger.log(
       TAG,
       "User signed in successfully:",
-      dataInsert.user.email,
+      dataInsert.user?.email,
     );
 
     await saveStorageData(dataInsert.storageValues);
@@ -174,7 +180,7 @@ export const signInWithEmail = async (
 export const signUpWithEmail = async (
   email: string,
   password: string,
-): Promise<ResponseAuth<"login">> => {
+): Promise<GetRouteData<"POST", "/auth", "/signup">["response"]> => {
   try {
     const res = await ServerFetch.post("/auth/signup", {
       body: {
@@ -186,10 +192,10 @@ export const signUpWithEmail = async (
 
     const data = res.data;
 
-    if (data?.error || !res.ok) {
+    if ("error" in data) {
       const message = data?.error || "Unknown error";
       REPLACERS.Logger.error(TAG, "Error signing up:", message);
-      return { success: false, error: message };
+      return ServerError.requestError(message);
     }
 
     return { success: true };
@@ -274,13 +280,13 @@ export const getCurrentUser = (): ResponseAuth<"login"> => {
     const userData = storageManagement.get("USER_DATA");
 
     return {
-      success: !!userData,
       user: userData || undefined,
+      success: !!userData,
     };
   } catch (error) {
     const errorMsg = `Unexpected error getting current user: ${error}`;
     REPLACERS.Logger.error(TAG, errorMsg);
-    return { success: false, error: errorMsg };
+    return { success: false };
   }
 };
 
@@ -289,7 +295,7 @@ export const getCurrentUser = (): ResponseAuth<"login"> => {
  */
 export const refreshSession = async (
   token: string,
-): Promise<ResponseAuth<"login">> => {
+): Promise<GetRouteData<"POST", "/auth", "/refreshSession">["response"]> => {
   try {
     const lang = storageManagement.get("LANGUAGE");
     const deviceId = storageManagement.get("DEVICE_ID");
@@ -307,7 +313,7 @@ export const refreshSession = async (
       token,
     );
 
-    if (res.data.error)
+    if ("error" in res.data)
       REPLACERS.Logger.error(
         TAG,
         `Refresh session failed: ${res.data.error || "Unknown error"}`,
@@ -320,13 +326,13 @@ export const refreshSession = async (
         JSON.stringify(res.data || {}, null, 2),
       ].join(" ");
       REPLACERS.Logger.error(TAG, errorMsg);
-      return { success: false, error: errorMsg };
+      return ServerError.requestError(errorMsg);
     }
 
-    if (data.error) {
+    if ("error" in data) {
       REPLACERS.Logger.error(TAG, "Error refreshing session:", data.error);
       if (REPLACERS.isWeb) windowModule.notifyLoginStatus?.(false);
-      return { success: false, error: data.error };
+      return ServerError.requestError(data.error);
     }
 
     if (!data.token || !data.user) {
@@ -519,9 +525,13 @@ class SessionManager extends ServiceClass<ListenersSession> {
         return handleNotLoggedIn(`Session expired due to expiry ${rememberMe}`);
       }
 
-      const { user, token, error } = await refreshSession(sessionToken);
+      const res = await refreshSession(sessionToken);
 
-      if (error) return handleNotLoggedIn(error);
+      if ("error" in res) {
+        return handleNotLoggedIn(ServerError.getMessage(res));
+      }
+
+      const { user, token } = res;
 
       if (!user || !token) {
         await signOut();
@@ -557,19 +567,19 @@ class SessionManager extends ServiceClass<ListenersSession> {
     this.#data.isLoggingIn = true;
     this.#data.rememberMe = !!rememberMe;
     try {
-      const { user, token, error } = await signInWithEmail(
-        email,
-        password,
-        rememberMe,
-      );
-      if (error || !user || !token) {
-        const errorMsg =
-          "SESSION_MANAGER " + error
-            ? `Login error: ${error}`
-            : "No user or token returned";
+      const res = await signInWithEmail(email, password, rememberMe);
+
+      if ("error" in res) {
+        const errorMsg = ServerError.getMessage(res);
         REPLACERS.Logger.error(TAG, "Login error:", errorMsg);
         this.emit("login", errorMsg);
         callback?.(errorMsg);
+        return;
+      }
+
+      const { user, token } = res;
+      if (!user || !token) {
+        await signOut();
         return;
       }
 
@@ -602,15 +612,15 @@ class SessionManager extends ServiceClass<ListenersSession> {
   };
 
   public signUp: SignUp = async (email, password, callback) => {
-    const { success, error } = await signUpWithEmail(email, password);
-    if (!success) {
-      const errorMsg =
-        "SESSION_MANAGER " + error
-          ? `Sign up error: ${error}`
-          : "Unknown sign up error";
-      REPLACERS.Logger.error(TAG, errorMsg);
+    const res = await signUpWithEmail(email, password);
+    if ("error" in res) {
+      const errorMsg = ServerError.getMessage(res);
+      REPLACERS.Logger.error(TAG, "Sign up error:", errorMsg);
+      callback?.(false, res);
+      return;
     }
-    callback?.(success, error);
+
+    callback?.(true);
   };
 
   override destroy = async () => {

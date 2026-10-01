@@ -1,22 +1,21 @@
-import { prisma } from "@/database/postgres";
-import { getHandlerPost, Logger, STATUS_RESPONSE } from "@common";
+import { withTransaction } from "@/database/transaction.ts";
+import { getHandlerPost, STATUS_RESPONSE } from "@common";
 import { getLinkImageStreamer, isLiveStreamer } from "../common";
 
 export const handleAddStreamerByUserId = getHandlerPost(
   "/streamers",
   "/add",
-  { body: { userId: "string", streamerName: "string" } },
   async ({ body: params }, sendResponse) => {
-    try {
-      const { streamerName, userId } = params;
+    const { streamerName, userId } = params;
 
-      let existingStreamer = await prisma.streamers.findUnique({
+    const existingStreamer = await withTransaction(async (tx) => {
+      let streamer = await tx.streamers.findUnique({
         omit: { createdAt: true },
         where: { name: streamerName },
       });
 
-      if (!existingStreamer) {
-        const newStreamer = await prisma.userStreamers.create({
+      if (!streamer) {
+        const newStreamer = await tx.userStreamers.create({
           data: {
             user: { connect: { userId } },
             streamer: {
@@ -29,37 +28,37 @@ export const handleAddStreamerByUserId = getHandlerPost(
           include: { streamer: { omit: { createdAt: true } } },
         });
 
-        existingStreamer = newStreamer.streamer;
+        streamer = newStreamer.streamer;
       } else {
-        const userStreamer = await prisma.userStreamers.findUnique({
+        const userStreamer = await tx.userStreamers.findUnique({
           where: {
-            userId_streamerId: { userId, streamerId: existingStreamer.id },
+            userId_streamerId: {
+              userId,
+              streamerId: streamer.id,
+            },
           },
         });
 
         if (!userStreamer) {
-          await prisma.userStreamers.create({
+          await tx.userStreamers.create({
             data: {
               user: { connect: { userId } },
-              streamer: { connect: { id: existingStreamer.id } },
+              streamer: { connect: { id: streamer.id } },
             },
           });
         }
       }
 
-      const streamerWithLiveStatus = {
-        ...existingStreamer,
-        isLive: await isLiveStreamer(existingStreamer.name),
-      };
+      return streamer;
+    });
 
-      sendResponse(STATUS_RESPONSE.SUCCESS, {
-        streamer: streamerWithLiveStatus,
-      });
-    } catch (error) {
-      Logger.error("Error adding streamer by user ID:", error);
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        error: "Internal server error",
-      });
-    }
+    const streamerWithLiveStatus = {
+      ...existingStreamer,
+      isLive: await isLiveStreamer(existingStreamer.name),
+    };
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, {
+      streamer: streamerWithLiveStatus,
+    });
   },
 );

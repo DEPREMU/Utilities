@@ -13,13 +13,8 @@ import chalk from "chalk";
 import { Router } from "express";
 import { Helper, Logger, Timers, REPLACERS } from "@common";
 
-const ROUTES: Record<
-  string,
-  {
-    url: string;
-    method: MethodsAPI;
-  }[]
-> | null = REPLACERS.isDev ? {} : null;
+const ROUTES: Record<string, { url: string; method: MethodsAPI }[]> | null =
+  REPLACERS.isDev ? {} : null;
 
 const addRoute = (method: MethodsAPI, key: string, path: string) => {
   if (!REPLACERS.isDev || ROUTES === null) return;

@@ -311,9 +311,14 @@ class StorageManagement extends ServiceClass<never> {
         ALL_KEYS_STORAGE_KEYS.map(
           wrapFunctionWithError(
             async (keyStorage) => {
-              const value = await loadDataStorage(keyStorage);
+              let value = await loadDataStorage(keyStorage);
               if (keyStorage === "DEVICE_ID" && !value && !REPLACERS.isDev)
                 reloadAppAsync("No device ID found.");
+              if (keyStorage === "APP_BEHAVIOR" && !value)
+                value = {
+                  theme: "auto",
+                  useAnimations: true,
+                } satisfies ExpectedStorageTypes<"UNSECURE">["APP_BEHAVIOR"];
 
               data[keyStorage] = value;
             },

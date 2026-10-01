@@ -8,14 +8,19 @@ import { REPLACERS_TYPE } from "@types";
 export const REPLACERS: REPLACERS_TYPE = {
   //? Changing value on logger.ts
   Logger: null as unknown as REPLACERS_TYPE["Logger"],
+
   isDev:
+    process.env.NODE_ENV === "test" ||
     process.env.NODE_ENV === undefined ||
     process.env.NODE_ENV === "development",
+  isPreview: false,
+  isProduction: process.env.NODE_ENV === "production",
+
   isWeb: false,
   isNative: false,
-  isPreview: false,
+
   typeBuild: "normal",
-  isProduction: process.env.NODE_ENV === "production",
+
   isLinux: process.platform === "linux",
   isWindows: process.platform === "win32",
 };

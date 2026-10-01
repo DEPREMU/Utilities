@@ -34,6 +34,8 @@ import { Timers, REPLACERS } from "@common";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import { tTyped, navigation, Validations, sessionManager } from "@utils";
 
+const originalPassword = REPLACERS.isDev ? "Test0123456789!" : "";
+
 const LoginScreen: React.FC<Screens["Login"]> = () => {
   const { t } = useLanguage();
   const { isLoggedIn } = useUserContext();
@@ -42,10 +44,8 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
   const [email, setEmail] = useState<string>(
     REPLACERS.isDev ? "test@test.test" : "",
   );
-  const [password, setPassword] = useState<string>(
-    REPLACERS.isDev ? "Test123!" : "",
-  );
   const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState<string>(originalPassword);
   const [loggingIn, setLoggingIn] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(REPLACERS.isWeb);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -69,7 +69,7 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
 
   const handleChangeTypeLoginRef = useRef(() => {
     setTypeLogin((prev) => (prev === "email" ? "qr" : "email"));
-    setPassword(REPLACERS.isDev ? "Test123!" : "");
+    setPassword(originalPassword);
   });
 
   const setErrorMessage = useRef((message: string) => {

@@ -5,7 +5,6 @@ import { Logger, STATUS_RESPONSE, getHandlerDelete } from "@common";
 export const handleDeleteLog = getHandlerDelete(
   "/logs",
   "/:logId",
-  { params: { logId: "string" } },
   async ({ params }, sendResponse) => {
     try {
       const { logId } = params;

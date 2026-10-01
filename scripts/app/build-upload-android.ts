@@ -1,114 +1,101 @@
-import fs from "fs";
 import path from "path";
 import axios from "axios";
 import FormData from "form-data";
-import { Logger } from "@commonSrc/serverOrElectron";
+import { Script } from "../common";
 import type * as Types from "@types";
-import { APP_PATH, versionExpo } from "../config.ts";
-import { Validations, ServerFetch } from "@commonSrc/both";
+import { ServerFetch } from "@commonSrc/both";
+import { ServerError } from "@commonSrc/both/errors/Error";
+import { Directory, File, Logger } from "@commonSrc/serverOrElectron";
 
-/**
- * Uploads Android APK build to the update server.
- * Builds the APK using EAS and uploads it to the server.
- * Usage: node build-android-upload.ts [profile]
- * Profiles: development, preview, production (default: production)
- */
+const script = new Script();
 
-const checkIsNewVersion = async () => {
-  try {
-    const res = await ServerFetch.get(
-      "/updates/is-update-available/:version/:buildType",
-      {
-        params: {
-          version: versionExpo,
-          buildType: "android",
-        },
+script.addStep("Check if server is alive", async () => {
+  const isAlive = await ServerFetch.isServerAlive();
+
+  if (!isAlive) throw new Error("Server is not alive.");
+});
+
+script.addStep("Check if new version exists", async () => {
+  const res = await ServerFetch.get(
+    "/updates/is-update-available/:version/:buildType",
+    {
+      params: {
+        version: script.appConfig.version || "",
+        buildType: "android",
       },
-    );
+    },
+  );
 
-    const result = res.data;
+  const result = res.data;
 
-    if (!Validations.isNewVersion(versionExpo, result.latestVersion)) {
-      Logger.log("Version already exists on the server.");
-      process.exit(0);
-    } else
-      Logger.log("New version detected. Proceeding with build and upload.");
-  } catch (error) {
-    Logger.error("Error checking for new version:", error);
-    process.exit(1);
-  }
-};
+  if ("error" in result) throw new Error(ServerError.getMessage(result));
 
-const uploadAndroidBuild = async () => {
-  try {
-    Logger.log(`Uploading Android build, version: ${versionExpo}`);
+  if (!result.isUpdateAvailable) {
+    Logger.log("Version already exists on the server.");
+    script.stop("Version already exists on the server.");
+  } else Logger.log("New version detected. Proceeding with build and upload.");
+});
 
-    const appBuildsPath = path.join(APP_PATH, "builds");
+script.addValue(
+  "appBuildDir",
+  new script.Directory(path.join(script.PATHS.app, "builds")),
+);
 
-    if (!fs.existsSync(appBuildsPath)) {
-      throw new Error(`Android builds directory not found at ${appBuildsPath}`);
-    }
+script.addStep("Verify APK exists", async () => {
+  const dir = script.getValue("appBuild") as Directory;
 
-    const files = fs.readdirSync(appBuildsPath);
-    const apkFile = files.find((file) => file.endsWith(".apk"));
+  if (await dir.exists()) return;
 
-    if (!apkFile) {
-      throw new Error("No APK file found in app/builds/");
-    }
+  throw new Error(`Directory not found at ${dir}`);
+});
 
-    const apkPath = path.join(appBuildsPath, apkFile);
-    Logger.log(`Found APK: ${apkFile}`);
+script.addStep("Find APK", async () => {
+  const dir = script.getValue("appBuildDir") as Directory;
+  const files = await dir.readDir();
+  const apkFile = files.find((file) => file.endsWith(".apk"));
 
-    const data: Types.RequestUploadUpdate = {
-      version: versionExpo,
-      buildType: "android",
-    };
+  if (!apkFile) throw new Error(`No APK file found in ${dir}`);
 
-    Logger.log(`Uploading Android build...`, data);
+  script.addValue("apkFile", new script.File(path.join(dir.path, apkFile)));
+});
 
-    const formData = new FormData();
-    formData.append("data", JSON.stringify(data));
-    formData.append("file", fs.createReadStream(apkPath));
+script.addStep(`Upload APK ${script.appConfig.version}`, async () => {
+  const apkFile = script.getValue("apkFile") as File;
 
-    const contentLength = await new Promise<number>((resolve, reject) => {
-      formData.getLength((err, length) => {
-        if (err) reject(err);
-        else resolve(length);
-      });
+  const data: Types.RequestUploadUpdate = {
+    version: script.appConfig.version || "",
+    buildType: "android",
+  };
+
+  Logger.log(`Uploading Android build...`, data);
+
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(data));
+  formData.append("file", apkFile.createStream.read());
+
+  const contentLength = await new Promise<number>((resolve, reject) => {
+    formData.getLength((err, length) => {
+      if (err) reject(err);
+      else resolve(length);
     });
+  });
 
-    const url = ServerFetch.getRoute("GET", "/updates/upload");
-    const response = await axios.post(url, formData, {
-      headers: {
-        ...formData.getHeaders(),
-        "Content-Length": contentLength,
-      },
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-      timeout: 10 * 60 * 1000,
-    });
+  const url = ServerFetch.getRoute("GET", "/updates/upload");
+  const response = await axios.post(url, formData, {
+    headers: {
+      ...formData.getHeaders(),
+      "Content-Length": contentLength,
+    },
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity,
+    timeout: 10 * 60 * 1000,
+  });
 
-    Logger.log("Upload successful:", response.data);
+  Logger.log("Upload successful:", response.data);
 
-    if (response.data.error) {
-      throw new Error(`Upload failed: ${response.data.error}`);
-    }
-
-    Logger.log("\nAndroid build uploaded successfully!");
-  } catch (error) {
-    Logger.error(
-      "Fatal error during Android upload:",
-      error instanceof Error ? error.message : String(error),
-    );
-    process.exit(1);
+  if (response.data.error) {
+    throw new Error(`Upload failed: ${response.data.error}`);
   }
-};
+});
 
-Logger.log("=== Android Build and Upload Process ===\n");
-
-const run = async () => {
-  await checkIsNewVersion();
-  await uploadAndroidBuild();
-};
-
-run();
+script.run();

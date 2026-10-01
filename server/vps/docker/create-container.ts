@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
-import { external } from "@commonSrc/serverOrElectron/build.ts";
-import { getAllPathsSync } from "@commonSrc/serverOrElectron/fs.ts";
+import { externalServer } from "@commonSrc/serverOrElectron/build";
+import { getAllPathsSync } from "@commonSrc/serverOrElectron/fs";
 
 const { root, server } = getAllPathsSync();
 
@@ -26,7 +26,7 @@ const createPackageJson = async () => {
   const deps = await readPackages();
 
   const dependencies = Object.fromEntries(
-    Object.entries(deps).filter(([key]) => external.includes(key)),
+    Object.entries(deps).filter(([key]) => externalServer.includes(key)),
   );
 
   const packageServer = await fs.promises.readFile(

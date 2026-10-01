@@ -9,7 +9,6 @@ import { File, Logger, STATUS_RESPONSE, getHandlerPost } from "@common";
 export const handleUpload = getHandlerPost(
   "/updates",
   "/upload",
-  {},
   async (_, sendResponse, { req }) => {
     try {
       const busboy = Busboy({ headers: req.headers });
@@ -67,7 +66,7 @@ export const handleUpload = getHandlerPost(
         Logger.log(`Saving file to: ${saveTo}`);
 
         const fileToSave = new File(saveTo);
-        const writeStream = fileToSave.createWriteStream();
+        const writeStream = fileToSave.createStream.write();
 
         const uploadPromise = new Promise<void>((resolve, reject) => {
           file.pipe(writeStream);

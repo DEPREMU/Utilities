@@ -2,10 +2,9 @@ import { randomUUID } from "crypto";
 import { ServerFetch } from "@common";
 import type { ResponseAuth } from "@types";
 
-const TEST_PASSWORD = "Test123!";
+const TEST_PASSWORD = `Test123!${randomUUID()}`;
 
-const generateUniqueEmail = (): string =>
-  `jest-${randomUUID()}@test.local`;
+const generateUniqueEmail = (): string => `jest-${randomUUID()}@test.local`;
 
 const generateUniqueDeviceId = (): string =>
   `jest-device-${Date.now()}-${randomUUID().slice(0, 8)}`;

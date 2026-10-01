@@ -1,5 +1,5 @@
-import { useTheme } from "@/context/ThemeContext";
 import { StyleSheet } from "react-native";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import { useResponsiveLayout } from "@/context/LayoutContext";
 import { useCallback, useMemo } from "react";
 
@@ -13,7 +13,7 @@ const useStylesSettingsScreen = () => {
     getCommonStyles,
     getResponsiveValue,
   } = useResponsiveLayout();
-  const { colors } = useTheme();
+  const { colors } = useAppBehavior();
 
   const getResponsiveFontSize = useCallback(
     (baseSize: number) => {

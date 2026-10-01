@@ -11,7 +11,7 @@
     "sleep:windows": "powershell -Command \"Start-Sleep -Seconds 5\"",
     "sleep:linux": "sleep 5",
     "start": "tsx ./build.ts && node ./build/index.cjs",
-    "start-dev": "yarn nodemon -w ./ -w ../common/* -i build/ -i cryptos.json -i generated/prisma -e ts,json --exec \"yarn run sleep && yarn run db-update && yarn run start\"",
+    "start-dev": "yarn nodemon",
     "format-all": "yarn prettier --write \"**/*.{ts,json}\" --ignore-path ../.gitignore",
     "before-commit": "yarn run lint:fix && yarn run type-check",
     "type-check": "tsc --noEmit",
@@ -24,19 +24,20 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@node-rs/bcrypt": "^1.10.7",
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
+    "@node-rs/bcrypt": "^1.10.9",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "busboy": "^1.6.0",
-    "compression": "^1.8.1",
+    "compression": "^1.8.2",
     "crypto": "^1.0.1",
-    "express-rate-limit": "^8.5.2",
+    "express-rate-limit": "^8.7.0",
     "firebase-admin": "^13.10.0",
-    "helmet": "^8.2.0",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "pidusage": "^4.0.1",
     "qrcode": "^1.5.4",
-    "ws": "^8.21.0"
+    "ws": "^8.22.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/busboy": "^1.5.4",
@@ -45,8 +46,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/pidusage": "^2.0.5",
     "@types/qrcode": "^1.5.6",
-    "@types/ws": "^8.18.1",
-    "nodemon": "^3.1.14",
-    "prisma": "^7.8.0"
+    "@types/ws": "^8.18.2",
+    "prisma": "^7.10.0"
   }
 }

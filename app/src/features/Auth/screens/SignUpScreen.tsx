@@ -54,7 +54,11 @@ const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
 
     sessionManager.signUp(email, password, (success, error) => {
       if (!success) {
-        setError(error || "Sign up failed");
+        if (!error) return;
+
+        if (typeof error.error === "object")
+          setError(error.error.errors.join(" "));
+        else setError(error.error || "Sign up failed");
 
         Timers.clearTimeout(timeoutIdRef.current);
         timeoutIdRef.current = Timers.setTimeout(() => {

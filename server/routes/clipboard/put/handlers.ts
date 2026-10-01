@@ -1,73 +1,54 @@
 import { prisma } from "@/database/postgres";
-import { getHandlerPut, Helper, Logger, STATUS_RESPONSE } from "@common";
+import { RequestError } from "@commonSrc/both/errors/Error";
+import { getHandlerPut, Helper, STATUS_RESPONSE } from "@common";
 
 export const handleToggleDeletedClipboardItem = getHandlerPut(
   "/clipboard",
   "/delete/toggle-deleted",
-  { body: { deviceId: "string", id: ["object", "string"] } },
   async ({ body }, sendResponse, { req }) => {
-    try {
-      const id = Helper.Arrays.convertToArray(body.id);
-      const userId = req.user.token.data.userId;
+    const id = Helper.Arrays.convertToArray(body.id);
+    const userId = req.user.token.data.userId;
 
-      const items = await prisma.clipboardSync.findMany({
-        where: { id: { in: id }, userId },
-      });
+    const items = await prisma.clipboardSync.findMany({
+      where: { id: { in: id }, userId },
+    });
 
-      if (!items.length) {
-        sendResponse(STATUS_RESPONSE.NOT_FOUND, {
-          error: "Item not found",
-        });
-        return;
-      }
+    if (!items.length)
+      throw new RequestError(STATUS_RESPONSE.NOT_FOUND, "Item not found");
 
-      const updatedItem = await prisma.clipboardSync.updateMany({
-        data: {
-          deleted:
-            body.deleted !== undefined ? body.deleted : !items[0].deleted,
-        },
-        where: { id: { in: id }, userId },
-      });
+    const updatedItem = await prisma.clipboardSync.updateMany({
+      data: {
+        deleted: body.deleted !== undefined ? body.deleted : !items[0].deleted,
+      },
+      where: { id: { in: id }, userId },
+    });
 
-      sendResponse(STATUS_RESPONSE.SUCCESS, {
-        error: updatedItem ? undefined : "Failed to toggle deleted status",
-      });
-    } catch (error) {
-      Logger.error(
-        "Error while toggling deleted status of clipboard item:",
-        error,
-      );
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        error:
-          "An error occurred while toggling the deleted status of the clipboard item.",
-      });
-    }
+    if (updatedItem.count > 0) return;
+
+    throw new RequestError(
+      STATUS_RESPONSE.NOT_FOUND,
+      "Failed to toggle deleted status",
+    );
   },
 );
 
 export const handleToggleDeletedAllClipboardItems = getHandlerPut(
   "/clipboard",
   "/delete/toggle-deleted-all",
-  { body: { deviceId: "string", restore: "boolean" } },
   async ({ body }, sendResponse, { req }) => {
-    try {
-      const updatedItems = await prisma.clipboardSync.updateMany({
-        data: { deleted: !body.restore },
-        where: { userId: req.user.token.data.userId },
-      });
+    const updatedItems = await prisma.clipboardSync.updateMany({
+      data: { deleted: !body.restore },
+      where: { userId: req.user.token.data.userId },
+    });
 
-      sendResponse(STATUS_RESPONSE.SUCCESS, {
-        error: updatedItems.count > 0 ? undefined : "No items updated",
-      });
-    } catch (error) {
-      Logger.error(
-        "Error while toggling deleted status of all clipboard items:",
-        error,
+    if (updatedItems.count === 0)
+      throw new RequestError(
+        STATUS_RESPONSE.NOT_FOUND,
+        "Failed to toggle deleted status",
       );
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        error:
-          "An error occurred while toggling the deleted status of all clipboard items.",
-      });
-    }
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, {
+      success: true,
+    });
   },
 );

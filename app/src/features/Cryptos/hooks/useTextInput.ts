@@ -6,8 +6,8 @@ import {
   AnimatedStyle,
 } from "react-native-reanimated";
 import { Timers } from "@common";
-import { useTheme } from "@context/ThemeContext";
 import { ViewStyle } from "react-native";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import { ValidClearTimeout } from "@types";
 import React, { useCallback, useEffect } from "react";
 
@@ -48,7 +48,7 @@ export const useTextInput = ({
   onChangeNum,
   initialValue = "",
 }: UseTextInputProps): UseTextInputReturn => {
-  const { colors } = useTheme();
+  const { colors } = useAppBehavior();
 
   const [valueStr, setValueStr] = React.useState<string>(initialValue);
   const [valueNum, setValueNum] = React.useState<number>(

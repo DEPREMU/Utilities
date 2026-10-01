@@ -1,6 +1,6 @@
 import Animated, {
   FadeInUp,
-  withSpring,
+  withTiming,
   FadeOutDown,
   useSharedValue,
   useAnimatedStyle,
@@ -95,42 +95,42 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
 
     const animation = async (reverse?: boolean, onFinished?: () => void) => {
       if (reverse) {
-        xValueAppName.value = withSpring(
+        xValueAppName.value = withTiming(
           initValues.xValueAppName,
           duration[500],
         );
-        yValueProgressBar.value = withSpring(
+        yValueProgressBar.value = withTiming(
           initValues.yValueProgressBar,
           duration[400],
         );
         await Timers.sleep(100);
 
-        xValueWelcome.value = withSpring(
+        xValueWelcome.value = withTiming(
           initValues.xValueWelcome,
           duration[400],
         );
         await Timers.sleep(200);
 
-        xValueImage.value = withSpring(initValues.xValueImage, duration[500]);
+        xValueImage.value = withTiming(initValues.xValueImage, duration[500]);
         await Timers.sleep(350);
 
-        yValueMain.value = withSpring(initValues.yValueMain, duration[500]);
+        yValueMain.value = withTiming(initValues.yValueMain, duration[500]);
 
         if (!onFinished) return;
         await Timers.sleep(500);
         onFinished();
       } else {
-        yValueMain.value = withSpring(0, duration[500]);
+        yValueMain.value = withTiming(0, duration[500]);
         await Timers.sleep(500);
 
-        xValueImage.value = withSpring(0, duration[500]);
+        xValueImage.value = withTiming(0, duration[500]);
         await Timers.sleep(200);
 
-        xValueWelcome.value = withSpring(0, duration[400]);
+        xValueWelcome.value = withTiming(0, duration[400]);
         await Timers.sleep(100);
 
-        xValueAppName.value = withSpring(0, duration[500]);
-        yValueProgressBar.value = withSpring(0, duration[400]);
+        xValueAppName.value = withTiming(0, duration[500]);
+        yValueProgressBar.value = withTiming(0, duration[400]);
 
         if (!onFinished) return;
 

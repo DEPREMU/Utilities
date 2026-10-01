@@ -4,12 +4,6 @@ import { getHandlerDelete, Logger, STATUS_RESPONSE } from "@common";
 export const handleDeleteDownDetector = getHandlerDelete(
   "/down-detector",
   "/:deviceId/:downDetectorId",
-  {
-    params: {
-      deviceId: "string",
-      downDetectorId: "string",
-    },
-  },
   async ({ params }, sendResponse, { req }) => {
     try {
       const deletedItem = await prisma.downDetector.delete({

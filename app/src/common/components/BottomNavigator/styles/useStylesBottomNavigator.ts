@@ -1,7 +1,7 @@
-import { useTheme } from "@context/ThemeContext";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 
 export const useStylesBottomNavigator = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppBehavior();
 
   return { colors };
 };

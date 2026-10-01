@@ -4,12 +4,6 @@ import { getHandlerDelete, Logger, STATUS_RESPONSE } from "@common";
 export const handleDeleteStreamerByUserId = getHandlerDelete(
   "/streamers",
   "/:deviceId/:streamerId",
-  {
-    params: {
-      deviceId: "string",
-      streamerId: "string",
-    },
-  },
   async ({ params }, sendResponse, { req }) => {
     try {
       const { streamerId } = params;

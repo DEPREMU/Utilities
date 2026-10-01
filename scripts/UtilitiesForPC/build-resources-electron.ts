@@ -1,19 +1,20 @@
 /* eslint-disable no-console */
 import {
-  args,
-  versionExpo,
-  COMMON_PATH,
-  versionElectron,
-  UTILITIES_FOR_PC_PATH,
-} from "../config.ts";
+  externalWorkers,
+  externalElectron,
+} from "@commonSrc/serverOrElectron/build.ts";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { args } from "../arguments";
 import { build } from "esbuild";
+import { Script } from "../common";
 import { pluginReplace } from "@espcom/esbuild-plugin-replace";
 import type { BuildOptions } from "esbuild";
 
 let isWindows = os.platform() === "win32";
+
+const script = new Script();
 
 if (typeof args.ARGS.isWindows === "boolean") {
   console.log(
@@ -31,13 +32,23 @@ const baseConfig: BuildOptions = {
 };
 
 const BUILD_PROFILE = args.ARGS.BUILD_PROFILE || "production";
+const versionElectron = await script
+  .getPackageJson("utilitiesForPC")
+  .then((p) => p.version);
+const versionExpo = script.appConfig.version;
+
+if (!versionElectron || !versionExpo) {
+  throw new Error("Failed to get versions");
+}
 
 build({
   ...baseConfig,
-  outfile: path.join(UTILITIES_FOR_PC_PATH, "build", "preload.cjs"),
+  outfile: path.join(script.PATHS.utilitiesForPC, "build", "preload.cjs"),
   platform: "browser",
   external: ["electron"],
-  entryPoints: [path.join(UTILITIES_FOR_PC_PATH, "src", "preload", "index.ts")],
+  entryPoints: [
+    path.join(script.PATHS.utilitiesForPC, "src", "preload", "index.ts"),
+  ],
   plugins: [
     pluginReplace([
       {
@@ -63,21 +74,11 @@ build({
 
 build({
   ...baseConfig,
-  outfile: path.join(UTILITIES_FOR_PC_PATH, "build", "index.cjs"),
-  external: [
-    "pino",
-    "sharp",
-    "pdfkit",
-    "node-7z",
-    "piscina",
-    "7zip-bin",
-    "archiver",
-    "electron",
-    "unzipper",
-    "bonjour-service",
-    "electron-edge-js",
+  outfile: path.join(script.PATHS.utilitiesForPC, "build", "index.cjs"),
+  external: externalElectron,
+  entryPoints: [
+    path.join(script.PATHS.utilitiesForPC, "src", "main", "index.ts"),
   ],
-  entryPoints: [path.join(UTILITIES_FOR_PC_PATH, "src", "main", "index.ts")],
   plugins: [
     pluginReplace([
       {
@@ -107,7 +108,11 @@ build({
   process.exit(1);
 });
 
-const piscinaCommonPath = path.join(COMMON_PATH, "serverOrElectron", "piscina");
+const piscinaCommonPath = path.join(
+  script.PATHS.common,
+  "serverOrElectron",
+  "piscina",
+);
 
 const piscinaCallback = (
   err: Error | null,
@@ -124,7 +129,7 @@ const piscinaCallback = (
 
     const srcPath = path.join(defaultPath, file);
     const destPath = path.join(
-      UTILITIES_FOR_PC_PATH,
+      script.PATHS.utilitiesForPC,
       "build",
       "piscina",
       file.replace(".ts", ".cjs"),
@@ -132,7 +137,7 @@ const piscinaCallback = (
     build({
       ...baseConfig,
       outfile: destPath,
-      external: ["pino", "sharp"],
+      external: externalWorkers,
       entryPoints: [srcPath],
     }).catch((err: unknown) => {
       console.error(`Build failed for ${file}:`, err);

@@ -48,7 +48,8 @@ class Updates extends ServiceClass<never> {
           },
         );
         const result = res.data;
-        if (!result?.isUpdateAvailable) return false;
+
+        if ("error" in result || !result?.isUpdateAvailable) return false;
 
         const hasInternet = await Network.waitForOnline(5);
         if (!hasInternet) {

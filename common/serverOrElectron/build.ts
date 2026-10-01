@@ -1,5 +1,5 @@
 import { Helper } from "@commonSrc/both";
-import { REPLACERS } from "@commonSrc/both/REPLACERS/REPLACERS.server";
+import { REPLACERS } from "@REPLACERS";
 import { REPLACERS_TYPE } from "@types";
 import type { BuildOptions } from "esbuild";
 
@@ -11,22 +11,35 @@ export const options: BuildOptions = {
   legalComments: "none",
 };
 
-export const external = [
+const commonExternal = ["pino", "sharp", "piscina"];
+
+export const externalServer = [
+  ...commonExternal,
+
   "pg",
   "ws",
-  "fs",
-  "path",
-  "pino",
   "http",
-  "sharp",
   "https",
   "crypto",
-  "piscina",
   "firebase-admin",
   "@prisma/client",
   "@node-rs/bcrypt",
   "@prisma/adapter-pg",
 ];
+
+export const externalElectron = [
+  ...commonExternal,
+
+  "pdfkit",
+  "node-7z",
+  "7zip-bin",
+  "electron",
+  "unzipper",
+  "bonjour-service",
+  "electron-edge-js",
+];
+
+export const externalWorkers = [...commonExternal];
 
 const REPLACERS_REPLACED: Record<keyof REPLACERS_TYPE, string> = {
   isDev: `${REPLACERS.isDev}`,

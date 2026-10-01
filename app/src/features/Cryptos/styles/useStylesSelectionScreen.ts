@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { useTheme } from "@context/ThemeContext";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import { useResponsiveLayout } from "@context/LayoutContext";
 import { StyleSheet, ViewStyle } from "react-native";
 
 export const useStylesSelectionScreen = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppBehavior();
   const { getResponsiveValue, getCommonStyles, texts } = useResponsiveLayout();
 
   const bottomButton: ViewStyle = useMemo(

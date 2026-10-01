@@ -1,5 +1,5 @@
 import type { STATUS_RESPONSE } from "../../common/both";
-import { TypeOfJS, MethodsAPI, DEFAULT_RESPONSE } from "@types";
+import { TypeOfJS, MethodsAPI, DEFAULT_RESPONSE, ErrorResponse } from "@types";
 import { Handler, NextFunction, Request, Response } from "express";
 
 // #####################################################
@@ -188,7 +188,7 @@ export type GetUrlFetch<
     ? Simplify<
         {
           url: StripDefaults<RemoveModifiers<Path>>;
-          response: Response;
+          response: Response | ErrorResponse;
         } & FinalBody<
           RequestInput,
           ParsedPathParams<ExpandPaths<Path>>,
@@ -285,32 +285,24 @@ export type GetHandlerType<H extends RouterFetch, M extends MethodsAPI> = <
   K extends keyof H,
   U extends H[K]["url"],
   B extends GetBody<H, K, U>,
-  O extends GetKeys<B>,
-  T extends MergeGetBody<B, O>,
 >(
   path: K,
   url: U,
-  keys: [O] extends [Record<string, never> | undefined | null]
-    ? Record<string, never>
-    : O,
   callback: (
-    requestInput: T,
+    requestInput: B,
     sendResponse: (
       status: STATUS_RESPONSE,
       message: Extract<H[K], { url: U }>["response"],
     ) => void,
     express: {
       res: Response<Extract<H[K], { url: U }>["response"]>;
-      req: GetRequest<M, T>;
+      req: GetRequest<M, B>;
       next: NextFunction;
     },
   ) => unknown,
 ) => (req: Request, res: Response, next: NextFunction) => Promise;
 
-export type DEFAULT_RESPONSE = {
-  error?: string;
-  success: boolean;
-};
+export type DEFAULT_RESPONSE = { success: boolean };
 
 export type GetRouteData<
   M extends MethodsAPI,

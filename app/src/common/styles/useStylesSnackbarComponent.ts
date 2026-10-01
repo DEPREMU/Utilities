@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { useTheme } from "@/context/ThemeContext";
 import { StyleSheet } from "react-native";
-import { useResponsiveLayout } from "@/context/LayoutContext";
+import { useAppBehavior } from "@context/AppBehaviorContext";
+import { useResponsiveLayout } from "@context/LayoutContext";
 
 const useStylesSnackBarComponent = () => {
+  const { colors } = useAppBehavior();
   const { getCommonStyles } = useResponsiveLayout();
-  const { colors } = useTheme();
 
   const styles = useMemo(
     () =>

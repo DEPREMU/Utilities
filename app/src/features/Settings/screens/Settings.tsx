@@ -10,8 +10,8 @@ import {
   APP_VERSION,
   sessionManager,
   DEBUG_SETTINGS,
-  EventsDeviceInfo,
   getFormattedDate,
+  EventsDeviceInfo,
   storageManagement,
   getDevicePushToken,
 } from "@utils";
@@ -21,12 +21,14 @@ import { cloneDeep } from "lodash";
 import { background } from "@/utils/services/background";
 import LanguagePicker from "@screens/Settings/components/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
+import { useAppBehavior } from "@context/AppBehaviorContext";
 import { ScrollView, View } from "react-native";
 import { AppTranslationsKeys } from "@types";
 import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
-import { Timers, REPLACERS, ServerFetch } from "@common";
+import { Timers, REPLACERS, ServerFetch, Helper } from "@common";
 import { ActivityIndicator, Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -118,6 +120,7 @@ const SettingsScreen: React.FC = () => {
   const { t, dynamicT } = useLanguage();
   const { setSocketURL } = useWebSocket();
   const { styles, colors } = useStylesSettingsScreen();
+  const { appBehavior, setAppBehavior } = useAppBehavior();
 
   const [hasInternet, setHasInternet] = useState<boolean>(
     deviceInfo.hasInternet,
@@ -165,6 +168,15 @@ const SettingsScreen: React.FC = () => {
     }, 1000);
   });
 
+  const toggleUseAnimations = useRef(() => {
+    setAppBehavior((v) => {
+      const newValue = { ...v, useAnimations: !v.useAnimations };
+      storageManagement.save("APP_BEHAVIOR", newValue);
+
+      return newValue;
+    });
+  });
+
   const openUrlUpdatesWebPageRef = useRef(async () => {
     const updatesWebPageUrl = URLS.api.replace("api", "updates/web-page");
     REPLACERS.Logger.log("Opening updates web page URL:", updatesWebPageUrl);
@@ -206,11 +218,11 @@ const SettingsScreen: React.FC = () => {
         sessionToken,
       );
 
-      if (res.data.success) {
+      if (Helper.Object.getValue(res.data, "success")) {
         setHasAdmin(true);
         storageManagement.save("HAS_ADMIN_ACCESS", true);
-      } else if (res.data.error) {
-        setError(res.data.error);
+      } else if ("error" in res.data) {
+        setError(ServerError.getMessage(res.data));
       }
     } catch (error) {
       REPLACERS.Logger.error("Error checking admin password:", error);
@@ -242,7 +254,8 @@ const SettingsScreen: React.FC = () => {
               sessionToken,
             );
 
-            if (res.data.success) storageManagement.save("API_URL", apiURL);
+            if (Helper.Object.getValue(res.data, "success"))
+              storageManagement.save("API_URL", apiURL);
           } catch (error) {
             REPLACERS.Logger.error("Error updating user config:", error);
           }
@@ -279,7 +292,7 @@ const SettingsScreen: React.FC = () => {
               sessionToken,
             );
 
-            if (res.data.success)
+            if (Helper.Object.getValue(res.data, "success"))
               storageManagement.save("WEBSOCKET_URL", socketURL);
           } catch (error) {
             REPLACERS.Logger.error("Error updating user config:", error);
@@ -437,6 +450,22 @@ const SettingsScreen: React.FC = () => {
               color={colors.primary}
               value={fetchWithCellularData}
               onValueChange={toggleNetworkCellular.current}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.subtitle}>
+              {t("settings.doNotUseAnimations")}
+            </Text>
+
+            <Text style={styles.infoText}>
+              {t("settings.doNotUseAnimationsExplanation")}
+            </Text>
+
+            <Switch
+              color={colors.primary}
+              value={appBehavior.useAnimations}
+              onValueChange={toggleUseAnimations.current}
             />
           </View>
 

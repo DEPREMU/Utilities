@@ -1,75 +1,50 @@
-import {
-  env,
-  args,
-  APP_PATH,
-  versionExpo,
-  UTILITIES_PATH,
-  UTILITIES_FOR_PC_PATH,
-} from "./config.ts";
-import fs from "fs";
 import path from "path";
 import axios from "axios";
+import chalk from "chalk";
 import FormData from "form-data";
+import { args } from "./arguments";
+import { Script } from "./common";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { execSync } from "child_process";
 import { ZipArchive } from "archiver";
+import { ServerFetch } from "@commonSrc/both/index.ts";
+import { ServerError } from "@commonSrc/both/errors/Error";
+import { Directory, File } from "@commonSrc/serverOrElectron";
 import type { RequestUploadUpdate } from "@types";
-import { ServerFetch, Validations } from "@commonSrc/both/index.ts";
 
-const isNewVersionWeb = {
-  linux: false,
-  windows: false,
+const platform = {
+  web: false,
+  both: false,
+  android: false,
 };
+
+const isNewVersion = {
+  web: false,
+  android: false,
+};
+
+const script = new Script();
+
+const versionExpo = await script
+  .getPackageJson("utilitiesForPC")
+  .then((p) => p.version);
 
 const checkIsNewVersion = async (
   buildType: "web" | "android" = "android",
 ): Promise<boolean> => {
-  if (!versionExpo) {
-    Logger.error("Version not found");
-    process.exit(1);
-  }
-
   try {
-    if (buildType === "android") {
-      const res = await ServerFetch.get(
-        "/updates/is-update-available/:version/:buildType",
-        {
-          params: {
-            buildType,
-            version: versionExpo,
-          },
+    const res = await ServerFetch.get(
+      "/updates/is-update-available/:version/:buildType",
+      {
+        params: {
+          version: versionExpo,
+          buildType,
         },
-      );
-      return Validations.isNewVersion(versionExpo, res.data?.latestVersion);
-    } else {
-      const [resLinux, resWindows] = await Promise.all([
-        ServerFetch.get("/updates/is-update-available/:version/:buildType", {
-          params: {
-            version: versionExpo,
-            buildType: "linux",
-          },
-        }),
-        ServerFetch.get("/updates/is-update-available/:version/:buildType", {
-          params: {
-            version: versionExpo,
-            buildType: "windows",
-          },
-        }),
-      ]);
-      const isNewForWindows = Validations.isNewVersion(
-        versionExpo,
-        resLinux.data?.latestVersion,
-      );
-      const isNewForLinux = Validations.isNewVersion(
-        versionExpo,
-        resWindows.data?.latestVersion,
-      );
+      },
+    );
 
-      isNewVersionWeb.windows = isNewForWindows;
-      isNewVersionWeb.linux = isNewForLinux;
+    if ("error" in res.data) throw new Error(ServerError.getMessage(res.data));
 
-      return isNewForWindows || isNewForLinux;
-    }
+    return res.data.isUpdateAvailable;
   } catch (error) {
     Logger.error(
       "Error checking for new version:",
@@ -83,27 +58,27 @@ const uploadWeb = async (): Promise<boolean> => {
   try {
     Logger.log("Building web version:", versionExpo);
 
-    const buildPath = path.join(UTILITIES_FOR_PC_PATH, "dist");
+    const build = new Directory(path.join(script.PATHS.utilitiesForPC, "dist"));
 
-    if (!args.ARGS["testing"] || !fs.existsSync(buildPath))
-      execSync("yarn run build-web-app-electron", {
-        stdio: "inherit",
-        cwd: UTILITIES_PATH,
+    if (!args.ARGS["testing"] || !(await build.exists())) {
+      const exec = new script.Exec();
+
+      exec.async.onData((chunk) => {
+        Logger.log(chalk.magentaBright("BUILD: "), chunk);
       });
-    if (!fs.existsSync(buildPath))
-      throw new Error(`Build path not found at ${buildPath}`);
+      await exec.async.run("yarn run build-web-app-electron", {
+        cwd: script.PATHS.root,
+      });
+    }
+    if (!(await build.exists()))
+      throw new Error(`Build path not found at ${build.path}`);
 
-    const dirFiles = fs.readdirSync(buildPath, {
-      recursive: true,
-      withFileTypes: true,
-    });
+    const dirFiles = await build.readDir.withFileTypes();
 
-    const zipPath = path.join(
-      UTILITIES_FOR_PC_PATH,
-      "dist",
-      "temp_web_build.zip",
+    const zipFile = new File(
+      path.join(script.PATHS.utilitiesForPC, "dist", "temp_web_build.zip"),
     );
-    const output = fs.createWriteStream(zipPath);
+    const output = zipFile.createStream.write();
 
     const zip = new ZipArchive({
       zlib: { level: 9 },
@@ -112,23 +87,23 @@ const uploadWeb = async (): Promise<boolean> => {
 
     dirFiles.forEach((file) => {
       if (file.isFile()) {
-        const filePath = path.join(buildPath, file.name);
+        const filePath = path.join(build.path, file.name);
         zip.file(filePath, { name: file.name });
       } else if (file.isDirectory()) {
-        const dirPath = path.join(buildPath, file.name);
+        const dirPath = path.join(build.path, file.name);
         zip.directory(dirPath, file.name);
       }
     });
 
     await zip.finalize();
 
-    if (!fs.existsSync(zipPath))
-      throw new Error(`Zip file not found at ${zipPath}`);
+    if (!(await zipFile.exists()))
+      throw new Error(`Zip file not found at ${zipFile.path}`);
 
     if (args.ARGS["testing"]) {
       Logger.log(
         "Testing mode enabled - skipping actual upload. Zip file created at:",
-        zipPath,
+        zipFile,
       );
       return true;
     }
@@ -143,7 +118,7 @@ const uploadWeb = async (): Promise<boolean> => {
 
       const formData = new FormData();
       formData.append("data", JSON.stringify(data));
-      formData.append("file", fs.createReadStream(zipPath));
+      formData.append("file", zipFile.createStream.read());
 
       const contentLength = await new Promise<number>((resolve, reject) => {
         formData.getLength((err, length) => {
@@ -179,42 +154,63 @@ const uploadWeb = async (): Promise<boolean> => {
 };
 
 const uploadAndroidAssets = async () => {
-  const BUILD_PROFILE = args.ARGS["BUILD_PROFILE"] || "production";
+  const BUILD_PROFILE = args.ARGS.BUILD_PROFILE || "production";
 
-  if (!args.ARGS.testing) {
-    execSync(
-      ` eas update --channel ${BUILD_PROFILE} --platform android --clear-cache`,
-      {
-        stdio: "inherit",
-        cwd: APP_PATH,
-        env: {
-          ...env,
-          PLATFORM: "android",
-          EAS_BUILD: "true",
-          BUILD_PROFILE,
-        },
-      },
-    );
-  } else {
-    Logger.log("Testing mode: Skipping eas update for Android assets");
-  }
+  const exec = new script.Exec();
+
+  exec.async.onData((chunk) => {
+    Logger.log(chalk.blueBright("EAS UPDATE: "), chunk);
+  });
+  await exec.async.run("eas update", {
+    cwd: script.PATHS.app,
+    env: {
+      ...process.env,
+      PLATFORM: "android",
+      EAS_BUILD: "true",
+      BUILD_PROFILE,
+    },
+  });
 };
 
-export const run = async () => {
+script.addStep("Verify that arguments are valid", async () => {
+  if (args.ARGS.testing) {
+    Logger.log("Testing mode: Skipping update due to testing mode");
+    return;
+  }
+
   const platformUpdateAssets = args.ARGS["platform-update-assets"] ?? "both";
 
-  const isBoth = platformUpdateAssets === "both";
-  const isWeb = isBoth || platformUpdateAssets === "web";
-  const isAndroid = isBoth || platformUpdateAssets === "android";
+  platform.both = platformUpdateAssets === "both";
+  platform.web = platform.both || platformUpdateAssets === "web";
+  platform.android = platform.both || platformUpdateAssets === "android";
 
-  const isNewVersionWeb =
-    args.ARGS["testing"] || (isWeb && (await checkIsNewVersion("web")));
+  if (!platform.both && !platform.web && !platform.android)
+    throw new Error("Invalid platform-update-assets argument");
+});
 
-  if (isNewVersionWeb) await uploadWeb();
+script.addStep("Check if there is a new version", async () => {
+  if (platform.web) isNewVersion.web = await checkIsNewVersion("web");
 
-  if (isAndroid) await uploadAndroidAssets();
-};
+  if (platform.android)
+    isNewVersion.android = await checkIsNewVersion("android");
+});
 
-if (process.env.NODE_ENV !== "test") {
-  run();
-}
+script.addStep("Upload web version if new", async () => {
+  if (!platform.web) return;
+  if (!isNewVersion.web) return;
+
+  Logger.log("Web version is new, uploading web version...");
+  await uploadWeb();
+});
+
+script.addStep("Upload Android assets if new", async () => {
+  if (!platform.android) return;
+  if (!isNewVersion.android) return;
+
+  Logger.log("Android assets are new, uploading Android assets...");
+  await uploadAndroidAssets();
+});
+
+if (process.env.NODE_ENV !== "test") script.run();
+
+export { script };

@@ -4,12 +4,6 @@ import { getHandlerPut, Logger, STATUS_RESPONSE } from "@common";
 export const handleUpdateUserConfig = getHandlerPut(
   "/user-config",
   "/update",
-  {
-    body: {
-      values: "object",
-      deviceId: "string",
-    },
-  },
   async ({ body }, sendResponse, { req }) => {
     try {
       const jwt = req.user.token;

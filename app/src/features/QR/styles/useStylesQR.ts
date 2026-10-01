@@ -1,10 +1,10 @@
-import { useResponsiveLayout } from "@/context/LayoutContext";
-import { useTheme } from "@/context/ThemeContext";
 import { useMemo } from "react";
 import { StyleSheet } from "react-native";
+import { useAppBehavior } from "@context/AppBehaviorContext";
+import { useResponsiveLayout } from "@/context/LayoutContext";
 
 export const useStylesQR = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppBehavior();
   const { getCommonStyles, getResponsiveValue, width, height } =
     useResponsiveLayout();
 

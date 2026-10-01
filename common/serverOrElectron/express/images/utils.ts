@@ -4,7 +4,12 @@ import sharp from "sharp";
 import { File } from "@commonSrc/serverOrElectron/fs";
 import { Task } from "@commonSrc/serverOrElectron/Task";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
-import { RequestChangeImageFormat, ResponseChangeImageFormat } from "@types";
+import {
+  GetRouteData,
+  RequestChangeImageFormat,
+  ResponseChangeImageFormat,
+} from "@types";
+import { ServerError } from "@commonSrc/both/errors/Error";
 
 export class TaskImages extends Task<ResponseChangeImageFormat, "IMAGES"> {
   static instance: TaskImages | null = null;
@@ -41,7 +46,7 @@ export const readImage = async (imagePath: string): Promise<string> => {
 export const changeFormat = async (
   imageStr: string,
   format: RequestChangeImageFormat["format"],
-): Promise<ResponseChangeImageFormat> => {
+): Promise<GetRouteData<"POST", "/images", "/change-format">["response"]> => {
   const res = await new TaskImages().getResult({
     data: { imageStr, format, lang: "en" },
     abortAfter: 2 * 60 * 1000,
@@ -57,7 +62,7 @@ export const changeFormat = async (
       ),
       res.message,
     );
-    return { success: false, error: res.message };
+    return ServerError.requestError(res.message);
   }
   return res;
 };

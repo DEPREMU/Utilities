@@ -1,9 +1,9 @@
 import {
   AlbumsImages,
+  GetRouteData,
   GetStatesZustand,
   ReturnSelectImage,
   RequestChangeImageFormat,
-  ResponseChangeImageFormat,
 } from "@types";
 import {
   tTyped,
@@ -15,6 +15,7 @@ import {
 import axios from "axios";
 import { create } from "zustand";
 import { modalRef } from "@/app/refs";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { getValueState, ServerFetch, wrapFunctionWithError } from "@common";
 
 export type Images = Exclude<ReturnSelectImage, { canceled: true }>;
@@ -52,12 +53,12 @@ type Actions = {
 
 const getDataChangeImageFormat = async (
   body: RequestChangeImageFormat,
-): Promise<ResponseChangeImageFormat> => {
+): Promise<GetRouteData<"POST", "/images", "/change-format">["response"]> => {
   try {
     if (REPLACERS.isWeb) {
       const data = await wrapFunctionWithError(
         async () => {
-          const res = await axios.post<ResponseChangeImageFormat>(
+          const res = await axios.post(
             "http://localhost:3005/change-image-format",
             body,
           );
@@ -73,10 +74,9 @@ const getDataChangeImageFormat = async (
     return res.data;
   } catch (error) {
     REPLACERS.Logger.error("Error in getDataChangeImageFormat:", error);
-    return {
-      error: tTyped("images.errorWhileConvertingImageMessage"),
-      success: false,
-    };
+    return ServerError.requestError(
+      tTyped("images.errorWhileConvertingImageMessage"),
+    );
   }
 };
 
@@ -157,6 +157,11 @@ export const useImagesStore = create<States & Actions>()((set, get) => {
           "Failed to change image format, data fetched:",
           data,
         );
+        return;
+      }
+
+      if ("error" in data) {
+        modalRef.openSnackBar?.(ServerError.getMessage(data));
         return;
       }
 

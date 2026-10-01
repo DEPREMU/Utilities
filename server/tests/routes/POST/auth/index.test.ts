@@ -1,6 +1,13 @@
 import { describe, expect, it } from "@jest/globals";
 import { ServerFetch } from "@common";
-import { generateUniqueEmail, generateUniqueDeviceId } from "../../../utils/testHelpers";
+import {
+  generateUniqueEmail,
+  generateUniqueDeviceId,
+} from "../../../utils/testHelpers";
+import { randomUUID } from "crypto";
+import { ServerError } from "../../../../../common/both/errors/Error";
+
+const password = `Test123!${randomUUID()}`;
 
 describe("POST /auth", () => {
   describe("/auth/signup", () => {
@@ -9,7 +16,7 @@ describe("POST /auth", () => {
         body: {
           lang: "en",
           email: generateUniqueEmail(),
-          password: "Test123!",
+          password,
         },
       });
       expect(res.ok).toBe(true);
@@ -19,10 +26,10 @@ describe("POST /auth", () => {
     it("should reject duplicate email registration", async () => {
       const email = generateUniqueEmail();
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       const res = await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       expect(res.data).toHaveProperty("error");
     });
@@ -32,10 +39,10 @@ describe("POST /auth", () => {
         body: {
           lang: "en",
           email: generateUniqueEmail(),
-          password: "Test123!",
+          password,
         },
       });
-      expect(typeof res.data.success).toBe("boolean");
+      expect(res.data).toHaveProperty("success");
     });
   });
 
@@ -44,14 +51,14 @@ describe("POST /auth", () => {
 
     it("should login an existing user", async () => {
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email: loginEmail, password: "Test123!" },
+        body: { lang: "en", email: loginEmail, password },
       });
 
       const res = await ServerFetch.post("/auth/login", {
         body: {
           lang: "en",
           email: loginEmail,
-          password: "Test123!",
+          password,
           deviceId: generateUniqueDeviceId(),
           rememberMe: false,
           notificationToken: `Web-${generateUniqueDeviceId()}`,
@@ -73,7 +80,8 @@ describe("POST /auth", () => {
           notificationToken: `Web-${generateUniqueDeviceId()}`,
         },
       });
-      expect(res.data.success).toBe(false);
+      expect(res.data).toHaveProperty("error");
+      if ("error" in res.data) expect(res.data.error).toBeDefined();
     });
 
     it("should reject login for nonexistent email", async () => {
@@ -81,13 +89,15 @@ describe("POST /auth", () => {
         body: {
           lang: "en",
           email: generateUniqueEmail(),
-          password: "Test123!",
+          password,
           deviceId: generateUniqueDeviceId(),
           rememberMe: false,
           notificationToken: `Web-${generateUniqueDeviceId()}`,
         },
       });
-      expect(res.data.success).toBe(false);
+
+      expect(res.data).toHaveProperty("error");
+      if ("error" in res.data) expect(res.data.error).toBeDefined();
     });
   });
 
@@ -96,13 +106,13 @@ describe("POST /auth", () => {
       const email = generateUniqueEmail();
       const deviceId = generateUniqueDeviceId();
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       const loginRes = await ServerFetch.post("/auth/login", {
         body: {
           lang: "en",
           email,
-          password: "Test123!",
+          password,
           deviceId,
           rememberMe: false,
           notificationToken: `Web-${deviceId}`,
@@ -131,13 +141,13 @@ describe("POST /auth", () => {
       const email = generateUniqueEmail();
       const deviceId = generateUniqueDeviceId();
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       const loginRes = await ServerFetch.post("/auth/login", {
         body: {
           lang: "en",
           email,
-          password: "Test123!",
+          password,
           deviceId,
           rememberMe: false,
           notificationToken: `Web-${deviceId}`,
@@ -150,7 +160,8 @@ describe("POST /auth", () => {
         { body: { lang: "en", deviceId } },
         token,
       );
-      expect(typeof res.data.success).toBe("boolean");
+      expect(res.data).toHaveProperty("success");
+      if ("success" in res.data) expect(res.data.success).toBe(true);
     });
   });
 
@@ -159,13 +170,13 @@ describe("POST /auth", () => {
       const email = generateUniqueEmail();
       const deviceId = generateUniqueDeviceId();
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       const loginRes = await ServerFetch.post("/auth/login", {
         body: {
           lang: "en",
           email,
-          password: "Test123!",
+          password,
           deviceId,
           rememberMe: true,
           notificationToken: `Web-${deviceId}`,
@@ -206,33 +217,43 @@ describe("POST /auth", () => {
     it("should return a response with success field", async () => {
       const email = generateUniqueEmail();
       const deviceId = generateUniqueDeviceId();
+
       await ServerFetch.post("/auth/signup", {
-        body: { lang: "en", email, password: "Test123!" },
+        body: { lang: "en", email, password },
       });
       const loginRes = await ServerFetch.post("/auth/login", {
         body: {
           lang: "en",
           email,
-          password: "Test123!",
+          password,
           deviceId,
           rememberMe: true,
           notificationToken: `Web-${deviceId}`,
         },
       });
-      const token = (loginRes.data as { token?: string }).token ?? "";
+      if ("error" in loginRes.data)
+        throw new Error(
+          `Token not returned: ${ServerError.getMessage(loginRes.data)}`,
+        );
+
+      const token = loginRes.data.token;
+
+      if (!token) throw new Error("Token not returned");
 
       const res = await ServerFetch.post(
         "/auth/refreshSession",
         {
           body: {
-            lang: "en",
             deviceId,
+            lang: "en",
             notificationToken: `Web-${deviceId}`,
           },
         },
         token,
       );
-      expect(typeof res.data.success).toBe("boolean");
+
+      expect(res.data).toHaveProperty("success");
+      if ("success" in res.data) expect(res.data.success).toBe(true);
     });
   });
 });

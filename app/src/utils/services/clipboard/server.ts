@@ -1,7 +1,8 @@
+import { TAG } from "./common";
+import { logger } from "@/utils/TOP_LEVEL/debug";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { ClipboardItem } from "@types";
 import { REPLACERS, ServerFetch, ServiceClass } from "@common";
-import { logger } from "@/utils/TOP_LEVEL/debug";
-import { TAG } from "./common";
 
 type ListenersClipboard = {
   "items-updated": (items: ClipboardItem[]) => void;
@@ -31,15 +32,15 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
         token,
       );
 
-      if (res.data.error) {
+      if ("error" in res.data) {
         logger.error(
           TAG,
           "Error while deleting clipboard item:",
-          res.data.error,
+          ServerError.getMessage(res.data),
         );
       }
 
-      const success = !res.data.error;
+      const success = "success" in res.data && res.data.success;
 
       const set = new Set(id);
 
@@ -73,7 +74,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
       this.listItemsClipboard = [];
       this.emit("items-updated", this.listItemsClipboard);
 
-      return !res.data.error;
+      return "success" in res.data;
     } catch (error) {
       REPLACERS.Logger.error("Error deleting all clipboard items:", error);
       return false;

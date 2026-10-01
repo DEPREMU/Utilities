@@ -13,6 +13,7 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import { useLanguage } from "@context/LanguageContext";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import RenderClipboardItem from "@screens/Clipboard/components/RenderClipboardItem";
 import { useStylesClipboardScreen } from "@screens/Clipboard/styles";
 import { Timers, REPLACERS, ServerFetch } from "@common";
@@ -109,10 +110,11 @@ const ClipboardScreen: React.FC = () => {
         sessionToken,
       );
 
-      const { error } = res.data || { error: "Unknown error" };
-
-      if (error) {
-        REPLACERS.Logger.error("Error deleting clipboard item:", error);
+      if ("error" in res.data) {
+        REPLACERS.Logger.error(
+          "Error deleting clipboard item:",
+          ServerError.getMessage(res.data),
+        );
         return;
       }
 
@@ -304,10 +306,11 @@ const ClipboardScreen: React.FC = () => {
       sessionToken,
     );
 
-    const { error } = res.data || { error: "Unknown error" };
-
-    if (error) {
-      REPLACERS.Logger.error("Error deleting clipboard item:", error);
+    if ("error" in res.data) {
+      REPLACERS.Logger.error(
+        "Error deleting clipboard item:",
+        ServerError.getMessage(res.data),
+      );
       return;
     }
 

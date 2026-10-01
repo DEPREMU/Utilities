@@ -5,7 +5,8 @@
     "paths": {
       "@types": ["../../types/index.d.ts"],
       "@common": ["../../common/both"],
-      "@commonSrc": ["../../common"]
+      "@commonSrc": ["../../common"],
+      "@REPLACERS": ["../../common/both/REPLACERS/REPLACERS.server.ts"]
     }
   },
   "include": ["./**/*", "../../common/**/*"],

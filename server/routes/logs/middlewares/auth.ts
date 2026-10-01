@@ -1,48 +1,39 @@
 import chalk from "chalk";
 import { JWT } from "@/routes/auth/variables";
 import { Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
+import { RequestError } from "@commonSrc/both/errors/Error";
 
 export const authMiddleware = getHandlerGet(
   "/logs",
   "/",
-  {},
-  async (_, sendResponse, { req, next }) => {
+  async (_, _sendResponse, { req, next }) => {
+    const authHeader = req.headers?.authorization;
+    if (!authHeader)
+      throw new RequestError(
+        STATUS_RESPONSE.UNAUTHORIZED,
+        "Authorization header missing",
+      );
+
+    const [scheme, token] = authHeader.split(" ");
+    if (scheme !== "Bearer" || !token)
+      throw new RequestError(
+        STATUS_RESPONSE.UNAUTHORIZED,
+        "Invalid authorization format",
+      );
+
+    let tokenInstance: JWT;
+
     try {
-      const authHeader = req.headers?.authorization;
-      if (!authHeader) {
-        sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
-          error: "Authorization header missing",
-        });
-        return;
-      }
-
-      const [scheme, token] = authHeader.split(" ");
-      if (scheme !== "Bearer" || !token) {
-        sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
-          error: "Invalid authorization format",
-        });
-        return;
-      }
-
-      let tokenInstance: JWT;
-
-      try {
-        tokenInstance = new JWT({ token });
-      } catch (error) {
-        Logger.error(chalk.red("Error verifying JWT token:"), error);
-        sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
-          error: "Invalid or expired token",
-        });
-        return;
-      }
-
-      req.user = { token: tokenInstance };
-      next();
-    } catch (err) {
-      Logger.error(chalk.red("Error in auth middleware:"), err);
-      sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
-        error: "Unknown error occurred during authentication",
-      });
+      tokenInstance = new JWT({ token });
+    } catch (error) {
+      Logger.error(chalk.red("Error verifying JWT token:"), error);
+      throw new RequestError(
+        STATUS_RESPONSE.UNAUTHORIZED,
+        "Invalid or expired token",
+      );
     }
+
+    req.user = { token: tokenInstance };
+    next();
   },
 );
