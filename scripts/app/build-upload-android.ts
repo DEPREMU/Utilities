@@ -1,10 +1,9 @@
 import path from "path";
 import axios from "axios";
 import FormData from "form-data";
-import { Script } from "../common.ts";
+import { Script } from "../common";
 import type * as Types from "@types";
 import { ServerFetch } from "@commonSrc/both";
-import { APP_PATH, versionExpo } from "../config.ts";
 import { Directory, File, Logger } from "@commonSrc/serverOrElectron";
 
 const script = new Script();
@@ -20,7 +19,7 @@ script.addStep("Check if new version exists", async () => {
     "/updates/is-update-available/:version/:buildType",
     {
       params: {
-        version: versionExpo,
+        version: script.appConfig.version || "",
         buildType: "android",
       },
     },
@@ -36,7 +35,7 @@ script.addStep("Check if new version exists", async () => {
 
 script.addValue(
   "appBuildDir",
-  new script.Directory(path.join(APP_PATH, "builds")),
+  new script.Directory(path.join(script.PATHS.app, "builds")),
 );
 
 script.addStep("Verify APK exists", async () => {
@@ -57,11 +56,11 @@ script.addStep("Find APK", async () => {
   script.addValue("apkFile", new script.File(path.join(dir.path, apkFile)));
 });
 
-script.addStep(`Upload APK ${versionExpo}`, async () => {
+script.addStep(`Upload APK ${script.appConfig.version}`, async () => {
   const apkFile = script.getValue("apkFile") as File;
 
   const data: Types.RequestUploadUpdate = {
-    version: versionExpo,
+    version: script.appConfig.version || "",
     buildType: "android",
   };
 

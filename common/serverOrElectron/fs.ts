@@ -355,6 +355,7 @@ export const getAllPathsSync = () => {
   const TYPES_PATH = path.resolve(root, "types");
   const COMMON_PATH = path.resolve(root, "common");
   const SERVER_PATH = path.resolve(root, "server");
+  const SCRIPTS_PATH = path.resolve(root, "scripts");
   const FRONTEND_PATH = path.resolve(root, "frontend");
   const UTILITIES_FOR_PC_PATH = path.resolve(root, "UtilitiesForPC");
 
@@ -365,6 +366,7 @@ export const getAllPathsSync = () => {
     types: TYPES_PATH,
     common: COMMON_PATH,
     server: SERVER_PATH,
+    scripts: SCRIPTS_PATH,
     frontend: FRONTEND_PATH,
     utilitiesForPC: UTILITIES_FOR_PC_PATH,
   };

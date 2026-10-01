@@ -1,32 +1,10 @@
-import {
-  args,
-  UTILITIES_PATH,
-  UTILITIES_FOR_PC_PATH,
-  PACKAGE_JSON_UtilitiesForPC,
-} from "../config.ts";
+import { args } from "../arguments";
 import path from "path";
 import chalk from "chalk";
-import { t } from "./translations.ts";
-import { Script } from "../common.ts";
-import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { Directory } from "@commonSrc/serverOrElectron/fs.ts";
-
-const TEMP_FOLDER = path.join(
-  UTILITIES_PATH,
-  "..",
-  ".temp-utilities-for-pc-build",
-);
-
-const dataBuild = {
-  distElectron: path.join(
-    TEMP_FOLDER,
-    PACKAGE_JSON_UtilitiesForPC.build.directories.output,
-  ),
-  appName: PACKAGE_JSON_UtilitiesForPC.name,
-  productName: PACKAGE_JSON_UtilitiesForPC.build.productName,
-} as const;
-
-let executeCleanup = false;
+import { t } from "./translations";
+import { Script } from "../common";
+import { Logger } from "@commonSrc/serverOrElectron/logger";
+import { Directory } from "@commonSrc/serverOrElectron/fs";
 
 export const script = new Script(async (err) => {
   if (!executeCleanup) return;
@@ -43,8 +21,16 @@ export const script = new Script(async (err) => {
     });
 });
 
+const TEMP_FOLDER = path.join(
+  script.PATHS.utilitiesForPC,
+  "..",
+  ".temp-utilities-for-pc-build",
+);
+
+let executeCleanup = false;
+
 script.elevate(
-  `cd ${UTILITIES_PATH}; yarn run build-app-electron ${args.getArgs()}; pause`,
+  `cd ${script.PATHS.root}; yarn run build-app-electron ${args.getArgs()}; pause`,
 );
 
 script.addStep("Clean up temp dir", async (instance) => {
@@ -94,10 +80,10 @@ script.addStep("Building web app", async (instance, abortController) => {
 
 script.addStep("Init temp folder", async (instance) => {
   const PATHS = [
-    path.join(UTILITIES_FOR_PC_PATH, "dist"),
-    path.join(UTILITIES_FOR_PC_PATH, "build"),
-    path.join(UTILITIES_FOR_PC_PATH, "assets"),
-    path.join(UTILITIES_FOR_PC_PATH, "package.json"),
+    path.join(script.PATHS.utilitiesForPC, "dist"),
+    path.join(script.PATHS.utilitiesForPC, "build"),
+    path.join(script.PATHS.utilitiesForPC, "assets"),
+    path.join(script.PATHS.utilitiesForPC, "package.json"),
   ];
 
   await Promise.all(
@@ -213,11 +199,22 @@ script.addStep("Build electron app", async (instance, abortController) => {
 });
 
 script.addStep("Move app", async (instance) => {
+  const utilitiesForPCJson = await script.getPackageJson("utilitiesForPC");
+
+  const dataBuild = {
+    distElectron: path.join(
+      TEMP_FOLDER,
+      utilitiesForPCJson.build.directories.output,
+    ),
+    appName: utilitiesForPCJson.name,
+    productName: utilitiesForPCJson.build.productName,
+  } as const;
+
   const extension = instance.PLATFORM.isWindows ? ".exe" : ".deb";
 
   const destFile = new instance.File(
     path.join(
-      UTILITIES_FOR_PC_PATH,
+      script.PATHS.utilitiesForPC,
       "dist-electron",
       `${dataBuild.appName}${extension}`,
     ),
@@ -261,7 +258,7 @@ script.addStep("Move app", async (instance) => {
   Logger.log(
     chalk.green(
       `Build moved successfully to ${path.join(
-        UTILITIES_FOR_PC_PATH,
+        script.PATHS.utilitiesForPC,
         "dist-electron",
       )}`,
     ),

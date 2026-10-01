@@ -229,7 +229,10 @@ class Args {
     const ARGS = Args.args.reduce((acc, arg, index) => {
       const includesEqual = arg.includes("=");
       const isArg = arg.startsWith("-");
-      if (!isArg && !prevArg) throw new Error(`Unknown argument: ${arg}`);
+      if (!isArg && !prevArg) {
+        if (process.env.NODE_ENV === "test") return acc;
+        throw new Error(`Unknown argument: ${arg}`);
+      }
 
       const nextArg = Args.args[index + 1];
       if (isArg && (nextArg?.startsWith("-") || !nextArg))
@@ -364,6 +367,7 @@ class Args {
           }
           break;
         default:
+          if (process.env.NODE_ENV === "test") return acc;
           throw new Error(`Unknown argument: ${key}`);
       }
       argsProcessed.push(key);

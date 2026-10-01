@@ -1,21 +1,24 @@
-import {
-  args,
-  UTILITIES_PATH,
-  versionElectron,
-  UTILITIES_FOR_PC_PATH,
-} from "../config.ts";
 import path from "path";
 import axios from "axios";
+import chalk from "chalk";
 import FormData from "form-data";
+import { args } from "../arguments";
 import { File } from "@commonSrc/serverOrElectron/fs.ts";
-import { Script } from "../common.ts";
+import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { ServerFetch } from "@commonSrc/both/index.ts";
 import type { Enums, RequestUploadUpdate } from "@types";
-import chalk from "chalk";
 
 let isNewVersionLinux: boolean;
 let isNewVersionWindows: boolean;
+
+const script = new Script();
+
+const versionElectron = await script
+  .getPackageJson("utilitiesForPC")
+  .then((p) => p.version);
+
+if (!versionElectron) throw new Error("Version electron not found");
 
 const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
   try {
@@ -41,8 +44,6 @@ const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
 
 Logger.log("=== Electron Build and Upload Process ===\n");
 
-const script = new Script();
-
 script.addStep("Check Platform", async () => {
   if (script.PLATFORM.isWindows) {
     isNewVersionWindows = await isNewVersionPlatform("windows");
@@ -67,7 +68,7 @@ if (!args.ARGS["skip-build-electron"])
           ARGS.includes("platform") ? ARGS : `${ARGS} --platform=${platform}`
         }`,
         {
-          cwd: UTILITIES_PATH,
+          cwd: script.PATHS.root,
           signal: abortController.signal,
         },
       );
@@ -92,7 +93,7 @@ script.addStep("Check if server is alive", async () => {
 
 script.addStep(`Check if there are Electron build files`, async () => {
   const distElectron = new script.Directory(
-    path.join(UTILITIES_FOR_PC_PATH, "dist-electron"),
+    path.join(script.PATHS.utilitiesForPC, "dist-electron"),
   );
 
   if (!(await distElectron.exists()))
@@ -103,7 +104,7 @@ script.addStep("Upload Electron Builds", async () => {
   Logger.log("Uploading Electron builds, version:", versionElectron);
 
   const distElectron = new script.Directory(
-    path.join(UTILITIES_FOR_PC_PATH, "dist-electron"),
+    path.join(script.PATHS.utilitiesForPC, "dist-electron"),
   );
 
   const files = await distElectron.readDir();

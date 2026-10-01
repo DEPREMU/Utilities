@@ -1,12 +1,12 @@
 import path from "path";
 import chalk from "chalk";
+import { args } from "../arguments";
 import { spawn } from "child_process";
 import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron";
-import { env, args, APP_PATH } from "../config";
 
 const localEnv = {
-  ...env,
+  ...process.env,
   PLATFORM: "android",
   BUILD_PROFILE: "development",
 };
@@ -48,7 +48,7 @@ const spawnCommand = (
   });
 };
 
-script.addValue("androidPath", path.join(APP_PATH, "android"));
+script.addValue("androidPath", path.join(script.PATHS.app, "android"));
 
 if (!args.ARGS["skip-build-android"]) {
   script.addStep("Remove android directory", async () => {
@@ -75,7 +75,7 @@ if (!args.ARGS["skip-build-android"]) {
       script.PLATFORM.isWindows
         ? ["expo", "run:android", "--no-build-cache"]
         : ["-c", "0-5", "yarn", "expo", "run:android", "--no-build-cache"],
-      { cwd: APP_PATH, env: localEnv, signal: abortController.signal },
+      { cwd: script.PATHS.app, env: localEnv, signal: abortController.signal },
     );
   });
 } else {
@@ -83,7 +83,7 @@ if (!args.ARGS["skip-build-android"]) {
     Logger.log("Running expo...");
 
     expo = spawnCommand("expo", ["start", "--clear", "--dev-client"], {
-      cwd: APP_PATH,
+      cwd: script.PATHS.app,
       env: localEnv,
       signal: abortController.signal,
     });

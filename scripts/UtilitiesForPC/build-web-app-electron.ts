@@ -1,14 +1,8 @@
-import {
-  args,
-  APP_PATH,
-  FRONTEND_PATH,
-  UTILITIES_PATH,
-  UTILITIES_FOR_PC_PATH,
-} from "../config.ts";
 import path from "path";
 import chalk from "chalk";
 import { t } from "./translations.ts";
-import { Script } from "../common.ts";
+import { args } from "../arguments";
+import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { Directory } from "@commonSrc/serverOrElectron/fs";
 
@@ -22,17 +16,17 @@ script.addStep("Install dependencies", async (_, abortController) => {
       Logger.log(chalk.blueBright("Installing dependencies: "), chunk);
     })
     .run("yarn install", {
-      cwd: UTILITIES_PATH,
+      cwd: script.PATHS.root,
       signal: abortController.signal,
     });
 });
 
 script.addStep("Export Clipboard App", async (_, abortController) => {
   const distDir = new script.Directory(
-    path.resolve(UTILITIES_FOR_PC_PATH, "assets", "clipboard"),
+    path.resolve(script.PATHS.utilitiesForPC, "assets", "clipboard"),
   );
   const frontendDistDir = new script.Directory(
-    path.resolve(FRONTEND_PATH, "dist"),
+    path.resolve(script.PATHS.frontend, "dist"),
   );
 
   if (await distDir.exists())
@@ -45,7 +39,7 @@ script.addStep("Export Clipboard App", async (_, abortController) => {
       Logger.log(chalk.blueBright("Building clipboard frontend: "), chunk);
     })
     .run("yarn run build-clipboard-frontend", {
-      cwd: UTILITIES_PATH,
+      cwd: script.PATHS.root,
       signal: abortController.signal,
     });
 
@@ -76,7 +70,7 @@ script.addStep("Export Web App", async (_, abortController) => {
       Logger.log(chalk.blueBright("Building web app: "), chunk);
     })
     .run(`yarn run build-web ${args.getArgs()}`, {
-      cwd: UTILITIES_PATH,
+      cwd: script.PATHS.root,
       signal: abortController.signal,
     });
 
@@ -87,15 +81,17 @@ script.addStep("Export Web App", async (_, abortController) => {
 });
 
 script.addStep("Clean up old build directories", async () => {
-  await new script.Directory(path.resolve(UTILITIES_FOR_PC_PATH, "dist")).rm({
+  await new script.Directory(
+    path.resolve(script.PATHS.utilitiesForPC, "dist"),
+  ).rm({
     force: true,
     recursive: true,
   });
 });
 
 script.addStep("Prepare files for electron app", async () => {
-  const distPath = path.resolve(UTILITIES_FOR_PC_PATH, "dist");
-  const sourcePath = path.resolve(APP_PATH, "dist");
+  const distPath = path.resolve(script.PATHS.utilitiesForPC, "dist");
+  const sourcePath = path.resolve(script.PATHS.app, "dist");
 
   const sourceDir = new script.Directory(sourcePath);
 

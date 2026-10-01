@@ -1,28 +1,12 @@
-import {
-  env,
-  args,
-  APP_PATH,
-  TYPES_PATH,
-  SERVER_PATH,
-  SCRIPTS_PATH,
-  FRONTEND_PATH,
-  UTILITIES_PATH,
-  UTILITIES_FOR_PC_PATH,
-} from "./config.ts";
-import fs from "fs";
 import path from "path";
+import chalk from "chalk";
+import { args } from "./arguments.ts";
+import { Script } from "./common";
 import { Helper } from "@commonSrc/both/index.ts";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { execSync } from "child_process";
 import { formatFolder } from "./format-folder.ts";
 
-const PATHS = {
-  App: APP_PATH,
-  Types: TYPES_PATH,
-  Server: SERVER_PATH,
-  Scripts: SCRIPTS_PATH,
-  UtilitiesForPC: UTILITIES_FOR_PC_PATH,
-} as const;
+const script = new Script();
 
 export const run = async () => {
   const action = args.ARGS.action;
@@ -37,62 +21,91 @@ export const run = async () => {
   switch (action) {
     case "compile-check":
       if (!args.ARGS.testing) {
-        execSync("yarn run app-prebuild-android", {
-          cwd: UTILITIES_PATH,
-          stdio: "inherit",
-          env,
-        });
-        execSync(
-          "cd android && ./gradlew :app:compileDebugKotlin --no-daemon",
-          {
-            cwd: APP_PATH,
-            stdio: "inherit",
-            env,
-          },
-        );
+        const exec = new script.Exec();
+
+        await exec.async
+          .onData((chunk) => {
+            Logger.log(
+              chalk.magentaBright("Yarn app-prebuild-android: "),
+              chunk,
+            );
+          })
+          .run("yarn run app-prebuild-android", {
+            env: process.env,
+            cwd: script.PATHS.root,
+          });
+
+        await exec.async
+          .onData((chunk) => {
+            Logger.log(chalk.magentaBright("Gradle: "), chunk);
+          })
+          .run("cd android && ./gradlew :app:compileDebugKotlin --no-daemon", {
+            env: process.env,
+            cwd: script.PATHS.app,
+          });
       } else {
         Logger.log("Testing mode: Skipping compile-check commands");
       }
       break;
     case "clean":
-      clean();
+      await clean();
       break;
     case "clean-all":
       await clean();
-      installAll();
+      await installAll();
       break;
     case "format-all":
-      formatAll();
+      await formatAll();
       break;
     case "app":
       if (!args.ARGS.testing) {
-        execSync("yarn expo start -c", {
-          cwd: APP_PATH,
-          stdio: "inherit",
-          env,
-        });
+        const exec = new script.Exec();
+
+        await exec.async
+          .onData((chunk) => {
+            Logger.log(chalk.magentaBright("Yarn expo start: "), chunk);
+          })
+          .run("yarn expo start -c", {
+            env: process.env,
+            cwd: script.PATHS.app,
+          });
       } else {
         Logger.log("Testing mode: Skipping yarn expo start");
       }
       break;
     case "type-check":
-      execSync("yarn run type-check", { cwd: APP_PATH, stdio: "inherit", env });
+      if (!args.ARGS.testing) {
+        const exec = new script.Exec();
+
+        await exec.async
+          .onData((chunk) => {
+            Logger.log(chalk.magentaBright("Type-check: "), chunk);
+          })
+          .run("yarn run type-check", {
+            env: process.env,
+            cwd: script.PATHS.app,
+          });
+      } else {
+        Logger.log("Testing mode: Skipping yarn run type-check");
+      }
       break;
     case "build-web": {
       const envWeb = {
-        ...env,
+        ...process.env,
         PLATFORM: "web",
-        BUILD_PROFILE: env.BUILD_PROFILE || "production",
+        BUILD_PROFILE: process.env.BUILD_PROFILE || "production",
       };
       if (!args.ARGS.testing) {
-        execSync(
-          `yarn expo export -c -p web ${envWeb.BUILD_PROFILE === "production" ? "" : "--dev --no-minify"}`,
-          {
-            env: envWeb,
-            cwd: APP_PATH,
-            stdio: "inherit",
-          },
-        );
+        const exec = new script.Exec();
+
+        await exec.async
+          .onData((chunk) => {
+            Logger.log(chalk.magentaBright("Yarn build web: "), chunk);
+          })
+          .run(
+            `yarn expo export -c -p web ${envWeb.BUILD_PROFILE === "production" ? "" : "--dev --no-minify"}`,
+            { env: envWeb, cwd: script.PATHS.app },
+          );
       } else {
         Logger.log("Testing mode: Skipping yarn expo export");
       }
@@ -102,16 +115,22 @@ export const run = async () => {
     case "dev-clipboard-frontend": {
       if (!args.ARGS.testing) {
         const envWeb = {
-          ...env,
+          ...process.env,
           TYPE_BUILD:
             action === "dev-clipboard-frontend" ? "clipboard" : "test",
           BUILD_PROFILE: "development",
         };
-        execSync("yarn run dev", {
-          env: envWeb,
-          cwd: FRONTEND_PATH,
-          stdio: "inherit",
-        });
+
+        const exec = new script.Exec();
+
+        await exec.async
+          .onData((chunk) => {
+            Logger.log(chalk.magentaBright("Yarn dev: "), chunk);
+          })
+          .run("yarn run dev", {
+            env: envWeb,
+            cwd: script.PATHS.frontend,
+          });
       } else {
         Logger.log("Testing mode: Skipping yarn run dev");
       }
@@ -121,16 +140,21 @@ export const run = async () => {
     case "build-clipboard-frontend": {
       if (!args.ARGS.testing) {
         const envWeb = {
-          ...env,
+          ...process.env,
           TYPE_BUILD:
             action === "build-clipboard-frontend" ? "clipboard" : "normal",
-          BUILD_PROFILE: env.BUILD_PROFILE || "production",
+          BUILD_PROFILE: process.env.BUILD_PROFILE || "production",
         };
-        execSync("yarn run build", {
-          env: envWeb,
-          cwd: FRONTEND_PATH,
-          stdio: "inherit",
-        });
+        const exec = new script.Exec();
+
+        await exec.async
+          .onData((chunk) => {
+            Logger.log(chalk.magentaBright("Yarn build: "), chunk);
+          })
+          .run("yarn run build", {
+            env: envWeb,
+            cwd: script.PATHS.frontend,
+          });
       } else {
         Logger.log("Testing mode: Skipping yarn run build");
       }
@@ -142,50 +166,49 @@ export const run = async () => {
 };
 
 export const clean = async () => {
-  const pathsToClean = [
-    path.join(APP_PATH, ".expo"),
-    path.join(APP_PATH, "android"),
-    path.join(APP_PATH, "node_modules"),
-    path.join(TYPES_PATH, "node_modules"),
-    path.join(SERVER_PATH, "node_modules"),
-    path.join(SCRIPTS_PATH, "node_modules"),
-    path.join(UTILITIES_PATH, "yarn.lock"),
-    path.join(UTILITIES_PATH, "node_modules"),
-    path.join(UTILITIES_FOR_PC_PATH, "dist"),
-    path.join(UTILITIES_FOR_PC_PATH, "build"),
-    path.join(UTILITIES_FOR_PC_PATH, "node_modules"),
-    path.join(UTILITIES_FOR_PC_PATH, "dist-electron"),
+  const dirs = [
+    "dist",
+    "build",
+    ".expo",
+    "android",
+    "yarn.lock",
+    "node_modules",
+    "dist-electron",
   ];
 
-  Logger.log("Cleaning paths...");
-  await Promise.all(
-    pathsToClean.map(async (p) => {
-      if (!(await fs.promises.stat(p).catch(() => false))) return;
-
-      // eslint-disable-next-line no-console
-      console.log(`Removing ${p}`);
-      if (!args.ARGS.testing) {
-        await fs.promises
-          .rm(p, {
-            force: true,
-            recursive: true,
-          })
-          .catch((error) => {
-            // eslint-disable-next-line no-console
-            console.warn(`Failed to remove ${p}, continuing...`, error);
-          });
-      } else {
-        // eslint-disable-next-line no-console
-        console.log("Testing mode: Skipping folder removal");
-      }
-    }),
+  const pathsToClean = Object.values(script.PATHS).flatMap((p) =>
+    dirs.map((d) => path.join(p, d)),
   );
+
+  Logger.log("Cleaning paths...");
+  await Helper.Arrays.forEachQueue(3, pathsToClean, async (p) => {
+    const dir = new script.Directory(p);
+    if (!(await dir.exists())) return;
+
+    // eslint-disable-next-line no-console
+    console.log(`Removing ${p}`);
+    if (!args.ARGS.testing) {
+      await dir.rm({ recursive: true, force: true });
+    } else {
+      // eslint-disable-next-line no-console
+      console.log("Testing mode: Skipping folder removal");
+    }
+  });
 
   // eslint-disable-next-line no-console
   console.log("Cleaning yarn cache in app...");
   try {
     if (!args.ARGS.testing) {
-      execSync("yarn cache clean", { cwd: UTILITIES_PATH, stdio: "inherit" });
+      const exec = new script.Exec();
+
+      await exec.async
+        .onData((chunk) => {
+          // eslint-disable-next-line no-console
+          console.log(chalk.magentaBright("Yarn cache clean:"), chunk);
+        })
+        .run("yarn cache clean", {
+          cwd: script.PATHS.root,
+        });
     } else {
       // eslint-disable-next-line no-console
       console.log("Testing mode: Skipping yarn cache clean");
@@ -199,15 +222,21 @@ export const clean = async () => {
   }
 };
 
-const installAll = () => {
+const installAll = async () => {
   // eslint-disable-next-line no-console
-  console.log(`Installing dependencies in ${UTILITIES_PATH} using yarn...`);
+  console.log(`Installing dependencies in ${script.PATHS.root} using yarn...`);
 
   if (!args.ARGS.testing) {
-    execSync("yarn install", {
-      cwd: UTILITIES_PATH,
-      stdio: "inherit",
-    });
+    const exec = new script.Exec();
+
+    await exec.async
+      .onData((chunk) => {
+        // eslint-disable-next-line no-console
+        console.log(chalk.magentaBright("Yarn install:"), chunk);
+      })
+      .run("yarn install", {
+        cwd: script.PATHS.root,
+      });
   } else {
     // eslint-disable-next-line no-console
     console.log("Testing mode: Skipping yarn install");
@@ -215,12 +244,18 @@ const installAll = () => {
 };
 
 export const formatAll = async () => {
-  await Promise.all(
-    Helper.Object.entries(PATHS).map(([name, cwd]) => {
+  await Helper.Arrays.forEachQueue(
+    3,
+    Object.entries(script.PATHS),
+    async ([name, cwd]) => {
       Logger.log(`Formatting ${name}...`);
 
-      return formatFolder(cwd);
-    }),
+      if (!args.ARGS.testing) {
+        await formatFolder(cwd);
+      } else {
+        Logger.log("Testing mode: Skipping folder formatting");
+      }
+    },
   );
 };
 

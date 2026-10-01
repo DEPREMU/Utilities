@@ -45,6 +45,11 @@ jest.mock("fs", () => ({
       .fn<() => Promise<unknown>>()
       .mockResolvedValue(["app.exe", "app.deb"]),
     writeFile: jest.fn<() => Promise<unknown>>().mockResolvedValue(undefined),
+    readFile: jest
+      .fn<() => Promise<unknown>>()
+      .mockResolvedValue(
+        '{"name":"utilitiesForPC", "build":{"directories":{"output":"out"}, "productName":"test"}}',
+      ),
   },
 }));
 
@@ -54,14 +59,6 @@ jest.mock("@commonSrc/serverOrElectron/logger.ts", () => ({
     warn: jest.fn(),
     error: jest.fn(),
   },
-}));
-
-jest.mock("../../config.ts", () => ({
-  ...(jest.requireActual("../../config.ts") as Record<string, unknown>),
-  ask: jest.fn<() => Promise<string>>().mockResolvedValue("y"),
-  handleExitFromScript: jest.fn((_cb: () => void) => {
-    // just for mock structure
-  }),
 }));
 
 interface ScriptInternals {

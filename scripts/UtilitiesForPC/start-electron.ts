@@ -1,18 +1,11 @@
-import {
-  env,
-  args,
-  APP_PATH,
-  TYPE_ARGS,
-  FRONTEND_PATH,
-  UTILITIES_FOR_PC_PATH,
-} from "../config.ts";
 import axios from "axios";
 import chalk from "chalk";
+import { Script } from "../common";
 import { Helper } from "@commonSrc/both/index.ts";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import * as readline from "readline";
+import { args, TYPE_ARGS } from "../arguments";
 import { spawn, execSync, ChildProcess, SpawnOptions } from "child_process";
-import { Script } from "../common.ts";
 
 const values = {
   PLATFORM: "web",
@@ -22,7 +15,6 @@ const values = {
 } as const satisfies Partial<TYPE_ARGS>;
 
 for (const [key, value] of Helper.Object.entries(values)) {
-  env[key as never] = value;
   process.env[key] = value;
   args.editArg(key, value as never);
 }
@@ -59,7 +51,9 @@ const runBuildCommand = (command: string): void => {
   try {
     Logger.log(chalk.cyan(`[Build] Executing: ${command}`));
     execSync(command, {
-      env,
+      env: {
+        ...process.env,
+      },
       stdio: "inherit",
     });
   } catch (error) {
@@ -115,13 +109,13 @@ const startElectron = async (): Promise<ChildProcess> => {
 
   Logger.log(chalk.green("[Electron] Starting..."));
 
-  const electronEnv = { ...env };
+  const electronEnv = { ...process.env };
 
   const child = spawnCommand(
     "electron",
     [".", "--expose-gc", "--no-sandbox", "--ozone-platform=x11"],
     {
-      cwd: UTILITIES_FOR_PC_PATH,
+      cwd: script.PATHS.utilitiesForPC,
       env: electronEnv,
       killSignal: "SIGKILL",
     },
@@ -140,22 +134,22 @@ const startElectron = async (): Promise<ChildProcess> => {
 const startExpo = (): ChildProcess => {
   Logger.log(chalk.green("[Expo] Starting..."));
 
-  const expoEnv = { ...env };
+  const expoEnv = { ...process.env };
 
   return spawnCommand("yarn", ["expo", "start", "-c"], {
     env: expoEnv,
-    cwd: APP_PATH,
+    cwd: script.PATHS.app,
   });
 };
 
 const startFrontend = (): ChildProcess => {
   Logger.log(chalk.green("[Frontend] Starting..."));
 
-  const frontendEnv = { ...env };
+  const frontendEnv = { ...process.env };
 
   return spawnCommand("yarn", ["run", "dev"], {
     env: frontendEnv,
-    cwd: FRONTEND_PATH,
+    cwd: script.PATHS.frontend,
     stdio: ["ignore", "inherit", "inherit"],
   });
 };

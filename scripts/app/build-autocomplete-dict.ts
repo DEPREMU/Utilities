@@ -1,7 +1,10 @@
 import fs from "fs";
 import path from "path";
+import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { APP_PATH } from "../config.ts";
+import { Directory, File } from "@commonSrc/serverOrElectron";
+
+const script = new Script();
 
 const HEADER = "UDICT1";
 const MAX_WORDS = 300_000;
@@ -79,22 +82,25 @@ const encodeBinary = (entries: Entry[]): Buffer => {
   return Buffer.concat(payloadParts);
 };
 
-const run = () => {
-  const pathFiles = path.resolve(APP_PATH, "native/autocomplete");
+script.addStep("Find .txt files", async () => {
+  const dir = new Directory(script.PATHS.app);
+  const files = (await dir.readDir()).filter((f) => f.endsWith(".txt"));
+  script.addValue("txtFiles", files);
+});
 
-  const files = fs.readdirSync(pathFiles).filter((f) => f.endsWith(".txt"));
+script.addStep("Process .txt files", async () => {
+  const files = script.getValue("txtFiles") as string[];
 
-  for (const item of files) {
-    const entries = parseInput(path.resolve(pathFiles, item));
+  for (const file of files) {
+    const entries = parseInput(path.resolve(script.PATHS.app, file));
     const output = encodeBinary(entries);
-    fs.writeFileSync(
-      path.resolve(pathFiles, item.replace(".txt", ".dict")),
-      output,
-    );
+    await new File(
+      path.resolve(script.PATHS.app, file.replace(".txt", ".dict")),
+    ).writeFile(output);
     Logger.log(
-      `Built ${item.replace(".txt", ".dict")} from ${item} with ${entries.length} words`,
+      `Built ${file.replace(".txt", ".dict")} from ${file} with ${entries.length} words`,
     );
   }
-};
+});
 
-run();
+script.run();

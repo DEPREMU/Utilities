@@ -13,6 +13,14 @@ import fs from "fs";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 
 jest.mock("child_process", () => ({
+  ...(jest.requireActual("child_process") as Record<string, unknown>),
+  exec: jest.fn().mockReturnValue({
+    stdout: { on: jest.fn() },
+    stderr: { on: jest.fn() },
+    on: jest.fn((event, cb) => {
+      if (event === "close") (cb as (code: number) => void)(0);
+    }),
+  }),
   execSync: jest.fn(),
 }));
 
@@ -49,7 +57,7 @@ describe("root-commands", () => {
     args.editArg("testing", false);
     args.editArg("action", "compile-check");
     await rootCommands.run();
-    expect(child_process.execSync).toHaveBeenCalledWith(
+    expect(child_process.exec).toHaveBeenCalledWith(
       expect.stringContaining("yarn run app-prebuild-android"),
       expect.anything(),
     );
@@ -59,7 +67,7 @@ describe("root-commands", () => {
     args.editArg("testing", true);
     args.editArg("action", "compile-check");
     await rootCommands.run();
-    expect(child_process.execSync).not.toHaveBeenCalled();
+    expect(child_process.exec).not.toHaveBeenCalled();
     expect(Logger.log).toHaveBeenCalledWith(
       expect.stringContaining("Testing mode: Skipping compile-check commands"),
     );
@@ -70,7 +78,7 @@ describe("root-commands", () => {
     args.editArg("action", "clean");
     await rootCommands.run();
     expect(fs.promises.rm).not.toHaveBeenCalled();
-    expect(child_process.execSync).not.toHaveBeenCalledWith(
+    expect(child_process.exec).not.toHaveBeenCalledWith(
       "yarn cache clean",
       expect.anything(),
     );
