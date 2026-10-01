@@ -1,6 +1,6 @@
 {
   "name": "utilities-for-pc",
-  "version": "0.1.0-beta",
+  "version": "0.1.1-beta",
   "description": "A collection of useful utilities for PC users.",
   "main": "build/index.cjs",
   "private": true,
@@ -23,14 +23,14 @@
     "electron-edge-js": "^43.0.0",
     "node-7z": "^3.0.0",
     "pino": "^10.3.1",
-    "pdfkit": "^0.20.1",
-    "piscina": "^5.2.0",
-    "sharp": "^0.35.2",
+    "pdfkit": "^0.20.2",
+    "piscina": "^5.3.2",
+    "sharp": "^0.35.5",
     "unzipper": "^0.12.5"
   },
   "devDependencies": {
     "dmg-builder": "^26.15.3",
-    "electron": "43.4.1",
+    "electron": "43.7.7",
     "electron-builder": "^26.15.3",
     "electron-store": "^11.0.2",
     "node-machine-id": "^1.1.12"
