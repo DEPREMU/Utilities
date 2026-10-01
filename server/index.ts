@@ -12,6 +12,7 @@ import {
   initWebSocketLoginQRCode,
   initWebSocketServerLogs,
 } from "./websocket/index.ts";
+import path from "path";
 import cors from "cors";
 import http from "http";
 import chalk from "chalk";
@@ -20,11 +21,11 @@ import { URL } from "url";
 import express from "express";
 import routerAPI from "./routes/index.ts";
 import rateLimit from "express-rate-limit";
+import { config } from "./config.ts";
 import compression from "compression";
 import { handleInitDB } from "./database/postgres.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
 import { validateServerEnv, getEnvValue } from "./env.ts";
-import { host, port, executeFunctions, getRoutes } from "./config.ts";
 import { CryptosWebSocketMessage, WebSocketPathname } from "@types";
 
 type ServerWebSocket = ReturnType<typeof initWebSocket>;
@@ -78,7 +79,11 @@ const startApp = async () => {
     }),
     routerAPI,
   );
-  app.use("/updates", express.static(getRoutes("WEB_PATH_UPDATES")));
+
+  app.use(express.static(config.getRoutes("WEB_PATH_UPDATES")));
+  app.get(/.*/, (_, res) => {
+    res.sendFile(path.join(config.getRoutes("WEB_PATH_UPDATES"), "index.html"));
+  });
 
   const server = http.createServer(app);
   const webSockets: Record<WebSocketPathname, ServerWebSocket> = {
@@ -138,17 +143,19 @@ const startApp = async () => {
 
   await handleInitDB();
 
-  server.listen(port, host, async () => {
+  server.listen(config.port, config.host, async () => {
     Logger.log(
       "\n",
       "\t" +
-        chalk.green(`Server is running on ${sourceProtocol}://${host}:${port}`),
+        chalk.green(
+          `Server is running on ${sourceProtocol}://${config.host}:${config.port}`,
+        ),
       "\n",
       ...Helper.Object.keys(webSockets).map((pathname) => {
         return (
           "\t" +
           chalk.green(
-            `WebSocket is running on ${sourceProtocolWs}://${host}:${port}${pathname}`,
+            `WebSocket is running on ${sourceProtocolWs}://${config.host}:${config.port}${pathname}`,
           ) +
           "\n"
         );
@@ -157,7 +164,7 @@ const startApp = async () => {
 
     if (REPLACERS.isDev) await import("@/dev/index.ts");
 
-    await executeFunctions();
+    await config.executeFunctions();
   });
 };
 

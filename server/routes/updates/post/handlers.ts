@@ -1,7 +1,7 @@
 import path from "path";
 import chalk from "chalk";
 import Busboy from "busboy";
-import { getRoutes } from "@/config";
+import { config } from "@/config";
 import { RequestUploadUpdate } from "@types";
 import { dataUpdates, getFinalFileName } from "../variables";
 import { File, Logger, STATUS_RESPONSE, getHandlerPost } from "@common";
@@ -61,7 +61,7 @@ export const handleUpload = getHandlerPost(
         }
 
         const finalName = getFinalFileName(dataFile);
-        const saveTo = path.join(getRoutes("UPLOAD_DIR"), finalName);
+        const saveTo = path.join(config.getRoutes("UPLOAD_DIR"), finalName);
 
         Logger.log(`Saving file to: ${saveTo}`);
 

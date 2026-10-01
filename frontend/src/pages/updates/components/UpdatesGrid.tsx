@@ -1,6 +1,6 @@
 import React from "react";
-import { t } from "@utils";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 
 interface UpdateInfo {
   downloadUrl: string;
@@ -12,9 +12,16 @@ interface UpdatesGridProps {
   updates: Record<"linux" | "android" | "windows", UpdateInfo | null>;
 }
 
-export const UpdatesGrid: React.FC<UpdatesGridProps> = ({ isLoading, updates }) => {
+export const UpdatesGrid: React.FC<UpdatesGridProps> = ({
+  isLoading,
+  updates,
+}) => {
+  const { t } = useTranslation();
+
   if (isLoading) {
-    return <div className="updates-loading">{t("serverLogsViewer.loading")}</div>;
+    return (
+      <div className="updates-loading">{t("serverLogsViewer.loading")}</div>
+    );
   }
 
   const hasUpdates = Object.values(updates).some((u) => u !== null);
@@ -33,9 +40,7 @@ export const UpdatesGrid: React.FC<UpdatesGridProps> = ({ isLoading, updates }) 
         if (!info) return null;
         const platformKey = platform as "windows" | "linux" | "android";
         const btnText =
-          t("updatesWebPage.downloadLatestVersion") +
-          ": " +
-          info.latestVersion;
+          t("updatesWebPage.downloadLatestVersion") + ": " + info.latestVersion;
         return (
           <motion.div
             key={platform}

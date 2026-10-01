@@ -11,8 +11,10 @@ RUN corepack enable
 COPY package.json yarn.lock ./
 
 # Workspace packages
+COPY app/package.json ./app/package.json
 COPY server/package.json ./server/package.json
 COPY common/package.json ./common/package.json
+COPY frontend/package.json ./frontend/package.json
 
 # Install workspace dependencies
 RUN yarn install --immutable
@@ -26,7 +28,10 @@ WORKDIR /utilities/server
 RUN DATABASE_URL="1" yarn prisma generate
 
 # Build server
-RUN NODE_ENV=production yarn tsx build.ts
+
+ARG API_URL
+
+RUN API_URL="$API_URL" NODE_ENV=production yarn tsx build.ts
 
 # Generate production container package
 RUN yarn tsx vps/docker/create-container.ts
@@ -67,7 +72,6 @@ COPY --from=builder \
     ./
 
 COPY --from=builder /utilities/server/prisma ./prisma
-COPY --from=builder /utilities/server/routes/updates/web-page ./web-page
 
 # Remove CRLF and make executable
 RUN sed -i 's/\r$//' ./docker-entrypoint.sh && \

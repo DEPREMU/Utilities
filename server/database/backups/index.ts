@@ -10,10 +10,10 @@ import {
 import path from "path";
 import chalk from "chalk";
 import { spawn } from "child_process";
+import { config } from "@/config";
 import { prisma } from "../postgres";
 import { getEnvValue } from "@/env.ts";
 import { getDbConfig } from "../functions";
-import { getRoutes, executeFunctionAfterInit } from "@/config";
 
 const timeIntervalBackup = 12 * 60 * 60 * 1000;
 const encryptedExtension = ".sql.gpg";
@@ -21,7 +21,7 @@ const encryptedExtension = ".sql.gpg";
 export const getInterval = () => {
   Logger.log("Starting database backup interval...");
 
-  executeFunctionAfterInit(handleBackupDatabase);
+  config.executeFunctionAfterInit(handleBackupDatabase);
   return setInterval(handleBackupDatabase, timeIntervalBackup);
 };
 
@@ -51,6 +51,8 @@ export const encryptFile = async (filePath: string, password: string) => {
     abortAfter: 5 * 60 * 1000,
     functionName: "encryptFile",
   });
+  await copyFile.rm({ force: true });
+
   encryptionManager.startTimer();
 
   if (res instanceof Error) {
@@ -86,6 +88,7 @@ export const decryptFile = async (
     abortAfter: 5 * 60 * 1000,
     functionName: "decryptFile",
   });
+  await copyFile.rm({ force: true });
   encryptionManager.startTimer();
 
   if (res instanceof Error) {
@@ -98,6 +101,61 @@ export const decryptFile = async (
 
   const decryptedContent = await file.readFile("utf-8");
   return decryptedContent;
+};
+
+/**
+ * Deletes backup files older than 7 days from the configured backup directory.
+ *
+ * This function:
+ * - Asynchronously reads the directory pointed to by the external `backupPath` variable.
+ * - Expects backup file names to follow the pattern: `backup-<date>.sql.gpg` where `<date>`
+ *   is a string parseable by `new Date(...)`.
+ * - Parses the date portion of each file name, computes the age in days (using absolute time
+ *   difference rounded up via `Math.ceil`), and attempts to remove files whose age is
+ *   greater than 7 days.
+ *
+ * Notes and side effects:
+ * - All operations are performed asynchronously using `fs.readdir` and `fs.unlink`. The
+ *   function returns immediately and does not provide a completion promise or callback.
+ * - Errors encountered while reading the directory or deleting individual files are logged
+ *   to the console but are not thrown or propagated.
+ * - The function depends on externally scoped variables (`backupPath`, `fs`, `path`) being
+ *   available and correctly initialized.
+ * - Date parsing relies on `Date` constructor behavior; if a file's date portion is not
+ *   parseable, the calculated age may be `NaN` and the code will not delete that file as
+ *   intended. Consider validating the parsed date or enforcing a strict date format (e.g.
+ *   ISO 8601) if deterministic behavior is required.
+ *
+ * Example:
+ * ```ts
+ * // Ensures backups older than 7 days are removed from the configured directory.
+ * deletePreviousBackups();
+ * ```
+ *
+ * @returns void — function performs work asynchronously and does not return a promise.
+ */
+export const deletePreviousBackups = async () => {
+  const oldDate = getDateWithTimeAhead({ days: -7 });
+
+  const oldBackups = await prisma.databaseBackups.findMany({
+    where: { createdAt: { lt: oldDate } },
+  });
+
+  await Promise.all(
+    oldBackups.map(async (backup) => {
+      const file = new File(
+        path.join(
+          config.getRoutes("DATABASE_BACKUPS"),
+          backup.relativeFilePath,
+        ),
+      );
+
+      await file.rm({ force: true });
+      await prisma.databaseBackups.delete({ where: { id: backup.id } });
+
+      Logger.log(`Deleted old backup file: ${file.path}`);
+    }),
+  );
 };
 
 /**
@@ -132,7 +190,7 @@ export const handleBackupDatabase = async () => {
   await deletePreviousBackups();
   try {
     const timestamp = Date.now();
-    const dir = new Directory(getRoutes("DATABASE_BACKUPS"));
+    const dir = new Directory(config.getRoutes("DATABASE_BACKUPS"));
     const file = await dir.createFile(
       `backup-${timestamp}${encryptedExtension}`,
       "",
@@ -191,58 +249,6 @@ export const handleBackupDatabase = async () => {
   } catch (error) {
     Logger.error("Error during database backup:", error);
   }
-};
-
-/**
- * Deletes backup files older than 7 days from the configured backup directory.
- *
- * This function:
- * - Asynchronously reads the directory pointed to by the external `backupPath` variable.
- * - Expects backup file names to follow the pattern: `backup-<date>.sql.gpg` where `<date>`
- *   is a string parseable by `new Date(...)`.
- * - Parses the date portion of each file name, computes the age in days (using absolute time
- *   difference rounded up via `Math.ceil`), and attempts to remove files whose age is
- *   greater than 7 days.
- *
- * Notes and side effects:
- * - All operations are performed asynchronously using `fs.readdir` and `fs.unlink`. The
- *   function returns immediately and does not provide a completion promise or callback.
- * - Errors encountered while reading the directory or deleting individual files are logged
- *   to the console but are not thrown or propagated.
- * - The function depends on externally scoped variables (`backupPath`, `fs`, `path`) being
- *   available and correctly initialized.
- * - Date parsing relies on `Date` constructor behavior; if a file's date portion is not
- *   parseable, the calculated age may be `NaN` and the code will not delete that file as
- *   intended. Consider validating the parsed date or enforcing a strict date format (e.g.
- *   ISO 8601) if deterministic behavior is required.
- *
- * Example:
- * ```ts
- * // Ensures backups older than 7 days are removed from the configured directory.
- * deletePreviousBackups();
- * ```
- *
- * @returns void — function performs work asynchronously and does not return a promise.
- */
-export const deletePreviousBackups = async () => {
-  const oldDate = getDateWithTimeAhead({ days: -7 });
-
-  const oldBackups = await prisma.databaseBackups.findMany({
-    where: { createdAt: { lt: oldDate } },
-  });
-
-  await Promise.all(
-    oldBackups.map(async (backup) => {
-      const file = new File(
-        path.join(getRoutes("DATABASE_BACKUPS"), backup.relativeFilePath),
-      );
-
-      await file.rm({ force: true });
-      await prisma.databaseBackups.delete({ where: { id: backup.id } });
-
-      Logger.log(`Deleted old backup file: ${file.path}`);
-    }),
-  );
 };
 
 export default getInterval();

@@ -6,10 +6,10 @@ import {
 } from "@types";
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling.ts";
-import { prisma } from "@/database/postgres.ts";
-import { cryptos } from "@/routes/cryptos/variables.ts";
-import { sendFCMNotification } from "@/firebase/admin.ts";
-import { executeFunctionAfterInit } from "@/config.ts";
+import { config } from "@/config";
+import { prisma } from "@/database/postgres";
+import { cryptos } from "@/routes/cryptos/variables";
+import { sendFCMNotification } from "@/firebase/admin";
 import WebSocket, { WebSocketServer } from "ws";
 import { t, Logger, SelectedCryptos, Helper } from "@common";
 
@@ -189,7 +189,7 @@ const initUsersInterval = async () => {
     );
   }
 };
-executeFunctionAfterInit(initUsersInterval);
+config.executeFunctionAfterInit(initUsersInterval);
 
 const isCrypto = (
   data: Record<string, unknown>,
