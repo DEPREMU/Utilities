@@ -43,6 +43,7 @@
     "build-upload-electron": "node scripts/run.ts build-upload-electron",
     "build-upload-android": "node scripts/run.ts build-upload-android",
     "build-autocomplete-dict": "node scripts/run.ts build-autocomplete-dict",
+    "check-version-ci": "node scripts/run.ts check-version-ci",
     "__COMMON__": "___________________________________________",
     "common-test": "yarn workspace utilities-common run test",
     "__FRONTEND__": "___________________________________________",

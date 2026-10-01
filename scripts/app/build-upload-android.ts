@@ -3,9 +3,9 @@ import axios from "axios";
 import FormData from "form-data";
 import { Script } from "../common";
 import type * as Types from "@types";
-import { ServerFetch } from "@commonSrc/both";
 import { ServerError } from "@commonSrc/both/errors/Error";
 import { Directory, File, Logger } from "@commonSrc/serverOrElectron";
+import { ServerFetch, Validations } from "@commonSrc/both";
 
 const script = new Script();
 
@@ -30,9 +30,16 @@ script.addStep("Check if new version exists", async () => {
 
   if ("error" in result) throw new Error(ServerError.getMessage(result));
 
-  if (!result.isUpdateAvailable) {
-    Logger.log("Version already exists on the server.");
-    script.stop("Version already exists on the server.");
+  const isGreater =
+    !result.latestVersion ||
+    Validations.isNewVersion(
+      result.latestVersion,
+      script.appConfig.version || "",
+    );
+
+  if (!isGreater) {
+    Logger.log("Version already exists on the server or is not newer.");
+    script.stop("Version already exists on the server or is not newer.");
   } else Logger.log("New version detected. Proceeding with build and upload.");
 });
 
