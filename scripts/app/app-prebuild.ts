@@ -79,7 +79,14 @@ script.addStep("Run yarn expo prebuild", async () => {
       Logger.log(chalk.cyan("Prebuild: "), chunk);
     });
 
-    await exec.async.run("yarn expo prebuild --platform android --clean");
+    await exec.async.run("yarn expo prebuild --platform android --clean", {
+      cwd: script.PATHS.app,
+      env: {
+        ...process.env,
+        PLATFORM: "android",
+        BUILD_PROFILE: process.env.BUILD_PROFILE || "production",
+      },
+    });
 
     const android = new Directory(path.join(script.PATHS.app, "android"));
     if (!(await android.exists()))
