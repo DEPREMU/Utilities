@@ -68,7 +68,9 @@ if (!args.ARGS["skip-build-electron"])
       })
       .run(
         `yarn run build-app-electron ${
-          ARGS.includes("platform") ? ARGS : `${ARGS} --platform=${platform}`
+          ARGS.includes("PLATFORM_PC")
+            ? ARGS
+            : `${ARGS} --PLATFORM_PC=${platform}`
         }`,
         {
           cwd: script.PATHS.root,
@@ -185,9 +187,9 @@ script.addStep("Upload Electron Builds", async () => {
             ...formData.getHeaders(),
             "Content-Length": contentLength,
           },
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
           timeout: 10 * 60 * 1000,
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
         },
       );
 
@@ -229,4 +231,12 @@ script.addStep("Upload Electron Builds", async () => {
   Logger.log("\nElectron builds uploaded successfully!");
 });
 
-script.run();
+const isElevated = script.elevate(
+  `cd ${script.PATHS.root}; yarn run build-upload-electron ${args.getArgs()}; pause`,
+);
+
+if (!isElevated) throw new Error("Could not elevate script");
+
+if (process.env.NODE_ENV !== "test") {
+  script.run();
+}

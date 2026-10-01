@@ -70,7 +70,7 @@ jobs:
 
       - name: Build and Upload Electron App
         if: (matrix.os == 'ubuntu-latest' && needs.check-version.outputs.build_linux == 'true') || (matrix.os == 'windows-latest' && needs.check-version.outputs.build_windows == 'true')
-        run: yarn run build-upload-electron -sba
+        run: yarn run build-upload-electron
         env:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}

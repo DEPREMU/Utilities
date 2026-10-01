@@ -87,16 +87,19 @@ script.addStep(`Upload APK ${script.appConfig.version}`, async () => {
     });
   });
 
-  const url = ServerFetch.getRoute("POST", "/updates/upload");
-  const response = await axios.post(url, formData, {
-    headers: {
-      ...formData.getHeaders(),
-      "Content-Length": contentLength,
+  const response = await axios.post(
+    ServerFetch.getRoute("POST", "/updates/upload"),
+    formData,
+    {
+      headers: {
+        ...formData.getHeaders(),
+        "Content-Length": contentLength,
+      },
+      timeout: 10 * 60 * 1000,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
     },
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity,
-    timeout: 10 * 60 * 1000,
-  });
+  );
 
   Logger.log("Upload successful:", response.data);
 

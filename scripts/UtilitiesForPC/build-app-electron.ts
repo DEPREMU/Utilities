@@ -22,16 +22,12 @@ export const script = new Script(async (err) => {
 });
 
 const TEMP_FOLDER = path.join(
-  script.PATHS.utilitiesForPC,
+  script.PATHS.root,
   "..",
   ".temp-utilities-for-pc-build",
 );
 
 let executeCleanup = false;
-
-script.elevate(
-  `cd ${script.PATHS.root}; yarn run build-app-electron ${args.getArgs()}; pause`,
-);
 
 script.addStep("Clean up temp dir", async (instance) => {
   const dir = new instance.Directory(TEMP_FOLDER);
@@ -264,6 +260,12 @@ script.addStep("Move app", async (instance) => {
     ),
   );
 });
+
+const isElevated = script.elevate(
+  `cd ${script.PATHS.root}; yarn run build-app-electron ${args.getArgs()}; pause`,
+);
+
+if (!isElevated) throw new Error("Could not elevate script");
 
 if (process.env.NODE_ENV !== "test") {
   script.run();

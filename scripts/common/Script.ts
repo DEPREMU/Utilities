@@ -108,8 +108,8 @@ export class Script extends Steps {
     });
   }
 
-  public elevate(command: string) {
-    if (!this.PLATFORM.isWindows) return;
+  public elevate(command: string): boolean {
+    if (!this.PLATFORM.isWindows) return true;
 
     const isElevated = () => {
       try {
@@ -119,12 +119,13 @@ export class Script extends Steps {
         return false;
       }
     };
-    if (isElevated()) return;
+    if (isElevated()) return true;
 
     execSync(
       `powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process PowerShell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command ${command}'"`,
       { stdio: "inherit" },
     );
+
     process.exit(0);
   }
 
