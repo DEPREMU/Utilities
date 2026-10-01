@@ -41,4 +41,5 @@ export const COMMANDS = {
   "build-upload-electron": "scripts/UtilitiesForPC/build-upload-electron.ts",
   "build-upload-android": "scripts/app/build-upload-android.ts",
   "build-autocomplete-dict": "scripts/app/build-autocomplete-dict.ts",
+  "check-version-ci": "scripts/check-version-ci.ts",
 } as const;

@@ -16,9 +16,12 @@ on:
 jobs:
   check-version:
     runs-on: ubuntu-latest
+    environment: build-electron
 
     outputs:
       changed: ${{ steps.version-check.outputs.changed }}
+      build_linux: ${{ steps.version-check.outputs.build_linux }}
+      build_windows: ${{ steps.version-check.outputs.build_windows }}
 
     steps:
       - name: Checkout code
@@ -34,20 +37,9 @@ jobs:
       - name: Check if version changed
         id: version-check
         shell: bash
-        run: |
-          CURRENT_VERSION=$(node -p "require('./UtilitiesForPC/package.json').version")
-          PREVIOUS_VERSION=$(git show HEAD^:UtilitiesForPC/package.json | node -p "JSON.parse(require('fs').readFileSync(0)).version")
-
-          echo "Current version:  $CURRENT_VERSION"
-          echo "Previous version: $PREVIOUS_VERSION"
-
-          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
-            echo "Version changed"
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Version did not change"
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
+        run: node scripts/check-version-ci.ts --platform=electron
+        env:
+          API_URL: ${{ secrets.API_URL }}
 
   build-and-upload:
     needs: check-version
@@ -74,16 +66,18 @@ jobs:
           node-version: 24
 
       - name: Install Dependencies
+        if: (matrix.os == 'ubuntu-latest' && needs.check-version.outputs.build_linux == 'true') || (matrix.os == 'windows-latest' && needs.check-version.outputs.build_windows == 'true')
         run: yarn install
 
       - name: Build and Upload Electron App
+        if: (matrix.os == 'ubuntu-latest' && needs.check-version.outputs.build_linux == 'true') || (matrix.os == 'windows-latest' && needs.check-version.outputs.build_windows == 'true')
         run: yarn run build-upload-electron --ci
         env:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
 
       - name: Upload Fallback Artifacts
-        if: always()
+        if: always() && ((matrix.os == 'ubuntu-latest' && needs.check-version.outputs.build_linux == 'true') || (matrix.os == 'windows-latest' && needs.check-version.outputs.build_windows == 'true'))
         uses: actions/upload-artifact@v4
         with:
           name: electron-builds-${{ matrix.os }}
