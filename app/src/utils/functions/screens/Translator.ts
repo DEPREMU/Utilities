@@ -1,3 +1,4 @@
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { REPLACERS, ServerFetch } from "@common";
 
 export const translate = async (
@@ -11,11 +12,11 @@ export const translate = async (
       body: { text, targetLanguage },
     });
 
-    if (!res.ok || res.data.error) {
-      REPLACERS.Logger.error(
-        `Error while translating: ${res.data.error || "Unknown error"}`,
-      );
-      return `Error: ${res.data.error || "Unknown error"}`;
+    if ("error" in res.data) {
+      const errMsg = ServerError.getMessage(res.data);
+
+      REPLACERS.Logger.error(`Error while translating: ${errMsg}`);
+      return `Error: ${errMsg}`;
     }
 
     return res.data?.translatedText || "No translation available";

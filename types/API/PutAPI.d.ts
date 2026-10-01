@@ -1,4 +1,4 @@
-import { DEFAULT_RESPONSE, GetRouterObj, GetUrlFetch, Prisma } from "@types";
+import { GetRouterObj, GetUrlFetch, Prisma } from "@types";
 
 type UserConfigFetch = GetUrlFetch<
   "/update",
@@ -11,22 +11,19 @@ type UserConfigFetch = GetUrlFetch<
       deviceId: string;
     };
   },
-  { auth: true },
-  DEFAULT_RESPONSE
+  { auth: true }
 >;
 
 export type ClipboardFetch =
   | GetUrlFetch<
       "/delete/toggle-deleted-all",
       { body: { deviceId: string; restore: boolean } },
-      { auth: true },
-      { error?: string }
+      { auth: true }
     >
   | GetUrlFetch<
       "/delete/toggle-deleted",
       { body: { deviceId: string; id: string | string[]; deleted?: boolean } },
-      { auth: true },
-      { error?: string }
+      { auth: true }
     >;
 
 export type DownDetectorFetch = GetUrlFetch<
@@ -38,8 +35,7 @@ export type DownDetectorFetch = GetUrlFetch<
       deviceId: string;
     };
   },
-  { auth: true },
-  { error?: string }
+  { auth: true }
 >;
 
 export type UserNotificationsConfigFetch = GetUrlFetch<
@@ -57,8 +53,7 @@ export type UserNotificationsConfigFetch = GetUrlFetch<
       >;
     };
   },
-  { auth: true },
-  { error?: string }
+  { auth: true }
 >;
 
 export type Put = {

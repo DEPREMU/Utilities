@@ -2,14 +2,7 @@ import { Router } from "express";
 import { Delete } from "./DeleteAPI";
 import { GetRouterObj } from "./Helpers";
 import { PriceBinanceAPI } from "@common";
-import {
-  Put,
-  Post,
-  Enums,
-  GetUrlFetch,
-  DEFAULT_RESPONSE,
-  ResponseHealth,
-} from "@types";
+import { Put, Post, Enums, GetUrlFetch, ResponseHealth } from "@types";
 
 export type UpdatesFetch =
   | GetUrlFetch<
@@ -30,8 +23,7 @@ export type UpdatesFetch =
   | GetUrlFetch<
       "/download/:id",
       { params: { id: string } },
-      Record<string, never>,
-      { error: string }
+      Record<string, never>
     >;
 
 export type CryptosFetch =
@@ -39,43 +31,38 @@ export type CryptosFetch =
       "/",
       null,
       { canBeUnavailableService: true },
-      { cryptos: PriceBinanceAPI; error?: string }
+      { cryptos: PriceBinanceAPI }
     >
   | GetUrlFetch<
       "/:symbol",
       null,
       { canBeUnavailableService: true },
-      { crypto: PriceBinanceAPI[0] | null; error?: string }
+      { crypto: PriceBinanceAPI[0] | null }
     >
   | GetUrlFetch<
       "/price/:symbol",
       null,
       { canBeUnavailableService: true },
-      { price: number; priceMXN?: number } | { error: string }
+      { price: number; priceMXN?: number }
     >;
 
 export type ServerInfoFetch =
   | GetUrlFetch<"/health", null, Record<string, never>, ResponseHealth>
   | GetUrlFetch<"/generate204", null, Record<string, never>, "">
-  | GetUrlFetch<
-      "/appAlive/:deviceId/:pushToken",
-      null,
-      Record<string, never>,
-      DEFAULT_RESPONSE
-    >;
+  | GetUrlFetch<"/appAlive/:deviceId/:pushToken", null, Record<string, never>>;
 
 export type ClipboardFetch = GetUrlFetch<
   "/:deviceId{/:page-number}?deleted-boolean-optional;query-optional;",
   null,
   { auth: true },
-  { clipboardItems: DB["TablesClient"]["ClipboardSync"][] } | { error: string }
+  { clipboardItems: DB["TablesClient"]["ClipboardSync"][] }
 >;
 
 export type DownDetectorFetch = GetUrlFetch<
   "/:deviceId{/:page-number}",
   null,
   { auth: true },
-  { downDetectors: DB["TablesClient"]["DownDetector"][] } | { error: string }
+  { downDetectors: DB["TablesClient"]["DownDetector"][] }
 >;
 
 export type LogsFetch =
@@ -83,13 +70,13 @@ export type LogsFetch =
       "/",
       null,
       { auth: true },
-      { logs: DB["TablesClient"]["Logs"][] } | { error: string }
+      { logs: DB["TablesClient"]["Logs"][] }
     >
   | GetUrlFetch<
       "/page{/:page-number}",
       null,
       { auth: true },
-      { logs?: DB["TablesClient"]["Logs"][]; error?: string }
+      { logs: DB["TablesClient"]["Logs"][] }
     >;
 
 export type StreamersFetch =
@@ -97,30 +84,28 @@ export type StreamersFetch =
       "/page{/:page-number}",
       null,
       Record<string, never>,
-      { streamers?: DB["TablesClient"]["Streamers"][]; error?: string }
+      { streamers: DB["TablesClient"]["Streamers"][] }
     >
   | GetUrlFetch<
       "/streamer/:streamerId",
       null,
       Record<string, never>,
       {
-        error?: string;
-        streamer?: DB["TablesClient"]["Streamers"] & { isLive: boolean };
+        streamer: DB["TablesClient"]["Streamers"] & { isLive: boolean };
       }
     >
   | GetUrlFetch<
       "/",
       null,
       Record<string, never>,
-      { streamers?: DB["TablesClient"]["Streamers"][]; error?: string }
+      { streamers: DB["TablesClient"]["Streamers"][] }
     >
   | GetUrlFetch<
       "/:userId{/:streamerId}",
       null,
       Record<string, never>,
       {
-        error?: string;
-        streamers?: (DB["TablesClient"]["Streamers"] & { isLive: boolean })[];
+        streamers: (DB["TablesClient"]["Streamers"] & { isLive: boolean })[];
       }
     >;
 

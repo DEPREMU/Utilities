@@ -11,6 +11,7 @@ import bcrypt from "@node-rs/bcrypt";
 import { prisma } from "@/database/postgres.ts";
 import { withTransaction } from "@/database/transaction.ts";
 import { JWT, DATA_REASONS, getStorageData } from "../variables.ts";
+import { RequestError } from "@commonSrc/both/errors/Error.ts";
 
 /**
  * Inserts a push token into the database for a specific user.
@@ -55,81 +56,71 @@ export const handleLogin = getHandlerPost(
   async ({ body }, sendResponse) => {
     const lang = body.lang || "en";
 
-    try {
-      const { email, password, deviceId, notificationToken, rememberMe } = body;
+    const { email, password, deviceId, notificationToken, rememberMe } = body;
 
-      const user = await prisma.users.findUnique({
-        where: { email },
-      });
+    const user = await prisma.users.findUnique({
+      where: { email },
+    });
 
-      if (!user)
-        return sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
-          success: false,
-          error: t("auth.userNotFound", lang),
-        });
-
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch)
-        return sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
-          success: false,
-          error: t("auth.invalidPassword", lang),
-        });
-
-      const token = new JWT({
-        content: {
-          deviceId,
-          notificationToken,
-          email: user.email,
-          userId: user.userId,
-        },
-      });
-      const userSession = await token.uploadToken();
-
-      if (userSession instanceof Error) {
-        Logger.error(chalk.red("Error inserting user session:"), userSession);
-        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-          success: false,
-          error: t("internalError", lang),
-        });
-        return;
-      }
-
-      const error = await insertTokenToDB(notificationToken, user.userId);
-
-      if (error) Logger.error(chalk.red("Error inserting push token:"), error);
-
-      const storageValues = await getStorageData(
-        user.userId,
-        !!rememberMe,
-        userSession.token,
+    if (!user)
+      throw new RequestError(
+        STATUS_RESPONSE.UNAUTHORIZED,
+        t("auth.userNotFound", lang),
       );
 
-      if (!storageValues) {
-        Logger.error(chalk.red("Error fetching storage values for user"));
-        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-          success: false,
-          error: t("internalError", lang),
-        });
-        return;
-      }
-      const { password: _, ...userData } = user;
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      throw new RequestError(
+        STATUS_RESPONSE.UNAUTHORIZED,
+        t("auth.invalidPassword", lang),
+      );
 
-      sendResponse(STATUS_RESPONSE.SUCCESS, {
-        user: Helper.Object.changeType(userData, {
-          createdAt: "string",
-          updatedAt: "string",
-        }),
-        token: userSession.token,
-        success: true,
-        storageValues,
-      });
-    } catch (error) {
-      Logger.error(chalk.red("Error logging in user:"), error);
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        success: false,
-        error: t("internalError", lang),
-      });
+    const token = new JWT({
+      content: {
+        deviceId,
+        notificationToken,
+        email: user.email,
+        userId: user.userId,
+      },
+    });
+    const userSession = await token.uploadToken();
+
+    if (userSession instanceof Error) {
+      Logger.error(chalk.red("Error inserting user session:"), userSession);
+      throw new RequestError(
+        STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+        t("internalError", lang),
+      );
     }
+
+    const error = await insertTokenToDB(notificationToken, user.userId);
+
+    if (error) Logger.error(chalk.red("Error inserting push token:"), error);
+
+    const storageValues = await getStorageData(
+      user.userId,
+      !!rememberMe,
+      userSession.token,
+    );
+
+    if (!storageValues) {
+      Logger.error(chalk.red("Error fetching storage values for user"));
+      throw new RequestError(
+        STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+        t("internalError", lang),
+      );
+    }
+    const { password: _, ...userData } = user;
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, {
+      user: Helper.Object.changeType(userData, {
+        createdAt: "string",
+        updatedAt: "string",
+      }),
+      token: userSession.token,
+      success: true,
+      storageValues,
+    });
   },
 );
 
@@ -139,68 +130,59 @@ export const handleSignIn = getHandlerPost(
   async ({ body }, sendResponse) => {
     const lang = body.lang || "en";
 
-    try {
-      const { email, password } = body;
+    const { email, password } = body;
 
-      if (!Validations.isValidPassword(password))
-        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
-          success: false,
-          error: t("auth.passwordNotStrong", lang),
-        });
-      if (!Validations.isValidEmail(email))
-        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
-          success: false,
-          error: t("auth.invalidEmailFormat", lang),
-        });
+    if (!Validations.isValidPassword(password))
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.passwordNotStrong", lang),
+      );
+    if (!Validations.isValidEmail(email))
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.invalidEmailFormat", lang),
+      );
 
-      const userExists = await prisma.users.findUnique({
-        where: { email },
-        select: { email: true },
-      });
+    const userExists = await prisma.users.findUnique({
+      where: { email },
+      select: { email: true },
+    });
 
-      if (userExists)
-        return sendResponse(STATUS_RESPONSE.BAD_REQUEST, {
-          success: false,
-          error: t("auth.accountAlreadyExists", lang),
-        });
+    if (userExists)
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.accountAlreadyExists", lang),
+      );
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-      const user = await prisma.users.create({
-        data: {
-          email,
-          password: hashedPassword,
-          userConfig: { create: { theme: "auto" } },
-          notificationsConfigs: { createMany: { data: DATA_REASONS } },
-          cryptosSettings: {
-            create: {
-              autoRefresh: { create: {} },
-              notifications: { create: {} },
-            },
+    const user = await prisma.users.create({
+      data: {
+        email,
+        password: hashedPassword,
+        userConfig: { create: { theme: "auto" } },
+        notificationsConfigs: { createMany: { data: DATA_REASONS } },
+        cryptosSettings: {
+          create: {
+            autoRefresh: { create: {} },
+            notifications: { create: {} },
           },
         },
-      });
+      },
+    });
 
-      if (!user) {
-        Logger.error(
-          chalk.red("Error inserting user: No data returned"),
-          typeof user,
-        );
-        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-          success: false,
-          error: t("internalError", lang),
-        });
-        return;
-      }
-
-      sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
-    } catch (error) {
-      Logger.error(chalk.red("Error in sign-in handler:"), error);
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        success: false,
-        error: t("internalError", lang),
-      });
+    if (!user) {
+      Logger.error(
+        chalk.red("Error inserting user: No data returned"),
+        typeof user,
+      );
+      throw new RequestError(
+        STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+        t("internalError", lang),
+      );
     }
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
   },
 );
 

@@ -5,6 +5,7 @@ import {
   generateUniqueDeviceId,
 } from "../../../utils/testHelpers";
 import { randomUUID } from "crypto";
+import { ServerError } from "../../../../../common/both/errors/Error";
 
 const password = `Test123!${randomUUID()}`;
 
@@ -41,7 +42,7 @@ describe("POST /auth", () => {
           password,
         },
       });
-      expect(typeof res.data.success).toBe("boolean");
+      expect(res.data).toHaveProperty("success");
     });
   });
 
@@ -79,7 +80,8 @@ describe("POST /auth", () => {
           notificationToken: `Web-${generateUniqueDeviceId()}`,
         },
       });
-      expect(res.data.success).toBe(false);
+      expect(res.data).toHaveProperty("error");
+      if ("error" in res.data) expect(res.data.error).toBeDefined();
     });
 
     it("should reject login for nonexistent email", async () => {
@@ -93,7 +95,9 @@ describe("POST /auth", () => {
           notificationToken: `Web-${generateUniqueDeviceId()}`,
         },
       });
-      expect(res.data.success).toBe(false);
+
+      expect(res.data).toHaveProperty("error");
+      if ("error" in res.data) expect(res.data.error).toBeDefined();
     });
   });
 
@@ -156,7 +160,8 @@ describe("POST /auth", () => {
         { body: { lang: "en", deviceId } },
         token,
       );
-      expect(typeof res.data.success).toBe("boolean");
+      expect(res.data).toHaveProperty("success");
+      if ("success" in res.data) expect(res.data.success).toBe(true);
     });
   });
 
@@ -226,7 +231,13 @@ describe("POST /auth", () => {
           notificationToken: `Web-${deviceId}`,
         },
       });
+      if ("error" in loginRes.data)
+        throw new Error(
+          `Token not returned: ${ServerError.getMessage(loginRes.data)}`,
+        );
+
       const token = loginRes.data.token;
+
       if (!token) throw new Error("Token not returned");
 
       const res = await ServerFetch.post(
@@ -240,7 +251,9 @@ describe("POST /auth", () => {
         },
         token,
       );
-      expect(typeof res.data.success).toBe("boolean");
+
+      expect(res.data).toHaveProperty("success");
+      if ("success" in res.data) expect(res.data.success).toBe(true);
     });
   });
 });

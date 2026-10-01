@@ -1,5 +1,6 @@
-import { describe, expect, it } from "@jest/globals";
 import { ServerFetch } from "@common";
+import { ServerError } from "../../../../../common/both/errors/Error";
+import { describe, expect, it } from "@jest/globals";
 
 describe("GET /updates", () => {
   describe("/updates/is-update-available/:version/:buildType", () => {
@@ -19,6 +20,9 @@ describe("GET /updates", () => {
         { params: { version: "0.0.1", buildType: "windows" } },
       );
       expect(res.ok).toBe(true);
+
+      if ("error" in res.data)
+        throw new Error("error: " + ServerError.getMessage(res.data));
       expect(typeof res.data.latestVersion).toBe("string");
     });
 
@@ -28,6 +32,9 @@ describe("GET /updates", () => {
         { params: { version: "999.999.999", buildType: "android" } },
       );
       expect(res.ok).toBe(true);
+
+      if ("error" in res.data)
+        throw new Error("error: " + ServerError.getMessage(res.data));
       expect(typeof res.data.isUpdateAvailable).toBe("boolean");
     });
   });

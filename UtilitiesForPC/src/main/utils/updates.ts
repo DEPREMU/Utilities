@@ -9,6 +9,7 @@ import { handleShutdown } from "./server";
 import { execFile, spawn } from "child_process";
 import { nativeData, Paths } from "@utils";
 import { File, Timers, Directory, Network, ServerFetch } from "@common";
+import { ServerError } from "@commonSrc/both/errors/Error";
 
 if (!app.isPackaged)
   dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
@@ -216,6 +217,12 @@ export const verifyNewUpdate = async (buildType: Enums["UpdateType"]) => {
     );
 
     const data = res.data;
+
+    if ("error" in data) {
+      Logger.error("Error verifying new update:", ServerError.getMessage(data));
+      return;
+    }
+
     if (!data?.isUpdateAvailable || !data.downloadUrl) return;
     dataApp.setValue("isUpdating", true);
 

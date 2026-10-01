@@ -209,7 +209,7 @@ export const SCHEMAS: APIInput = {
         email: z.email("Invalid email address"),
         password: z
           .string()
-          .min(12, "Password must be at least 8 characters long")
+          .min(12, "Password must be at least 12 characters long")
           .max(128, "Password must be less than 128 characters long")
           .regex(/\d/, "Password must contain at least one number")
           .regex(/[a-z]/, "Password must contain at least one lowercase letter")

@@ -12,6 +12,7 @@ import type {
   Post,
   Put,
 } from "@types";
+import { RequestError, ServerError } from "@commonSrc/both/errors/Error";
 
 export const getHandlerGet: GetHandlerType<Get, "GET"> = (
   path,
@@ -46,29 +47,31 @@ export const getHandlerGet: GetHandlerType<Get, "GET"> = (
       );
     } catch (error) {
       if (error instanceof ZodError) {
-        sendResponse(res, STATUS_RESPONSE.BAD_REQUEST, {
-          error: z.treeifyError(error),
-        });
+        sendResponse(
+          res,
+          STATUS_RESPONSE.BAD_REQUEST,
+          ServerError.requestError(z.treeifyError(error)),
+        );
 
         return;
       }
 
       const statusCode =
-        error instanceof Error &&
-        "statusCode" in error &&
-        typeof error.statusCode === "number"
+        error instanceof RequestError
           ? error.statusCode
           : STATUS_RESPONSE.INTERNAL_SERVER_ERROR;
 
       Logger.error(chalk.red(`Error processing request: ${path}${url}`), error);
-      sendResponse(res, statusCode, {
-        success: false,
-        error:
-          statusCode !== STATUS_RESPONSE.INTERNAL_SERVER_ERROR &&
-          error instanceof Error
-            ? error.message
-            : "An error occurred while processing the request.",
-      });
+      sendResponse(
+        res,
+        statusCode,
+        statusCode !== STATUS_RESPONSE.INTERNAL_SERVER_ERROR &&
+          error instanceof RequestError
+          ? error.body
+          : ServerError.requestError(
+              `An error occurred while processing the request in ${path}${url}.`,
+            ),
+      );
     }
   };
 };

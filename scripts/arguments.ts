@@ -23,9 +23,9 @@ export type TYPE_ARGS = {
   install?: boolean;
   testing?: boolean;
   PLATFORM?: "android" | "web";
-  platform?: "linux" | "windows";
   isWindows?: boolean;
   TYPE_BUILD?: "clipboard" | "normal" | "test";
+  PLATFORM_PC?: "linux" | "windows";
   BUILD_PROFILE?: "development" | "preview" | "production";
   "skip-build-android"?: boolean;
   "skip-build-electron"?: boolean;
@@ -51,7 +51,7 @@ const showHelp = () => {
     options.add(args["skip-prebuild-android"].explanation);
   }
   if (isBuildResourcesElectron) {
-    options.add(args["platform"].explanation);
+    options.add(args["PLATFORM_PC"].explanation);
   }
   if (isAppStart) {
     options.add(args["lan"].explanation);
@@ -140,10 +140,10 @@ class Args {
         "  --PLATFORM=<android|web>     Specify the platform for testing (android or web)",
       transformed: "--PLATFORM",
     },
-    platform: {
+    PLATFORM_PC: {
       explanation:
-        "  -p, --platform=<platform>    Specify the platform to build for (windows or linux)",
-      transformed: ["-p", "--platform"],
+        "  -pc, --PLATFORM-PC=<platform>    Specify the platform to build for (windows or linux)",
+      transformed: ["-pc", "--PLATFORM-PC"],
     },
     isWindows: {
       explanation:
@@ -192,10 +192,10 @@ class Args {
     action: 0,
     install: 0,
     testing: 0,
-    platform: 0,
     PLATFORM: 0,
     isWindows: 0,
     TYPE_BUILD: 0,
+    PLATFORM_PC: 0,
     BUILD_PROFILE: 0,
     "skip-build-android": 0,
     "skip-build-electron": 0,
@@ -310,10 +310,10 @@ class Args {
             );
           }
           break;
-        case "p":
-        case "platform":
+        case "pc":
+        case "PLATFORM_PC":
           if (new Set(["linux", "windows", "both"]).has(value as string)) {
-            acc.platform = value as TYPE_ARGS["platform"];
+            acc.PLATFORM_PC = value as TYPE_ARGS["PLATFORM_PC"];
           } else {
             throw new Error(
               `Invalid platform: ${value}. Valid platforms: linux, windows, both`,

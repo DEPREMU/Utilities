@@ -9,8 +9,8 @@ import { spawn, execSync, ChildProcess, SpawnOptions } from "child_process";
 
 const values = {
   PLATFORM: "web",
-  platform: "linux",
   TYPE_BUILD: "test",
+  PLATFORM_PC: process.platform === "win32" ? "windows" : "linux",
   BUILD_PROFILE: "development",
 } as const satisfies Partial<TYPE_ARGS>;
 

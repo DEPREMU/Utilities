@@ -1,3 +1,4 @@
+import { RequestError } from "@commonSrc/both/errors/Error.ts";
 import { cryptos } from "../variables.ts";
 import { getHandlerGet, STATUS_RESPONSE } from "@common";
 
@@ -32,11 +33,12 @@ export const handleGetCryptoPrice = getHandlerGet(
       priceMXN = cryptos.getCryptoByBase(crypto.quoteCoin, "MXN")?.price;
     }
 
-    sendResponse(
-      STATUS_RESPONSE.SUCCESS,
-      crypto?.price
-        ? { price: crypto.price, priceMXN }
-        : { error: "Crypto not found" },
-    );
+    if (!crypto?.price)
+      throw new RequestError(STATUS_RESPONSE.NOT_FOUND, "Crypto not found");
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, {
+      price: crypto.price,
+      priceMXN,
+    });
   },
 );

@@ -11,6 +11,7 @@ import Button from "@components/Button/screens";
 import { modalRef } from "@refs";
 import { capitalize } from "lodash";
 import { useLanguage } from "@context/LanguageContext";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { View, ScrollView } from "react-native";
 import { useStylesStreamers } from "@screens/SocialMedia/styles/useStylesStreamers";
 import { Timers, REPLACERS, ServerFetch } from "@common";
@@ -40,13 +41,14 @@ const Streamers: React.FC = () => {
       { params: { deviceId: deviceId, streamerId: streamerId } },
       sessionToken,
     );
-    const { error } = res.data || { error: "Unknown error" };
 
-    if (error) {
-      REPLACERS.Logger.error(error);
+    if ("error" in res.data) {
+      const errMsg = ServerError.getMessage(res.data);
+
+      REPLACERS.Logger.error(errMsg);
       modalRef.openModal?.(
         tTyped("common.error"),
-        tTyped("common.errorOccurred", { error }),
+        tTyped("common.errorOccurred", { error: errMsg }),
         <Button
           label={tTyped("common.close")}
           handlePress={() => modalRef.closeModal?.()}
@@ -213,8 +215,10 @@ const Streamers: React.FC = () => {
 
       const data = res.data;
 
-      if (!data || data.error) {
-        REPLACERS.Logger.error(data?.error || "Unknown error adding streamer");
+      if ("error" in data) {
+        REPLACERS.Logger.error(
+          ServerError.getMessage(data) || "Unknown error adding streamer",
+        );
         return;
       }
       if (!data.streamer) {
@@ -291,12 +295,9 @@ const Streamers: React.FC = () => {
         const res = await ServerFetch.get("/streamers/:userId{/:streamerId}", {
           params: { userId: userData?.userId },
         });
-        const { streamers: internetData, error } = res.data || {
-          error: "Unknown error",
-        };
 
-        if (error) {
-          REPLACERS.Logger.error(error);
+        if ("error" in res.data) {
+          REPLACERS.Logger.error(ServerError.getMessage(res.data));
           modalRef.openModal?.(
             tTyped("common.error"),
             tTyped("streamers.errorLoadingStreamers"),
@@ -307,6 +308,8 @@ const Streamers: React.FC = () => {
           );
           return;
         }
+
+        const { streamers: internetData } = res.data;
 
         const data = Array.isArray(internetData)
           ? internetData

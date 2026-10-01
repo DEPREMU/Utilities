@@ -7,6 +7,7 @@ import { File } from "@commonSrc/serverOrElectron/fs.ts";
 import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { ServerFetch } from "@commonSrc/both/index.ts";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import type { Enums, RequestUploadUpdate } from "@types";
 
 let isNewVersionLinux: boolean;
@@ -31,6 +32,8 @@ const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
         },
       },
     );
+
+    if ("error" in res.data) throw new Error(ServerError.getMessage(res.data));
 
     return res.data.isUpdateAvailable;
   } catch (error) {

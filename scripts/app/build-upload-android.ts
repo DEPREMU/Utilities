@@ -4,6 +4,7 @@ import FormData from "form-data";
 import { Script } from "../common";
 import type * as Types from "@types";
 import { ServerFetch } from "@commonSrc/both";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { Directory, File, Logger } from "@commonSrc/serverOrElectron";
 
 const script = new Script();
@@ -26,6 +27,8 @@ script.addStep("Check if new version exists", async () => {
   );
 
   const result = res.data;
+
+  if ("error" in result) throw new Error(ServerError.getMessage(result));
 
   if (!result.isUpdateAvailable) {
     Logger.log("Version already exists on the server.");

@@ -5,21 +5,15 @@ export const handleGetLogs = getHandlerGet(
   "/logs",
   "/",
   async (_, sendResponse) => {
-    try {
-      const logs = await prisma.logs.findMany({
-        orderBy: { timestamp: "desc" },
-      });
+    const logs = await prisma.logs.findMany({
+      orderBy: { timestamp: "desc" },
+    });
 
-      sendResponse(STATUS_RESPONSE.SUCCESS, {
-        logs: logs.map((log) =>
-          Helper.Object.changeType(log, { timestamp: "string" }),
-        ),
-      });
-    } catch {
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        error: "Failed to fetch logs",
-      });
-    }
+    sendResponse(STATUS_RESPONSE.SUCCESS, {
+      logs: logs.map((log) =>
+        Helper.Object.changeType(log, { timestamp: "string" }),
+      ),
+    });
   },
 );
 
@@ -29,25 +23,19 @@ export const handleGetLogsPage = getHandlerGet(
   "/logs",
   "/page{/:page}",
   async ({ params }, sendResponse) => {
-    try {
-      const page = Helper.Object.getValue(params, "page", 1);
-      const skip = (page - 1) * LOGS_PER_PAGE;
+    const page = Helper.Object.getValue(params, "page", 1);
+    const skip = (page - 1) * LOGS_PER_PAGE;
 
-      const logs = await prisma.logs.findMany({
-        skip,
-        take: LOGS_PER_PAGE,
-        orderBy: { timestamp: "desc" },
-      });
+    const logs = await prisma.logs.findMany({
+      skip,
+      take: LOGS_PER_PAGE,
+      orderBy: { timestamp: "desc" },
+    });
 
-      sendResponse(STATUS_RESPONSE.SUCCESS, {
-        logs: logs.map((log) =>
-          Helper.Object.changeType(log, { timestamp: "string" }),
-        ),
-      });
-    } catch {
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        error: "Failed to fetch logs",
-      });
-    }
+    sendResponse(STATUS_RESPONSE.SUCCESS, {
+      logs: logs.map((log) =>
+        Helper.Object.changeType(log, { timestamp: "string" }),
+      ),
+    });
   },
 );

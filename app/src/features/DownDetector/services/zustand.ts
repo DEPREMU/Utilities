@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { openURL } from "expo-linking";
 import { modalRef } from "@/app/refs";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { GetStatesZustand } from "@types";
 import { tTyped, sessionManager, storageManagement } from "@utils";
 import { REPLACERS, ServerFetch, Timers, getValueState } from "@common";
@@ -85,7 +86,9 @@ export const useDownDetector = create<States & Actions>((set, get) => {
         );
         if ("error" in res.data) {
           modalRef.openSnackBar?.(
-            tTyped("common.errorOccurred", { error: res.data.error }),
+            tTyped("common.errorOccurred", {
+              error: ServerError.getMessage(res.data),
+            }),
           );
           return;
         }
@@ -231,10 +234,10 @@ export const useDownDetector = create<States & Actions>((set, get) => {
         sessionToken,
       );
 
-      if (res.data.error) {
+      if ("error" in res.data) {
         REPLACERS.Logger.error(
           "Error deleting downDetector item:",
-          res.data.error,
+          ServerError.getMessage(res.data),
         );
         return;
       }

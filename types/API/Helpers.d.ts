@@ -1,5 +1,5 @@
 import type { STATUS_RESPONSE } from "../../common/both";
-import { TypeOfJS, MethodsAPI, DEFAULT_RESPONSE } from "@types";
+import { TypeOfJS, MethodsAPI, DEFAULT_RESPONSE, ErrorResponse } from "@types";
 import { Handler, NextFunction, Request, Response } from "express";
 
 // #####################################################
@@ -188,7 +188,7 @@ export type GetUrlFetch<
     ? Simplify<
         {
           url: StripDefaults<RemoveModifiers<Path>>;
-          response: Response;
+          response: Response | ErrorResponse;
         } & FinalBody<
           RequestInput,
           ParsedPathParams<ExpandPaths<Path>>,
@@ -302,10 +302,7 @@ export type GetHandlerType<H extends RouterFetch, M extends MethodsAPI> = <
   ) => unknown,
 ) => (req: Request, res: Response, next: NextFunction) => Promise;
 
-export type DEFAULT_RESPONSE = {
-  error?: string;
-  success: boolean;
-};
+export type DEFAULT_RESPONSE = { success: boolean };
 
 export type GetRouteData<
   M extends MethodsAPI,

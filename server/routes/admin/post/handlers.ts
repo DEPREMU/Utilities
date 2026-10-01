@@ -1,6 +1,7 @@
 import { prisma } from "@/database/postgres";
 import { getEnvValue } from "@/env";
 import { getHandlerPost, Logger, STATUS_RESPONSE } from "@common";
+import { RequestError } from "@commonSrc/both/errors/Error";
 
 export const handlerAdminUnlock = getHandlerPost(
   "/admin",
@@ -12,10 +13,10 @@ export const handlerAdminUnlock = getHandlerPost(
       const { password } = body;
 
       if (getEnvValue("ADMIN_PASSWORD") !== password) {
-        sendResponse(STATUS_RESPONSE.UNAUTHORIZED, {
-          error: "Invalid password.",
-        });
-        return;
+        throw new RequestError(
+          STATUS_RESPONSE.UNAUTHORIZED,
+          "Invalid password.",
+        );
       }
 
       const res = await prisma.userConfig.update({
@@ -24,12 +25,17 @@ export const handlerAdminUnlock = getHandlerPost(
         select: { hasAdmin: true },
       });
 
-      sendResponse(STATUS_RESPONSE.SUCCESS, { success: res.hasAdmin });
+      if (!res.hasAdmin)
+        throw new RequestError(
+          STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+          "Failed to unlock admin.",
+        );
+
+      sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
     } catch (error) {
       Logger.error("Error in admin unlock handler:", error);
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        error: "An error occurred while processing the request.",
-      });
+
+      throw error;
     }
   },
 );

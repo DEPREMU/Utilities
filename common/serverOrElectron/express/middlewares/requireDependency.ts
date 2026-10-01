@@ -7,8 +7,7 @@ export const requireDependency = (serviceName: AvailableServices) => {
   return (_: Request, res: Response, next: NextFunction): void => {
     if (!ThirdPartyStateManager.isAvailable(serviceName)) {
       res.status(STATUS_RESPONSE.SERVICE_UNAVAILABLE).json({
-        error: "Service Unavailable",
-        message: `The required third-party service ${serviceName} is currently unavailable and no fallback data is present.`,
+        error: `The required third-party service ${serviceName} is currently unavailable and no fallback data is present.`,
         dependency: serviceName,
       } satisfies ResponseUnavailableService);
       return;

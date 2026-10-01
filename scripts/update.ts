@@ -7,6 +7,7 @@ import { Script } from "./common";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { ZipArchive } from "archiver";
 import { ServerFetch } from "@commonSrc/both/index.ts";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { Directory, File } from "@commonSrc/serverOrElectron";
 import type { RequestUploadUpdate } from "@types";
 
@@ -40,6 +41,8 @@ const checkIsNewVersion = async (
         },
       },
     );
+
+    if ("error" in res.data) throw new Error(ServerError.getMessage(res.data));
 
     return res.data.isUpdateAvailable;
   } catch (error) {

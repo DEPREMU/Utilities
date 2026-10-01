@@ -21,13 +21,14 @@ import { cloneDeep } from "lodash";
 import { background } from "@/utils/services/background";
 import LanguagePicker from "@screens/Settings/components/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import { useAppBehavior } from "@context/AppBehaviorContext";
 import { ScrollView, View } from "react-native";
 import { AppTranslationsKeys } from "@types";
 import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
-import { Timers, REPLACERS, ServerFetch } from "@common";
+import { Timers, REPLACERS, ServerFetch, Helper } from "@common";
 import { ActivityIndicator, Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -217,11 +218,11 @@ const SettingsScreen: React.FC = () => {
         sessionToken,
       );
 
-      if (res.data.success) {
+      if (Helper.Object.getValue(res.data, "success")) {
         setHasAdmin(true);
         storageManagement.save("HAS_ADMIN_ACCESS", true);
-      } else if (res.data.error) {
-        setError(res.data.error);
+      } else if ("error" in res.data) {
+        setError(ServerError.getMessage(res.data));
       }
     } catch (error) {
       REPLACERS.Logger.error("Error checking admin password:", error);
@@ -253,7 +254,8 @@ const SettingsScreen: React.FC = () => {
               sessionToken,
             );
 
-            if (res.data.success) storageManagement.save("API_URL", apiURL);
+            if (Helper.Object.getValue(res.data, "success"))
+              storageManagement.save("API_URL", apiURL);
           } catch (error) {
             REPLACERS.Logger.error("Error updating user config:", error);
           }
@@ -290,7 +292,7 @@ const SettingsScreen: React.FC = () => {
               sessionToken,
             );
 
-            if (res.data.success)
+            if (Helper.Object.getValue(res.data, "success"))
               storageManagement.save("WEBSOCKET_URL", socketURL);
           } catch (error) {
             REPLACERS.Logger.error("Error updating user config:", error);
