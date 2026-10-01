@@ -79,6 +79,7 @@ jobs:
         if: steps.version_check.outputs.should_build == 'true'
         run: yarn run app-prebuild-android
         env:
+          BUILD_PROFILE: production
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Clear android and google-services.json from .gitignore
