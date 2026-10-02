@@ -50,7 +50,7 @@ script.addStep(
         })
         .run(
           `yarn run build-resources-electron --isWindows=${instance.PLATFORM.isWindows}`,
-          { signal: abortController.signal },
+          { env: process.env, signal: abortController.signal },
         );
     } else {
       Logger.log("Testing mode: Skipping build-resources-electron");
@@ -67,6 +67,7 @@ script.addStep("Building web app", async (instance, abortController) => {
         Logger.log(chalk.blueBright("Building web app: "), chunk);
       })
       .run("yarn run build-web-app-electron", {
+        env: process.env,
         signal: abortController.signal,
       });
   } else {
