@@ -32,7 +32,8 @@ const baseConfig: BuildOptions = {
   legalComments: "none",
 };
 
-const BUILD_PROFILE = args.ARGS.BUILD_PROFILE || "production";
+const BUILD_PROFILE =
+  args.ARGS.BUILD_PROFILE || process.env.BUILD_PROFILE || "production";
 const versionElectron = await script
   .getPackageJson("utilitiesForPC")
   .then((p) => p.version);
