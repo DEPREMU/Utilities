@@ -275,7 +275,7 @@ server {
         return 302 /updates;
     }
 
-    location /updates {
+    location /api/updates/upload {
         client_max_body_size 500M;
         $DEFAULT_CONFIG
     }
