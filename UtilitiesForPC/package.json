@@ -1,6 +1,6 @@
 {
   "name": "utilities-for-pc",
-  "version": "0.1.1-beta",
+  "version": "0.1.2-beta",
   "description": "A collection of useful utilities for PC users.",
   "main": "build/index.cjs",
   "private": true,
