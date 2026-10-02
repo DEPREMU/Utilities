@@ -31,6 +31,10 @@ services:
         condition: service_healthy
       nordvpn:
         condition: service_healthy
+    volumes:
+    # Host path: $HOME/Utilities/server/vps/docker/
+    - ../../uploads:/server/uploads
+    - ../../backups:/server/backups
 
   postgres:
     image: postgres:17
