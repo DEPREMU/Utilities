@@ -78,6 +78,25 @@ class DataUpdates {
         },
       });
 
+      const oldType = this.#data.findLast((u) => u.type === buildType);
+      if (oldType) {
+        try {
+          await Promise.all([
+            new File(
+              path.join(config.getRoutes("ROOT"), oldType.relativeFilePath),
+            ).rm({ force: true }),
+            prisma.updatesData.delete({
+              where: { id: oldType.id },
+            }),
+          ]);
+        } catch {
+          // Ignore
+        }
+        this.#data = this.#data.filter((u) => oldType && u.id !== oldType?.id);
+      }
+
+      this.#data.unshift(data);
+
       return !!data.id;
     } catch (error) {
       Logger.error(chalk.red("Error updating data uploads:"), error);
