@@ -21,15 +21,12 @@ export const handleIsUpdateAvailable = getHandlerGet(
         version,
         buildType as Parameters<typeof dataUpdates.isUpdateAvailable>[1],
       );
-      res.latestVersion =
-        dataUpdates.getLatestVersion(
-          buildType as Parameters<typeof dataUpdates.getLatestVersion>[0],
-        ) || "";
+      res.latestVersion = dataUpdates.getLatestVersion(buildType) || "";
 
       if (res.isUpdateAvailable) {
         res.downloadUrl = dataUpdates.createTempDownloadUrl(
-          version,
-          buildType as Parameters<typeof dataUpdates.createTempDownloadUrl>[1],
+          res.latestVersion,
+          buildType,
         );
       }
 
