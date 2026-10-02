@@ -55,10 +55,17 @@ const REPLACERS_REPLACED: Record<keyof REPLACERS_TYPE, string> = {
 
 export const REPLACERS_PLUGIN: Parameters<
   typeof import("@espcom/esbuild-plugin-replace").pluginReplace
->[0] = Helper.Object.entries(REPLACERS_REPLACED).map(([key, value]) => {
-  return {
+>[0] = [
+  ...Helper.Object.entries(REPLACERS_REPLACED).map(([key, value]) => {
+    return {
+      filter: /\.ts|\.js|\.cjs$/,
+      replace: new RegExp(`REPLACERS.${key}`, "g"),
+      replacer: () => value,
+    };
+  }),
+  {
     filter: /\.ts|\.js|\.cjs$/,
-    replace: new RegExp(`REPLACERS.${key}`, "g"),
-    replacer: () => value,
-  };
-});
+    replace: /process\.env\.BUILD_PROFILE/g,
+    replacer: () => JSON.stringify(process.env.BUILD_PROFILE || "production"),
+  },
+];

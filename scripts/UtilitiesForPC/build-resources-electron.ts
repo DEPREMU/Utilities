@@ -2,6 +2,7 @@
 import {
   externalWorkers,
   externalElectron,
+  REPLACERS_PLUGIN,
 } from "@commonSrc/serverOrElectron/build.ts";
 import fs from "fs";
 import os from "os";
@@ -51,11 +52,7 @@ build({
   ],
   plugins: [
     pluginReplace([
-      {
-        filter: /\.ts|\.js$/,
-        replace: /process\.env\.BUILD_PROFILE/g,
-        replacer: () => JSON.stringify(BUILD_PROFILE),
-      },
+      ...REPLACERS_PLUGIN,
       ...(BUILD_PROFILE !== "production"
         ? []
         : [
@@ -81,6 +78,7 @@ build({
   ],
   plugins: [
     pluginReplace([
+      ...REPLACERS_PLUGIN,
       {
         filter: /\.ts|\.js$/,
         replace: /[a-zA-Z_]+\.getValue\([\n\s]*"isWindows"[\n\s]*\)/g,

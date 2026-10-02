@@ -74,6 +74,7 @@ jobs:
         env:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
+          BUILD_PROFILE: ${{ secrets.BUILD_PROFILE }}
 
       - name: Upload Fallback Artifacts
         if: always() && ((matrix.os == 'ubuntu-latest' && needs.check-version.outputs.build_linux == 'true') || (matrix.os == 'windows-latest' && needs.check-version.outputs.build_windows == 'true'))

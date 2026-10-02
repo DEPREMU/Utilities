@@ -5,20 +5,14 @@ import { app } from "electron";
 import dataApp from "./variables";
 import { Enums } from "@types";
 import { Logger } from "./logger";
+import { ServerError } from "@commonSrc/both/errors/Error";
 import { handleShutdown } from "./server";
 import { execFile, spawn } from "child_process";
 import { nativeData, Paths } from "@utils";
 import { File, Timers, Directory, Network, ServerFetch } from "@common";
-import { ServerError } from "@commonSrc/both/errors/Error";
 
 if (!app.isPackaged)
   dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
-
-const urlUpdates = process.env.API_URL?.replace("api", "updates"); // API_URL replaced in build process
-
-if (!urlUpdates) {
-  throw new Error("API_URL is not defined.");
-}
 
 export const deleteDownloadedUpdate = async () => {
   if (!dataApp) return;

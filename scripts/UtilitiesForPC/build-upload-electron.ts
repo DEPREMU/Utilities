@@ -73,6 +73,7 @@ if (!args.ARGS["skip-build-electron"])
             : `${ARGS} --PLATFORM_PC=${platform}`
         }`,
         {
+          env: process.env,
           cwd: script.PATHS.root,
           signal: abortController.signal,
         },
