@@ -56,6 +56,11 @@ export const handleUpload = getHandlerPost(
       });
 
       busboy.on("file", (_, file) => {
+        file.on("limit", () => {
+          Logger.error("Upload exceeds 500 MB");
+          file.resume();
+        });
+
         if (!dataFile || !isNewVersion) {
           Logger.log("Version not new, discarding file...");
 
