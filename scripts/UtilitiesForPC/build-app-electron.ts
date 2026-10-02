@@ -1,7 +1,7 @@
-import { args } from "../arguments";
 import path from "path";
 import chalk from "chalk";
 import { t } from "./translations";
+import { args } from "../arguments";
 import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { Directory } from "@commonSrc/serverOrElectron/fs";
@@ -50,7 +50,13 @@ script.addStep(
         })
         .run(
           `yarn run build-resources-electron --isWindows=${instance.PLATFORM.isWindows}`,
-          { env: process.env, signal: abortController.signal },
+          { env: {
+              ...process.env,
+              NODE_ENV:
+                process.env.NODE_ENV ||
+                process.env.BUILD_PROFILE ||
+                "production",
+            }, signal: abortController.signal },
         );
     } else {
       Logger.log("Testing mode: Skipping build-resources-electron");
@@ -122,7 +128,7 @@ script.addStep("Install dependencies", async (instance, abortController) => {
       .onData((chunk) => {
         Logger.log(chalk.blueBright("Installing dependencies: "), chunk);
       })
-      .run("yarn install --ignore-optional", {
+      .run("yarn install", {
         cwd: TEMP_FOLDER,
         signal: abortController.signal,
       });

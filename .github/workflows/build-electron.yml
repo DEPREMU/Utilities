@@ -77,7 +77,7 @@ jobs:
           BUILD_PROFILE: ${{ vars.BUILD_PROFILE }}
 
       - name: Upload Fallback Artifacts
-        if: always() && ((matrix.os == 'ubuntu-latest' && needs.check-version.outputs.build_linux == 'true') || (matrix.os == 'windows-latest' && needs.check-version.outputs.build_windows == 'true'))
+        if: failure() && ((matrix.os == 'ubuntu-latest' && needs.check-version.outputs.build_linux == 'true') || (matrix.os == 'windows-latest' && needs.check-version.outputs.build_windows == 'true'))
         uses: actions/upload-artifact@v4
         with:
           name: electron-builds-${{ matrix.os }}
