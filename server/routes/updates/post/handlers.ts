@@ -4,7 +4,7 @@ import Busboy from "busboy";
 import { config } from "@/config";
 import { RequestUploadUpdate } from "@types";
 import { dataUpdates, getFinalFileName } from "../variables";
-import { File, Logger, STATUS_RESPONSE, getHandlerPost } from "@common";
+import { File, Logger, STATUS_RESPONSE, Timers, getHandlerPost } from "@common";
 
 export const handleUpload = getHandlerPost(
   "/updates",
@@ -119,6 +119,8 @@ export const handleUpload = getHandlerPost(
 
         try {
           await Promise.all(uploads);
+
+          await Timers.sleep(200);
 
           const success = await dataUpdates.updateDataUploads(
             dataFile.version,

@@ -375,14 +375,14 @@ enum UpdateType {
 }
 
 model UpdatesData {
-  id String @id @default(uuid()) @db.Uuid
-
-  type      UpdateType
-  version String @unique
-  relativeFilePath  String
+  id               String   @id @default(uuid()) @db.Uuid
+  version          String
+  type             UpdateType
+  relativeFilePath String
 
   createdAt DateTime @default(now()) @db.Timestamptz
 
+  @@unique([type, version])
   @@map("updates_data")
 }
 
