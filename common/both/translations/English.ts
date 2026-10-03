@@ -95,6 +95,13 @@ export const enServer: ServerTranslations = {
     deviceIdRequired: "Device ID is required",
     tokenAndDeviceIdRequired: "Token and Device ID are required",
     deviceInfoIsRequired: "Device information is required",
+    codeRequired: "Verification code is required",
+    invalidCode: "Invalid verification code",
+    codeExpired: "Verification code has expired. Please request a new one.",
+    tooManyAttempts: "Too many failed attempts. This code has been invalidated.",
+    cooldownActive: "Please wait before requesting another code",
+    rateLimitExceeded: "Rate limit exceeded. Please try again later.",
+    emailDeliveryFailed: "Failed to queue authentication email",
   },
   database: {
     fetchError: "Error fetching data from the database",

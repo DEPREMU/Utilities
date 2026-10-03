@@ -25,6 +25,18 @@ export type AuthFetch =
       Record<string, never>,
       ResponseAuth<"signup">
     >
+  | GetUrlFetch<
+      "/request-code",
+      { body: RequestAuth<"requestCode"> },
+      Record<string, never>,
+      ResponseAuth<"requestCode">
+    >
+  | GetUrlFetch<
+      "/verify-code",
+      { body: RequestAuth<"verifyCode"> },
+      Record<string, never>,
+      ResponseAuth<"verifyCode">
+    >
   | GetUrlFetch<"/signout", { body: RequestSignOut }, { auth: true }>
   | GetUrlFetch<
       "/refreshSession",

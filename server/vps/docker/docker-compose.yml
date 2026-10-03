@@ -31,10 +31,12 @@ services:
         condition: service_healthy
       nordvpn:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
-    # Host path: $HOME/Utilities/server/vps/docker/
-    - ../../uploads:/server/uploads
-    - ../../backups:/server/backups
+      # Host path: $HOME/Utilities/server/vps/docker/
+      - ../../uploads:/server/uploads
+      - ../../backups:/server/backups
 
   postgres:
     image: postgres:17
@@ -72,5 +74,19 @@ services:
     depends_on:
       - nordvpn
 
+  redis:
+    image: redis:8-alpine
+    container_name: utilities-redis
+    restart: always
+    network_mode: "service:nordvpn"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
+  redis_data:
   postgres_data:

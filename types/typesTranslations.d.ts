@@ -899,6 +899,13 @@ export type ServerTranslations = {
     deviceInfoIsRequired: string;
     emailAndPasswordRequired: string;
     tokenAndDeviceIdRequired: string;
+    codeRequired: string;
+    invalidCode: string;
+    codeExpired: string;
+    tooManyAttempts: string;
+    cooldownActive: string;
+    rateLimitExceeded: string;
+    emailDeliveryFailed: string;
   };
   database: {
     fetchError: string;

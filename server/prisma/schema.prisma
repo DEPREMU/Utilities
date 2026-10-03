@@ -56,7 +56,7 @@ model Users {
   name        String?  @default("")
   email       String   @unique
   phone       String?  @default("")
-  password    String
+  password    String?
   description String?  @default("")
   createdAt   DateTime @default(now()) @db.Timestamptz
   updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz

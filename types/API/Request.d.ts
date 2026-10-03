@@ -23,17 +23,33 @@ export type RequestGetIsLiveStreamer = {
   streamer: DB["Tables"]["Streamers"];
 };
 
-export type RequestAuth<T extends "login" | "signup"> = {
-  lang: LanguagesSupported;
-  email: string;
-  password: string;
-} & (T extends "login"
+export type RequestAuth<
+  T extends "login" | "signup" | "requestCode" | "verifyCode",
+> = T extends "requestCode"
   ? {
-      deviceId: string;
-      rememberMe: boolean;
-      notificationToken: string;
+      email: string;
+      lang?: LanguagesSupported;
     }
-  : unknown);
+  : T extends "verifyCode"
+    ? {
+        email: string;
+        code: string;
+        deviceId: string;
+        rememberMe?: boolean;
+        notificationToken?: string;
+        lang?: LanguagesSupported;
+      }
+    : {
+        lang: LanguagesSupported;
+        email: string;
+        password: string;
+      } & (T extends "login"
+        ? {
+            deviceId: string;
+            rememberMe: boolean;
+            notificationToken: string;
+          }
+        : unknown);
 
 export type RequestRefreshSession = {
   lang: LanguagesSupported;

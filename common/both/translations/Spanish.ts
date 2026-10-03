@@ -96,6 +96,13 @@ export const esServer: ServerTranslations = {
     deviceInfoIsRequired: "Se requiere información del dispositivo",
     sessionNotFound: "Sesión no encontrada",
     invalidEmailFormat: "Formato de correo electrónico inválido",
+    codeRequired: "Se requiere el código de verificación",
+    invalidCode: "Código de verificación inválido",
+    codeExpired: "El código de verificación ha expirado. Por favor solicita uno nuevo.",
+    tooManyAttempts: "Demasiados intentos fallidos. Este código ha sido invalidado.",
+    cooldownActive: "Por favor espera antes de solicitar otro código",
+    rateLimitExceeded: "Límite de solicitudes excedido. Por favor intenta más tarde.",
+    emailDeliveryFailed: "Error al encolar el correo de autenticación",
   },
   database: {
     fetchError: "Error al obtener datos de la base de datos",

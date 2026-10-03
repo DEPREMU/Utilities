@@ -3,8 +3,9 @@
   "types": ["jest", "node"],
   "compilerOptions": {
     "paths": {
+      "@/*": ["../*"],
       "@types": ["../../types/index.d.ts"],
-      "@common": ["../../common/both"],
+      "@common": ["../../common/serverOrElectron/index.ts"],
       "@commonSrc": ["../../common"],
       "@REPLACERS": ["../../common/both/REPLACERS/REPLACERS.server.ts"]
     }

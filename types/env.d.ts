@@ -14,4 +14,9 @@ export type Env<B extends boolean = false> = {
   __DEV__: B extends true ? boolean : string;
   WS_URL: string;
   IV: string;
+  REDIS_URL?: string;
+  SMTP_HOST?: string;
+  SMTP_PORT?: B extends true ? number : string;
+  SMTP_USER?: string;
+  SMTP_PASSWORD?: string;
 };

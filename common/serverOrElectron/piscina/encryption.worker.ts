@@ -1,5 +1,5 @@
 import fs from "fs";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { pipeline } from "stream/promises";
 import { promisify } from "util";
 import { EncryptionWorkerData } from "@types";

@@ -1,7 +1,7 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { ServerFetch } from "@common";
-import { ResponseAuth } from "@types";
 import { ServerError } from "@commonSrc/both/errors/Error";
+import { ResponseAuth } from "@types";
 
 class UserDev {
   #userData: Omit<ResponseAuth<"login">, "success" | "error"> = {} as never;

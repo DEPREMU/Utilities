@@ -4,7 +4,7 @@ import {
   generateUniqueEmail,
   generateUniqueDeviceId,
 } from "../../../utils/testHelpers";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { ServerError } from "../../../../../common/both/errors/Error";
 
 const password = `Test123!${randomUUID()}`;
@@ -98,6 +98,32 @@ describe("POST /auth", () => {
 
       expect(res.data).toHaveProperty("error");
       if ("error" in res.data) expect(res.data.error).toBeDefined();
+    });
+  });
+
+  describe("/auth/request-code", () => {
+    it("should request a code for an existing user", async () => {
+      const email = generateUniqueEmail();
+
+      await ServerFetch.post("/auth/signup", {
+        body: { lang: "en", email, password },
+      });
+
+      const res = await ServerFetch.post("/auth/request-code", {
+        body: { email },
+      });
+      expect(res.ok).toBe(true);
+      expect(res.data).toHaveProperty("success");
+    });
+
+    it("should request a code for an new user", async () => {
+      const email = generateUniqueEmail();
+
+      const res = await ServerFetch.post("/auth/request-code", {
+        body: { email },
+      });
+      expect(res.ok).toBe(true);
+      expect(res.data).toHaveProperty("success");
     });
   });
 

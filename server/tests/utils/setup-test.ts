@@ -32,10 +32,17 @@ const waitForServer = (): Promise<void> =>
     poll();
   });
 
-const startServerProcess = (): ChildProcess => {
+const startServerProcess = (): ChildProcess[] => {
   const serverDir = path.resolve(__dirname, "..", "..");
 
-  execSync("yarn run db-update && tsx ./build.ts", {
+  const childDocker = spawn("docker-compose", [
+    "-f",
+    path.join(serverDir, "vps", "docker", "docker-compose.dev.yml"),
+    "up",
+    "--build",
+  ]);
+
+  execSync("yarn run sleep && yarn run db-update && tsx ./build.ts", {
     cwd: serverDir,
     stdio: "inherit",
     env: { ...process.env, __DEV__: "true" },
@@ -48,7 +55,7 @@ const startServerProcess = (): ChildProcess => {
     detached: false,
   });
 
-  return child;
+  return [child, childDocker];
 };
 
 const setup = async (): Promise<void> => {
@@ -66,7 +73,7 @@ const setup = async (): Promise<void> => {
 
   process.on("exit", () => {
     try {
-      child.kill("SIGTERM");
+      for (const c of child) c.kill("SIGTERM");
     } catch {
       // already exited
     }
@@ -74,7 +81,10 @@ const setup = async (): Promise<void> => {
 
   await waitForServer();
 
-  fs.writeFileSync("process_id.txt", child.pid?.toString() || "unknown");
+  fs.writeFileSync(
+    "process_id.txt",
+    child.map((c) => c.pid || "unknown").join(","),
+  );
 };
 
 export default setup;

@@ -20,7 +20,9 @@ export type ResponseHealth = {
   uptimeString: string;
 };
 
-export type ResponseAuth<T extends "login" | "signup"> = T extends "login"
+export type ResponseAuth<
+  T extends "login" | "signup" | "requestCode" | "verifyCode",
+> = T extends "login" | "verifyCode"
   ? {
       user?: Omit<DB["TablesClient"]["Users"], "password">;
       token?: string;
