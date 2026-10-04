@@ -32,6 +32,7 @@ export type TYPE_ARGS = {
   "skip-build-electron"?: boolean;
   "skip-prebuild-android"?: boolean;
   "platform-update-assets"?: "android" | "web" | "both";
+  message?: string;
   ci?: boolean;
 };
 
@@ -65,6 +66,7 @@ const showHelp = () => {
   if (isUpdate) {
     options.add(args["platform-update-assets"].explanation);
     options.add(args["BUILD_PROFILE"].explanation);
+    options.add(args["message"].explanation);
   }
   if (isBuildAppElectron || isAndroidPrebuild) {
     options.add(args["BUILD_PROFILE"].explanation);
@@ -87,7 +89,7 @@ ${args["testing"].explanation}
   process.exit(0);
 };
 
-class Args {
+export class Args {
   static readonly args = process.argv.slice(2);
 
   static readonly ARGUMENTS: Record<
@@ -179,6 +181,11 @@ class Args {
         "  -pua, --platform-update-assets=<platform>   Specify the platform to update assets for (android, web, both)",
       transformed: ["-pua", "--platform-update-assets"],
     },
+    message: {
+      explanation:
+        "  -m, --message=<message>      Specify the release message for updates",
+      transformed: ["-m", "--message"],
+    },
     ci: {
       explanation:
         "  --ci                         Run in CI environment, bypassing prompts",
@@ -205,6 +212,7 @@ class Args {
     "skip-build-electron": 0,
     "skip-prebuild-android": 0,
     "platform-update-assets": 0,
+    message: 0,
     ci: 0,
   };
 
@@ -223,89 +231,154 @@ class Args {
     Object.freeze(this.ARGS);
   };
 
-  #init = () => {
-    if (Args.args.includes("-h") || Args.args.includes("--help"))
-      Args.showHelp();
+  private static readonly BOOLEAN_FLAGS = new Set<keyof TYPE_ARGS>([
+    "skip-build-android",
+    "skip-prebuild-android",
+    "skip-build-electron",
+    "yes",
+    "lan",
+    "dev",
+    "fix",
+    "check",
+    "install",
+    "web",
+    "testing",
+    "ci",
+  ]);
 
-    let prevArg = "";
-    const argsProcessed: string[] = [];
+  private static readonly FLAG_MAP: Record<string, keyof TYPE_ARGS> = {
+    sba: "skip-build-android",
+    "skip-build-android": "skip-build-android",
+    spa: "skip-prebuild-android",
+    "skip-prebuild-android": "skip-prebuild-android",
+    sbe: "skip-build-electron",
+    "skip-build-electron": "skip-build-electron",
+    y: "yes",
+    yes: "yes",
+    lan: "lan",
+    dev: "dev",
+    fix: "fix",
+    check: "check",
+    install: "install",
+    web: "web",
+    t: "testing",
+    testing: "testing",
+    ci: "ci",
+    tb: "TYPE_BUILD",
+    "type-build": "TYPE_BUILD",
+    pc: "PLATFORM_PC",
+    PLATFORM_PC: "PLATFORM_PC",
+    "PLATFORM-PC": "PLATFORM_PC",
+    "platform-pc": "PLATFORM_PC",
+    PLATFORM: "PLATFORM",
+    platform: "PLATFORM",
+    f: "BUILD_PROFILE",
+    profile: "BUILD_PROFILE",
+    action: "action",
+    pua: "platform-update-assets",
+    "platform-update-assets": "platform-update-assets",
+    isWindows: "isWindows",
+    iswindows: "isWindows",
+    m: "message",
+    message: "message",
+  };
 
-    const ARGS = Args.args.reduce((acc, arg, index) => {
-      const includesEqual = arg.includes("=");
-      const isArg = arg.startsWith("-");
-      if (!isArg && !prevArg) {
-        if (process.env.NODE_ENV === "test") return acc;
+  static parse = (argsToParse: string[] = Args.args): TYPE_ARGS => {
+    const acc: TYPE_ARGS = {};
+    const argsProcessed = new Set<string>();
+
+    for (let i = 0; i < argsToParse.length; i++) {
+      const arg = argsToParse[i];
+      if (!arg) continue;
+
+      if (!arg.startsWith("-")) {
+        if (process.env.NODE_ENV === "test") continue;
         throw new Error(`Unknown argument: ${arg}`);
       }
 
-      const nextArg = Args.args[index + 1];
-      if (isArg && (nextArg?.startsWith("-") || !nextArg))
-        switch (arg) {
-          case "-sba":
-          case "--skip-build-android":
-            acc["skip-build-android"] = true;
-            return acc;
-          case "-spa":
-          case "--skip-prebuild-android":
-            acc["skip-prebuild-android"] = true;
-            return acc;
-          case "-sbe":
-          case "--skip-build-electron":
-            acc["skip-build-electron"] = true;
-            return acc;
-          case "-y":
-          case "--yes":
-            acc["yes"] = true;
-            return acc;
-          case "--lan":
-            acc["lan"] = true;
-            return acc;
-          case "--dev":
-            acc["dev"] = true;
-            return acc;
-          case "--fix":
-            acc["fix"] = true;
-            return acc;
-          case "--check":
-            acc["check"] = true;
-            return acc;
-          case "--install":
-            acc["install"] = true;
-            return acc;
-          case "--web":
-            acc["web"] = true;
-            return acc;
-          case "-t":
-          case "--testing":
-            acc["testing"] = true;
-            return acc;
-          case "--ci":
-            acc["ci"] = true;
-            return acc;
-          default:
-            break;
-        }
+      const equalIndex = arg.indexOf("=");
+      const rawFlag =
+        equalIndex !== -1
+          ? arg.slice(0, equalIndex).replace(/^-+/, "")
+          : arg.replace(/^-+/, "");
+      const inlineValue =
+        equalIndex !== -1 ? arg.slice(equalIndex + 1) : undefined;
 
-      let key = "";
-      let value: unknown = "";
-
-      if (includesEqual) {
-        if (arg.startsWith("--")) [key, value] = arg.slice(2).split("=");
-        else if (arg.startsWith("-")) [key, value] = arg.slice(1).split("=");
-      } else if (prevArg) {
-        key = prevArg;
-        value = arg;
-      } else {
-        prevArg = arg.replace(/^-+/, "");
+      const canonicalKey = Args.FLAG_MAP[rawFlag];
+      if (!canonicalKey) {
+        if (process.env.NODE_ENV === "test") continue;
+        throw new Error(`Unknown argument: ${rawFlag}`);
       }
 
-      if (!key) return acc;
-      if (argsProcessed.includes(key))
-        throw new Error(`Duplicate argument: ${key}`);
+      if (argsProcessed.has(canonicalKey)) {
+        throw new Error(`Duplicate argument: ${rawFlag}`);
+      }
 
-      switch (key) {
-        case "tb":
-        case "type-build":
+      if (canonicalKey === "message") {
+        argsProcessed.add("message");
+        const tokens: string[] = [];
+        if (inlineValue !== undefined) {
+          tokens.push(inlineValue);
+        }
+
+        const countChar = (str: string, ch: string) => {
+          let count = 0;
+          for (let j = 0; j < str.length; j++) {
+            if (str[j] === ch) count++;
+          }
+          return count;
+        };
+
+        while (i + 1 < argsToParse.length) {
+          const nextArg = argsToParse[i + 1];
+          const allTextSoFar = tokens.join(" ");
+          const quoteOpen =
+            countChar(allTextSoFar, '"') % 2 !== 0 ||
+            countChar(allTextSoFar, "'") % 2 !== 0;
+
+          if (!quoteOpen && nextArg.startsWith("-")) {
+            break;
+          }
+
+          tokens.push(nextArg);
+          i++;
+        }
+
+        let fullMessage = tokens.join(" ").trim();
+        if (
+          (fullMessage.startsWith('"') &&
+            fullMessage.endsWith('"') &&
+            fullMessage.length >= 2) ||
+          (fullMessage.startsWith("'") &&
+            fullMessage.endsWith("'") &&
+            fullMessage.length >= 2)
+        ) {
+          fullMessage = fullMessage.slice(1, -1);
+        }
+        acc.message = fullMessage;
+        continue;
+      }
+
+      if (Args.BOOLEAN_FLAGS.has(canonicalKey)) {
+        argsProcessed.add(canonicalKey);
+        if (inlineValue !== undefined) {
+          (acc[canonicalKey] as boolean) = inlineValue !== "false";
+        } else {
+          (acc[canonicalKey] as boolean) = true;
+        }
+        continue;
+      }
+
+      argsProcessed.add(canonicalKey);
+      let value = inlineValue;
+      if (value === undefined) {
+        if (i + 1 < argsToParse.length && !argsToParse[i + 1].startsWith("-")) {
+          value = argsToParse[++i];
+        }
+      }
+
+      switch (canonicalKey) {
+        case "TYPE_BUILD":
           if (new Set(["clipboard", "normal", "test"]).has(value as string)) {
             acc.TYPE_BUILD = value as TYPE_ARGS["TYPE_BUILD"];
           } else {
@@ -314,7 +387,6 @@ class Args {
             );
           }
           break;
-        case "pc":
         case "PLATFORM_PC":
           if (new Set(["linux", "windows", "both"]).has(value as string)) {
             acc.PLATFORM_PC = value as TYPE_ARGS["PLATFORM_PC"];
@@ -333,8 +405,7 @@ class Args {
             );
           }
           break;
-        case "f":
-        case "profile":
+        case "BUILD_PROFILE":
           if (
             new Set(["development", "preview", "production"]).has(
               value as string,
@@ -350,7 +421,6 @@ class Args {
         case "action":
           acc.action = value as TYPE_ARGS["action"];
           break;
-        case "pua":
         case "platform-update-assets":
           if (new Set(["android", "web", "both"]).has(value as string)) {
             acc["platform-update-assets"] =
@@ -371,14 +441,18 @@ class Args {
           }
           break;
         default:
-          if (process.env.NODE_ENV === "test") return acc;
-          throw new Error(`Unknown argument: ${key}`);
+          break;
       }
-      argsProcessed.push(key);
-      prevArg = "";
+    }
 
-      return acc;
-    }, {} as TYPE_ARGS);
+    return acc;
+  };
+
+  #init = () => {
+    if (Args.args.includes("-h") || Args.args.includes("--help"))
+      Args.showHelp();
+
+    const ARGS = Args.parse(Args.args);
 
     Object.keys(Args.Args).forEach((key) => {
       const refARGS = ARGS as Record<string, unknown>;

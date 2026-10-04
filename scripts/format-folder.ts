@@ -39,8 +39,24 @@ const isValidFileExtension = (fileName: string): boolean => {
 };
 
 const isExcludedPath = async (filePath: string): Promise<boolean> => {
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  if (
+    normalizedPath.includes("/node_modules/") ||
+    normalizedPath.endsWith("/node_modules") ||
+    normalizedPath.includes("/.git/") ||
+    normalizedPath.endsWith("/.git")
+  ) {
+    return true;
+  }
   const excl = await getExclude();
-  return excl.some((excludedPath) => filePath.includes(excludedPath));
+  return excl.some((excludedPath) => {
+    const cleanExcl = excludedPath.replace(/\\/g, "/").replace(/^\//, "");
+    return (
+      normalizedPath.includes(`/${cleanExcl}/`) ||
+      normalizedPath.endsWith(`/${cleanExcl}`) ||
+      normalizedPath.includes(cleanExcl)
+    );
+  });
 };
 
 export const formatFolder = async (
@@ -76,13 +92,11 @@ export const formatFolder = async (
         return await formatFolder(file.path, prettierConfig, false);
       } else if (stats.isFile() && isValidFileExtension(file.path)) {
         const content = await file.readFile("utf-8");
-        const formattedContent = await prettier.format(
-          content,
-          prettierConfig || {
-            filepath: file.path,
-            endOfLine: "lf",
-          },
-        );
+        const formattedContent = await prettier.format(content, {
+          ...(prettierConfig || {}),
+          filepath: file.path,
+          endOfLine: "lf",
+        });
         await file.writeFile(formattedContent, "utf-8");
         formattedFiles++;
       }

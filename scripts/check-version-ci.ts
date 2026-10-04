@@ -8,6 +8,100 @@ import { ServerFetch } from "../common/both/fetch/fetch.ts";
 if (fs.existsSync(path.join(process.cwd(), ".env")))
   dotenv.config({ path: path.join(process.cwd(), ".env") });
 
+export type VersionAction = "build" | "update" | "skip";
+
+export interface VersionEvaluation {
+  action: VersionAction;
+  shouldBuild: boolean;
+  shouldUpdate: boolean;
+  isNewer: boolean;
+  currentVersion: string;
+  previousVersion: string;
+}
+
+export const compareSemver = (
+  prevVersion: string,
+  currVersion: string,
+): VersionEvaluation => {
+  const cleanPrev = (
+    prevVersion.match(/([0-9]+\.[0-9]+\.[0-9]+)/)?.[1] ?? prevVersion
+  ).trim();
+  const cleanCurr = (
+    currVersion.match(/([0-9]+\.[0-9]+\.[0-9]+)/)?.[1] ?? currVersion
+  ).trim();
+
+  if (!cleanPrev || !cleanCurr) {
+    return {
+      action: "build",
+      shouldBuild: true,
+      shouldUpdate: false,
+      isNewer: true,
+      currentVersion: currVersion,
+      previousVersion: prevVersion,
+    };
+  }
+
+  if (cleanPrev === cleanCurr) {
+    return {
+      action: "skip",
+      shouldBuild: false,
+      shouldUpdate: false,
+      isNewer: false,
+      currentVersion: currVersion,
+      previousVersion: prevVersion,
+    };
+  }
+
+  const prevParts = cleanPrev.split(".").map((n) => Number(n) || 0);
+  const currParts = cleanCurr.split(".").map((n) => Number(n) || 0);
+
+  const prevMajor = prevParts[0] ?? 0;
+  const prevMinor = prevParts[1] ?? 0;
+  const prevPatch = prevParts[2] ?? 0;
+
+  const currMajor = currParts[0] ?? 0;
+  const currMinor = currParts[1] ?? 0;
+  const currPatch = currParts[2] ?? 0;
+
+  if (
+    currMajor > prevMajor ||
+    (currMajor === prevMajor && currMinor > prevMinor)
+  ) {
+    return {
+      action: "build",
+      shouldBuild: true,
+      shouldUpdate: false,
+      isNewer: true,
+      currentVersion: currVersion,
+      previousVersion: prevVersion,
+    };
+  }
+
+  if (
+    currMajor === prevMajor &&
+    currMinor === prevMinor &&
+    currPatch > prevPatch
+  ) {
+    return {
+      action: "update",
+      shouldBuild: false,
+      shouldUpdate: true,
+      isNewer: true,
+      currentVersion: currVersion,
+      previousVersion: prevVersion,
+    };
+  }
+
+  return {
+    action: "skip",
+    shouldBuild: false,
+    shouldUpdate: false,
+    isNewer: false,
+    currentVersion: currVersion,
+    previousVersion: prevVersion,
+  };
+};
+
 export const fetchServerVersion = async (
   version: string,
   buildType: string,
@@ -18,7 +112,23 @@ export const fetchServerVersion = async (
   error?: string;
 }> => {
   try {
-    const res = await ServerFetch.get(
+    const timeoutPromise = new Promise<{
+      ok: false;
+      status: number;
+      data: { error: string };
+    }>((resolve) =>
+      setTimeout(
+        () =>
+          resolve({
+            ok: false,
+            status: 408,
+            data: { error: "Request timeout after 3000ms" },
+          }),
+        3000,
+      ),
+    );
+
+    const fetchPromise = ServerFetch.get(
       "/updates/is-update-available/:version/:buildType",
       {
         params: {
@@ -27,6 +137,8 @@ export const fetchServerVersion = async (
         },
       },
     );
+
+    const res = await Promise.race([fetchPromise, timeoutPromise]);
     if (!res.ok || "error" in res.data) {
       return {
         reachable: false,
@@ -49,7 +161,7 @@ export const fetchServerVersion = async (
 export const checkAndroidFallback = (
   currentVersion: string,
   cwd = process.cwd(),
-): boolean => {
+): VersionEvaluation => {
   let prevVersion = "";
   try {
     const output = execSync("git show HEAD^:app/app.config.ts", {
@@ -65,51 +177,12 @@ export const checkAndroidFallback = (
     // If git show fails (e.g. shallow clone or initial commit), prevVersion remains empty
   }
 
-  const currMatch = currentVersion.match(/([0-9]+\.[0-9]+\.[0-9]+)/);
-  const cleanCurr = currMatch ? currMatch[1] : currentVersion;
-
+  const evaluation = compareSemver(prevVersion, currentVersion);
   // eslint-disable-next-line no-console
   console.log(
-    `[Android Fallback] Previous version: "${prevVersion}", New version: "${cleanCurr}"`,
+    `[Android Fallback] Previous version: "${prevVersion}", New version: "${currentVersion}" -> Action: "${evaluation.action}"`,
   );
-
-  if (!prevVersion || !cleanCurr) {
-    // eslint-disable-next-line no-console
-    console.log(
-      "[Android Fallback] Could not extract versions, defaulting to build.",
-    );
-    return true;
-  }
-
-  if (prevVersion === cleanCurr) {
-    // eslint-disable-next-line no-console
-    console.log("[Android Fallback] Version is identical. Skipping build.");
-    return false;
-  }
-
-  const prevParts = prevVersion.split(".").map((n) => Number(n) || 0);
-  const currParts = cleanCurr.split(".").map((n) => Number(n) || 0);
-
-  const prevMajor = prevParts[0] ?? 0;
-  const prevMinor = prevParts[1] ?? 0;
-  const currMajor = currParts[0] ?? 0;
-  const currMinor = currParts[1] ?? 0;
-
-  if (currMajor > prevMajor) {
-    // eslint-disable-next-line no-console
-    console.log("[Android Fallback] Major version changed.");
-    return true;
-  }
-
-  if (currMajor === prevMajor && currMinor > prevMinor) {
-    // eslint-disable-next-line no-console
-    console.log("[Android Fallback] Minor version changed.");
-    return true;
-  }
-
-  // eslint-disable-next-line no-console
-  console.log("[Android Fallback] No major or minor version change detected.");
-  return false;
+  return evaluation;
 };
 
 export const checkElectronFallback = (
@@ -179,12 +252,69 @@ export const getElectronVersion = (rootPath: string): string => {
   return json.version;
 };
 
+export const getCommitMessage = (cwd = process.cwd()): string => {
+  if (process.env.COMMIT_MESSAGE) {
+    return process.env.COMMIT_MESSAGE.replace(/["\r\n]+/g, " ").trim();
+  }
+  try {
+    const output = execSync("git log -1 --pretty=%B", {
+      encoding: "utf8",
+      cwd,
+      stdio: ["pipe", "pipe", "ignore"],
+    });
+    return (
+      output.replace(/["\r\n]+/g, " ").trim() || "CI automated build/update"
+    );
+  } catch {
+    return "CI automated build/update";
+  }
+};
+
+export const evaluateAndroid = async (
+  isServerUp: boolean,
+  currentVersion: string,
+  cwd = process.cwd(),
+): Promise<VersionEvaluation> => {
+  if (isServerUp) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[android] Checking version against server: ${process.env.API_URL}...`,
+    );
+    const serverResult = await fetchServerVersion(currentVersion, "android");
+    if (serverResult.reachable) {
+      const serverVersion = serverResult.latestVersion ?? "";
+      const evaluation = compareSemver(serverVersion, currentVersion);
+      // eslint-disable-next-line no-console
+      console.log(
+        `[android] Server check success -> Current: "${currentVersion}", Server: "${serverVersion}" -> Action: "${evaluation.action}"`,
+      );
+      return evaluation;
+    }
+    // eslint-disable-next-line no-console
+    console.log(
+      `[android] Server route returned unreachable or error: ${serverResult.error}. Falling back to git comparison.`,
+    );
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[android] Server is not reachable at ${process.env.API_URL || "(empty API_URL)"}. Falling back to git comparison.`,
+    );
+  }
+
+  return checkAndroidFallback(currentVersion, cwd);
+};
+
 export const evaluateBuildType = async (
   isServerUp: boolean,
   buildType: "android" | "linux" | "windows",
   currentVersion: string,
   cwd = process.cwd(),
 ): Promise<boolean> => {
+  if (buildType === "android") {
+    const evalRes = await evaluateAndroid(isServerUp, currentVersion, cwd);
+    return evalRes.shouldBuild;
+  }
+
   if (isServerUp) {
     // eslint-disable-next-line no-console
     console.log(
@@ -211,9 +341,6 @@ export const evaluateBuildType = async (
     );
   }
 
-  if (buildType === "android") {
-    return checkAndroidFallback(currentVersion, cwd);
-  }
   return checkElectronFallback(currentVersion, cwd);
 };
 
@@ -232,23 +359,40 @@ export const runCheckVersion = async (): Promise<void> => {
   const rootPath = process.cwd();
   const apiUrl = process.env.API_URL ?? "";
 
-  const isServerUp = await ServerFetch.isServerAlive();
+  const isServerUp = await (async () => {
+    try {
+      const alivePromise = ServerFetch.isServerAlive();
+      const timeoutPromise = new Promise<boolean>((resolve) =>
+        setTimeout(() => resolve(false), 3000),
+      );
+      return await Promise.race([alivePromise, timeoutPromise]);
+    } catch {
+      return false;
+    }
+  })();
+
   // eslint-disable-next-line no-console
   console.log(`Server alive status: ${isServerUp} (API_URL: "${apiUrl}")`);
+
+  const commitMessage = getCommitMessage(rootPath);
+  setGithubOutput("commit_message", commitMessage);
 
   if (platform === "android") {
     const version = getAndroidVersion(rootPath);
     // eslint-disable-next-line no-console
     console.log(`Detected Android version: "${version}"`);
-    const shouldBuild = await evaluateBuildType(
-      isServerUp,
-      "android",
-      version,
-      rootPath,
-    );
+    const evaluation = await evaluateAndroid(isServerUp, version, rootPath);
     // eslint-disable-next-line no-console
-    console.log(`Final Android should_build: ${shouldBuild}`);
-    setGithubOutput("should_build", shouldBuild);
+    console.log(
+      `Final Android evaluation -> should_build: ${evaluation.shouldBuild}, should_update: ${evaluation.shouldUpdate}, action: ${evaluation.action}`,
+    );
+    setGithubOutput("should_build", evaluation.shouldBuild);
+    setGithubOutput("should_update", evaluation.shouldUpdate);
+    setGithubOutput("action", evaluation.action);
+    setGithubOutput(
+      "changed",
+      evaluation.shouldBuild || evaluation.shouldUpdate,
+    );
   } else if (platform === "electron") {
     const version = getElectronVersion(rootPath);
     // eslint-disable-next-line no-console
@@ -268,6 +412,9 @@ export const runCheckVersion = async (): Promise<void> => {
     setGithubOutput("changed", changed);
     setGithubOutput("build_linux", shouldBuildLinux);
     setGithubOutput("build_windows", shouldBuildWindows);
+    setGithubOutput("should_build", changed);
+    setGithubOutput("should_update", false);
+    setGithubOutput("action", changed ? "build" : "skip");
   } else if (platform === "linux" || platform === "windows") {
     const version = getElectronVersion(rootPath);
     // eslint-disable-next-line no-console
@@ -282,6 +429,8 @@ export const runCheckVersion = async (): Promise<void> => {
     // eslint-disable-next-line no-console
     console.log(`Final ${platform} should_build: ${shouldBuild}`);
     setGithubOutput("should_build", shouldBuild);
+    setGithubOutput("should_update", false);
+    setGithubOutput("action", shouldBuild ? "build" : "skip");
     setGithubOutput("changed", shouldBuild);
     setGithubOutput(`build_${platform}`, shouldBuild);
   } else {

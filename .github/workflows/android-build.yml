@@ -22,6 +22,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: "yarn"
+
       - name: Install dependencies
         run: yarn install
 
@@ -30,6 +32,16 @@ jobs:
         run: node scripts/check-version-ci.ts --platform=android
         env:
           API_URL: ${{ secrets.API_URL }}
+
+      - name: Deploy Patch Update
+        if: steps.version_check.outputs.should_update == 'true'
+        run: yarn run update-assets --platform-update-assets=both --message="${{ steps.version_check.outputs.commit_message }}"
+        env:
+          WS_URL: ${{ secrets.WS_URL }}
+          API_URL: ${{ secrets.API_URL }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          BUILD_PROFILE: production
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
 
       - name: Pre-build Android
         if: steps.version_check.outputs.should_build == 'true'

@@ -3,6 +3,9 @@ import {
   fetchServerVersion,
   checkAndroidFallback,
   checkElectronFallback,
+  compareSemver,
+  getCommitMessage,
+  evaluateAndroid,
 } from "../check-version-ci.ts";
 import { Validations } from "@commonSrc/both/validations.ts";
 import { ServerFetch } from "@commonSrc/both/fetch/fetch.ts";
@@ -11,6 +14,54 @@ import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 describe("check-version-ci", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+  });
+
+  describe("compareSemver", () => {
+    it("should classify major version increment as build", () => {
+      const res = compareSemver("1.0.0", "2.0.0");
+      expect(res.action).toBe("build");
+      expect(res.shouldBuild).toBe(true);
+      expect(res.shouldUpdate).toBe(false);
+      expect(res.isNewer).toBe(true);
+    });
+
+    it("should classify minor version increment as build", () => {
+      const res = compareSemver("0.1.0", "0.2.0");
+      expect(res.action).toBe("build");
+      expect(res.shouldBuild).toBe(true);
+      expect(res.shouldUpdate).toBe(false);
+      expect(res.isNewer).toBe(true);
+    });
+
+    it("should classify patch version increment as update", () => {
+      const res = compareSemver("0.0.1", "0.0.2");
+      expect(res.action).toBe("update");
+      expect(res.shouldBuild).toBe(false);
+      expect(res.shouldUpdate).toBe(true);
+      expect(res.isNewer).toBe(true);
+    });
+
+    it("should classify identical version as skip", () => {
+      const res = compareSemver("0.5.0", "0.5.0");
+      expect(res.action).toBe("skip");
+      expect(res.shouldBuild).toBe(false);
+      expect(res.shouldUpdate).toBe(false);
+      expect(res.isNewer).toBe(false);
+    });
+
+    it("should classify older version as skip", () => {
+      const res = compareSemver("0.5.1", "0.5.0");
+      expect(res.action).toBe("skip");
+      expect(res.shouldBuild).toBe(false);
+      expect(res.shouldUpdate).toBe(false);
+      expect(res.isNewer).toBe(false);
+    });
+
+    it("should default to build when previous version is empty", () => {
+      const res = compareSemver("", "0.1.0");
+      expect(res.action).toBe("build");
+      expect(res.shouldBuild).toBe(true);
+    });
   });
 
   describe("isNewerVersion", () => {
@@ -87,8 +138,42 @@ describe("check-version-ci", () => {
     });
   });
 
+  describe("evaluateAndroid", () => {
+    it("should return update action when patch version is incremented", async () => {
+      jest.spyOn(ServerFetch, "get").mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          latestVersion: "0.0.1",
+          isUpdateAvailable: false,
+        } as never,
+      });
+
+      const res = await evaluateAndroid(true, "0.0.2");
+      expect(res.action).toBe("update");
+      expect(res.shouldUpdate).toBe(true);
+      expect(res.shouldBuild).toBe(false);
+    });
+
+    it("should return build action when minor version is incremented", async () => {
+      jest.spyOn(ServerFetch, "get").mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          latestVersion: "0.0.1",
+          isUpdateAvailable: false,
+        } as never,
+      });
+
+      const res = await evaluateAndroid(true, "0.1.0");
+      expect(res.action).toBe("build");
+      expect(res.shouldBuild).toBe(true);
+      expect(res.shouldUpdate).toBe(false);
+    });
+  });
+
   describe("evaluateBuildType", () => {
-    it("should return true when server is reachable and current version is newer", async () => {
+    it("should return true when server is reachable and current version is newer for electron", async () => {
       jest.spyOn(ServerFetch, "get").mockResolvedValue({
         ok: true,
         status: 200,
@@ -98,7 +183,7 @@ describe("check-version-ci", () => {
         } as never,
       });
 
-      const shouldBuild = await evaluateBuildType(true, "android", "0.5.0");
+      const shouldBuild = await evaluateBuildType(true, "linux", "0.5.0");
       expect(shouldBuild).toBe(true);
     });
 
@@ -112,20 +197,28 @@ describe("check-version-ci", () => {
         },
       });
 
-      const shouldBuild = await evaluateBuildType(true, "android", "0.5.0");
+      const shouldBuild = await evaluateBuildType(true, "linux", "0.5.0");
       expect(shouldBuild).toBe(false);
     });
   });
 
-  describe("fallback helpers", () => {
-    it("checkAndroidFallback should return a boolean", () => {
+  describe("fallback helpers & commit message", () => {
+    it("checkAndroidFallback should return a VersionEvaluation object", () => {
       const result = checkAndroidFallback("0.5.0");
-      expect(typeof result).toBe("boolean");
+      expect(result).toHaveProperty("action");
+      expect(result).toHaveProperty("shouldBuild");
+      expect(result).toHaveProperty("shouldUpdate");
     });
 
     it("checkElectronFallback should return a boolean", () => {
       const result = checkElectronFallback("0.1.1-beta");
       expect(typeof result).toBe("boolean");
+    });
+
+    it("getCommitMessage should return a non-empty string", () => {
+      const msg = getCommitMessage();
+      expect(typeof msg).toBe("string");
+      expect(msg.length).toBeGreaterThan(0);
     });
   });
 });

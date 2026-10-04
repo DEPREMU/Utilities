@@ -1,7 +1,6 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "typeRoots": ["../node_modules/@types"],
     "paths": {
       "@types": ["./index.d.ts"],
       "@common": ["../common/both"],
