@@ -2,6 +2,13 @@ import {
   KeyboardGestureArea,
   KeyboardAvoidingView,
 } from "react-native-keyboard-controller";
+import React, {
+  useRef,
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import Animated, {
   FadeInUp,
   FadeOutDown,
@@ -11,6 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Screens } from "@types";
 import { modalRef } from "@refs";
+import EmailCodeForm from "@screens/Auth/components/EmailCodeForm";
 import { useLanguage } from "@context/LanguageContext";
 import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
 import { useUserContext } from "@context/UserContext";
@@ -18,8 +26,7 @@ import { ScrollView, View } from "react-native";
 import { Timers, REPLACERS } from "@common";
 import { ActivityIndicator } from "react-native-paper";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
-import { Button, Divider, Text } from "react-native-paper";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Button, Divider, Text, SegmentedButtons } from "react-native-paper";
 import { tTyped, navigation, Validations, sessionManager } from "@utils";
 
 const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
@@ -32,6 +39,21 @@ const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
   const [password, setPassword] = useState<string>("");
   const [signingUp, setSigningUp] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [typeSignUp, setTypeSignUp] = useState<"email" | "emailCode">("emailCode");
+
+  const buttons = useMemo(
+    () => [
+      {
+        value: "email",
+        label: t("auth.email"),
+      },
+      {
+        value: "emailCode",
+        label: t("auth.emailCode"),
+      },
+    ],
+    [t],
+  );
 
   const handlePressShowPasswordRef = useRef(() => {
     setShowPassword((prev) => !prev);
@@ -102,56 +124,88 @@ const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
             >
               <Text style={styles.title}>{t("common.welcome")}</Text>
 
+              <Animated.View
+                style={styles.segmentedButtons}
+                layout={LinearTransition.duration(300).springify()}
+                exiting={FadeOutDown.duration(200)}
+                entering={FadeInUp.duration(200)}
+              >
+                <SegmentedButtons
+                  value={typeSignUp}
+                  style={styles.segmentedButtons}
+                  buttons={buttons}
+                  onValueChange={(val) =>
+                    setTypeSignUp(val as "email" | "emailCode")
+                  }
+                />
+              </Animated.View>
+
               <Divider style={styles.divider} />
 
-              <EmailAndPassword
-                email={email}
-                setEmail={setEmail}
-                password={password}
-                setPassword={setPassword}
-                showPassword={showPassword}
-                handleShowPassword={handlePressShowPasswordRef.current}
-                showPasswordContainer
-              />
+              {typeSignUp === "email" && (
+                <>
+                  <EmailAndPassword
+                    email={email}
+                    setEmail={setEmail}
+                    password={password}
+                    setPassword={setPassword}
+                    showPassword={showPassword}
+                    handleShowPassword={handlePressShowPasswordRef.current}
+                    showPasswordContainer
+                  />
 
-              {!!error && (
-                <Animated.Text
-                  style={styles.error}
-                  layout={LinearTransition.duration(200).springify()}
-                  exiting={FadeOutLeft.duration(200)}
-                  entering={FadeInRight.duration(200)}
-                >
-                  {error}
-                </Animated.Text>
+                  {!!error && (
+                    <Animated.Text
+                      style={styles.error}
+                      layout={LinearTransition.duration(200).springify()}
+                      exiting={FadeOutLeft.duration(200)}
+                      entering={FadeInRight.duration(200)}
+                    >
+                      {error}
+                    </Animated.Text>
+                  )}
+
+                  {Validations.isValidEmail(email) &&
+                    Validations.isValidPassword(password) && (
+                      <Animated.View
+                        style={styles.loginButton}
+                        layout={LinearTransition.duration(300).springify()}
+                        exiting={FadeOutDown.duration(200)}
+                        entering={FadeInUp.duration(200)}
+                      >
+                        <Button
+                          mode="contained"
+                          onPress={handlePressSignUp}
+                          disabled={signingUp}
+                          elevation={4}
+                          contentStyle={styles.loginButton}
+                        >
+                          {signingUp ? (
+                            <ActivityIndicator
+                              size="small"
+                              color="#fff"
+                              style={styles.marginRight10}
+                            />
+                          ) : (
+                            <Text style={styles.h3}>{t("auth.signUp")}</Text>
+                          )}
+                        </Button>
+                      </Animated.View>
+                    )}
+                </>
               )}
 
-              {Validations.isValidEmail(email) &&
-                Validations.isValidPassword(password) && (
-                  <Animated.View
-                    style={styles.loginButton}
-                    layout={LinearTransition.duration(300).springify()}
-                    exiting={FadeOutDown.duration(200)}
-                    entering={FadeInUp.duration(200)}
-                  >
-                    <Button
-                      mode="contained"
-                      onPress={handlePressSignUp}
-                      disabled={signingUp}
-                      elevation={4}
-                      contentStyle={styles.loginButton}
-                    >
-                      {signingUp ? (
-                        <ActivityIndicator
-                          size="small"
-                          color="#fff"
-                          style={styles.marginRight10}
-                        />
-                      ) : (
-                        <Text style={styles.h3}>{t("auth.signUp")}</Text>
-                      )}
-                    </Button>
-                  </Animated.View>
-                )}
+              {typeSignUp === "emailCode" && (
+                <EmailCodeForm
+                  email={email}
+                  setEmail={setEmail}
+                  onSuccessRequest={(submittedEmail) => {
+                    navigation.navigate("VerifyCode", {
+                      email: submittedEmail,
+                    });
+                  }}
+                />
+              )}
 
               <View style={styles.linksContainer}>
                 <Button

@@ -5,7 +5,7 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "sourceMap": false,
-    "typeRoots": ["../node_modules/@types", "../../types/index.d.ts"],
+    "typeRoots": ["../../types/index.d.ts"],
     "paths": {
       "@/*": ["./src/main/*"],
       "@utils": ["./src/main/utils"],

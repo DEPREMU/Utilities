@@ -178,6 +178,21 @@ export const esApp: AppTranslations = {
     youAreNotLoggedIn: "No has iniciado sesión",
     youAreNotLoggedInMessage:
       "Actualmente no tienes una sesión iniciada. Si estabas previamente conectado, es posible que la sesión haya expirado o que hubo un error, por favor inicia sesión nuevamente.",
+    emailCode: "Código por correo",
+    requestCode: "Solicitar código",
+    requestCodeDescription:
+      "Ingresa tu correo para recibir un código de verificación de 8 caracteres.",
+    verifyCode: "Verificar código",
+    verifyCodeTitle: "Ingresa el código de verificación",
+    verifyCodeDescription: "Enviamos un código de 8 caracteres a {{email}}",
+    resendCode: "Reenviar código",
+    resendCodeIn: "Reenviar código en {{seconds}}s",
+    changeEmail: "Cambiar correo",
+    invalidCode: "Código de verificación inválido o expirado",
+    codeSent: "Código de verificación enviado a tu correo",
+    tooManyAttempts:
+      "Demasiados intentos fallidos. Por favor solicita un nuevo código.",
+    invalidEmailFormat: "Formato de correo electrónico inválido",
   },
   batteryState: {
     BatteryFullyCharged: "Batería completamente cargada",

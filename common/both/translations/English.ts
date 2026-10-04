@@ -173,6 +173,21 @@ export const enApp: AppTranslations = {
     youAreNotLoggedIn: "You are not logged in",
     youAreNotLoggedInMessage:
       "You are currently not logged in. If you were previously logged in, your session may have expired or there was an error, please log in again.",
+    emailCode: "Email Code",
+    requestCode: "Request Code",
+    requestCodeDescription:
+      "Enter your email to receive an 8-character verification code.",
+    verifyCode: "Verify Code",
+    verifyCodeTitle: "Enter Verification Code",
+    verifyCodeDescription: "We sent an 8-character code to {{email}}",
+    resendCode: "Resend Code",
+    resendCodeIn: "Resend code in {{seconds}}s",
+    changeEmail: "Edit email",
+    invalidCode: "Invalid or expired verification code",
+    codeSent: "Verification code sent to your email",
+    tooManyAttempts:
+      "Too many failed attempts. Please request a new code.",
+    invalidEmailFormat: "Invalid email format",
   },
   batteryState: {
     BatteryFullyCharged: "Battery Fully Charged",

@@ -559,6 +559,19 @@ export type AppTranslations = BatteryStateTranslations &
       authenticate: string;
       authenticateMessage: string;
       successForgotPasswordMessage: string;
+      emailCode: string;
+      requestCode: string;
+      requestCodeDescription: string;
+      verifyCode: string;
+      verifyCodeTitle: string;
+      verifyCodeDescription: `${string}{{email}}${string}`;
+      resendCode: string;
+      resendCodeIn: `${string}{{seconds}}${string}`;
+      changeEmail: string;
+      invalidCode: string;
+      codeSent: string;
+      tooManyAttempts: string;
+      invalidEmailFormat: string;
     };
     games: {
       youWin: string;
