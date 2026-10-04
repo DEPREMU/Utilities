@@ -103,6 +103,9 @@ export const esServer: ServerTranslations = {
     cooldownActive: "Por favor espera antes de solicitar otro código",
     rateLimitExceeded: "Límite de solicitudes excedido. Por favor intenta más tarde.",
     emailDeliveryFailed: "Error al encolar el correo de autenticación",
+    resetSessionExpired: "La sesión de restablecimiento ha expirado. Por favor intenta de nuevo.",
+    passwordRequirements:
+      "La contraseña debe tener al menos 8 caracteres con mayúsculas, minúsculas, números y símbolos",
   },
   database: {
     fetchError: "Error al obtener datos de la base de datos",
@@ -193,6 +196,27 @@ export const esApp: AppTranslations = {
     tooManyAttempts:
       "Demasiados intentos fallidos. Por favor solicita un nuevo código.",
     invalidEmailFormat: "Formato de correo electrónico inválido",
+    forgotPasswordTitle: "Restablecer contraseña",
+    forgotPasswordDescription:
+      "Ingresa tu correo para recibir un código de verificación de 8 caracteres.",
+    sendResetCode: "Enviar código",
+    verifyResetCodeTitle: "Verificar código",
+    verifyResetCodeDescription:
+      "Ingresa el código de 8 caracteres enviado a {{email}}",
+    newPasswordTitle: "Nueva contraseña",
+    newPasswordPlaceholder: "Nueva contraseña",
+    confirmPasswordPlaceholder: "Confirmar nueva contraseña",
+    passwordsDoNotMatch: "Las contraseñas no coinciden",
+    passwordRequirements:
+      "La contraseña debe tener al menos 8 caracteres con letras, números y símbolos.",
+    resetPasswordButton: "Actualizar contraseña",
+    passwordResetSuccess:
+      "Contraseña actualizada exitosamente. Por favor inicia sesión con tu nueva contraseña.",
+    resetSessionExpired:
+      "La sesión de restablecimiento ha expirado. Por favor intenta de nuevo.",
+    cooldownActive: "Por favor espera antes de solicitar otro código.",
+    rateLimitExceeded:
+      "Límite de solicitudes excedido. Por favor intenta más tarde.",
   },
   batteryState: {
     BatteryFullyCharged: "Batería completamente cargada",

@@ -102,6 +102,9 @@ export const enServer: ServerTranslations = {
     cooldownActive: "Please wait before requesting another code",
     rateLimitExceeded: "Rate limit exceeded. Please try again later.",
     emailDeliveryFailed: "Failed to queue authentication email",
+    resetSessionExpired: "Password reset session has expired. Please try again.",
+    passwordRequirements:
+      "Password must be at least 8 characters long with uppercase, lowercase, numbers, and symbols",
   },
   database: {
     fetchError: "Error fetching data from the database",
@@ -188,6 +191,26 @@ export const enApp: AppTranslations = {
     tooManyAttempts:
       "Too many failed attempts. Please request a new code.",
     invalidEmailFormat: "Invalid email format",
+    forgotPasswordTitle: "Reset Password",
+    forgotPasswordDescription:
+      "Enter your email to receive an 8-character verification code.",
+    sendResetCode: "Send Code",
+    verifyResetCodeTitle: "Verify Reset Code",
+    verifyResetCodeDescription:
+      "Enter the 8-character verification code sent to {{email}}",
+    newPasswordTitle: "Set New Password",
+    newPasswordPlaceholder: "New password",
+    confirmPasswordPlaceholder: "Confirm new password",
+    passwordsDoNotMatch: "Passwords do not match",
+    passwordRequirements:
+      "Password must be at least 8 characters with letters, numbers, and symbols.",
+    resetPasswordButton: "Update Password",
+    passwordResetSuccess:
+      "Password updated successfully. Please log in with your new password.",
+    resetSessionExpired:
+      "Password reset session has expired. Please try again.",
+    cooldownActive: "Please wait before requesting another code.",
+    rateLimitExceeded: "Rate limit exceeded. Please try again later.",
   },
   batteryState: {
     BatteryFullyCharged: "Battery Fully Charged",
