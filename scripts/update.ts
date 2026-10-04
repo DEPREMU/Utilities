@@ -6,10 +6,10 @@ import { args } from "./arguments";
 import { Script } from "./common";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { ZipArchive } from "archiver";
-import { ServerFetch } from "@commonSrc/both/index.ts";
 import { ServerError } from "@commonSrc/both/errors/Error";
 import { Directory, File } from "@commonSrc/serverOrElectron";
 import type { RequestUploadUpdate } from "@types";
+import { ServerFetch, Validations } from "@commonSrc/both/index.ts";
 
 const platform = {
   web: false,
@@ -44,7 +44,9 @@ const checkIsNewVersion = async (
 
     if ("error" in res.data) throw new Error(ServerError.getMessage(res.data));
 
-    return res.data.isUpdateAvailable;
+    return buildType === "web"
+      ? res.data.isUpdateAvailable
+      : Validations.isNewVersion(res.data.latestVersion, versionExpo);
   } catch (error) {
     Logger.error(
       "Error checking for new version:",
@@ -155,21 +157,29 @@ const uploadWeb = async (): Promise<boolean> => {
 
 const uploadAndroidAssets = async () => {
   const BUILD_PROFILE = args.ARGS.BUILD_PROFILE || "production";
+  const rawMessage =
+    args.ARGS.message ||
+    process.env.COMMIT_MESSAGE ||
+    `Release update ${versionExpo}`;
+  const sanitizedMessage = rawMessage.replace(/["\r\n]+/g, " ").trim();
 
   const exec = new script.Exec();
 
   exec.async.onData((chunk) => {
     Logger.log(chalk.blueBright("EAS UPDATE: "), chunk);
   });
-  await exec.async.run("eas update", {
-    cwd: script.PATHS.app,
-    env: {
-      ...process.env,
-      PLATFORM: "android",
-      EAS_BUILD: "true",
-      BUILD_PROFILE,
+  await exec.async.run(
+    `eas update --message ${JSON.stringify(sanitizedMessage)}`,
+    {
+      cwd: script.PATHS.app,
+      env: {
+        ...process.env,
+        PLATFORM: "android",
+        EAS_BUILD: "true",
+        BUILD_PROFILE,
+      },
     },
-  });
+  );
 };
 
 script.addStep("Verify that arguments are valid", async () => {
