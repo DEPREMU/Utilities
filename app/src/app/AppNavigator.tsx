@@ -27,10 +27,12 @@ import DeviceInformation from "@screens/DeviceInformation/screens";
 import { useAppBehavior } from "@context/AppBehaviorContext";
 import ClipboardNavigator from "@screens/Clipboard/screens";
 import CalculatorNavigator from "@screens/Calculator/screens";
+import ResetPasswordScreen from "@screens/Auth/screens/ResetPasswordScreen";
 import React, { useEffect } from "react";
 import SocialMediaNavigator from "@screens/SocialMedia/screens";
 import ForgotPasswordScreen from "@screens/Auth/screens/ForgotPasswordScreen";
 import DownDetectorNavigator from "@screens/DownDetector/screens";
+import VerifyResetCodeScreen from "@screens/Auth/screens/VerifyResetCodeScreen";
 import { NavigationContainer } from "@react-navigation/native";
 import { Screens as RootStackParamList, ScreensAvailable } from "@types";
 import { REPLACERS, navigation, setupNotificationHandlers } from "@utils";
@@ -103,6 +105,8 @@ const screens: Screens = {
     //? Temporary fix to prevent web crashes due to incompatible dependencies (expo-sqlite)..
   },
   VerifyCode: { component: VerifyCodeScreen },
+  ResetPassword: { component: ResetPasswordScreen },
+  VerifyResetCode: { component: VerifyResetCodeScreen },
 };
 
 const allScreens = Object.entries(screens).map(

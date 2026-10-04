@@ -13,7 +13,7 @@ import {
 
 export interface AuthEmailProps {
   code: string;
-  flowType: "login" | "signin";
+  flowType: "login" | "signin" | "resetPassword";
   approximateLocation: string;
   expirationMinutes?: number;
   lang?: "en" | "es";
@@ -154,35 +154,48 @@ export const AuthEmail = ({
 }: AuthEmailProps): React.JSX.Element => {
   const isEs = lang === "es";
   const isLogin = flowType === "login";
+  const isReset = flowType === "resetPassword";
 
-  const previewText = isLogin
+  const previewText = isReset
     ? isEs
-      ? `Tu código de acceso a Utilities: ${code}`
-      : `Your Utilities verification code: ${code}`
-    : isEs
-      ? `Tu código para registrarte en Utilities: ${code}`
-      : `Your Utilities sign-in code: ${code}`;
+      ? `Tu código para restablecer contraseña en Utilities: ${code}`
+      : `Your Utilities password reset code: ${code}`
+    : isLogin
+      ? isEs
+        ? `Tu código de acceso a Utilities: ${code}`
+        : `Your Utilities verification code: ${code}`
+      : isEs
+        ? `Tu código para registrarte en Utilities: ${code}`
+        : `Your Utilities sign-in code: ${code}`;
 
   const utilitiesSecurity = "Utilities Security";
 
   const utilitiesFooter =
     "Utilities • Passwordless Authentication • Automated Security System";
 
-  const title = isLogin
+  const title = isReset
     ? isEs
-      ? "Inicia sesión en Utilities"
-      : "Log in to Utilities"
-    : isEs
-      ? "Bienvenido a Utilities"
-      : "Welcome to Utilities";
+      ? "Restablecer tu contraseña"
+      : "Reset your password"
+    : isLogin
+      ? isEs
+        ? "Inicia sesión en Utilities"
+        : "Log in to Utilities"
+      : isEs
+        ? "Bienvenido a Utilities"
+        : "Welcome to Utilities";
 
-  const description = isLogin
+  const description = isReset
     ? isEs
-      ? "Usa el siguiente código de verificación para iniciar sesión en tu cuenta."
-      : "Use the verification code below to log into your account."
-    : isEs
-      ? "Usa el siguiente código de verificación para crear y acceder a tu cuenta."
-      : "Use the verification code below to sign in and set up your account.";
+      ? "Usa el siguiente código de verificación para restablecer la contraseña de tu cuenta."
+      : "Use the verification code below to reset your account password."
+    : isLogin
+      ? isEs
+        ? "Usa el siguiente código de verificación para iniciar sesión en tu cuenta."
+        : "Use the verification code below to log into your account."
+      : isEs
+        ? "Usa el siguiente código de verificación para crear y acceder a tu cuenta."
+        : "Use the verification code below to sign in and set up your account.";
 
   const codeLabelText = isEs ? "Código de verificación" : "Verification Code";
 

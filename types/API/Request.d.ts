@@ -51,6 +51,24 @@ export type RequestAuth<
           }
         : unknown);
 
+export type RequestForgotPasswordRequest = {
+  email: string;
+  lang?: LanguagesSupported;
+};
+
+export type RequestForgotPasswordVerify = {
+  email: string;
+  code: string;
+  lang?: LanguagesSupported;
+};
+
+export type RequestForgotPasswordReset = {
+  email: string;
+  resetToken: string;
+  newPassword: string;
+  lang?: LanguagesSupported;
+};
+
 export type RequestRefreshSession = {
   lang: LanguagesSupported;
   deviceId: string;

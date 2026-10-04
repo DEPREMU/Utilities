@@ -33,6 +33,11 @@ export type ResponseAuth<
       success: boolean;
     };
 
+export type ResponseForgotPasswordVerify = {
+  success: boolean;
+  resetToken: string;
+};
+
 export type ResponseDoQuery = {
   result?: {
     rowCount: number;
