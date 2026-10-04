@@ -1,16 +1,19 @@
 import {
   Logger,
+  Helper,
+  Validations,
   reasonNotification,
   ExpectedStorageTypes,
   getDateWithTimeAhead,
-  Helper,
-  Validations,
 } from "@common";
 import jwt from "jsonwebtoken";
 import chalk from "chalk";
 import { prisma } from "@/database/postgres";
-import { getEnvValue } from "@/env.ts";
-import { withTransaction } from "@/database/transaction.ts";
+import { getEnvValue } from "@/env";
+import { withTransaction } from "@/database/transaction";
+
+export const AUTH_CODE_EXPIRATION = 600;
+export const AUTH_CODE_MAX_ATTEMPTS = 5;
 
 export const DATA_REASONS = reasonNotification.map((reason) => ({ reason }));
 

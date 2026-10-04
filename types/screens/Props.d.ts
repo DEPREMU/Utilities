@@ -26,6 +26,7 @@ export type Screens = {
   Calculator: Record<string, never>;
   ScanQRCode: Record<string, never>;
   Translator: Record<string, never>;
+  VerifyCode: GetRouteParams<{ email: string; rememberMe?: boolean }>;
   SocialMedia: Record<string, never>;
   Minesweeper: Record<string, never>;
   DownDetector: Record<string, never>;

@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import { prisma } from "@/database/postgres";
 import cliProgress from "cli-progress";
-import { randomUUID } from "crypto";
 import { TablesKeys } from "@types";
+import { randomUUID } from "node:crypto";
 import { Helper, Logger, reasonNotification } from "@common";
 
 const MIN_USERS_RECORDS = 5000;
