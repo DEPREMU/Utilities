@@ -7,6 +7,7 @@ export default {
   testEnvironment: "node",
   transform: { ...tsJestTransformCfg },
   moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/$1",
     "^@types$": "<rootDir>/../types/index.d.ts",
     "^@common$": "<rootDir>/../common/both/index.ts",
     "^@REPLACERS$": "<rootDir>/../common/both/REPLACERS/REPLACERS.server.ts",

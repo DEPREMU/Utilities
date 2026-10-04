@@ -21,6 +21,7 @@ import ImagesNavigator from "@screens/Images/screens";
 import ComputerControl from "@screens/Phone/ComputesControl/screens";
 import CryptosNavigator from "@screens/Cryptos/screens";
 import TerminalCommands from "@screens/Web/TerminalCommands/screens";
+import VerifyCodeScreen from "@screens/Auth/screens/VerifyCodeScreen";
 import RecorderNavigator from "@screens/Phone/Recorder/screens";
 import DeviceInformation from "@screens/DeviceInformation/screens";
 import { useAppBehavior } from "@context/AppBehaviorContext";
@@ -101,6 +102,7 @@ const screens: Screens = {
       : require("@screens/Notes/screens").default,
     //? Temporary fix to prevent web crashes due to incompatible dependencies (expo-sqlite)..
   },
+  VerifyCode: { component: VerifyCodeScreen },
 };
 
 const allScreens = Object.entries(screens).map(

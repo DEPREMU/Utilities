@@ -11,7 +11,7 @@ import {
 } from "@common";
 import path from "path";
 import Store from "electron-store";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import dataApp from "./variables";
 import { exec } from "child_process";
 import { Logger } from "./logger";

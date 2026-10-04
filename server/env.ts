@@ -11,9 +11,14 @@ export const validateServerEnv = () => {
     "__DEV__",
     "API_URL",
     "USE_HTTPS",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "REDIS_URL",
     "JWT_SECRET",
     "ADMIN_EMAIL",
     "DATABASE_URL",
+    "SMTP_PASSWORD",
     "ADMIN_PASSWORD",
     "DB_ENCRYPTION_PASS",
     "DEEPL_TRANSLATOR_API",
@@ -53,6 +58,11 @@ const env: Env = {
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || "",
   IV: process.env.IV || "abcdef9876543210",
   TYPE_BUILD: (process.env.TYPE_BUILD as Env["TYPE_BUILD"]) || "normal",
+  REDIS_URL: process.env.REDIS_URL || "",
+  SMTP_HOST: process.env.SMTP_HOST || "",
+  SMTP_PORT: process.env.SMTP_PORT || "",
+  SMTP_USER: process.env.SMTP_USER || "",
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD || "",
 };
 
 const trueArray = new Set(["true", "1", "yes", "on"]);
@@ -73,6 +83,11 @@ const envTranslated: Env<true> = {
   DEEPL_TRANSLATOR_API: env.DEEPL_TRANSLATOR_API,
   FIREBASE_SERVICE_ACCOUNT: env.FIREBASE_SERVICE_ACCOUNT,
   SECRET_KEY_TO_ENCRYPTION: env.SECRET_KEY_TO_ENCRYPTION,
+  REDIS_URL: env.REDIS_URL,
+  SMTP_HOST: env.SMTP_HOST,
+  SMTP_PORT: Number(env.SMTP_PORT),
+  SMTP_USER: env.SMTP_USER,
+  SMTP_PASSWORD: env.SMTP_PASSWORD,
 };
 
 export const getEnvValue = <T extends keyof Env<true>>(key: T): Env<true>[T] =>

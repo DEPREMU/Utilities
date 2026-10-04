@@ -49,6 +49,13 @@ type Login = (
   callback?: (error?: string) => void,
 ) => Promise<void>;
 
+type LoginWithCode = (
+  email: string,
+  code: string,
+  rememberMe?: boolean,
+  callback?: (error?: string) => void,
+) => Promise<void>;
+
 type SignUp = (
   email: string,
   password: string,
@@ -169,6 +176,104 @@ export const signInWithEmail = async (
     };
   } catch (error) {
     const errorMsg = `Unexpected error during sign in: ${error}`;
+    REPLACERS.Logger.error(TAG, errorMsg);
+    return { success: false, error: errorMsg };
+  }
+};
+
+/**
+ * Requests an 8-character verification code for passwordless email authentication.
+ *
+ * @param email - The user's email address
+ * @returns Promise resolving to the API response
+ */
+export const requestCode = async (
+  email: string,
+): Promise<GetRouteData<"POST", "/auth", "/request-code">["response"]> => {
+  try {
+    const lang = storageManagement.get("LANGUAGE");
+    const res = await ServerFetch.post("/auth/request-code", {
+      body: {
+        email,
+        lang,
+      },
+    });
+
+    const data = res.data;
+    if (!data) {
+      const errorMsg = "No data received from request code endpoint";
+      REPLACERS.Logger.error(TAG, errorMsg);
+      return ServerError.requestError(errorMsg);
+    }
+    if ("error" in data) {
+      REPLACERS.Logger.error(TAG, "Error requesting code:", data.error);
+      return ServerError.requestError(data.error);
+    }
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    const errorMsg = `Unexpected error requesting code: ${error}`;
+    REPLACERS.Logger.error(TAG, errorMsg);
+    return { success: false, error: errorMsg };
+  }
+};
+
+/**
+ * Verifies an 8-character verification code for passwordless email authentication.
+ *
+ * @param email - The user's email address
+ * @param code - The 8-character verification code
+ * @param rememberMe - Whether to persist the session for a longer duration
+ * @returns Promise resolving to the verification response
+ */
+export const verifyCode = async (
+  email: string,
+  code: string,
+  rememberMe: boolean = false,
+): Promise<GetRouteData<"POST", "/auth", "/verify-code">["response"]> => {
+  try {
+    const lang = storageManagement.get("LANGUAGE");
+    const deviceId = storageManagement.get("DEVICE_ID");
+    const notificationToken = await getDevicePushToken();
+
+    const res = await ServerFetch.post("/auth/verify-code", {
+      body: {
+        lang,
+        email,
+        code,
+        deviceId,
+        rememberMe,
+        notificationToken,
+      },
+    });
+
+    const dataInsert = res.data;
+    if (!dataInsert || ("success" in dataInsert && !dataInsert.user)) {
+      const errorMsg = "No session or user data received from Database";
+      REPLACERS.Logger.error(TAG, errorMsg);
+      return ServerError.requestError(errorMsg);
+    }
+    if ("error" in dataInsert) {
+      REPLACERS.Logger.error(TAG, "Error verifying code:", dataInsert.error);
+      return ServerError.requestError(dataInsert.error);
+    }
+
+    REPLACERS.Logger.log(
+      TAG,
+      "User verified successfully:",
+      dataInsert.user?.email,
+    );
+
+    await saveStorageData(dataInsert.storageValues);
+    return {
+      user: dataInsert.user,
+      token: dataInsert.token || undefined,
+      success: true,
+    };
+  } catch (error) {
+    const errorMsg = `Unexpected error verifying code: ${error}`;
     REPLACERS.Logger.error(TAG, errorMsg);
     return { success: false, error: errorMsg };
   }
@@ -595,6 +700,48 @@ class SessionManager extends ServiceClass<ListenersSession> {
     } catch (error) {
       callback?.(error instanceof Error ? error.message : String(error));
       REPLACERS.Logger.error(TAG, "Unexpected login error:", error);
+    } finally {
+      this.#data.isLoggingIn = false;
+    }
+  };
+
+  public loginWithCode: LoginWithCode = async (
+    email,
+    code,
+    rememberMe = false,
+    callback,
+  ) => {
+    this.#data.isLoggingIn = true;
+    this.#data.rememberMe = !!rememberMe;
+    try {
+      const res = await verifyCode(email, code, rememberMe);
+
+      if ("error" in res) {
+        const errorMsg = ServerError.getMessage(res);
+        REPLACERS.Logger.error(TAG, "Verify code login error:", errorMsg);
+        this.emit("login", errorMsg);
+        callback?.(errorMsg);
+        return;
+      }
+
+      const { user, token } = res;
+      if (!user || !token) {
+        await signOut();
+        return;
+      }
+
+      this.#data = {
+        ...this.#data,
+        userData: user,
+        rememberMe: this.#data.rememberMe,
+        isLoggedIn: true,
+        sessionToken: token,
+      };
+      this.emit("login");
+      callback?.();
+    } catch (error) {
+      callback?.(error instanceof Error ? error.message : String(error));
+      REPLACERS.Logger.error(TAG, "Unexpected login with code error:", error);
     } finally {
       this.#data.isLoggingIn = false;
     }

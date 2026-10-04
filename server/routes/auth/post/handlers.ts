@@ -1,4 +1,17 @@
 import {
+  hashAuthCode,
+  normalizeEmail,
+  verifyAuthCode,
+  generateAuthCode,
+} from "@/utils/authCode.ts";
+import {
+  JWT,
+  DATA_REASONS,
+  getStorageData,
+  AUTH_CODE_EXPIRATION,
+  AUTH_CODE_MAX_ATTEMPTS,
+} from "../variables.ts";
+import {
   t,
   Logger,
   Helper,
@@ -9,9 +22,11 @@ import {
 import chalk from "chalk";
 import bcrypt from "@node-rs/bcrypt";
 import { prisma } from "@/database/postgres.ts";
-import { withTransaction } from "@/database/transaction.ts";
-import { JWT, DATA_REASONS, getStorageData } from "../variables.ts";
 import { RequestError } from "@commonSrc/both/errors/Error.ts";
+import { getRedisClient } from "@/redis/client.ts";
+import { withTransaction } from "@/database/transaction.ts";
+import { enqueueAuthEmail } from "@/queue/authEmailQueue.ts";
+import { getApproximateLocation } from "@/utils/geolocation.ts";
 
 /**
  * Inserts a push token into the database for a specific user.
@@ -66,6 +81,12 @@ export const handleLogin = getHandlerPost(
       throw new RequestError(
         STATUS_RESPONSE.UNAUTHORIZED,
         t("auth.userNotFound", lang),
+      );
+
+    if (!user.password)
+      throw new RequestError(
+        STATUS_RESPONSE.UNAUTHORIZED,
+        t("auth.invalidPassword", lang),
       );
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -317,5 +338,272 @@ export const handleSignOut = getHandlerPost(
         error: t("internalError", lang),
       });
     }
+  },
+);
+
+export const handleRequestCode = getHandlerPost(
+  "/auth",
+  "/request-code",
+  async ({ body }, sendResponse, { req }) => {
+    const lang = body.lang || "en";
+    const rawEmail = body.email;
+
+    if (!rawEmail) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.invalidEmailFormat", lang),
+      );
+    }
+
+    const email = normalizeEmail(rawEmail);
+    const redis = getRedisClient();
+
+    const cooldownKey = `auth:cooldown:${email}`;
+    const isCoolingDown = await redis.get(cooldownKey);
+    if (isCoolingDown) {
+      throw new RequestError(
+        STATUS_RESPONSE.TOO_MANY_REQUESTS,
+        t("auth.cooldownActive", lang),
+      );
+    }
+
+    const clientIp = (req.ip || req.socket.remoteAddress || "unknown").replace(
+      /^::ffff:/,
+      "",
+    );
+
+    const emailRateKey = `auth:ratelimit:email:${email}`;
+    const emailRequests = await redis.incr(emailRateKey);
+    if (emailRequests === 1) {
+      await redis.expire(emailRateKey, 600);
+    }
+    if (emailRequests > 5) {
+      throw new RequestError(
+        STATUS_RESPONSE.TOO_MANY_REQUESTS,
+        t("auth.rateLimitExceeded", lang),
+      );
+    }
+
+    const ipRateKey = `auth:ratelimit:ip:${clientIp}`;
+    const ipRequests = await redis.incr(ipRateKey);
+    if (ipRequests === 1) {
+      await redis.expire(ipRateKey, 600);
+    }
+    if (ipRequests > 20) {
+      throw new RequestError(
+        STATUS_RESPONSE.TOO_MANY_REQUESTS,
+        t("auth.rateLimitExceeded", lang),
+      );
+    }
+
+    const user = await prisma.users.findUnique({
+      where: { email },
+      select: { userId: true },
+    });
+    const flowType = user ? "login" : "signin";
+
+    const code = generateAuthCode(8);
+    const codeHash = hashAuthCode(code);
+
+    const challengePayload = JSON.stringify({
+      codeHash,
+      attempts: 0,
+      maxAttempts: AUTH_CODE_MAX_ATTEMPTS,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + AUTH_CODE_EXPIRATION * 1000,
+      flowType,
+      ip: clientIp,
+    });
+
+    await redis.set(
+      `auth:challenge:${email}`,
+      challengePayload,
+      "EX",
+      AUTH_CODE_EXPIRATION,
+    );
+
+    await redis.set(cooldownKey, "1", "EX", 60);
+
+    const approximateLocation = await getApproximateLocation(clientIp);
+
+    await enqueueAuthEmail({
+      to: email,
+      code,
+      flowType,
+      approximateLocation,
+      expirationMinutes: Math.round(AUTH_CODE_EXPIRATION / 60),
+      lang,
+    });
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
+  },
+);
+
+export const handleVerifyCode = getHandlerPost(
+  "/auth",
+  "/verify-code",
+  async ({ body }, sendResponse) => {
+    const lang = body.lang || "en";
+    const {
+      email: rawEmail,
+      code,
+      deviceId,
+      notificationToken,
+      rememberMe,
+    } = body;
+
+    if (!rawEmail || !Validations.isValidEmail(rawEmail)) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.invalidEmailFormat", lang),
+      );
+    }
+
+    if (!code || typeof code !== "string" || code.trim().length !== 8) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.codeRequired", lang),
+      );
+    }
+
+    if (!deviceId) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.deviceIdRequired", lang),
+      );
+    }
+
+    const email = normalizeEmail(rawEmail);
+    const redis = getRedisClient();
+    const challengeKey = `auth:challenge:${email}`;
+
+    const rawChallenge = await redis.get(challengeKey);
+    if (!rawChallenge) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.codeExpired", lang),
+      );
+    }
+
+    const challenge = JSON.parse(rawChallenge) as {
+      codeHash: string;
+      attempts: number;
+      maxAttempts: number;
+      flowType: "login" | "signin";
+    };
+
+    if (challenge.attempts >= challenge.maxAttempts) {
+      await redis.del(challengeKey);
+      throw new RequestError(
+        STATUS_RESPONSE.TOO_MANY_REQUESTS,
+        t("auth.tooManyAttempts", lang),
+      );
+    }
+
+    const isMatch = verifyAuthCode(code, challenge.codeHash);
+    if (!isMatch) {
+      challenge.attempts += 1;
+
+      if (challenge.attempts >= challenge.maxAttempts) {
+        await redis.del(challengeKey);
+        throw new RequestError(
+          STATUS_RESPONSE.TOO_MANY_REQUESTS,
+          t("auth.tooManyAttempts", lang),
+        );
+      }
+
+      const remainingTtl = await redis.ttl(challengeKey);
+      if (remainingTtl > 0) {
+        await redis.set(
+          challengeKey,
+          JSON.stringify(challenge),
+          "EX",
+          remainingTtl,
+        );
+      }
+
+      throw new RequestError(
+        STATUS_RESPONSE.UNAUTHORIZED,
+        t("auth.invalidCode", lang),
+      );
+    }
+
+    await redis.del(challengeKey);
+
+    let user = await prisma.users.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      user = await prisma.users.create({
+        data: {
+          email,
+          password: null,
+          userConfig: { create: { theme: "auto" } },
+          notificationsConfigs: { createMany: { data: DATA_REASONS } },
+          cryptosSettings: {
+            create: {
+              autoRefresh: { create: {} },
+              notifications: { create: {} },
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        Logger.error(chalk.red("Error creating passwordless user"));
+        throw new RequestError(
+          STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+          t("internalError", lang),
+        );
+      }
+    }
+
+    const token = new JWT({
+      content: {
+        deviceId,
+        notificationToken: notificationToken || "",
+        email: user.email,
+        userId: user.userId,
+      },
+    });
+
+    const userSession = await token.uploadToken();
+    if (userSession instanceof Error) {
+      Logger.error(chalk.red("Error inserting user session:"), userSession);
+      throw new RequestError(
+        STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+        t("internalError", lang),
+      );
+    }
+
+    const error = await insertTokenToDB(notificationToken, user.userId);
+    if (error) Logger.error(chalk.red("Error inserting push token:"), error);
+
+    const storageValues = await getStorageData(
+      user.userId,
+      !!rememberMe,
+      userSession.token,
+    );
+
+    if (!storageValues) {
+      Logger.error(chalk.red("Error fetching storage values for user"));
+      throw new RequestError(
+        STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+        t("internalError", lang),
+      );
+    }
+
+    const { password: _, ...userData } = user;
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, {
+      user: Helper.Object.changeType(userData, {
+        createdAt: "string",
+        updatedAt: "string",
+      }),
+      token: userSession.token,
+      success: true,
+      storageValues,
+    });
   },
 );

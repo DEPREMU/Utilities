@@ -112,6 +112,14 @@ export const useStylesAuthScreens = () => {
           width: "100%",
           marginVertical: getResponsiveValue(12, 16, 20),
         },
+        subtitleCenter: {
+          textAlign: "center",
+          marginBottom: 15,
+        },
+        verifyCodeSubtitle: {
+          textAlign: "center",
+          marginVertical: 10,
+        },
         ...texts,
         ...getCommonStyles("flex"),
         ...getCommonStyles("divider"),

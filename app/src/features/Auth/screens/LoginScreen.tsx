@@ -26,6 +26,7 @@ import Animated, {
 import { Screens } from "@types";
 import LoginTypeQR from "@screens/Auth/components/LoginTypeQR";
 import { modalRef } from "@refs";
+import EmailCodeForm from "@screens/Auth/components/EmailCodeForm";
 import { useLanguage } from "@context/LanguageContext";
 import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
 import { useUserContext } from "@context/UserContext";
@@ -49,7 +50,7 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
   const [loggingIn, setLoggingIn] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(REPLACERS.isWeb);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [typeLogin, setTypeLogin] = useState<"email" | "qr">(
+  const [typeLogin, setTypeLogin] = useState<"email" | "qr" | "emailCode">(
     REPLACERS.isNative ? "email" : "qr",
   );
 
@@ -67,10 +68,10 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
     navigation.replace("forgotPassword");
   });
 
-  const handleChangeTypeLoginRef = useRef(() => {
-    setTypeLogin((prev) => (prev === "email" ? "qr" : "email"));
+  const handleChangeTypeLogin = useCallback((val: string) => {
+    setTypeLogin(val as "email" | "qr" | "emailCode");
     setPassword(originalPassword);
-  });
+  }, []);
 
   const setErrorMessage = useRef((message: string) => {
     setError(message);
@@ -102,18 +103,25 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
   }, [email, password, loggingIn, rememberMe]);
 
   const buttons = useMemo(() => {
-    if (REPLACERS.isNative && !REPLACERS.isDev) return [];
-
-    return [
-      {
-        value: "qr",
-        label: t("qr.title"),
-      },
+    const list = [
       {
         value: "email",
         label: t("auth.email"),
       },
+      {
+        value: "emailCode",
+        label: t("auth.emailCode"),
+      },
     ];
+
+    if (REPLACERS.isWeb || REPLACERS.isDev) {
+      list.unshift({
+        value: "qr",
+        label: t("qr.title"),
+      });
+    }
+
+    return list;
   }, [t]);
 
   useEffect(() => {
@@ -139,21 +147,19 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
                 {t("common.welcomeAgain")}
               </Animated.Text>
 
-              {(REPLACERS.isWeb || REPLACERS.isDev) && (
-                <Animated.View
+              <Animated.View
+                style={styles.segmentedButtons}
+                layout={LinearTransition.duration(300).springify()}
+                exiting={FadeOutDown.duration(200)}
+                entering={FadeInUp.duration(200)}
+              >
+                <SegmentedButtons
+                  value={typeLogin}
                   style={styles.segmentedButtons}
-                  layout={LinearTransition.duration(300).springify()}
-                  exiting={FadeOutDown.duration(200)}
-                  entering={FadeInUp.duration(200)}
-                >
-                  <SegmentedButtons
-                    value={typeLogin}
-                    style={styles.segmentedButtons}
-                    buttons={buttons}
-                    onValueChange={handleChangeTypeLoginRef.current}
-                  />
-                </Animated.View>
-              )}
+                  buttons={buttons}
+                  onValueChange={handleChangeTypeLogin}
+                />
+              </Animated.View>
 
               <Animated.View style={styles.divider} />
 
@@ -170,6 +176,18 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
               )}
               {typeLogin === "qr" && (REPLACERS.isWeb || REPLACERS.isDev) && (
                 <LoginTypeQR rememberMe={rememberMe} />
+              )}
+              {typeLogin === "emailCode" && (
+                <EmailCodeForm
+                  email={email}
+                  setEmail={setEmail}
+                  onSuccessRequest={(submittedEmail) => {
+                    navigation.navigate("VerifyCode", {
+                      email: submittedEmail,
+                      rememberMe,
+                    });
+                  }}
+                />
               )}
 
               {!!error && (
@@ -224,13 +242,15 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
                   />
                 </View>
 
-                <Button
-                  mode="text"
-                  onPress={handleForgotPasswordRef.current}
-                  labelStyle={styles.linkText}
-                >
-                  {t("auth.forgotPassword")}
-                </Button>
+                {typeLogin === "email" && (
+                  <Button
+                    mode="text"
+                    onPress={handleForgotPasswordRef.current}
+                    labelStyle={styles.linkText}
+                  >
+                    {t("auth.forgotPassword")}
+                  </Button>
+                )}
                 <Button
                   mode="text"
                   onPress={handlePressCreateAccountRef.current}

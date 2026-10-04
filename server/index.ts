@@ -1,4 +1,8 @@
 import {
+  startAuthEmailWorker,
+  closeAuthEmailWorker,
+} from "./queue/authEmailWorker.ts";
+import {
   Helper,
   Logger,
   REPLACERS,
@@ -24,8 +28,10 @@ import rateLimit from "express-rate-limit";
 import { config } from "./config.ts";
 import compression from "compression";
 import { handleInitDB } from "./database/postgres.ts";
+import { closeAuthEmailQueue } from "./queue/authEmailQueue.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
 import { validateServerEnv, getEnvValue } from "./env.ts";
+import { getRedisClient, closeRedisConnection } from "./redis/client.ts";
 import { CryptosWebSocketMessage, WebSocketPathname } from "@types";
 
 type ServerWebSocket = ReturnType<typeof initWebSocket>;
@@ -142,6 +148,27 @@ const startApp = async () => {
   });
 
   await handleInitDB();
+
+  try {
+    getRedisClient();
+    startAuthEmailWorker();
+  } catch (error) {
+    Logger.error(
+      chalk.red("Failed to initialize Redis or BullMQ worker:"),
+      error,
+    );
+  }
+
+  const gracefulShutdown = async () => {
+    Logger.log("Shutting down server services...");
+    await closeAuthEmailWorker();
+    await closeAuthEmailQueue();
+    await closeRedisConnection();
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", gracefulShutdown);
+  process.on("SIGINT", gracefulShutdown);
 
   server.listen(config.port, config.host, async () => {
     Logger.log(
