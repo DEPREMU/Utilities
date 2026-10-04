@@ -572,6 +572,21 @@ export type AppTranslations = BatteryStateTranslations &
       codeSent: string;
       tooManyAttempts: string;
       invalidEmailFormat: string;
+      forgotPasswordTitle: string;
+      forgotPasswordDescription: string;
+      sendResetCode: string;
+      verifyResetCodeTitle: string;
+      verifyResetCodeDescription: `${string}{{email}}${string}`;
+      newPasswordTitle: string;
+      newPasswordPlaceholder: string;
+      confirmPasswordPlaceholder: string;
+      passwordsDoNotMatch: string;
+      passwordRequirements: string;
+      resetPasswordButton: string;
+      passwordResetSuccess: string;
+      resetSessionExpired: string;
+      cooldownActive: string;
+      rateLimitExceeded: string;
     };
     games: {
       youWin: string;
@@ -919,6 +934,8 @@ export type ServerTranslations = {
     cooldownActive: string;
     rateLimitExceeded: string;
     emailDeliveryFailed: string;
+    resetSessionExpired: string;
+    passwordRequirements: string;
   };
   database: {
     fetchError: string;

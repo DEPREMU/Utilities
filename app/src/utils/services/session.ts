@@ -312,36 +312,178 @@ export const signUpWithEmail = async (
 };
 
 /**
- * Sends a password reset email to the user
+ * Requests an 8-character verification code for forgot password recovery.
+ *
+ * @param email - The user's email address
+ * @returns Promise resolving to the API response
+ */
+export const requestForgotPasswordCode = async (
+  email: string,
+): Promise<
+  GetRouteData<"POST", "/auth", "/forgot-password/request">["response"]
+> => {
+  try {
+    const lang = storageManagement.get("LANGUAGE");
+    const res = await ServerFetch.post("/auth/forgot-password/request", {
+      body: {
+        email,
+        lang,
+      },
+    });
+
+    const data = res.data;
+    if (!data) {
+      const errorMsg = "No data received from forgot password request endpoint";
+      REPLACERS.Logger.error(TAG, errorMsg);
+      return ServerError.requestError(errorMsg);
+    }
+    if ("error" in data) {
+      REPLACERS.Logger.error(
+        TAG,
+        "Error requesting forgot password code:",
+        data.error,
+      );
+      return ServerError.requestError(data.error);
+    }
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    const errorMsg = `Unexpected error requesting forgot password code: ${error}`;
+    REPLACERS.Logger.error(TAG, errorMsg);
+    return ServerError.requestError(errorMsg);
+  }
+};
+
+/**
+ * Verifies an 8-character verification code for forgot password recovery and retrieves a resetToken.
+ *
+ * @param email - The user's email address
+ * @param code - The 8-character verification code
+ * @returns Promise resolving to the verification response with resetToken
+ */
+export const verifyForgotPasswordCode = async (
+  email: string,
+  code: string,
+): Promise<
+  GetRouteData<"POST", "/auth", "/forgot-password/verify">["response"]
+> => {
+  try {
+    const lang = storageManagement.get("LANGUAGE");
+    const res = await ServerFetch.post("/auth/forgot-password/verify", {
+      body: {
+        email,
+        code,
+        lang,
+      },
+    });
+
+    const data = res.data;
+    if (!data) {
+      const errorMsg = "No data received from forgot password verify endpoint";
+      REPLACERS.Logger.error(TAG, errorMsg);
+      return ServerError.requestError(errorMsg);
+    }
+    if ("error" in data) {
+      REPLACERS.Logger.error(
+        TAG,
+        "Error verifying forgot password code:",
+        data.error,
+      );
+      return ServerError.requestError(data.error);
+    }
+
+    return data;
+  } catch (error) {
+    const errorMsg = `Unexpected error verifying forgot password code: ${error}`;
+    REPLACERS.Logger.error(TAG, errorMsg);
+    return ServerError.requestError(errorMsg);
+  }
+};
+
+/**
+ * Submits the new password using the validated resetToken.
+ *
+ * @param email - The user's email address
+ * @param resetToken - The single-use reset authorization token
+ * @param newPassword - The new password
+ * @returns Promise resolving to the reset response
+ */
+export const resetForgotPassword = async (
+  email: string,
+  resetToken: string,
+  newPassword: string,
+): Promise<
+  GetRouteData<"POST", "/auth", "/forgot-password/reset">["response"]
+> => {
+  try {
+    const lang = storageManagement.get("LANGUAGE");
+    const res = await ServerFetch.post("/auth/forgot-password/reset", {
+      body: {
+        email,
+        resetToken,
+        newPassword,
+        lang,
+      },
+    });
+
+    const data = res.data;
+    if (!data) {
+      const errorMsg = "No data received from reset password endpoint";
+      REPLACERS.Logger.error(TAG, errorMsg);
+      return ServerError.requestError(errorMsg);
+    }
+    if ("error" in data) {
+      REPLACERS.Logger.error(TAG, "Error resetting password:", data.error);
+      return ServerError.requestError(data.error);
+    }
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    const errorMsg = `Unexpected error resetting password: ${error}`;
+    REPLACERS.Logger.error(TAG, errorMsg);
+    return ServerError.requestError(errorMsg);
+  }
+};
+
+/**
+ * Sends a password reset email to the user (backward-compatible wrapper).
+ *
+ * @param email - The user's email address
+ * @param callback - Optional callback
+ * @returns Promise resolving to success boolean and optional error
  */
 export const forgotPasswordWithEmail = async (
   email: string,
   callback?: (success: boolean, error?: string) => void,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    // const { error } = await database.auth.resetPasswordForEmail(email);
-    const error = { message: "Simulated error" }; //! Implement forgot password endpoint in Server
-
-    if (!error) {
-      callback?.(true);
-      return { success: true };
+    const res = await requestForgotPasswordCode(email);
+    if ("error" in res) {
+      const errorMsg = ServerError.getMessage(res);
+      REPLACERS.Logger.error(
+        TAG,
+        "Error sending forgot password email:",
+        errorMsg,
+      );
+      callback?.(false, errorMsg);
+      return { success: false, error: errorMsg };
     }
 
-    REPLACERS.Logger.error(
-      TAG,
-      "Error sending forgot password email:",
-      error.message,
-    );
-    callback?.(false, error.message);
-    return { success: false, error: error.message };
+    callback?.(true);
+    return { success: true };
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     REPLACERS.Logger.error(
       TAG,
       "Unexpected error sending forgot password email:",
       error,
     );
-    callback?.(false, error as string);
-    return { success: false, error: error as string };
+    callback?.(false, errorMsg);
+    return { success: false, error: errorMsg };
   }
 };
 

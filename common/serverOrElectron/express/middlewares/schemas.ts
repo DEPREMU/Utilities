@@ -45,6 +45,17 @@ const lang = z.enum(languagesSupported).default("en");
 const page = z.coerce.number().optional().default(1);
 const deviceId = z.string().min(10, "Invalid device ID");
 const notificationToken = z.string().min(3, "Invalid notification token");
+const password = z
+  .string()
+  .min(12, "Password must be at least 12 characters long")
+  .max(128, "Password must be less than 128 characters long")
+  .regex(/\d/, "Password must contain at least one number")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(
+    /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
+    "Password must contain at least one special character",
+  );
 
 export const SCHEMAS: APIInput = {
   GET: {
@@ -207,17 +218,23 @@ export const SCHEMAS: APIInput = {
       body: {
         lang,
         email: z.email("Invalid email address"),
-        password: z
-          .string()
-          .min(12, "Password must be at least 12 characters long")
-          .max(128, "Password must be less than 128 characters long")
-          .regex(/\d/, "Password must contain at least one number")
-          .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-          .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-          .regex(
-            /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
-            "Password must contain at least one special character",
-          ),
+        password,
+      },
+    },
+    "/auth/request-code": {
+      body: {
+        email: z.email("Invalid email address"),
+        lang: lang.optional(),
+      },
+    },
+    "/auth/verify-code": {
+      body: {
+        deviceId,
+        email: z.email("Invalid email address"),
+        code: z.string().length(8, "Invalid verification code"),
+        rememberMe: z.boolean("Invalid remember me").optional(),
+        notificationToken: notificationToken.optional(),
+        lang: lang.optional(),
       },
     },
     "/auth/request-code": {
@@ -247,6 +264,27 @@ export const SCHEMAS: APIInput = {
       body: {
         lang,
         deviceId,
+      },
+    },
+    "/auth/forgot-password/request": {
+      body: {
+        lang: lang.optional(),
+        email: z.email("Invalid email address"),
+      },
+    },
+    "/auth/forgot-password/verify": {
+      body: {
+        email: z.email("Invalid email address"),
+        code: z.string().length(8, "Invalid verification code"),
+        lang: lang.optional(),
+      },
+    },
+    "/auth/forgot-password/reset": {
+      body: {
+        email: z.email("Invalid email address"),
+        resetToken: z.string().min(1, "Reset token is required"),
+        newPassword: password,
+        lang: lang.optional(),
       },
     },
     "/clipboard/add": {
