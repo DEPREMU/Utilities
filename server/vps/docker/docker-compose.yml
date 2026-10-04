@@ -71,6 +71,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/ssl:/etc/ssl/domain
+      - ../../uploads:/server/uploads:ro
     depends_on:
       - nordvpn
 

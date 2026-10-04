@@ -134,6 +134,14 @@ validate_env_file() {
         exit 1
     fi
 
+    # Validate DOWNLOAD_RATE_LIMIT format if present
+    local RATE_LIMIT_CHECK
+    RATE_LIMIT_CHECK="$(grep -E "^[[:space:]]*DOWNLOAD_RATE_LIMIT[[:space:]]*=" "$TARGET_ENV" | head -n 1 | cut -d '=' -f2- | tr -d ' "\r\n')"
+    if [ -n "$RATE_LIMIT_CHECK" ] && ! [[ "$RATE_LIMIT_CHECK" =~ ^[0-9]+[kKmMgG]?$ ]]; then
+        echo -e "${RED}ERROR: Invalid DOWNLOAD_RATE_LIMIT format: '$RATE_LIMIT_CHECK'. Expected format: e.g. 5m, 1024k, or 5242880${NC}"
+        exit 1
+    fi
+
     echo -e "${GREEN}All required .env keys are present.${NC}"
 }
 
@@ -261,6 +269,9 @@ proxy_set_header Connection \"upgrade\";"
             # 2. Nginx Config for Docker
             echo -e "${YELLOW}Configuring Nginx via Docker for $DOMAIN...${NC}"
 
+            DOWNLOAD_RATE_LIMIT_VAL="$(grep -E "^[[:space:]]*DOWNLOAD_RATE_LIMIT[[:space:]]*=" "$DOCKER_DIR/.env" | head -n 1 | cut -d '=' -f2- | tr -d ' "\r\n')"
+            DOWNLOAD_RATE_LIMIT_VAL="${DOWNLOAD_RATE_LIMIT_VAL:-5m}"
+
             cat > "$DOCKER_DIR/nginx/nginx.conf" <<EOF
 server {
     listen 443 ssl;
@@ -273,6 +284,15 @@ server {
 
     location = / {
         return 302 /updates;
+    }
+
+    location ^~ /internal-downloads/ {
+        internal;
+        alias /server/uploads/;
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        limit_rate $DOWNLOAD_RATE_LIMIT_VAL;
     }
 
     location /api/updates/upload {
