@@ -6,7 +6,7 @@ import { getRedisClient } from "../redis/client.ts";
 export interface AuthEmailJobData {
   to: string;
   code: string;
-  flowType: "login" | "signin";
+  flowType: "login" | "signin" | "resetPassword";
   approximateLocation: string;
   expirationMinutes: number;
   lang: "en" | "es";

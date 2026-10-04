@@ -20,6 +20,7 @@ import {
   STATUS_RESPONSE,
 } from "@common";
 import chalk from "chalk";
+import crypto from "node:crypto";
 import bcrypt from "@node-rs/bcrypt";
 import { prisma } from "@/database/postgres.ts";
 import { RequestError } from "@commonSrc/both/errors/Error.ts";
@@ -605,5 +606,288 @@ export const handleVerifyCode = getHandlerPost(
       success: true,
       storageValues,
     });
+  },
+);
+
+export const handleForgotPasswordRequest = getHandlerPost(
+  "/auth",
+  "/forgot-password/request",
+  async ({ body }, sendResponse, { req }) => {
+    const lang = body.lang || "en";
+    const rawEmail = body.email;
+
+    if (!rawEmail || !Validations.isValidEmail(rawEmail)) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.invalidEmailFormat", lang),
+      );
+    }
+
+    const email = normalizeEmail(rawEmail);
+    const redis = getRedisClient();
+
+    const cooldownKey = `auth:cooldown:reset:${email}`;
+    const isCoolingDown = await redis.get(cooldownKey);
+    if (isCoolingDown) {
+      throw new RequestError(
+        STATUS_RESPONSE.TOO_MANY_REQUESTS,
+        t("auth.cooldownActive", lang),
+      );
+    }
+
+    const clientIp = (req.ip || req.socket.remoteAddress || "unknown").replace(
+      /^::ffff:/,
+      "",
+    );
+
+    const emailRateKey = `auth:ratelimit:reset:email:${email}`;
+    const emailRequests = await redis.incr(emailRateKey);
+    if (emailRequests === 1) {
+      await redis.expire(emailRateKey, 600);
+    }
+    if (emailRequests > 5) {
+      throw new RequestError(
+        STATUS_RESPONSE.TOO_MANY_REQUESTS,
+        t("auth.rateLimitExceeded", lang),
+      );
+    }
+
+    const ipRateKey = `auth:ratelimit:reset:ip:${clientIp}`;
+    const ipRequests = await redis.incr(ipRateKey);
+    if (ipRequests === 1) {
+      await redis.expire(ipRateKey, 600);
+    }
+    if (ipRequests > 20) {
+      throw new RequestError(
+        STATUS_RESPONSE.TOO_MANY_REQUESTS,
+        t("auth.rateLimitExceeded", lang),
+      );
+    }
+
+    const user = await prisma.users.findUnique({
+      where: { email },
+      select: { userId: true },
+    });
+
+    if (!user) {
+      await redis.set(cooldownKey, "1", "EX", 60);
+      sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
+      return;
+    }
+
+    const code = generateAuthCode(8);
+    const codeHash = hashAuthCode(code);
+
+    const challengePayload = JSON.stringify({
+      codeHash,
+      attempts: 0,
+      maxAttempts: AUTH_CODE_MAX_ATTEMPTS,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + AUTH_CODE_EXPIRATION * 1000,
+      flowType: "resetPassword",
+      ip: clientIp,
+    });
+
+    await redis.set(
+      `auth:challenge:reset:${email}`,
+      challengePayload,
+      "EX",
+      AUTH_CODE_EXPIRATION,
+    );
+
+    await redis.set(cooldownKey, "1", "EX", 60);
+
+    const approximateLocation = await getApproximateLocation(clientIp);
+
+    await enqueueAuthEmail({
+      to: email,
+      code,
+      flowType: "resetPassword",
+      approximateLocation,
+      expirationMinutes: Math.round(AUTH_CODE_EXPIRATION / 60),
+      lang,
+    });
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
+  },
+);
+
+export const handleForgotPasswordVerify = getHandlerPost(
+  "/auth",
+  "/forgot-password/verify",
+  async ({ body }, sendResponse) => {
+    const lang = body.lang || "en";
+    const { email: rawEmail, code } = body;
+
+    if (!rawEmail || !Validations.isValidEmail(rawEmail)) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.invalidEmailFormat", lang),
+      );
+    }
+
+    if (!code || typeof code !== "string" || code.trim().length !== 8) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.invalidCode", lang),
+      );
+    }
+
+    const email = normalizeEmail(rawEmail);
+    const redis = getRedisClient();
+    const challengeKey = `auth:challenge:reset:${email}`;
+
+    const rawChallenge = await redis.get(challengeKey);
+    if (!rawChallenge) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.invalidCode", lang),
+      );
+    }
+
+    const challenge = JSON.parse(rawChallenge) as {
+      codeHash: string;
+      attempts: number;
+      maxAttempts: number;
+      flowType: string;
+    };
+
+    if (challenge.attempts >= challenge.maxAttempts) {
+      await redis.del(challengeKey);
+      throw new RequestError(
+        STATUS_RESPONSE.TOO_MANY_REQUESTS,
+        t("auth.tooManyAttempts", lang),
+      );
+    }
+
+    const isMatch = verifyAuthCode(code, challenge.codeHash);
+    if (!isMatch) {
+      challenge.attempts += 1;
+
+      if (challenge.attempts >= challenge.maxAttempts) {
+        await redis.del(challengeKey);
+        throw new RequestError(
+          STATUS_RESPONSE.TOO_MANY_REQUESTS,
+          t("auth.tooManyAttempts", lang),
+        );
+      }
+
+      const remainingTtl = await redis.ttl(challengeKey);
+      if (remainingTtl > 0) {
+        await redis.set(
+          challengeKey,
+          JSON.stringify(challenge),
+          "EX",
+          remainingTtl,
+        );
+      }
+
+      throw new RequestError(
+        STATUS_RESPONSE.UNAUTHORIZED,
+        t("auth.invalidCode", lang),
+      );
+    }
+
+    await redis.del(challengeKey);
+
+    const user = await prisma.users.findUnique({
+      where: { email },
+      select: { userId: true },
+    });
+
+    if (!user) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.invalidCode", lang),
+      );
+    }
+
+    const resetToken = `rst_${crypto.randomBytes(24).toString("hex")}`;
+    const tokenPayload = JSON.stringify({
+      email,
+      userId: user.userId,
+      verifiedAt: Date.now(),
+    });
+
+    await redis.set(`auth:reset-token:${resetToken}`, tokenPayload, "EX", 600);
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, {
+      success: true,
+      resetToken,
+    });
+  },
+);
+
+export const handleForgotPasswordReset = getHandlerPost(
+  "/auth",
+  "/forgot-password/reset",
+  async ({ body }, sendResponse) => {
+    const lang = body.lang || "en";
+    const { email: rawEmail, resetToken, newPassword } = body;
+
+    if (!rawEmail || !Validations.isValidEmail(rawEmail)) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.invalidEmailFormat", lang),
+      );
+    }
+
+    if (!resetToken || typeof resetToken !== "string") {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.resetSessionExpired", lang),
+      );
+    }
+
+    if (!newPassword || !Validations.isValidPassword(newPassword)) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.passwordRequirements", lang),
+      );
+    }
+
+    const email = normalizeEmail(rawEmail);
+    const redis = getRedisClient();
+    const tokenKey = `auth:reset-token:${resetToken}`;
+
+    const rawTokenData = await redis.get(tokenKey);
+    if (!rawTokenData) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.resetSessionExpired", lang),
+      );
+    }
+
+    const tokenData = JSON.parse(rawTokenData) as {
+      email: string;
+      userId: string;
+    };
+
+    if (tokenData.email !== email) {
+      throw new RequestError(
+        STATUS_RESPONSE.BAD_REQUEST,
+        t("auth.resetSessionExpired", lang),
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword);
+
+    await withTransaction(async (tx) => {
+      await tx.users.update({
+        where: { userId: tokenData.userId },
+        data: {
+          password: hashedPassword,
+        },
+      });
+
+      await tx.userSessions.deleteMany({
+        where: { userId: tokenData.userId },
+      });
+    });
+
+    await redis.del(tokenKey);
+    await redis.del(`auth:challenge:reset:${email}`);
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
   },
 );

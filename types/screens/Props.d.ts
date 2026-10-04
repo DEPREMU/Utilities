@@ -30,9 +30,11 @@ export type Screens = {
   SocialMedia: Record<string, never>;
   Minesweeper: Record<string, never>;
   DownDetector: Record<string, never>;
+  ResetPassword: GetRouteParams<{ email: string; resetToken: string }>;
   forgotPassword: Record<string, never>;
   MarkdownViewer: GetRouteParams<{ content?: string }>;
   ComputerControl: Record<string, never>;
+  VerifyResetCode: GetRouteParams<{ email: string }>;
   TerminalCommands: Record<string, never>;
   DeviceInformation: Record<string, never>;
 };

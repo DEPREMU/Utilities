@@ -55,14 +55,19 @@ export const processAuthEmailJob = async (
 
   const isEs = lang === "es";
   const isLogin = flowType === "login";
+  const isReset = flowType === "resetPassword";
 
-  const subject = isLogin
+  const subject = isReset
     ? isEs
-      ? "Tu código de inicio de sesión - Utilities"
-      : "Your Login Verification Code - Utilities"
-    : isEs
-      ? "Tu código de registro - Utilities"
-      : "Your Sign-in Verification Code - Utilities";
+      ? "Tu código para restablecer contraseña - Utilities"
+      : "Your Password Reset Verification Code - Utilities"
+    : isLogin
+      ? isEs
+        ? "Tu código de inicio de sesión - Utilities"
+        : "Your Login Verification Code - Utilities"
+      : isEs
+        ? "Tu código de registro - Utilities"
+        : "Your Sign-in Verification Code - Utilities";
 
   const emailElement = React.createElement(AuthEmail, {
     code,
