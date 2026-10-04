@@ -237,22 +237,6 @@ export const SCHEMAS: APIInput = {
         lang: lang.optional(),
       },
     },
-    "/auth/request-code": {
-      body: {
-        email: z.email("Invalid email address"),
-        lang: lang.optional(),
-      },
-    },
-    "/auth/verify-code": {
-      body: {
-        deviceId,
-        email: z.email("Invalid email address"),
-        code: z.string().length(8, "Invalid verification code"),
-        rememberMe: z.boolean("Invalid remember me").optional(),
-        notificationToken: notificationToken.optional(),
-        lang: lang.optional(),
-      },
-    },
     "/auth/refreshSession": {
       body: {
         lang,

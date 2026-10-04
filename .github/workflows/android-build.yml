@@ -43,6 +43,16 @@ jobs:
           BUILD_PROFILE: production
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
 
+      - name: Update Web Assets
+        if: steps.version_check.outputs.should_build == 'true'
+        run: yarn run update-assets --platform-update-assets=web --message="${{ steps.version_check.outputs.commit_message }}"
+        env:
+          WS_URL: ${{ secrets.WS_URL }}
+          API_URL: ${{ secrets.API_URL }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          BUILD_PROFILE: production
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+
       - name: Pre-build Android
         if: steps.version_check.outputs.should_build == 'true'
         run: yarn run app-prebuild-android
