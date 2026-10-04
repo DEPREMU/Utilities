@@ -147,7 +147,7 @@ export const fetchServerVersion = async (
       };
     }
     const data = res.data;
-    const serverVersion = data.latestVersion || "0.0.0";
+    const serverVersion = data.latestVersion || "";
     const isGreater = Validations.isNewVersion(serverVersion, version);
     return { reachable: true, latestVersion: serverVersion, isGreater };
   } catch (err) {
@@ -202,28 +202,14 @@ export const checkElectronFallback = (
     // If git show fails, prevVersion remains empty
   }
 
+  const evaluation = compareSemver(prevVersion, currentVersion);
+
   // eslint-disable-next-line no-console
   console.log(
-    `[Electron Fallback] Current version: "${currentVersion}", Previous version: "${prevVersion}"`,
+    `[Electron Fallback] Previous version: "${prevVersion}", Current version: "${currentVersion}" -> Action: "${evaluation.action}", shouldBuild: ${evaluation.shouldBuild}`,
   );
 
-  if (!prevVersion) {
-    // eslint-disable-next-line no-console
-    console.log(
-      "[Electron Fallback] Could not extract previous version, defaulting to build.",
-    );
-    return true;
-  }
-
-  if (currentVersion !== prevVersion) {
-    // eslint-disable-next-line no-console
-    console.log("[Electron Fallback] Version changed.");
-    return true;
-  }
-
-  // eslint-disable-next-line no-console
-  console.log("[Electron Fallback] Version did not change.");
-  return false;
+  return evaluation.shouldBuild;
 };
 
 export const setGithubOutput = (key: string, value: string | boolean): void => {
@@ -323,12 +309,12 @@ export const evaluateBuildType = async (
     const serverResult = await fetchServerVersion(currentVersion, buildType);
     if (serverResult.reachable) {
       const serverVersion = serverResult.latestVersion ?? "";
-      const isGreater = serverResult.isGreater ?? false;
+      const evaluation = compareSemver(serverVersion, currentVersion);
       // eslint-disable-next-line no-console
       console.log(
-        `[${buildType}] Server check success -> Current: "${currentVersion}", Server: "${serverVersion}" -> Greater: ${isGreater}`,
+        `[${buildType}] Server check success -> Current: "${currentVersion}", Server: "${serverVersion}" -> Action: "${evaluation.action}", shouldBuild: ${evaluation.shouldBuild}`,
       );
-      return isGreater;
+      return evaluation.shouldBuild;
     }
     // eslint-disable-next-line no-console
     console.log(
