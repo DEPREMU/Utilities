@@ -24,9 +24,16 @@ const isNewVersion = {
 
 const script = new Script();
 
-const versionExpo = await script
-  .getPackageJson("utilitiesForPC")
-  .then((p) => p.version);
+const getAndroidVersion = async (): Promise<string> => {
+  const configPath = path.join(script.PATHS.app, "app.config.ts");
+  const content = await new File(configPath).readFile("utf-8");
+  const match = content.match(/const\s+version\s*=\s*"([^"]+)"/);
+  if (!match)
+    throw new Error("Could not extract version from app/app.config.ts");
+  return match[1];
+};
+
+const versionExpo = await getAndroidVersion();
 
 const checkIsNewVersion = async (
   buildType: "web" | "android" = "android",
