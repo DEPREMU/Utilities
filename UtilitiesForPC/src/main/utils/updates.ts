@@ -1,3 +1,11 @@
+import {
+  File,
+  Timers,
+  Network,
+  REPLACERS,
+  Directory,
+  ServerFetch,
+} from "@common";
 import path from "path";
 import axios from "axios";
 import dotenv from "dotenv";
@@ -5,11 +13,12 @@ import { app } from "electron";
 import dataApp from "./variables";
 import { Enums } from "@types";
 import { Logger } from "./logger";
+import { pipeline } from "node:stream/promises";
 import { ServerError } from "@commonSrc/both/errors/Error";
+import type { Readable } from "node:stream";
 import { handleShutdown } from "./server";
 import { execFile, spawn } from "child_process";
 import { nativeData, Paths } from "@utils";
-import { File, Timers, Directory, Network, ServerFetch } from "@common";
 
 if (!app.isPackaged)
   dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
@@ -87,54 +96,67 @@ const openInstallerOrInstall = async (filePath: string) => {
 
 export const downloadNewUpdate = async (
   downloadUrl: string,
-  _file: string | File,
-) => {
-  const response = await axios.get(downloadUrl, {
-    responseType: "stream",
-  });
-  const file = _file instanceof File ? _file : new File(_file);
+  target: string | File,
+): Promise<"success" | "error"> => {
+  const file = target instanceof File ? target : new File(target);
 
-  return new Promise<"success" | "error">((resolve) => {
-    const writer = file.createStream.write();
+  Logger.log(`Starting download from ${downloadUrl} to ${file.path}`);
 
-    let handleFinishCalled = false;
-    const handleFinish = (err?: string) => {
-      if (handleFinishCalled) return;
-      handleFinishCalled = true;
-      writer.close();
+  let writer: ReturnType<File["createStream"]["write"]> | null = null;
 
-      resolve(err ? "error" : "success");
-    };
-    try {
-      Logger.log(
-        `Starting download from ${downloadUrl} to ${file instanceof File ? file.path : file}`,
-      );
+  try {
+    const response = await axios.get<Readable>(downloadUrl, {
+      responseType: "stream",
 
-      response.data.pipe(writer);
+      validateStatus: (status) => status >= 200 && status < 300,
+    });
 
-      writer.on("finish", async () => {
-        Logger.log("Download finished successfully.");
-        handleFinish();
-      });
-
-      writer.on("error", (err: unknown) => {
-        Logger.error("Error writing update file:", err);
-        handleFinish(err instanceof Error ? err.message : String(err));
-      });
-
-      response.data.on("error", (err: unknown) => {
-        Logger.error("Error downloading the file stream:", err);
-        handleFinish(err instanceof Error ? err.message : String(err));
-      });
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      Logger.error("Error downloading the update:", msg);
-      handleFinish(msg);
+    if (!response.data) {
+      throw new Error("Download returned an empty response stream");
     }
-  });
+
+    writer = file.createStream.write();
+
+    await pipeline(response.data, writer);
+
+    Logger.log("Download finished successfully.");
+
+    return "success";
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    Logger.error("Error downloading the update:", message);
+
+    try {
+      await file.rm();
+    } catch (cleanupError) {
+      Logger.error("Error removing incomplete update file:", cleanupError);
+    }
+
+    return "error";
+  } finally {
+    if (writer) {
+      try {
+        writer.close();
+      } catch (error) {
+        Logger.error("Error closing download writer:", error);
+      }
+    }
+  }
 };
 
 export const updateWeb = async (downloadUrl: string): Promise<void> => {
+  const distPath = Paths.DIST;
+  if (!distPath.endsWith("dist")) {
+    Logger.error(
+      "The distribution path is not correctly set. Expected it to end with 'dist'.",
+    );
+    return;
+  }
+
+  const dir = new Directory(distPath);
+  const dirBackup = new Directory(distPath + "_backup");
+
   try {
     const file = new File(
       path.join(Paths.DOWNLOADS, "utilities-for-pc-web.zip"),
@@ -148,41 +170,34 @@ export const updateWeb = async (downloadUrl: string): Promise<void> => {
 
     const unzipper = await import("unzipper");
 
-    const distPath = Paths.DIST;
-    if (!distPath.endsWith("dist")) {
-      Logger.error(
-        "The distribution path is not correctly set. Expected it to end with 'dist'.",
-      );
-      return;
-    }
-
-    const dir = new Directory(distPath);
-    let success = false;
+    let success = REPLACERS.isDev;
     if (await dir.exists())
-      success = await dir.rm({ recursive: true, force: true });
+      success = (await dir.rename(dirBackup)) instanceof Directory;
 
     if (!success) {
-      Logger.error("Failed to remove old web files.");
+      Logger.error("Failed to move old web files.");
       return;
     }
 
     await new Promise<void>((resolve) => {
       file.createStream
-        .write()
-        .pipe(
-          unzipper.Extract({
-            path: distPath,
-          }),
-        )
+        .read()
+        .pipe(unzipper.Extract({ path: distPath }))
         .on("close", async () => {
           Logger.log("Web update extracted successfully.");
-          await file.rm();
+          await Promise.all([dirBackup.rm(), file.rm()]);
           resolve();
         });
     });
 
+    const files = await dir.readDir();
+    if (files.length === 0)
+      throw new Error("Web update extracted folder is empty.");
+
     Logger.log("Web HTML updated correctly.");
   } catch (error) {
+    await dirBackup.rename(distPath);
+
     Logger.error("Error updating Web HTML:", error);
   }
 };
@@ -213,7 +228,10 @@ export const verifyNewUpdate = async (buildType: Enums["UpdateType"]) => {
     const data = res.data;
 
     if ("error" in data) {
-      Logger.error("Error verifying new update:", ServerError.getMessage(data));
+      Logger.error(
+        "Error verifying new update (server error):",
+        ServerError.getMessage(data),
+      );
       return;
     }
 
