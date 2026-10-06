@@ -65,7 +65,9 @@ if (!args.ARGS["skip-build-android"]) {
       .onData((chunk) => {
         Logger.log(chalk.magentaBright("Prebuild:"), chunk);
       })
-      .run("yarn run app-prebuild-android");
+      .run("yarn run app-prebuild-android", {
+        env: localEnv,
+      });
   });
 
   script.addStep("Run android build", async (_, abortController) => {
@@ -89,3 +91,5 @@ if (!args.ARGS["skip-build-android"]) {
     });
   });
 }
+
+script.run();
