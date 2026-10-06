@@ -21,7 +21,7 @@ let apiUrl: string = Constants.expoConfig?.extra?.API_URL_BASE;
 if (wsUrl[wsUrl.length - 1] === "/") wsUrl = wsUrl.slice(0, -1);
 if (apiUrl[apiUrl.length - 1] === "/") apiUrl = apiUrl.slice(0, -1);
 
-if (wsUrl.endsWith("/ws")) wsUrl = wsUrl.slice(0, -2);
+if (wsUrl.endsWith("/ws")) wsUrl = wsUrl.slice(0, -3);
 if (!apiUrl.endsWith("/api")) apiUrl = apiUrl + "/api";
 
 const API_URL = REPLACERS.isProduction

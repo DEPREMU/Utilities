@@ -6,10 +6,10 @@ import { args } from "./arguments";
 import { Script } from "./common";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { ZipArchive } from "archiver";
-import { ServerFetch } from "@commonSrc/both/index.ts";
 import { ServerError } from "@commonSrc/both/errors/Error";
 import { Directory, File } from "@commonSrc/serverOrElectron";
 import type { RequestUploadUpdate } from "@types";
+import { ServerFetch, Validations } from "@commonSrc/both/index.ts";
 
 const platform = {
   web: false,
@@ -51,7 +51,10 @@ const checkIsNewVersion = async (
 
     if ("error" in res.data) throw new Error(ServerError.getMessage(res.data));
 
-    return !res.data.isUpdateAvailable;
+    return (
+      !res.data.latestVersion ||
+      Validations.isNewVersion(res.data.latestVersion, versionExpo)
+    );
   } catch (error) {
     Logger.error(
       "Error checking for new version:",
