@@ -3,7 +3,7 @@ import { initReactI18next } from "react-i18next";
 import { enFrontend, esFrontend } from "@common";
 import type { FrontendTranslations, typeT } from "@types";
 
-i18n.use(initReactI18next).init({
+export const t = (await i18n.use(initReactI18next).init({
   lng: "en",
   fallbackLng: "en",
   resources: {
@@ -11,6 +11,4 @@ i18n.use(initReactI18next).init({
     es: { translation: esFrontend },
   },
   interpolation: { escapeValue: true },
-});
-
-export const t = i18n.t as typeT<FrontendTranslations>;
+})) as typeT<FrontendTranslations>;

@@ -145,7 +145,7 @@ const startExpo = (): ChildProcess => {
 const startFrontend = (): ChildProcess => {
   Logger.log(chalk.green("[Frontend] Starting..."));
 
-  const frontendEnv = { ...process.env };
+  const frontendEnv = { ...process.env, TYPE_BUILD: "clipboard" };
 
   return spawnCommand("yarn", ["run", "dev"], {
     env: frontendEnv,
