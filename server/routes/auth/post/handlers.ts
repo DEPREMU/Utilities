@@ -176,7 +176,7 @@ export const handleSignIn = getHandlerPost(
         t("auth.accountAlreadyExists", lang),
       );
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, { cost: 12 });
 
     const user = await prisma.users.create({
       data: {
