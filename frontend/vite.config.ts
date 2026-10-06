@@ -4,31 +4,31 @@ import type { ConfigFunction } from "@babel/core";
 import type { Paths, REPLACERS_TYPE } from "@types";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 
+const API_URL = process.env.API_URL;
+const TYPE_BUILD = process.env.TYPE_BUILD;
+const BUILD_PROFILE = process.env.BUILD_PROFILE;
+
+if (!BUILD_PROFILE)
+  throw new Error("BUILD_PROFILE environment variable is not set");
+if (!TYPE_BUILD || !["clipboard", "test", "normal"].includes(TYPE_BUILD))
+  throw new Error("TYPE_BUILD environment variable is not set");
+if (!API_URL) throw new Error("API_URL environment variable is not set");
+
+const replacers: Record<Exclude<Paths<REPLACERS_TYPE>, "Logger">, string> = {
+  isDev: `${BUILD_PROFILE === "development"}`,
+  isWeb: "true",
+  isLinux: "false",
+  isNative: "false",
+  isWindows: "false",
+  typeBuild: JSON.stringify(TYPE_BUILD),
+  isPreview: `${BUILD_PROFILE === "preview"}`,
+  isProduction: `${BUILD_PROFILE === "production"}`,
+  "Logger.log": BUILD_PROFILE === "production" ? "(()=>{})" : "",
+  "Logger.warn": BUILD_PROFILE === "production" ? "(()=>{})" : "",
+  "Logger.error": BUILD_PROFILE === "production" ? "(()=>{})" : "",
+};
+
 const config = (): ReturnType<ConfigFunction> => {
-  const API_URL = process.env.API_URL;
-  const TYPE_BUILD = process.env.TYPE_BUILD;
-  const BUILD_PROFILE = process.env.BUILD_PROFILE;
-
-  if (!BUILD_PROFILE)
-    throw new Error("BUILD_PROFILE environment variable is not set");
-  if (!TYPE_BUILD || !["clipboard", "test", "normal"].includes(TYPE_BUILD))
-    throw new Error("TYPE_BUILD environment variable is not set");
-  if (!API_URL) throw new Error("API_URL environment variable is not set");
-
-  const replacers: Record<Exclude<Paths<REPLACERS_TYPE>, "Logger">, string> = {
-    isDev: `${BUILD_PROFILE === "development"}`,
-    isWeb: "true",
-    isLinux: "false",
-    isNative: "false",
-    isWindows: "false",
-    typeBuild: JSON.stringify(TYPE_BUILD),
-    isPreview: `${BUILD_PROFILE === "preview"}`,
-    isProduction: `${BUILD_PROFILE === "production"}`,
-    "Logger.log": BUILD_PROFILE === "production" ? "(()=>{})" : "",
-    "Logger.warn": BUILD_PROFILE === "production" ? "(()=>{})" : "",
-    "Logger.error": BUILD_PROFILE === "production" ? "(()=>{})" : "",
-  };
-
   const REPLACERS: Record<string, string> = Object.fromEntries(
     Object.entries(replacers)
       .filter(([, value]) => value !== "")
@@ -76,5 +76,6 @@ const config = (): ReturnType<ConfigFunction> => {
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: replacers.isDev ? "/" : "./",
   plugins: [react(), babel({ presets: [reactCompilerPreset()], ...config() })],
 });
