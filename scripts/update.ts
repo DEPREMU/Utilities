@@ -175,7 +175,7 @@ const uploadAndroidAssets = async () => {
     Logger.log(chalk.blueBright("EAS UPDATE: "), chunk);
   });
   await exec.async.run(
-    `eas update --message ${JSON.stringify(sanitizedMessage)}`,
+    `eas update --branch ${BUILD_PROFILE} --message ${JSON.stringify(sanitizedMessage)}`,
     {
       cwd: script.PATHS.app,
       env: {
