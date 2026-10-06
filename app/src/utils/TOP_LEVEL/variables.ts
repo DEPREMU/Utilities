@@ -15,14 +15,17 @@ const getLocalIP = () => {
 
 const ip = REPLACERS.isDev ? getLocalIP() : "";
 
-const wsUrl: string = Constants.expoConfig?.extra?.WS_URL_BASE;
-const apiUrl: string = Constants.expoConfig?.extra?.API_URL_BASE;
+let wsUrl: string = Constants.expoConfig?.extra?.WS_URL_BASE;
+let apiUrl: string = Constants.expoConfig?.extra?.API_URL_BASE;
 
-const wsUrlFormatted = wsUrl.endsWith("/") ? wsUrl.slice(0, -1) : wsUrl;
-const apiUrlFormatted = apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
+if (wsUrl[wsUrl.length - 1] === "/") wsUrl = wsUrl.slice(0, -1);
+if (apiUrl[apiUrl.length - 1] === "/") apiUrl = apiUrl.slice(0, -1);
+
+if (wsUrl.endsWith("/ws")) wsUrl = wsUrl.slice(0, -2);
+if (!apiUrl.endsWith("/api")) apiUrl = apiUrl + "/api";
 
 const API_URL = REPLACERS.isProduction
-  ? apiUrlFormatted
+  ? apiUrl
   : REPLACERS.isWeb
     ? "http://localhost:3000/api"
     : `http://${ip}/api`;
@@ -30,7 +33,7 @@ const API_URL = REPLACERS.isProduction
 ServerFetch.API_URL = API_URL;
 
 const BASE_URL_WEB_SOCKET = REPLACERS.isProduction
-  ? wsUrlFormatted
+  ? wsUrl
   : REPLACERS.isWeb
     ? "ws://localhost:3000"
     : `ws://${ip}`;
@@ -42,16 +45,6 @@ export const URLS = {
   wsCryptos: BASE_URL_WEB_SOCKET + "/ws-cryptos",
   wsLoginQr: BASE_URL_WEB_SOCKET + "/ws-login-qr",
 };
-
-export const PRODUCTION_URLS = REPLACERS.isDev
-  ? {
-      ws: wsUrlFormatted + "/ws",
-      api: apiUrlFormatted,
-      clipboard: wsUrlFormatted + "/clipboard",
-      wsCryptos: wsUrlFormatted + "/ws-cryptos",
-      wsLoginQr: wsUrlFormatted + "/ws-login-qr",
-    }
-  : null;
 
 export const APP_VERSION = Constants.expoConfig?.extra?.version as string;
 
