@@ -11,12 +11,26 @@ const TAG = "NAVIGATION";
 class Navigation extends ServiceClass<ListenersNavigation> {
   public static instance: Navigation;
 
+  #removeListener?: () => void;
+
   #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Images" : "Home";
 
   public ref = createNavigationContainerRef<Screens>();
 
   public get currentScreen(): ScreensAvailable {
     return this.#currentScreen;
+  }
+
+  #addListener() {
+    this.#removeListener = this.ref.addListener("state", (r) => {
+      const state = r.data?.state;
+      if (!state) return;
+
+      const screen = state.routes[state.index ?? 0]?.name;
+      if (!screen) return;
+
+      this.#emitScreenChange(screen as ScreensAvailable);
+    });
   }
 
   #emitScreenChange = (name: ScreensAvailable) => {
@@ -32,7 +46,6 @@ class Navigation extends ServiceClass<ListenersNavigation> {
   ) => {
     if (name === this.#currentScreen) return;
 
-    this.#emitScreenChange(name);
     this.ref.navigate(...([name, params] as never));
   };
 
@@ -40,7 +53,6 @@ class Navigation extends ServiceClass<ListenersNavigation> {
     name: T,
     params?: GetParamsScreen<T>,
   ) => {
-    this.#emitScreenChange(name);
     this.ref.reset({
       index: 0,
       routes: [{ name, params: params as never }],
@@ -56,6 +68,8 @@ class Navigation extends ServiceClass<ListenersNavigation> {
         attempts++;
         await Timers.sleep(50 + attempts);
       }
+
+      this.#addListener();
     } catch (error) {
       REPLACERS.Logger.error(
         TAG,
@@ -66,6 +80,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
   }
 
   override destroy(): void {
+    if (this.#removeListener) this.#removeListener();
     super.destroy();
   }
 

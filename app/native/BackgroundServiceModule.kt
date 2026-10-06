@@ -140,11 +140,20 @@ class BackgroundServiceModule(
         title = titleNotification
         message = messageNotification
 
-        val config = ForegroundPreferences(reactApplicationContext).load()
+        val preferences = ForegroundPreferences(reactApplicationContext)
+        val currentConfig = preferences.load()
+        val updatedConfig = currentConfig.copy(
+            notification = NotificationContent(
+                title = titleNotification,
+                message = messageNotification,
+            ),
+            wasConfigured = true,
+        )
+        preferences.save(updatedConfig)
 
-        Log.d(NAME, "Starting foreground service with title: $titleNotification config: ${config.toString()}")
+        Log.d(NAME, "Starting foreground service with title: $titleNotification config: ${updatedConfig.toString()}")
 
-        ForegroundService.start(reactApplicationContext, config)
+        ForegroundService.start(reactApplicationContext, updatedConfig)
         Log.d(NAME, "Foreground service started")
     }
 
@@ -241,8 +250,15 @@ class BackgroundServiceModule(
     }
 
     private fun buildClipboardConfig(enabled: Boolean): ForegroundConfig {
-        return ForegroundConfig(
-            notification = NotificationContent(title, message),
+        val preferences = ForegroundPreferences(reactApplicationContext)
+        val currentConfig = preferences.load()
+        val notification = if (currentConfig.wasConfigured) {
+            currentConfig.notification
+        } else {
+            NotificationContent(title, message)
+        }
+        return currentConfig.copy(
+            notification = notification,
             clipboard = ClipboardConfig(
                 enabled = enabled,
             ),
