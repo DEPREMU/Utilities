@@ -180,8 +180,6 @@ export const setupNotificationHandlers = () => {
 };
 
 const configureNotificationChannel = async () => {
-  if (REPLACERS.isWeb) return;
-
   const channels: Record<ChannelsId, notifications.NotificationChannelInput> = {
     updateAvailable: {
       name: tTyped("updates.updateAvailable"),
@@ -263,7 +261,7 @@ const configureNotificationChannel = async () => {
     ),
   );
 };
-configureNotificationChannel();
+if (REPLACERS.isNative) configureNotificationChannel();
 
 export const getListenerNameDeviceInfo = (reason: ReasonNotification) => {
   switch (reason) {

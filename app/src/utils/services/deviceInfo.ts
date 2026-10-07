@@ -160,7 +160,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
         this.emit(EventsDeviceInfo.isBackgroundChange, this.isBackground);
       },
     );
-    this.#listeners[event] = () => appStateListener.remove();
+    this.#listeners[event] = appStateListener.remove;
   };
 
   private _initHasInternet = async () => {
@@ -234,7 +234,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
         this.emit(event, this.statePhone);
       },
     );
-    this.#listeners[event] = () => statePhoneListener.remove();
+    this.#listeners[event] = statePhoneListener.remove;
   };
 
   private _initQueryAppState = () => {
@@ -251,7 +251,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       },
     );
 
-    this.#listeners[event] = () => queryAppStateListener.remove();
+    this.#listeners[event] = queryAppStateListener.remove;
   };
 
   private _initNotificationEvents = () => {
@@ -345,7 +345,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       },
     );
 
-    this.#listeners[event] = () => subscription.remove();
+    this.#listeners[event] = subscription.remove;
   };
 
   private _initVerifyLocation = async () => {
@@ -470,7 +470,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       this.emit(event, state.type);
     });
 
-    this.#listeners[event] = () => subscription();
+    this.#listeners[event] = subscription;
   };
 
   private _initNetworkSettings = async () => {
@@ -515,7 +515,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
         this._initNetworkTypeChange(),
       );
 
-      await Promise.all(promises);
+      await Promise.allSettled(promises);
     } catch (error) {
       REPLACERS.Logger.error(
         "Error initializing DeviceInfo service",
@@ -556,7 +556,12 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       case EventsDeviceInfo.hasInternetChange:
       case EventsDeviceInfo.networkTypeChange:
       case EventsDeviceInfo.notificationAction:
-        return this.#listeners[event]();
+        {
+          const cleaner = this.#listeners[event];
+          cleaner();
+          delete this.#listeners[event];
+        }
+        break;
       default:
         break;
     }
