@@ -1,13 +1,13 @@
 import { ipcMain } from "electron";
-import { clipboardIpcHandlers } from "../ipc/clipboard";
 import { pdfIpcHandlers } from "../ipc/pdf";
-import { storageIpcHandlers } from "../ipc/storage";
-import { vaultIpcHandlers } from "../ipc/vault";
 import { fileIpcHandlers } from "../ipc/file";
-import { systemIpcHandlers } from "../ipc/system";
-import { notificationIpcHandlers } from "../ipc/notification";
-import { networkIpcHandlers } from "../ipc/network";
 import { IpcHandlerEntry } from "../ipc/types";
+import { vaultIpcHandlers } from "../ipc/vault";
+import { systemIpcHandlers } from "../ipc/system";
+import { storageIpcHandlers } from "../ipc/storage";
+import { networkIpcHandlers } from "../ipc/network";
+import { clipboardIpcHandlers } from "../ipc/clipboard";
+import { notificationIpcHandlers } from "../ipc/notification";
 
 export const allIpcHandlers = {
   ...clipboardIpcHandlers,

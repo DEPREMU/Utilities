@@ -1,13 +1,15 @@
-import { createPDFWithImages } from "../utils/pdf";
 import { Logger } from "../utils/logger";
 import { IpcHandlersRecord } from "./types";
+import { createPDFWithImages } from "../utils/pdf";
+
+const logger = new Logger("IPC-PDF");
 
 export const pdfIpcHandlers: IpcHandlersRecord<"pdf.create"> = {
   "pdf.create": {
     type: "handle",
     func: async (event, request) => {
       try {
-        Logger.log(
+        logger.log(
           `Received pdf.create request with ${request?.images?.length || 0} images`,
         );
         const result = await createPDFWithImages(request, (progress) => {
@@ -15,7 +17,7 @@ export const pdfIpcHandlers: IpcHandlersRecord<"pdf.create"> = {
         });
         return result;
       } catch (error) {
-        Logger.error("Error creating PDF:", error);
+        logger.error("Error creating PDF:", error);
         return null;
       }
     },

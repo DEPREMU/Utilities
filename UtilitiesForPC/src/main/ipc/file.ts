@@ -1,14 +1,16 @@
-import { dialog } from "electron";
 import {
+  getFileInfo,
   copyFileToTemp,
   removeFileWithUri,
-  getFileInfo,
 } from "../utils/storage";
-import dataApp from "../utils/variables";
+import dataApp from "../utils/vars/variables";
 import { Paths } from "@utils";
-import { zipFolder } from "../utils/zip";
+import { dialog } from "electron";
 import { Logger } from "../utils/logger";
+import { zipFolder } from "../utils/zip";
 import { IpcHandlersRecord } from "./types";
+
+const logger = new Logger("IPC-File");
 
 export const fileIpcHandlers: IpcHandlersRecord<
   | "file.copyToTemp"
@@ -35,7 +37,7 @@ export const fileIpcHandlers: IpcHandlersRecord<
       try {
         return await removeFileWithUri(uri);
       } catch (error) {
-        Logger.error(`Error removing file with URI ${uri}:`, error);
+        logger.error(`Error removing file with URI ${uri}:`, error);
         return { success: false };
       }
     },
@@ -55,7 +57,7 @@ export const fileIpcHandlers: IpcHandlersRecord<
 
         return result.filePaths[0];
       } catch (error) {
-        Logger.error("Error picking folder: ", error);
+        logger.error("Error picking folder: ", error);
         return "canceled";
       }
     },
@@ -63,7 +65,7 @@ export const fileIpcHandlers: IpcHandlersRecord<
   "file.getInfo": {
     type: "handle",
     func: async (_event, filePath) => {
-      Logger.log(`Received file.getInfo request for path: ${filePath}`);
+      logger.log(`Received file.getInfo request for path: ${filePath}`);
       const fileInfo = await getFileInfo(filePath);
       return fileInfo;
     },
@@ -71,7 +73,7 @@ export const fileIpcHandlers: IpcHandlersRecord<
   "file.askPath": {
     type: "handle",
     func: async () => {
-      Logger.log("Received file.askPath request");
+      logger.log("Received file.askPath request");
       return await Paths.askPath();
     },
   },
@@ -80,7 +82,7 @@ export const fileIpcHandlers: IpcHandlersRecord<
     func: async (_event, ...args) => {
       const [sourceFolder, outputZipPath, password] = args;
 
-      Logger.log(
+      logger.log(
         `Received file.zip request for folder: ${sourceFolder}, output: ${outputZipPath.path}`,
       );
       const mainWindow = dataApp.getValue("mainWindow");

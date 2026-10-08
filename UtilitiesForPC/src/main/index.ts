@@ -1,4 +1,4 @@
-import dataApp from "./utils/variables.ts";
+import dataApp from "./utils/vars/variables.ts";
 
 dataApp.waitUntilInitialized().then(async () => {
   try {
@@ -10,7 +10,7 @@ dataApp.waitUntilInitialized().then(async () => {
   } catch (error) {
     try {
       import("@/utils/logger.ts").then(({ Logger }) => {
-        Logger.error("Error importing app module:", error);
+        new Logger("MAIN").error("Error importing app module:", error);
       });
     } catch {
       // Ignore error

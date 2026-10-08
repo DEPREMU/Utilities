@@ -25,9 +25,11 @@ import { exec, spawn } from "child_process";
 import { verifyNewUpdate, deleteDownloadedUpdate } from "./utils/updates";
 import { File, Directory, startMemoryMonitor, REPLACERS } from "@common";
 
+const logger = new Logger("APP");
+
 const loadSevenZip = async () => {
   const sevenZipPath = path.join(
-    __dirname,
+    Paths.MAIN_PATH,
     "node_modules/7zip-bin/linux/x64/7za",
   );
 
@@ -36,7 +38,7 @@ const loadSevenZip = async () => {
 
     if (await file.exists()) await file.chmod(0o755);
   } catch (err) {
-    Logger.error("Could not change permissions for 7za", err);
+    logger.error("Could not change permissions for 7za", err);
   }
 
   exec(
@@ -44,7 +46,7 @@ const loadSevenZip = async () => {
     (e) => {
       if (!e) return;
 
-      Logger.warn("Some system dependencies may be missing:", e.message);
+      logger.warn("Some system dependencies may be missing:", e.message);
     },
   );
 };
@@ -54,7 +56,7 @@ if (!dataApp.getValue("isWindows") && app.isPackaged) loadSevenZip();
 try {
   executeTerminalCommands("Start-up");
 } catch (error) {
-  Logger.error("Error executing start-up commands:", error);
+  logger.error("Error executing start-up commands:", error);
 }
 
 const setupAutostart = async () => {
@@ -63,8 +65,8 @@ const setupAutostart = async () => {
       exec(
         `schtasks /create /tn "UtilitiesForPC" /tr "${process.execPath}" /sc onlogon /rl highest /f`,
         (error) => {
-          if (error) Logger.error("Error creating task:", error.message);
-          else Logger.log("Scheduled task created successfully.");
+          if (error) logger.error("Error creating task:", error.message);
+          else logger.log("Scheduled task created successfully.");
         },
       );
     } else {
@@ -82,20 +84,20 @@ const setupAutostart = async () => {
           }
 
           child.stdout.on("data", (data) => {
-            Logger.log(data.toString());
+            logger.log(data.toString());
           });
 
           child.stderr.on("data", (data) => {
-            Logger.warn(data.toString());
+            logger.warn(data.toString());
           });
 
           child.on("error", (error) => {
-            Logger.error(error.message, "error");
+            logger.error(error.message, "error");
           });
 
           return child;
         } catch (error) {
-          Logger.error(String(error), "error");
+          logger.error(String(error), "error");
           return null;
         }
       };
@@ -105,7 +107,7 @@ const setupAutostart = async () => {
         const userHome = dataApp.getValue("userHome");
 
         if (!userName || !userHome) {
-          Logger.error("Cannot setup autostart: USER or HOME not defined");
+          logger.error("Cannot setup autostart: USER or HOME not defined");
           return;
         }
 
@@ -217,13 +219,13 @@ ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
         sudo("tee", ["/etc/sudoers.d/utilitiesforpc"], sudoersEntry);
         sudo("chmod", ["0440", "/etc/sudoers.d/utilitiesforpc"]);
 
-        Logger.log("Linux autostart configured successfully.");
+        logger.log("Linux autostart configured successfully.");
       } catch (error) {
-        Logger.error("Error configuring autostart:", error);
+        logger.error("Error configuring autostart:", error);
       }
     }
   } catch (error) {
-    Logger.error("Error setting up autostart:", error);
+    logger.error("Error setting up autostart:", error);
   }
 };
 
@@ -253,11 +255,11 @@ const createWindow = (): void => {
     const htmlPath = Paths.getPath("DIST", "index.html");
 
     mainWindow.loadFile(htmlPath).catch((err) => {
-      Logger.error("Error loading file:", err);
+      logger.error("Error loading file:", err);
     });
   } else {
     mainWindow.loadURL("http://localhost:8081").catch((err) => {
-      Logger.error("Error loading URL:", err);
+      logger.error("Error loading URL:", err);
     });
   }
 
@@ -279,7 +281,7 @@ const createWindow = (): void => {
 
 const createTray = (): void => {
   try {
-    Logger.log("Creating tray...");
+    logger.log("Creating tray...");
 
     const trayIconPath = Paths.getPath(
       "ASSETS",
@@ -289,7 +291,7 @@ const createTray = (): void => {
     const trayIcon = nativeImage.createFromPath(trayIconPath);
 
     if (trayIcon.isEmpty()) {
-      Logger.error("Could not load tray icon:", trayIconPath);
+      logger.error("Could not load tray icon:", trayIconPath);
       return;
     }
 
@@ -327,9 +329,9 @@ const createTray = (): void => {
     });
 
     dataApp.setValue("tray", tray);
-    Logger.log("Tray was created successfully");
+    logger.log("Tray was created successfully");
   } catch (error) {
-    Logger.error("Error creating tray:", error);
+    logger.error("Error creating tray:", error);
   }
 };
 

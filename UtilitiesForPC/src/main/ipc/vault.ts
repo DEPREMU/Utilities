@@ -1,6 +1,3 @@
-import { app } from "electron";
-import path from "path";
-import { authenticateUser } from "../utils/vault";
 import {
   encryptFiles,
   decryptFiles,
@@ -9,9 +6,14 @@ import {
   getStorageValue,
   saveStorageValue,
 } from "../utils/storage";
-import { Directory, File } from "@common";
+import path from "path";
+import { app } from "electron";
 import { Logger } from "../utils/logger";
+import { Directory, File } from "@common";
+import { authenticateUser } from "../utils/vault";
 import { IpcHandlersRecord } from "./types";
+
+const logger = new Logger("IPC-Vault");
 
 export const vaultIpcHandlers: IpcHandlersRecord<
   | "vault.authenticate"
@@ -28,28 +30,28 @@ export const vaultIpcHandlers: IpcHandlersRecord<
   "vault.authenticate": {
     type: "handle",
     func: async () => {
-      Logger.log("Received vault.authenticate request");
+      logger.log("Received vault.authenticate request");
       return await authenticateUser();
     },
   },
   "vault.encryptFiles": {
     type: "handle",
     func: async (_event, ...args) => {
-      Logger.log("Received vault.encryptFiles request");
+      logger.log("Received vault.encryptFiles request");
       return await encryptFiles(...args);
     },
   },
   "vault.loadEncryptedFiles": {
     type: "handle",
     func: async (_event, ...args) => {
-      Logger.log("Received vault.loadEncryptedFiles request");
+      logger.log("Received vault.loadEncryptedFiles request");
       return await decryptFiles(...args);
     },
   },
   "vault.actionWithItem": {
     type: "handle",
     func: async (_event, ...args) => {
-      Logger.log("Received vault.actionWithItem request");
+      logger.log("Received vault.actionWithItem request");
       const { success, error } = await actionWithVaultItem(...args);
       return { success, ...(error ? { error } : {}) };
     },
@@ -57,7 +59,7 @@ export const vaultIpcHandlers: IpcHandlersRecord<
   "vault.renameItem": {
     type: "handle",
     func: async (_event, ...args) => {
-      Logger.log("Received vault.renameItem request");
+      logger.log("Received vault.renameItem request");
       const { success, error } = await renameVaultItem(...args);
       return { success, ...(error ? { error } : {}) };
     },
@@ -65,7 +67,9 @@ export const vaultIpcHandlers: IpcHandlersRecord<
   "vault.deleteFolder": {
     type: "handle",
     func: async (_event, folderId) => {
-      Logger.log(`Received vault.deleteFolder request for folderId: ${folderId}`);
+      logger.log(
+        `Received vault.deleteFolder request for folderId: ${folderId}`,
+      );
       const directory = await getStorageValue("VAULT_DIRECTORY");
       if (!directory) return;
 
@@ -74,13 +78,13 @@ export const vaultIpcHandlers: IpcHandlersRecord<
       if (!(await file.exists())) return;
 
       await file.rm({ recursive: true, force: true });
-      Logger.log(`Deleted folder vault at ${folderPath}`);
+      logger.log(`Deleted folder vault at ${folderPath}`);
     },
   },
   "vault.renameFolder": {
     type: "handle",
     func: async (_event, oldFolderId, newFolderId) => {
-      Logger.log(
+      logger.log(
         `Received vault.renameFolder request from ${oldFolderId} to ${newFolderId}`,
       );
       const directory = await getStorageValue("VAULT_DIRECTORY");
@@ -94,7 +98,7 @@ export const vaultIpcHandlers: IpcHandlersRecord<
 
       const success = await dir.rename(newFolderPath);
       if (success)
-        Logger.log(
+        logger.log(
           `Renamed folder vault from ${oldFolderPath} to ${newFolderPath}`,
         );
     },
@@ -102,7 +106,7 @@ export const vaultIpcHandlers: IpcHandlersRecord<
   "vault.getExistingFolders": {
     type: "handle",
     func: async () => {
-      Logger.log("Received vault.getExistingFolders request");
+      logger.log("Received vault.getExistingFolders request");
       const directory = await getStorageValue("VAULT_DIRECTORY");
       if (!directory) return [];
 
@@ -115,7 +119,7 @@ export const vaultIpcHandlers: IpcHandlersRecord<
 
         return existingFolders;
       } catch (error) {
-        Logger.error(
+        logger.error(
           `Error reading vault directories at ${directory}: `,
           error,
         );
@@ -142,7 +146,7 @@ export const vaultIpcHandlers: IpcHandlersRecord<
 
         return directory;
       } catch (error) {
-        Logger.error("Error getting safe folder path: ", error);
+        logger.error("Error getting safe folder path: ", error);
         return "unknown";
       }
     },
@@ -150,7 +154,7 @@ export const vaultIpcHandlers: IpcHandlersRecord<
   "vault.clearDecryptedFolder": {
     type: "on",
     func: async () => {
-      Logger.log("Received vault.clearDecryptedFolder request");
+      logger.log("Received vault.clearDecryptedFolder request");
       const tempDir = path.join(
         app.getPath("temp"),
         "UtilitiesForPC",
@@ -161,7 +165,7 @@ export const vaultIpcHandlers: IpcHandlersRecord<
       if (!(await file.exists())) return;
 
       await file.rm({ recursive: true, force: true });
-      Logger.log(`Cleared decrypted folder directory at ${tempDir}`);
+      logger.log(`Cleared decrypted folder directory at ${tempDir}`);
     },
   },
 };

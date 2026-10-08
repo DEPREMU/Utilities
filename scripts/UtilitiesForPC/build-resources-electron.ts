@@ -24,14 +24,6 @@ if (typeof args.ARGS.isWindows === "boolean") {
   isWindows = args.ARGS.isWindows;
 }
 
-const baseConfig: BuildOptions = {
-  bundle: true,
-  minify: true,
-  format: "cjs",
-  platform: "node",
-  legalComments: "none",
-};
-
 const BUILD_PROFILE =
   args.ARGS.BUILD_PROFILE || process.env.BUILD_PROFILE || "production";
 const versionElectron = await script
@@ -42,6 +34,14 @@ const versionExpo = script.appConfig.version;
 if (!versionElectron || !versionExpo) {
   throw new Error("Failed to get versions");
 }
+
+const baseConfig: BuildOptions = {
+  bundle: true,
+  minify: BUILD_PROFILE !== "development",
+  format: "cjs",
+  platform: "node",
+  legalComments: "none",
+};
 
 build({
   ...baseConfig,

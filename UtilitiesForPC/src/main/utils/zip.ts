@@ -1,10 +1,12 @@
 import path from "path";
-import { app } from "electron";
+import { Paths } from "./vars";
 import { Logger } from "./logger";
 import { path7za } from "7zip-bin";
 import { ChannelsIpcRenderer } from "@types";
 import { add, SevenZipOptions } from "node-7z";
 import { Directory, File, Helper, URI_EXTENSION } from "@common";
+
+const logger = new Logger("ZIP");
 
 export const zipFolder = async (
   ...args: ChannelsIpcRenderer["file.zip"]["functionArgs"]
@@ -17,9 +19,11 @@ export const zipFolder = async (
       `${outputPath.folderName}.zip`,
     );
 
-    const tempFolder = path.join(app.getPath("temp"), "zip-temp-folder");
+    const tempFolder = path.join(Paths.TEMP, "zip-temp-folder");
+
     const tempDir = new Directory(tempFolder);
     await tempDir.mkdir({ recursive: true });
+
     await Helper.Arrays.forEachQueue(5, files, async (rawPath: string) => {
       const filePath = rawPath.startsWith(URI_EXTENSION)
         ? rawPath.slice(URI_EXTENSION.length)
@@ -53,12 +57,12 @@ export const zipFolder = async (
 
       zipStream.on("error", (err) => {
         onError?.(err);
-        Logger.error("Error zipping folder:", err);
+        logger.error("Error zipping folder:", err);
         resolve("");
       });
     });
   } catch (error) {
-    Logger.error("Error in zipFolder function:", error);
+    logger.error("Error in zipFolder function:", error);
     return "";
   }
 };

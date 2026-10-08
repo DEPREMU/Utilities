@@ -1,10 +1,12 @@
-import { clipboard } from "electron";
-import { createWindowClipboard } from "../utils/clipboard";
-import dataApp from "../utils/variables";
-import { Logger } from "../utils/logger";
+import dataApp from "../utils/vars/variables";
 import { Helper } from "@common";
+import { Logger } from "../utils/logger";
+import { clipboard } from "electron";
 import { MessagesClipboard } from "@types";
 import { IpcHandlersRecord } from "./types";
+import { createWindowClipboard } from "../utils/clipboard";
+
+const logger = new Logger("IPC-Clipboard");
 
 export const clipboardIpcHandlers: IpcHandlersRecord<
   | "clipboard.read"
@@ -25,7 +27,7 @@ export const clipboardIpcHandlers: IpcHandlersRecord<
   "clipboard.set": {
     type: "on",
     func: (_event, text) => {
-      Logger.log(
+      logger.log(
         `Received set-clipboard request with text length: ${text.length}`,
       );
       clipboard.writeText(text);
@@ -44,7 +46,7 @@ export const clipboardIpcHandlers: IpcHandlersRecord<
         } satisfies MessagesClipboard);
         return true;
       } catch (error) {
-        Logger.error("Error deleting clipboard item:", error);
+        logger.error("Error deleting clipboard item:", error);
       }
       return false;
     },
@@ -61,7 +63,7 @@ export const clipboardIpcHandlers: IpcHandlersRecord<
         } satisfies MessagesClipboard);
         return true;
       } catch (error) {
-        Logger.error("Error deleting clipboard item:", error);
+        logger.error("Error deleting clipboard item:", error);
       }
       return false;
     },
@@ -69,7 +71,7 @@ export const clipboardIpcHandlers: IpcHandlersRecord<
   "clipboard.getHistory": {
     type: "handle",
     func: async () => {
-      Logger.log("Received get-clipboard-history request");
+      logger.log("Received get-clipboard-history request");
       const clipboardItems = dataApp.getValue("clipboardHistory") || [];
       return clipboardItems;
     },
@@ -77,7 +79,7 @@ export const clipboardIpcHandlers: IpcHandlersRecord<
   "clipboard.setHistory": {
     type: "on",
     func: (_event, items) => {
-      Logger.log(
+      logger.log(
         `Received set-clipboard-history request with ${items.length} items`,
       );
       const itemsCleaned = Helper.Arrays.convertToArray(items);
@@ -93,7 +95,7 @@ export const clipboardIpcHandlers: IpcHandlersRecord<
   "clipboard.hideWindow": {
     type: "on",
     func: (_event) => {
-      Logger.log("Received hide-clipboard-window request");
+      logger.log("Received hide-clipboard-window request");
       const clipboardWindow = dataApp.getValue("clipboardWindow");
       if (!clipboardWindow || clipboardWindow.isDestroyed()) return;
 
@@ -103,7 +105,7 @@ export const clipboardIpcHandlers: IpcHandlersRecord<
   "clipboard.showWindow": {
     type: "on",
     func: (_event) => {
-      Logger.log("Received show-clipboard-window request");
+      logger.log("Received show-clipboard-window request");
       const clipboardWindow = dataApp.getValue("clipboardWindow");
 
       if (clipboardWindow && !clipboardWindow.isDestroyed()) {
