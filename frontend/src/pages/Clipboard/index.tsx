@@ -32,8 +32,8 @@ const Clipboard: React.FC = () => {
 
     const fetchHistory = async () => {
       try {
-        if (windowTyped.getClipboardHistory) {
-          const history = await windowTyped.getClipboardHistory();
+        if (windowTyped.clipboard.getHistory) {
+          const history = await windowTyped.clipboard.getHistory();
           if (!history || history.length === 0) {
             const id = Timers.setTimeout(() => {
               setRetry((n) => n + 1);
@@ -43,8 +43,8 @@ const Clipboard: React.FC = () => {
           setItems(history);
         }
 
-        if (windowTyped.onClipboardItemsUpdated) {
-          cleanup = windowTyped.onClipboardItemsUpdated(
+        if (windowTyped.clipboard.onItemsUpdated) {
+          cleanup = windowTyped.clipboard.onItemsUpdated(
             (newItems: ClipboardItem[]) => {
               setItems(newItems);
             },
@@ -66,14 +66,14 @@ const Clipboard: React.FC = () => {
   }, [retry, t]);
 
   const handleCopy = async (item: ClipboardItem) => {
-    if (!windowTyped?.setClipboard) return;
+    if (!windowTyped?.clipboard.set) return;
 
     try {
-      windowTyped.setClipboard(item.content);
+      windowTyped.clipboard.set(item.content);
       showSnackbar(t("clipboard.copiedToClipboard"));
       setTimeout(() => {
-        if (windowTyped?.hideClipboardWindow) {
-          windowTyped.hideClipboardWindow();
+        if (windowTyped?.clipboard.hideWindow) {
+          windowTyped.clipboard.hideWindow();
         }
       }, 1000);
     } catch (err) {
@@ -83,9 +83,9 @@ const Clipboard: React.FC = () => {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!windowTyped?.deleteClipboardItem) return;
+    if (!windowTyped?.clipboard.deleteItem) return;
     try {
-      const success = await windowTyped.deleteClipboardItem(id);
+      const success = await windowTyped.clipboard.deleteItem(id);
       if (success) setItems((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
       REPLACERS.Logger.error("Error deleting clipboard item", err);
@@ -93,9 +93,9 @@ const Clipboard: React.FC = () => {
   };
 
   const handleClearAll = async () => {
-    if (!windowTyped?.deleteAllClipboardItems) return;
+    if (!windowTyped?.clipboard.deleteAllItems) return;
     try {
-      await windowTyped.deleteAllClipboardItems();
+      await windowTyped.clipboard.deleteAllItems();
       setItems([]);
     } catch (err) {
       REPLACERS.Logger.error("Error clearing clipboard history", err);

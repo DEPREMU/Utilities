@@ -17,5 +17,5 @@ if (REPLACERS.isNative) import("./global.native");
 else if (REPLACERS.isWeb)
   import("../modules/WindowModule").then(({ windowModule }) => {
     (Network as { isOnline: () => Promise<boolean> }).isOnline =
-      windowModule.hasInternetConnection;
+      windowModule.network.hasInternetConnection;
   });

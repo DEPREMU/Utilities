@@ -31,7 +31,7 @@ export class DataClipboard extends ClipboardWebSocket {
   protected syncClipboardSuggestionsToModule = () => {
     const func = REPLACERS.isNative
       ? keyboardModule.setClipboardSuggestions
-      : windowModule.setClipboardHistory;
+      : windowModule.clipboard.setHistory;
     func?.(this.listItemsClipboard);
     this.updatedItems = false;
   };

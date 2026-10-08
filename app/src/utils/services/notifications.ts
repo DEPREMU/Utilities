@@ -402,7 +402,7 @@ class NotificationsManager extends ServiceClass<never> {
       }
 
       if (REPLACERS.isWeb) {
-        windowModule.sendNotification({
+        windowModule.notification.send({
           body: notification.message,
           title: notification.title,
           actions: notification.actions?.map((action) => ({

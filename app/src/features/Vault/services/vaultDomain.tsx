@@ -201,7 +201,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
       let folderNames = Object.keys(passwords);
       if (!folderNames.length) {
         if (REPLACERS.isWeb) {
-          folderNames = await windowModule.getExistingVaultFolders();
+          folderNames = await windowModule.vault.getExistingFolders();
         } else {
           folderNames = await getFoldersVault();
         }
@@ -223,7 +223,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
 
       this.#setSlice("data", initializeVault(false));
       if (REPLACERS.isWeb) {
-        windowModule.clearDecryptedFolderDirectory();
+        windowModule.vault.clearDecryptedFolder();
       } else {
         clearDecryptedFolderDirectory();
       }
@@ -337,7 +337,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
                 { showCancelButton: false },
               );
             }
-            directory = await windowModule.pickFolder();
+            directory = await windowModule.file.pickFolder();
 
             modalRef.closeModal?.();
             resolve();
@@ -355,7 +355,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
                 label={tTyped("vault.useDefaultFolder")}
                 handlePress={async () => {
                   directory = REPLACERS.isWeb
-                    ? await windowModule.getSafeFolder()
+                    ? await windowModule.vault.getSafeFolder()
                     : (await getDefaultVaultDirectory()).uri;
 
                   if (directory === "unknown") {
@@ -384,7 +384,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
         });
 
         if (directory === "unknown" || directory === "canceled") {
-          directory = await windowModule.pickFolder();
+          directory = await windowModule.file.pickFolder();
           if (directory === "canceled") {
             callback?.(false);
             return;
@@ -421,7 +421,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
 
       try {
         if (REPLACERS.isWeb) {
-          const res = await windowModule.authenticate();
+          const res = await windowModule.vault.authenticate();
           if (!res) {
             callback?.(false);
             return;
@@ -484,7 +484,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
         callback?.();
 
         if (REPLACERS.isWeb) {
-          windowModule.clearDecryptedFolderDirectory();
+          windowModule.vault.clearDecryptedFolder();
         } else {
           clearDecryptedFolderDirectory();
         }
@@ -520,7 +520,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
                   }
                 }
                 if (REPLACERS.isWeb) {
-                  const { info } = await windowModule.copyFileToTemp(
+                  const { info } = await windowModule.file.copyToTemp(
                     file.base64 || "",
                     file.name,
                   );
@@ -568,7 +568,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
         previous.filter((file) => file.uri !== fileToRemove.uri),
       );
       if (REPLACERS.isWeb) {
-        windowModule.removeFile(fileToRemove.uri);
+        windowModule.file.remove(fileToRemove.uri);
       } else {
         try {
           new FileSystem.File(fileToRemove.uri).delete();
@@ -595,7 +595,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
       const files = this.#state.files;
 
       if (REPLACERS.isWeb) {
-        const { success, errFiles } = await windowModule.encryptFiles(
+        const { success, errFiles } = await windowModule.vault.encryptFiles(
           files,
           password,
           folderId,
@@ -760,7 +760,10 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
       if (!password) return;
 
       if (REPLACERS.isWeb) {
-        const files = await windowModule.loadEncryptedFiles(folderId, password);
+        const files = await windowModule.vault.loadEncryptedFiles(
+          folderId,
+          password,
+        );
         this.#setSlice("folders", (previous) => ({
           ...previous,
           [folderId]: files,
@@ -937,7 +940,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
       }));
 
       if (REPLACERS.isWeb) {
-        windowModule.actionWithVaultItem(action, item, folderId);
+        windowModule.vault.actionWithItem(action, item, folderId);
       } else {
         void (async () => {
           const result = await actionWithVaultItem(action, item, folderId);
@@ -978,7 +981,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
       }));
 
       if (REPLACERS.isWeb) {
-        windowModule.renameVaultItem(file, newName);
+        windowModule.vault.renameItem(file, newName);
       } else {
         void (async () => {
           const result = await renameVaultItem(file, newName);
@@ -1053,7 +1056,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
       }
 
       if (REPLACERS.isWeb) {
-        windowModule.renameFolderVault(folderId, newName);
+        windowModule.vault.renameFolder(folderId, newName);
       } else {
         const directory = storageManagement.get("VAULT_DIRECTORY", "");
         const oldFolderPath = new FileSystem.Directory(directory, folderId);
@@ -1087,7 +1090,7 @@ class VaultDomainService extends ServiceClass<ListenersVault> {
       }
 
       if (REPLACERS.isWeb) {
-        windowModule.deleteFolderVault(folderId);
+        windowModule.vault.deleteFolder(folderId);
       } else {
         const deletedRows = await this.#dbService.deleteByFolderId(folderId);
         deletedRows.deletedRows.forEach((row) => {

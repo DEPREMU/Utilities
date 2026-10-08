@@ -48,7 +48,7 @@ const ScanQR = () => {
     try {
       await ExpoClipboard.setStringAsync(text);
     } catch {
-      if (REPLACERS.isWeb) windowModule.setClipboard(text);
+      if (REPLACERS.isWeb) windowModule.clipboard.set(text);
     }
   });
 

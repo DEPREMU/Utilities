@@ -121,7 +121,7 @@ export class ListenersClipboard extends DataClipboard {
     if (!REPLACERS.isWeb) return;
 
     try {
-      let content: string = await windowModule.readClipboard();
+      let content: string = await windowModule.clipboard.read();
 
       if (!content)
         content = await ExpoClipboard.getStringAsync({
@@ -145,7 +145,7 @@ export class ListenersClipboard extends DataClipboard {
   private handleDeleteItem = async () => {
     if (!REPLACERS.isWeb) return;
 
-    this.#removeMessageClipboardListener = windowModule?.onMessageClipboard(
+    this.#removeMessageClipboardListener = windowModule?.clipboard.onMessage(
       (message) => {
         if (
           !message ||

@@ -104,7 +104,7 @@ const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
     else if (!DATA_PLATFORM.isElectron)
       localStorage.setItem(key, stringifiedValue);
     else {
-      const { success } = (await windowModule.saveData(
+      const { success } = (await windowModule.storage.save(
         keyStorage,
         stringifiedValue,
       )) || { success: false };
@@ -158,7 +158,7 @@ const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
     if (!DATA_PLATFORM.isElectron && !REPLACERS.isDev)
       throw new Error("Not an Electron build");
     else if (!DATA_PLATFORM.isElectron) value = localStorage.getItem(key);
-    else value = await windowModule.loadData(keyStorage);
+    else value = await windowModule.storage.load(keyStorage);
 
     const parsedResponse = Helper.JSON.parseData(value);
     return returnValue(parsedResponse);
@@ -211,7 +211,7 @@ const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
     if (!DATA_PLATFORM.isElectron && !REPLACERS.isDev)
       throw new Error("Not an Electron build");
     else if (!DATA_PLATFORM.isElectron) localStorage.removeItem(key);
-    else await windowModule.removeData(keyStorage);
+    else await windowModule.storage.remove(keyStorage);
 
     return returnType();
   },
@@ -238,7 +238,7 @@ const cleanAllStorageData = wrapFunctionWithError(
           wrapFunctionWithError(async (keyStorage) => {
             if (DO_NOT_DELETE_OR_SAVE.includes(keyStorage)) return;
 
-            await windowModule.removeData(keyStorage);
+            await windowModule.storage.remove(keyStorage);
           }, true),
         ),
       );
