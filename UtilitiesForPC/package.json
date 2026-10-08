@@ -1,10 +1,13 @@
 {
   "name": "utilities-for-pc",
-  "version": "0.3.0-beta",
+  "version": "0.4.0-beta",
   "description": "A collection of useful utilities for PC users.",
-  "main": "build/index.cjs",
+  "main": "out/main/index.js",
   "private": true,
   "scripts": {
+    "dev": "electron-vite dev --watch",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
     "type-check": "tsc --noEmit",
     "lint:fix": "eslint . --fix",
     "before-commit": "yarn run lint:fix && yarn run type-check",
@@ -29,6 +32,7 @@
     "electron": "43.7.7",
     "electron-builder": "^26.15.3",
     "electron-store": "^11.0.2",
+    "electron-vite": "^5.0.0",
     "node-machine-id": "^1.1.12"
   },
   "build": {
@@ -46,7 +50,7 @@
       "**/node_modules/7zip-bin/**"
     ],
     "files": [
-      "build/**/*",
+      "out/**/*",
       "package.json"
     ],
     "extraResources": [

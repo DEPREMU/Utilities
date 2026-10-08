@@ -15,6 +15,10 @@
       "@REPLACERS": ["../common/both/REPLACERS/REPLACERS.ts"]
     }
   },
-  "include": ["./src/main/**/*.ts", "../../common/index.ts"],
-  "exclude": ["node_modules", "build", "dist", "release"]
+  "include": [
+    "./src/main/**/*.ts",
+    "../../common/index.ts",
+    "electron.vite.config.ts"
+  ],
+  "exclude": ["node_modules", "build", "out", "dist", "release"]
 }

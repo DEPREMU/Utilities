@@ -57,7 +57,7 @@ class DataAppClass extends ServiceClass<Record<string, () => void>> {
       server: this.#dataApp.server || null,
       hasSudo: false,
       deviceId: "",
-      preloadPath: Paths.getPath("BUILD", "preload.cjs"),
+      preloadPath: Paths.getPath("BUILD", "preload", "preload.cjs"),
       language: "en",
       isWindows,
       machineId,

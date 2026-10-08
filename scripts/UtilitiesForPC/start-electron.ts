@@ -5,7 +5,7 @@ import { Helper } from "@commonSrc/both/index.ts";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import * as readline from "readline";
 import { args, TYPE_ARGS } from "../arguments";
-import { spawn, execSync, ChildProcess, SpawnOptions } from "child_process";
+import { spawn, ChildProcess, SpawnOptions, execSync } from "child_process";
 
 const values = {
   PLATFORM: "web",
@@ -45,20 +45,6 @@ const spawnCommand = (
     shell: script.PLATFORM.isWindows,
     stdio: options.stdio ?? ["ignore", "inherit", "inherit"],
   });
-};
-
-const runBuildCommand = (command: string): void => {
-  try {
-    Logger.log(chalk.cyan(`[Build] Executing: ${command}`));
-    execSync(command, {
-      env: {
-        ...process.env,
-      },
-      stdio: "inherit",
-    });
-  } catch (error) {
-    Logger.error(chalk.red("[Build Error] Command failed:"), error);
-  }
 };
 
 const killElectron = async (): Promise<void> => {
@@ -103,23 +89,22 @@ const killProcess = (
 };
 
 const startElectron = async (): Promise<ChildProcess> => {
-  runBuildCommand(`yarn run build-resources-electron ${args.getArgs()}`);
-
   await killElectron();
 
-  Logger.log(chalk.green("[Electron] Starting..."));
+  Logger.log(chalk.green("[Electron] Starting electron-vite dev server..."));
 
   const electronEnv = { ...process.env };
 
-  const child = spawnCommand(
-    "electron",
-    [".", "--expose-gc", "--no-sandbox", "--ozone-platform=x11"],
-    {
-      cwd: script.PATHS.utilitiesForPC,
-      env: electronEnv,
-      killSignal: "SIGKILL",
-    },
-  );
+  execSync("yarn electron --version", {
+    cwd: script.PATHS.utilitiesForPC,
+    stdio: "inherit",
+  });
+
+  const child = spawnCommand("yarn", ["electron-vite"], {
+    cwd: script.PATHS.utilitiesForPC,
+    env: electronEnv,
+    killSignal: "SIGKILL",
+  });
 
   child.on("close", (code) => {
     if (!state.isRestarting && !!code) {

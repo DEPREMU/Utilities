@@ -270,12 +270,12 @@ export type ClipboardBridge = {
   setHistory: (items: ClipboardItem[]) => void;
   hideWindow: () => void;
   showWindow: () => void;
-  onMessage: (
-    callback: Function<[MessagesClipboard], void>,
-  ) => { remove: () => void };
-  onItemsUpdated: (
-    callback: (items: ClipboardItem[]) => void,
-  ) => { remove: () => void };
+  onMessage: (callback: Function<[MessagesClipboard], void>) => {
+    remove: () => void;
+  };
+  onItemsUpdated: (callback: (items: ClipboardItem[]) => void) => {
+    remove: () => void;
+  };
 };
 
 export type PdfBridge = {
@@ -290,12 +290,8 @@ export type StorageBridge = {
     key: T,
     value: string,
   ) => Promise<{ success: boolean }>;
-  load: <T extends ALL_KEYS_STORAGE_TYPE>(
-    key: T,
-  ) => Promise<string | null>;
-  remove: <T extends ALL_KEYS_STORAGE_TYPE>(
-    key: T,
-  ) => Promise<boolean>;
+  load: <T extends ALL_KEYS_STORAGE_TYPE>(key: T) => Promise<string | null>;
+  remove: <T extends ALL_KEYS_STORAGE_TYPE>(key: T) => Promise<boolean>;
 };
 
 export type VaultBridge = {

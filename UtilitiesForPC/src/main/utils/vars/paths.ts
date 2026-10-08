@@ -1,4 +1,5 @@
 import path from "path";
+import { File } from "@common";
 import { app, dialog } from "electron";
 
 type ValidPaths = {
@@ -7,14 +8,37 @@ type ValidPaths = {
     : never;
 }[keyof typeof StaticPaths];
 
+const getMainPath = async () => {
+  let mainPath = process.cwd();
+  try {
+    mainPath = __dirname;
+  } catch {
+    // Ignore
+  }
+  if (!app.isPackaged) {
+    let exists = false;
+    let attempts = 5;
+    while (attempts-- > 0) {
+      exists = await new File(path.join(mainPath, "package.json")).exists();
+      if (exists) break;
+
+      mainPath = path.dirname(mainPath);
+    }
+    if (!exists) throw new Error("Could not find main path");
+  }
+
+  return mainPath;
+};
+const mainPath = await getMainPath();
+
 class StaticPaths {
   static readonly MAIN_PATH = app.isPackaged
     ? path.resolve(process.resourcesPath)
-    : path.dirname(process.cwd());
+    : mainPath;
 
   static readonly BUILD = app.isPackaged
-    ? path.join(StaticPaths.MAIN_PATH, "app.asar", "build")
-    : path.join(StaticPaths.MAIN_PATH, "build");
+    ? path.join(StaticPaths.MAIN_PATH, "app.asar", "out")
+    : path.join(StaticPaths.MAIN_PATH, "out");
 
   static readonly DIST = path.join(StaticPaths.MAIN_PATH, "dist");
 

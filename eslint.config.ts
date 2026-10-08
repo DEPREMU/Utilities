@@ -19,6 +19,7 @@ export default defineConfig([
       "**/node_modules/**",
       "**/dist/**",
       "**/build/**",
+      "**/out/**",
       "**/.expo/**",
       "**/.metro/**",
       "**/.yarn/**",
