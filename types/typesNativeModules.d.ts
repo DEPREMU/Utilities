@@ -36,144 +36,75 @@ type ExpectedStorageTypesBoth = ExpectedStorageTypes &
 export type ChannelsIpcRenderer<
   T extends ALL_KEYS_STORAGE_TYPE = keyof ExpectedStorageTypes<"BOTH">,
 > = {
-  "read-clipboard": {
-    functionArgs: [];
+  "clipboard.read": {
     functionReturn: Promise<string>;
+    functionArgs: [];
     typeIpc: "invoke";
   };
-  "set-clipboard": {
+  "clipboard.set": {
+    functionReturn: void;
     functionArgs: [text: string];
-    functionReturn: void;
     typeIpc: "send";
   };
-  "delete-clipboard-item": {
-    functionArgs: [itemId: string];
+  "clipboard.deleteItem": {
     functionReturn: Promise<boolean>;
+    functionArgs: [id: string];
     typeIpc: "invoke";
   };
-  "delete-all-clipboard-items": {
-    functionArgs: [];
-    functionReturn: Promise<boolean>;
-    typeIpc: "invoke";
-  };
-  "on-clipboard-message": {
-    functionArgs: [callback: Function<[MessagesClipboard], void>];
-    functionReturn: { remove: () => void };
-    typeIpc: "on";
-  };
-  "user-login-status": {
-    functionArgs: [isLoggedIn: boolean];
-    functionReturn: void;
-    typeIpc: "send";
-  };
-  "set-data-electron": {
-    functionArgs: [deviceId: string, language: LanguagesSupported];
-    functionReturn: void;
-    typeIpc: "send";
-  };
-  "turn-off-computer": {
-    functionArgs: [];
-    functionReturn: Promise<boolean>;
-    typeIpc: "invoke";
-  };
-  "restart-computer": {
-    functionArgs: [];
-    functionReturn: Promise<boolean>;
-    typeIpc: "invoke";
-  };
-  "save-data": {
-    functionReturn: Promise<{ success: boolean }>;
-    functionArgs: [key: T, value: string];
-    typeIpc: "invoke";
-  };
-  "load-data": {
-    functionArgs: [key: T];
-    functionReturn: Promise<string | null>;
-    typeIpc: "invoke";
-  };
-  "remove-data": {
-    functionReturn: boolean | Promise<boolean>;
-    functionArgs: [key: T];
-    typeIpc: "invoke";
-  };
-  "is-electron-build": {
+  "clipboard.deleteAllItems": {
     functionReturn: Promise<boolean>;
     functionArgs: [];
     typeIpc: "invoke";
   };
-  "get-native-data": {
-    functionReturn: Promise<ExpectedNativeWebData[keyof ExpectedNativeWebData]>;
-    functionArgs: [key: keyof ExpectedNativeWebData];
-    typeIpc: "invoke";
-  };
-  "send-notification": {
-    functionReturn: void;
-    functionArgs: [args: NotificationElectron];
-    typeIpc: "send";
-  };
-  "execute-command": {
-    functionReturn: Promise<string>;
-    functionArgs: [command: string];
-    typeIpc: "invoke";
-  };
-  "create-pdf": {
-    functionReturn: Promise<PdfCreateResult | null>;
-    functionArgs: [
-      request: PdfCreateRequest,
-      onProgress?: (progress: number) => void,
-    ];
-    typeIpc: "invoke";
-  };
-  "get-clipboard-history": {
+  "clipboard.getHistory": {
     functionReturn: Promise<ClipboardItem[]>;
     functionArgs: [];
     typeIpc: "invoke";
   };
-  "set-clipboard-history": {
+  "clipboard.setHistory": {
     functionReturn: void;
     functionArgs: [items: ClipboardItem[]];
     typeIpc: "send";
   };
-  "hide-clipboard-window": {
+  "clipboard.hideWindow": {
     functionReturn: void;
     functionArgs: [];
     typeIpc: "send";
   };
-  "show-clipboard-window": {
+  "clipboard.showWindow": {
     functionReturn: void;
     functionArgs: [];
     typeIpc: "send";
   };
 
-  "authenticate-user": {
+  "pdf.create": {
+    functionReturn: Promise<PdfCreateResult | null>;
+    functionArgs: [request: PdfCreateRequest];
+    typeIpc: "invoke";
+  };
+
+  "storage.save": {
+    functionReturn: Promise<{ success: boolean }>;
+    functionArgs: [key: T, value: string];
+    typeIpc: "invoke";
+  };
+  "storage.load": {
+    functionReturn: Promise<string | null>;
+    functionArgs: [key: T];
+    typeIpc: "invoke";
+  };
+  "storage.remove": {
+    functionReturn: Promise<boolean>;
+    functionArgs: [key: T];
+    typeIpc: "invoke";
+  };
+
+  "vault.authenticate": {
     functionReturn: Promise<boolean>;
     functionArgs: [];
     typeIpc: "invoke";
   };
-  "copy-file-to-temp": {
-    functionReturn: Promise<{
-      success: boolean;
-      info?: FileInfo;
-    }>;
-    functionArgs: [base64: string, fileName: string];
-    typeIpc: "invoke";
-  };
-  "remove-file-with-uri": {
-    functionReturn: Promise<{ success: boolean }>;
-    functionArgs: [uri: string];
-    typeIpc: "invoke";
-  };
-  "get-safe-folder": {
-    functionReturn: Promise<string>;
-    functionArgs: [];
-    typeIpc: "invoke";
-  };
-  "pick-folder": {
-    functionReturn: Promise<"canceled" | string>;
-    functionArgs: [];
-    typeIpc: "invoke";
-  };
-  "encrypt-vault-items": {
+  "vault.encryptFiles": {
     functionReturn: Promise<{
       success: boolean;
       errFiles?: PickedFile[];
@@ -181,12 +112,12 @@ export type ChannelsIpcRenderer<
     functionArgs: [files: PickedFile[], password: string, folderId: string];
     typeIpc: "invoke";
   };
-  "load-encrypted-files": {
+  "vault.loadEncryptedFiles": {
     functionReturn: Promise<FolderFiles>;
     functionArgs: [folderId: string, password: string];
     typeIpc: "invoke";
   };
-  "action-with-vault-item": {
+  "vault.actionWithItem": {
     functionReturn: Promise<{ success: boolean; error?: string }>;
     functionArgs: [
       action: "copy" | "move",
@@ -195,27 +126,66 @@ export type ChannelsIpcRenderer<
     ];
     typeIpc: "invoke";
   };
-  "rename-vault-item": {
+  "vault.renameItem": {
     functionReturn: Promise<{ success: boolean; error?: string }>;
     functionArgs: [item: FolderFiles[number], newName: string];
     typeIpc: "invoke";
   };
-  "get-file-info": {
-    functionReturn: Promise<FileInfo | null>;
-    functionArgs: [filePath: string];
+  "vault.deleteFolder": {
+    functionReturn: Promise<void>;
+    functionArgs: [folderId: string];
     typeIpc: "invoke";
   };
-  "clear-decrypted-folder-directory": {
+  "vault.renameFolder": {
+    functionReturn: Promise<void>;
+    functionArgs: [oldFolderId: string, newFolderId: string];
+    typeIpc: "invoke";
+  };
+  "vault.getExistingFolders": {
+    functionReturn: Promise<string[]>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "vault.getSafeFolder": {
+    functionReturn: Promise<string>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "vault.clearDecryptedFolder": {
     functionReturn: Promise<void>;
     functionArgs: [];
     typeIpc: "send";
   };
-  "ask-path": {
+
+  "file.copyToTemp": {
+    functionReturn: Promise<{
+      success: boolean;
+      info?: FileInfo;
+    }>;
+    functionArgs: [base64: string, fileName: string];
+    typeIpc: "invoke";
+  };
+  "file.remove": {
+    functionReturn: Promise<{ success: boolean }>;
+    functionArgs: [uri: string];
+    typeIpc: "invoke";
+  };
+  "file.pickFolder": {
+    functionReturn: Promise<"canceled" | string>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "file.getInfo": {
+    functionReturn: Promise<FileInfo | null>;
+    functionArgs: [filePath: string];
+    typeIpc: "invoke";
+  };
+  "file.askPath": {
     functionReturn: Promise<string | null>;
     functionArgs: [];
     typeIpc: "invoke";
   };
-  "zip-folder": {
+  "file.zip": {
     functionReturn: Promise<string>;
     functionArgs: [
       files: string[],
@@ -230,29 +200,57 @@ export type ChannelsIpcRenderer<
     ];
     typeIpc: "invoke";
   };
-  "delete-folder": {
-    functionReturn: Promise<void>;
-    functionArgs: [folderId: string];
-    typeIpc: "invoke";
-  };
-  "rename-folder": {
-    functionReturn: Promise<void>;
-    functionArgs: [oldFolderId: string, newFolderId: string];
-    typeIpc: "invoke";
-  };
-  "get-existing-vault-folders": {
-    functionReturn: Promise<string[]>;
+
+  "system.turnOff": {
+    functionReturn: Promise<boolean>;
     functionArgs: [];
     typeIpc: "invoke";
   };
-  "has-internet-connection": {
+  "system.restart": {
+    functionReturn: Promise<boolean>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "system.getNativeData": {
+    functionReturn: Promise<ExpectedNativeWebData[keyof ExpectedNativeWebData]>;
+    functionArgs: [key: keyof ExpectedNativeWebData];
+    typeIpc: "invoke";
+  };
+  "system.setData": {
+    functionReturn: void;
+    functionArgs: [deviceId: string, language: LanguagesSupported];
+    typeIpc: "send";
+  };
+  "system.notifyLoginStatus": {
+    functionReturn: void;
+    functionArgs: [isLoggedIn: boolean];
+    typeIpc: "send";
+  };
+  "system.executeCommand": {
+    functionReturn: Promise<string>;
+    functionArgs: [command: string];
+    typeIpc: "invoke";
+  };
+  "system.isElectronBuild": {
+    functionReturn: Promise<boolean>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+
+  "notification.send": {
+    functionReturn: void;
+    functionArgs: [notification: NotificationElectron];
+    typeIpc: "send";
+  };
+
+  "network.hasInternetConnection": {
     functionReturn: Promise<boolean>;
     functionArgs: [];
     typeIpc: "invoke";
   };
 };
 
-type NotificationElectron = {
+export type NotificationElectron = {
   title: string;
   body: string;
   actions?: Array<{
@@ -263,96 +261,122 @@ type NotificationElectron = {
   reasonNotification: ReasonNotification;
 };
 
+export type ClipboardBridge = {
+  read: () => Promise<string>;
+  set: (text: string) => void;
+  deleteItem: (id: string) => Promise<boolean>;
+  deleteAllItems: () => Promise<boolean>;
+  getHistory: () => Promise<ClipboardItem[]>;
+  setHistory: (items: ClipboardItem[]) => void;
+  hideWindow: () => void;
+  showWindow: () => void;
+  onMessage: (
+    callback: Function<[MessagesClipboard], void>,
+  ) => { remove: () => void };
+  onItemsUpdated: (
+    callback: (items: ClipboardItem[]) => void,
+  ) => { remove: () => void };
+};
+
+export type PdfBridge = {
+  create: (
+    request: PdfCreateRequest,
+    onProgress?: (progress: number) => void,
+  ) => Promise<PdfCreateResult | null>;
+};
+
+export type StorageBridge = {
+  save: <T extends ALL_KEYS_STORAGE_TYPE>(
+    key: T,
+    value: string,
+  ) => Promise<{ success: boolean }>;
+  load: <T extends ALL_KEYS_STORAGE_TYPE>(
+    key: T,
+  ) => Promise<string | null>;
+  remove: <T extends ALL_KEYS_STORAGE_TYPE>(
+    key: T,
+  ) => Promise<boolean>;
+};
+
+export type VaultBridge = {
+  authenticate: () => Promise<boolean>;
+  encryptFiles: (
+    files: PickedFile[],
+    password: string,
+    folderId: string,
+  ) => Promise<{ success: boolean; errFiles?: PickedFile[] }>;
+  loadEncryptedFiles: (
+    folderId: string,
+    password: string,
+  ) => Promise<FolderFiles>;
+  actionWithItem: (
+    action: "copy" | "move",
+    item: FolderFiles[number],
+    targetFolderId: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  renameItem: (
+    item: FolderFiles[number],
+    newName: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  deleteFolder: (folderId: string) => Promise<void>;
+  renameFolder: (oldFolderId: string, newFolderId: string) => Promise<void>;
+  getExistingFolders: () => Promise<string[]>;
+  getSafeFolder: () => Promise<string>;
+  clearDecryptedFolder: () => Promise<void>;
+};
+
+export type FileBridge = {
+  copyToTemp: (
+    base64: string,
+    fileName: string,
+  ) => Promise<{ success: boolean; info?: FileInfo }>;
+  remove: (uri: string) => Promise<{ success: boolean }>;
+  pickFolder: () => Promise<"canceled" | string>;
+  getInfo: (filePath: string) => Promise<FileInfo | null>;
+  askPath: () => Promise<string | null>;
+  zip: (
+    files: string[],
+    outputPath: { folderName: string; path: string },
+    password?: string,
+    onProgress?: (
+      progress: number,
+      filename: string,
+      fileCount: number,
+    ) => void,
+    onError?: (error: Error) => void,
+  ) => Promise<string>;
+};
+
+export type SystemBridge = {
+  turnOff: () => Promise<boolean>;
+  restart: () => Promise<boolean>;
+  getNativeData: <T extends keyof ExpectedNativeWebData>(
+    key: T,
+  ) => Promise<ExpectedNativeWebData[T]>;
+  setData: (deviceId: string, language: LanguagesSupported) => void;
+  notifyLoginStatus: (isLoggedIn: boolean) => void;
+  executeCommand: (command: string) => Promise<string>;
+  isElectronBuild: () => Promise<boolean>;
+};
+
+export type NotificationBridge = {
+  send: (notification: NotificationElectron) => void;
+};
+
+export type NetworkBridge = {
+  hasInternetConnection: () => Promise<boolean>;
+};
+
 export type ContextBridgeType = {
   UtilitiesForPC: {
-    readClipboard: () => Promise<string>;
-    setClipboard: (text: string) => void;
-    deleteClipboardItem: (
-      ...args: ChannelsIpcRenderer["delete-clipboard-item"]["functionArgs"]
-    ) => ChannelsIpcRenderer["delete-clipboard-item"]["functionReturn"];
-    deleteAllClipboardItems: () => ChannelsIpcRenderer["delete-all-clipboard-items"]["functionReturn"];
-    onMessageClipboard: (
-      ...args: ChannelsIpcRenderer["on-clipboard-message"]["functionArgs"]
-    ) => ChannelsIpcRenderer["on-clipboard-message"]["functionReturn"];
-
-    notifyLoginStatus: (isLoggedIn: boolean) => void;
-    turnOffComputer: () => ChannelsIpcRenderer["turn-off-computer"]["functionReturn"];
-    restartComputer: () => ChannelsIpcRenderer["restart-computer"]["functionReturn"];
-    setData: (
-      ...args: ChannelsIpcRenderer["set-data-electron"]["functionArgs"]
-    ) => void;
-    saveData: <T extends ALL_KEYS_STORAGE_TYPE>(
-      key: T,
-      value: string,
-    ) => Promise<{ success: boolean }>;
-    loadData: (
-      ...args: ChannelsIpcRenderer["load-data"]["functionArgs"]
-    ) => ChannelsIpcRenderer["load-data"]["functionReturn"];
-    removeData: <T extends ALL_KEYS_STORAGE_TYPE>(
-      key: T,
-    ) => Promise<ChannelsIpcRenderer<T>["remove-data"]["functionReturn"]>;
-    isElectronBuild: () => Promise<boolean>;
-    sendNotification: (
-      ...args: ChannelsIpcRenderer["send-notification"]["functionArgs"]
-    ) => void;
-    getNativeData: (
-      ...args: ChannelsIpcRenderer["get-native-data"]["functionArgs"]
-    ) => ChannelsIpcRenderer["get-native-data"]["functionReturn"];
-    executeCommand: (
-      ...args: ChannelsIpcRenderer["execute-command"]["functionArgs"]
-    ) => ChannelsIpcRenderer["execute-command"]["functionReturn"];
-    createPdf: (
-      ...args: ChannelsIpcRenderer["create-pdf"]["functionArgs"]
-    ) => ChannelsIpcRenderer["create-pdf"]["functionReturn"];
-    getClipboardHistory: (
-      ...args: ChannelsIpcRenderer["get-clipboard-history"]["functionArgs"]
-    ) => ChannelsIpcRenderer["get-clipboard-history"]["functionReturn"];
-    setClipboardHistory: (
-      ...args: ChannelsIpcRenderer["set-clipboard-history"]["functionArgs"]
-    ) => ChannelsIpcRenderer["set-clipboard-history"]["functionReturn"];
-    hideClipboardWindow: () => void;
-    showClipboardWindow: () => void;
-    onClipboardItemsUpdated: (
-      callback: (items: ClipboardItem[]) => void,
-    ) => void;
-
-    authenticate: () => Promise<boolean>;
-    copyFileToTemp: (
-      ...args: ChannelsIpcRenderer["copy-file-to-temp"]["functionArgs"]
-    ) => ChannelsIpcRenderer["copy-file-to-temp"]["functionReturn"];
-    removeFile: (
-      ...args: ChannelsIpcRenderer["remove-file-with-uri"]["functionArgs"]
-    ) => ChannelsIpcRenderer["remove-file-with-uri"]["functionReturn"];
-    getSafeFolder: () => ChannelsIpcRenderer["get-safe-folder"]["functionReturn"];
-    pickFolder: () => ChannelsIpcRenderer["pick-folder"]["functionReturn"];
-    encryptFiles: (
-      ...args: ChannelsIpcRenderer["encrypt-vault-items"]["functionArgs"]
-    ) => ChannelsIpcRenderer["encrypt-vault-items"]["functionReturn"];
-    loadEncryptedFiles: (
-      ...args: ChannelsIpcRenderer["load-encrypted-files"]["functionArgs"]
-    ) => ChannelsIpcRenderer["load-encrypted-files"]["functionReturn"];
-    actionWithVaultItem: (
-      ...args: ChannelsIpcRenderer["action-with-vault-item"]["functionArgs"]
-    ) => ChannelsIpcRenderer["action-with-vault-item"]["functionReturn"];
-    renameVaultItem: (
-      ...args: ChannelsIpcRenderer["rename-vault-item"]["functionArgs"]
-    ) => ChannelsIpcRenderer["rename-vault-item"]["functionReturn"];
-    getFileInfo: (
-      ...args: ChannelsIpcRenderer["get-file-info"]["functionArgs"]
-    ) => ChannelsIpcRenderer["get-file-info"]["functionReturn"];
-    clearDecryptedFolderDirectory: () => ChannelsIpcRenderer["clear-decrypted-folder-directory"]["functionReturn"];
-    askPath: () => ChannelsIpcRenderer["ask-path"]["functionReturn"];
-    zipFolder: (
-      ...args: ChannelsIpcRenderer["zip-folder"]["functionArgs"]
-    ) => ChannelsIpcRenderer["zip-folder"]["functionReturn"];
-    deleteFolderVault: (
-      ...args: ChannelsIpcRenderer["delete-folder"]["functionArgs"]
-    ) => ChannelsIpcRenderer["delete-folder"]["functionReturn"];
-    renameFolderVault: (
-      ...args: ChannelsIpcRenderer["rename-folder"]["functionArgs"]
-    ) => ChannelsIpcRenderer["rename-folder"]["functionReturn"];
-    getExistingVaultFolders: () => ChannelsIpcRenderer["get-existing-vault-folders"]["functionReturn"];
-    hasInternetConnection: () => ChannelsIpcRenderer["has-internet-connection"]["functionReturn"];
+    clipboard: ClipboardBridge;
+    pdf: PdfBridge;
+    storage: StorageBridge;
+    vault: VaultBridge;
+    file: FileBridge;
+    system: SystemBridge;
+    notification: NotificationBridge;
+    network: NetworkBridge;
   };
 };
 

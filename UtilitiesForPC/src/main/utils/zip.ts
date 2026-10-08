@@ -4,10 +4,10 @@ import { Logger } from "./logger";
 import { path7za } from "7zip-bin";
 import { ChannelsIpcRenderer } from "@types";
 import { add, SevenZipOptions } from "node-7z";
-import { Directory, File, URI_EXTENSION } from "@common";
+import { Directory, File, Helper, URI_EXTENSION } from "@common";
 
 export const zipFolder = async (
-  ...args: ChannelsIpcRenderer["zip-folder"]["functionArgs"]
+  ...args: ChannelsIpcRenderer["file.zip"]["functionArgs"]
 ): Promise<string> => {
   try {
     const [files, outputPath, password, onProgress, onError] = args;
@@ -20,18 +20,16 @@ export const zipFolder = async (
     const tempFolder = path.join(app.getPath("temp"), "zip-temp-folder");
     const tempDir = new Directory(tempFolder);
     await tempDir.mkdir({ recursive: true });
-    await Promise.all(
-      files.map(async (filePath) => {
-        filePath = filePath.startsWith(URI_EXTENSION)
-          ? filePath.slice(URI_EXTENSION.length)
-          : filePath;
+    await Helper.Arrays.forEachQueue(5, files, async (rawPath: string) => {
+      const filePath = rawPath.startsWith(URI_EXTENSION)
+        ? rawPath.slice(URI_EXTENSION.length)
+        : rawPath;
 
-        const fileName = path.basename(filePath);
-        const destPath = path.join(tempFolder, fileName);
+      const fileName = path.basename(filePath);
+      const destPath = path.join(tempFolder, fileName);
 
-        await new File(filePath).copyFile(destPath);
-      }),
-    );
+      await new File(filePath).copyFile(destPath);
+    });
 
     return await new Promise((resolve) => {
       const options: SevenZipOptions = {
@@ -47,12 +45,9 @@ export const zipFolder = async (
       });
 
       zipStream.on("end", async () => {
-        try {
-          onProgress?.(100, "", 0);
-          await tempDir.rm({ recursive: true, force: true });
-        } catch {
-          // Ignore error
-        }
+        onProgress?.(100, "", 0);
+        await tempDir.rm({ recursive: true, force: true });
+
         resolve(outputZipPath);
       });
 
