@@ -3,6 +3,13 @@ import {
   registerClipboardShortcuts,
 } from "./utils/clipboard";
 import {
+  File,
+  Directory,
+  REPLACERS,
+  ExecuteOnce,
+  startMemoryMonitor,
+} from "@common";
+import {
   app,
   Tray,
   Menu,
@@ -23,113 +30,81 @@ import os from "os";
 import path from "path";
 import { exec, spawn } from "child_process";
 import { verifyNewUpdate, deleteDownloadedUpdate } from "./utils/updates";
-import { File, Directory, startMemoryMonitor, REPLACERS } from "@common";
 
 const logger = new Logger("APP");
 
-const loadSevenZip = async () => {
-  const sevenZipPath = path.join(
-    Paths.MAIN_PATH,
-    "node_modules/7zip-bin/linux/x64/7za",
-  );
+if (app.isPackaged) {
+  ExecuteOnce.execute("setupAutoStart", undefined, async () => {
+    try {
+      if (dataApp.getValue("isWindows")) {
+        exec(
+          `schtasks /create /tn "UtilitiesForPC" /tr "${process.execPath}" /sc onlogon /rl highest /f`,
+          (error) => {
+            if (error) logger.error("Error creating task:", error.message);
+            else logger.log("Scheduled task created successfully.");
+          },
+        );
+      } else {
+        const sudo = (command: string, args: string[] = [], stdin?: string) => {
+          try {
+            const child = spawn("sudo", [command, ...args], {
+              stdio: ["pipe", "pipe", "pipe"],
+            });
 
-  try {
-    const file = new File(sevenZipPath);
+            if (stdin !== undefined) {
+              child.stdin.write(stdin);
+              child.stdin.end();
+            } else {
+              child.stdin.end();
+            }
 
-    if (await file.exists()) await file.chmod(0o755);
-  } catch (err) {
-    logger.error("Could not change permissions for 7za", err);
-  }
+            child.stdout.on("data", (data) => {
+              logger.log(data.toString());
+            });
 
-  exec(
-    "sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools",
-    (e) => {
-      if (!e) return;
+            child.stderr.on("data", (data) => {
+              logger.warn(data.toString());
+            });
 
-      logger.warn("Some system dependencies may be missing:", e.message);
-    },
-  );
-};
+            child.on("error", (error) => {
+              logger.error(error.message, "error");
+            });
 
-if (!dataApp.getValue("isWindows") && app.isPackaged) loadSevenZip();
+            return child;
+          } catch (error) {
+            logger.error(String(error), "error");
+            return null;
+          }
+        };
 
-try {
-  executeTerminalCommands("Start-up");
-} catch (error) {
-  logger.error("Error executing start-up commands:", error);
-}
-
-const setupAutostart = async () => {
-  try {
-    if (dataApp.getValue("isWindows")) {
-      exec(
-        `schtasks /create /tn "UtilitiesForPC" /tr "${process.execPath}" /sc onlogon /rl highest /f`,
-        (error) => {
-          if (error) logger.error("Error creating task:", error.message);
-          else logger.log("Scheduled task created successfully.");
-        },
-      );
-    } else {
-      const sudo = (command: string, args: string[] = [], stdin?: string) => {
         try {
-          const child = spawn("sudo", [command, ...args], {
-            stdio: ["pipe", "pipe", "pipe"],
-          });
+          const userName = dataApp.getValue("username");
+          const userHome = dataApp.getValue("userHome");
 
-          if (stdin !== undefined) {
-            child.stdin.write(stdin);
-            child.stdin.end();
-          } else {
-            child.stdin.end();
+          if (!userName || !userHome) {
+            logger.error("Cannot setup autostart: USER or HOME not defined");
+            return;
           }
 
-          child.stdout.on("data", (data) => {
-            logger.log(data.toString());
-          });
+          const configDir = path.join(userHome, ".config");
+          const autoStartDir = path.join(configDir, "autostart");
+          const startUpFile = path.join(
+            configDir,
+            "utilities-for-pc-autostart.sh",
+          );
+          const desktopFilePath = path.join(
+            autoStartDir,
+            "utilities-for-pc.desktop",
+          );
+          const wrapperScriptPath = `/opt/UtilitiesForPC/utilities-for-pc-root.sh`;
 
-          child.stderr.on("data", (data) => {
-            logger.warn(data.toString());
-          });
+          const dir = new Directory(autoStartDir);
+          if (!(await dir.exists())) {
+            await dir.mkdir({ recursive: true });
+            sudo(`chown -R ${userName}:${userName} "${configDir}"`);
+          }
 
-          child.on("error", (error) => {
-            logger.error(error.message, "error");
-          });
-
-          return child;
-        } catch (error) {
-          logger.error(String(error), "error");
-          return null;
-        }
-      };
-
-      try {
-        const userName = dataApp.getValue("username");
-        const userHome = dataApp.getValue("userHome");
-
-        if (!userName || !userHome) {
-          logger.error("Cannot setup autostart: USER or HOME not defined");
-          return;
-        }
-
-        const configDir = path.join(userHome, ".config");
-        const autoStartDir = path.join(configDir, "autostart");
-        const startUpFile = path.join(
-          configDir,
-          "utilities-for-pc-autostart.sh",
-        );
-        const desktopFilePath = path.join(
-          autoStartDir,
-          "utilities-for-pc.desktop",
-        );
-        const wrapperScriptPath = `/opt/UtilitiesForPC/utilities-for-pc-root.sh`;
-
-        const dir = new Directory(autoStartDir);
-        if (!(await dir.exists())) {
-          await dir.mkdir({ recursive: true });
-          sudo(`chown -R ${userName}:${userName} "${configDir}"`);
-        }
-
-        const wrapperScriptContent = `#!/bin/bash
+          const wrapperScriptContent = `#!/bin/bash
 # Wrapper to run UtilitiesForPC as root with correct environment
 # Usage: ./utilities-for-pc-root.sh <USER_ID> <USER_HOME> <USER_NAME> <DBUS_ADDR>
 
@@ -153,7 +128,7 @@ export ORIGINAL_HOME="$USER_HOME"
 exec ${process.execPath} --no-sandbox --disable-gpu --ozone-platform=x11 "\${@:5}"
 `;
 
-        const startupScriptContent = `#!/bin/bash
+          const startupScriptContent = `#!/bin/bash
 
 xhost +si:localuser:root 2>/dev/null || true
 
@@ -177,7 +152,7 @@ sudo ${wrapperScriptPath} "$USER_ID" "$USER_HOME" "$USER_NAME" "$DBUS_ADDR" >> "
 echo "[$(date)] Startup script completed" >> "$LOG_FILE"
 `;
 
-        const desktopFileContent = `[Desktop Entry]
+          const desktopFileContent = `[Desktop Entry]
 Type=Application
 Exec=${startUpFile}
 Terminal=false
@@ -190,46 +165,76 @@ Categories=Utility;
 StartupNotify=false
 `;
 
-        const tempWrapper = path.join(
-          os.tmpdir(),
-          `utilities-for-pc-root-${Date.now()}.sh`,
-        );
+          const tempWrapper = path.join(
+            os.tmpdir(),
+            `utilities-for-pc-root-${Date.now()}.sh`,
+          );
 
-        await Promise.all([
-          new File(startUpFile).writeFile(startupScriptContent, "utf-8"),
-          new File(tempWrapper).writeFile(wrapperScriptContent, "utf-8"),
-          new File(desktopFilePath).writeFile(desktopFileContent, "utf-8"),
-        ]);
+          await Promise.all([
+            new File(startUpFile).writeFile(startupScriptContent, "utf-8"),
+            new File(tempWrapper).writeFile(wrapperScriptContent, "utf-8"),
+            new File(desktopFilePath).writeFile(desktopFileContent, "utf-8"),
+          ]);
 
-        sudo("cp", [tempWrapper, wrapperScriptPath]);
+          sudo("cp", [tempWrapper, wrapperScriptPath]);
 
-        sudo("chmod", ["+x", wrapperScriptPath]);
+          sudo("chmod", ["+x", wrapperScriptPath]);
 
-        sudo("chmod", ["+x", startUpFile]);
-        sudo("chmod", ["+x", desktopFilePath]);
+          sudo("chmod", ["+x", startUpFile]);
+          sudo("chmod", ["+x", desktopFilePath]);
 
-        sudo("chown", [`${userName}:${userName}`, startUpFile]);
-        sudo("chown", [`${userName}:${userName}`, desktopFilePath]);
+          sudo("chown", [`${userName}:${userName}`, startUpFile]);
+          sudo("chown", [`${userName}:${userName}`, desktopFilePath]);
 
-        const sudoersEntry = `# UtilitiesForPC auto-start with root privileges
+          const sudoersEntry = `# UtilitiesForPC auto-start with root privileges
 ${userName} ALL=(ALL) NOPASSWD: ${wrapperScriptPath}
 ${userName} ALL=(ALL) NOPASSWD: /usr/bin/xhost
 `;
 
-        sudo("tee", ["/etc/sudoers.d/utilitiesforpc"], sudoersEntry);
-        sudo("chmod", ["0440", "/etc/sudoers.d/utilitiesforpc"]);
+          sudo("tee", ["/etc/sudoers.d/utilitiesforpc"], sudoersEntry);
+          sudo("chmod", ["0440", "/etc/sudoers.d/utilitiesforpc"]);
 
-        logger.log("Linux autostart configured successfully.");
-      } catch (error) {
-        logger.error("Error configuring autostart:", error);
+          logger.log("Linux autostart configured successfully.");
+        } catch (error) {
+          logger.error("Error configuring autostart:", error);
+        }
       }
+    } catch (error) {
+      logger.error("Error setting up autostart:", error);
     }
-  } catch (error) {
-    logger.error("Error setting up autostart:", error);
-  }
-};
+  });
 
-if (app.isPackaged) setupAutostart();
+  if (!dataApp.getValue("isWindows"))
+    ExecuteOnce.execute("loadSevenZip", undefined, async () => {
+      const sevenZipPath = path.join(
+        Paths.MAIN_PATH,
+        "node_modules/7zip-bin/linux/x64/7za",
+      );
+
+      try {
+        const file = new File(sevenZipPath);
+
+        if (await file.exists()) await file.chmod(0o755);
+      } catch (err) {
+        logger.error("Could not change permissions for 7za", err);
+      }
+
+      exec(
+        "sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1 gnome-keyring libsecret-tools",
+        (e) => {
+          if (!e) return;
+
+          logger.warn("Some system dependencies may be missing:", e.message);
+        },
+      );
+    });
+}
+
+try {
+  await executeTerminalCommands("Start-up");
+} catch (error) {
+  logger.error("Error executing start-up commands:", error);
+}
 
 let creatingMainWindow = false;
 
@@ -241,6 +246,10 @@ const createWindow = (): void => {
     width: 1000,
     height: 800,
     show: !app.isPackaged,
+    icon: Paths.getPath(
+      "ASSETS",
+      dataApp.getValue("isWindows") ? "tray-icon.ico" : "tray-icon.png",
+    ),
     webPreferences: {
       sandbox: false,
       preload: dataApp.getValue("preloadPath"),
