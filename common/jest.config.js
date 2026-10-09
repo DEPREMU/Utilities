@@ -8,4 +8,10 @@ export default {
   transform: {
     ...tsJestTransformCfg,
   },
+  moduleNameMapper: {
+    "^chalk$": "<rootDir>/tests/__mocks__/chalk.js",
+    "^@commonSrc/(.*)$": "<rootDir>/$1",
+    "^@REPLACERS$": "<rootDir>/both/REPLACERS/REPLACERS",
+    "^@types$": "<rootDir>/../types/index.d.ts",
+  },
 };

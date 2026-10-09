@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-import Chalk from "chalk";
 import { Logger } from "@types";
 import DeviceInfo from "react-native-device-info";
 import { Platform } from "react-native";
@@ -87,10 +86,21 @@ const log = (...args: unknown[]): void => {
 
   const firstMessage = `Info - ${date.toLocaleString()} ::\n`;
   const message = Helper.getMessage(...args);
+  const cleanMessage = Helper.stripAnsi(message);
 
-  if (REPLACERS.isDev) console.log(Chalk.blue.bold(firstMessage), message);
-  else if (REPLACERS.isPreview)
-    uploadLogToServer("log", [firstMessage, message].join(" "));
+  if (REPLACERS.isDev) {
+    if (REPLACERS.isWeb) {
+      console.log(
+        `%c${firstMessage}`,
+        "color: #3b82f6; font-weight: bold;",
+        cleanMessage,
+      );
+    } else {
+      console.log(firstMessage, cleanMessage);
+    }
+  } else if (REPLACERS.isPreview) {
+    uploadLogToServer("log", [firstMessage, cleanMessage].join(" "));
+  }
 };
 
 /**
@@ -121,10 +131,21 @@ const warn = async (...args: unknown[]): Promise<void> => {
 
   const firstMessage = `Warning - ${date.toLocaleString()} ::\n`;
   const message = Helper.getMessage(...args);
+  const cleanMessage = Helper.stripAnsi(message);
 
-  if (REPLACERS.isDev) console.warn(Chalk.yellow.bold(firstMessage), message);
-  else if (REPLACERS.isPreview)
-    await uploadLogToServer("warn", [firstMessage, message].join(" "));
+  if (REPLACERS.isDev) {
+    if (REPLACERS.isWeb) {
+      console.warn(
+        `%c${firstMessage}`,
+        "color: #eab308; font-weight: bold;",
+        cleanMessage,
+      );
+    } else {
+      console.warn(firstMessage, cleanMessage);
+    }
+  } else if (REPLACERS.isPreview) {
+    await uploadLogToServer("warn", [firstMessage, cleanMessage].join(" "));
+  }
 };
 
 /**
@@ -148,10 +169,21 @@ const error = async (...args: unknown[]): Promise<void> => {
   const date = new Date();
   const firstMessage = `Error - ${date.toLocaleString()} ::\n`;
   const message = Helper.getMessage(...args);
+  const cleanMessage = Helper.stripAnsi(message);
 
-  if (REPLACERS.isDev) console.error(Chalk.red.bold(firstMessage), message);
-  else if (REPLACERS.isPreview)
-    await uploadLogToServer("error", [firstMessage, message].join(" "));
+  if (REPLACERS.isDev) {
+    if (REPLACERS.isWeb) {
+      console.error(
+        `%c${firstMessage}`,
+        "color: #ef4444; font-weight: bold;",
+        cleanMessage,
+      );
+    } else {
+      console.error(firstMessage, cleanMessage);
+    }
+  } else if (REPLACERS.isPreview) {
+    await uploadLogToServer("error", [firstMessage, cleanMessage].join(" "));
+  }
 };
 
 const fun = () => {};

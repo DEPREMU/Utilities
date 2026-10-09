@@ -1,20 +1,25 @@
+import { Helper } from "@common";
 import { REPLACERS } from "@REPLACERS";
 
 export * from "./t";
 
+const sanitize = (message: unknown): unknown => {
+  return typeof message === "string" ? Helper.stripAnsi(message) : message;
+};
+
 if (REPLACERS.isDev) {
   REPLACERS.Logger = {
-    log(message: unknown) {
+    log(...args: unknown[]) {
       // eslint-disable-next-line no-console
-      console.log(message);
+      console.log(...args.map(sanitize));
     },
-    warn(message: unknown) {
+    warn(...args: unknown[]) {
       // eslint-disable-next-line no-console
-      console.warn(message);
+      console.warn(...args.map(sanitize));
     },
-    error(message: unknown) {
+    error(...args: unknown[]) {
       // eslint-disable-next-line no-console
-      console.error(message);
+      console.error(...args.map(sanitize));
     },
   };
 }

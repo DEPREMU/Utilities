@@ -1,14 +1,13 @@
 import chalk from "chalk";
-import { Logger } from "@common";
+import { Helper, Logger } from "@common";
 import { prisma } from "@/database/postgres.ts";
 import { LogsWebSocketMessage } from "@types";
 import { WebSocket, WebSocketServer } from "ws";
-import stripAnsi from "strip-ansi";
 
 export const connectedLogClients = new Set<WebSocket>();
 
 Logger.addInterceptor((type, message) => {
-  const cleanedContent = stripAnsi(message);
+  const cleanedContent = Helper.stripAnsi(message);
   
   // Extract tag e.g. [auth] using regex
   const tagMatch = cleanedContent.match(/^\[(.*?)\]/);

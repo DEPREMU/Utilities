@@ -43,7 +43,8 @@ export class Logger extends Logs {
   protected override write(message: string) {
     if (!dataApp || !app.isPackaged) return console.log(message);
 
-    this.file.writeFile(message, { mode: "a" }).then((success) => {
+    const cleanMessage = Helper.stripAnsi(message);
+    this.file.writeFile(cleanMessage, { mode: "a" }).then((success) => {
       if (success) return;
 
       if (dataApp.getValue("isWindows")) {
@@ -64,13 +65,13 @@ export class Logger extends Logs {
           },
         );
 
-        ps.stdin.end(message);
+        ps.stdin.end(cleanMessage);
       } else {
         const tee = spawn("sudo", ["tee", "-a", Paths.LOGS], {
           stdio: ["pipe", "ignore", "inherit"],
         });
 
-        tee.stdin.end(message + "\n");
+        tee.stdin.end(cleanMessage + "\n");
       }
     });
   }
@@ -79,7 +80,7 @@ export class Logger extends Logs {
     const msg = this.getLogMsg(level, ...args);
     if (!dataApp || !app.isPackaged) return console[level](msg);
 
-    this.messages.push(msg);
+    this.messages.push(Helper.stripAnsi(msg));
 
     if (this.messages.length < MAX_MESSAGES) return;
 
