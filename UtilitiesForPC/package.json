@@ -13,7 +13,10 @@
     "before-commit": "yarn run lint:fix && yarn run type-check",
     "test": "echo \"Not Implemented Yet\""
   },
-  "author": "DEPREMU",
+  "author": {
+    "name": "DEPREMU",
+    "email": "email@example.com"
+  },
   "license": "ISC",
   "type": "module",
   "dependencies": {
