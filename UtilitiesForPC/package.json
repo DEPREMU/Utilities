@@ -17,6 +17,7 @@
     "name": "DEPREMU",
     "email": "email@example.com"
   },
+  "homepage": "https://utilities.depremu.com/",
   "license": "ISC",
   "type": "module",
   "dependencies": {
