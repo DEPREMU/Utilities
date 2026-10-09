@@ -1,35 +1,25 @@
 /* eslint-disable no-console */
 import { app } from "electron";
+import dataApp from "./vars/variables";
+import { Paths } from "./vars/paths";
 import { spawn } from "child_process";
-import { Helper } from "@common";
-import dataApp, { Paths } from "./variables";
+import { ExecuteOnce, File, Helper } from "@common";
 
-const write = (message: string) => {
-  if (!dataApp || !app.isPackaged) return console.log(message);
+const MAX_MESSAGES = 20;
 
-  if (dataApp.getValue("isWindows")) {
-    const ps = spawn("powershell.exe", [
-      "-Command",
-      "Add-Content -Path $args[0] -Value ([Console]::In.ReadToEnd())",
-      Paths.LOGS,
-    ]);
+abstract class Logs {
+  protected file = new File(Paths.LOGS);
+  protected messages: string[] = [];
 
-    ps.stdin.end(message);
-  } else {
-    const tee = spawn("sudo", ["tee", "-a", Paths.LOGS], {
-      stdio: ["pipe", "ignore", "inherit"],
+  protected abstract write(message: string): void;
+
+  constructor() {
+    ExecuteOnce.execute("InitLogs", undefined, () => {
+      const header = `\n\n--- New Session [${new Date().toISOString()}] ---\n\n`;
+      this.write(header);
     });
-
-    tee.stdin.end(message + "\n");
   }
-};
-
-const writeLog = (message: string, level: "log" | "warn" | "error") => {
-  if (!dataApp || !app.isPackaged) return console[level](message);
-
-  const logEntry = `[${new Date().toLocaleString()}] [${level.toUpperCase()}]: ${message}`;
-  write(logEntry);
-};
+}
 
 /**
  * If an object is passed, it will be stringified. This allows for better logging of complex data structures.
@@ -38,21 +28,86 @@ const writeLog = (message: string, level: "log" | "warn" | "error") => {
  * Logs are written to a file when the app is packaged, and to the console during development for easier debugging.
  * This method provides a consistent logging format across the application, making it easier to analyze logs and identify issues.
  */
-export class Logger {
-  static log = (...args: unknown[]) =>
-    writeLog(Helper.getMessage(...args), "log");
+export class Logger extends Logs {
+  #moduleName: string;
 
-  static warn = (...args: unknown[]) =>
-    writeLog(Helper.getMessage(...args), "warn");
+  protected getLogMsg(
+    level: "log" | "warn" | "error",
+    ...args: unknown[]
+  ): string {
+    return `[${new Date().toLocaleString()}]-[${this.#moduleName}]-[${level.toUpperCase()}]: ${Helper.getMessage(
+      ...args,
+    )}`;
+  }
 
-  static error = (...args: unknown[]) =>
-    writeLog(Helper.getMessage(...args), "error");
+  protected override write(message: string) {
+    if (!dataApp || !app.isPackaged) return console.log(message);
+
+    this.file.writeFile(message, { mode: "a" }).then((success) => {
+      if (success) return;
+
+      if (dataApp.getValue("isWindows")) {
+        const ps = spawn(
+          "powershell.exe",
+          [
+            "-NoProfile",
+            "-Command",
+            `
+            $input | Add-Content -Path $env:LOG_PATH
+            `,
+          ],
+          {
+            env: {
+              ...process.env,
+              LOG_PATH: Paths.LOGS,
+            },
+          },
+        );
+
+        ps.stdin.end(message);
+      } else {
+        const tee = spawn("sudo", ["tee", "-a", Paths.LOGS], {
+          stdio: ["pipe", "ignore", "inherit"],
+        });
+
+        tee.stdin.end(message + "\n");
+      }
+    });
+  }
+
+  protected writeLog(level: "log" | "warn" | "error", ...args: unknown[]) {
+    const msg = this.getLogMsg(level, ...args);
+    if (!dataApp || !app.isPackaged) return console[level](msg);
+
+    this.messages.push(msg);
+
+    if (this.messages.length < MAX_MESSAGES) return;
+
+    this.write(this.messages.join("\n"));
+    this.messages = [];
+  }
+
+  public log(...args: unknown[]) {
+    this.writeLog("log", ...args);
+  }
+
+  public warn(...args: unknown[]) {
+    this.writeLog("warn", ...args);
+  }
+
+  public error(...args: unknown[]) {
+    this.writeLog("error", ...args);
+  }
+
+  public clear() {
+    this.messages = [];
+    this.file.writeFile("", { mode: "w" });
+  }
+
+  constructor(moduleName: string) {
+    super();
+    this.#moduleName = moduleName;
+
+    console.log(`Loaded module: ${this.#moduleName}`);
+  }
 }
-
-const initNewLogSession = () => {
-  if (!dataApp || !app.isPackaged) return;
-
-  const header = `\n\n--- New Session [${new Date().toISOString()}] ---\n\n`;
-  write(header);
-};
-initNewLogSession();

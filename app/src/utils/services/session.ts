@@ -578,7 +578,7 @@ export const refreshSession = async (
 
     if ("error" in data) {
       REPLACERS.Logger.error(TAG, "Error refreshing session:", data.error);
-      if (REPLACERS.isWeb) windowModule.notifyLoginStatus?.(false);
+      if (REPLACERS.isWeb) windowModule.system.notifyLoginStatus?.(false);
       return ServerError.requestError(data.error);
     }
 
@@ -761,7 +761,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
         this.notLoggedIn();
         this.emit("logout");
         this.#data.isLoggedIn = false;
-        if (REPLACERS.isWeb) windowModule.notifyLoginStatus?.(false);
+        if (REPLACERS.isWeb) windowModule.system.notifyLoginStatus?.(false);
       };
 
       if (!rememberMe || !sessionToken)

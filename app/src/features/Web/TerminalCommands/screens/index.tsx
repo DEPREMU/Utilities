@@ -56,7 +56,7 @@ const TerminalCommands: React.FC<Screens["TerminalCommands"]> = () => {
       setExecuting(true);
       modalRef.closeModal?.();
       try {
-        const result = await windowModule.executeCommand(command);
+        const result = await windowModule.system.executeCommand(command);
         setExecuting(false);
         modalRef.openModal?.(
           t("terminalCommands.commandExecuted"),

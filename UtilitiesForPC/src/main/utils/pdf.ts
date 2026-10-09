@@ -1,10 +1,12 @@
 import path from "path";
 import sharp from "sharp";
-import { app } from "electron";
+import { Paths } from "./vars";
 import { Logger } from "./logger";
 import PDFDocument from "pdfkit";
-import { Directory, File, URI_EXTENSION } from "@common";
+import { Directory, File, Helper, URI_EXTENSION } from "@common";
 import type { PdfCreateRequest, PdfCreateResult } from "@types";
+
+const logger = new Logger("PDF");
 
 const getFilePathFromUri = (uri: string) => {
   if (!uri) return "";
@@ -24,7 +26,7 @@ export const createPDFWithImages = async (
   const { images, options } = request;
   const fileName = getPdfFileName(options.filename);
 
-  const outputDir = path.join(app.getPath("temp"), "UtilitiesForPC", "pdf");
+  const outputDir = path.join(Paths.TEMP, "pdf");
   const dir = new Directory(outputDir);
   await dir.mkdir({ recursive: true });
   const outputPath = path.join(outputDir, fileName);
@@ -32,18 +34,16 @@ export const createPDFWithImages = async (
   const maxSizePdfInBytes = options.maxSizePdf * 1024 * 1024 + 1024 * 100;
   let totalSize = 0;
 
-  await Promise.all(
-    images.map(async (img) => {
-      const imagePath = getFilePathFromUri(img.uri);
-      if (!imagePath) return;
+  await Helper.Arrays.forEachQueue(5, images, async (img) => {
+    const imagePath = getFilePathFromUri(img.uri);
+    if (!imagePath) return;
 
-      const file = new File(imagePath);
-      const stats = await file.stats();
-      if (!stats || !(await file.exists())) return;
+    const file = new File(imagePath);
+    const stats = await file.stats();
+    if (!stats || !(await file.exists())) return;
 
-      totalSize += Number(stats.size);
-    }),
-  );
+    totalSize += Number(stats.size);
+  });
 
   const isLargerThanMaxSize = (multiply?: number) =>
     options.maxSizePdf !== -1 &&
@@ -109,7 +109,7 @@ export const createPDFWithImages = async (
         height: pageHeight,
       });
     } catch (error) {
-      Logger.error("Error processing image for PDF:", error);
+      logger.error("Error processing image for PDF:", error);
     }
   }
 

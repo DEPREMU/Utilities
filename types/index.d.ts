@@ -29,6 +29,7 @@ export type REPLACERS_TYPE = {
 
   //? ServerOrElectron
   isLinux: boolean;
+  isServer: boolean;
   isWindows: boolean;
 
   //? Frontend

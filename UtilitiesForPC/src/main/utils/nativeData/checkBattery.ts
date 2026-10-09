@@ -1,7 +1,9 @@
-import dataApp from "../variables";
+import dataApp from "../vars/variables";
 import { exec } from "child_process";
 import { Logger } from "../logger";
 import { ExpectedNativeWebData } from "@types";
+
+const logger = new Logger("NativeData-CheckBattery");
 
 export const checkBattery = async (): Promise<
   ExpectedNativeWebData["hasBattery"]
@@ -28,7 +30,7 @@ export const checkBattery = async (): Promise<
       return output.includes("battery");
     }
   } catch (error) {
-    Logger.error("Error verifying battery:", error);
+    logger.error("Error verifying battery:", error);
     return "unknown";
   }
 };

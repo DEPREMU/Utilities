@@ -1,9 +1,11 @@
-import dataApp from "./variables";
+import dataApp from "./vars/variables";
 import { exec } from "child_process";
 import { Timers } from "@common";
 import { Logger } from "./logger";
 import { handleShutdown } from "./server";
 import { app, powerMonitor } from "electron";
+
+const logger = new Logger("Main");
 
 powerMonitor.on("resume", () => {
   dataApp.setValue("wasSleeping", true);
@@ -12,7 +14,7 @@ powerMonitor.on("resume", () => {
 powerMonitor.on("unlock-screen", () => {
   if (!dataApp.getValue("wasSleeping")) return;
 
-  Logger.warn("Restarting whole Electron app due to screen unlock...");
+  logger.warn("Restarting whole Electron app due to screen unlock...");
   app.relaunch();
   handleShutdown();
 });
@@ -25,7 +27,7 @@ const elevatePrivileges = (): void => {
       dataApp.setValue("hasSudo", true);
     }
 
-    Logger.warn(
+    logger.warn(
       "User does not have sudo privileges or sudo session has expired.",
     );
 
@@ -33,7 +35,7 @@ const elevatePrivileges = (): void => {
       .filter((arg) => arg.includes("--"))
       .join(" ")}`;
 
-    Logger.log(`Elevating privileges... ${command}`);
+    logger.log(`Elevating privileges... ${command}`);
 
     exec(command, (e) => {
       Timers.setTimeout(() => {
@@ -46,21 +48,21 @@ const elevatePrivileges = (): void => {
 
         return;
       }
-      Logger.error(
+      logger.error(
         "Failed to elevate privileges (or user cancelled):",
         e.message,
       );
     });
   });
-  Logger.log("Privilegios de administrador verificados.");
+  logger.log("Privilegios de administrador verificados.");
 };
 elevatePrivileges();
 
+export * from "./vars";
 export * from "./expose";
 export * from "./logger";
 export * from "./server";
 export * from "./storage";
-export * from "./variables";
 export * from "./translations";
 export * from "./notifications";
 export * from "./nativeData/index";

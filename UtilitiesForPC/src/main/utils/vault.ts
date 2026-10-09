@@ -1,7 +1,9 @@
-import dataApp from "./variables";
+import dataApp from "./vars/variables";
 import { exec } from "child_process";
 import type Edge from "electron-edge-js";
 import { Logger } from "./logger";
+
+const logger = new Logger("Vault");
 
 const edge: typeof Edge | null = dataApp.getValue("isWindows")
   ? // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -32,10 +34,10 @@ export const authenticateUser = async (): Promise<boolean> => {
 
         const callback = (error: Error, result: AuthWindows) => {
           if (error) {
-            Logger.error("Error:", error);
+            logger.error("Error:", error);
             res(false);
           } else {
-            Logger.log("Windows Hello Authentication Result:", result);
+            logger.log("Windows Hello Authentication Result:", result);
             if (result === "DeviceBusy")
               authenticateWithWindowsHello(null, callback);
             else if (result === "Verified") res(true);
@@ -47,7 +49,7 @@ export const authenticateUser = async (): Promise<boolean> => {
       });
     } else {
       const res = await new Promise<boolean>((resolve) => {
-        Logger.log("Executing pkexec command.");
+        logger.log("Executing pkexec command.");
         exec('pkexec echo "ok"', (err) => {
           resolve(!err);
         });
@@ -55,7 +57,7 @@ export const authenticateUser = async (): Promise<boolean> => {
       return res;
     }
   } catch (e) {
-    Logger.error("Authentication error:", e);
+    logger.error("Authentication error:", e);
     return false;
   }
 };

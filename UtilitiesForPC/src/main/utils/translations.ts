@@ -1,5 +1,5 @@
 import { app } from "electron";
-import dataApp from "./variables";
+import dataApp from "./vars/variables";
 import { LanguagesSupported } from "@types";
 
 type Translations = {
@@ -38,14 +38,14 @@ const translations: Record<LanguagesSupported, Translations> = {
  */
 export const t = (
   key: keyof Translations,
-  replace: Record<string, unknown> = {}
+  replace: Record<string, unknown> = {},
 ): string => {
   const value = translations[dataApp.getValue("language")]?.[key] || key;
   let translated = value;
   for (const [placeholder, replacement] of Object.entries(replace)) {
     translated = translated.replace(
       new RegExp(`{{${placeholder}}}`, "g"),
-      String(replacement)
+      String(replacement),
     );
   }
   return translated;

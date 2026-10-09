@@ -4,7 +4,7 @@ import { FetchFileInfo } from "@types";
 
 export const fetchFileInfo: FetchFileInfo = async (filePath) => {
   try {
-    const fileInfo = await windowModule.getFileInfo(filePath);
+    const fileInfo = await windowModule.file.getInfo(filePath);
 
     return fileInfo;
   } catch (error) {

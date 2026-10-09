@@ -2,6 +2,8 @@ import { Logger } from "./logger";
 import { Notification } from "electron";
 import { NotificationElectron, NotificationsSaved } from "@types";
 
+const logger = new Logger("Notifications");
+
 const notifications: NotificationsSaved = {
   cryptos: null,
   streamers: null,
@@ -28,30 +30,30 @@ export const sendNotification = (notif: NotificationElectron) => {
   const notification = new Notification(notif);
 
   notification.on("action", (_, index) => {
-    Logger.log(
+    logger.log(
       `Notification action clicked: ${index}, ${notification.actions?.[index]}`,
     );
     notification.close();
   });
 
   notification.on("click", () => {
-    Logger.log("Notification clicked");
+    logger.log("Notification clicked");
   });
 
   notification.on("close", () => {
-    Logger.log("Notification closed");
+    logger.log("Notification closed");
   });
 
   notification.on("show", () => {
-    Logger.log("Notification shown");
+    logger.log("Notification shown");
   });
 
   notification.on("failed", (error) => {
-    Logger.error("Notification failed:", error);
+    logger.error("Notification failed:", error);
   });
 
   notification.on("reply", (_, reply) => {
-    Logger.log(`Notification reply: ${reply}`);
+    logger.log(`Notification reply: ${reply}`);
   });
 
   notification.show();

@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
 import { app } from "electron";
-import dataApp from "./variables";
+import dataApp from "./vars/variables";
 import { exec } from "child_process";
 import machineId from "node-machine-id";
 import { Server } from "http";
@@ -12,12 +12,14 @@ import Bonjour, { ServiceConfig } from "bonjour-service";
 import { Timers, stopMemoryMonitor } from "@common";
 import { clearTempFiles, executeTerminalCommands } from "./storage";
 
+const logger = new Logger("Server");
+
 let idTimeoutServer: NodeJS.Timeout | number | null = null;
 let isReconnecting = false;
 let isShuttingDown = false;
 
 export const turnOffComputer = async (): Promise<boolean> => {
-  Logger.warn("Received turn-off-computer request");
+  logger.warn("Received turn-off-computer request");
   const command = dataApp.getValue("isWindows")
     ? "shutdown /s /f /t 10"
     : "sudo shutdown -h now";
@@ -26,18 +28,18 @@ export const turnOffComputer = async (): Promise<boolean> => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
         const message = `Error shutting down the computer: ${error.message}`;
-        Logger.error(message);
+        logger.error(message);
         resolve(false);
       }
-      if (stdout) Logger.log(`Shutdown stdout: ${stdout}`);
-      if (stderr) Logger.warn(`Shutdown stderr: ${stderr}`);
+      if (stdout) logger.log(`Shutdown stdout: ${stdout}`);
+      if (stderr) logger.warn(`Shutdown stderr: ${stderr}`);
       resolve(true);
     });
   });
 };
 
 export const restartComputer = async (): Promise<boolean> => {
-  Logger.warn("Received restart-computer request");
+  logger.warn("Received restart-computer request");
   const command = dataApp.getValue("isWindows")
     ? "shutdown /r /f /t 10"
     : "sudo shutdown -r now";
@@ -46,11 +48,11 @@ export const restartComputer = async (): Promise<boolean> => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
         const message = `Error restarting the computer: ${error.message}`;
-        Logger.error(message);
+        logger.error(message);
         resolve(false);
       }
-      if (stdout) Logger.log(`Restart stdout: ${stdout}`);
-      if (stderr) Logger.warn(`Restart stderr: ${stderr}`);
+      if (stdout) logger.log(`Restart stdout: ${stdout}`);
+      if (stderr) logger.warn(`Restart stderr: ${stderr}`);
       resolve(true);
     });
   });
@@ -63,20 +65,20 @@ const hasPermissionsMiddleware = (
 ) => {
   try {
     const { deviceId } = req.body || {};
-    Logger.log(
+    logger.log(
       `Received deviceId: ${deviceId}, expected: ${dataApp.getValue(
         "deviceId",
       )} areEqual: ${deviceId === dataApp.getValue("deviceId")}`,
     );
     if (!deviceId || deviceId !== dataApp.getValue("deviceId")) {
       const message = "Unauthorized request: Invalid or missing deviceId";
-      Logger.warn(message);
+      logger.warn(message);
       res.status(401).json({ error: message });
       return;
     }
   } catch (error) {
     const message = `Error in permissions middleware: ${error}`;
-    Logger.error(message);
+    logger.error(message);
     res.status(500).json({ error: message });
     return;
   }
@@ -87,13 +89,13 @@ export const handleShutdown = async () => {
   if (isShuttingDown) return;
   isShuttingDown = true;
   try {
-    Logger.log("Executing shutdown commands...");
+    logger.log("Executing shutdown commands...");
     await executeTerminalCommands("Shut-down");
   } catch (err) {
-    Logger.error("Error executing shutdown commands:", err);
+    logger.error("Error executing shutdown commands:", err);
   }
   await clearTempFiles();
-  Logger.log("Shutting down gracefully...");
+  logger.log("Shutting down gracefully...");
   cleanAdAndServer();
   stopMemoryMonitor();
   Timers.setTimeout(() => process.exit(0), 500);
@@ -104,21 +106,21 @@ export const cleanAdAndServer = (): void => {
   const server: Server | null = dataApp.getValue("server");
 
   if (ad) {
-    Logger.log("Stopping mDNS advertisement...");
+    logger.log("Stopping mDNS advertisement...");
     try {
       ad.unpublishAll();
       ad.destroy();
     } catch (e) {
-      Logger.error("Error stopping ad (ignoring):", e);
+      logger.error("Error stopping ad (ignoring):", e);
     }
     dataApp.setValue("ad", null);
   }
   if (server) {
-    Logger.log("Closing server...");
+    logger.log("Closing server...");
     try {
       server.close?.();
     } catch (e) {
-      Logger.error("Error closing server (ignoring):", e);
+      logger.error("Error closing server (ignoring):", e);
     }
     dataApp.setValue("server", null);
   }
@@ -126,7 +128,7 @@ export const cleanAdAndServer = (): void => {
 
 export const scheduleReconnect = (reason: string) => {
   if (isReconnecting || isShuttingDown) {
-    Logger.log(
+    logger.log(
       `Reconnect ignored: (Reason: ${reason}, isReconnecting: ${isReconnecting}, isShuttingDown: ${isShuttingDown})`,
     );
     return;
@@ -138,7 +140,7 @@ export const scheduleReconnect = (reason: string) => {
     60000,
   );
   dataApp.setValue("reconnectAttempts", (prev) => prev + 1);
-  Logger.warn(
+  logger.warn(
     `Server stopped (${reason}). Reconnecting in ${delay / 1000}s...`,
   );
 
@@ -148,22 +150,22 @@ export const scheduleReconnect = (reason: string) => {
   }
 
   idTimeoutServer = Timers.setTimeout(() => {
-    Logger.log("Reconnect timeout elapsed. Attempting to restart...");
+    logger.log("Reconnect timeout elapsed. Attempting to restart...");
     idTimeoutServer = null;
 
     try {
       const server = dataApp.getValue("server");
       if (server) {
         server.close(() => {
-          Logger.log("Existing server closed. Restarting...");
+          logger.log("Existing server closed. Restarting...");
           initServer();
         });
       } else {
-        Logger.log("No existing server found. Restarting...");
+        logger.log("No existing server found. Restarting...");
         initServer();
       }
     } catch (e) {
-      Logger.error(
+      logger.error(
         `Error during server close in reconnect: ${e instanceof Error ? e.message : String(e)}. Forcing restart.`,
       );
       initServer();
@@ -192,13 +194,13 @@ const initDevServer = (): void => {
 
 export const initServer = (): void => {
   if (isShuttingDown) {
-    Logger.warn("Shutdown in progress. Aborting server init.");
+    logger.warn("Shutdown in progress. Aborting server init.");
     return;
   }
-  Logger.log("Initializing server...");
+  logger.log("Initializing server...");
 
   if (!dataApp.getValue("hasSudo") && !dataApp.getValue("isWindows")) {
-    Logger.error(
+    logger.error(
       "Permissions missing (no sudo or not Windows). Server will not start.",
     );
     return;
@@ -207,14 +209,14 @@ export const initServer = (): void => {
   if (!dataApp.getValue("deviceId")) {
     machineId.machineId().then((id) => {
       dataApp.setValue("deviceId", id);
-      Logger.log(`Device ID set: ${id}`);
+      logger.log(`Device ID set: ${id}`);
     });
   }
 
   if (dataApp.getValue("hasSudo") && !dataApp.getValue("isWindows")) {
-    Logger.log(`Configuring firewall...`);
+    logger.log(`Configuring firewall...`);
     exec("sudo ufw allow 3005 && sudo ufw reload", (e) => {
-      if (e) Logger.error(`Error configuring firewall: ${e.message}`);
+      if (e) logger.error(`Error configuring firewall: ${e.message}`);
     });
   }
 
@@ -234,28 +236,28 @@ export const initServer = (): void => {
 
       switch (level || "log") {
         case "log":
-          Logger.log(`Client log [${level}]: ${message}`);
+          logger.log(`Client log [${level}]: ${message}`);
           break;
         case "warn":
-          Logger.warn(`Client log [${level}]: ${message}`);
+          logger.warn(`Client log [${level}]: ${message}`);
           break;
         case "error":
-          Logger.error(`Client log [${level}]: ${message}`);
+          logger.error(`Client log [${level}]: ${message}`);
           break;
         default:
-          Logger.log(`Client log [${level}]: ${message}`);
+          logger.log(`Client log [${level}]: ${message}`);
       }
 
       res.json({ success: true });
     });
 
     app.post("/turn-off-computer", hasPermissionsMiddleware, async (_, res) => {
-      Logger.log("Received /turn-off-computer request");
+      logger.log("Received /turn-off-computer request");
       res.json({ success: await turnOffComputer() });
     });
 
     app.post("/restart-computer", hasPermissionsMiddleware, async (_, res) => {
-      Logger.log("Received /restart-computer request");
+      logger.log("Received /restart-computer request");
       res.json({ success: await restartComputer() });
     });
 
@@ -267,7 +269,7 @@ export const initServer = (): void => {
         idTimeoutServer = null;
       }
 
-      Logger.log(`Server listening on port ${dataApp.getValue("PORT")}`);
+      logger.log(`Server listening on port ${dataApp.getValue("PORT")}`);
 
       isReconnecting = false;
       dataApp.setValue("reconnectAttempts", 0);
@@ -296,14 +298,14 @@ export const initServer = (): void => {
 
         if (!service?.published && !service?.activated) initServer();
       } catch (error) {
-        Logger.error("Error setting up mDNS:", error);
+        logger.error("Error setting up mDNS:", error);
       }
     });
 
     server.on("error", (err: NodeJS.ErrnoException) => {
-      Logger.error(`Server error: ${err.message}`);
+      logger.error(`Server error: ${err.message}`);
       if (err.code === "EADDRINUSE") {
-        Logger.warn("Port 3005 already in use. Retrying...");
+        logger.warn("Port 3005 already in use. Retrying...");
         scheduleReconnect("EADDRINUSE");
       } else {
         scheduleReconnect("server_error");
@@ -311,13 +313,13 @@ export const initServer = (): void => {
     });
 
     server.on("close", () => {
-      Logger.log("Server 'close' event fired.");
+      logger.log("Server 'close' event fired.");
       dataApp.setValue("server", null);
 
       if (isReconnecting || isShuttingDown) {
-        Logger.log("Server close was expected.");
+        logger.log("Server close was expected.");
       } else {
-        Logger.warn("Server closed unexpectedly. Scheduling reconnect...");
+        logger.warn("Server closed unexpectedly. Scheduling reconnect...");
         scheduleReconnect("unexpected_close");
       }
     });
@@ -326,18 +328,18 @@ export const initServer = (): void => {
 
     dataApp.setValue("server", server);
   } catch (error) {
-    Logger.error("Fatal error during server initialization:", error);
+    logger.error("Fatal error during server initialization:", error);
     scheduleReconnect("init_catch");
   }
 };
 
 process.on("uncaughtException", (err) => {
-  Logger.error("Uncaught exception:", err);
+  logger.error("Uncaught exception:", err);
   scheduleReconnect("uncaughtException");
 });
 
 process.on("unhandledRejection", (reason) => {
-  Logger.error("Unhandled promise rejection:", reason);
+  logger.error("Unhandled promise rejection:", reason);
   scheduleReconnect("unhandledRejection");
 });
 

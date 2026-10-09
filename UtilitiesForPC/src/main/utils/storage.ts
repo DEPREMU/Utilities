@@ -12,12 +12,14 @@ import {
 import path from "path";
 import Store from "electron-store";
 import crypto from "node:crypto";
-import dataApp from "./variables";
+import dataApp from "./vars/variables";
 import { exec } from "child_process";
 import { Logger } from "./logger";
 import { URI_EXTENSION } from "@common";
 import { app, safeStorage } from "electron";
 import { FileInfo, PickedFile, FolderFiles, ElectronStoreType } from "@types";
+
+const logger = new Logger("Storage");
 
 const createSecureStorageDir = async () => {
   try {
@@ -27,7 +29,7 @@ const createSecureStorageDir = async () => {
 
     if (!(await dir.exists())) await dir.mkdir({ recursive: true });
   } catch (err) {
-    Logger.error("Error initializing secure storage:", err);
+    logger.error("Error initializing secure storage:", err);
   }
 };
 createSecureStorageDir();
@@ -53,9 +55,10 @@ const getMachineKey = async (): Promise<Buffer> => {
         machineId = "fallback-machine-id-utilities-pc";
       }
     }
+
     return crypto.createHash("sha256").update(machineId.trim()).digest();
   } catch (error) {
-    Logger.error("Error getting machine ID:", error);
+    logger.error("Error getting machine ID:", error);
     return crypto.createHash("sha256").update("fallback-error-key").digest();
   }
 };
@@ -88,7 +91,7 @@ const decryptFallback = async (text: string): Promise<string | null> => {
     decrypted += decipher.final("utf8");
     return decrypted;
   } catch (error) {
-    Logger.error("Error decrypting fallback:", error);
+    logger.error("Error decrypting fallback:", error);
     return null;
   }
 };
@@ -101,7 +104,7 @@ const decryptSafeStorage = (text: string): string | null => {
     const buffer = Buffer.from(base64Payload, "base64");
     return safeStorage.decryptString(buffer);
   } catch (error) {
-    Logger.error("Error decrypting safeStorage:", error);
+    logger.error("Error decrypting safeStorage:", error);
     return null;
   }
 };
@@ -138,7 +141,7 @@ export const getStorageValue = async (
 
     if (storedValue.startsWith("ss:")) {
       if (!safeStorage.isEncryptionAvailable()) {
-        Logger.error(
+        logger.error(
           `Encryption not available for key ${String(key)}(${keyValue})`,
         );
         return null;
@@ -162,7 +165,7 @@ export const getStorageValue = async (
       } catch (e) {
         const fallbackDecrypted = await decryptFallback(storedValue);
         if (fallbackDecrypted) return tryVerifyCommands(fallbackDecrypted);
-        Logger.error(`Error decrypting key ${String(key)}(${keyValue}):`, e);
+        logger.error(`Error decrypting key ${String(key)}(${keyValue}):`, e);
         return null;
       }
     }
@@ -170,12 +173,12 @@ export const getStorageValue = async (
     const fallbackDecrypted = await decryptFallback(storedValue);
     if (fallbackDecrypted) return tryVerifyCommands(fallbackDecrypted);
 
-    Logger.error(
+    logger.error(
       `Encryption not available and fallback failed for key ${String(key)}(${keyValue})`,
     );
     return null;
   } catch (err) {
-    Logger.error(`Error reading key ${String(key)}:`, err);
+    logger.error(`Error reading key ${String(key)}:`, err);
     return null;
   }
 };
@@ -206,7 +209,7 @@ export const saveStorageValue = async <T extends ALL_KEYS_STORAGE_TYPE>(
     }
     return true;
   } catch (err) {
-    Logger.error(`Error saving key ${String(key)}:`, err);
+    logger.error(`Error saving key ${String(key)}:`, err);
     return false;
   }
 };
@@ -220,7 +223,7 @@ export const removeStorageValue = async (
 
     return true;
   } catch (err) {
-    Logger.error(`Error removing key ${String(key)}: `, err);
+    logger.error(`Error removing key ${String(key)}: `, err);
     return false;
   }
 };
@@ -239,7 +242,7 @@ const initDeviceId = async (): Promise<void> => {
     dataApp.setValue("deviceId", hashedId);
     await saveStorageValue("DEVICE_ID", hashedId);
   } catch (error) {
-    Logger.error("Error initializing device ID:", error);
+    logger.error("Error initializing device ID:", error);
   }
 };
 initDeviceId();
@@ -259,17 +262,17 @@ export const executeTerminalCommands = async (when: Command["when"]) => {
           return new Promise<void>((resolve) => {
             exec(cmd.command, (error, stdout, stderr) => {
               if (error) {
-                Logger.error(
+                logger.error(
                   `Command execution error for "${cmd.command}" for ${when}: ${error.message}`,
                 );
               }
               if (stderr) {
-                Logger.error(
+                logger.error(
                   `Command execution stderr for "${cmd.command}" for ${when}: ${stderr}`,
                 );
               }
               if (stdout) {
-                Logger.log(
+                logger.log(
                   `Command execution stdout for "${cmd.command}" for ${when}: ${stdout}`,
                 );
               }
@@ -280,7 +283,7 @@ export const executeTerminalCommands = async (when: Command["when"]) => {
         }),
     );
   } catch (error) {
-    Logger.error(`Error executing terminal commands for ${when}:`, error);
+    logger.error(`Error executing terminal commands for ${when}:`, error);
   }
 };
 
@@ -316,7 +319,7 @@ export const copyFileToTemp = async (
 
     return info;
   } catch (error) {
-    Logger.error("Error copying file to temp:", error);
+    logger.error("Error copying file to temp:", error);
     return null;
   }
 };
@@ -330,7 +333,7 @@ export const clearTempFiles = async (): Promise<void> => {
     );
     filesInTemp.clear();
   } catch (error) {
-    Logger.error("Error clearing temp files:", error);
+    logger.error("Error clearing temp files:", error);
   }
 };
 
@@ -345,7 +348,7 @@ export const removeFileWithUri = async (
     filesInTemp.delete(filePath);
     return { success: true };
   } catch (error) {
-    Logger.error(`Error removing file with URI ${uri}: `, error);
+    logger.error(`Error removing file with URI ${uri}: `, error);
     return { success: false };
   }
 };
@@ -365,7 +368,7 @@ export const encryptFile = async (
     data: { password, inputPath, outputPath },
   });
   if (result instanceof Error) {
-    Logger.error(`Error encrypting file "${inputPath}": ${result.message}`);
+    logger.error(`Error encrypting file "${inputPath}": ${result.message}`);
     return false;
   }
 
@@ -383,7 +386,7 @@ export const decryptFile = async (
   });
 
   if (result instanceof Error) {
-    Logger.error(`Error decrypting file "${inputPath}": ${result.message}`);
+    logger.error(`Error decrypting file "${inputPath}": ${result.message}`);
     return false;
   }
   return true;
@@ -498,7 +501,7 @@ export const decryptFiles = async (
 
     return decryptedFiles.filter((f): f is FolderFiles[number] => !!f);
   } catch (error) {
-    Logger.error(
+    logger.error(
       `Error loading encrypted files from folder ${folderId}: `,
       error,
     );
@@ -536,7 +539,7 @@ export const actionWithVaultItem = async (
   } catch (error) {
     const errMsg =
       error instanceof Error ? error.message : "Unknown error occurred.";
-    Logger.error(
+    logger.error(
       `Error performing ${action} on vault item ${item.name}: ${errMsg}`,
     );
     return { success: false, error: errMsg };
@@ -557,7 +560,7 @@ export const renameVaultItem = async (
     return { success: true };
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
-    Logger.error(
+    logger.error(
       `Error renaming vault item ${item.name} to ${newName}: ${errMsg}`,
     );
     return { success: false, error: errMsg };
@@ -585,7 +588,7 @@ export const getFileInfo = async (
 
     return info;
   } catch (error) {
-    Logger.error(`Error getting file info for ${filePath}:`, error);
+    logger.error(`Error getting file info for ${filePath}:`, error);
     return null;
   }
 };
@@ -597,6 +600,6 @@ export const clearDecryptedFolderDirectory = async (): Promise<void> => {
     if (tempFolder && (await tempDir.exists()))
       await tempDir.rm({ recursive: true, force: true });
   } catch (error) {
-    Logger.error("Error clearing decrypted folder directory:", error);
+    logger.error("Error clearing decrypted folder directory:", error);
   }
 };
