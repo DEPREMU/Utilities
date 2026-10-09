@@ -12,6 +12,7 @@ export const REPLACERS: REPLACERS_TYPE = {
   Logger: null as unknown as REPLACERS_TYPE["Logger"],
   isLinux: false,
   isNative: false,
+  isServer: false,
   isWindows: false,
   typeBuild: "normal",
   isPreview: process.env.BUILD_PROFILE === "preview",

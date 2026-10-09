@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { REPLACERS } from "@REPLACERS";
 import { WorkerFiles } from "@types";
 
 let mainPath = process.cwd();
@@ -12,10 +13,12 @@ try {
 let exists = false;
 let attempts = 3;
 
+const ext = REPLACERS.isServer ? "cjs" : "js";
+
 export const PiscinaWorkerFiles: Record<WorkerFiles, string> = {
-  IMAGES: "images.worker.js",
-  ENCRYPTION: "encryption.worker.js",
-  GET_LOCAL_IP: "getLocalIP.worker.js",
+  IMAGES: `images.worker.${ext}`,
+  ENCRYPTION: `encryption.worker.${ext}`,
+  GET_LOCAL_IP: `getLocalIP.worker.${ext}`,
 };
 
 export const getPiscinaWorkerPath = (worker: WorkerFiles) => {

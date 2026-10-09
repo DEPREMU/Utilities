@@ -47,6 +47,7 @@ const REPLACERS_REPLACED: Record<keyof REPLACERS_TYPE, string> = {
   isWeb: `${REPLACERS.isWeb}`,
   Logger: REPLACERS.isProduction ? `(()=>{})` : `REPLACERS.Logger`,
   isLinux: `${REPLACERS.isLinux}`,
+  isServer: `${REPLACERS.isServer}`,
   isNative: `${REPLACERS.isNative}`,
   isWindows: `${REPLACERS.isWindows}`,
   isPreview: `${REPLACERS.isPreview}`,

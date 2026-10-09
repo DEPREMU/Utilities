@@ -16,6 +16,7 @@ const config: ConfigFunction = (api) => {
     isWeb: `${platform === "web"}`,
     isLinux: "false",
     isNative: `${platform !== "web"}`,
+    isServer: "false",
     isWindows: `false`,
     typeBuild: `"normal"`,
     isPreview: `${BUILD_PROFILE === "preview"}`,
