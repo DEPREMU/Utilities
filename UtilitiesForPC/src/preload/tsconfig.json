@@ -14,5 +14,5 @@
     }
   },
   "include": ["./**/*.ts", "../../../common/both/index.ts"],
-  "exclude": ["node_modules", "build", "dist", "release"]
+  "exclude": ["node_modules", "build", "out", "dist", "release"]
 }

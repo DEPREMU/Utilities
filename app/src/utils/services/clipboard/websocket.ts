@@ -109,7 +109,7 @@ export class ClipboardWebSocket extends ClipboardServer {
         if (REPLACERS.isNative)
           BackgroundModule?.setClipboardText?.(parsedMessage.content);
         else if (REPLACERS.isWeb)
-          windowModule.setClipboard(parsedMessage.content);
+          windowModule.clipboard.set(parsedMessage.content);
       } catch (error) {
         REPLACERS.Logger.error(
           "Error parsing Clipboard WebSocket message:",

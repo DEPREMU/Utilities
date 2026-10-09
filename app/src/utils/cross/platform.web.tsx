@@ -70,17 +70,17 @@ const DATA_PLATFORM: PlatformData = {
   version: "",
 };
 
-windowModule.isElectronBuild().then((result) => {
+windowModule.system.isElectronBuild().then((result) => {
   i++;
   DATA_PLATFORM.isElectron = result;
 });
-windowModule.getNativeData("hasBattery").then((result) => {
+windowModule.system.getNativeData("hasBattery").then((result) => {
   i++;
   if (result === "unknown") return;
 
   DATA_PLATFORM.hasBattery = result as boolean;
 });
-windowModule.getNativeData("version").then((result) => {
+windowModule.system.getNativeData("version").then((result) => {
   i++;
   DATA_PLATFORM.version = result as string;
 });
@@ -133,13 +133,13 @@ export const createPdfFromImages: CreatePdfFromImages = async (
   options,
   onProgress?,
 ) => {
-  const result = await windowModule.createPdf({ images, options }, onProgress);
+  const result = await windowModule.pdf.create({ images, options }, onProgress);
   if (!result) return null;
 
   return {
     ...result,
     cleanup: async () => {
-      await windowModule.removeFile(result.uri);
+      await windowModule.file.remove(result.uri);
     },
   };
 };

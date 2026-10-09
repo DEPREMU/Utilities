@@ -16,6 +16,7 @@ export const REPLACERS: REPLACERS_TYPE = {
 
   Logger: null as unknown as REPLACERS_TYPE["Logger"],
   isLinux: false,
+  isServer: false,
   isWindows: false,
   typeBuild: (process.env.TYPE_BUILD as "normal") ?? "normal",
 };

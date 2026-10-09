@@ -10,7 +10,7 @@ import path from "path";
 import axios from "axios";
 import dotenv from "dotenv";
 import { app } from "electron";
-import dataApp from "./variables";
+import dataApp from "./vars/variables";
 import { Enums } from "@types";
 import { Logger } from "./logger";
 import { pipeline } from "node:stream/promises";
@@ -19,6 +19,8 @@ import type { Readable } from "node:stream";
 import { handleShutdown } from "./server";
 import { execFile, spawn } from "child_process";
 import { nativeData, Paths } from "@utils";
+
+const logger = new Logger("Updates");
 
 if (!app.isPackaged)
   dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
@@ -33,7 +35,7 @@ export const deleteDownloadedUpdate = async () => {
 
   try {
     await file.rm();
-    Logger.log("Deleted downloaded update file.");
+    logger.log("Deleted downloaded update file.");
   } catch {
     try {
       if (dataApp.getValue("isWindows"))
@@ -46,13 +48,13 @@ export const deleteDownloadedUpdate = async () => {
         ]);
       else execFile("rm", ["-f", downloadFilePath]);
     } catch (error) {
-      Logger.error("Error deleting downloaded update file:", error);
+      logger.error("Error deleting downloaded update file:", error);
     }
   }
 };
 
 const openInstallerOrInstall = async (filePath: string) => {
-  Logger.log(`Opening installer at path: ${filePath}`);
+  logger.log(`Opening installer at path: ${filePath}`);
   if (dataApp.getValue("isWindows")) {
     await new Promise<void>((resolve) =>
       Timers.setTimeout(async () => {
@@ -63,10 +65,10 @@ const openInstallerOrInstall = async (filePath: string) => {
           });
 
           child.unref();
-          Logger.log("Installer spawned on Windows.");
+          logger.log("Installer spawned on Windows.");
           await handleShutdown();
         } catch (e) {
-          Logger.error("Error spawning installer on Windows: ", e);
+          logger.error("Error spawning installer on Windows: ", e);
         } finally {
           resolve();
         }
@@ -80,7 +82,7 @@ const openInstallerOrInstall = async (filePath: string) => {
         "utilities-for-pc-autostart.sh",
       )}`;
 
-      Logger.log(`Executing Linux install command: ${cmd}`);
+      logger.log(`Executing Linux install command: ${cmd}`);
       const child = spawn(cmd, [], {
         shell: true,
         stdio: "ignore",
@@ -89,7 +91,7 @@ const openInstallerOrInstall = async (filePath: string) => {
       child.unref();
       await handleShutdown();
     } catch (e) {
-      Logger.error("Error installing on Linux:", e);
+      logger.error("Error installing on Linux:", e);
     }
   }
 };
@@ -100,7 +102,7 @@ export const downloadNewUpdate = async (
 ): Promise<"success" | "error"> => {
   const file = target instanceof File ? target : new File(target);
 
-  Logger.log(`Starting download from ${downloadUrl} to ${file.path}`);
+  logger.log(`Starting download from ${downloadUrl} to ${file.path}`);
 
   let writer: ReturnType<File["createStream"]["write"]> | null = null;
 
@@ -119,18 +121,18 @@ export const downloadNewUpdate = async (
 
     await pipeline(response.data, writer);
 
-    Logger.log("Download finished successfully.");
+    logger.log("Download finished successfully.");
 
     return "success";
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
-    Logger.error("Error downloading the update:", message);
+    logger.error("Error downloading the update:", message);
 
     try {
       await file.rm();
     } catch (cleanupError) {
-      Logger.error("Error removing incomplete update file:", cleanupError);
+      logger.error("Error removing incomplete update file:", cleanupError);
     }
 
     return "error";
@@ -139,7 +141,7 @@ export const downloadNewUpdate = async (
       try {
         writer.close();
       } catch (error) {
-        Logger.error("Error closing download writer:", error);
+        logger.error("Error closing download writer:", error);
       }
     }
   }
@@ -148,7 +150,7 @@ export const downloadNewUpdate = async (
 export const updateWeb = async (downloadUrl: string): Promise<void> => {
   const distPath = Paths.DIST;
   if (!distPath.endsWith("dist")) {
-    Logger.error(
+    logger.error(
       "The distribution path is not correctly set. Expected it to end with 'dist'.",
     );
     return;
@@ -164,7 +166,7 @@ export const updateWeb = async (downloadUrl: string): Promise<void> => {
 
     const status = await downloadNewUpdate(downloadUrl, file);
     if (status === "error") {
-      Logger.error("Failed to download the web update.");
+      logger.error("Failed to download the web update.");
       return;
     }
 
@@ -175,7 +177,7 @@ export const updateWeb = async (downloadUrl: string): Promise<void> => {
       success = (await dir.rename(dirBackup)) instanceof Directory;
 
     if (!success) {
-      Logger.error("Failed to move old web files.");
+      logger.error("Failed to move old web files.");
       return;
     }
 
@@ -184,7 +186,7 @@ export const updateWeb = async (downloadUrl: string): Promise<void> => {
         .read()
         .pipe(unzipper.Extract({ path: distPath }))
         .on("close", async () => {
-          Logger.log("Web update extracted successfully.");
+          logger.log("Web update extracted successfully.");
           await Promise.all([dirBackup.rm(), file.rm()]);
           resolve();
         });
@@ -194,11 +196,11 @@ export const updateWeb = async (downloadUrl: string): Promise<void> => {
     if (files.length === 0)
       throw new Error("Web update extracted folder is empty.");
 
-    Logger.log("Web HTML updated correctly.");
+    logger.log("Web HTML updated correctly.");
   } catch (error) {
     await dirBackup.rename(distPath);
 
-    Logger.error("Error updating Web HTML:", error);
+    logger.error("Error updating Web HTML:", error);
   }
 };
 
@@ -211,7 +213,7 @@ export const verifyNewUpdate = async (buildType: Enums["UpdateType"]) => {
   try {
     const hasInternet = await Network.waitForOnline(5, 3000);
     if (!hasInternet) {
-      Logger.warn("No internet connection. Skipping update check.");
+      logger.warn("No internet connection. Skipping update check.");
       return;
     }
 
@@ -228,7 +230,7 @@ export const verifyNewUpdate = async (buildType: Enums["UpdateType"]) => {
     const data = res.data;
 
     if ("error" in data) {
-      Logger.error(
+      logger.error(
         "Error verifying new update (server error):",
         ServerError.getMessage(data),
       );
@@ -242,7 +244,7 @@ export const verifyNewUpdate = async (buildType: Enums["UpdateType"]) => {
       const path = dataApp.getValue("downloadFilePath");
       const res = await downloadNewUpdate(data.downloadUrl, path);
       if (res === "error") {
-        Logger.error("Failed to download the update installer.");
+        logger.error("Failed to download the update installer.");
         dataApp.setValue("isUpdating", false);
         return;
       }
@@ -250,6 +252,6 @@ export const verifyNewUpdate = async (buildType: Enums["UpdateType"]) => {
       await openInstallerOrInstall(path);
     } else await updateWeb(data.downloadUrl);
   } catch (error) {
-    Logger.error("Error verifying new update:", error);
+    logger.error("Error verifying new update:", error);
   }
 };

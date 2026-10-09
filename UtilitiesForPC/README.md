@@ -22,7 +22,7 @@ This workspace provides:
 
 ### Main process
 
-Main entry: [build/index.cjs](build/index.cjs), compiled from [src/main/app.ts](src/main/app.ts).
+Main entry: [out/main/index.js](out/main/index.js), compiled from [src/main/index.ts](src/main/index.ts) via `electron-vite`.
 
 Main process responsibilities include:
 
@@ -37,7 +37,7 @@ In development mode, it loads Expo web from `http://localhost:8081`.
 
 ### Preload bridge
 
-[src/preload/index.ts](src/preload/index.ts) exposes typed `window.UtilitiesForPC.*` APIs through IPC with `contextIsolation: true` and `nodeIntegration: false`.
+[src/preload/index.ts](src/preload/index.ts) compiles to [out/preload/preload.cjs](out/preload/preload.cjs) and exposes typed `window.UtilitiesForPC.*` APIs through IPC with `contextIsolation: true` and `nodeIntegration: false`.
 
 The bridge currently covers:
 
@@ -51,13 +51,23 @@ The bridge currently covers:
 - Safe-folder, file-info, zip, and encrypted vault helpers
 - Electron build detection and native data access
 
+## Build Architecture (`electron-vite`)
+
+This workspace uses [electron.vite.config.ts](electron.vite.config.ts) powered by `electron-vite` and `vite`:
+- **Main process**: Bundles [src/main/index.ts](src/main/index.ts) and all Piscina worker scripts ([common/serverOrElectron/piscina/*.worker.ts](../common/serverOrElectron/piscina/)) into `out/main/`.
+- **Preload script**: Bundles [src/preload/index.ts](src/preload/index.ts) into `out/preload/preload.cjs`.
+- **Replacer plugin**: Injects build profile, target platform (`isWindows`), versions, and eliminates dead code at compile time.
+
 ## Scripts From `UtilitiesForPC/package.json`
 
 Run from this folder:
 
 ```bash
-yarn run type-check
-yarn run before-commit
+yarn run dev           # Start electron-vite interactive dev server
+yarn run build         # Build production bundles for main, preload, and workers into out/
+yarn run preview       # Preview production electron build
+yarn run type-check    # TypeScript type-checking
+yarn run before-commit # Workspace lint & type-check gate
 ```
 
 The full build and packaging flows are driven from the repository root scripts.

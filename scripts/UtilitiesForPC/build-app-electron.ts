@@ -84,7 +84,7 @@ script.addStep("Building web app", async (instance, abortController) => {
 script.addStep("Init temp folder", async (instance) => {
   const PATHS = [
     path.join(script.PATHS.utilitiesForPC, "dist"),
-    path.join(script.PATHS.utilitiesForPC, "build"),
+    path.join(script.PATHS.utilitiesForPC, "out"),
     path.join(script.PATHS.utilitiesForPC, "assets"),
     path.join(script.PATHS.utilitiesForPC, "package.json"),
   ];

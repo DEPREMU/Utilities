@@ -45,6 +45,7 @@ clirelease
 dist-electron
 builds
 build
+out/
 test/
 
 .trunk/

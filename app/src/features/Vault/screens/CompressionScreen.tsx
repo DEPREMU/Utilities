@@ -94,10 +94,10 @@ const CompressionScreen: React.FC = () => {
     let pathZip;
 
     if (REPLACERS.isWeb) {
-      const path = await windowModule.askPath();
+      const path = await windowModule.file.askPath();
       if (!path) return;
 
-      pathZip = await windowModule.zipFolder(
+      pathZip = await windowModule.file.zip(
         files,
         { path, folderName: folderId },
         password || undefined,

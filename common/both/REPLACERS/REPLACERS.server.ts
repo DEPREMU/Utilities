@@ -18,9 +18,9 @@ export const REPLACERS: REPLACERS_TYPE = {
 
   isWeb: false,
   isNative: false,
-
   typeBuild: "normal",
 
   isLinux: process.platform === "linux",
+  isServer: true,
   isWindows: process.platform === "win32",
 };
