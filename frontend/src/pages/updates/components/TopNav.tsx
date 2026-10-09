@@ -1,9 +1,9 @@
 import React from "react";
-import { ThemeLanguageToggle } from "../../common/components/ThemeLanguageToggle";
-import { useTranslation } from "react-i18next";
+import { useTranslations } from "@/pages/context/useTranslations";
+import { ThemeLanguageToggle } from "@/pages/common/components/ThemeLanguageToggle";
 
 export const TopNav: React.FC = React.memo(() => {
-  const { t } = useTranslation();
+  const { t } = useTranslations();
 
   return (
     <div className="updates-topnav">

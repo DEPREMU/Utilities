@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import type { LogsWebSocketMessage } from "@types";
 import { REPLACERS } from "@common";
 import type { LogEntry } from "../types";
+import type { LogsWebSocketMessage } from "@types";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export function useLogsWebSocket() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [connected, setConnected] = useState(false);
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [hasNewLogs, setHasNewLogs] = useState(false);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
 
   const wsRef = useRef<WebSocket | null>(null);
   const listRef = useRef<HTMLDivElement>(null as unknown as HTMLDivElement);

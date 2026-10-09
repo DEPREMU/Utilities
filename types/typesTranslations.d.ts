@@ -995,6 +995,7 @@ export type FrontendTranslations = {
     options: string;
     language: string;
     themeToggle: string;
+    loading: string;
   };
   labels: {
     delete: string;

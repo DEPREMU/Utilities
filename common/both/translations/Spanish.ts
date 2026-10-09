@@ -42,6 +42,7 @@ export const esFrontend: FrontendTranslations = {
     closeBracket: "]",
   },
   updatesWebPage: {
+    loading: "Cargando actualizaciones...",
     downloadLatestVersion: "Descargar la última versión",
     windows: "Windows",
     linux: "Linux",

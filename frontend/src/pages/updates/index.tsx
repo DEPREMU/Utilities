@@ -2,7 +2,7 @@ import "./index.css";
 import { TopNav } from "./components/TopNav";
 import type { Enums } from "@types";
 import { UpdatesGrid } from "./components/UpdatesGrid";
-import { useTranslation } from "react-i18next";
+import { useTranslations } from "@/pages/context/useTranslations";
 import React, { useEffect, useState } from "react";
 import { Helper, REPLACERS, ServerFetch } from "@common";
 
@@ -12,7 +12,7 @@ interface UpdateInfo {
 }
 
 const Updates: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslations();
 
   const [updates, setUpdates] = useState<
     Record<Exclude<Enums["UpdateType"], "web">, UpdateInfo | null>
