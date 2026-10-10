@@ -16,8 +16,8 @@ import { View } from "react-native";
 import RenderImage from "../components/RenderImage";
 import { useLanguage } from "@context/LanguageContext";
 import RenderImageConverted from "../components/RenderImageConverted";
+import { AppTranslationsKeys } from "@types";
 import { useCallback, useMemo } from "react";
-import {  AppTranslationsKeys } from "@types";
 import { SegmentedButtons, Text } from "react-native-paper";
 import { useStylesChangeImageFormat } from "@screens/Images/styles/useStylesChangeImageFormat";
 

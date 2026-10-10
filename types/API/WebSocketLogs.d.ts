@@ -56,7 +56,11 @@ export type WSRequestDeleteAll = {
   type: "request_delete_all";
 };
 
-export type LogsWebSocketMessage<SentBy extends "sentByServer" | "sentByClient"> =
-  SentBy extends "sentByServer"
-    ? WSSyncLogsMessage | WSNewLogMessage | WSDeleteLogMessage | WSDeleteBulkMessage
-    : WSRequestDeleteLog | WSRequestDeleteGroup | WSRequestDeleteAll;
+export type LogsWebSocketMessage<
+  SentBy extends "sentByServer" | "sentByClient",
+> = SentBy extends "sentByServer"
+  ? | WSNewLogMessage
+    | WSSyncLogsMessage
+    | WSDeleteLogMessage
+    | WSDeleteBulkMessage
+  : WSRequestDeleteLog | WSRequestDeleteGroup | WSRequestDeleteAll;

@@ -102,9 +102,24 @@
   transform: translateY(-4px);
 }
 
+.updates-card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.updates-platform-icon {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 16px rgba(129, 140, 248, 0.35));
+}
+
 .updates-card h3 {
   margin-top: 0;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
   font-size: 1.5rem;
   color: var(--text-primary);
 }

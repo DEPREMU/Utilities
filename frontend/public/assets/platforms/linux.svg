@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="linuxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc" />
+      <stop offset="100%" stop-color="#9333ea" />
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="21" fill="rgba(192,132,252,0.12)" stroke="url(#linuxGrad)" stroke-width="2" />
+  <path d="M24 11 C20 11 18 15 18 20 C18 23 17 25 15 28 C14 30 14 34 17 36 C20 38 28 38 31 36 C34 34 34 30 33 28 C31 25 30 23 30 20 C30 15 28 11 24 11 Z" fill="#0f172a" stroke="url(#linuxGrad)" stroke-width="1.5" />
+  <ellipse cx="21.5" cy="18" rx="1.5" ry="2" fill="#ffffff" />
+  <ellipse cx="26.5" cy="18" rx="1.5" ry="2" fill="#ffffff" />
+  <circle cx="22" cy="18" r="0.8" fill="#0f172a" />
+  <circle cx="26" cy="18" r="0.8" fill="#0f172a" />
+  <polygon points="21,21 27,21 24,24" fill="#fbbf24" />
+  <ellipse cx="24" cy="30" rx="5" ry="5.5" fill="#f8fafc" />
+  <ellipse cx="19" cy="36" rx="3.5" ry="1.5" fill="#fbbf24" />
+  <ellipse cx="29" cy="36" rx="3.5" ry="1.5" fill="#fbbf24" />
+</svg>

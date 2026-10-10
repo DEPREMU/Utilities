@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+  createContext,
+} from "react";
 import i18n from "i18next";
 
 export type Theme = "dark" | "light";
@@ -13,7 +19,9 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [theme, setTheme] = useState<Theme>("dark");
   const [language, setLanguage] = useState<Language>("en");
 
@@ -35,16 +43,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   useEffect(() => {
-    const storedTheme: Theme = (localStorage.getItem("theme") as Theme) === "light" ? "light" : "dark";
+    const storedTheme: Theme =
+      (localStorage.getItem("theme") as Theme) === "light" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", storedTheme);
     setTheme(storedTheme);
-    
+
     const initialLang = i18n.language?.startsWith("es") ? "es" : "en";
     setLanguage(initialLang);
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, language, toggleLanguage }}>
+    <ThemeContext.Provider
+      value={{ theme, toggleTheme, language, toggleLanguage }}
+    >
       {children}
     </ThemeContext.Provider>
   );

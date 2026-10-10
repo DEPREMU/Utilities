@@ -41,6 +41,7 @@ export const enFrontend: FrontendTranslations = {
     closeBracket: "]",
   },
   updatesWebPage: {
+    loading: "Loading updates...",
     downloadLatestVersion: "Download Latest Version",
     windows: "Windows",
     linux: "Linux",
@@ -98,11 +99,13 @@ export const enServer: ServerTranslations = {
     codeRequired: "Verification code is required",
     invalidCode: "Invalid verification code",
     codeExpired: "Verification code has expired. Please request a new one.",
-    tooManyAttempts: "Too many failed attempts. This code has been invalidated.",
+    tooManyAttempts:
+      "Too many failed attempts. This code has been invalidated.",
     cooldownActive: "Please wait before requesting another code",
     rateLimitExceeded: "Rate limit exceeded. Please try again later.",
     emailDeliveryFailed: "Failed to queue authentication email",
-    resetSessionExpired: "Password reset session has expired. Please try again.",
+    resetSessionExpired:
+      "Password reset session has expired. Please try again.",
     passwordRequirements:
       "Password must be at least 8 characters long with uppercase, lowercase, numbers, and symbols",
   },
@@ -188,8 +191,7 @@ export const enApp: AppTranslations = {
     changeEmail: "Edit email",
     invalidCode: "Invalid or expired verification code",
     codeSent: "Verification code sent to your email",
-    tooManyAttempts:
-      "Too many failed attempts. Please request a new code.",
+    tooManyAttempts: "Too many failed attempts. Please request a new code.",
     invalidEmailFormat: "Invalid email format",
     forgotPasswordTitle: "Reset Password",
     forgotPasswordDescription:

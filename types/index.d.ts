@@ -16,6 +16,11 @@ export * from "./typesNativeModules";
 export * from "./typesUtilitiesForPC";
 export * from "./typesThirdPartyStateManager";
 
+export type LoggerInterceptor = (
+  type: "log" | "warn" | "error",
+  message: string,
+) => boolean;
+
 export type Logger = {
   log: (...args: unknown[]) => void;
   warn: (...args: unknown[]) => void;

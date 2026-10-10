@@ -30,7 +30,7 @@ config.server.enhanceMiddleware = (middleware: (...args) => void) => {
   moduleName,
   platform,
   ...args
-) => { 
+) => {
   if (moduleName.endsWith("/REPLACERS"))
     return context.resolveRequest(
       context,

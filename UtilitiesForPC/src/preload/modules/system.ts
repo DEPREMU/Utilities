@@ -1,7 +1,11 @@
+import {
+  SystemBridge,
+  LanguagesSupported,
+  ExpectedNativeWebData,
+} from "@types";
 import { Timers } from "@common";
-import { SystemBridge, ExpectedNativeWebData, LanguagesSupported } from "@types";
-import { sendMessage } from "../utils/sendMessage";
 import { sendLog } from "../utils/logger";
+import { sendMessage } from "../utils/sendMessage";
 
 let idleTimeout: number | null = null;
 
@@ -48,7 +52,11 @@ export const systemBridge: SystemBridge = {
   },
   executeCommand: async (command: string): Promise<string> => {
     try {
-      const result = await sendMessage("invoke", "system.executeCommand", command);
+      const result = await sendMessage(
+        "invoke",
+        "system.executeCommand",
+        command,
+      );
       return result;
     } catch (error) {
       sendLog("error", `Error executing command "${command}":`, error);

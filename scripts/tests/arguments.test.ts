@@ -64,7 +64,9 @@ describe("Arguments parser", () => {
     });
 
     it("should preserve multiple equal signs in message", () => {
-      const parsed = Args.parse(["--message=fix: calculate total=subtotal+tax"]);
+      const parsed = Args.parse([
+        "--message=fix: calculate total=subtotal+tax",
+      ]);
       expect(parsed.message).toBe("fix: calculate total=subtotal+tax");
     });
 
