@@ -1,16 +1,19 @@
-const chalk = (s) => s;
-chalk.green = (s) => s;
-chalk.red = (s) => s;
-chalk.yellow = (s) => s;
-chalk.blue = (s) => s;
-chalk.magenta = (s) => s;
-chalk.cyan = (s) => s;
-chalk.white = (s) => s;
-chalk.gray = (s) => s;
-chalk.bold = chalk;
-chalk.dim = chalk;
-chalk.italic = chalk;
-chalk.underline = chalk;
+const createChalkMock = () => {
+  const fn = (...args) => args.join(" ");
+  const handler = {
+    get: (target, prop) => {
+      if (prop === "default") return proxy;
+      return proxy;
+    },
+    apply: (target, thisArg, args) => {
+      return args.join(" ");
+    },
+  };
+  const proxy = new Proxy(fn, handler);
+  return proxy;
+};
+
+const chalk = createChalkMock();
 
 module.exports = chalk;
 module.exports.default = chalk;

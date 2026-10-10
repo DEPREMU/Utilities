@@ -23,6 +23,20 @@ export class Helper {
       .join(" ");
   }
 
+  /**
+   * Strips ANSI escape sequences from a string.
+   *
+   * @param str - The string containing potential ANSI escape sequences.
+   * @returns The sanitized plain-text string.
+   */
+  static stripAnsi(str: string): string {
+    return str.replace(
+      // eslint-disable-next-line no-control-regex
+      /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+      "",
+    );
+  }
+
   static readonly JSON = JSON;
 
   static readonly Arrays = Arrays;

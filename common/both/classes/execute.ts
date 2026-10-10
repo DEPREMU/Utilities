@@ -8,12 +8,13 @@ export class ExecuteOnce {
     options: { saveData: boolean } = { saveData: false },
     func: Function<A, T>,
     ...args: A
-  ) {
-    if (this.#executed.has(key)) return;
+  ): T extends Promise<infer R> ? Promise<R> : T {
+    if (this.#executed.has(key)) return this.#executed.get(key) as never;
 
     const result = func(...args);
 
     this.#executed.set(key, options.saveData ? result : true);
+    return result as never;
   }
 
   static clear() {

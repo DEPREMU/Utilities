@@ -5,7 +5,8 @@ import { REPLACERS } from "@common";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { ThemeProvider } from "./pages/common/contexts/ThemeContext";
+import { ThemeProvider } from "./pages/context/ThemeContext.tsx";
+import { TranslationsProvider } from "./pages/context/useTranslations.tsx";
 
 const rootElement = document.getElementById("root");
 
@@ -22,9 +23,11 @@ if (REPLACERS.isDev)
 createRoot(rootElement).render(
   <StrictMode>
     <BrowserRouter>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
+      <TranslationsProvider>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </TranslationsProvider>
     </BrowserRouter>
   </StrictMode>,
 );

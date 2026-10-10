@@ -1,5 +1,5 @@
 import React from "react";
-import { t } from "../../../utils/t";
+import { useTranslations } from "@/pages/context/useTranslations";
 import { ThemeLanguageToggle } from "../../common/components/ThemeLanguageToggle";
 
 interface LeftMenuProps {
@@ -11,13 +11,9 @@ interface LeftMenuProps {
 }
 
 export const LeftMenu: React.FC<LeftMenuProps> = React.memo(
-  ({
-    search,
-    setSearch,
-    availableTags,
-    selectedTags,
-    setSelectedTags,
-  }) => {
+  ({ search, setSearch, availableTags, selectedTags, setSelectedTags }) => {
+    const { t } = useTranslations();
+
     const handleTagToggle = (tag: string) => {
       setSelectedTags((prev) =>
         prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],

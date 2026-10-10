@@ -1,5 +1,5 @@
-import React from "react";
 import "./index.css";
+import React from "react";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -15,10 +15,10 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
   title,
   message,
-  onConfirm,
   onCancel,
+  onConfirm,
+  cancelText = "Cancel",
   confirmText = "Delete",
-  cancelText = "Cancel"
 }) => {
   if (!isOpen) return null;
 

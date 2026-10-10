@@ -19,6 +19,7 @@ const replacers: Record<Exclude<Paths<REPLACERS_TYPE>, "Logger">, string> = {
   isWeb: "true",
   isLinux: "false",
   isNative: "false",
+  isServer: "false",
   isWindows: "false",
   typeBuild: JSON.stringify(TYPE_BUILD),
   isPreview: `${BUILD_PROFILE === "preview"}`,
@@ -76,6 +77,6 @@ const config = (): ReturnType<ConfigFunction> => {
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: replacers.isDev ? "/" : "./",
+  base: replacers.isDev === "true" ? "/" : "./",
   plugins: [react(), babel({ presets: [reactCompilerPreset()], ...config() })],
 });

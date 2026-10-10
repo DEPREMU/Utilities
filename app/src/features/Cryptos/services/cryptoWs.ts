@@ -119,7 +119,7 @@ export abstract class CryptosWs extends Cryptos {
           case "synced": {
             await Timers.sleep(1000);
             this.emit(CryptoEvents.SYNCED_STATUS, "synced", message.settings);
-            
+
             state.setIsServiceUnavailable(false);
 
             state.setLoading(false);
@@ -194,16 +194,19 @@ export abstract class CryptosWs extends Cryptos {
   private _init = () => {
     this.#initOnMessage();
 
-    this.addEventListener(CryptoEvents.SERVICE_UNAVAILABLE, async (isUnavailable) => {
-      const { useCryptoStore } = await import("./cryptoZustand");
-      const state = useCryptoStore.getState();
-      state.setIsServiceUnavailable(isUnavailable);
-      if (isUnavailable) {
-        state.setLoading(false);
-        state.setRefreshing(false);
-        this.emit(CryptoEvents.SYNCED_STATUS, "error");
-      }
-    });
+    this.addEventListener(
+      CryptoEvents.SERVICE_UNAVAILABLE,
+      async (isUnavailable) => {
+        const { useCryptoStore } = await import("./cryptoZustand");
+        const state = useCryptoStore.getState();
+        state.setIsServiceUnavailable(isUnavailable);
+        if (isUnavailable) {
+          state.setLoading(false);
+          state.setRefreshing(false);
+          this.emit(CryptoEvents.SYNCED_STATUS, "error");
+        }
+      },
+    );
   };
 
   override destroy(): void {

@@ -1,9 +1,9 @@
 import "./index.css";
-import { t } from "@utils";
 import { LogList } from "./components/LogList";
 import { LeftMenu } from "./components/LeftMenu";
 import { LogsHeader } from "./components/LogsHeader";
 import type { GroupedLog } from "./types";
+import { useTranslations } from "@/pages/context/useTranslations";
 import { useLogsWebSocket } from "./hooks/useLogsWebSocket";
 import { ConfirmationModal } from "./ConfirmationModal";
 import React, { useState, useMemo, useCallback } from "react";
@@ -11,15 +11,16 @@ import React, { useState, useMemo, useCallback } from "react";
 const Logs: React.FC = () => {
   const {
     logs,
+    listRef,
     connected,
     hasNewLogs,
-    listRef,
-    handleScroll,
-    scrollToBottom,
     sendDelete,
-    sendDeleteGroup,
+    handleScroll,
     sendDeleteAll,
+    scrollToBottom,
+    sendDeleteGroup,
   } = useLogsWebSocket();
+  const { t } = useTranslations();
 
   // Filtering & Sorting State
   const [search, setSearch] = useState("");
@@ -56,7 +57,7 @@ const Logs: React.FC = () => {
         action: () => sendDelete("request_delete_log", { id }),
       });
     },
-    [sendDelete],
+    [t, sendDelete],
   );
 
   const requestDeleteGroup = useCallback(
@@ -70,7 +71,7 @@ const Logs: React.FC = () => {
         action: () => sendDeleteGroup(cleanedContent),
       });
     },
-    [sendDeleteGroup],
+    [t, sendDeleteGroup],
   );
 
   const requestDeleteAllUI = useCallback(() => {
@@ -80,7 +81,7 @@ const Logs: React.FC = () => {
       message: t("serverLogsViewer.clearAllLogsMessage"),
       action: () => sendDeleteAll(),
     });
-  }, [sendDeleteAll]);
+  }, [t, sendDeleteAll]);
 
   const toggleGroup = useCallback((content: string) => {
     setExpandedGroups((prev) => {

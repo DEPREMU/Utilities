@@ -1,16 +1,19 @@
 import React from "react";
-import { t } from "@utils";
+import { useTheme } from "@/pages/context/ThemeContext";
 import { Sun, Moon } from "lucide";
 import { MorphIcon } from "morphicons/react";
-import { useTheme } from "../contexts/ThemeContext";
+import { useTranslations } from "@/pages/context/useTranslations";
 
 interface ThemeLanguageToggleProps {
   showLanguage?: boolean;
 }
 
-export const ThemeLanguageToggle: React.FC<ThemeLanguageToggleProps> = ({ showLanguage = true }) => {
+export const ThemeLanguageToggle: React.FC<ThemeLanguageToggleProps> = ({
+  showLanguage = true,
+}) => {
+  const { t } = useTranslations();
   const { theme, toggleTheme, language, toggleLanguage } = useTheme();
-  
+
   const Icon = React.useMemo(() => (theme === "light" ? Sun : Moon), [theme]);
 
   return (

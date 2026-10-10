@@ -54,6 +54,7 @@ The bridge currently covers:
 ## Build Architecture (`electron-vite`)
 
 This workspace uses [electron.vite.config.ts](electron.vite.config.ts) powered by `electron-vite` and `vite`:
+
 - **Main process**: Bundles [src/main/index.ts](src/main/index.ts) and all Piscina worker scripts ([common/serverOrElectron/piscina/*.worker.ts](../common/serverOrElectron/piscina/)) into `out/main/`.
 - **Preload script**: Bundles [src/preload/index.ts](src/preload/index.ts) into `out/preload/preload.cjs`.
 - **Replacer plugin**: Injects build profile, target platform (`isWindows`), versions, and eliminates dead code at compile time.

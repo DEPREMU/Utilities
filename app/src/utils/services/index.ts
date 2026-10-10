@@ -28,7 +28,6 @@ export const cleanupServices = async () => {
       ({ CryptoManager }) => CryptoManager,
     ),
   ]);
-  
 
   await Promise.all([
     debug?.destroy(),

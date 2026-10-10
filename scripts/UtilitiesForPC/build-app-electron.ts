@@ -50,13 +50,16 @@ script.addStep(
         })
         .run(
           `yarn run build-resources-electron --isWindows=${instance.PLATFORM.isWindows}`,
-          { env: {
+          {
+            env: {
               ...process.env,
               NODE_ENV:
                 process.env.NODE_ENV ||
                 process.env.BUILD_PROFILE ||
                 "production",
-            }, signal: abortController.signal },
+            },
+            signal: abortController.signal,
+          },
         );
     } else {
       Logger.log("Testing mode: Skipping build-resources-electron");

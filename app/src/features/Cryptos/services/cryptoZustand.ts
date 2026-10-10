@@ -87,7 +87,12 @@ export const useCryptoStore = create<States & Actions>((set, get) => {
 
     isServiceUnavailable: false,
     setIsServiceUnavailable: (v) =>
-      set({ isServiceUnavailable: getValueState(v, () => get().isServiceUnavailable) }),
+      set({
+        isServiceUnavailable: getValueState(
+          v,
+          () => get().isServiceUnavailable,
+        ),
+      }),
 
     // actions
 

@@ -1,5 +1,5 @@
 import "./index.css";
-import { useTranslation } from "react-i18next";
+import { useTranslations } from "@/pages/context/useTranslations";
 import { REPLACERS, Timers } from "@common";
 import type { ContextBridgeType } from "@types";
 import React, { useEffect, useState } from "react";
@@ -14,7 +14,7 @@ const windowTyped = (
 ).UtilitiesForPC;
 
 const Clipboard: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslations();
 
   const [retry, setRetry] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);

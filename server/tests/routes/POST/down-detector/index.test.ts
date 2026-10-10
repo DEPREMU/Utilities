@@ -1,9 +1,6 @@
-import { describe, expect, it, beforeAll } from "@jest/globals";
 import { ServerFetch } from "@common";
-import {
-  createTestUser,
-  type TestUser,
-} from "../../../utils/testHelpers";
+import { createTestUser, type TestUser } from "../../../utils/testHelpers";
+import { describe, expect, it, beforeAll } from "@jest/globals";
 
 let testUser: TestUser;
 
