@@ -1,7 +1,14 @@
+import {
+  test,
+  jest,
+  expect,
+  describe,
+  afterEach,
+  beforeEach,
+} from "@jest/globals";
 import chalk from "chalk";
 import { Helper } from "../../../both/helpers";
 import { Logger } from "../../../serverOrElectron/logger";
-import { describe, test, expect, jest, beforeEach, afterEach } from "@jest/globals";
 
 describe("Logger & Helper.stripAnsi", () => {
   describe("Helper.stripAnsi", () => {
@@ -50,7 +57,9 @@ describe("Logger & Helper.stripAnsi", () => {
       const joinedOutput = callArgs.join(" ");
 
       expect(Helper.stripAnsi(joinedOutput)).toContain("INFO:");
-      expect(Helper.stripAnsi(joinedOutput)).toContain("Redis connected successfully");
+      expect(Helper.stripAnsi(joinedOutput)).toContain(
+        "Redis connected successfully",
+      );
       expect(joinedOutput).toContain(message);
     });
 

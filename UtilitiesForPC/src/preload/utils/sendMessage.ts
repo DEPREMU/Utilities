@@ -1,11 +1,12 @@
-import { ALL_KEYS_STORAGE_TYPE } from "@common";
-import { ChannelsIpcRenderer } from "@types";
 import { ipcRenderer } from "electron";
+import { ChannelsIpcRenderer } from "@types";
+import { ALL_KEYS_STORAGE_TYPE } from "@common";
 
 export const sendMessage = async <
   T extends ALL_KEYS_STORAGE_TYPE = ALL_KEYS_STORAGE_TYPE,
   K extends keyof ChannelsIpcRenderer<T> = keyof ChannelsIpcRenderer<T>,
-  V extends ChannelsIpcRenderer<T>[K]["functionArgs"] = ChannelsIpcRenderer<T>[K]["functionArgs"],
+  V extends ChannelsIpcRenderer<T>[K]["functionArgs"] =
+    ChannelsIpcRenderer<T>[K]["functionArgs"],
 >(
   type: ChannelsIpcRenderer<T>[K]["typeIpc"],
   channel: K,

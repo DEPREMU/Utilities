@@ -8,10 +8,10 @@ import {
   RequestRefreshSession,
   RequestChangeImageFormat,
   ResponseChangeImageFormat,
-  RequestForgotPasswordRequest, 
+  RequestForgotPasswordRequest,
   RequestForgotPasswordVerify,
   ResponseForgotPasswordVerify,
-  RequestForgotPasswordReset, 
+  RequestForgotPasswordReset,
 } from "@types";
 import { GetRouterObj } from "./Helpers";
 import { RequestSignOut } from "./Request";
@@ -44,7 +44,7 @@ export type AuthFetch =
   | GetUrlFetch<
       "/forgot-password/request",
       { body: RequestForgotPasswordRequest },
-      Record<string, never>, 
+      Record<string, never>
     >
   | GetUrlFetch<
       "/forgot-password/verify",
@@ -55,7 +55,7 @@ export type AuthFetch =
   | GetUrlFetch<
       "/forgot-password/reset",
       { body: RequestForgotPasswordReset },
-      Record<string, never>, 
+      Record<string, never>
     >
   | GetUrlFetch<"/signout", { body: RequestSignOut }, { auth: true }>
   | GetUrlFetch<

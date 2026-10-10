@@ -244,19 +244,7 @@ const installAll = async () => {
 };
 
 export const formatAll = async () => {
-  await Helper.Arrays.forEachQueue(
-    3,
-    Object.entries(script.PATHS),
-    async ([name, cwd]) => {
-      Logger.log(`Formatting ${name}...`);
-
-      if (!args.ARGS.testing) {
-        await formatFolder(cwd);
-      } else {
-        Logger.log("Testing mode: Skipping folder formatting");
-      }
-    },
-  );
+  await formatFolder(script.PATHS.root);
 };
 
 if (process.env.NODE_ENV !== "test") {

@@ -99,12 +99,16 @@ export const esServer: ServerTranslations = {
     invalidEmailFormat: "Formato de correo electrónico inválido",
     codeRequired: "Se requiere el código de verificación",
     invalidCode: "Código de verificación inválido",
-    codeExpired: "El código de verificación ha expirado. Por favor solicita uno nuevo.",
-    tooManyAttempts: "Demasiados intentos fallidos. Este código ha sido invalidado.",
+    codeExpired:
+      "El código de verificación ha expirado. Por favor solicita uno nuevo.",
+    tooManyAttempts:
+      "Demasiados intentos fallidos. Este código ha sido invalidado.",
     cooldownActive: "Por favor espera antes de solicitar otro código",
-    rateLimitExceeded: "Límite de solicitudes excedido. Por favor intenta más tarde.",
+    rateLimitExceeded:
+      "Límite de solicitudes excedido. Por favor intenta más tarde.",
     emailDeliveryFailed: "Error al encolar el correo de autenticación",
-    resetSessionExpired: "La sesión de restablecimiento ha expirado. Por favor intenta de nuevo.",
+    resetSessionExpired:
+      "La sesión de restablecimiento ha expirado. Por favor intenta de nuevo.",
     passwordRequirements:
       "La contraseña debe tener al menos 8 caracteres con mayúsculas, minúsculas, números y símbolos",
   },

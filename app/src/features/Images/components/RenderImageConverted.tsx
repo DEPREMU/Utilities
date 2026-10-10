@@ -11,7 +11,7 @@ import { ImagesConverted, useImagesStore } from "../services/zustand";
 import { albumsImages, memoDeep, REPLACERS } from "@utils";
 
 type RenderImageConvertedProps = {
-    index: number;
+  index: number;
   image: ImagesConverted[number];
 };
 

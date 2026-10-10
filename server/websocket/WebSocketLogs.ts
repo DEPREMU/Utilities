@@ -8,7 +8,7 @@ export const connectedLogClients = new Set<WebSocket>();
 
 Logger.addInterceptor((type, message) => {
   const cleanedContent = Helper.stripAnsi(message);
-  
+
   // Extract tag e.g. [auth] using regex
   const tagMatch = cleanedContent.match(/^\[(.*?)\]/);
   const tag = tagMatch ? tagMatch[1] : "untagged";
@@ -56,10 +56,7 @@ Logger.addInterceptor((type, message) => {
   return connectedLogClients.size > 0;
 });
 
-const onMessage = async (
-  buffer: WebSocket.RawData,
-  _ws: WebSocket,
-) => {
+const onMessage = async (buffer: WebSocket.RawData, _ws: WebSocket) => {
   try {
     const message = JSON.parse(
       buffer.toString(),
@@ -67,9 +64,11 @@ const onMessage = async (
 
     switch (message.type) {
       case "request_delete_log":
-        await prisma.serverLogs.delete({
-          where: { id: message.payload.id },
-        }).catch(() => {});
+        await prisma.serverLogs
+          .delete({
+            where: { id: message.payload.id },
+          })
+          .catch(() => {});
         broadcastLogsMessage({
           type: "delete_log",
           payload: { id: message.payload.id },
@@ -83,10 +82,12 @@ const onMessage = async (
             select: { id: true },
           });
           const ids = logs.map((l) => l.id);
-          await prisma.serverLogs.deleteMany({
-            where: { cleanedContent: message.payload.cleanedContent },
-          }).catch(() => {});
-          
+          await prisma.serverLogs
+            .deleteMany({
+              where: { cleanedContent: message.payload.cleanedContent },
+            })
+            .catch(() => {});
+
           broadcastLogsMessage({
             type: "delete_bulk",
             payload: { ids },
@@ -123,14 +124,16 @@ const onConnection = async (ws: WebSocket) => {
       orderBy: { timestamp: "desc" },
       take: 10000,
     });
-    
+
     const syncMsg: LogsWebSocketMessage<"sentByServer"> = {
       type: "sync_logs",
       payload: {
-        logs: logs.map(l => ({
-          ...l,
-          timestamp: l.timestamp.toISOString(),
-        })).reverse(), // Send oldest to newest
+        logs: logs
+          .map((l) => ({
+            ...l,
+            timestamp: l.timestamp.toISOString(),
+          }))
+          .reverse(), // Send oldest to newest
       },
     };
     ws.send(JSON.stringify(syncMsg));
@@ -150,7 +153,9 @@ const onConnection = async (ws: WebSocket) => {
   });
 };
 
-export const broadcastLogsMessage = (message: LogsWebSocketMessage<"sentByServer">) => {
+export const broadcastLogsMessage = (
+  message: LogsWebSocketMessage<"sentByServer">,
+) => {
   const msgStr = JSON.stringify(message);
   for (const client of connectedLogClients) {
     if (client.readyState === WebSocket.OPEN) {

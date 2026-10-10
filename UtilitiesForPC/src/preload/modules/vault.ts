@@ -1,10 +1,6 @@
-import {
-  VaultBridge,
-  PickedFile,
-  FolderFiles,
-} from "@types";
-import { sendMessage } from "../utils/sendMessage";
 import { sendLog } from "../utils/logger";
+import { sendMessage } from "../utils/sendMessage";
+import { VaultBridge, PickedFile, FolderFiles } from "@types";
 
 export const vaultBridge: VaultBridge = {
   authenticate: async (): Promise<boolean> => {
@@ -87,7 +83,12 @@ export const vaultBridge: VaultBridge = {
     newFolderId: string,
   ): Promise<void> => {
     try {
-      await sendMessage("invoke", "vault.renameFolder", oldFolderId, newFolderId);
+      await sendMessage(
+        "invoke",
+        "vault.renameFolder",
+        oldFolderId,
+        newFolderId,
+      );
     } catch (error) {
       sendLog("error", "Error renaming folder vault:", error);
     }

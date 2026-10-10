@@ -26,11 +26,11 @@ export const albumsImages: Record<AlbumsImages, AlbumsImages> = {
 };
 
 export const supportedFormatsImages = Object.keys(
-  formatsImages
+  formatsImages,
 ) as RequestChangeImageFormat["format"][];
 
 export const getFormatsButExclude = (
-  excludeFormat: RequestChangeImageFormat["format"]
+  excludeFormat: RequestChangeImageFormat["format"],
 ): RequestChangeImageFormat["format"][] => {
   return supportedFormatsImages.filter((format) => format !== excludeFormat);
 };

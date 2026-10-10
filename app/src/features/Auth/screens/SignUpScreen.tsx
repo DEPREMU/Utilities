@@ -39,7 +39,9 @@ const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
   const [password, setPassword] = useState<string>("");
   const [signingUp, setSigningUp] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [typeSignUp, setTypeSignUp] = useState<"email" | "emailCode">("emailCode");
+  const [typeSignUp, setTypeSignUp] = useState<"email" | "emailCode">(
+    "emailCode",
+  );
 
   const buttons = useMemo(
     () => [

@@ -1,7 +1,12 @@
-import { ClipboardBridge, Function, MessagesClipboard, ClipboardItem } from "@types";
+import {
+  Function,
+  ClipboardItem,
+  ClipboardBridge,
+  MessagesClipboard,
+} from "@types";
+import { sendLog } from "../utils/logger";
 import { ipcRenderer } from "electron";
 import { sendMessage } from "../utils/sendMessage";
-import { sendLog } from "../utils/logger";
 
 const listenersClipboard = new Set<Function<[MessagesClipboard], void>>();
 

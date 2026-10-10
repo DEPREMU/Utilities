@@ -10,7 +10,7 @@
       "android": {
         "buildType": "apk"
       },
-      "env": { 
+      "env": {
         "BUILD_PROFILE": "development"
       },
       "channel": "development"
@@ -20,7 +20,7 @@
         "buildType": "apk"
       },
       "distribution": "internal",
-      "env": { 
+      "env": {
         "BUILD_PROFILE": "preview"
       },
       "channel": "preview"

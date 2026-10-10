@@ -19,9 +19,21 @@ describe("ExecuteOnce", () => {
     test("does not re-execute on subsequent calls and returns true", () => {
       const mockFn = jest.fn(() => "first-run");
 
-      const firstResult = ExecuteOnce.execute("key-2", { saveData: false }, mockFn);
-      const secondResult = ExecuteOnce.execute("key-2", { saveData: false }, mockFn);
-      const thirdResult = ExecuteOnce.execute("key-2", { saveData: false }, mockFn);
+      const firstResult = ExecuteOnce.execute(
+        "key-2",
+        { saveData: false },
+        mockFn,
+      );
+      const secondResult = ExecuteOnce.execute(
+        "key-2",
+        { saveData: false },
+        mockFn,
+      );
+      const thirdResult = ExecuteOnce.execute(
+        "key-2",
+        { saveData: false },
+        mockFn,
+      );
 
       expect(firstResult).toBe("first-run");
       expect(secondResult).toBe(true);
@@ -32,8 +44,16 @@ describe("ExecuteOnce", () => {
     test("defaults saveData to false when options are omitted", () => {
       const mockFn = jest.fn(() => 42);
 
-      const firstResult = ExecuteOnce.execute("key-default-opts", undefined, mockFn);
-      const secondResult = ExecuteOnce.execute("key-default-opts", undefined, mockFn);
+      const firstResult = ExecuteOnce.execute(
+        "key-default-opts",
+        undefined,
+        mockFn,
+      );
+      const secondResult = ExecuteOnce.execute(
+        "key-default-opts",
+        undefined,
+        mockFn,
+      );
 
       expect(firstResult).toBe(42);
       expect(secondResult).toBe(true);
@@ -44,9 +64,18 @@ describe("ExecuteOnce", () => {
 
   describe("argument passing", () => {
     test("passes arguments correctly to the executed function", () => {
-      const mockFn = jest.fn((a: number, b: string, c: boolean) => `${a}-${b}-${c}`);
+      const mockFn = jest.fn(
+        (a: number, b: string, c: boolean) => `${a}-${b}-${c}`,
+      );
 
-      const result = ExecuteOnce.execute("key-args", { saveData: false }, mockFn, 10, "test", true);
+      const result = ExecuteOnce.execute(
+        "key-args",
+        { saveData: false },
+        mockFn,
+        10,
+        "test",
+        true,
+      );
 
       expect(result).toBe("10-test-true");
       expect(mockFn).toHaveBeenCalledTimes(1);
@@ -59,8 +88,16 @@ describe("ExecuteOnce", () => {
       const payload = { id: 1, name: "utilities" };
       const mockFn = jest.fn(() => payload);
 
-      const firstResult = ExecuteOnce.execute("key-save-data", { saveData: true }, mockFn);
-      const secondResult = ExecuteOnce.execute("key-save-data", { saveData: true }, mockFn);
+      const firstResult = ExecuteOnce.execute(
+        "key-save-data",
+        { saveData: true },
+        mockFn,
+      );
+      const secondResult = ExecuteOnce.execute(
+        "key-save-data",
+        { saveData: true },
+        mockFn,
+      );
 
       expect(firstResult).toBe(payload);
       expect(secondResult).toBe(payload);
@@ -80,8 +117,16 @@ describe("ExecuteOnce", () => {
       for (const { key, value } of falsyCases) {
         const mockFn = jest.fn(() => value);
 
-        const firstResult = ExecuteOnce.execute(key, { saveData: true }, mockFn);
-        const secondResult = ExecuteOnce.execute(key, { saveData: true }, mockFn);
+        const firstResult = ExecuteOnce.execute(
+          key,
+          { saveData: true },
+          mockFn,
+        );
+        const secondResult = ExecuteOnce.execute(
+          key,
+          { saveData: true },
+          mockFn,
+        );
 
         expect(firstResult).toBe(value);
         expect(secondResult).toBe(value);
@@ -95,9 +140,17 @@ describe("ExecuteOnce", () => {
     test("handles async function with saveData: false", async () => {
       const mockAsyncFn = jest.fn(async () => "async-data");
 
-      const firstPromise = ExecuteOnce.execute("async-no-save", { saveData: false }, mockAsyncFn);
+      const firstPromise = ExecuteOnce.execute(
+        "async-no-save",
+        { saveData: false },
+        mockAsyncFn,
+      );
       const firstResult = await firstPromise;
-      const secondResult = ExecuteOnce.execute("async-no-save", { saveData: false }, mockAsyncFn);
+      const secondResult = ExecuteOnce.execute(
+        "async-no-save",
+        { saveData: false },
+        mockAsyncFn,
+      );
 
       expect(firstResult).toBe("async-data");
       expect(secondResult).toBe(true);
@@ -108,10 +161,21 @@ describe("ExecuteOnce", () => {
     test("handles async function with saveData: true and returns stored promise", async () => {
       const mockAsyncFn = jest.fn(async () => ({ status: "ok" }));
 
-      const firstPromise = ExecuteOnce.execute("async-save", { saveData: true }, mockAsyncFn);
-      const secondPromise = ExecuteOnce.execute("async-save", { saveData: true }, mockAsyncFn);
+      const firstPromise = ExecuteOnce.execute(
+        "async-save",
+        { saveData: true },
+        mockAsyncFn,
+      );
+      const secondPromise = ExecuteOnce.execute(
+        "async-save",
+        { saveData: true },
+        mockAsyncFn,
+      );
 
-      const [firstResult, secondResult] = await Promise.all([firstPromise, secondPromise]);
+      const [firstResult, secondResult] = await Promise.all([
+        firstPromise,
+        secondPromise,
+      ]);
 
       expect(firstResult).toEqual({ status: "ok" });
       expect(secondResult).toEqual({ status: "ok" });
@@ -168,7 +232,11 @@ describe("ExecuteOnce", () => {
 
       expect(ExecuteOnce.getExecuted("clear-key")).toBeUndefined();
 
-      const resultAfterClear = ExecuteOnce.execute("clear-key", { saveData: true }, mockFn);
+      const resultAfterClear = ExecuteOnce.execute(
+        "clear-key",
+        { saveData: true },
+        mockFn,
+      );
       expect(resultAfterClear).toBe("run-again");
       expect(mockFn).toHaveBeenCalledTimes(2);
     });
@@ -197,7 +265,11 @@ describe("ExecuteOnce", () => {
 
       expect(ExecuteOnce.getExecuted("error-key")).toBeUndefined();
 
-      const result = ExecuteOnce.execute("error-key", { saveData: true }, succeedingFn);
+      const result = ExecuteOnce.execute(
+        "error-key",
+        { saveData: true },
+        succeedingFn,
+      );
       expect(result).toBe("recovered");
       expect(succeedingFn).toHaveBeenCalledTimes(1);
     });

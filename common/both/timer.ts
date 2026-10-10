@@ -44,8 +44,10 @@ export class Timers {
 
   static readonly originalSetTimeout = globalThis.setTimeout.bind(globalThis);
   static readonly originalSetInterval = globalThis.setInterval.bind(globalThis);
-  static readonly originalClearTimeout = globalThis.clearTimeout.bind(globalThis);
-  static readonly originalClearInterval = globalThis.clearInterval.bind(globalThis);
+  static readonly originalClearTimeout =
+    globalThis.clearTimeout.bind(globalThis);
+  static readonly originalClearInterval =
+    globalThis.clearInterval.bind(globalThis);
 
   static setTimeout: SetTimeoutFunction = (...args) => {
     const id = globalThis.setTimeout(() => {

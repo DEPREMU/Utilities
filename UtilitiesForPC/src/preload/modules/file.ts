@@ -48,7 +48,11 @@ export const fileBridge: FileBridge = {
     files: string[],
     outputPath: { folderName: string; path: string },
     password?: string,
-    onProgress?: (progress: number, filename: string, fileCount: number) => void,
+    onProgress?: (
+      progress: number,
+      filename: string,
+      fileCount: number,
+    ) => void,
     onError?: (error: Error) => void,
   ): Promise<string> => {
     try {
@@ -56,12 +60,20 @@ export const fileBridge: FileBridge = {
         "zip-folder-data",
         (
           _event,
-          progress: { number: number; filename: string; fileCount: number } | null,
+          progress: {
+            number: number;
+            filename: string;
+            fileCount: number;
+          } | null,
           error: Error | null,
         ) => {
           if (error) onError?.(error);
           if (progress)
-            onProgress?.(progress.number, progress.filename, progress.fileCount);
+            onProgress?.(
+              progress.number,
+              progress.filename,
+              progress.fileCount,
+            );
         },
       );
       const result = await sendMessage(

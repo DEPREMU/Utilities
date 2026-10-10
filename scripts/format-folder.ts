@@ -3,6 +3,7 @@ import prettier from "prettier";
 import { Script } from "./common";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { Directory, File } from "@commonSrc/serverOrElectron/fs.ts";
+import { Helper } from "@commonSrc/both";
 
 const script = new Script();
 
@@ -69,41 +70,43 @@ export const formatFolder = async (
     throw new Error(`Path does not exist: ${localPath}`);
 
   const files = await dir.readDir();
-  const prettierFile = files.find(
-    (file) => file === ".prettierrc" || file === ".prettierrc.json",
-  );
-  if (prettierFile) {
-    const configPath = path.join(localPath, prettierFile);
-    const configContent = await new File(configPath).readFile("utf-8");
+
+  if (!prettierConfig) {
+    const configContent = await new File(
+      path.join(script.PATHS.root, ".prettierrc"),
+    ).readFile("utf-8");
+
     prettierConfig = JSON.parse(configContent) as prettier.Options;
   }
   Logger.log(`Using Prettier config: ${JSON.stringify(prettierConfig)}`);
 
   let formattedFiles = 0;
-  await Promise.all(
-    files.map(async (_filename) => {
-      const file = new File(path.join(localPath, _filename));
 
-      const stats = await file.stats();
+  await Helper.Arrays.forEachQueue(5, files, async (_filename) => {
+    const file = new File(path.join(localPath, _filename));
 
-      if ((await isExcludedPath(file.path)) || !stats) return;
-      Logger.log(`Formatting: ${file.path}`);
-      if (stats.isDirectory()) {
-        return await formatFolder(file.path, prettierConfig, false);
-      } else if (stats.isFile() && isValidFileExtension(file.path)) {
-        const content = await file.readFile("utf-8");
-        const formattedContent = await prettier.format(content, {
-          ...(prettierConfig || {}),
-          filepath: file.path,
-          endOfLine: "lf",
-        });
-        await file.writeFile(formattedContent, "utf-8");
-        formattedFiles++;
-      }
-    }),
-  );
-  if (first) {
-    Logger.log(`Total formatted files: ${formattedFiles}`);
-  }
+    const stats = await file.stats();
+
+    if ((await isExcludedPath(file.path)) || !stats) return;
+    Logger.log(`Formatting: ${file.path}`);
+    if (stats.isDirectory()) {
+      await formatFolder(file.path, prettierConfig, false);
+    } else if (stats.isFile() && isValidFileExtension(file.path)) {
+      const content = await file.readFile("utf-8");
+      const formattedContent = await prettier.format(content, {
+        ...(prettierConfig || {}),
+        filepath: file.path,
+        endOfLine: "lf",
+      });
+
+      if (content === formattedContent) return;
+      await file.writeFile(formattedContent, "utf-8");
+
+      formattedFiles++;
+    }
+  });
+
+  if (first) Logger.log(`Total formatted files: ${formattedFiles}`);
+
   return formattedFiles;
 };

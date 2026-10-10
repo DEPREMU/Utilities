@@ -15,12 +15,7 @@ import { SnackbarProps } from "react-native-paper";
 import { StyleSheet, View } from "react-native";
 
 export type StylesModal =
-  | "body"
-  | "title"
-  | "buttons"
-  | "overlay"
-  | "modal"
-  | "messageText";
+  "body" | "title" | "modal" | "buttons" | "overlay" | "messageText";
 
 interface ModalContextProps {
   setCustomStyles: React.Dispatch<

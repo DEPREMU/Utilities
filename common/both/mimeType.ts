@@ -23,7 +23,7 @@ export const mimeTypesByExtension: Record<string, DownloadableMimeType> = {
 };
 
 export const getMimeTypeFromExtension = (
-  extension: string
+  extension: string,
 ): DownloadableMimeType | null => {
   const ext = extension.toLowerCase().replace(".", "");
   return mimeTypesByExtension[ext] || null;
