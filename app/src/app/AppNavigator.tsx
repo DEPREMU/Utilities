@@ -34,6 +34,7 @@ import ForgotPasswordScreen from "@screens/Auth/screens/ForgotPasswordScreen";
 import DownDetectorNavigator from "@screens/DownDetector/screens";
 import VerifyResetCodeScreen from "@screens/Auth/screens/VerifyResetCodeScreen";
 import { NavigationContainer } from "@react-navigation/native";
+import { NativeFunctionsModule } from "@/utils/modules";
 import { Screens as RootStackParamList, ScreensAvailable } from "@types";
 import { REPLACERS, navigation, setupNotificationHandlers } from "@utils";
 
@@ -129,15 +130,19 @@ const AppNavigator: React.FC = () => {
   useEffect(() => {
     if (REPLACERS.isNative) {
       const handleNavigate = async (url: string | null) => {
+        REPLACERS.Logger.log("Handling URL:", url);
+
         if (!url || (!url.startsWith("content") && !url.startsWith("file")))
           return;
 
-        if (!url.endsWith(".pdf")) return;
+        const metaData = await NativeFunctionsModule.getFileMetadata(url);
+
+        if (metaData.mimeType !== "application/pdf") return;
 
         try {
           const { default: BlobUtil } = await import("react-native-blob-util");
 
-          const filename = url.split("/").pop();
+          const filename = metaData.fileName;
           if (!filename) return;
 
           const targetUri = `${BlobUtil.fs.dirs.CacheDir}/${filename}`;
