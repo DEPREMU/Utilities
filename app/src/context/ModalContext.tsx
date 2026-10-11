@@ -132,6 +132,12 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
         return [...prev, { label, duration: duration, action, id, timeout }];
       });
     };
+
+    return () => {
+      modalRef.openModal = null;
+      modalRef.closeModal = null;
+      modalRef.openSnackBar = null;
+    };
   }, []);
 
   useEffect(() => {

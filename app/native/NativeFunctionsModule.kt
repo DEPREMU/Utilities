@@ -1,5 +1,6 @@
 package com.package.name
 
+import android.app.DownloadManager
 import android.app.NotificationManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
@@ -8,13 +9,20 @@ import android.content.Intent
 import android.os.Build
 import android.os.PowerManager
 import android.net.Uri
+import android.os.Environment
 import android.provider.Settings
+import androidx.core.content.FileProvider
 import com.package.name.Logger as Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.WritableMap
+import java.util.Locale
+import android.database.Cursor
+import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -78,6 +86,110 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
             promise.reject(
                 "E_CHECK_BATTERY_OPTIMIZATION",
                 "Error checking battery optimization: ${e.message}",
+                e
+            )
+        }
+    }
+
+    @ReactMethod
+    fun getFileMetadata(uriString: String, promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val uri = Uri.parse(uriString)
+
+            if (uri.scheme != "content" && uri.scheme != "file") {
+                promise.reject(
+                    "E_UNSUPPORTED_URI",
+                    "Unsupported URI scheme: ${uri.scheme}"
+                )
+                return
+            }
+
+            var fileName: String? = null
+            var mimeType: String? = null
+
+            if (uri.scheme == "content") {
+                mimeType = try {
+                    context.contentResolver.getType(uri)
+                } catch (e: Exception) {
+                    null
+                }
+
+                var cursor: Cursor? = null
+
+                try {
+                    cursor = context.contentResolver.query(
+                        uri,
+                        arrayOf(OpenableColumns.DISPLAY_NAME),
+                        null,
+                        null,
+                        null
+                    )
+
+                    if (cursor?.moveToFirst() == true) {
+                        val index = cursor.getColumnIndex(
+                            OpenableColumns.DISPLAY_NAME
+                        )
+
+                        if (index >= 0 && !cursor.isNull(index)) {
+                            fileName = cursor.getString(index)
+                                ?.substringAfterLast('/')
+                                ?.takeIf { it.isNotBlank() }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not query content metadata", e)
+                } finally {
+                    cursor?.close()
+                }
+            } else {
+                fileName = uri.path
+                    ?.let { File(it).name }
+                    ?.takeIf { it.isNotBlank() }
+                val extension = fileName
+                    ?.substringAfterLast('.', "")
+                    ?.takeIf { it.isNotBlank() }
+
+                mimeType = extension?.let {
+                    MimeTypeMap.getSingleton()
+                        .getMimeTypeFromExtension(it.lowercase(Locale.ROOT))
+                }
+            }
+
+            if (mimeType.isNullOrBlank()) {
+                val extension = fileName
+                    ?.substringAfterLast('.', "")
+                    ?.takeIf { it.isNotBlank() }
+
+                mimeType = extension?.let {
+                    MimeTypeMap.getSingleton()
+                        .getMimeTypeFromExtension(it.lowercase(Locale.ROOT))
+                }
+            }
+
+            val result: WritableMap = Arguments.createMap().apply {
+                if (fileName != null) {
+                    putString("fileName", fileName)
+                } else {
+                    putNull("fileName")
+                }
+
+                if (mimeType != null) {
+                    putString("mimeType", mimeType)
+                } else {
+                    putNull("mimeType")
+                }
+
+                putString("scheme", uri.scheme)
+            }
+
+            promise.resolve(result)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting file metadata", e)
+
+            promise.reject(
+                "E_GET_FILE_METADATA",
+                "Error getting file metadata: ${e.message}",
                 e
             )
         }
@@ -506,22 +618,21 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
     }
 
     private fun canHandleIntent(intent: Intent): Boolean {
+        if (intent.action == Intent.ACTION_CHOOSER) {
+            return true
+        }
         val packageManager = reactApplicationContext.packageManager
         return intent.resolveActivity(packageManager) != null
     }
 
     private fun safeStartActivity(intent: Intent): Boolean {
-        val context = reactApplicationContext
+        val context = reactApplicationContext.currentActivity ?: reactApplicationContext
         return try {
             val normalizedIntent = Intent(intent).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            if (!canHandleIntent(normalizedIntent)) {
-                false
-            } else {
-                context.startActivity(normalizedIntent)
-                true
-            }
+            context.startActivity(normalizedIntent)
+            true
         } catch (e: ActivityNotFoundException) {
             Log.w(TAG, "Activity not found for intent: ${intent.action}", e)
             false
@@ -763,6 +874,194 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
                 Log.e(TAG, "Error decrypting file", e)
                 deleteFileQuietly(File(outputPath))
                 promise.reject("DECRYPT_ERROR", "Error decrypting: ${e.message}", e)
+            }
+        }
+    }
+
+    @ReactMethod
+    fun checkPackageInstallPermission(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val canInstall = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.packageManager.canRequestPackageInstalls()
+            } else {
+                true
+            }
+            promise.resolve(canInstall)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking package install permission", e)
+            promise.reject("E_CHECK_INSTALL_PERMISSION", e.message, e)
+        }
+    }
+
+    @ReactMethod
+    fun requestPackageInstallPermission(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (context.packageManager.canRequestPackageInstalls()) {
+                    promise.resolve("ALREADY_GRANTED")
+                    return
+                }
+
+                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+
+                if (safeStartActivity(intent)) {
+                    promise.resolve("SETTINGS_OPENED")
+                } else {
+                    val appDetailsIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    if (safeStartActivity(appDetailsIntent)) {
+                        promise.resolve("SETTINGS_OPENED")
+                    } else {
+                        promise.reject("E_REQUEST_INSTALL_PERMISSION", "Could not open unknown sources settings screen.")
+                    }
+                }
+            } else {
+                promise.resolve("ALREADY_GRANTED")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error requesting package install permission", e)
+            promise.reject("E_REQUEST_INSTALL_PERMISSION", e.message, e)
+        }
+    }
+
+    private fun cleanFilePath(path: String): String {
+        return if (path.startsWith("file://")) {
+            Uri.parse(path).path ?: path.removePrefix("file://")
+        } else {
+            path
+        }
+    }
+
+    @ReactMethod
+    fun installPackage(filePath: String, promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val file = File(cleanFilePath(filePath))
+            if (!file.exists() || !file.isFile) {
+                promise.reject("E_INSTALL_FILE_NOT_FOUND", "Package file not found at path: $filePath")
+                return
+            }
+
+            val authority = "${context.packageName}.provider"
+            val contentUri = FileProvider.getUriForFile(context, authority, file)
+
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(contentUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            if (safeStartActivity(installIntent)) {
+                promise.resolve(true)
+            } else {
+                promise.reject("E_INSTALL_FAILED", "No activity found to handle package installation.")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error installing package", e)
+            promise.reject("E_INSTALL_FAILED", e.message, e)
+        }
+    }
+
+    @ReactMethod
+    fun viewDownloadedFile(sourcePath: String, promise: Promise) {
+        scope.launch {
+            try {
+                val context = reactApplicationContext
+                val sourceFile = File(cleanFilePath(sourcePath))
+                if (!sourceFile.exists() || !sourceFile.isFile) {
+                    promise.reject("E_FILE_NOT_FOUND", "Source file not found at path: $sourcePath")
+                    return@launch
+                }
+
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (!downloadsDir.exists()) {
+                    downloadsDir.mkdirs()
+                }
+
+                var targetFile = File(downloadsDir, sourceFile.name)
+                if (targetFile.exists()) {
+                    val baseName = sourceFile.nameWithoutExtension
+                    val ext = sourceFile.extension
+                    var counter = 1
+                    while (targetFile.exists()) {
+                        targetFile = File(downloadsDir, "$baseName ($counter).$ext")
+                        counter++
+                    }
+                }
+
+                val moved = sourceFile.renameTo(targetFile)
+                val finalFile = if (moved) {
+                    targetFile
+                } else {
+                    sourceFile.copyTo(targetFile, overwrite = true)
+                    deleteFileQuietly(sourceFile)
+                    targetFile
+                }
+
+                val authority = "${context.packageName}.provider"
+                val contentUri = FileProvider.getUriForFile(context, authority, finalFile)
+
+                withContext(Dispatchers.Main) {
+                    val downloadIntent = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    val downloadChooser = Intent.createChooser(downloadIntent, null).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+
+                    val downloadsDocUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload")
+                    val docIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(downloadsDocUri, "vnd.android.document/root")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    val docChooser = Intent.createChooser(docIntent, null).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+
+                    val dirUri = FileProvider.getUriForFile(context, authority, downloadsDir)
+                    val dirIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(dirUri, "vnd.android.document/directory")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    val dirChooser = Intent.createChooser(dirIntent, null).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+
+                    val fileIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(contentUri, "*/*")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    val fileChooser = Intent.createChooser(fileIntent, null).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+
+                    val intentsToTry = listOf(
+                        downloadChooser,
+                        downloadIntent,
+                        docChooser,
+                        docIntent,
+                        dirChooser,
+                        dirIntent,
+                        fileChooser,
+                        fileIntent
+                    )
+
+                    startFirstAvailableIntent(intentsToTry)
+                    promise.resolve(finalFile.absolutePath)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error viewing downloaded file", e)
+                promise.reject("E_VIEW_FILE_ERROR", e.message, e)
             }
         }
     }

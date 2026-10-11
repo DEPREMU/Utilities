@@ -79,5 +79,11 @@
     "name": "Logger.kt",
     "initPath": "native/",
     "finalPath": "android/app/src/main/java/"
+  },
+  {
+    "name": "provider_paths.xml",
+    "initPath": "native/",
+    "finalPath": "android/app/src/main/res/xml/",
+    "service": "<provider \n  android:name=\"androidx.core.content.FileProvider\" \n  android:authorities=\"${applicationId}.provider\" \n  android:exported=\"false\" \n  android:grantUriPermissions=\"true\"> \n  <meta-data \n    android:name=\"android.support.FILE_PROVIDER_PATHS\" \n    android:resource=\"@xml/provider_paths\" /> \n</provider>"
   }
 ]

@@ -318,6 +318,21 @@ export type AppTranslations = BatteryStateTranslations &
       ourUpdatesWebPage: string;
       openUpdatesWebPage: string;
       updateAvailableMessage: string;
+      downloadUpdate: string;
+      visitWebPage: string;
+      downloadingUpdate: string;
+      alertWhenDone: string;
+      downloadComplete: string;
+      downloadCompleteMessage: string;
+      installViaApp: string;
+      viewFile: string;
+      permissionRequiredTitle: string;
+      permissionRequiredMessage: string;
+      grantPermission: string;
+      downloadFailedTitle: string;
+      downloadFailedMessage: string;
+      retry: string;
+      fileMovedToDownloads: `${string}{{path}}${string}`;
     };
     permissions: {
       overlayPermission: string;

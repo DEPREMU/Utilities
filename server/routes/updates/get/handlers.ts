@@ -1,10 +1,16 @@
+import {
+  File,
+  Logger,
+  REPLACERS,
+  getHandlerGet,
+  STATUS_RESPONSE,
+} from "@common";
 import path from "path";
 import chalk from "chalk";
 import { config } from "@/config";
 import { RequestError } from "@commonSrc/both/errors/Error";
 import { sendAccelRedirect } from "../downloads";
 import { dataUpdates, getFinalFileName } from "../variables";
-import { File, Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 
 export const handleIsUpdateAvailable = getHandlerGet(
   "/updates",
@@ -75,6 +81,12 @@ export const handleDownload = getHandlerGet(
         "File not found on server",
       );
 
-    await sendAccelRedirect(res, filePath, filename);
+    if (REPLACERS.isDev) {
+      res.download(filePath, (err) => {
+        if (!err) return;
+
+        Logger.error(chalk.red("Error in handleDownload:"), err);
+      });
+    } else await sendAccelRedirect(res, filePath, filename);
   },
 );

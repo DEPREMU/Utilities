@@ -868,6 +868,23 @@ export const enApp: AppTranslations = {
     updateAvailableMessage:
       "A new update is available. Would you like to update now?",
     updateNow: "Update Now",
+    downloadUpdate: "Download Update",
+    visitWebPage: "Visit Web Page",
+    downloadingUpdate: "Downloading Update...",
+    alertWhenDone: "Alert When Done",
+    downloadComplete: "Update Downloaded",
+    downloadCompleteMessage: "The update package is ready to install.",
+    installViaApp: "Install via App",
+    viewFile: "View File",
+    permissionRequiredTitle: "Permission Required",
+    permissionRequiredMessage:
+      "To install updates directly, allow installing apps from this source.",
+    grantPermission: "Grant Permission",
+    downloadFailedTitle: "Download Failed",
+    downloadFailedMessage:
+      "Could not complete update download. Please check your internet connection.",
+    retry: "Retry",
+    fileMovedToDownloads: "Update file moved to {{path}}",
   },
   user: {
     dearUser: "Dear user",
