@@ -1,8 +1,16 @@
 import { REPLACERS } from "@common";
+import { DownloadableMimeType } from "@types";
 import type { TurboModule } from "react-native";
 import { DeviceEventEmitter, TurboModuleRegistry } from "react-native";
 
+type FileMetadata = {
+  scheme: "content" | "file";
+  fileName: string | null;
+  mimeType: DownloadableMimeType | null;
+};
+
 export interface Spec extends TurboModule {
+  getFileMetadata: (url: string) => Promise<FileMetadata>;
   checkOverlayPermission: () => Promise<boolean>;
   requestOverlayPermission: () => Promise<
     "NOT_NEEDED" | "SETTINGS_OPENED" | "NOT_AVAILABLE"
@@ -42,35 +50,17 @@ export interface Spec extends TurboModule {
     outputPath: string,
     password: string,
   ) => Promise<boolean>;
+  checkPackageInstallPermission: () => Promise<boolean>;
+  requestPackageInstallPermission: () => Promise<
+    "SETTINGS_OPENED" | "ALREADY_GRANTED" | "NOT_SUPPORTED"
+  >;
+  installPackage: (filePath: string) => Promise<boolean>;
+  viewDownloadedFile: (sourcePath: string) => Promise<string>;
 }
-
-const voidFunc = () => {};
-const asyncFalse = async () => false;
-const notSupported = async () => "NOT_SUPPORTED" as const;
-
-const defaultNativeFunctionsModule: Spec = {
-  checkOverlayPermission: asyncFalse,
-  requestOverlayPermission: async () => "NOT_AVAILABLE",
-  checkDoNotDisturbPermission: asyncFalse,
-  requestDoNotDisturbPermission: async () => "NOT_NEEDED",
-  enableDoNotDisturb: notSupported,
-  disableDoNotDisturb: notSupported,
-  isIgnoringBatteryOptimizations: asyncFalse,
-  requestIgnoreBatteryOptimizations: voidFunc,
-  openApp: voidFunc,
-  requestAutoStartPermission: async () => "GENERIC_SETTINGS_OPENED",
-  minimizeApp: voidFunc,
-  wasLaunchedFromService: asyncFalse,
-  isDoNotDisturbEnabled: asyncFalse,
-  subscribeToProgressDecrypt: () => voidFunc,
-  subscribeToProgressEncrypt: () => voidFunc,
-  decryptFile: asyncFalse,
-  encryptFile: asyncFalse,
-};
 
 const NativeFunctionsModule = REPLACERS.isNative
   ? TurboModuleRegistry.getEnforcing<Spec>("NativeFunctionsModule")
-  : defaultNativeFunctionsModule;
+  : (null as never);
 
 if (REPLACERS.isNative) {
   const methods = [

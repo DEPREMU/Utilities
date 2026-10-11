@@ -10,7 +10,7 @@ const getLocalIP = () => {
     "\n--------------------------------------",
   );
 
-  return "192.168.1.163:3000";
+  return "192.168.1.136:3000";
 };
 
 const ip = REPLACERS.isDev ? getLocalIP() : "";

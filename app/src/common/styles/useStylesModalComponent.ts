@@ -22,6 +22,9 @@ export const useStylesModalComponent = () => {
           maxHeight: height + (StatusBar?.currentHeight || 0),
           cursor: "auto",
           width,
+          padding: 0,
+          justifyContent: "center",
+          alignItems: "center",
         },
         modal: {
           ...getCommonStyles("shadow"),
@@ -37,6 +40,7 @@ export const useStylesModalComponent = () => {
           flex: 1 / 2,
           height: "auto",
           maxHeight: height * 0.75,
+          alignSelf: "center",
         },
         title: {
           fontWeight: "bold",
