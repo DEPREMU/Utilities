@@ -15,7 +15,7 @@ export default (
   const isProduction = BUILD_PROFILE === "production";
 
   const name = "Utilities" + (isProduction ? "" : ` (${BUILD_PROFILE})`);
-  const version = "0.9.0-beta" + (isProduction ? "" : `-${BUILD_PROFILE}`);
+  const version = "0.10.0-beta" + (isProduction ? "" : `-${BUILD_PROFILE}`);
 
   return {
     ...config,
@@ -37,9 +37,7 @@ export default (
       version,
       WS_URL_BASE: process.env.WS_URL,
       API_URL_BASE: process.env.API_URL,
-      eas: {
-        projectId: "7dd2c093-0c91-4638-a5b9-828d458e8be0",
-      },
+      eas: { projectId: "7dd2c093-0c91-4638-a5b9-828d458e8be0" },
     },
     android: {
       adaptiveIcon: {
