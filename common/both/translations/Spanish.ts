@@ -885,6 +885,24 @@ export const esApp: AppTranslations = {
     updateAvailableMessage:
       "Hay una nueva actualización disponible. ¿Te gustaría actualizar ahora?",
     updateNow: "Actualizar ahora",
+    downloadUpdate: "Descargar actualización",
+    visitWebPage: "Visitar página web",
+    downloadingUpdate: "Descargando actualización...",
+    alertWhenDone: "Avisar al terminar",
+    downloadComplete: "Actualización descargada",
+    downloadCompleteMessage:
+      "El paquete de actualización está listo para instalarse.",
+    installViaApp: "Instalar desde la app",
+    viewFile: "Ver archivo",
+    permissionRequiredTitle: "Permiso requerido",
+    permissionRequiredMessage:
+      "Para instalar actualizaciones directamente, permite instalar aplicaciones de esta fuente.",
+    grantPermission: "Otorgar permiso",
+    downloadFailedTitle: "Error al descargar",
+    downloadFailedMessage:
+      "No se pudo completar la descarga. Por favor verifica tu conexión a internet.",
+    retry: "Reintentar",
+    fileMovedToDownloads: "Archivo de actualización movido a {{path}}",
   },
   user: {
     dearUser: "Estimado usuario",

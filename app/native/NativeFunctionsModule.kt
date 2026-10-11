@@ -8,7 +8,9 @@ import android.content.Intent
 import android.os.Build
 import android.os.PowerManager
 import android.net.Uri
+import android.os.Environment
 import android.provider.Settings
+import androidx.core.content.FileProvider
 import com.package.name.Logger as Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -763,6 +765,161 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
                 Log.e(TAG, "Error decrypting file", e)
                 deleteFileQuietly(File(outputPath))
                 promise.reject("DECRYPT_ERROR", "Error decrypting: ${e.message}", e)
+            }
+        }
+    }
+
+    @ReactMethod
+    fun checkPackageInstallPermission(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val canInstall = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.packageManager.canRequestPackageInstalls()
+            } else {
+                true
+            }
+            promise.resolve(canInstall)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking package install permission", e)
+            promise.reject("E_CHECK_INSTALL_PERMISSION", e.message, e)
+        }
+    }
+
+    @ReactMethod
+    fun requestPackageInstallPermission(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (context.packageManager.canRequestPackageInstalls()) {
+                    promise.resolve("ALREADY_GRANTED")
+                    return
+                }
+
+                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+
+                if (safeStartActivity(intent)) {
+                    promise.resolve("SETTINGS_OPENED")
+                } else {
+                    val appDetailsIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    if (safeStartActivity(appDetailsIntent)) {
+                        promise.resolve("SETTINGS_OPENED")
+                    } else {
+                        promise.reject("E_REQUEST_INSTALL_PERMISSION", "Could not open unknown sources settings screen.")
+                    }
+                }
+            } else {
+                promise.resolve("ALREADY_GRANTED")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error requesting package install permission", e)
+            promise.reject("E_REQUEST_INSTALL_PERMISSION", e.message, e)
+        }
+    }
+
+    private fun cleanFilePath(path: String): String {
+        return if (path.startsWith("file://")) {
+            Uri.parse(path).path ?: path.removePrefix("file://")
+        } else {
+            path
+        }
+    }
+
+    @ReactMethod
+    fun installPackage(filePath: String, promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val file = File(cleanFilePath(filePath))
+            if (!file.exists() || !file.isFile) {
+                promise.reject("E_INSTALL_FILE_NOT_FOUND", "Package file not found at path: $filePath")
+                return
+            }
+
+            val authority = "${context.packageName}.provider"
+            val contentUri = FileProvider.getUriForFile(context, authority, file)
+
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(contentUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            if (safeStartActivity(installIntent)) {
+                promise.resolve(true)
+            } else {
+                promise.reject("E_INSTALL_FAILED", "No activity found to handle package installation.")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error installing package", e)
+            promise.reject("E_INSTALL_FAILED", e.message, e)
+        }
+    }
+
+    @ReactMethod
+    fun viewDownloadedFile(sourcePath: String, promise: Promise) {
+        scope.launch {
+            try {
+                val context = reactApplicationContext
+                val sourceFile = File(cleanFilePath(sourcePath))
+                if (!sourceFile.exists() || !sourceFile.isFile) {
+                    promise.reject("E_FILE_NOT_FOUND", "Source file not found at path: $sourcePath")
+                    return@launch
+                }
+
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (!downloadsDir.exists()) {
+                    downloadsDir.mkdirs()
+                }
+
+                var targetFile = File(downloadsDir, sourceFile.name)
+                if (targetFile.exists()) {
+                    val baseName = sourceFile.nameWithoutExtension
+                    val ext = sourceFile.extension
+                    var counter = 1
+                    while (targetFile.exists()) {
+                        targetFile = File(downloadsDir, "$baseName ($counter).$ext")
+                        counter++
+                    }
+                }
+
+                val moved = sourceFile.renameTo(targetFile)
+                val finalFile = if (moved) {
+                    targetFile
+                } else {
+                    sourceFile.copyTo(targetFile, overwrite = true)
+                    deleteFileQuietly(sourceFile)
+                    targetFile
+                }
+
+                val authority = "${context.packageName}.provider"
+                val contentUri = FileProvider.getUriForFile(context, authority, finalFile)
+
+                withContext(Dispatchers.Main) {
+                    val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(contentUri, "application/vnd.android.package-archive")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+
+                    if (!safeStartActivity(viewIntent)) {
+                        val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(contentUri, "*/*")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        safeStartActivity(fallbackIntent)
+                    }
+
+                    promise.resolve(finalFile.absolutePath)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error viewing downloaded file", e)
+                promise.reject("E_VIEW_FILE_ERROR", e.message, e)
             }
         }
     }

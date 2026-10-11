@@ -42,6 +42,12 @@ export interface Spec extends TurboModule {
     outputPath: string,
     password: string,
   ) => Promise<boolean>;
+  checkPackageInstallPermission: () => Promise<boolean>;
+  requestPackageInstallPermission: () => Promise<
+    "SETTINGS_OPENED" | "ALREADY_GRANTED" | "NOT_SUPPORTED"
+  >;
+  installPackage: (filePath: string) => Promise<boolean>;
+  viewDownloadedFile: (sourcePath: string) => Promise<string>;
 }
 
 const voidFunc = () => {};
@@ -66,6 +72,10 @@ const defaultNativeFunctionsModule: Spec = {
   subscribeToProgressEncrypt: () => voidFunc,
   decryptFile: asyncFalse,
   encryptFile: asyncFalse,
+  checkPackageInstallPermission: asyncFalse,
+  requestPackageInstallPermission: async () => "NOT_SUPPORTED",
+  installPackage: asyncFalse,
+  viewDownloadedFile: async () => "",
 };
 
 const NativeFunctionsModule = REPLACERS.isNative
