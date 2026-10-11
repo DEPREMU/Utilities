@@ -1,14 +1,21 @@
-import Button from "@components/Button/screens";
+import {
+  Timers,
+  Network,
+  REPLACERS,
+  Validations,
+  ServerFetch,
+  ServiceClass,
+} from "@common";
+import { openURL } from "expo-linking";
 import { modalRef } from "@refs";
 import { APP_VERSION } from "../TOP_LEVEL";
 import * as ExpoUpdates from "expo-updates";
 import { View, StyleSheet } from "react-native";
 import { EventsDeviceInfo } from "./deviceInfo";
-import { Text, ProgressBar } from "react-native-paper";
+import { ProgressBar, Text } from "react-native-paper";
 import { EventEmitterService } from "@types";
 import React, { useEffect, useState } from "react";
 import { File, Directory, Paths, DownloadTask } from "expo-file-system";
-import { Timers, Network, REPLACERS, ServiceClass, Validations } from "@common";
 
 type CheckUpdatesNatively = {
   time: number;
@@ -19,6 +26,34 @@ type CheckUpdatesNatively = {
 interface ProgressSubscriberProps {
   subscribe: (callback: (percentage: number) => void) => () => void;
 }
+
+const styles = StyleSheet.create({
+  progressContainer: {
+    width: "100%",
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  percentageText: {
+    marginBottom: 12,
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  progressBar: {
+    width: 300,
+    height: 20,
+    borderRadius: 5,
+  },
+  modalButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8,
+    flexWrap: "wrap",
+    width: "100%",
+  },
+  modalBodyText: {
+    marginVertical: 8,
+  },
+});
 
 const UpdateProgressContent: React.FC<ProgressSubscriberProps> = ({
   subscribe,
@@ -33,47 +68,15 @@ const UpdateProgressContent: React.FC<ProgressSubscriberProps> = ({
 
   return (
     <View style={styles.progressContainer}>
+      <ProgressBar style={styles.progressBar} progress={percentage / 100} />
       <Text
         variant="titleMedium"
         style={styles.percentageText}
         children={`${percentage}%`}
       />
-      <ProgressBar
-        progress={percentage / 100}
-        color="#2196F3"
-        style={styles.progressBar}
-      />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  progressContainer: {
-    width: "100%",
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  percentageText: {
-    marginBottom: 12,
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  progressBar: {
-    width: "100%",
-    height: 10,
-    borderRadius: 5,
-  },
-  modalButtonsRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 8,
-    flexWrap: "wrap",
-    width: "100%",
-  },
-  modalBodyText: {
-    marginVertical: 8,
-  },
-});
 
 class Updates extends ServiceClass<never> {
   #idIntervalCheckUpdatesNatively: number | null = null;
@@ -133,7 +136,12 @@ class Updates extends ServiceClass<never> {
     filePath: string,
     _version: string,
   ): Promise<void> => {
-    const { tTyped } = await import("@utils");
+    await modalRef.waitUntilReady?.();
+
+    const [{ tTyped }, { default: Button }] = await Promise.all([
+      import("@utils"),
+      import("@components/Button/screens"),
+    ]);
 
     modalRef.openModal?.(
       tTyped("updates.downloadComplete"),
@@ -240,8 +248,15 @@ class Updates extends ServiceClass<never> {
     if (!REPLACERS.isNative || this.#isDownloading) return;
     this.#isDownloading = true;
 
-    const { alerts, deviceInfo, notificationsManager, tTyped } =
-      await import("@utils");
+    await modalRef.waitUntilReady?.();
+
+    const [
+      { alerts, deviceInfo, notificationsManager, tTyped },
+      { default: Button },
+    ] = await Promise.all([
+      import("@utils"),
+      import("@components/Button/screens"),
+    ]);
 
     try {
       const updatesDir = new Directory(Paths.cache, "updates");
@@ -311,7 +326,10 @@ class Updates extends ServiceClass<never> {
         throw new Error("Downloaded package file is empty or missing");
       }
 
-      if (isBackground || deviceInfo.isBackground) {
+      if (
+        notificationsManager.getNotification("updateAvailable").enabled &&
+        (isBackground || deviceInfo.isBackground)
+      ) {
         this.#pendingDownloadedApk = {
           filePath: downloadedFile.uri,
           version,
@@ -376,13 +394,8 @@ class Updates extends ServiceClass<never> {
       this.#isCheckingUpdates = true;
 
       try {
-        const {
-          tTyped,
-          openURL,
-          deviceInfo,
-          ServerFetch,
-          notificationsManager,
-        } = await import("@utils");
+        const { deviceInfo, notificationsManager, tTyped } =
+          await import("@utils");
 
         const res = await ServerFetch.get(
           "/updates/is-update-available/:version/:buildType",
@@ -404,7 +417,10 @@ class Updates extends ServiceClass<never> {
           return false;
         }
 
-        const downloadUrl = result.downloadUrl;
+        const downloadUrl = result.downloadUrl.replace(
+          "localhost",
+          "192.168.1.136",
+        ); //TODO: Delete after finishing testing
 
         const hasInternet = await Network.waitForOnline(5);
         if (!hasInternet) {
@@ -424,6 +440,9 @@ class Updates extends ServiceClass<never> {
 
         const targetVersion = result.latestVersion || "";
 
+        await modalRef.waitUntilReady?.();
+        await Timers.sleep(200);
+
         if (deviceInfo.isBackground) {
           notificationsManager.sendNotification({
             type: "info",
@@ -440,6 +459,9 @@ class Updates extends ServiceClass<never> {
             ],
           });
         } else {
+          const { default: Button } =
+            await import("@components/Button/screens");
+
           modalRef.openModal?.(
             tTyped("updates.updateAvailable"),
             <Text style={styles.modalBodyText}>
@@ -558,7 +580,11 @@ class Updates extends ServiceClass<never> {
   };
 
   private _initCheckUpdatesNatively = async () => {
-    if (!REPLACERS.isNative || REPLACERS.isDev) return;
+    if (
+      !REPLACERS.isNative
+      // || REPLACERS.isDev //TODO: Delete after finishing testing
+    )
+      return;
     if (this.#idIntervalCheckUpdatesNatively) return;
 
     await this.#checkUpdatesNatively.func();

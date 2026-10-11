@@ -11,16 +11,12 @@ if (!packageName) throw new Error("Package name not found in app config");
 
 const INTENTS_TO_ADD = `    
     <intent-filter>
-    <action android:name="android.intent.action.VIEW" />
-    <category android:name="android.intent.category.DEFAULT" />
-    <category android:name="android.intent.category.BROWSABLE" />
+      <action android:name="android.intent.action.VIEW" />
+      <category android:name="android.intent.category.DEFAULT" />
+      <category android:name="android.intent.category.BROWSABLE" />
 
-    <data
-      android:mimeType="application/pdf"
-      android:scheme="content" />
-    <data
-      android:mimeType="application/pdf"
-      android:scheme="file" />
+      <data android:mimeType="application/pdf" android:scheme="content" />
+      <data android:mimeType="application/pdf" android:scheme="file" />
     </intent-filter>
 `;
 
@@ -208,12 +204,29 @@ script.addStep("Modify AndroidManifest", async () => {
     [...services, "</application>"].join("\n"),
   );
 
+  let updatedManifest = manifestContent.replace(application, newApplication);
+
+  const queriesMatch = updatedManifest.match(/<queries>([\s\S]*?)<\/queries>/);
+  if (queriesMatch && !queriesMatch[1].includes("VIEW_DOWNLOADS")) {
+    const additionalQueries = `    <intent>
+      <action android:name="android.intent.action.VIEW_DOWNLOADS" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:mimeType="*/*" />
+    </intent>`;
+    updatedManifest = updatedManifest.replace(
+      "</queries>",
+      `${additionalQueries}\n  </queries>`,
+    );
+  }
+
   if (args.ARGS.testing) {
     Logger.log(
       chalk.yellow("Testing mode: Skipping AndroidManifest.xml modification"),
     );
   } else {
-    manifest.writeFile(manifestContent.replace(application, newApplication));
+    manifest.writeFile(updatedManifest);
   }
 });
 

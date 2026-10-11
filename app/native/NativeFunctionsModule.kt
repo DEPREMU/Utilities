@@ -1,5 +1,6 @@
 package com.package.name
 
+import android.app.DownloadManager
 import android.app.NotificationManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
@@ -508,22 +509,21 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
     }
 
     private fun canHandleIntent(intent: Intent): Boolean {
+        if (intent.action == Intent.ACTION_CHOOSER) {
+            return true
+        }
         val packageManager = reactApplicationContext.packageManager
         return intent.resolveActivity(packageManager) != null
     }
 
     private fun safeStartActivity(intent: Intent): Boolean {
-        val context = reactApplicationContext
+        val context = currentActivity ?: reactApplicationContext
         return try {
             val normalizedIntent = Intent(intent).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            if (!canHandleIntent(normalizedIntent)) {
-                false
-            } else {
-                context.startActivity(normalizedIntent)
-                true
-            }
+            context.startActivity(normalizedIntent)
+            true
         } catch (e: ActivityNotFoundException) {
             Log.w(TAG, "Activity not found for intent: ${intent.action}", e)
             false
@@ -900,21 +900,54 @@ class NativeFunctionsModule(reactContext: ReactApplicationContext) :
                 val contentUri = FileProvider.getUriForFile(context, authority, finalFile)
 
                 withContext(Dispatchers.Main) {
-                    val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(contentUri, "application/vnd.android.package-archive")
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    val downloadIntent = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    val downloadChooser = Intent.createChooser(downloadIntent, null).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
 
-                    if (!safeStartActivity(viewIntent)) {
-                        val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(contentUri, "*/*")
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        safeStartActivity(fallbackIntent)
+                    val downloadsDocUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload")
+                    val docIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(downloadsDocUri, "vnd.android.document/root")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    val docChooser = Intent.createChooser(docIntent, null).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
 
+                    val dirUri = FileProvider.getUriForFile(context, authority, downloadsDir)
+                    val dirIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(dirUri, "vnd.android.document/directory")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    val dirChooser = Intent.createChooser(dirIntent, null).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+
+                    val fileIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(contentUri, "*/*")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    val fileChooser = Intent.createChooser(fileIntent, null).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+
+                    val intentsToTry = listOf(
+                        downloadChooser,
+                        downloadIntent,
+                        docChooser,
+                        docIntent,
+                        dirChooser,
+                        dirIntent,
+                        fileChooser,
+                        fileIntent
+                    )
+
+                    startFirstAvailableIntent(intentsToTry)
                     promise.resolve(finalFile.absolutePath)
                 }
             } catch (e: Exception) {

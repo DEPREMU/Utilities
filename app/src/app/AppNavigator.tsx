@@ -132,25 +132,21 @@ const AppNavigator: React.FC = () => {
         if (!url || (!url.startsWith("content") && !url.startsWith("file")))
           return;
 
-        if (url.endsWith(".pdf")) {
-          try {
-            const { default: BlobUtil } =
-              await import("react-native-blob-util");
+        if (!url.endsWith(".pdf")) return;
 
-            const uri = `${BlobUtil.fs.dirs.CacheDir}/${url.split("/").pop()}`;
+        try {
+          const { default: BlobUtil } = await import("react-native-blob-util");
 
-            await BlobUtil.fs.cp(
-              url,
-              `${BlobUtil.fs.dirs.CacheDir}/${url.split("/").pop()}`,
-            );
+          const filename = url.split("/").pop();
+          if (!filename) return;
 
-            navigation.replace("PDF", { uri });
-          } catch (error) {
-            REPLACERS.Logger.error(
-              "Error handling PDF URL:",
-              error instanceof Error ? error.message : String(error),
-            );
-          }
+          const targetUri = `${BlobUtil.fs.dirs.CacheDir}/${filename}`;
+
+          await BlobUtil.fs.cp(url, targetUri);
+
+          navigation.replace("PDF", { uri: targetUri });
+        } catch (error) {
+          REPLACERS.Logger.error("Error handling PDF URL:", error);
         }
       };
 
