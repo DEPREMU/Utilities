@@ -1,6 +1,6 @@
-import { Logger } from "@utils";
+import { Logger } from "@/utils/TOP_LEVEL";
 import { cloneDeep } from "lodash";
-import { PERMISSIONS, PermissionsData } from "@common";
+import { PERMISSIONS, PermissionsData, REPLACERS } from "@common";
 
 const logger = new Logger("RefsPermissions");
 
@@ -72,7 +72,7 @@ const initPermissionsData = async () => {
   if (permissionsData.initializing) return permissionsData.initializing;
 
   const [{ storageManagement }, { NativeFunctionsModule }] = await Promise.all([
-    import("@utils"),
+    import("@/utils/services/storage"),
     import("@modules"),
   ]);
 
@@ -84,6 +84,8 @@ const initPermissionsData = async () => {
     } else {
       permissionsData.permissions = ensureDataIntegrity(storedData);
     }
+
+    if (REPLACERS.isWeb) return;
 
     permissionsData.hasOverlayPermission =
       await NativeFunctionsModule.checkOverlayPermission();

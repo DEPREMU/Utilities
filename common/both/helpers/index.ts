@@ -27,12 +27,15 @@ export class Helper {
   static secret(value: unknown): string {
     if (REPLACERS.isDev) return String(value ?? "");
 
-    if (value === null || value === undefined) return "***";
+    if (!value) return "***";
 
     const str = String(value);
-    if (str.length <= 2) return "***";
+    const len = str.length;
 
-    if (str.length < 6) return `${str.slice(0, 3)}***`;
+    if (len < 2) return "***";
+    if (len === 2) return `${str[0]}***`;
+    if (len === 3) return `${str.slice(0, 2)}***`;
+    if (len <= 6) return `${str.slice(0, 3)}***`;
 
     return `${str.slice(0, 3)}***${str.slice(-3)}`;
   }

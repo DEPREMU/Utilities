@@ -9,16 +9,17 @@ const interceptors: LoggerInterceptor[] = [];
 const logger = pino({
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: { level: (level) => ({ level }) },
-  transport: REPLACERS.isProduction
-    ? undefined
-    : {
-        target: "pino-pretty",
-        options: {
-          ignore: "pid,hostname",
-          colorize: true,
-          translateTime: "HH:MM:ss",
+  transport:
+    REPLACERS.isProduction || process.env.NODE_ENV === "test"
+      ? undefined
+      : {
+          target: "pino-pretty",
+          options: {
+            ignore: "pid,hostname",
+            colorize: true,
+            translateTime: "HH:MM:ss",
+          },
         },
-      },
 });
 
 /**
@@ -26,6 +27,7 @@ const logger = pino({
  */
 export class Logger implements ILogger {
   #moduleName: string;
+  public static pino: pino.Logger = logger;
 
   /**
    * Formats the log message into a bracketed string.
@@ -87,13 +89,13 @@ export class Logger implements ILogger {
 
       switch (level) {
         case "log":
-          logger.info(msg);
+          Logger.pino.info(msg);
           break;
         case "warn":
-          logger.warn(msg);
+          Logger.pino.warn(msg);
           break;
         case "error":
-          logger.error(msg);
+          Logger.pino.error(msg);
           break;
       }
     }

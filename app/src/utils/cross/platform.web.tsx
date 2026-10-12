@@ -1,13 +1,8 @@
+import React from "react";
 import { v4 } from "uuid";
 import { Timers } from "@common";
-import { Logger } from "../TOP_LEVEL";
 import { windowModule } from "@modules";
-import type { PdfProps } from "react-native-pdf";
-import { useResponsiveLayout } from "@context/LayoutContext";
-import React, { useEffect, useRef } from "react";
 import { CreatePdfFromImages, PlatformData } from "./platform";
-
-const logger = new Logger("CrossPlatformWeb");
 
 const PDF_PAGE_SIZES = {
   "4A0": [4767.87, 6740.79],
@@ -88,40 +83,7 @@ windowModule.system.getNativeData("version").then((result) => {
   DATA_PLATFORM.version = result as string;
 });
 
-export const PDF: React.FC<PdfProps> = ({ source }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { height } = useResponsiveLayout();
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    container.innerHTML = "";
-
-    let uri: string;
-    let heightPX = "400px";
-    if (typeof source === "string") uri = source;
-    else if (typeof source === "object" && source.uri) uri = source.uri;
-    else {
-      logger.error("PDF_RENDER_WEB", "Invalid PDF source:", source);
-      return;
-    }
-    if (height) heightPX = `${height - 200}px`;
-
-    const iframe = document.createElement("iframe");
-    iframe.src = uri;
-    iframe.width = "100%";
-    iframe.height = heightPX;
-    iframe.style.border = "none";
-
-    container.appendChild(iframe);
-
-    return () => {
-      container.innerHTML = "";
-    };
-  }, [source, height]);
-
-  return <div ref={containerRef} />;
-};
+export const PDF = React.lazy(() => import("./PDF.web"));
 
 export const getRandomUUID = () => v4();
 

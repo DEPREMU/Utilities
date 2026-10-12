@@ -9,9 +9,10 @@ export default {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
     "^@types$": "<rootDir>/../types/index.d.ts",
-    "^@common$": "<rootDir>/../common/both/index.ts",
+    "^@common$": "<rootDir>/../common/serverOrElectron/index.ts",
     "^@REPLACERS$": "<rootDir>/../common/both/REPLACERS/REPLACERS.server.ts",
     "^@commonSrc/(.*)$": "<rootDir>/../common/$1",
+    "^chalk$": "<rootDir>/../common/tests/__mocks__/chalk.js",
   },
   globalSetup: "<rootDir>/tests/utils/setup-test.ts",
   testTimeout: 30_000,

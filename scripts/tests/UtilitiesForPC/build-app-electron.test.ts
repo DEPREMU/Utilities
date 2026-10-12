@@ -55,13 +55,17 @@ jest.mock("fs", () => ({
   },
 }));
 
-jest.mock("@commonSrc/serverOrElectron/logger.ts", () => ({
-  Logger: {
+jest.mock("@commonSrc/serverOrElectron/logger.ts", () => {
+  const instance = {
     log: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  },
-}));
+    secret: jest.fn((v: unknown) => String(v)),
+  };
+  return {
+    Logger: jest.fn().mockImplementation(() => instance),
+  };
+});
 
 interface ScriptInternals {
   stepFunctions: unknown[];

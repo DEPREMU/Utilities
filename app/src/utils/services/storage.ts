@@ -297,7 +297,7 @@ class StorageManagement extends ServiceClass<never> {
 
   #data = {} as ExpectedStorageTypes<"BOTH">;
   #loadData = async () => {
-    const { ready, getRandomUUID } = await import("@utils");
+    const { ready, getRandomUUID } = await import("../cross");
 
     try {
       await ready();

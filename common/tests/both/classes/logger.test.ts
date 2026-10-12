@@ -34,14 +34,14 @@ describe("Logger & Helper.stripAnsi", () => {
   });
 
   describe("Logger formatting and interceptors", () => {
-    let logSpy: jest.SpiedFunction<typeof console.log>;
-    let warnSpy: jest.SpiedFunction<typeof console.warn>;
-    let errorSpy: jest.SpiedFunction<typeof console.error>;
+    let logSpy: jest.SpiedFunction<typeof Logger.pino.info>;
+    let warnSpy: jest.SpiedFunction<typeof Logger.pino.warn>;
+    let errorSpy: jest.SpiedFunction<typeof Logger.pino.error>;
 
     beforeEach(() => {
-      logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-      warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-      errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      logSpy = jest.spyOn(Logger.pino, "info").mockImplementation(() => {});
+      warnSpy = jest.spyOn(Logger.pino, "warn").mockImplementation(() => {});
+      errorSpy = jest.spyOn(Logger.pino, "error").mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -51,14 +51,14 @@ describe("Logger & Helper.stripAnsi", () => {
     });
 
     test("logs info message preserving caller-provided colored message", () => {
-      const message = chalk.green("Redis connected successfully");
-      logger.log(message);
+      const message = "Redis connected successfully";
+      logger.log(chalk.green(message));
 
       expect(logSpy).toHaveBeenCalledTimes(1);
       const callArgs = logSpy.mock.calls[0];
       const joinedOutput = callArgs.join(" ");
 
-      expect(Helper.stripAnsi(joinedOutput)).toContain("INFO:");
+      expect(Helper.stripAnsi(joinedOutput)).toContain("[LOG]");
       expect(Helper.stripAnsi(joinedOutput)).toContain(
         "Redis connected successfully",
       );
@@ -66,37 +66,40 @@ describe("Logger & Helper.stripAnsi", () => {
     });
 
     test("logs warn message with WARN prefix", () => {
-      const message = chalk.yellow("Warning message");
-      logger.warn(message);
+      const message = "Warning message";
+      logger.warn(chalk.yellow(message));
 
       expect(warnSpy).toHaveBeenCalledTimes(1);
       const callArgs = warnSpy.mock.calls[0];
       const joinedOutput = callArgs.join(" ");
 
-      expect(Helper.stripAnsi(joinedOutput)).toContain("WARN:");
+      expect(Helper.stripAnsi(joinedOutput)).toContain("[WARN]");
       expect(joinedOutput).toContain(message);
     });
 
     test("logs error message with ERROR prefix", () => {
-      const message = chalk.red("Error message");
-      logger.error(message);
+      const message = "Error message";
+      logger.error(chalk.red(message));
 
       expect(errorSpy).toHaveBeenCalledTimes(1);
       const callArgs = errorSpy.mock.calls[0];
       const joinedOutput = callArgs.join(" ");
 
-      expect(Helper.stripAnsi(joinedOutput)).toContain("ERROR:");
+      expect(Helper.stripAnsi(joinedOutput)).toContain("[ERROR]");
       expect(joinedOutput).toContain(message);
     });
 
-    test("suppresses console output when an interceptor returns true", () => {
+    test("suppresses pino output when an interceptor returns true", () => {
       const interceptor = jest.fn((type: string, msg: string) => {
         return msg.includes("suppress-me");
       });
       Logger.addInterceptor(interceptor);
 
       logger.log("suppress-me test");
-      expect(interceptor).toHaveBeenCalledWith("log", "suppress-me test");
+      expect(interceptor).toHaveBeenCalledWith(
+        "log",
+        "[LoggerTest]-[LOG]: suppress-me test",
+      );
       expect(logSpy).not.toHaveBeenCalled();
 
       logger.log("allow-me test");

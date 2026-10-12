@@ -104,7 +104,7 @@ class Debug extends ServiceClass<ListenersDebug> {
   };
 
   override async _init(): Promise<void> {
-    const { storageManagement } = await import("@utils");
+    const { storageManagement } = await import("./storage");
 
     try {
       await storageManagement.waitUntilInitialized();

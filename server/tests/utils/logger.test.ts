@@ -23,18 +23,18 @@ jest.mock("chalk", () => ({
   red: { bold: (s: string) => s },
 }));
 
-import { Logger } from "@/utils/logger.ts";
+import { Logger } from "@common";
 import { REPLACERS } from "@REPLACERS";
 
 describe("Server Logger", () => {
-  let logSpy: ReturnType<typeof jest.spyOn>;
-  let warnSpy: ReturnType<typeof jest.spyOn>;
-  let errorSpy: ReturnType<typeof jest.spyOn>;
+  let logSpy: jest.SpiedFunction<typeof Logger.pino.info>;
+  let warnSpy: jest.SpiedFunction<typeof Logger.pino.warn>;
+  let errorSpy: jest.SpiedFunction<typeof Logger.pino.error>;
 
   beforeEach(() => {
-    logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-    warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    logSpy = jest.spyOn(Logger.pino, "info").mockImplementation(() => {});
+    warnSpy = jest.spyOn(Logger.pino, "warn").mockImplementation(() => {});
+    errorSpy = jest.spyOn(Logger.pino, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -119,10 +119,10 @@ describe("Server Logger", () => {
       expect(logger.secret(null)).toBe("***");
       expect(logger.secret(undefined)).toBe("***");
       expect(logger.secret("")).toBe("***");
-      expect(logger.secret("a")).toBe("a***");
-      expect(logger.secret("ab")).toBe("ab***");
-      expect(logger.secret("token")).toBe("to***");
-      expect(logger.secret("abcdef")).toBe("abc***def");
+      expect(logger.secret("a")).toBe("***");
+      expect(logger.secret("ab")).toBe("a***");
+      expect(logger.secret("token")).toBe("tok***");
+      expect(logger.secret("abcdef")).toBe("abc***");
       expect(logger.secret("user@example.com")).toBe("use***com");
       expect(logger.secret(12345678)).toBe("123***678");
 

@@ -694,7 +694,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
       if (this.#data.isLoggingIn) return;
       this.#data.isLoggingIn = true;
 
-      const { deviceInfo } = await import("@utils");
+      const { deviceInfo } = await import("./deviceInfo");
 
       const [hasInternet, isServerAlive] = await Promise.all([
         Network.waitForOnline(5),

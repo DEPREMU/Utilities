@@ -85,7 +85,7 @@ const verifyLocation = async () => {
   const locationEnabled = await isLocationEnabled();
   if (!locationEnabled) return;
 
-  const { notificationsManager } = await import("@utils");
+  const { notificationsManager } = await import("./notifications");
 
   notificationsManager.sendNotification({
     title: tTyped("notifications.LocationServicesEnabled"),
@@ -171,7 +171,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     if (this.#listeners[event]) return;
     const reason = "noInternetConnection" satisfies ReasonNotification;
 
-    const { notificationsManager } = await import("@utils");
+    const { notificationsManager } = await import("./notifications");
 
     await notificationsManager.waitUntilInitialized();
 
@@ -295,7 +295,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
 
               if (event.reasonNotification === "streamers") break;
 
-              const { notificationsManager } = await import("@utils");
+              const { notificationsManager } = await import("./notifications");
               await notificationsManager.waitUntilInitialized();
 
               notificationsManager.editNotification(
@@ -326,7 +326,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
                 });
               }
 
-              const { notificationsManager } = await import("@utils");
+              const { notificationsManager } = await import("./notifications");
               await notificationsManager.waitUntilInitialized();
 
               notificationsManager.editNotification(
@@ -355,7 +355,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     const event = EventsDeviceInfo.verifyLocation;
     if (this.#listeners[event]) return;
 
-    const { notificationsManager } = await import("@utils");
+    const { notificationsManager } = await import("./notifications");
     await notificationsManager.waitUntilInitialized();
     const notification =
       notificationsManager.getNotification("locationEnabled");
@@ -370,7 +370,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     if (this.#listeners[event]) return;
 
     const reasonNotification: ReasonNotification = event;
-    const { notificationsManager } = await import("@utils");
+    const { notificationsManager } = await import("./notifications");
     await notificationsManager.waitUntilInitialized();
 
     await notificationsManager.waitUntilInitialized();
