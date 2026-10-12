@@ -106,6 +106,7 @@ describe("Server Logger", () => {
       const logger = new Logger("DevTest");
       expect(logger.secret("my-super-secret")).toBe("my-super-secret");
       expect(logger.secret("token")).toBe("token");
+      expect(logger.secret({ token: "secret" })).toBe('{"token":"secret"}');
 
       (REPLACERS as { isDev: boolean }).isDev = originalIsDev;
     });
@@ -125,6 +126,8 @@ describe("Server Logger", () => {
       expect(logger.secret("abcdef")).toBe("abc***");
       expect(logger.secret("user@example.com")).toBe("use***com");
       expect(logger.secret(12345678)).toBe("123***678");
+      expect(logger.secret({ key: "secret" })).toBe('{"k***t"}');
+      expect(logger.secret(new Error("sensitive error"))).toBe("sen***ror");
 
       (REPLACERS as { isDev: boolean }).isDev = originalIsDev;
     });

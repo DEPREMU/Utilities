@@ -25,11 +25,26 @@ export class Helper {
   }
 
   static secret(value: unknown): string {
-    if (REPLACERS.isDev) return String(value ?? "");
+    if (value === null || value === undefined) {
+      return REPLACERS.isDev ? "" : "***";
+    }
 
-    if (!value) return "***";
+    let str: string;
+    try {
+      str =
+        value instanceof Error
+          ? value.message
+          : typeof value === "object"
+            ? JSON.stringify(value)
+            : String(value);
+    } catch {
+      str = String(value);
+    }
 
-    const str = String(value);
+    if (REPLACERS.isDev) return str;
+
+    if (!str) return "***";
+
     const len = str.length;
 
     if (len < 2) return "***";

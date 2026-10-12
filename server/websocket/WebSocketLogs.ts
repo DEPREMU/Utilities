@@ -106,7 +106,10 @@ const onMessage = async (buffer: WebSocket.RawData, _ws: WebSocket) => {
         break;
 
       default:
-        logger.log(chalk.yellow("Unknown server logs message type:"), message);
+        logger.log(
+          chalk.yellow("Unknown server logs message type:"),
+          logger.secret(message),
+        );
         break;
     }
   } catch (error) {
@@ -178,7 +181,7 @@ export const initWebSocketServerLogs = () => {
   } catch (error) {
     logger.error(
       chalk.red("Error initializing ServerLogs WebSocket server:"),
-      error instanceof Error ? error.message : error,
+      error,
     );
     throw error;
   }

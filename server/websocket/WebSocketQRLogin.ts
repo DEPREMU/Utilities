@@ -190,7 +190,10 @@ export const initWebSocketLoginQRCode = () => {
 
       if (!deviceId) return;
 
-      logger.log(`WebSocket connection closed for deviceId: ${deviceId}`);
+      logger.log(
+        chalk.blue("WebSocket connection closed for deviceId:"),
+        logger.secret(deviceId),
+      );
       const timeoutId = usersActive[deviceId]?.qrCode.timeoutId;
       if (timeoutId) clearTimeout(timeoutId);
 
