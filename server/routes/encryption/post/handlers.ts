@@ -2,6 +2,8 @@ import chalk from "chalk";
 import { RequestError } from "@commonSrc/both/errors/Error";
 import { Task, Logger, getHandlerPost, STATUS_RESPONSE } from "@common";
 
+const logger = new Logger("EncryptionPost");
+
 const taskEncryption = new Task<string, "ENCRYPTION">({
   fileWorker: "ENCRYPTION",
   doNotDestroy: true,
@@ -25,7 +27,7 @@ export const handleEncrypt = getHandlerPost(
     });
 
     if (result instanceof Error) {
-      Logger.error(chalk.red("Encryption error in task:"), result);
+      logger.error(chalk.red("Encryption error in task:"), result);
       throw new RequestError(
         STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
         `Encryption failed: ${result.message}`,
@@ -53,7 +55,7 @@ export const handleDecrypt = getHandlerPost(
       functionName: "decryptText",
     });
     if (result instanceof Error) {
-      Logger.error(chalk.red("Decryption error in task:"), result);
+      logger.error(chalk.red("Decryption error in task:"), result);
       throw new RequestError(
         STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
         `Decryption failed: ${result.message}`,

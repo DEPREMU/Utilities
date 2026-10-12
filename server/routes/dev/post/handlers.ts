@@ -1,8 +1,10 @@
 import chalk from "chalk";
 import { Prisma } from "@/generated/prisma";
-import { prisma } from "@/database/postgres.ts";
+import { prisma } from "@/database/postgres";
 import { ResponseDoQuery } from "@types";
-import { Logger, STATUS_RESPONSE, getHandlerPost, REPLACERS } from "@common";
+import { Logger, REPLACERS, STATUS_RESPONSE, getHandlerPost } from "@common";
+
+const logger = new Logger("DevPost");
 
 export const handleExecuteQuery = getHandlerPost(
   "/dev",
@@ -38,7 +40,7 @@ export const handleExecuteQuery = getHandlerPost(
           result: data,
         });
       } catch (error) {
-        Logger.error(chalk.red("Error executing query:"), error);
+        logger.error(chalk.red("Error executing query:"), error);
         sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
           success: false,
           error: `Error executing query: ${
@@ -47,7 +49,7 @@ export const handleExecuteQuery = getHandlerPost(
         });
       }
     } catch (error) {
-      Logger.error(chalk.red("Error connecting to database:"), error);
+      logger.error(chalk.red("Error connecting to database:"), error);
       sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         success: false,
         error: `Error connecting to database: ${

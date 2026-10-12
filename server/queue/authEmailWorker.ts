@@ -10,6 +10,8 @@ import { getRedisClient } from "../redis/client";
 import { AuthEmailJobData } from "./authEmailQueue";
 import nodemailer, { type Transporter, type SentMessageInfo } from "nodemailer";
 
+const logger = new Logger("AuthEmailWorker");
+
 let authEmailWorker: Worker<AuthEmailJobData> | null = null;
 let mailTransporter: Transporter | null = null;
 
@@ -115,7 +117,7 @@ export const startAuthEmailWorker = (): Worker<AuthEmailJobData> => {
   );
 
   authEmailWorker.on("completed", (job) => {
-    Logger.log(
+    logger.log(
       chalk.green(
         `Authentication email successfully delivered to recipient (job id: ${job.id})`,
       ),
@@ -123,13 +125,13 @@ export const startAuthEmailWorker = (): Worker<AuthEmailJobData> => {
   });
 
   authEmailWorker.on("failed", (job, error) => {
-    Logger.error(
+    logger.error(
       chalk.red(`Authentication email delivery failed for job ${job?.id}:`),
       error,
     );
   });
 
-  Logger.log(chalk.blue("BullMQ Auth Email Worker initialized and listening"));
+  logger.log(chalk.blue("BullMQ Auth Email Worker initialized and listening"));
 
   return authEmailWorker;
 };

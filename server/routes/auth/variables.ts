@@ -1,6 +1,6 @@
 import {
-  Logger,
   Helper,
+  Logger,
   Validations,
   reasonNotification,
   ExpectedStorageTypes,
@@ -11,6 +11,8 @@ import chalk from "chalk";
 import { prisma } from "@/database/postgres";
 import { getEnvValue } from "@/env";
 import { withTransaction } from "@/database/transaction";
+
+const logger = new Logger("AuthVariables");
 
 export const AUTH_CODE_EXPIRATION = 600;
 export const AUTH_CODE_MAX_ATTEMPTS = 5;
@@ -75,7 +77,7 @@ export const getStorageData = async (
 
     return storageData;
   } catch (error) {
-    Logger.error(chalk.red("Error fetching storage data:"), error);
+    logger.error(chalk.red("Error fetching storage data:"), error);
     return null;
   }
 };
@@ -162,7 +164,7 @@ export class JWT {
 
       return userSession;
     } catch (error) {
-      Logger.error(chalk.red("Error uploading JWT token:"), error);
+      logger.error(chalk.red("Error uploading JWT token:"), error);
       return error instanceof Error ? error : new Error(String(error));
     }
   }

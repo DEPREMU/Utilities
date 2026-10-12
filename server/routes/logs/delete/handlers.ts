@@ -2,6 +2,8 @@ import chalk from "chalk";
 import { prisma } from "@/database/postgres";
 import { Logger, STATUS_RESPONSE, getHandlerDelete } from "@common";
 
+const logger = new Logger("LogsDelete");
+
 export const handleDeleteLog = getHandlerDelete(
   "/logs",
   "/:logId",
@@ -15,7 +17,7 @@ export const handleDeleteLog = getHandlerDelete(
 
       sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
     } catch (error) {
-      Logger.error(chalk.red("Error deleting log:"), error);
+      logger.error(chalk.red("Error deleting log:"), error);
       sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         success: false,
         error: "An error occurred while deleting the log.",

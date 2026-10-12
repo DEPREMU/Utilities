@@ -1,6 +1,8 @@
 import axios from "axios";
 import { Logger } from "@common";
 
+const logger = new Logger("StreamersCommon");
+
 export const getLinkImageStreamer = async (streamer: string) => {
   try {
     streamer = streamer.toLowerCase().replace(/\s+/g, "");
@@ -18,7 +20,7 @@ export const getLinkImageStreamer = async (streamer: string) => {
 
     return image;
   } catch (error) {
-    Logger.error("Error fetching streamer image:", error);
+    logger.error("Error fetching streamer image:", error);
   }
 };
 
@@ -40,7 +42,7 @@ export const isLiveStreamer = async (streamer: string): Promise<boolean> => {
       json?.["@graph"]?.[0]?.publication?.isLiveBroadcast || false;
     return isLive;
   } catch (error) {
-    Logger.error("Error checking if streamer is live:", error);
+    logger.error("Error checking if streamer is live:", error);
     return false;
   }
 };

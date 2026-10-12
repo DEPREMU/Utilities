@@ -1,6 +1,8 @@
 import { prisma } from "@/database/postgres";
 import { getHandlerDelete, Logger, STATUS_RESPONSE } from "@common";
 
+const logger = new Logger("StreamersDelete");
+
 export const handleDeleteStreamerByUserId = getHandlerDelete(
   "/streamers",
   "/:deviceId/:streamerId",
@@ -22,7 +24,7 @@ export const handleDeleteStreamerByUserId = getHandlerDelete(
         success: !!res,
       });
     } catch (error) {
-      Logger.error("Error deleting streamer by user ID:", error);
+      logger.error("Error deleting streamer by user ID:", error);
       sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         error: "An error occurred while deleting the streamer.",
         success: false,

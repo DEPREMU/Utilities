@@ -13,8 +13,8 @@ import {
 } from "../variables.ts";
 import {
   t,
-  Logger,
   Helper,
+  Logger,
   Validations,
   getHandlerPost,
   STATUS_RESPONSE,
@@ -29,6 +29,8 @@ import { withTransaction } from "@/database/transaction.ts";
 import { enqueueAuthEmail } from "@/queue/authEmailQueue.ts";
 import { getApproximateLocation } from "@/utils/geolocation.ts";
 
+const logger = new Logger("AuthPost");
+
 /**
  * Inserts a push token into the database for a specific user.
  *
@@ -41,7 +43,7 @@ import { getApproximateLocation } from "@/utils/geolocation.ts";
  * ```typescript
  * const error = await insertTokenToDB("push_token_123", "user_456");
  * if (error) {
- *   Logger.error("Failed to insert token:", error);
+ *   logger.error("Failed to insert token:", error);
  * }
  * ```
  */
@@ -61,7 +63,7 @@ const insertTokenToDB = async (
     });
     return null;
   } catch (error) {
-    Logger.error(chalk.red("Error getting push token:"), error);
+    logger.error(chalk.red("Error getting push token:"), error);
     return error instanceof Error ? error : new Error(String(error));
   }
 };
@@ -108,7 +110,7 @@ export const handleLogin = getHandlerPost(
     const userSession = await token.uploadToken();
 
     if (userSession instanceof Error) {
-      Logger.error(chalk.red("Error inserting user session:"), userSession);
+      logger.error(chalk.red("Error inserting user session:"), userSession);
       throw new RequestError(
         STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
         t("internalError", lang),
@@ -117,7 +119,7 @@ export const handleLogin = getHandlerPost(
 
     const error = await insertTokenToDB(notificationToken, user.userId);
 
-    if (error) Logger.error(chalk.red("Error inserting push token:"), error);
+    if (error) logger.error(chalk.red("Error inserting push token:"), error);
 
     const storageValues = await getStorageData(
       user.userId,
@@ -126,7 +128,7 @@ export const handleLogin = getHandlerPost(
     );
 
     if (!storageValues) {
-      Logger.error(chalk.red("Error fetching storage values for user"));
+      logger.error(chalk.red("Error fetching storage values for user"));
       throw new RequestError(
         STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
         t("internalError", lang),
@@ -193,18 +195,7 @@ export const handleSignIn = getHandlerPost(
       },
     });
 
-    if (!user) {
-      Logger.error(
-        chalk.red("Error inserting user: No data returned"),
-        typeof user,
-      );
-      throw new RequestError(
-        STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
-        t("internalError", lang),
-      );
-    }
-
-    sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
+    sendResponse(STATUS_RESPONSE.SUCCESS, { success: !!user.userId });
   },
 );
 
@@ -214,131 +205,106 @@ export const handleRefreshSession = getHandlerPost(
   async ({ body }, sendResponse, { req }) => {
     const lang = body.lang || "en";
 
-    try {
-      const { token } = req.user || {};
-      const { notificationToken } = body;
+    const { token } = req.user || {};
+    const { notificationToken } = body;
 
-      const newToken = token.newToken;
-      if (!newToken) {
-        Logger.error(
-          chalk.red("Error refreshing token: No new token generated"),
-        );
-        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-          success: false,
-          error: t("internalError", lang),
-        });
-        return;
-      }
+    const newToken = token.newToken;
+    if (!newToken) {
+      logger.error(chalk.red("Error refreshing token: No new token generated"));
+      throw new RequestError(
+        STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+        t("internalError", lang),
+      );
+    }
 
-      const updatedData = await withTransaction(async (tx) => {
-        if (Validations.isValidPushToken(notificationToken))
-          await tx.pushTokens.upsert({
-            update: { token: notificationToken },
-            create: {
-              token: notificationToken,
-              userId: token.data.userId,
-            },
-            where: {
-              token_userId: {
-                token: token.data.notificationToken,
-                userId: token.data.userId,
-              },
-            },
-          });
-
-        return tx.userSessions.update({
-          data: { token: newToken },
+    const updatedData = await withTransaction(async (tx) => {
+      if (Validations.isValidPushToken(notificationToken))
+        await tx.pushTokens.upsert({
+          update: { token: notificationToken },
+          create: {
+            token: notificationToken,
+            userId: token.data.userId,
+          },
           where: {
-            userId_deviceId: {
+            token_userId: {
+              token: token.data.notificationToken,
               userId: token.data.userId,
-              deviceId: token.data.deviceId,
             },
           },
-          include: { user: true },
         });
+
+      return tx.userSessions.update({
+        data: { token: newToken },
+        where: {
+          userId_deviceId: {
+            userId: token.data.userId,
+            deviceId: token.data.deviceId,
+          },
+        },
+        include: { user: true },
       });
+    });
 
-      if (updatedData?.token !== newToken) {
-        Logger.error(
-          chalk.red("Error updating user session: No data returned"),
-        );
-        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-          success: false,
-          error: t("internalError", lang),
-        });
-        return;
-      }
-
-      if (!updatedData.user) {
-        Logger.error(chalk.red("Error fetching user data for refreshed token"));
-        sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-          success: false,
-          error: t("internalError", lang),
-        });
-        return;
-      }
-
-      const { password: _, ...user } = updatedData.user;
-
-      sendResponse(STATUS_RESPONSE.SUCCESS, {
-        user: Helper.Object.changeType(user, {
-          createdAt: "string",
-          updatedAt: "string",
-        }),
-        token: updatedData.token,
-        success: true,
-      });
-    } catch (error) {
-      Logger.error(chalk.red("Error refreshing token:"), error);
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        success: false,
-        error: t("internalError", lang),
-      });
+    if (updatedData?.token !== newToken) {
+      logger.error(chalk.red("Error updating user session: No data returned"));
+      throw new RequestError(
+        STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+        t("internalError", lang),
+      );
     }
+
+    if (!updatedData.user) {
+      logger.error(chalk.red("Error fetching user data for refreshed token"));
+      throw new RequestError(
+        STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
+        t("internalError", lang),
+      );
+    }
+
+    const { password: _, ...user } = updatedData.user;
+
+    sendResponse(STATUS_RESPONSE.SUCCESS, {
+      user: Helper.Object.changeType(user, {
+        createdAt: "string",
+        updatedAt: "string",
+      }),
+      token: updatedData.token,
+      success: true,
+    });
   },
 );
 
 export const handleSignOut = getHandlerPost(
   "/auth",
   "/signout",
-  async ({ body }, sendResponse, { req }) => {
-    const lang = body.lang || "en";
+  async (_, sendResponse, { req }) => {
+    const { token } = req.user;
+    const data = token?.data;
 
-    try {
-      const { token } = req.user;
-      const data = token?.data;
-
-      await withTransaction(async (tx) => {
-        await Promise.all([
-          tx.userSessions.delete({
-            where: {
-              userId_deviceId: {
-                userId: data.userId,
-                deviceId: data.deviceId,
-              },
+    await withTransaction(async (tx) => {
+      await Promise.all([
+        tx.userSessions.delete({
+          where: {
+            userId_deviceId: {
+              userId: data.userId,
+              deviceId: data.deviceId,
             },
-          }),
-          Validations.isValidPushToken(data.notificationToken)
-            ? tx.pushTokens.delete({
-                where: {
-                  token_userId: {
-                    token: data.notificationToken,
-                    userId: data.userId,
-                  },
+          },
+        }),
+        Validations.isValidPushToken(data.notificationToken)
+          ? tx.pushTokens.delete({
+              where: {
+                token_userId: {
+                  token: data.notificationToken,
+                  userId: data.userId,
                 },
-              })
-            : Promise.resolve(),
-        ]);
-      });
+              },
+            })
+          : Promise.resolve(),
+      ]);
+    });
 
-      sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
-    } catch (error) {
-      Logger.error(chalk.red("Error signing out user:"), error);
-      sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
-        success: false,
-        error: t("internalError", lang),
-      });
-    }
+    sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
   },
 );
 
@@ -552,7 +518,7 @@ export const handleVerifyCode = getHandlerPost(
       });
 
       if (!user) {
-        Logger.error(chalk.red("Error creating passwordless user"));
+        logger.error(chalk.red("Error creating passwordless user"));
         throw new RequestError(
           STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
           t("internalError", lang),
@@ -571,7 +537,7 @@ export const handleVerifyCode = getHandlerPost(
 
     const userSession = await token.uploadToken();
     if (userSession instanceof Error) {
-      Logger.error(chalk.red("Error inserting user session:"), userSession);
+      logger.error(chalk.red("Error inserting user session:"), userSession);
       throw new RequestError(
         STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
         t("internalError", lang),
@@ -579,7 +545,7 @@ export const handleVerifyCode = getHandlerPost(
     }
 
     const error = await insertTokenToDB(notificationToken, user.userId);
-    if (error) Logger.error(chalk.red("Error inserting push token:"), error);
+    if (error) logger.error(chalk.red("Error inserting push token:"), error);
 
     const storageValues = await getStorageData(
       user.userId,
@@ -588,7 +554,7 @@ export const handleVerifyCode = getHandlerPost(
     );
 
     if (!storageValues) {
-      Logger.error(chalk.red("Error fetching storage values for user"));
+      logger.error(chalk.red("Error fetching storage values for user"));
       throw new RequestError(
         STATUS_RESPONSE.INTERNAL_SERVER_ERROR,
         t("internalError", lang),

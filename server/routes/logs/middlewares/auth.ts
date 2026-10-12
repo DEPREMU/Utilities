@@ -1,7 +1,9 @@
 import chalk from "chalk";
 import { JWT } from "@/routes/auth/variables";
-import { Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
 import { RequestError } from "@commonSrc/both/errors/Error";
+import { Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
+
+const logger = new Logger("LogsMiddlewaresAuth");
 
 export const authMiddleware = getHandlerGet(
   "/logs",
@@ -26,7 +28,7 @@ export const authMiddleware = getHandlerGet(
     try {
       tokenInstance = new JWT({ token });
     } catch (error) {
-      Logger.error(chalk.red("Error verifying JWT token:"), error);
+      logger.error(chalk.red("Error verifying JWT token:"), error);
       throw new RequestError(
         STATUS_RESPONSE.UNAUTHORIZED,
         "Invalid or expired token",

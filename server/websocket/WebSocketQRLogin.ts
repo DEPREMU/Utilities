@@ -6,11 +6,13 @@ import {
 } from "@types";
 import chalk from "chalk";
 import QRCode from "qrcode";
+import { Helper } from "@common";
+import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { prisma } from "@/database/postgres.ts";
-import { Helper, Logger } from "@common";
 import { getStorageData, JWT } from "@/routes/auth/variables.ts";
 import WebSocket, { WebSocketServer } from "ws";
 
+const logger = new Logger("WebSocketQRLogin");
 const usersActive: UsersWebSocketQR = {};
 
 const getQRCode = async (json: LoginWithQRMobile): Promise<string> => {
@@ -19,7 +21,7 @@ const getQRCode = async (json: LoginWithQRMobile): Promise<string> => {
 
     return qrCodeDataURL;
   } catch (error) {
-    Logger.error(chalk.red("Error generating QR code:"), error);
+    logger.error(chalk.red("Error generating QR code:"), error);
     return "";
   }
 };
@@ -111,7 +113,7 @@ const handleLoginWithQR = async (
     wsMobile.send(JSON.stringify(messageToMobile));
     return;
   } catch (error) {
-    Logger.error(chalk.red("Error handling QR login:"), error);
+    logger.error(chalk.red("Error handling QR login:"), error);
     messageToMobile.status = "error";
   }
   wsMobile.send(JSON.stringify(messageToMobile));
@@ -157,9 +159,9 @@ export const initWebSocketLoginQRCode = () => {
           case "init-web":
           case "init-mobile":
             {
-              Logger.log(
+              logger.log(
                 chalk.blue("New WebSocket connection for QR login"),
-                parsedMsg.deviceId,
+                logger.secret(parsedMsg.deviceId),
               );
               deviceId = parsedMsg.deviceId;
               usersActive[deviceId] = {
@@ -179,7 +181,7 @@ export const initWebSocketLoginQRCode = () => {
             break;
         }
       } catch (error) {
-        Logger.error(chalk.red("Error processing WebSocket message:"), error);
+        logger.error(chalk.red("Error processing WebSocket message:"), error);
         ws.close();
       }
     });
@@ -189,7 +191,7 @@ export const initWebSocketLoginQRCode = () => {
 
       if (!deviceId) return;
 
-      Logger.log(`WebSocket connection closed for deviceId: ${deviceId}`);
+      logger.log(`WebSocket connection closed for deviceId: ${deviceId}`);
       const timeoutId = usersActive[deviceId]?.qrCode.timeoutId;
       if (timeoutId) clearTimeout(timeoutId);
 

@@ -1,10 +1,12 @@
 import chalk from "chalk";
-import { prisma } from "@/database/postgres.ts";
+import { prisma } from "@/database/postgres";
 import { t, Logger } from "@common";
-import { getEnvValue } from "../env.ts";
-import { getPagination } from "./utils.ts";
+import { getEnvValue } from "../env";
+import { getPagination } from "./utils";
 import { ReasonNotification } from "@types";
-import { sendFCMNotification } from "@/firebase/admin.ts";
+import { sendFCMNotification } from "@/firebase/admin";
+
+const logger = new Logger("NotificationsServerRestart");
 
 const handleSendNotificationToAdmin = async () => {
   try {
@@ -75,23 +77,20 @@ const handleSendNotificationToAdmin = async () => {
           return acc + (res?.failureCount || 0);
         }, 0);
       } catch (error) {
-        Logger.error(
-          "Error sending notification to admin:",
-          error instanceof Error ? error.message : String(error),
-        );
+        logger.error(chalk.red("Error sending notification to admin:"), error);
       }
     }
 
     if (success > 0 || failure > 0)
-      Logger.log(
+      logger.log(
         chalk.green(
           `Notification sent to admin/s. Success: ${success}, Failure: ${failure}`,
         ),
       );
   } catch (error) {
-    Logger.error(
-      "Error fetching admin user for notification:",
-      error instanceof Error ? error.message : String(error),
+    logger.error(
+      chalk.red("Error fetching admin user for notification:"),
+      error,
     );
   }
 };
