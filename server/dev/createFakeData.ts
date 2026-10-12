@@ -5,6 +5,8 @@ import { TablesKeys } from "@types";
 import { randomUUID } from "node:crypto";
 import { Helper, Logger, reasonNotification } from "@common";
 
+const logger = new Logger("CreateFakeData");
+
 const MIN_USERS_RECORDS = 5000;
 const MIN_OTHER_RECORDS_PER_USER = 10;
 
@@ -61,7 +63,7 @@ const getUserId = async (): Promise<string> => {
 
     return user.userId;
   } catch (error) {
-    Logger.error(chalk.red("Failed to fetch server:"), error);
+    logger.error(chalk.red("Failed to fetch server:"), error);
     throw error instanceof Error ? error.message : String(error);
   }
 };
@@ -102,7 +104,7 @@ const getCountInTable = async (
         return await prisma.users.count({ where: { userId } });
     }
   } catch (error) {
-    Logger.error(
+    logger.error(
       chalk.red(`Error counting records in table "${tableKey}":`),
       error,
     );
@@ -474,7 +476,7 @@ export const createFakeData = async () => {
               count = await getCountInTable(tableKey, userId);
             }
           } catch (error) {
-            Logger.log(
+            logger.error(
               chalk.red(
                 `Error occurred while inserting fake data into table ${tableKey}:`,
               ),
@@ -494,7 +496,7 @@ export const createFakeData = async () => {
     tables.map(async (t) => [t, await getCountInTable(t)]),
   );
 
-  Logger.log(
+  logger.log(
     chalk.green(
       "Fake data created successfully:\n",
       messages.map((m) => `${m[0]}: ${m[1]}`).join("\n"),

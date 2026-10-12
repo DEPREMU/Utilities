@@ -6,6 +6,8 @@ import chalk from "chalk";
 import sharp from "sharp";
 import { Logger } from "../logger.ts";
 
+const logger = new Logger("PiscinaImagesWorker");
+
 export const changeImageFormat = async (
   request: RequestChangeImageFormat,
 ): Promise<ResponseChangeImageFormat> => {
@@ -49,10 +51,7 @@ export const changeImageFormat = async (
     res.newFormat = format;
     res.imageUri = buffer.toString("base64");
   } catch (error) {
-    Logger.error(
-      chalk?.red("Error changing image format:"),
-      error instanceof Error ? error.message : String(error),
-    );
+    logger.error(chalk.red("Error changing image format:"), error);
   }
   return res;
 };

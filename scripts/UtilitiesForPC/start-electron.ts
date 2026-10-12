@@ -7,6 +7,8 @@ import * as readline from "readline";
 import { args, TYPE_ARGS } from "../arguments";
 import { spawn, ChildProcess, SpawnOptions, execSync } from "child_process";
 
+const logger = new Logger("start-electron");
+
 const values = {
   PLATFORM: "web",
   TYPE_BUILD: "test",
@@ -55,7 +57,7 @@ const killElectron = async (): Promise<void> => {
       timeout: 5000,
     });
     if (!res.data?.success)
-      Logger.error(chalk.red("Failed to close Electron app"));
+      logger.error(chalk.red("Failed to close Electron app"));
 
     state.electron = null;
   } catch {
@@ -73,7 +75,7 @@ const killProcess = (
       return;
     }
 
-    Logger.log(chalk.red(`[Manager] Force killing ${name}...`));
+    logger.log(chalk.red(`[Manager] Force killing ${name}...`));
 
     if (script.PLATFORM.isWindows && process.pid) {
       const killer = spawn("taskkill", ["/PID", `${process.pid}`, "/T", "/F"], {
@@ -91,7 +93,7 @@ const killProcess = (
 const startElectron = async (): Promise<ChildProcess> => {
   await killElectron();
 
-  Logger.log(chalk.green("[Electron] Starting electron-vite dev server..."));
+  logger.log(chalk.green("[Electron] Starting electron-vite dev server..."));
 
   const electronEnv = { ...process.env };
 
@@ -108,7 +110,7 @@ const startElectron = async (): Promise<ChildProcess> => {
 
   child.on("close", (code) => {
     if (!state.isRestarting && !!code) {
-      Logger.log(chalk.red(`[Electron] Exited with code ${code}`));
+      logger.log(chalk.red(`[Electron] Exited with code ${code}`));
     }
     child.removeAllListeners();
   });
@@ -117,7 +119,7 @@ const startElectron = async (): Promise<ChildProcess> => {
 };
 
 const startExpo = (): ChildProcess => {
-  Logger.log(chalk.green("[Expo] Starting..."));
+  logger.log(chalk.green("[Expo] Starting..."));
 
   const expoEnv = { ...process.env };
 
@@ -128,7 +130,7 @@ const startExpo = (): ChildProcess => {
 };
 
 const startFrontend = (): ChildProcess => {
-  Logger.log(chalk.green("[Frontend] Starting..."));
+  logger.log(chalk.green("[Frontend] Starting..."));
 
   const frontendEnv = { ...process.env, TYPE_BUILD: "clipboard" };
 
@@ -144,17 +146,17 @@ const performRestart = async () => {
   state.isRestarting = true;
 
   try {
-    Logger.log(chalk.yellow("[Manager] Restarting Electron..."));
+    logger.log(chalk.yellow("[Manager] Restarting Electron..."));
     state.electron = await startElectron();
   } catch (error) {
-    Logger.error("Error during restart:", (error as Error).message);
+    logger.error("Error during restart:", (error as Error).message);
   } finally {
     state.isRestarting = false;
   }
 };
 
 const performExit = async () => {
-  Logger.log(chalk.yellow("\n[Manager] Shutting down all processes..."));
+  logger.log(chalk.yellow("\n[Manager] Shutting down all processes..."));
 
   try {
     process.stdin.setRawMode(false);
@@ -169,12 +171,12 @@ const performExit = async () => {
     ),
   );
 
-  Logger.log(chalk.green("[Manager] Goodbye."));
+  logger.log(chalk.green("[Manager] Goodbye."));
   process.exit(0);
 };
 
 const options = () => {
-  Logger.log(
+  logger.log(
     chalk.cyan("\n---------------------------------------------------------"),
     chalk.bold("\nKEYBOARD CONTROLS:"),
     chalk.blue("\n[r] Restart Electron (rebuilds resources)"),
@@ -185,14 +187,14 @@ const options = () => {
 };
 
 const run = async () => {
-  Logger.log(
+  logger.log(
     chalk.yellow(
       `[stdin] isTTY=${process.stdin.isTTY}, isRaw=${process.stdin.isRaw}`,
     ),
   );
 
   if (!process.stdin.isTTY) {
-    Logger.error(
+    logger.error(
       chalk.red("[Manager] stdin is not a TTY; keyboard controls disabled."),
     );
     return;
@@ -209,7 +211,7 @@ const run = async () => {
   process.stdin.resume();
 
   process.stdin.on("keypress", async (str, key) => {
-    Logger.log(
+    logger.log(
       chalk.magenta(`[Keyboard] ${JSON.stringify(str)} ${JSON.stringify(key)}`),
     );
 

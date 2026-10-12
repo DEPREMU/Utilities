@@ -11,9 +11,11 @@ import { useUserContext } from "@context/UserContext";
 import { useStylesScanQRCode } from "@screens/Auth/styles/useStylesScanQRCode";
 import { Helper, Timers, REPLACERS } from "@common";
 import React, { useEffect, useRef, useState } from "react";
-import { URLS, navigation, storageManagement } from "@utils";
 import { BarcodeScanningResult, Camera, CameraView } from "expo-camera";
+import { Logger, URLS, navigation, storageManagement } from "@utils";
 import { LoginWithQRMobile, MessageWebSocketQRLogin, Screens } from "@types";
+
+const logger = new Logger("ScanQRCode");
 
 type PermissionCamera = "granted" | "denied" | null;
 
@@ -89,7 +91,7 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
 
         const token = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
         if (!token) {
-          REPLACERS.Logger.error("No session token available for QR login");
+          logger.error("No session token available for QR login");
           navigation.replace("Home");
           return;
         }
@@ -121,7 +123,7 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
           ws?.send(JSON.stringify(message));
           idTimeoutRef.current = Timers.setTimeout(
             () => {
-              REPLACERS.Logger.error("QR login error: timeout");
+              logger.error("QR login error: timeout");
               ws?.close();
               navigation.replace("Home");
             },
@@ -162,16 +164,16 @@ const ScanQRCode: React.FC<Screens["ScanQRCode"]> = () => {
             ws?.close();
             navigation.replace("Home");
           } catch (error) {
-            REPLACERS.Logger.error("Error parsing WebSocket message:", error);
+            logger.error("Error parsing WebSocket message:", error);
           }
         };
 
         ws.onError = (error) => {
-          REPLACERS.Logger.error("WebSocket error:", error);
+          logger.error("WebSocket error:", error);
           handleError();
         };
       } catch (error) {
-        REPLACERS.Logger.error("Error handling QR login:", error);
+        logger.error("Error handling QR login:", error);
       }
     };
 

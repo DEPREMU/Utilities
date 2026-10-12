@@ -16,6 +16,7 @@ import {
   ALL_KEYS_STORAGE_TYPE,
   DO_NOT_DELETE_OR_SAVE,
 } from "@common";
+import { Logger } from "../TOP_LEVEL";
 import { cloneDeep } from "lodash";
 import { navigation } from "./navigation";
 import { ServerError } from "@commonSrc/both/errors/Error";
@@ -62,7 +63,7 @@ type SignUp = (
   callback?: (success: boolean, error?: ErrorResponse) => void,
 ) => Promise<void>;
 
-const TAG = "SESSION_MANAGER";
+const logger = new Logger("ServicesSession");
 
 /**
  * Retrieves the Expo push token for the device.
@@ -79,7 +80,7 @@ export const getDevicePushToken = async () => {
 
     return token;
   } catch (error) {
-    REPLACERS.Logger.error(TAG, "Error getting device push token:", error);
+    logger.error("Error getting device push token:", error);
     return "";
   }
 };
@@ -113,7 +114,7 @@ export const saveStorageData = async (
   );
 
   if (results.some((res) => res)) {
-    REPLACERS.Logger.error(TAG, "Error saving some storage values");
+    logger.error("Error saving some storage values");
     return false;
   }
   return true;
@@ -154,19 +155,15 @@ export const signInWithEmail = async (
 
     if (!dataInsert || ("success" in dataInsert && !dataInsert.user)) {
       const errorMsg = "No session or user data received from Database";
-      REPLACERS.Logger.error(TAG, errorMsg);
+      logger.error(errorMsg);
       return ServerError.requestError(errorMsg);
     }
     if ("error" in dataInsert) {
-      REPLACERS.Logger.error(TAG, "Error signing in:", dataInsert.error);
+      logger.error("Error signing in:", dataInsert.error);
       return ServerError.requestError(dataInsert.error);
     }
 
-    REPLACERS.Logger.log(
-      TAG,
-      "User signed in successfully:",
-      dataInsert.user?.email,
-    );
+    logger.log("User signed in successfully:", dataInsert.user?.email);
 
     await saveStorageData(dataInsert.storageValues);
     return {
@@ -176,7 +173,7 @@ export const signInWithEmail = async (
     };
   } catch (error) {
     const errorMsg = `Unexpected error during sign in: ${error}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 };
@@ -202,11 +199,11 @@ export const requestCode = async (
     const data = res.data;
     if (!data) {
       const errorMsg = "No data received from request code endpoint";
-      REPLACERS.Logger.error(TAG, errorMsg);
+      logger.error(errorMsg);
       return ServerError.requestError(errorMsg);
     }
     if ("error" in data) {
-      REPLACERS.Logger.error(TAG, "Error requesting code:", data.error);
+      logger.error("Error requesting code:", data.error);
       return ServerError.requestError(data.error);
     }
 
@@ -215,7 +212,7 @@ export const requestCode = async (
     };
   } catch (error) {
     const errorMsg = `Unexpected error requesting code: ${error}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 };
@@ -252,19 +249,15 @@ export const verifyCode = async (
     const dataInsert = res.data;
     if (!dataInsert || ("success" in dataInsert && !dataInsert.user)) {
       const errorMsg = "No session or user data received from Database";
-      REPLACERS.Logger.error(TAG, errorMsg);
+      logger.error(errorMsg);
       return ServerError.requestError(errorMsg);
     }
     if ("error" in dataInsert) {
-      REPLACERS.Logger.error(TAG, "Error verifying code:", dataInsert.error);
+      logger.error("Error verifying code:", dataInsert.error);
       return ServerError.requestError(dataInsert.error);
     }
 
-    REPLACERS.Logger.log(
-      TAG,
-      "User verified successfully:",
-      dataInsert.user?.email,
-    );
+    logger.log("User verified successfully:", dataInsert.user?.email);
 
     await saveStorageData(dataInsert.storageValues);
     return {
@@ -274,7 +267,7 @@ export const verifyCode = async (
     };
   } catch (error) {
     const errorMsg = `Unexpected error verifying code: ${error}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 };
@@ -299,14 +292,14 @@ export const signUpWithEmail = async (
 
     if ("error" in data) {
       const message = data?.error || "Unknown error";
-      REPLACERS.Logger.error(TAG, "Error signing up:", message);
+      logger.error("Error signing up:", message);
       return ServerError.requestError(message);
     }
 
     return { success: true };
   } catch (error) {
     const errorMsg = `Unexpected error during sign up: ${error}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 };
@@ -334,15 +327,11 @@ export const requestForgotPasswordCode = async (
     const data = res.data;
     if (!data) {
       const errorMsg = "No data received from forgot password request endpoint";
-      REPLACERS.Logger.error(TAG, errorMsg);
+      logger.error(errorMsg);
       return ServerError.requestError(errorMsg);
     }
     if ("error" in data) {
-      REPLACERS.Logger.error(
-        TAG,
-        "Error requesting forgot password code:",
-        data.error,
-      );
+      logger.error("Error requesting forgot password code:", data.error);
       return ServerError.requestError(data.error);
     }
 
@@ -351,7 +340,7 @@ export const requestForgotPasswordCode = async (
     };
   } catch (error) {
     const errorMsg = `Unexpected error requesting forgot password code: ${error}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return ServerError.requestError(errorMsg);
   }
 };
@@ -382,22 +371,18 @@ export const verifyForgotPasswordCode = async (
     const data = res.data;
     if (!data) {
       const errorMsg = "No data received from forgot password verify endpoint";
-      REPLACERS.Logger.error(TAG, errorMsg);
+      logger.error(errorMsg);
       return ServerError.requestError(errorMsg);
     }
     if ("error" in data) {
-      REPLACERS.Logger.error(
-        TAG,
-        "Error verifying forgot password code:",
-        data.error,
-      );
+      logger.error("Error verifying forgot password code:", data.error);
       return ServerError.requestError(data.error);
     }
 
     return data;
   } catch (error) {
     const errorMsg = `Unexpected error verifying forgot password code: ${error}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return ServerError.requestError(errorMsg);
   }
 };
@@ -431,11 +416,11 @@ export const resetForgotPassword = async (
     const data = res.data;
     if (!data) {
       const errorMsg = "No data received from reset password endpoint";
-      REPLACERS.Logger.error(TAG, errorMsg);
+      logger.error(errorMsg);
       return ServerError.requestError(errorMsg);
     }
     if ("error" in data) {
-      REPLACERS.Logger.error(TAG, "Error resetting password:", data.error);
+      logger.error("Error resetting password:", data.error);
       return ServerError.requestError(data.error);
     }
 
@@ -444,7 +429,7 @@ export const resetForgotPassword = async (
     };
   } catch (error) {
     const errorMsg = `Unexpected error resetting password: ${error}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return ServerError.requestError(errorMsg);
   }
 };
@@ -464,11 +449,7 @@ export const forgotPasswordWithEmail = async (
     const res = await requestForgotPasswordCode(email);
     if ("error" in res) {
       const errorMsg = ServerError.getMessage(res);
-      REPLACERS.Logger.error(
-        TAG,
-        "Error sending forgot password email:",
-        errorMsg,
-      );
+      logger.error("Error sending forgot password email:", errorMsg);
       callback?.(false, errorMsg);
       return { success: false, error: errorMsg };
     }
@@ -477,11 +458,7 @@ export const forgotPasswordWithEmail = async (
     return { success: true };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    REPLACERS.Logger.error(
-      TAG,
-      "Unexpected error sending forgot password email:",
-      error,
-    );
+    logger.error("Unexpected error sending forgot password email:", error);
     callback?.(false, errorMsg);
     return { success: false, error: errorMsg };
   }
@@ -509,12 +486,12 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
     );
     if (REPLACERS.isNative) storageManagement.remove("TERMINAL_COMMANDS");
 
-    REPLACERS.Logger.log(TAG, "User signed out successfully");
+    logger.log("User signed out successfully");
     navigation.replace("Login");
     return {};
   } catch (error) {
     const errorMsg = `Unexpected error during sign out: ${(error as Error).message}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return { error: errorMsg };
   }
 };
@@ -532,7 +509,7 @@ export const getCurrentUser = (): ResponseAuth<"login"> => {
     };
   } catch (error) {
     const errorMsg = `Unexpected error getting current user: ${error}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return { success: false };
   }
 };
@@ -561,8 +538,7 @@ export const refreshSession = async (
     );
 
     if ("error" in res.data)
-      REPLACERS.Logger.error(
-        TAG,
+      logger.error(
         `Refresh session failed: ${res.data.error || "Unknown error"}`,
       );
 
@@ -572,32 +548,32 @@ export const refreshSession = async (
         "No data received from refresh session",
         JSON.stringify(res.data || {}, null, 2),
       ].join(" ");
-      REPLACERS.Logger.error(TAG, errorMsg);
+      logger.error(errorMsg);
       return ServerError.requestError(errorMsg);
     }
 
     if ("error" in data) {
-      REPLACERS.Logger.error(TAG, "Error refreshing session:", data.error);
+      logger.error("Error refreshing session:", data.error);
       if (REPLACERS.isWeb) windowModule.system.notifyLoginStatus?.(false);
       return ServerError.requestError(data.error);
     }
 
     if (!data.token || !data.user) {
       const errorMsg = "No token or user data received from refresh session";
-      REPLACERS.Logger.error(TAG, errorMsg);
+      logger.error(errorMsg);
       signOut();
       return { success: false, error: errorMsg };
     }
 
     storageManagement.save("USER_DATA", data.user);
     storageManagement.save("USER_SESSION_TOKEN_STORAGE", data.token);
-    REPLACERS.Logger.log(TAG, "Session refreshed successfully");
+    logger.log("Session refreshed successfully");
     return {
       ...data,
     };
   } catch (error) {
     const errorMsg = `Unexpected error refreshing session: ${error}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return { success: false, error: errorMsg };
   }
 };
@@ -627,7 +603,7 @@ export const getUserData = async (
     };
   } catch (error) {
     const errorMsg = `Unexpected error getting user data: ${error}`;
-    REPLACERS.Logger.error(TAG, errorMsg);
+    logger.error(errorMsg);
     return { error: errorMsg };
   }
 };
@@ -664,8 +640,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
         15 * 60 * 1000,
       );
     } catch (error) {
-      REPLACERS.Logger.error(
-        TAG,
+      logger.error(
         "Unexpected error initializing session manager:",
         error instanceof Error ? error.message : String(error),
       );
@@ -719,17 +694,14 @@ class SessionManager extends ServiceClass<ListenersSession> {
       if (this.#data.isLoggingIn) return;
       this.#data.isLoggingIn = true;
 
-      const { deviceInfo } = await import("@utils");
+      const { deviceInfo } = await import("./deviceInfo");
 
       const [hasInternet, isServerAlive] = await Promise.all([
         Network.waitForOnline(5),
         ServerFetch.isServerAlive(),
       ]);
       if (!hasInternet) {
-        REPLACERS.Logger.error(
-          TAG,
-          "No internet connection, cannot refresh session",
-        );
+        logger.error("No internet connection, cannot refresh session");
         this.#data.isLoggingIn = false;
 
         const sub = deviceInfo.addEventListener(
@@ -744,10 +716,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
         return;
       }
       if (!isServerAlive) {
-        REPLACERS.Logger.error(
-          TAG,
-          "Server is not reachable, cannot refresh session",
-        );
+        logger.error("Server is not reachable, cannot refresh session");
         this.#data.isLoggingIn = false;
         return;
       }
@@ -757,7 +726,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
       const sessionToken = storageManagement.get("USER_SESSION_TOKEN_STORAGE");
 
       const handleNotLoggedIn = (reason?: string) => {
-        if (reason) REPLACERS.Logger.log(TAG, "Not logged in:", reason);
+        if (reason) logger.log("Not logged in:", reason);
         this.notLoggedIn();
         this.emit("logout");
         this.#data.isLoggedIn = false;
@@ -795,8 +764,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
       this.emit("login");
       this.clearTimeoutNotLoggedIn();
     } catch (error) {
-      REPLACERS.Logger.error(
-        TAG,
+      logger.error(
         "Unexpected error refreshing session:",
         error instanceof Error ? error.message : error,
       );
@@ -818,7 +786,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
 
       if ("error" in res) {
         const errorMsg = ServerError.getMessage(res);
-        REPLACERS.Logger.error(TAG, "Login error:", errorMsg);
+        logger.error("Login error:", errorMsg);
         this.emit("login", errorMsg);
         callback?.(errorMsg);
         return;
@@ -841,7 +809,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
       callback?.();
     } catch (error) {
       callback?.(error instanceof Error ? error.message : String(error));
-      REPLACERS.Logger.error(TAG, "Unexpected login error:", error);
+      logger.error("Unexpected login error:", error);
     } finally {
       this.#data.isLoggingIn = false;
     }
@@ -860,7 +828,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
 
       if ("error" in res) {
         const errorMsg = ServerError.getMessage(res);
-        REPLACERS.Logger.error(TAG, "Verify code login error:", errorMsg);
+        logger.error("Verify code login error:", errorMsg);
         this.emit("login", errorMsg);
         callback?.(errorMsg);
         return;
@@ -883,7 +851,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
       callback?.();
     } catch (error) {
       callback?.(error instanceof Error ? error.message : String(error));
-      REPLACERS.Logger.error(TAG, "Unexpected login with code error:", error);
+      logger.error("Unexpected login with code error:", error);
     } finally {
       this.#data.isLoggingIn = false;
     }
@@ -904,7 +872,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
     const res = await signUpWithEmail(email, password);
     if ("error" in res) {
       const errorMsg = ServerError.getMessage(res);
-      REPLACERS.Logger.error(TAG, "Sign up error:", errorMsg);
+      logger.error("Sign up error:", errorMsg);
       callback?.(false, res);
       return;
     }

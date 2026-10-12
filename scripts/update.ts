@@ -23,6 +23,7 @@ const isNewVersion = {
 };
 
 const script = new Script();
+const logger = new Logger("Update");
 
 const getAndroidVersion = async (): Promise<string> => {
   const configPath = path.join(script.PATHS.app, "app.config.ts");
@@ -56,7 +57,7 @@ const checkIsNewVersion = async (
       Validations.isNewVersion(res.data.latestVersion, versionExpo)
     );
   } catch (error) {
-    Logger.error(
+    logger.error(
       "Error checking for new version:",
       error instanceof Error ? error.message : String(error),
     );
@@ -66,7 +67,7 @@ const checkIsNewVersion = async (
 
 const uploadWeb = async (): Promise<boolean> => {
   try {
-    Logger.log("Building web version:", versionExpo);
+    logger.log("Building web version:", versionExpo);
 
     const build = new Directory(path.join(script.PATHS.utilitiesForPC, "dist"));
 
@@ -74,7 +75,7 @@ const uploadWeb = async (): Promise<boolean> => {
       const exec = new script.Exec();
 
       exec.async.onData((chunk) => {
-        Logger.log(chalk.magentaBright("BUILD: "), chunk);
+        logger.log(chalk.magentaBright("BUILD: "), chunk);
       });
       await exec.async.run("yarn run build-web-app-electron", {
         env: process.env,
@@ -112,7 +113,7 @@ const uploadWeb = async (): Promise<boolean> => {
       throw new Error(`Zip file not found at ${zipFile.path}`);
 
     if (args.ARGS["testing"]) {
-      Logger.log(
+      logger.log(
         "Testing mode enabled - skipping actual upload. Zip file created at:",
         zipFile,
       );
@@ -125,7 +126,7 @@ const uploadWeb = async (): Promise<boolean> => {
         buildType: "web",
       };
 
-      Logger.log(`Uploading web build...`, data);
+      logger.log(`Uploading web build...`, data);
 
       const formData = new FormData();
       formData.append("data", JSON.stringify(data));
@@ -149,14 +150,14 @@ const uploadWeb = async (): Promise<boolean> => {
         maxContentLength: Infinity,
       });
 
-      Logger.log(`Upload successful:`, response.data);
+      logger.log(`Upload successful:`, response.data);
       return true;
     } catch (error) {
-      Logger.error(`Failed to upload web build`, error);
+      logger.error(`Failed to upload web build`, error);
       return false;
     }
   } catch (error) {
-    Logger.error(
+    logger.error(
       "Fatal error:",
       error instanceof Error ? error.message : String(error),
     );
@@ -175,7 +176,7 @@ const uploadAndroidAssets = async () => {
   const exec = new script.Exec();
 
   exec.async.onData((chunk) => {
-    Logger.log(chalk.blueBright("EAS UPDATE: "), chunk);
+    logger.log(chalk.blueBright("EAS UPDATE: "), chunk);
   });
   await exec.async.run(
     `eas update --branch ${BUILD_PROFILE} --platform android --message ${JSON.stringify(sanitizedMessage)}`,
@@ -193,7 +194,7 @@ const uploadAndroidAssets = async () => {
 
 script.addStep("Verify that arguments are valid", async () => {
   if (args.ARGS.testing) {
-    Logger.log("Testing mode: Skipping update due to testing mode");
+    logger.log("Testing mode: Skipping update due to testing mode");
     return;
   }
 
@@ -218,7 +219,7 @@ script.addStep("Upload web version if new", async () => {
   if (!platform.web) return;
   if (!isNewVersion.web) return;
 
-  Logger.log("Web version is new, uploading web version...");
+  logger.log("Web version is new, uploading web version...");
   await uploadWeb();
 });
 
@@ -226,7 +227,7 @@ script.addStep("Upload Android assets if new", async () => {
   if (!platform.android) return;
   if (!isNewVersion.android) return;
 
-  Logger.log("Android assets are new, uploading Android assets...");
+  logger.log("Android assets are new, uploading Android assets...");
   await uploadAndroidAssets();
 });
 

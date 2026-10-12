@@ -7,6 +7,7 @@ import {
 import React from "react";
 import isEqual from "react-fast-compare";
 import { Alert } from "react-native";
+import { Logger } from "../TOP_LEVEL";
 import { tTyped } from "../translates";
 import * as Sharing from "expo-sharing";
 import { REPLACERS } from "@common";
@@ -14,6 +15,8 @@ import * as Localization from "expo-localization";
 import * as DocumentPicker from "expo-document-picker";
 import { Directory, File, Paths } from "expo-file-system";
 import { Helper, wrapFunctionWithError } from "@common";
+
+const logger = new Logger("FunctionsAppManagement");
 
 export const getFormattedDate = (
   date: Date,
@@ -183,9 +186,9 @@ export const selectImage = async (
         }),
       );
 
-    REPLACERS.Logger.log("Image selection was canceled.");
+    logger.log("Image selection was canceled.");
   } catch (error) {
-    REPLACERS.Logger.error("Error selecting image:", error);
+    logger.error("Error selecting image:", error);
   }
   return { canceled: true };
 };
@@ -297,7 +300,7 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
         intermediates: true,
       });
     } catch (error) {
-      REPLACERS.Logger.error("Error creating file:", error);
+      logger.error("Error creating file:", error);
     }
     file.write(base64, { encoding: "base64" });
 
@@ -344,7 +347,7 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
           return { success: true, uri: directory.uri.split("//")[1] };
         },
         async (_, errMsg) => {
-          REPLACERS.Logger.error("Error saving file:", errMsg);
+          logger.error("Error saving file:", errMsg);
           return { success: false, uri: tTyped("labels.noDirectorySelected") };
         },
       );
@@ -390,7 +393,7 @@ const downloadBase64Native = async (options: OptionsDownloadFile) => {
       }),
     );
   } catch (error) {
-    REPLACERS.Logger.error("Error downloading image:", error);
+    logger.error("Error downloading image:", error);
     Alert.alert(
       tTyped("images.errorWhileSavingImageAlertTitle"),
       tTyped("images.errorWhileSavingImageAlertMessage", {

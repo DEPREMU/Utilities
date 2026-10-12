@@ -1,4 +1,4 @@
-import { REPLACERS } from "@common";
+import { logger } from "@/utils";
 import type { LogEntry } from "../types";
 import type { LogsWebSocketMessage } from "@types";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -62,7 +62,7 @@ export function useLogsWebSocket() {
               break;
           }
         } catch (e) {
-          REPLACERS.Logger.error("Failed to parse log message", e);
+          logger.error("Failed to parse log message", e);
         }
       };
 

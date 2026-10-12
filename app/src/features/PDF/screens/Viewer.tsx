@@ -7,7 +7,9 @@ import * as ExpoFileSystem from "expo-file-system";
 import { Button, Divider } from "react-native-paper";
 import * as DocumentPicker from "expo-document-picker";
 import React, { useCallback, useEffect } from "react";
-import { PDF, memoDeep, URI_EXTENSION, sanitizeFileName } from "@utils";
+import { PDF, memoDeep, URI_EXTENSION, sanitizeFileName, Logger } from "@utils";
+
+const logger = new Logger("PDFViewer");
 
 const Viewer: React.FC = () => {
   const { t } = useLanguage();
@@ -42,7 +44,7 @@ const Viewer: React.FC = () => {
       return;
     const filename = uri.split("/").pop();
     if (!filename) {
-      REPLACERS.Logger.error("Failed to extract filename from URI:", uri);
+      logger.error("Failed to extract filename from URI:", uri);
       return;
     }
 

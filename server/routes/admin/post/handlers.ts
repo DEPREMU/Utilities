@@ -1,7 +1,10 @@
+import chalk from "chalk";
 import { prisma } from "@/database/postgres";
 import { getEnvValue } from "@/env";
-import { getHandlerPost, Logger, STATUS_RESPONSE } from "@common";
 import { RequestError } from "@commonSrc/both/errors/Error";
+import { Logger, getHandlerPost, STATUS_RESPONSE } from "@common";
+
+const logger = new Logger("AdminPost");
 
 export const handlerAdminUnlock = getHandlerPost(
   "/admin",
@@ -33,7 +36,7 @@ export const handlerAdminUnlock = getHandlerPost(
 
       sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
     } catch (error) {
-      Logger.error("Error in admin unlock handler:", error);
+      logger.error(chalk.red("Error in admin unlock handler:"), error);
 
       throw error;
     }

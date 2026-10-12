@@ -45,7 +45,6 @@ export const externalWorkers = [...commonExternal];
 const REPLACERS_REPLACED: Record<keyof REPLACERS_TYPE, string> = {
   isDev: `${REPLACERS.isDev}`,
   isWeb: `${REPLACERS.isWeb}`,
-  Logger: REPLACERS.isProduction ? `(()=>{})` : `REPLACERS.Logger`,
   isLinux: `${REPLACERS.isLinux}`,
   isServer: `${REPLACERS.isServer}`,
   isNative: `${REPLACERS.isNative}`,

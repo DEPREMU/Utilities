@@ -7,6 +7,8 @@ import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { execSync } from "child_process";
 import { Directory, File } from "@commonSrc/serverOrElectron/fs";
 
+const logger = new Logger("CommonScript");
+
 export class Script extends Steps {
   private static instance: Script | null = null;
 
@@ -21,7 +23,7 @@ export class Script extends Steps {
     this.stopped = true;
     if (this.abortController) this.abortController.abort(reason);
 
-    if (reason) Logger.log(chalk.red(reason));
+    if (reason) logger.log(chalk.red(reason));
     process.exit(exitCode ?? 0);
   };
 

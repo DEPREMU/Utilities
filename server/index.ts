@@ -27,24 +27,24 @@ import routerAPI from "./routes/index.ts";
 import rateLimit from "express-rate-limit";
 import { config } from "./config.ts";
 import compression from "compression";
+import { getEnvValue } from "./env.ts";
 import { handleInitDB } from "./database/postgres.ts";
 import { closeAuthEmailQueue } from "./queue/authEmailQueue.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
-import { validateServerEnv, getEnvValue } from "./env.ts";
 import { getRedisClient, closeRedisConnection } from "./redis/client.ts";
 import { CryptosWebSocketMessage, WebSocketPathname } from "@types";
 
 type ServerWebSocket = ReturnType<typeof initWebSocket>;
 
+const logger = new Logger("Server");
 const app = express();
 
 startMemoryMonitor();
-validateServerEnv();
 
 try {
   initializeFirebaseAdmin();
 } catch (error) {
-  Logger.error(chalk.red("Failed to initialize Firebase Admin SDK:"), error);
+  logger.error(chalk.red("Failed to initialize Firebase Admin SDK:"), error);
 }
 
 const sourceProtocol = getEnvValue("USE_HTTPS") ? "https" : "http";
@@ -102,7 +102,7 @@ const startApp = async () => {
 
   server.on("upgrade", (request, socket, head) => {
     if (!request.url) {
-      Logger.error("Missing request URL");
+      logger.error("Missing request URL");
       socket.destroy();
       return;
     }
@@ -115,7 +115,7 @@ const startApp = async () => {
     const wsCalled = webSockets[pathname];
 
     if (!wsCalled) {
-      Logger.error("WebSocket server not found for pathname:", pathname);
+      logger.error("WebSocket server not found for pathname:", pathname);
       socket.destroy();
       return;
     }
@@ -125,7 +125,7 @@ const startApp = async () => {
       !ThirdPartyStateManager.isAvailable("cryptos")
     ) {
       wsCalled.handleUpgrade(request, socket, head, (ws) => {
-        Logger.error(
+        logger.error(
           "WebSocket connection rejected for /ws-cryptos due to unavailable dependency",
         );
         ws.send(
@@ -140,7 +140,7 @@ const startApp = async () => {
     }
 
     wsCalled.handleUpgrade(request, socket, head, (ws) => {
-      Logger.log(
+      logger.log(
         chalk.blue("WebSocket connection upgraded for pathname:", pathname),
       );
       wsCalled.emit("connection", ws, request);
@@ -153,14 +153,14 @@ const startApp = async () => {
     getRedisClient();
     startAuthEmailWorker();
   } catch (error) {
-    Logger.error(
+    logger.error(
       chalk.red("Failed to initialize Redis or BullMQ worker:"),
       error,
     );
   }
 
   const gracefulShutdown = async () => {
-    Logger.log("Shutting down server services...");
+    logger.log("Shutting down server services...");
     await closeAuthEmailWorker();
     await closeAuthEmailQueue();
     await closeRedisConnection();
@@ -171,7 +171,7 @@ const startApp = async () => {
   process.on("SIGINT", gracefulShutdown);
 
   server.listen(config.port, config.host, async () => {
-    Logger.log(
+    logger.log(
       "\n",
       "\t" +
         chalk.green(

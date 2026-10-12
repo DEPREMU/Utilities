@@ -5,6 +5,8 @@ import { getEnvValue } from "../env.ts";
 import { Logger, REPLACERS } from "@common";
 import { ScreensAvailable, ChannelsId } from "@types";
 
+const logger = new Logger("FirebaseAdmin");
+
 let firebaseApp: admin.app.App | null = null;
 
 export const initializeFirebaseAdmin = () => {
@@ -17,10 +19,10 @@ export const initializeFirebaseAdmin = () => {
       credential: admin.credential.cert(serviceAccount),
     });
 
-    Logger.log(chalk.green("Firebase Admin SDK initialized successfully."));
+    logger.log(chalk.green("Firebase Admin SDK initialized successfully."));
     return firebaseApp;
   } catch (error) {
-    Logger.error(chalk.red("Error initializing Firebase Admin SDK:"), error);
+    logger.error(chalk.red("Error initializing Firebase Admin SDK:"), error);
     throw error;
   }
 };
@@ -50,7 +52,7 @@ export const sendFCMNotification = async (
         token.slice(0, 3).toLowerCase() !== "web",
     );
     if (tokens.length === 0) {
-      Logger.log(chalk.yellow("No valid tokens to send notifications."));
+      logger.log(chalk.yellow("No valid tokens to send notifications."));
       return;
     }
 
@@ -74,14 +76,14 @@ export const sendFCMNotification = async (
 
     const response = await messaging.sendEachForMulticast(message);
 
-    Logger.log(
+    logger.log(
       chalk.green(
         `Notifications sent: ${response.successCount}/${tokens.length}`,
       ),
     );
 
     if (response.failureCount > 0) {
-      Logger.error(chalk.red(`Failures: ${response.failureCount}`));
+      logger.error(chalk.red(`Failures: ${response.failureCount}`));
 
       const invalidTokens = response.responses
         .map((r, idx) => (!r.success || r.error ? tokens[idx] : null))
@@ -91,13 +93,13 @@ export const sendFCMNotification = async (
         where: { token: { in: invalidTokens } },
       });
 
-      Logger.error(
+      logger.error(
         chalk.red(`Deleted ${count}/${invalidTokens.length} tokens`),
       );
     }
 
     return response;
   } catch (error) {
-    Logger.error(chalk.red("Error sending FCM notification:"), error);
+    logger.error(chalk.red("Error sending FCM notification:"), error);
   }
 };

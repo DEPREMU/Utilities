@@ -1,10 +1,12 @@
 import chalk from "chalk";
-import { prisma } from "@/database/postgres.ts";
+import { prisma } from "@/database/postgres";
 import { isLiveStreamer } from "@/routes/streamers/common";
-import { sendFCMNotification } from "@/firebase/admin.ts";
+import { sendFCMNotification } from "@/firebase/admin";
 import { ChannelsId, ScreensAvailable } from "@types";
 import { IntervalTimer, getPagination } from "./utils";
-import { t, Logger, languagesSupported, Helper } from "@common";
+import { t, Logger, Helper, languagesSupported } from "@common";
+
+const logger = new Logger("NotificationsStreamers");
 
 const notificationsSent: Record<
   string,
@@ -177,9 +179,9 @@ const handleSendNotificationsStreamers = async () => {
                   },
                 );
               } catch (error) {
-                Logger.error(
+                logger.error(
                   chalk.red(
-                    `Error sending notification to user ${user.userId} for streamer ${status.streamer}:`,
+                    `Error sending notification to user ${logger.secret(user.userId)} for streamer ${status.streamer}:`,
                   ),
                   error,
                 );
@@ -190,7 +192,7 @@ const handleSendNotificationsStreamers = async () => {
       );
     }
   } catch (error) {
-    Logger.error(
+    logger.error(
       chalk.red("Error in handleSendNotificationsStreamers:"),
       error,
     );

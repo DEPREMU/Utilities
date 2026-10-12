@@ -1,5 +1,6 @@
 import {
   URLS,
+  Logger,
   Cryptos,
   deviceInfo,
   elapsedTime,
@@ -13,8 +14,10 @@ import {
   OptionsReconnectingWS,
   ReconnectingWebSocket,
 } from "@/utils/reconnecting-websocket";
-import { REPLACERS, Timers } from "@common";
+import { Timers } from "@common";
 import { CryptosWebSocketMessage } from "@types";
+
+const logger = new Logger("CryptosWs");
 
 export const enum TIMES {
   PRICES_CACHE = 15 * 1000,
@@ -22,8 +25,6 @@ export const enum TIMES {
   OWNED_CRYPTOS_CACHE = 5 * 60 * 1000,
   AUTO_UPDATE_DEFAULT = 30 * 1000,
 }
-
-const TAG = "CryptoWs";
 
 const options: OptionsReconnectingWS<CryptosWebSocketMessage<"sentByApp">> = {
   messagesAfterOpen: [
@@ -158,8 +159,7 @@ export abstract class CryptosWs extends Cryptos {
           }
         }
       } catch (error) {
-        REPLACERS.Logger.error(
-          TAG,
+        logger.error(
           "Failed to parse WebSocket message:",
           event.data.toString(),
           error,

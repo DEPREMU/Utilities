@@ -11,7 +11,7 @@ const config: ConfigFunction = (api) => {
     throw new Error("BUILD_PROFILE environment variable is not set");
   if (!platform) throw new Error("PLATFORM environment variable is not set");
 
-  const replacers: Record<Exclude<Paths<REPLACERS_TYPE>, "Logger">, string> = {
+  const replacers: Record<Paths<REPLACERS_TYPE>, string> = {
     isDev: `${BUILD_PROFILE === "development"}`,
     isWeb: `${platform === "web"}`,
     isLinux: "false",
@@ -21,9 +21,6 @@ const config: ConfigFunction = (api) => {
     typeBuild: `"normal"`,
     isPreview: `${BUILD_PROFILE === "preview"}`,
     isProduction: `${BUILD_PROFILE === "production"}`,
-    "Logger.log": BUILD_PROFILE === "production" ? "(()=>{})" : "",
-    "Logger.warn": BUILD_PROFILE === "production" ? "(()=>{})" : "",
-    "Logger.error": BUILD_PROFILE === "production" ? "(()=>{})" : "",
   };
 
   const REPLACERS: Record<string, string> = Object.fromEntries(
@@ -64,6 +61,7 @@ const config: ConfigFunction = (api) => {
           },
         },
       ],
+      "./plugins/removeLoggerInstance.js",
       [
         "babel-plugin-transform-replace-expressions",
         {

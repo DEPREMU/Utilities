@@ -1,6 +1,8 @@
-import { Logger } from "@common";
 import chalk from "chalk";
+import { Logger } from "@common";
 import { cloneDeep } from "lodash";
+
+const logger = new Logger("NotificationsUtils");
 
 export const PAGE_SIZE = 10;
 
@@ -86,7 +88,7 @@ export class IntervalTimer {
 
   async #logError(error: Error) {
     if (!this.#options.logCatchPromise) return;
-    Logger.error(chalk.red(`Error in ${this.#options.name} interval:`), error);
+    logger.error(chalk.red(`Error in ${this.#options.name} interval:`), error);
   }
 
   async #executeFunction() {
@@ -107,7 +109,7 @@ export class IntervalTimer {
   public async start() {
     if (this.#timer) return;
 
-    Logger.log(chalk.blue(`Starting ${this.#options.name} interval...`));
+    logger.log(chalk.blue(`Starting ${this.#options.name} interval...`));
 
     await this.#executeFunction();
     this.#timer = setInterval(() => this.#executeFunction(), this.#interval);

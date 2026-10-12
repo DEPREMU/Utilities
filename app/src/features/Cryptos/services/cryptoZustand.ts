@@ -34,14 +34,9 @@ type Actions = {
 };
 
 export const useCryptoStore = create<States & Actions>((set, get) => {
-  const service = CryptoManager.instance;
-
-  const prices = service.prices || [];
-  const settings =
-    service.getSettings() || ({} as DB["TablesClient"]["CryptosSettings"]);
-  const selectedCryptos = service.ownedCryptos;
-
-  CryptoManager.destroy();
+  const prices = [] as PriceBinanceAPI;
+  const settings = {} as DB["TablesClient"]["CryptosSettings"];
+  const selectedCryptos = {} as SelectedCryptos;
 
   const data: States & Actions = {
     // state

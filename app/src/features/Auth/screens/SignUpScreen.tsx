@@ -2,6 +2,13 @@ import {
   KeyboardGestureArea,
   KeyboardAvoidingView,
 } from "react-native-keyboard-controller";
+import {
+  Logger,
+  tTyped,
+  navigation,
+  Validations,
+  sessionManager,
+} from "@utils";
 import React, {
   useRef,
   useMemo,
@@ -23,11 +30,12 @@ import { useLanguage } from "@context/LanguageContext";
 import EmailAndPassword from "@screens/Auth/components/EmailAndPassword";
 import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
-import { Timers, REPLACERS } from "@common";
+import { Timers } from "@common";
 import { ActivityIndicator } from "react-native-paper";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import { Button, Divider, Text, SegmentedButtons } from "react-native-paper";
-import { tTyped, navigation, Validations, sessionManager } from "@utils";
+
+const logger = new Logger("SignUpScreen");
 
 const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
   const { t } = useLanguage();
@@ -92,7 +100,7 @@ const SignUpScreen: React.FC<Screens["SignUp"]> = () => {
 
         signingUpRef.current = false;
         setSigningUp(false);
-        REPLACERS.Logger.log("Sign up failed:", error, email);
+        logger.log("Sign up failed:", error, email);
         return;
       }
 

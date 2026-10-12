@@ -13,6 +13,8 @@ import { randomUUID } from "node:crypto";
 import { RequestUploadUpdate } from "@types";
 import { dataUpdates, getFinalFileName } from "../variables";
 
+const logger = new Logger("UpdatesPost");
+
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
 
 const VALID_BUILD_TYPES = new Set<RequestUploadUpdate["buildType"]>([
@@ -79,7 +81,7 @@ export const handleUpload = getHandlerPost(
     });
 
     req.once("error", (error) => {
-      Logger.error("Request stream error:", error);
+      logger.error("Request stream error:", error);
       void abortRequest();
     });
 
@@ -101,7 +103,7 @@ export const handleUpload = getHandlerPost(
 
         try {
           if (dataFile !== null) {
-            Logger.error("Duplicate data field");
+            logger.error("Duplicate data field");
             isNewVersion = false;
             dataFile = null;
             return;
@@ -114,7 +116,7 @@ export const handleUpload = getHandlerPost(
             typeof parsed !== "object" ||
             !VALID_BUILD_TYPES.has(parsed.buildType)
           ) {
-            Logger.error("Invalid platform or OS");
+            logger.error("Invalid platform or OS");
             dataFile = null;
             isNewVersion = false;
             return;
@@ -130,7 +132,7 @@ export const handleUpload = getHandlerPost(
           }
 
           if (parsed.version === existingData.version) {
-            Logger.log("Version already exists:", parsed.version);
+            logger.log("Version already exists:", parsed.version);
 
             isNewVersion = false;
             return;
@@ -138,7 +140,7 @@ export const handleUpload = getHandlerPost(
 
           isNewVersion = true;
         } catch (error) {
-          Logger.error("Invalid JSON:", error);
+          logger.error("Invalid JSON:", error);
           dataFile = null;
           isNewVersion = false;
         }
@@ -150,7 +152,7 @@ export const handleUpload = getHandlerPost(
         file.on("limit", () => {
           fileTooLarge = true;
 
-          Logger.error(`Upload exceeds ${MAX_FILE_SIZE / 1024 / 1024} MB`);
+          logger.error(`Upload exceeds ${MAX_FILE_SIZE / 1024 / 1024} MB`);
         });
 
         const tempFile = new File(
@@ -171,24 +173,24 @@ export const handleUpload = getHandlerPost(
           void uploadPromise.catch((error) => {
             uploadError ??= error;
 
-            Logger.error("Error writing uploaded file:", error);
+            logger.error("Error writing uploaded file:", error);
           });
         } catch (error) {
           uploadError ??= error;
 
-          Logger.error("Error initializing file upload:", error);
+          logger.error("Error initializing file upload:", error);
 
           file.resume();
         }
       });
 
       busboy.on("filesLimit", () => {
-        Logger.error("More than one file was uploaded");
+        logger.error("More than one file was uploaded");
         receivedFileCount++;
       });
 
       busboy.once("error", (error) => {
-        Logger.error("Busboy error:", error);
+        logger.error("Busboy error:", error);
 
         uploadError ??= error;
 
@@ -218,7 +220,7 @@ export const handleUpload = getHandlerPost(
                 ? rejectedUpload.reason
                 : null);
 
-            Logger.error("Upload failed:", error);
+            logger.error("Upload failed:", error);
 
             await cleanupTempFiles();
 
@@ -293,7 +295,7 @@ export const handleUpload = getHandlerPost(
 
           const finalPath = path.join(uploadDir, finalName);
 
-          Logger.log(`Moving upload to: ${finalPath}`);
+          logger.log(`Moving upload to: ${finalPath}`);
 
           await tempPath.rename(finalPath);
 
@@ -304,13 +306,13 @@ export const handleUpload = getHandlerPost(
             dataFile.buildType,
           );
 
-          Logger.log("All files written successfully");
+          logger.log("All files written successfully");
 
           respond(STATUS_RESPONSE.SUCCESS, {
             success,
           });
         } catch (error) {
-          Logger.error("Error handling upload:", error);
+          logger.error("Error handling upload:", error);
 
           await cleanupTempFiles();
 
@@ -325,7 +327,7 @@ export const handleUpload = getHandlerPost(
 
       req.pipe(busboy);
     } catch (error) {
-      Logger.error("Error handling upload:", error);
+      logger.error("Error handling upload:", error);
 
       await cleanupTempFiles();
 

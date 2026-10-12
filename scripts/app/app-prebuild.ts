@@ -4,6 +4,8 @@ import { args } from "../arguments";
 import { Script } from "../common";
 import { Directory, File, Helper, Logger } from "@commonSrc/serverOrElectron";
 
+const logger = new Logger("app-prebuild");
+
 const script = new Script();
 
 const packageName = script.appConfig.android?.package;
@@ -23,7 +25,7 @@ const INTENTS_TO_ADD = `
 const getPath = async (relativePath: string) => {
   const pathLocal = path.resolve(script.PATHS.app, relativePath);
   if (!(await new File(pathLocal).exists())) {
-    Logger.log(
+    logger.log(
       chalk.yellow(
         `Creating directory: ${pathLocal} with relative path: ${relativePath}`,
       ),
@@ -41,7 +43,7 @@ script.addStep("Remove android directory", async () => {
 
   if (!args.ARGS.testing) await android.rm({ recursive: true, force: true });
   else
-    Logger.log(
+    logger.log(
       chalk.yellow("Testing mode: Skipping android directory removal"),
     );
 });
@@ -51,7 +53,7 @@ script.addStep("Verify google-services.json", async () => {
     path.join(script.PATHS.app, "google-services.json"),
   );
   if (args.ARGS.testing) {
-    Logger.log(
+    logger.log(
       chalk.yellow("Testing mode: Skipping google-services.json verification"),
     );
     return;
@@ -72,7 +74,7 @@ script.addStep("Run yarn expo prebuild", async () => {
     const exec = new script.Exec();
 
     exec.async.onData((chunk) => {
-      Logger.log(chalk.cyan("Prebuild: "), chunk);
+      logger.log(chalk.cyan("Prebuild: "), chunk);
     });
 
     await exec.async.run("yarn expo prebuild --platform android --clean", {
@@ -88,7 +90,7 @@ script.addStep("Run yarn expo prebuild", async () => {
     if (!(await android.exists()))
       throw new Error("Android directory not found");
   } else {
-    Logger.log(chalk.yellow("Testing mode: Skipping yarn expo prebuild"));
+    logger.log(chalk.yellow("Testing mode: Skipping yarn expo prebuild"));
   }
 });
 
@@ -103,7 +105,7 @@ script.addStep("Create modules", async () => {
     if (!module.name) {
       files = await new Directory(modulePath).readDir();
       if (files.length === 0) {
-        Logger.warn(
+        logger.warn(
           chalk.yellow(
             `No files found in ${modulePath} for module with name: ${module.name}`,
           ),
@@ -131,7 +133,7 @@ script.addStep("Create modules", async () => {
 
         await destFile.writeFile(content, "utf8");
       } else {
-        Logger.log(
+        logger.log(
           chalk.yellow(`Testing mode: Skipping module write for ${name}`),
         );
       }
@@ -164,7 +166,7 @@ script.addStep("Add intents to AndroidManifest", async () => {
   );
 
   if (args.ARGS.testing) {
-    Logger.log(
+    logger.log(
       chalk.yellow(
         "Testing mode: Skipping AndroidManifest.xml permissions write",
       ),
@@ -222,7 +224,7 @@ script.addStep("Modify AndroidManifest", async () => {
   }
 
   if (args.ARGS.testing) {
-    Logger.log(
+    logger.log(
       chalk.yellow("Testing mode: Skipping AndroidManifest.xml modification"),
     );
   } else {
@@ -259,7 +261,7 @@ script.addStep("Edit MainApplication", async () => {
   const getPackagesMatch = newContent.match(getPackagesRegex)?.[0];
 
   if (!getPackagesMatch) {
-    Logger.error(
+    logger.error(
       chalk.red("Could not find getPackages function"),
       "add manual package in MainApplication.kt fun getPackages()",
     );
@@ -268,7 +270,7 @@ script.addStep("Edit MainApplication", async () => {
 
   const curlyBraces = getPackagesMatch.match(/{[^}]*}/g)?.[0];
   if (!curlyBraces) {
-    Logger.error(
+    logger.error(
       chalk.red("Could not find curly braces in getPackages function"),
       "add manual package in MainApplication.kt fun getPackages()",
     );
@@ -283,7 +285,7 @@ script.addStep("Edit MainApplication", async () => {
   ];
 
   if (args.ARGS.testing) {
-    Logger.log(chalk.yellow("Testing mode: Skipping MainApplication.kt write"));
+    logger.log(chalk.yellow("Testing mode: Skipping MainApplication.kt write"));
     return;
   }
 
@@ -319,7 +321,7 @@ script.addStep("Add dependencies", async () => {
   });
 
   if (args.ARGS.testing) {
-    Logger.log(
+    logger.log(
       chalk.yellow("Testing mode: Skipping build.gradle dependencies write"),
     );
     return;
@@ -334,7 +336,7 @@ script.addStep("Edit packaging options", async () => {
 
   const match = buildGradleContent.match(/packagingOptions\s*{[^}]*}/g)?.[0];
   if (!match) {
-    Logger.error(
+    logger.error(
       chalk.red("Could not find packagingOptions block in build.gradle"),
     );
     return;
@@ -350,7 +352,7 @@ script.addStep("Edit packaging options", async () => {
   );
 
   if (args.ARGS.testing) {
-    Logger.log(chalk.yellow("Testing mode: Skipping build.gradle write"));
+    logger.log(chalk.yellow("Testing mode: Skipping build.gradle write"));
     return;
   }
 
@@ -372,7 +374,7 @@ script.addStep("add to xml", async () => {
   const en = stringsNative.match(/<en>[\s\S]*<\/en>/g)?.[0];
 
   if (!es || !en) {
-    Logger.error(
+    logger.error(
       chalk.red("Could not find <en> or <es> sections in native strings.xml"),
     );
     return;
@@ -391,7 +393,7 @@ script.addStep("add to xml", async () => {
   );
 
   if (args.ARGS.testing) {
-    Logger.log(chalk.yellow("Testing mode: Skipping strings.xml write"));
+    logger.log(chalk.yellow("Testing mode: Skipping strings.xml write"));
     return;
   }
 

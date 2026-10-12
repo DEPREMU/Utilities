@@ -14,7 +14,6 @@ export const REPLACERS: REPLACERS_TYPE = {
   isWeb: Platform.OS === "web",
   isNative: Platform.OS !== "web",
 
-  Logger: null as unknown as REPLACERS_TYPE["Logger"],
   isLinux: false,
   isServer: false,
   isWindows: false,

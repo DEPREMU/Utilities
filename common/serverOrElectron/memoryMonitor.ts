@@ -1,7 +1,9 @@
 import chalk from "chalk";
 import pidUsage from "pidusage";
-import { Logger } from "./logger.ts";
+import { Logger } from "./logger";
 import bytes, { BytesOptions } from "bytes";
+
+const logger = new Logger("CommonMemoryMonitor");
 
 let monitorIntervalId: ReturnType<typeof setInterval> | null = null;
 const MEMORY_THRESHOLD = 750 * 1024 * 1024; // Alert if RSS exceeds 750MB
@@ -11,11 +13,11 @@ const bytesOptions: BytesOptions = { unit: "MB", decimalPlaces: 2 };
 
 export const startMemoryMonitor = (): void => {
   if (monitorIntervalId) {
-    Logger.warn("Memory monitor already running");
+    logger.warn("Memory monitor already running");
     return;
   }
 
-  Logger.log("Starting memory monitor...");
+  logger.log("Starting memory monitor...");
 
   const checkMemoryUsage = () => {
     if (typeof process.memoryUsage !== "function") return;
@@ -24,7 +26,7 @@ export const startMemoryMonitor = (): void => {
 
     pidUsage(process.pid, (e, s) => {
       if (e) {
-        Logger.error(
+        logger.error(
           chalk.red("[Runtime Health] PID:"),
           process.pid,
           "| Error:",
@@ -33,7 +35,7 @@ export const startMemoryMonitor = (): void => {
         return;
       }
 
-      Logger.log(
+      logger.log(
         chalk.cyan(
           [
             `[Runtime Health] PID: ${s.pid} | CPU: ${s.cpu.toFixed(2)}%`,
@@ -49,7 +51,7 @@ export const startMemoryMonitor = (): void => {
 
     if (memUsage.rss <= MEMORY_THRESHOLD) return;
 
-    Logger.warn(
+    logger.warn(
       chalk.yellow(
         `⚠️ HIGH MEMORY USAGE DETECTED: ${bytes(memUsage.rss, bytesOptions)} (threshold: ${bytes(MEMORY_THRESHOLD, bytesOptions)})`,
       ),
@@ -65,7 +67,7 @@ export const stopMemoryMonitor = (): void => {
 
   clearInterval(monitorIntervalId);
   monitorIntervalId = null;
-  Logger.log("Memory monitor stopped");
+  logger.log("Memory monitor stopped");
 };
 
 export const getMemoryReport = (): {
@@ -76,9 +78,9 @@ export const getMemoryReport = (): {
 } => {
   const memUsage = process.memoryUsage();
   return {
-    heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
-    heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
     rssMB: Math.round(memUsage.rss / 1024 / 1024),
+    heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
     externalMB: Math.round(memUsage.external / 1024 / 1024),
+    heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
   };
 };

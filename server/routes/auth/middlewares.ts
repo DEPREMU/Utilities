@@ -1,7 +1,9 @@
 import chalk from "chalk";
 import { JWT } from "./variables.ts";
 import { Request, Response, NextFunction } from "express";
-import { Logger, STATUS_RESPONSE, sendResponse } from "@common";
+import { Logger, sendResponse, STATUS_RESPONSE } from "@common";
+
+const logger = new Logger("AuthMiddlewares");
 
 export const authMiddlewarePost = (
   req: Request,
@@ -35,7 +37,7 @@ export const authMiddlewarePost = (
         return;
       }
     } catch (error) {
-      Logger.error(chalk.red("Error verifying JWT token:"), error);
+      logger.error(chalk.red("Error verifying JWT token:"), error);
       response.error = "Invalid or expired token";
       return;
     }
@@ -44,7 +46,7 @@ export const authMiddlewarePost = (
     response.success = true;
     next();
   } catch (err) {
-    Logger.error(chalk.red("Error in auth middleware:"), err);
+    logger.error(chalk.red("Error in auth middleware:"), err);
     response.error = "Unknown error occurred during authentication";
   } finally {
     if (response.error || !response.success)
@@ -88,7 +90,7 @@ export const authMiddlewareGet = (
         return;
       }
     } catch (error) {
-      Logger.error(chalk.red("Error verifying JWT token:"), error);
+      logger.error(chalk.red("Error verifying JWT token:"), error);
       response.error = "Invalid or expired token";
       return;
     }
@@ -97,7 +99,7 @@ export const authMiddlewareGet = (
     response.success = true;
     next();
   } catch (err) {
-    Logger.error(chalk.red("Error in auth middleware:"), err);
+    logger.error(chalk.red("Error in auth middleware:"), err);
     response.error = "Unknown error occurred during authentication";
   } finally {
     if (response.error || !response.success)

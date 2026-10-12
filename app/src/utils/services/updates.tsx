@@ -8,14 +8,16 @@ import {
 } from "@common";
 import { openURL } from "expo-linking";
 import { modalRef } from "@refs";
-import { APP_VERSION } from "../TOP_LEVEL";
 import * as ExpoUpdates from "expo-updates";
 import { View, StyleSheet } from "react-native";
 import { EventsDeviceInfo } from "./deviceInfo";
 import { ProgressBar, Text } from "react-native-paper";
 import { EventEmitterService } from "@types";
+import { APP_VERSION, Logger } from "../TOP_LEVEL";
 import React, { useEffect, useState } from "react";
 import { File, Directory, Paths, DownloadTask } from "expo-file-system";
+
+const logger = new Logger("ServicesUpdates");
 
 type CheckUpdatesNatively = {
   time: number;
@@ -119,13 +121,13 @@ class Updates extends ServiceClass<never> {
               Validations.getSumVersion(APP_VERSION)
             ) {
               file.delete();
-              REPLACERS.Logger.log(`Pruned stale update APK: ${file.name}`);
+              logger.log(`Pruned stale update APK: ${file.name}`);
             }
           }
         }
       }
     } catch (e) {
-      REPLACERS.Logger.warn("Error pruning update cache:", e);
+      logger.warn("Error pruning update cache:", e);
     }
   };
 
@@ -234,7 +236,7 @@ class Updates extends ServiceClass<never> {
         tTyped("updates.fileMovedToDownloads", { path: targetPath }),
       );
     } catch (error) {
-      REPLACERS.Logger.error("Error viewing downloaded update file:", error);
+      logger.error("Error viewing downloaded update file:", error);
     }
   };
 
@@ -357,7 +359,7 @@ class Updates extends ServiceClass<never> {
       this.#activeDownloadTask = null;
       this.#isDownloading = false;
 
-      REPLACERS.Logger.error("Error downloading native update:", error);
+      logger.error("Error downloading native update:", error);
 
       const apkFile = new File(Paths.cache, "updates", `${version}.apk`);
       if (apkFile.exists) {
@@ -494,7 +496,7 @@ class Updates extends ServiceClass<never> {
         return true;
       } catch (error) {
         this.#isCheckingUpdates = false;
-        REPLACERS.Logger.error("Error while updating the app", error);
+        logger.error("Error while updating the app", error);
       }
 
       this.#isCheckingUpdates = false;
@@ -541,7 +543,7 @@ class Updates extends ServiceClass<never> {
 
       return true;
     } catch (error) {
-      REPLACERS.Logger.error(
+      logger.error(
         "Error while updating the app with Expo Updates",
         error instanceof Error ? error.message : String(error),
       );

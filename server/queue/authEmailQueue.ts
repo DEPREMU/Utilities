@@ -1,7 +1,10 @@
+import chalk from "chalk";
 import { Logger } from "@common";
 import { Queue, Job } from "bullmq";
 import { QUEUE_NAME } from "./variables.ts";
 import { getRedisClient } from "../redis/client.ts";
+
+const logger = new Logger("AuthEmailQueue");
 
 export interface AuthEmailJobData {
   to: string;
@@ -59,7 +62,11 @@ export const enqueueAuthEmail = async (
 ): Promise<Job<AuthEmailJobData>> => {
   const queue = getAuthEmailQueue();
   const job = await queue.add("send-auth-email", data);
-  Logger.log(`Authentication email queued for ${data.to} (job id: ${job.id})`);
+  logger.log(
+    chalk.blue(
+      `Authentication email queued for ${logger.secret(data.to)} (job id: ${job.id})`,
+    ),
+  );
   return job;
 };
 

@@ -1,6 +1,8 @@
 import { prisma } from "@/database/postgres";
 import { getHandlerPut, Logger, STATUS_RESPONSE } from "@common";
 
+const logger = new Logger("UserConfigHandlers");
+
 export const handleUpdateUserConfig = getHandlerPut(
   "/user-config",
   "/update",
@@ -18,7 +20,7 @@ export const handleUpdateUserConfig = getHandlerPut(
         success: !!res,
       });
     } catch (error) {
-      Logger.error("Error updating user config:", error);
+      logger.error("Error updating user config:", error);
     }
   },
 );

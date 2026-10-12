@@ -5,6 +5,8 @@ import { ServiceClass, Timers } from "../both/index.ts";
 import { getPiscinaWorkerPath } from "./piscina.ts";
 import { WorkerData, WorkerFiles } from "@types";
 
+const logger = new Logger("CommonTask");
+
 type CommonData = {
   /**
    * The maximum time in milliseconds to wait for the task to complete before automatically aborting it. If not provided, the task will run until completion or until manually aborted. This can be useful to prevent tasks from running indefinitely and consuming resources.
@@ -103,7 +105,7 @@ export class Task<ReturnValue, F extends WorkerFiles> extends ServiceClass<
 
       return await res;
     } catch (error) {
-      Logger.error("Task", "Error getting task result:", error);
+      logger.error("Error getting task result:", error);
       return error instanceof Error ? error : new Error(String(error));
     } finally {
       handleFinish();

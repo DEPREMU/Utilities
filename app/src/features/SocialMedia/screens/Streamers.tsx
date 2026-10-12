@@ -1,7 +1,8 @@
 import {
   ASSETS,
-  openURL,
+  Logger,
   tTyped,
+  openURL,
   deviceInfo,
   sessionManager,
   storageManagement,
@@ -14,9 +15,11 @@ import { useLanguage } from "@context/LanguageContext";
 import { ServerError } from "@commonSrc/both/errors/Error";
 import { View, ScrollView } from "react-native";
 import { useStylesStreamers } from "@screens/SocialMedia/styles/useStylesStreamers";
-import { Timers, REPLACERS, ServerFetch } from "@common";
+import { Timers, ServerFetch } from "@common";
 import { Text, TextInput, Card, Avatar, Switch } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+
+const logger = new Logger("FeaturesStreamers");
 
 type StreamerWithIsLive = DB["TablesClient"]["Streamers"] & { isLive: boolean };
 
@@ -45,7 +48,7 @@ const Streamers: React.FC = () => {
     if ("error" in res.data) {
       const errMsg = ServerError.getMessage(res.data);
 
-      REPLACERS.Logger.error(errMsg);
+      logger.error(errMsg);
       modalRef.openModal?.(
         tTyped("common.error"),
         tTyped("common.errorOccurred", { error: errMsg }),
@@ -168,10 +171,7 @@ const Streamers: React.FC = () => {
           sessionToken,
         );
       } catch (error) {
-        REPLACERS.Logger.error(
-          "Error updating user notifications config:",
-          error,
-        );
+        logger.error("Error updating user notifications config:", error);
       }
     },
   );
@@ -216,13 +216,13 @@ const Streamers: React.FC = () => {
       const data = res.data;
 
       if ("error" in data) {
-        REPLACERS.Logger.error(
+        logger.error(
           ServerError.getMessage(data) || "Unknown error adding streamer",
         );
         return;
       }
       if (!data.streamer) {
-        REPLACERS.Logger.error("Failed to add streamer");
+        logger.error("Failed to add streamer");
         return;
       }
 
@@ -239,7 +239,7 @@ const Streamers: React.FC = () => {
         });
       }
     } catch (error) {
-      REPLACERS.Logger.error(error);
+      logger.error(error);
       return;
     }
 
@@ -297,7 +297,7 @@ const Streamers: React.FC = () => {
         });
 
         if ("error" in res.data) {
-          REPLACERS.Logger.error(ServerError.getMessage(res.data));
+          logger.error(ServerError.getMessage(res.data));
           modalRef.openModal?.(
             tTyped("common.error"),
             tTyped("streamers.errorLoadingStreamers"),
@@ -333,7 +333,7 @@ const Streamers: React.FC = () => {
         setStreamers(data);
         storageManagement.save("STREAMERS", data);
       } catch (error) {
-        REPLACERS.Logger.error(error);
+        logger.error(error);
       }
     };
 

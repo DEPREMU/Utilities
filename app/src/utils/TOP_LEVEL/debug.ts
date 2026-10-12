@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
-import { Logger } from "@types";
 import DeviceInfo from "react-native-device-info";
+import { ILogger } from "@types";
 import { Platform } from "react-native";
 import { Helper, REPLACERS } from "@common";
 
@@ -8,8 +8,6 @@ type ReturnDeviceInfo = {
   deviceId: string;
   deviceName: string;
 };
-
-const FILTER_BY_MESSAGE: string[] = [];
 
 const getCurrentDeviceInfo = async () => {
   let deviceId: string = "";
@@ -64,130 +62,68 @@ const uploadLogToServer = async (
   }
 };
 
-/**
- * Logs a message to the console or sends it to a server.
- *
- * @param args - The error message and additional data to log.
- *
- * @remarks
- * - In development mode, logs to the console.
- * - In preview mode, sends the log to a server endpoint.
- * - In production mode, does nothing.
- */
-const log = (...args: unknown[]): void => {
-  if (REPLACERS.isProduction) return;
-  if (
-    FILTER_BY_MESSAGE.length &&
-    !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
-  )
-    return;
+export class Logger implements ILogger {
+  #moduleName: string;
 
-  const date = new Date();
+  createMessage(level: "log" | "warn" | "error", message: string): string {
+    const date = new Date();
 
-  const firstMessage = `Info - ${date.toLocaleString()} ::\n`;
-  const message = Helper.getMessage(...args);
-  const cleanMessage = Helper.stripAnsi(message);
-
-  if (REPLACERS.isDev) {
-    if (REPLACERS.isWeb) {
-      console.log(
-        `%c${firstMessage}`,
-        "color: #3b82f6; font-weight: bold;",
-        cleanMessage,
-      );
-    } else {
-      console.log(firstMessage, cleanMessage);
-    }
-  } else if (REPLACERS.isPreview) {
-    uploadLogToServer("log", [firstMessage, cleanMessage].join(" "));
+    const firstMessage = `${level.toUpperCase()} - ${date.toLocaleString()} - ${this.#moduleName} ::\n`;
+    const cleanMessage = Helper.stripAnsi(message);
+    return `${firstMessage}${cleanMessage}`;
   }
-};
 
-/**
- * Logs warning messages based on the current environment.
- *
- * In development mode, logs to console using console.warn.
- * In preview mode, sends the warning message to a remote logging API endpoint.
- * In production mode (non-preview), the function returns early without logging.
- *
- * @param args - Variable number of arguments of any type to be logged as warning messages
- * @returns A Promise that resolves when the logging operation is complete
- *
- * @example
- * ```typescript
- * REPLACERS.Logger.logWarn("User validation failed", { userId: 123, error: "Invalid email" });
- * REPLACERS.Logger.logWarn("API rate limit exceeded");
- * ```
- */
-const warn = async (...args: unknown[]): Promise<void> => {
-  if (REPLACERS.isProduction) return;
-  if (
-    FILTER_BY_MESSAGE.length &&
-    !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
-  )
-    return;
+  async log(...args: unknown[]): Promise<void> {
+    if (REPLACERS.isProduction) return;
 
-  const date = new Date();
+    const message = this.createMessage("log", Helper.getMessage(...args));
 
-  const firstMessage = `Warning - ${date.toLocaleString()} ::\n`;
-  const message = Helper.getMessage(...args);
-  const cleanMessage = Helper.stripAnsi(message);
-
-  if (REPLACERS.isDev) {
-    if (REPLACERS.isWeb) {
-      console.warn(
-        `%c${firstMessage}`,
-        "color: #eab308; font-weight: bold;",
-        cleanMessage,
-      );
-    } else {
-      console.warn(firstMessage, cleanMessage);
+    if (REPLACERS.isDev) {
+      if (REPLACERS.isWeb) {
+        console.log(`%c${message}`, "color: #3b82f6; font-weight: bold;");
+      } else {
+        console.log(message);
+      }
+    } else if (REPLACERS.isPreview) {
+      await uploadLogToServer("log", message);
     }
-  } else if (REPLACERS.isPreview) {
-    await uploadLogToServer("warn", [firstMessage, cleanMessage].join(" "));
   }
-};
 
-/**
- * Logs an error message to the console or sends it to a server.
- *
- * @param args - The error message and additional data to log.
- *
- * @remarks
- * - In development mode, logs to the console.
- * - In preview mode, sends the log to a server endpoint.
- * - In production mode, does nothing.
- */
-const error = async (...args: unknown[]): Promise<void> => {
-  if (REPLACERS.isProduction) return;
-  if (
-    FILTER_BY_MESSAGE.length &&
-    !FILTER_BY_MESSAGE.some((msg) => args.includes(msg))
-  )
-    return;
+  async warn(...args: unknown[]): Promise<void> {
+    if (REPLACERS.isProduction) return;
 
-  const date = new Date();
-  const firstMessage = `Error - ${date.toLocaleString()} ::\n`;
-  const message = Helper.getMessage(...args);
-  const cleanMessage = Helper.stripAnsi(message);
+    const message = this.createMessage("warn", Helper.getMessage(...args));
 
-  if (REPLACERS.isDev) {
-    if (REPLACERS.isWeb) {
-      console.error(
-        `%c${firstMessage}`,
-        "color: #ef4444; font-weight: bold;",
-        cleanMessage,
-      );
-    } else {
-      console.error(firstMessage, cleanMessage);
+    if (REPLACERS.isDev) {
+      if (REPLACERS.isWeb) {
+        console.warn(`%c${message}`, "color: #eab308; font-weight: bold;");
+      } else {
+        console.warn(message);
+      }
+    } else if (REPLACERS.isPreview) {
+      await uploadLogToServer("warn", message);
     }
-  } else if (REPLACERS.isPreview) {
-    await uploadLogToServer("error", [firstMessage, cleanMessage].join(" "));
   }
-};
 
-const fun = () => {};
+  async error(...args: unknown[]): Promise<void> {
+    if (REPLACERS.isProduction) return;
 
-export const logger: Logger = !REPLACERS.isProduction
-  ? { log, warn, error }
-  : { log: fun, warn: fun, error: fun };
+    const message = this.createMessage("error", Helper.getMessage(...args));
+
+    if (REPLACERS.isDev) {
+      if (REPLACERS.isWeb) {
+        console.error(`%c${message}`, "color: #ef4444; font-weight: bold;");
+      } else {
+        console.error(message);
+      }
+    } else if (REPLACERS.isPreview) {
+      await uploadLogToServer("error", message);
+    }
+  }
+
+  secret: (value: unknown) => string = Helper.secret;
+
+  constructor(moduleName: string) {
+    this.#moduleName = moduleName;
+  }
+}

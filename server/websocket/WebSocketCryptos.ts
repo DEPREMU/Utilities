@@ -5,13 +5,15 @@ import {
   CryptosWebSocketMessage,
 } from "@types";
 import chalk from "chalk";
-import { Users } from "./WebSocketHandling.ts";
+import { Users } from "./WebSocketHandling";
 import { config } from "@/config";
 import { prisma } from "@/database/postgres";
 import { cryptos } from "@/routes/cryptos/variables";
 import { sendFCMNotification } from "@/firebase/admin";
 import WebSocket, { WebSocketServer } from "ws";
-import { t, Logger, SelectedCryptos, Helper } from "@common";
+import { t, Helper, Logger, SelectedCryptos } from "@common";
+
+const logger = new Logger("WebSocketCryptos");
 
 const users = new Users<
   {
@@ -76,7 +78,7 @@ const getNotificationCrypto = async (
     });
     return notification;
   } catch (error) {
-    Logger.error(
+    logger.error(
       chalk.red("Error in getNotificationCrypto:"),
       error instanceof Error ? error.message : String(error),
     );
@@ -164,7 +166,7 @@ const initUserInterval = async (userId: string) => {
       users.clearInterval(id);
     }
   } catch (error) {
-    Logger.error(
+    logger.error(
       "Failed to initialize user notification interval for WebSocketCryptos:",
       error,
     );
@@ -183,7 +185,7 @@ const initUsersInterval = async () => {
       initUserInterval(user.userId);
     });
   } catch (error) {
-    Logger.error(
+    logger.error(
       "Failed to initialize users notifications for WebSocketCryptos:",
       error,
     );
@@ -253,7 +255,7 @@ const sendCryptos = async (
       "send-cryptos-timeout-" + userDevice.userId,
     );
   } catch (error) {
-    Logger.error(
+    logger.error(
       "Failed to fetch cryptos for user:",
       userDevice.userId,
       "error:",
@@ -367,7 +369,7 @@ const handleAddCrypto = async (
 
     sendCryptos(userData);
   } catch (error) {
-    Logger.error(
+    logger.error(
       "Failed to add crypto for user:",
       userData.userId,
       "crypto:",
@@ -396,7 +398,7 @@ const handleDeleteCrypto = async (
 
     if (res) sendCryptos(userDevice);
   } catch (error) {
-    Logger.error(
+    logger.error(
       "Failed to delete crypto for user:",
       userDevice.userId,
       "symbol:",
@@ -416,7 +418,7 @@ const handleMessage = async (
       JSON.parse(message);
 
     if (parsedMessage.type !== "init" && !userDevice.isValidUserData()) {
-      Logger.error("Received message before initialization:", message);
+      logger.error("Received message before initialization:", message);
       userDevice.handleClose(4001, "Initialization required");
       return;
     }
@@ -426,7 +428,7 @@ const handleMessage = async (
         {
           const { userId, deviceId } = parsedMessage;
           if (!userId || !deviceId) {
-            Logger.error(
+            logger.error(
               "Initialization message missing userId or deviceId:",
               message,
             );
@@ -461,7 +463,7 @@ const handleMessage = async (
         break;
     }
   } catch (error) {
-    Logger.error(
+    logger.error(
       "Failed to parse WebSocket message:",
       error instanceof Error ? error.message : error,
     );

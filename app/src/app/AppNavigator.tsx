@@ -3,6 +3,12 @@ import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from "@react-navigation/native-stack";
+import {
+  Logger,
+  REPLACERS,
+  navigation,
+  setupNotificationHandlers,
+} from "@utils";
 import Network from "@screens/Network/screens";
 import Translator from "@screens/Translator/screens/Translator";
 import HomeScreen from "@screens/Home/screens/HomeScreen";
@@ -18,7 +24,7 @@ import VaultNavigator from "@screens/Vault/screens";
 import SettingsScreen from "@screens/Settings/screens";
 import MarkdownViewer from "@screens/Markdown/screens/MarkdownViewer";
 import ImagesNavigator from "@screens/Images/screens";
-import ComputerControl from "@screens/Phone/ComputesControl/screens";
+import ComputerControl from "@/features/Phone/ComputersControl/screens";
 import CryptosNavigator from "@screens/Cryptos/screens";
 import TerminalCommands from "@screens/Web/TerminalCommands/screens";
 import VerifyCodeScreen from "@screens/Auth/screens/VerifyCodeScreen";
@@ -36,7 +42,8 @@ import VerifyResetCodeScreen from "@screens/Auth/screens/VerifyResetCodeScreen";
 import { NavigationContainer } from "@react-navigation/native";
 import { NativeFunctionsModule } from "@/utils/modules";
 import { Screens as RootStackParamList, ScreensAvailable } from "@types";
-import { REPLACERS, navigation, setupNotificationHandlers } from "@utils";
+
+const logger = new Logger("AppNavigator");
 
 type Screens = {
   [K in ScreensAvailable]: {
@@ -130,7 +137,7 @@ const AppNavigator: React.FC = () => {
   useEffect(() => {
     if (REPLACERS.isNative) {
       const handleNavigate = async (url: string | null) => {
-        REPLACERS.Logger.log("Handling URL:", url);
+        logger.log("Handling URL:", url);
 
         if (!url || (!url.startsWith("content") && !url.startsWith("file")))
           return;
@@ -151,7 +158,7 @@ const AppNavigator: React.FC = () => {
 
           navigation.replace("PDF", { uri: targetUri });
         } catch (error) {
-          REPLACERS.Logger.error("Error handling PDF URL:", error);
+          logger.error("Error handling PDF URL:", error);
         }
       };
 

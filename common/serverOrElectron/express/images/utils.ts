@@ -1,15 +1,17 @@
+import {
+  GetRouteData,
+  RequestChangeImageFormat,
+  ResponseChangeImageFormat,
+} from "@types";
 import path from "path";
 import chalk from "chalk";
 import sharp from "sharp";
 import { File } from "@commonSrc/serverOrElectron/fs";
 import { Task } from "@commonSrc/serverOrElectron/Task";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
-import {
-  GetRouteData,
-  RequestChangeImageFormat,
-  ResponseChangeImageFormat,
-} from "@types";
 import { ServerError } from "@commonSrc/both/errors/Error";
+
+const logger = new Logger("ExpressImagesUtils");
 
 export class TaskImages extends Task<ResponseChangeImageFormat, "IMAGES"> {
   static instance: TaskImages | null = null;
@@ -35,10 +37,7 @@ export const readImage = async (imagePath: string): Promise<string> => {
 
     return imageStr;
   } catch (error) {
-    Logger.error(
-      "Error reading image file:",
-      error instanceof Error ? error.message : String(error),
-    );
+    logger.error("Error reading image file:", error);
     return "";
   }
 };
@@ -54,7 +53,7 @@ export const changeFormat = async (
   });
 
   if (res instanceof Error) {
-    Logger.error(
+    logger.error(
       chalk?.red(
         "Error running image format change task:",
         format,

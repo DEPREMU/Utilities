@@ -1,10 +1,12 @@
 import chalk from "chalk";
 import { config } from "@/config.ts";
 import { prisma } from "./postgres.ts";
-import { getDateWithTimeAhead, Logger } from "@common";
+import { Logger, getDateWithTimeAhead } from "@common";
+
+const logger = new Logger("Database");
 
 const deleteOldSessions = async () => {
-  Logger.log(chalk.blue("Deleting old sessions and push tokens..."));
+  logger.log(chalk.blue("Deleting old sessions and push tokens..."));
   try {
     const oldDate = getDateWithTimeAhead({ days: -20 });
 
@@ -17,7 +19,7 @@ const deleteOldSessions = async () => {
       }),
     ]);
 
-    Logger.log(
+    logger.log(
       chalk.green(
         "Old sessions and push tokens deleted successfully. Sessions Count:",
       ),
@@ -26,7 +28,7 @@ const deleteOldSessions = async () => {
       pushTokenDeleted.count,
     );
   } catch (error) {
-    Logger.error(chalk.red("Error deleting old sessions:"), error);
+    logger.error(chalk.red("Error deleting old sessions:"), error);
   }
 };
 

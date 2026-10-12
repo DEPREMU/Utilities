@@ -17,6 +17,7 @@ import {
   reasonNotification,
   objByReasonNotification,
 } from "@common";
+import { Logger } from "../TOP_LEVEL";
 import { tTyped } from "../translates";
 import { modalRef } from "@refs";
 import { cloneDeep } from "lodash";
@@ -25,7 +26,8 @@ import * as DeviceInfo from "react-native-device-info";
 import * as notifications from "expo-notifications";
 import { AppState, Falsy } from "react-native";
 import { storageManagement } from "../services/storage";
-import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
+
+const logger = new Logger("ServicesNotifications");
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -158,7 +160,7 @@ export const setupNotificationHandlers = () => {
 
   const foregroundListener = notifications.addNotificationReceivedListener(
     (notification) => {
-      REPLACERS.Logger.log(
+      logger.log(
         "Notification received in foreground:",
         notification.request.content,
       );
@@ -262,19 +264,6 @@ const configureNotificationChannel = async () => {
   );
 };
 if (REPLACERS.isNative) configureNotificationChannel();
-
-export const getListenerNameDeviceInfo = (reason: ReasonNotification) => {
-  switch (reason) {
-    case "locationEnabled":
-      return EventsDeviceInfo.verifyLocation;
-    case "batteryAlerts":
-      return EventsDeviceInfo.batteryAlerts;
-    case "noInternetConnection":
-      return EventsDeviceInfo.hasInternetChange;
-    default:
-      return null;
-  }
-};
 
 class NotificationsManager extends ServiceClass<never> {
   #notifications: Notifications = null as unknown as Notifications;
@@ -457,7 +446,7 @@ class NotificationsManager extends ServiceClass<never> {
 
           return String(notificationId);
         } catch (error) {
-          REPLACERS.Logger.error("Error sending native notification", error);
+          logger.error("Error sending native notification", error);
         }
       }
 
@@ -470,7 +459,7 @@ class NotificationsManager extends ServiceClass<never> {
         trigger: notification.trigger || null,
       });
     } catch (error) {
-      REPLACERS.Logger.error(
+      logger.error(
         "NOTIFICATIONS",
         "Error checking paused notifications",
         error,
@@ -486,11 +475,26 @@ class NotificationsManager extends ServiceClass<never> {
   public toggleNotification = async <T extends ReasonNotification>(
     reason: T,
   ) => {
+    const { deviceInfo, EventsDeviceInfo } = await import("./deviceInfo");
+
     await deviceInfo.waitUntilInitialized();
 
     const data = this.getNotification(reason);
     data.enabled = !data.enabled;
     this.editNotification(reason, data);
+
+    const getListenerNameDeviceInfo = (reason: ReasonNotification) => {
+      switch (reason) {
+        case "locationEnabled":
+          return EventsDeviceInfo.verifyLocation;
+        case "batteryAlerts":
+          return EventsDeviceInfo.batteryAlerts;
+        case "noInternetConnection":
+          return EventsDeviceInfo.hasInternetChange;
+        default:
+          return null;
+      }
+    };
 
     const event = getListenerNameDeviceInfo(reason);
     if (!event) return;

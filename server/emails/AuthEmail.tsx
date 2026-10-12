@@ -1,15 +1,15 @@
-import React from "react";
 import {
-  Body,
-  Container,
-  Head,
-  Heading,
   Hr,
+  Body,
+  Head,
   Html,
+  Text,
   Preview,
   Section,
-  Text,
+  Heading,
+  Container,
 } from "@react-email/components";
+import React from "react";
 
 export interface AuthEmailProps {
   code: string;
