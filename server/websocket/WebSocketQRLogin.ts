@@ -6,10 +6,9 @@ import {
 } from "@types";
 import chalk from "chalk";
 import QRCode from "qrcode";
-import { Helper } from "@common";
-import { Logger } from "@commonSrc/serverOrElectron/logger";
-import { prisma } from "@/database/postgres.ts";
-import { getStorageData, JWT } from "@/routes/auth/variables.ts";
+import { prisma } from "@/database/postgres";
+import { Helper, Logger } from "@common";
+import { getStorageData, JWT } from "@/routes/auth/variables";
 import WebSocket, { WebSocketServer } from "ws";
 
 const logger = new Logger("WebSocketQRLogin");

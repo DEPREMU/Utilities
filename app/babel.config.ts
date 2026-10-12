@@ -61,6 +61,7 @@ const config: ConfigFunction = (api) => {
           },
         },
       ],
+      "./plugins/removeLoggerInstance.js",
       [
         "babel-plugin-transform-replace-expressions",
         {

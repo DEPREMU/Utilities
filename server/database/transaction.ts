@@ -1,11 +1,11 @@
-import { prisma } from "./postgres.ts";
-import { Logger } from "@common";
 import {
   ConflictError,
   TransientDatabaseError,
   isPrismaConflict,
   isPrismaTransient,
 } from "./errors.ts";
+import { Logger } from "@common";
+import { prisma } from "./postgres.ts";
 import type { PrismaClient } from "@/generated/prisma/index.js";
 
 const logger = new Logger("Database");
