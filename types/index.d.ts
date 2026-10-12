@@ -25,7 +25,10 @@ export type Logger = {
   log: (...args: unknown[]) => void;
   warn: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;
+  secret: (value: unknown) => string;
 };
+
+export type ILogger = Logger;
 
 export type REPLACERS_TYPE = {
   //? App
@@ -39,9 +42,6 @@ export type REPLACERS_TYPE = {
 
   //? Frontend
   typeBuild: "clipboard" | "test" | "normal";
-
-  //? Common
-  Logger: Logger;
 
   //? Env
   isDev: boolean;
