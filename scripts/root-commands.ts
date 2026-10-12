@@ -7,6 +7,7 @@ import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { formatFolder } from "./format-folder.ts";
 
 const script = new Script();
+const logger = new Logger("root-commands");
 
 export const run = async () => {
   const action = args.ARGS.action;
@@ -16,7 +17,7 @@ export const run = async () => {
     );
   }
 
-  Logger.log(`Running root action: ${action}`);
+  logger.log(`Running root action: ${action}`);
 
   switch (action) {
     case "compile-check":
@@ -25,7 +26,7 @@ export const run = async () => {
 
         await exec.async
           .onData((chunk) => {
-            Logger.log(
+            logger.log(
               chalk.magentaBright("Yarn app-prebuild-android: "),
               chunk,
             );
@@ -37,14 +38,14 @@ export const run = async () => {
 
         await exec.async
           .onData((chunk) => {
-            Logger.log(chalk.magentaBright("Gradle: "), chunk);
+            logger.log(chalk.magentaBright("Gradle: "), chunk);
           })
           .run("cd android && ./gradlew :app:compileDebugKotlin --no-daemon", {
             env: process.env,
             cwd: script.PATHS.app,
           });
       } else {
-        Logger.log("Testing mode: Skipping compile-check commands");
+        logger.log("Testing mode: Skipping compile-check commands");
       }
       break;
     case "clean":
@@ -63,14 +64,14 @@ export const run = async () => {
 
         await exec.async
           .onData((chunk) => {
-            Logger.log(chalk.magentaBright("Yarn expo start: "), chunk);
+            logger.log(chalk.magentaBright("Yarn expo start: "), chunk);
           })
           .run("yarn expo start -c", {
             env: process.env,
             cwd: script.PATHS.app,
           });
       } else {
-        Logger.log("Testing mode: Skipping yarn expo start");
+        logger.log("Testing mode: Skipping yarn expo start");
       }
       break;
     case "type-check":
@@ -79,14 +80,14 @@ export const run = async () => {
 
         await exec.async
           .onData((chunk) => {
-            Logger.log(chalk.magentaBright("Type-check: "), chunk);
+            logger.log(chalk.magentaBright("Type-check: "), chunk);
           })
           .run("yarn run type-check", {
             env: process.env,
             cwd: script.PATHS.app,
           });
       } else {
-        Logger.log("Testing mode: Skipping yarn run type-check");
+        logger.log("Testing mode: Skipping yarn run type-check");
       }
       break;
     case "build-web": {
@@ -100,14 +101,14 @@ export const run = async () => {
 
         await exec.async
           .onData((chunk) => {
-            Logger.log(chalk.magentaBright("Yarn build web: "), chunk);
+            logger.log(chalk.magentaBright("Yarn build web: "), chunk);
           })
           .run(
             `yarn expo export -c -p web ${envWeb.BUILD_PROFILE === "production" ? "" : "--dev --no-minify"}`,
             { env: envWeb, cwd: script.PATHS.app },
           );
       } else {
-        Logger.log("Testing mode: Skipping yarn expo export");
+        logger.log("Testing mode: Skipping yarn expo export");
       }
       break;
     }
@@ -125,14 +126,14 @@ export const run = async () => {
 
         await exec.async
           .onData((chunk) => {
-            Logger.log(chalk.magentaBright("Yarn dev: "), chunk);
+            logger.log(chalk.magentaBright("Yarn dev: "), chunk);
           })
           .run("yarn run dev", {
             env: envWeb,
             cwd: script.PATHS.frontend,
           });
       } else {
-        Logger.log("Testing mode: Skipping yarn run dev");
+        logger.log("Testing mode: Skipping yarn run dev");
       }
       break;
     }
@@ -149,14 +150,14 @@ export const run = async () => {
 
         await exec.async
           .onData((chunk) => {
-            Logger.log(chalk.magentaBright("Yarn build: "), chunk);
+            logger.log(chalk.magentaBright("Yarn build: "), chunk);
           })
           .run("yarn run build", {
             env: envWeb,
             cwd: script.PATHS.frontend,
           });
       } else {
-        Logger.log("Testing mode: Skipping yarn run build");
+        logger.log("Testing mode: Skipping yarn run build");
       }
       break;
     }
@@ -180,7 +181,7 @@ export const clean = async () => {
     dirs.map((d) => path.join(p, d)),
   );
 
-  Logger.log("Cleaning paths...");
+  logger.log("Cleaning paths...");
   await Helper.Arrays.forEachQueue(3, pathsToClean, async (p) => {
     const dir = new script.Directory(p);
     if (!(await dir.exists())) return;

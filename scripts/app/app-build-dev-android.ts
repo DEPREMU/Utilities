@@ -5,6 +5,8 @@ import { spawn } from "child_process";
 import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron";
 
+const logger = new Logger("app-build-dev-android");
+
 const localEnv = {
   ...process.env,
   PLATFORM: "android",
@@ -12,12 +14,12 @@ const localEnv = {
 };
 
 const script = new Script(() => {
-  Logger.log("Finished app-build-dev-android script.");
+  logger.log("Finished app-build-dev-android script.");
   killProcessTree(expo);
 
   if (script.PLATFORM.isWindows) return;
 
-  Logger.log("Cleaning up java processes...");
+  logger.log("Cleaning up java processes...");
   spawn("pkill", ["-f", "java"]);
 });
 
@@ -63,7 +65,7 @@ if (!args.ARGS["skip-build-android"]) {
 
     await exec.async
       .onData((chunk) => {
-        Logger.log(chalk.magentaBright("Prebuild:"), chunk);
+        logger.log(chalk.magentaBright("Prebuild:"), chunk);
       })
       .run("yarn run app-prebuild-android", {
         env: localEnv,
@@ -71,7 +73,7 @@ if (!args.ARGS["skip-build-android"]) {
   });
 
   script.addStep("Run android build", async (_, abortController) => {
-    Logger.log("Running android build...");
+    logger.log("Running android build...");
     expo = spawnCommand(
       script.PLATFORM.isWindows ? "yarn" : "taskset",
       script.PLATFORM.isWindows
@@ -82,7 +84,7 @@ if (!args.ARGS["skip-build-android"]) {
   });
 } else {
   script.addStep("Run expo", (_, abortController) => {
-    Logger.log("Running expo...");
+    logger.log("Running expo...");
 
     expo = spawnCommand("expo", ["start", "--clear", "--dev-client"], {
       cwd: script.PATHS.app,
