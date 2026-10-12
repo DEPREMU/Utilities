@@ -1,10 +1,11 @@
 import "./index.css";
+import { logger } from "@/utils";
 import { TopNav } from "./components/TopNav";
 import type { Enums } from "@types";
 import { UpdatesGrid } from "./components/UpdatesGrid";
 import { useTranslations } from "@/pages/context/useTranslations";
+import { Helper, ServerFetch } from "@common";
 import React, { useEffect, useState } from "react";
-import { Helper, REPLACERS, ServerFetch } from "@common";
 
 interface UpdateInfo {
   downloadUrl: string;
@@ -48,11 +49,7 @@ const Updates: React.FC = () => {
               };
             }
           } catch (error) {
-            REPLACERS.Logger.error(
-              "Failed to fetch update for",
-              buildType,
-              error,
-            );
+            logger.error("Failed to fetch update for", buildType, error);
           }
         }),
       );

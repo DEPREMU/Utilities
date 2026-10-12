@@ -1,6 +1,8 @@
 import "./index.css";
+
+import { logger } from "@/utils";
+import { Timers } from "@common";
 import { useTranslations } from "@/pages/context/useTranslations";
-import { REPLACERS, Timers } from "@common";
 import type { ContextBridgeType } from "@types";
 import React, { useEffect, useState } from "react";
 
@@ -51,7 +53,7 @@ const Clipboard: React.FC = () => {
           ) as unknown as (() => void) | undefined;
         }
       } catch (err) {
-        REPLACERS.Logger.error("Error fetching clipboard history", err);
+        logger.error("Error fetching clipboard history", err);
         setError(t("clipboard.errorLoading"));
       }
     };
@@ -77,7 +79,7 @@ const Clipboard: React.FC = () => {
         }
       }, 1000);
     } catch (err) {
-      REPLACERS.Logger.error("Error setting clipboard", err);
+      logger.error("Error setting clipboard", err);
     }
   };
 
@@ -88,7 +90,7 @@ const Clipboard: React.FC = () => {
       const success = await windowTyped.clipboard.deleteItem(id);
       if (success) setItems((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
-      REPLACERS.Logger.error("Error deleting clipboard item", err);
+      logger.error("Error deleting clipboard item", err);
     }
   };
 
@@ -98,7 +100,7 @@ const Clipboard: React.FC = () => {
       await windowTyped.clipboard.deleteAllItems();
       setItems([]);
     } catch (err) {
-      REPLACERS.Logger.error("Error clearing clipboard history", err);
+      logger.error("Error clearing clipboard history", err);
     }
   };
 
