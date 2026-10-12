@@ -14,6 +14,7 @@ let isNewVersionLinux: boolean;
 let isNewVersionWindows: boolean;
 
 const script = new Script();
+const logger = new Logger("build-upload-electron");
 
 const versionElectron = await script
   .getPackageJson("utilitiesForPC")
@@ -37,7 +38,7 @@ const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
 
     return !res.data.isUpdateAvailable;
   } catch (error) {
-    Logger.error(
+    logger.error(
       "Error checking for new version:",
       error instanceof Error ? error.message : String(error),
     );
@@ -45,7 +46,7 @@ const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
   return true;
 };
 
-Logger.log("=== Electron Build and Upload Process ===\n");
+logger.log("=== Electron Build and Upload Process ===\n");
 
 script.addStep("Check Platform", async () => {
   if (script.PLATFORM.isWindows) {
@@ -64,7 +65,7 @@ if (!args.ARGS["skip-build-electron"])
 
     await exec.async
       .onData((chunk) => {
-        Logger.log(chalk.blueBright("Build Electron App: "), chunk);
+        logger.log(chalk.blueBright("Build Electron App: "), chunk);
       })
       .run(
         `yarn run build-app-electron ${
@@ -82,7 +83,7 @@ if (!args.ARGS["skip-build-electron"])
 
 script.addStep("Check if there are new versions", async () => {
   if (!isNewVersionLinux && !isNewVersionWindows) {
-    Logger.log(
+    logger.log(
       "No new version available for either platform. Exiting without uploading.",
     );
     throw new Error("No new version available for either platform");
@@ -107,7 +108,7 @@ script.addStep(`Check if there are Electron build files`, async () => {
 });
 
 script.addStep("Upload Electron Builds", async () => {
-  Logger.log("Uploading Electron builds, version:", versionElectron);
+  logger.log("Uploading Electron builds, version:", versionElectron);
 
   const distElectron = new script.Directory(
     path.join(script.PATHS.utilitiesForPC, "dist-electron"),
@@ -143,7 +144,7 @@ script.addStep("Upload Electron Builds", async () => {
     );
   }
 
-  Logger.log(
+  logger.log(
     `Found ${availablePlatforms.length} build(s):`,
     availablePlatforms
       .map((p) => `${p.buildType} (${path.basename(p.file.path)})`)
@@ -164,7 +165,7 @@ script.addStep("Upload Electron Builds", async () => {
         version: versionElectron,
       };
 
-      Logger.log(
+      logger.log(
         `Uploading ${buildType} build: ${path.basename(file.path)}...`,
         data,
       );
@@ -194,15 +195,15 @@ script.addStep("Upload Electron Builds", async () => {
         },
       );
 
-      Logger.log(`Upload successful for ${buildType}:`, response.data);
+      logger.log(`Upload successful for ${buildType}:`, response.data);
       return {
         buildType,
         success: !response.data?.error,
         data: response.data,
       };
     } catch (error) {
-      Logger.error(`Failed to upload ${buildType} build:`);
-      Logger.error(error instanceof Error ? error.message : String(error));
+      logger.error(`Failed to upload ${buildType} build:`);
+      logger.error(error instanceof Error ? error.message : String(error));
       return {
         buildType,
         success: false,
@@ -213,23 +214,23 @@ script.addStep("Upload Electron Builds", async () => {
 
   const results = await Promise.all(uploadPromises);
 
-  Logger.log("\n=== Electron Upload Summary ===");
+  logger.log("\n=== Electron Upload Summary ===");
   const successCount = results.filter((r) => r.success).length;
   results.forEach((result) => {
     const status = result.success ? "Success" : "Failed";
-    Logger.log(`${result.buildType}: ${status}`);
+    logger.log(`${result.buildType}: ${status}`);
     if (!result.success && "error" in result) {
-      Logger.log(`  Error: ${result.error}`);
+      logger.log(`  Error: ${result.error}`);
     }
   });
 
-  Logger.log(`\nTotal: ${successCount}/${results.length} successful uploads`);
+  logger.log(`\nTotal: ${successCount}/${results.length} successful uploads`);
 
   if (successCount === 0) {
     throw new Error("All Electron uploads failed");
   }
 
-  Logger.log("\nElectron builds uploaded successfully!");
+  logger.log("\nElectron builds uploaded successfully!");
 });
 
 const isElevated = script.elevate(

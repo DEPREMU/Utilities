@@ -1,5 +1,7 @@
+import { Logger } from "@/utils/TOP_LEVEL";
 import { Linking } from "react-native";
-import { REPLACERS } from "@common";
+
+const logger = new Logger("FunctionsSocialMedia");
 
 /**
  * Opens the specified URL.
@@ -9,6 +11,6 @@ import { REPLACERS } from "@common";
  */
 export const openURL = (link: string): void => {
   Linking.openURL(link).catch((err) =>
-    REPLACERS.Logger.error("Failed to open URL:", err),
+    logger.error("Failed to open URL:", err),
   );
 };

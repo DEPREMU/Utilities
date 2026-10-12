@@ -1,9 +1,11 @@
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling.ts";
 import { Logger } from "@common";
+import { prisma } from "@/database/postgres";
 import { WebSocketMessage } from "@types";
 import WebSocket, { WebSocketServer } from "ws";
-import { prisma } from "@/database/postgres.ts";
+
+const logger = new Logger("WebSocket");
 
 const users = new Users<
   Record<string, unknown>,
@@ -27,7 +29,7 @@ const handleInitWebSocket = (
 
     userDevice.sendMessage({ type: "init-success" });
   } catch (error) {
-    Logger.error(
+    logger.error(
       chalk.red("Error in handleInitWebSocket:"),
       error instanceof Error ? error.message : error,
     );
@@ -57,11 +59,11 @@ const onMessage = (
         userDevice.pongReceived();
         break;
       default:
-        Logger.log(chalk.yellow("Unknown message type:"), message);
+        logger.log(chalk.yellow("Unknown message type:"), message);
         break;
     }
   } catch (error) {
-    Logger.error(
+    logger.error(
       chalk.red("Error handling WebSocket message:"),
       error instanceof Error ? error.message : error,
     );
@@ -72,7 +74,7 @@ const connectionWss = (ws: WebSocket) => {
   let isErrorClose = false;
   const userDevice = users.createUser(ws);
 
-  Logger.log(chalk.green("New client connected"));
+  logger.log(chalk.green("New client connected"));
 
   try {
     ws.on("message", (buffer) => {
@@ -81,7 +83,7 @@ const connectionWss = (ws: WebSocket) => {
 
     ws.on("close", (code, reason) => {
       if (!isErrorClose)
-        Logger.log(
+        logger.log(
           chalk.red("Client"),
           chalk.yellow(userDevice.userId),
           chalk.red("disconnected:"),
@@ -93,7 +95,7 @@ const connectionWss = (ws: WebSocket) => {
 
     ws.on("error", (error) => {
       isErrorClose = true;
-      Logger.log(
+      logger.log(
         chalk.red("WebSocket error for client:"),
         chalk.yellow(userDevice.userId),
         chalk.red("-"),
@@ -102,7 +104,7 @@ const connectionWss = (ws: WebSocket) => {
       ws.close();
     });
   } catch (error) {
-    Logger.error(
+    logger.error(
       chalk.red("Error in connectionWss:"),
       error instanceof Error ? error.message : error,
     );
@@ -117,7 +119,7 @@ export const initWebSocket = () => {
 
     return wss;
   } catch (error) {
-    Logger.error(chalk.red("Error initializing WebSocket server:"), error);
+    logger.error(chalk.red("Error initializing WebSocket server:"), error);
     throw error;
   }
 };

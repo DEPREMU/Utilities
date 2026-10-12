@@ -1,12 +1,15 @@
 import PDF from "react-native-pdf";
 import { Image } from "react-native";
+import { Timers } from "@common";
+import { Logger } from "../TOP_LEVEL";
 import * as PDFLib from "pdf-lib";
 import { randomUUID } from "react-native-quick-crypto";
 import { Directories } from "./Directories";
 import * as ExpoFileSystem from "expo-file-system";
 import { ImageManipulator } from "expo-image-manipulator";
-import { REPLACERS, Timers } from "@common";
 import { CreatePdfFromImages, PlatformData } from "./platform";
+
+const logger = new Logger("CrossPlatformNative");
 
 export const ready = async () => {};
 
@@ -112,7 +115,7 @@ export const createPdfFromImages: CreatePdfFromImages = async (
       const imagePdf = await doc.embedJpg(await newFile.bytes());
       newPage.drawImage(imagePdf);
     } catch (error) {
-      REPLACERS.Logger.error("PDF", "error processing image for PDF", error);
+      logger.error("PDF", "error processing image for PDF", error);
     }
   }
 

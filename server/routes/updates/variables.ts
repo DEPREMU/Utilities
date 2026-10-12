@@ -6,6 +6,8 @@ import { config } from "@/config";
 import { Prisma, RequestUploadUpdate } from "@types";
 import { File, Logger, ServerFetch, Validations } from "@common";
 
+const logger = new Logger("UpdatesVariables");
+
 const extensions = {
   web: "web-{{version}}.zip",
   linux: "linux-{{version}}.deb",
@@ -99,7 +101,7 @@ class DataUpdates {
 
       return !!data.id;
     } catch (error) {
-      Logger.error(chalk.red("Error updating data uploads:"), error);
+      logger.error(chalk.red("Error updating data uploads:"), error);
       return false;
     }
   };
@@ -147,7 +149,7 @@ class DataUpdates {
 
       return Validations.isNewVersion(version, latestVersion);
     } catch (error) {
-      Logger.error(chalk.red("Error checking for updates:"), error);
+      logger.error(chalk.red("Error checking for updates:"), error);
       return true;
     }
   };
@@ -157,7 +159,7 @@ class DataUpdates {
       const data = this.getDataUpdate(buildType);
       return data ? data.version : null;
     } catch (error) {
-      Logger.error(chalk.red("Error getting latest version:"), error);
+      logger.error(chalk.red("Error getting latest version:"), error);
       return null;
     }
   };
@@ -166,7 +168,7 @@ class DataUpdates {
     try {
       return this.#data.find((u) => u.type === buildType) ?? null;
     } catch (error) {
-      Logger.error(chalk.red("Error getting update data:"), error);
+      logger.error(chalk.red("Error getting update data:"), error);
       return null;
     }
   };

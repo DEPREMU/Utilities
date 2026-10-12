@@ -2,13 +2,15 @@ import {
   OptionsReconnectingWS,
   ReconnectingWebSocket,
 } from "@/utils/reconnecting-websocket";
-import { URLS } from "@/utils/TOP_LEVEL";
+import { Logger, URLS } from "@/utils/TOP_LEVEL";
 import { sessionManager } from "../session";
 import { ClipboardServer } from "./server";
 import { Helper, REPLACERS } from "@common";
 import { storageManagement } from "../storage";
 import { BackgroundModule, windowModule } from "@/utils/modules";
 import { ClipboardItem, ClipboardWebSocketMessage } from "@types";
+
+const logger = new Logger("ClipboardWebSocket");
 
 type SendMessageFunc = (
   message: ClipboardWebSocketMessage<"sentByApp">,
@@ -29,7 +31,7 @@ const OPTIONS_RECONNECT_WS: OptionsReconnectingWS = {
       const userData = sessionManager.getSessionData().userData;
 
       if (!deviceId || !userData?.userId) {
-        REPLACERS.Logger.error(
+        logger.error(
           "No session token or device ID found for Clipboard WebSocket initialization message.",
         );
         return "";
@@ -74,15 +76,12 @@ export class ClipboardWebSocket extends ClipboardServer {
     };
 
     this.#clipboardSocket.onError = (error) => {
-      REPLACERS.Logger.error(
-        "Clipboard WebSocket error:",
-        error.message || error,
-      );
+      logger.error("Clipboard WebSocket error:", error.message || error);
       this.emit("connection-status", false);
     };
 
     this.#clipboardSocket.onClose = () => {
-      REPLACERS.Logger.log("Clipboard WebSocket connection closed.");
+      logger.log("Clipboard WebSocket connection closed.");
       this.emit("connection-status", false);
     };
 
@@ -111,10 +110,7 @@ export class ClipboardWebSocket extends ClipboardServer {
         else if (REPLACERS.isWeb)
           windowModule.clipboard.set(parsedMessage.content);
       } catch (error) {
-        REPLACERS.Logger.error(
-          "Error parsing Clipboard WebSocket message:",
-          error,
-        );
+        logger.error("Error parsing Clipboard WebSocket message:", error);
       }
     };
 

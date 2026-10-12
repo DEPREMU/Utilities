@@ -1,16 +1,18 @@
 import chalk from "chalk";
+import { prisma } from "@/database/postgres";
 import { Helper, Logger } from "@common";
-import { prisma } from "@/database/postgres.ts";
 import { LogsWebSocketMessage } from "@types";
 import { WebSocket, WebSocketServer } from "ws";
 
 export const connectedLogClients = new Set<WebSocket>();
+const logger = new Logger("WebSocketLogs");
 
 Logger.addInterceptor((type, message) => {
   const cleanedContent = Helper.stripAnsi(message);
 
-  // Extract tag e.g. [auth] using regex
-  const tagMatch = cleanedContent.match(/^\[(.*?)\]/);
+  const tagMatch =
+    cleanedContent.match(/^\[.*?\]-\[(.*?)\]/) ||
+    cleanedContent.match(/^\[(.*?)\]/);
   const tag = tagMatch ? tagMatch[1] : "untagged";
 
   // Enforce 10k limit and save to DB
@@ -104,11 +106,11 @@ const onMessage = async (buffer: WebSocket.RawData, _ws: WebSocket) => {
         break;
 
       default:
-        Logger.log(chalk.yellow("Unknown server logs message type:"), message);
+        logger.log(chalk.yellow("Unknown server logs message type:"), message);
         break;
     }
   } catch (error) {
-    Logger.error(
+    logger.error(
       chalk.red("Error handling ServerLogs WebSocket message:"),
       error,
     );
@@ -138,7 +140,7 @@ const onConnection = async (ws: WebSocket) => {
     };
     ws.send(JSON.stringify(syncMsg));
   } catch (error) {
-    Logger.error(chalk.red("Error sending initial logs sync:"), error);
+    logger.error(chalk.red("Error sending initial logs sync:"), error);
   }
 
   ws.on("message", (buffer) => onMessage(buffer, ws));
@@ -148,7 +150,7 @@ const onConnection = async (ws: WebSocket) => {
   });
 
   ws.on("error", (error) => {
-    Logger.error("ServerLogs WebSocket error:", error);
+    logger.error("ServerLogs WebSocket error:", error);
     connectedLogClients.delete(ws);
   });
 };
@@ -174,7 +176,7 @@ export const initWebSocketServerLogs = () => {
     wss.on("connection", onConnection);
     return wss;
   } catch (error) {
-    Logger.error(
+    logger.error(
       chalk.red("Error initializing ServerLogs WebSocket server:"),
       error instanceof Error ? error.message : error,
     );

@@ -1,8 +1,9 @@
-import { TAG } from "./common";
-import { logger } from "@/utils/TOP_LEVEL/debug";
+import { Logger } from "@/utils/TOP_LEVEL/debug";
 import { ServerError } from "@commonSrc/both/errors/Error";
 import { ClipboardItem } from "@types";
-import { REPLACERS, ServerFetch, ServiceClass } from "@common";
+import { ServerFetch, ServiceClass } from "@common";
+
+const logger = new Logger("ClipboardServer");
 
 type ListenersClipboard = {
   "items-updated": (items: ClipboardItem[]) => void;
@@ -34,7 +35,6 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
 
       if ("error" in res.data) {
         logger.error(
-          TAG,
           "Error while deleting clipboard item:",
           ServerError.getMessage(res.data),
         );
@@ -51,7 +51,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
 
       return success;
     } catch (error) {
-      REPLACERS.Logger.error("Error deleting clipboard item:", error);
+      logger.error("Error deleting clipboard item:", error);
 
       return false;
     }
@@ -76,7 +76,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
 
       return "success" in res.data;
     } catch (error) {
-      REPLACERS.Logger.error("Error deleting all clipboard items:", error);
+      logger.error("Error deleting all clipboard items:", error);
       return false;
     }
   };
@@ -105,7 +105,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
 
       return res.data;
     } catch (error) {
-      REPLACERS.Logger.error("Error fetching clipboard items:", error);
+      logger.error("Error fetching clipboard items:", error);
     }
   };
 }

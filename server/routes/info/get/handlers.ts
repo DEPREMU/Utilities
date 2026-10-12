@@ -4,6 +4,8 @@ import { Logger, STATUS_RESPONSE, Timers, getHandlerGet } from "@common";
 
 const START_TIME = Date.now();
 
+const logger = new Logger("InfoGet");
+
 export const handleHealthCheck = getHandlerGet(
   "/info",
   "/health",
@@ -85,7 +87,7 @@ export const handleAppAlive = getHandlerGet(
 
       sendResponse(STATUS_RESPONSE.SUCCESS, { success: true });
     } catch (error) {
-      Logger.error("Error in handleAppAlive:", error);
+      logger.error("Error in handleAppAlive:", error);
       sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         success: false,
         error: "An error occurred while processing the request.",

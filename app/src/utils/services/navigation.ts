@@ -1,3 +1,4 @@
+import { Logger } from "../TOP_LEVEL";
 import { createNavigationContainerRef } from "@react-navigation/native";
 import { Timers, REPLACERS, ServiceClass } from "@common";
 import { GetParamsScreen, Screens, ScreensAvailable } from "@types";
@@ -6,7 +7,7 @@ type ListenersNavigation = {
   screenChange: (screen: ScreensAvailable) => void;
 };
 
-const TAG = "NAVIGATION";
+const logger = new Logger("ServicesNavigation");
 
 class Navigation extends ServiceClass<ListenersNavigation> {
   public static instance: Navigation;
@@ -71,8 +72,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
 
       this.#addListener();
     } catch (error) {
-      REPLACERS.Logger.error(
-        TAG,
+      logger.error(
         "Navigation initialization failed:",
         error instanceof Error ? error.message : String(error),
       );

@@ -1,11 +1,13 @@
 import { List } from "react-native-paper";
 import { Theme } from "@types";
 import { background } from "@/utils/services/background";
+import { ServerFetch } from "@common";
 import { useLanguage } from "@context/LanguageContext";
 import { useAppBehavior } from "@context/AppBehaviorContext";
 import React, { useMemo, useRef } from "react";
-import { REPLACERS, ServerFetch } from "@common";
-import { memoDeep, sessionManager, storageManagement } from "@utils";
+import { memoDeep, sessionManager, storageManagement, Logger } from "@utils";
+
+const logger = new Logger("SettingsThemePicker");
 
 const ThemePicker: React.FC = () => {
   const { t } = useLanguage();
@@ -32,7 +34,7 @@ const ThemePicker: React.FC = () => {
               sessionToken,
             );
           } catch (error) {
-            REPLACERS.Logger.error("Error updating user config:", error);
+            logger.error("Error updating user config:", error);
           }
         },
         arguments: [],

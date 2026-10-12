@@ -3,6 +3,13 @@ import {
   SortableGridRenderItem,
 } from "react-native-sortables/dist/typescript/types";
 import {
+  Logger,
+  PDFDoc,
+  memoDeep,
+  elapsedTime,
+  createPdfFromImages,
+} from "@utils";
+import {
   View,
   Image,
   Pressable,
@@ -28,7 +35,8 @@ import { Timers, REPLACERS } from "@common";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useAnimatedRef } from "react-native-reanimated";
 import React, { useRef, useState, useCallback, useMemo } from "react";
-import { PDFDoc, memoDeep, elapsedTime, createPdfFromImages } from "@utils";
+
+const logger = new Logger("FeaturesPDFConverter");
 
 type PaperSizes = keyof typeof PDFDoc.PageSizes | "CUSTOM" | "GET_FROM_IMAGE";
 
@@ -176,11 +184,7 @@ const PDFConverter: React.FC = () => {
         await result.cleanup();
       }
     } catch (error) {
-      REPLACERS.Logger.error(
-        "PDF",
-        "error converting to PDF",
-        (error as Error).message,
-      );
+      logger.error("error converting to PDF", (error as Error).message);
     } finally {
       setProgress(0);
       setConverting(false);

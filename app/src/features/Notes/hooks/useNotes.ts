@@ -7,7 +7,9 @@ import type {
 import { useLanguage } from "@context/LanguageContext";
 import { notesLocalRepository } from "@screens/Notes/services/notesLocalRepository";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { storageManagement, getFormattedDate, REPLACERS } from "@utils";
+import { storageManagement, getFormattedDate, Logger } from "@utils";
+
+const logger = new Logger("NotesUseNotes");
 
 type DraftNote = {
   id: string;
@@ -99,8 +101,7 @@ export const useNotes = () => {
       await notesLocalRepository.initialize();
       await Promise.all([loadFolders(), loadNotes()]);
     } catch (error) {
-      REPLACERS.Logger.error(
-        "NOTES",
+      logger.error(
         "Failed to initialize notes",
         error instanceof Error ? error.message : String(error),
       );

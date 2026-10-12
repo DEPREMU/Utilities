@@ -13,7 +13,6 @@ export const REPLACERS: REPLACERS_TYPE = {
   isWeb: true,
   isNative: false,
 
-  Logger: null as unknown as REPLACERS_TYPE["Logger"],
   isLinux: false,
   isServer: false,
   isWindows: false,

@@ -5,6 +5,8 @@ import { prisma } from "@/database/postgres.ts";
 import { createFakeData } from "./createFakeData";
 import { Logger, ServerFetch } from "@common";
 
+const logger = new Logger("InitDev");
+
 const initDev = async () => {
   const count = await prisma.users.count({ where: { email: user.email } });
 
@@ -17,7 +19,7 @@ const initDev = async () => {
       },
     });
 
-    Logger.log(chalk.green("Test user created:"), res);
+    logger.log(chalk.green("Test user created:"), res);
   }
 
   await createFakeData();

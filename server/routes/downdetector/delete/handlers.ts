@@ -1,6 +1,8 @@
 import { prisma } from "@/database/postgres";
 import { getHandlerDelete, Logger, STATUS_RESPONSE } from "@common";
 
+const logger = new Logger("DownDetectorDelete");
+
 export const handleDeleteDownDetector = getHandlerDelete(
   "/down-detector",
   "/:deviceId/:downDetectorId",
@@ -18,7 +20,7 @@ export const handleDeleteDownDetector = getHandlerDelete(
         success: !!deletedItem,
       });
     } catch (error) {
-      Logger.error("Error while deleting downDetector item:", error);
+      logger.error("Error while deleting downDetector item:", error);
       sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, {
         error: "An error occurred while deleting the downDetector item.",
         success: false,

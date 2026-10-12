@@ -1,5 +1,8 @@
+import { Logger } from "@/utils/TOP_LEVEL";
+import { ServerFetch } from "@common";
 import { ServerError } from "@commonSrc/both/errors/Error";
-import { REPLACERS, ServerFetch } from "@common";
+
+const logger = new Logger("FunctionsTranslator");
 
 export const translate = async (
   text: string,
@@ -15,7 +18,7 @@ export const translate = async (
     if ("error" in res.data) {
       const errMsg = ServerError.getMessage(res.data);
 
-      REPLACERS.Logger.error(`Error while translating: ${errMsg}`);
+      logger.error(`Error while translating: ${errMsg}`);
       return `Error: ${errMsg}`;
     }
 

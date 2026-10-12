@@ -16,6 +16,7 @@ import {
   NotificationAction,
   ReasonNotification,
 } from "@types";
+import { Logger } from "../TOP_LEVEL";
 import { tTyped } from "../translates";
 import * as NetInfo from "@react-native-community/netinfo";
 import * as Location from "expo-location";
@@ -25,6 +26,8 @@ import * as DeviceInfoRN from "react-native-device-info";
 import { storageManagement } from "./storage";
 import { isLocationEnabled } from "../functions";
 import { AppState, AppStateStatus, DeviceEventEmitter } from "react-native";
+
+const logger = new Logger("ServicesDeviceInfo");
 
 export type typeDataReceivedState = { state: "suspended" | "resumed" };
 
@@ -82,7 +85,7 @@ const verifyLocation = async () => {
   const locationEnabled = await isLocationEnabled();
   if (!locationEnabled) return;
 
-  const { notificationsManager } = await import("@utils");
+  const { notificationsManager } = await import("./notifications");
 
   notificationsManager.sendNotification({
     title: tTyped("notifications.LocationServicesEnabled"),
@@ -168,7 +171,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     if (this.#listeners[event]) return;
     const reason = "noInternetConnection" satisfies ReasonNotification;
 
-    const { notificationsManager } = await import("@utils");
+    const { notificationsManager } = await import("./notifications");
 
     await notificationsManager.waitUntilInitialized();
 
@@ -292,7 +295,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
 
               if (event.reasonNotification === "streamers") break;
 
-              const { notificationsManager } = await import("@utils");
+              const { notificationsManager } = await import("./notifications");
               await notificationsManager.waitUntilInitialized();
 
               notificationsManager.editNotification(
@@ -308,7 +311,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
                 }),
               );
             } catch (error) {
-              REPLACERS.Logger.error("Error pausing notifications", error);
+              logger.error("Error pausing notifications", error);
             }
             break;
           case "stop":
@@ -323,7 +326,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
                 });
               }
 
-              const { notificationsManager } = await import("@utils");
+              const { notificationsManager } = await import("./notifications");
               await notificationsManager.waitUntilInitialized();
 
               notificationsManager.editNotification(
@@ -352,7 +355,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     const event = EventsDeviceInfo.verifyLocation;
     if (this.#listeners[event]) return;
 
-    const { notificationsManager } = await import("@utils");
+    const { notificationsManager } = await import("./notifications");
     await notificationsManager.waitUntilInitialized();
     const notification =
       notificationsManager.getNotification("locationEnabled");
@@ -367,7 +370,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     if (this.#listeners[event]) return;
 
     const reasonNotification: ReasonNotification = event;
-    const { notificationsManager } = await import("@utils");
+    const { notificationsManager } = await import("./notifications");
     await notificationsManager.waitUntilInitialized();
 
     await notificationsManager.waitUntilInitialized();
@@ -517,7 +520,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
 
       await Promise.allSettled(promises);
     } catch (error) {
-      REPLACERS.Logger.error(
+      logger.error(
         "Error initializing DeviceInfo service",
         error instanceof Error ? error.message : String(error),
       );

@@ -12,6 +12,8 @@ import { script } from "../../UtilitiesForPC/build-app-electron.ts";
 import child_process from "child_process";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 
+const logger = new Logger("build-app-electron-test");
+
 jest.mock("child_process", () => ({
   execSync: jest.fn(),
   exec: jest.fn().mockReturnValue({
@@ -53,13 +55,17 @@ jest.mock("fs", () => ({
   },
 }));
 
-jest.mock("@commonSrc/serverOrElectron/logger.ts", () => ({
-  Logger: {
+jest.mock("@commonSrc/serverOrElectron/logger.ts", () => {
+  const instance = {
     log: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  },
-}));
+    secret: jest.fn((v: unknown) => String(v)),
+  };
+  return {
+    Logger: jest.fn().mockImplementation(() => instance),
+  };
+});
 
 interface ScriptInternals {
   stepFunctions: unknown[];
@@ -125,10 +131,10 @@ describe("build-app-electron script", () => {
       expect.anything(),
     );
 
-    expect(Logger.log).toHaveBeenCalledWith(
+    expect(logger.log).toHaveBeenCalledWith(
       expect.stringContaining("Testing mode: Skipping build-web-app-electron"),
     );
-    expect(Logger.log).toHaveBeenCalledWith(
+    expect(logger.log).toHaveBeenCalledWith(
       expect.stringContaining(
         "Testing mode: Skipping build-resources-electron",
       ),

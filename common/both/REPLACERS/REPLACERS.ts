@@ -9,7 +9,6 @@ export const REPLACERS: REPLACERS_TYPE = {
     process.env.BUILD_PROFILE === "production",
 
   isWeb: false,
-  Logger: null as unknown as REPLACERS_TYPE["Logger"],
   isLinux: false,
   isNative: false,
   isServer: false,

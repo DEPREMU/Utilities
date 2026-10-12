@@ -6,6 +6,7 @@ import { Directory, File } from "@commonSrc/serverOrElectron/fs.ts";
 import { Helper } from "@commonSrc/both";
 
 const script = new Script();
+const logger = new Logger("format-folder");
 
 const validExtensions = [
   ".ts",
@@ -78,7 +79,7 @@ export const formatFolder = async (
 
     prettierConfig = JSON.parse(configContent) as prettier.Options;
   }
-  Logger.log(`Using Prettier config: ${JSON.stringify(prettierConfig)}`);
+  logger.log(`Using Prettier config: ${JSON.stringify(prettierConfig)}`);
 
   let formattedFiles = 0;
 
@@ -88,7 +89,7 @@ export const formatFolder = async (
     const stats = await file.stats();
 
     if ((await isExcludedPath(file.path)) || !stats) return;
-    Logger.log(`Formatting: ${file.path}`);
+    logger.log(`Formatting: ${file.path}`);
     if (stats.isDirectory()) {
       await formatFolder(file.path, prettierConfig, false);
     } else if (stats.isFile() && isValidFileExtension(file.path)) {
@@ -96,7 +97,7 @@ export const formatFolder = async (
       const formattedContent = await prettier.format(content, {
         ...(prettierConfig || {}),
         filepath: file.path,
-        endOfLine: "lf",
+        endOfLine: "auto",
       });
 
       if (content === formattedContent) return;
@@ -106,7 +107,7 @@ export const formatFolder = async (
     }
   });
 
-  if (first) Logger.log(`Total formatted files: ${formattedFiles}`);
+  if (first) logger.log(`Total formatted files: ${formattedFiles}`);
 
   return formattedFiles;
 };

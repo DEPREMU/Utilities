@@ -15,11 +15,12 @@ import { prisma } from "../postgres";
 import { getEnvValue } from "@/env.ts";
 import { getDbConfig } from "../functions";
 
+const logger = new Logger("DatabaseBackup");
 const timeIntervalBackup = 12 * 60 * 60 * 1000;
 const encryptedExtension = ".sql.gpg";
 
 export const getInterval = () => {
-  Logger.log("Starting database backup interval...");
+  logger.log("Starting database backup interval...");
 
   config.executeFunctionAfterInit(handleBackupDatabase);
   return setInterval(handleBackupDatabase, timeIntervalBackup);
@@ -39,7 +40,7 @@ export const encryptFile = async (filePath: string, password: string) => {
   const copyFile = await file.copyFile(filePath + ".bak");
 
   if (copyFile instanceof Error) {
-    Logger.error(
+    logger.error(
       chalk.red("Error creating backup file for encryption:"),
       copyFile,
     );
@@ -56,11 +57,11 @@ export const encryptFile = async (filePath: string, password: string) => {
   encryptionManager.startTimer();
 
   if (res instanceof Error) {
-    Logger.error(chalk.red("Error encrypting file:"), res);
+    logger.error(chalk.red("Error encrypting file:"), res);
     return;
   }
 
-  Logger.log(chalk.green(`File encrypted successfully: ${filePath}`));
+  logger.log(chalk.green(`File encrypted successfully: ${filePath}`));
 };
 
 export const decryptFile = async (
@@ -70,13 +71,13 @@ export const decryptFile = async (
 ): Promise<string | void> => {
   const file = new File(filePath);
   if (!(await file.exists())) {
-    Logger.error(chalk.red("File to decrypt does not exist:"), filePath);
+    logger.error(chalk.red("File to decrypt does not exist:"), filePath);
     return;
   }
 
   const copyFile = await file.copyFile(filePath + ".bak");
   if (copyFile instanceof Error) {
-    Logger.error(
+    logger.error(
       chalk.red("Error creating backup file for decryption:"),
       copyFile,
     );
@@ -92,10 +93,10 @@ export const decryptFile = async (
   encryptionManager.startTimer();
 
   if (res instanceof Error) {
-    Logger.error(chalk.red("Error decrypting file:"), res);
+    logger.error(chalk.red("Error decrypting file:"), res);
     return;
   }
-  Logger.log(chalk.green(`File decrypted successfully: ${filePath}`));
+  logger.log(chalk.green(`File decrypted successfully: ${filePath}`));
 
   if (!returnString) return;
 
@@ -153,7 +154,7 @@ export const deletePreviousBackups = async () => {
       await file.rm({ force: true });
       await prisma.databaseBackups.delete({ where: { id: backup.id } });
 
-      Logger.log(`Deleted old backup file: ${file.path}`);
+      logger.log(`Deleted old backup file: ${file.path}`);
     }),
   );
 };
@@ -197,7 +198,7 @@ export const handleBackupDatabase = async () => {
     );
 
     if (file instanceof Error) {
-      Logger.error(chalk.red("Error creating backup file:"), file);
+      logger.error(chalk.red("Error creating backup file:"), file);
       return;
     }
 
@@ -222,21 +223,21 @@ export const handleBackupDatabase = async () => {
     sed.stdout.pipe(backupFile);
 
     pgDump.stderr.on("data", (data) => {
-      Logger.error(chalk.red("pg_dump error:"), data.toString());
+      logger.error(chalk.red("pg_dump error:"), data.toString());
     });
 
     sed.stderr.on("data", (data) => {
-      Logger.error(chalk.red("sed error:"), data.toString());
+      logger.error(chalk.red("sed error:"), data.toString());
     });
 
     sed.on("close", async (code) => {
       if (code !== 0) {
-        Logger.error(chalk.red(`Backup failed with code ${code}`));
+        logger.error(chalk.red(`Backup failed with code ${code}`));
         return;
       }
 
       const fileName = path.basename(file.path);
-      Logger.log(
+      logger.log(
         chalk.green(`Database backup created successfully: ${fileName}`),
       );
 
@@ -247,7 +248,7 @@ export const handleBackupDatabase = async () => {
       });
     });
   } catch (error) {
-    Logger.error("Error during database backup:", error);
+    logger.error("Error during database backup:", error);
   }
 };
 

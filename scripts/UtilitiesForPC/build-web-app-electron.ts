@@ -1,19 +1,20 @@
 import path from "path";
 import chalk from "chalk";
-import { t } from "./translations.ts";
+import { t } from "./translations";
 import { args } from "../arguments";
 import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { Directory } from "@commonSrc/serverOrElectron/fs";
 
 const script = new Script();
+const logger = new Logger("build-web-app-electron");
 
 script.addStep("Install dependencies", async (_, abortController) => {
   const exec = new script.Exec();
 
   await exec.async
     .onData((chunk) => {
-      Logger.log(chalk.blueBright("Installing dependencies: "), chunk);
+      logger.log(chalk.blueBright("Installing dependencies: "), chunk);
     })
     .run("yarn install", {
       cwd: script.PATHS.root,
@@ -36,7 +37,7 @@ script.addStep("Export Clipboard App", async (_, abortController) => {
 
   await exec.async
     .onData((chunk) => {
-      Logger.log(chalk.blueBright("Building clipboard frontend: "), chunk);
+      logger.log(chalk.blueBright("Building clipboard frontend: "), chunk);
     })
     .run("yarn run build-clipboard-frontend", {
       cwd: script.PATHS.root,
@@ -67,7 +68,7 @@ script.addStep("Export Web App", async (_, abortController) => {
     .onData((chunk) => {
       stdout += chunk;
 
-      Logger.log(chalk.blueBright("Building web app: "), chunk);
+      logger.log(chalk.blueBright("Building web app: "), chunk);
     })
     .run(`yarn run build-web ${args.getArgs()}`, {
       cwd: script.PATHS.root,

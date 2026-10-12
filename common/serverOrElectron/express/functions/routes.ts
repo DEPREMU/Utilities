@@ -1,20 +1,22 @@
 import type {
+  Put,
   Get,
   Post,
   Delete,
   MethodsAPI,
+  GetRoutesPut,
   GetRoutesGet,
   GetRouterObj,
   GetRoutesPost,
   GetMainRouter,
   GetRoutesDelete,
-  Put,
-  GetRoutesPut,
 } from "@types";
 import chalk from "chalk";
 import { Router } from "express";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { Helper, Timers, REPLACERS } from "@commonSrc/both";
+
+const logger = new Logger("ExpressRoutes");
 
 const ROUTES: Record<
   string,
@@ -147,11 +149,13 @@ if (REPLACERS.isDev)
       return a.path.localeCompare(b.path);
     });
 
+    if (allRoutes.length === 0) return;
+
     const string = allRoutes
       .map((route) => `\t- ${route.method.toUpperCase()} ${route.path}`)
       .join("\n");
 
-    Logger.log(
+    logger.log(
       chalk.blue("Registered API endpoints:\n"),
       chalk.green(string || "\tNo routes registered."),
     );

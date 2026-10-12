@@ -6,9 +6,6 @@ import { REPLACERS_TYPE } from "@types";
  * This variable is only used on dev mode, when production is set to true, this variable will not be used, and .
  */
 export const REPLACERS: REPLACERS_TYPE = {
-  //? Changing value on logger.ts
-  Logger: null as unknown as REPLACERS_TYPE["Logger"],
-
   isDev:
     process.env.NODE_ENV === "test" ||
     process.env.NODE_ENV === undefined ||

@@ -14,8 +14,10 @@ import { shareAsync } from "expo-sharing";
 import { useLanguage } from "@context/LanguageContext";
 import { windowModule } from "@modules";
 import { useStylesVaultScreen } from "../styles/useStylesVaultScreen";
-import { FolderFiles, tTyped, zipFile } from "@utils";
+import { FolderFiles, tTyped, zipFile, Logger } from "@utils";
 import React, { useCallback, useMemo, useState } from "react";
+
+const logger = new Logger("FeaturesCompression");
 
 const getFileSelectionKey = (item: FolderFiles[number]) => {
   return item.originalUri || item.uri;
@@ -105,7 +107,7 @@ const CompressionScreen: React.FC = () => {
           setProgress(progressPercent / 100);
         },
         (error) => {
-          REPLACERS.Logger.error("VAULT", "Error zipping folder:", error);
+          logger.error("Error zipping folder:", error);
         },
       );
     } else {
@@ -120,7 +122,7 @@ const CompressionScreen: React.FC = () => {
             });
             deleteTempFile();
           } catch (error) {
-            REPLACERS.Logger.error("SHARE", "Error sharing zip file:", error);
+            logger.error("Error sharing zip file:", error);
           }
         },
       );

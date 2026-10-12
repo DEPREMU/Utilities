@@ -1,15 +1,17 @@
 import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { TypeOfJS } from "@types";
+import { TypesOfValue } from "@commonSrc/both/helpers/Object";
 import { Request, Response } from "express";
 import { Helper, STATUS_RESPONSE } from "@commonSrc/both";
-import { TypesOfValue } from "@commonSrc/both/helpers/Object";
+
+const logger = new Logger("ExpressCommon");
 
 export const isValidValue = (
   value: unknown,
   expectedTypes: (keyof TypeOfJS)[],
 ): boolean => {
   const set = new Set<keyof TypeOfJS>(expectedTypes);
-  Logger.log(
+  logger.log(
     `Validating value: "${value} - ${typeof value}" against types: ${[...set].join(", ")}`,
   );
   return set.has(typeof value);
@@ -81,7 +83,7 @@ export const sendResponse = (
       res.status(status).json(message);
     else res.status(status).send(message);
   } catch (error) {
-    Logger.error("Error while sending response:", error);
+    logger.error("Error while sending response:", error);
   }
 };
 

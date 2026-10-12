@@ -4,6 +4,8 @@ import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 import { Directory, File } from "@commonSrc/serverOrElectron";
 
+const logger = new Logger("build-autocomplete-dict");
+
 const script = new Script();
 
 const HEADER = "UDICT1";
@@ -97,7 +99,7 @@ script.addStep("Process .txt files", async () => {
     await new File(
       path.resolve(script.PATHS.app, file.replace(".txt", ".dict")),
     ).writeFile(output);
-    Logger.log(
+    logger.log(
       `Built ${file.replace(".txt", ".dict")} from ${file} with ${entries.length} words`,
     );
   }

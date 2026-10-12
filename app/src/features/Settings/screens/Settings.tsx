@@ -2,6 +2,7 @@ import {
   URLS,
   debug,
   alerts,
+  Logger,
   openURL,
   updates,
   memoDeep,
@@ -31,6 +32,8 @@ import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsS
 import { Timers, REPLACERS, ServerFetch, Helper } from "@common";
 import { ActivityIndicator, Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+
+const logger = new Logger("SettingsScreen");
 
 type Section = {
   subtitle: AppTranslationsKeys;
@@ -179,7 +182,7 @@ const SettingsScreen: React.FC = () => {
 
   const openUrlUpdatesWebPageRef = useRef(async () => {
     const updatesWebPageUrl = URLS.api.replace("api", "updates/web-page");
-    REPLACERS.Logger.log("Opening updates web page URL:", updatesWebPageUrl);
+    logger.log("Opening updates web page URL:", updatesWebPageUrl);
     openURL(updatesWebPageUrl);
   });
 
@@ -225,7 +228,7 @@ const SettingsScreen: React.FC = () => {
         setError(ServerError.getMessage(res.data));
       }
     } catch (error) {
-      REPLACERS.Logger.error("Error checking admin password:", error);
+      logger.error("Error checking admin password:", error);
 
       setError((error as Error).message);
     }
@@ -257,7 +260,7 @@ const SettingsScreen: React.FC = () => {
             if (Helper.Object.getValue(res.data, "success"))
               storageManagement.save("API_URL", apiURL);
           } catch (error) {
-            REPLACERS.Logger.error("Error updating user config:", error);
+            logger.error("Error updating user config:", error);
           }
         },
       },
@@ -295,7 +298,7 @@ const SettingsScreen: React.FC = () => {
             if (Helper.Object.getValue(res.data, "success"))
               storageManagement.save("WEBSOCKET_URL", socketURL);
           } catch (error) {
-            REPLACERS.Logger.error("Error updating user config:", error);
+            logger.error("Error updating user config:", error);
           }
         },
       },

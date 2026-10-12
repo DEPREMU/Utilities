@@ -1,12 +1,14 @@
-import { Logger } from "@common";
-import { prisma } from "./postgres.ts";
 import {
   ConflictError,
   TransientDatabaseError,
   isPrismaConflict,
   isPrismaTransient,
 } from "./errors.ts";
+import { Logger } from "@common";
+import { prisma } from "./postgres.ts";
 import type { PrismaClient } from "@/generated/prisma/index.js";
+
+const logger = new Logger("Database");
 
 type TransactionClient = Parameters<
   Parameters<PrismaClient["$transaction"]>[0]
@@ -44,7 +46,7 @@ export const withTransaction = async <T>(
     }
 
     if (isPrismaTransient(error)) {
-      Logger.error("Transient database error during transaction:", error);
+      logger.error("Transient database error during transaction:", error);
       throw new TransientDatabaseError(
         "Transient database error occurred. Please try again later.",
         { cause: error },

@@ -11,13 +11,14 @@ import Animated, {
 } from "react-native-reanimated";
 import TextInput from "@components/TextInput";
 import { modalRef } from "@refs";
-import { REPLACERS } from "@common";
 import { useLanguage } from "@context/LanguageContext";
 import { ServerError } from "@commonSrc/both/errors/Error";
 import { useStylesSyncClipboard } from "@screens/Clipboard/styles";
 import React, { useCallback, useState } from "react";
 import { Text, Button, TextInput as PaperTextInput } from "react-native-paper";
-import { ServerFetch, sessionManager, storageManagement } from "@utils";
+import { Logger, ServerFetch, sessionManager, storageManagement } from "@utils";
+
+const logger = new Logger("SyncClipboardScreen");
 
 const SyncClipboardScreen: React.FC = () => {
   const { t } = useLanguage();
@@ -55,7 +56,7 @@ const SyncClipboardScreen: React.FC = () => {
       if ("error" in res.data) {
         const errMsg = ServerError.getMessage(res.data);
 
-        REPLACERS.Logger.error("Error adding text to database:", errMsg);
+        logger.error("Error adding text to database:", errMsg);
         modalRef.openSnackBar?.(t("common.errorOccurred", { error: errMsg }));
         return;
       }

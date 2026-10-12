@@ -6,10 +6,12 @@ import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { Directory } from "@commonSrc/serverOrElectron/fs";
 
+const logger = new Logger("build-app-electron");
+
 export const script = new Script(async (err) => {
   if (!executeCleanup) return;
 
-  if (err) Logger.error("An error occurred:", err.message);
+  if (err) logger.error("An error occurred:", err.message);
 
   if (!args.ARGS.yes && !args.ARGS.testing && !args.ARGS.ci)
     await script.ask("Press enter to exit...", -1);
@@ -46,7 +48,7 @@ script.addStep(
 
       await exec.async
         .onData((chunk) => {
-          Logger.log(chalk.blueBright("Building electron resources: "), chunk);
+          logger.log(chalk.blueBright("Building electron resources: "), chunk);
         })
         .run(
           `yarn run build-resources-electron --isWindows=${instance.PLATFORM.isWindows}`,
@@ -62,7 +64,7 @@ script.addStep(
           },
         );
     } else {
-      Logger.log("Testing mode: Skipping build-resources-electron");
+      logger.log("Testing mode: Skipping build-resources-electron");
     }
   },
 );
@@ -73,14 +75,14 @@ script.addStep("Building web app", async (instance, abortController) => {
 
     await exec.async
       .onData((chunk) => {
-        Logger.log(chalk.blueBright("Building web app: "), chunk);
+        logger.log(chalk.blueBright("Building web app: "), chunk);
       })
       .run("yarn run build-web-app-electron", {
         env: process.env,
         signal: abortController.signal,
       });
   } else {
-    Logger.log("Testing mode: Skipping build-web-app-electron");
+    logger.log("Testing mode: Skipping build-web-app-electron");
   }
 });
 
@@ -129,39 +131,39 @@ script.addStep("Install dependencies", async (instance, abortController) => {
 
     await exec.async
       .onData((chunk) => {
-        Logger.log(chalk.blueBright("Installing dependencies: "), chunk);
+        logger.log(chalk.blueBright("Installing dependencies: "), chunk);
       })
       .run("yarn install", {
         cwd: TEMP_FOLDER,
         signal: abortController.signal,
       });
   } else {
-    Logger.log("Testing mode: Skipping yarn install in temp folder");
+    logger.log("Testing mode: Skipping yarn install in temp folder");
   }
 });
 
 script.addStep("Build electron app", async (instance, abortController) => {
   if (instance.PLATFORM.isWindows) {
-    Logger.log("Building windows executable");
+    logger.log("Building windows executable");
 
     if (!args.ARGS.testing) {
       const exec = new instance.Exec();
 
       await exec.async
         .onData((chunk) => {
-          Logger.log(chalk.blueBright("Building electron app: "), chunk);
+          logger.log(chalk.blueBright("Building electron app: "), chunk);
         })
         .run("yarn electron-builder --win", {
           cwd: TEMP_FOLDER,
           signal: abortController.signal,
         });
     } else {
-      Logger.log("Testing mode: Skipping electron-builder --win");
+      logger.log("Testing mode: Skipping electron-builder --win");
     }
   } else if (instance.PLATFORM.isLinux) {
-    Logger.log(chalk.cyan("Building linux package"));
+    logger.log(chalk.cyan("Building linux package"));
 
-    Logger.log(chalk.cyan("Installing linux dependencies"));
+    logger.log(chalk.cyan("Installing linux dependencies"));
     try {
       if (!args.ARGS.testing) {
         const command =
@@ -171,7 +173,7 @@ script.addStep("Build electron app", async (instance, abortController) => {
 
         await exec.async
           .onData((chunk) => {
-            Logger.log(
+            logger.log(
               chalk.blueBright("Installing linux dependencies: "),
               chunk,
             );
@@ -181,10 +183,10 @@ script.addStep("Build electron app", async (instance, abortController) => {
             signal: abortController.signal,
           });
       } else {
-        Logger.log("Testing mode: Skipping apt install");
+        logger.log("Testing mode: Skipping apt install");
       }
     } catch {
-      Logger.log(t("someDependenciesInstalled"));
+      logger.log(t("someDependenciesInstalled"));
     }
 
     if (!args.ARGS.testing) {
@@ -192,14 +194,14 @@ script.addStep("Build electron app", async (instance, abortController) => {
 
       await exec.async
         .onData((chunk) => {
-          Logger.log(chalk.blueBright("Building electron app: "), chunk);
+          logger.log(chalk.blueBright("Building electron app: "), chunk);
         })
         .run("yarn electron-builder --linux deb", {
           cwd: TEMP_FOLDER,
           signal: abortController.signal,
         });
     } else {
-      Logger.log("Testing mode: Skipping electron-builder --linux deb");
+      logger.log("Testing mode: Skipping electron-builder --linux deb");
     }
   }
 });
@@ -258,10 +260,10 @@ script.addStep("Move app", async (instance) => {
         `Failed to rename file: ${JSON.stringify({ sourcePath: sourceFile.path, destinationPath: destFile.path }, null, 2)}`,
       );
   } else {
-    Logger.log("Testing mode: Skipping rename dist-electron package");
+    logger.log("Testing mode: Skipping rename dist-electron package");
   }
 
-  Logger.log(
+  logger.log(
     chalk.green(
       `Build moved successfully to ${path.join(
         script.PATHS.utilitiesForPC,

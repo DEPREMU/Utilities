@@ -1,5 +1,7 @@
 import path from "path";
-import { Directory, REPLACERS, Timers } from "@common";
+import { Directory, Logger, REPLACERS, Timers } from "@common";
+
+const logger = new Logger("Config");
 
 type Functions = () => Promise<unknown> | unknown;
 
@@ -25,7 +27,7 @@ class Config {
 
   async executeFunctions() {
     if (this.#initialized) {
-      REPLACERS.Logger.warn("Functions already executed");
+      logger.warn("Functions already executed");
       return;
     }
 

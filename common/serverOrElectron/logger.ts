@@ -1,27 +1,135 @@
+import pino from "pino";
 import chalk from "chalk";
-import { LoggerInterceptor } from "@types";
-import { Helper } from "../both/helpers/index.ts";
-import { REPLACERS } from "../both/REPLACERS/REPLACERS.server.ts";
+import { Helper } from "@commonSrc/both/helpers";
+import { REPLACERS } from "@REPLACERS";
+import type { ILogger, LoggerInterceptor } from "@types";
 
 const interceptors: LoggerInterceptor[] = [];
 
-/**
- * Returns formatted timestamp in [HH:MM:ss] format.
- *
- * @returns Formatted timestamp string.
- */
-const getTimestamp = (): string => {
-  const now = new Date();
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
-  return `[${hours}:${minutes}:${seconds}]`;
-};
+const logger = pino({
+  timestamp: pino.stdTimeFunctions.isoTime,
+  formatters: { level: (level) => ({ level }) },
+  transport:
+    REPLACERS.isProduction || process.env.NODE_ENV === "test"
+      ? undefined
+      : {
+          target: "pino-pretty",
+          options: {
+            ignore: "pid,hostname",
+            colorize: true,
+            translateTime: "HH:MM:ss",
+          },
+        },
+});
 
 /**
- * Logger class for server, scripts, and Electron runtimes.
+ * Module-scoped logger for backend server components.
  */
-export class Logger {
+export class Logger implements ILogger {
+  #moduleName: string;
+  public static pino: pino.Logger = logger;
+
+  /**
+   * Formats the log message into a bracketed string.
+   *
+   * @param level - Log severity level.
+   * @param args - Log arguments.
+   * @returns Formatted log message string.
+   */
+  protected getLogMsg(
+    level: "log" | "warn" | "error",
+    ...args: unknown[]
+  ): string {
+    const msg = Helper.getMessage(...args);
+    return `[${this.#moduleName}]-[${level.toUpperCase()}]: ${msg}`;
+  }
+
+  /**
+   * Formats the log message with ANSI color highlighting for console streams.
+   *
+   * @param level - Log severity level.
+   * @param args - Log arguments.
+   * @returns Color-highlighted log message string.
+   */
+  protected getColoredLogMsg(
+    level: "log" | "warn" | "error",
+    ...args: unknown[]
+  ): string {
+    const moduleTag = chalk.cyan(`[${this.#moduleName}]`);
+    const levelTag =
+      level === "error"
+        ? chalk.red.bold("[ERROR]")
+        : level === "warn"
+          ? chalk.yellow.bold("[WARN]")
+          : chalk.green.bold("[LOG]");
+    const msg = Helper.getMessage(...args);
+    const cleanedMsg = Helper.stripAnsi(`${moduleTag}-${levelTag}: ${msg}`);
+    return cleanedMsg;
+  }
+
+  /**
+   * Writes the log message to console streams after running interceptors.
+   *
+   * @param level - Log severity level.
+   * @param args - Log arguments.
+   */
+  protected writeLog(
+    level: "log" | "warn" | "error",
+    ...args: unknown[]
+  ): void {
+    const rawMsg = this.getLogMsg(level, ...args);
+    let skip = false;
+    for (const interceptor of interceptors) {
+      if (interceptor(level, rawMsg)) {
+        skip = true;
+      }
+    }
+    if (!skip) {
+      const msg = this.getColoredLogMsg(level, ...args);
+
+      switch (level) {
+        case "log":
+          Logger.pino.info(msg);
+          break;
+        case "warn":
+          Logger.pino.warn(msg);
+          break;
+        case "error":
+          Logger.pino.error(msg);
+          break;
+      }
+    }
+  }
+
+  public secret: (value: unknown) => string = Helper.secret;
+
+  /**
+   * Logs an informational message with timestamp and module prefix.
+   *
+   * @param args - Arguments to log.
+   */
+  public log(...args: unknown[]): void {
+    this.writeLog("log", ...args);
+  }
+
+  /**
+   * Logs a warning message with timestamp and module prefix.
+   *
+   * @param args - Arguments to log.
+   */
+  public warn(...args: unknown[]): void {
+    this.writeLog("warn", ...args);
+  }
+
+  /**
+   * Logs an error message with timestamp and module prefix.
+   *
+   * @param args - Arguments to log.
+   */
+  public error(...args: unknown[]): void {
+    this.writeLog("error", ...args);
+  }
+
   /**
    * Adds an interceptor callback to inspect or suppress log messages.
    *
@@ -32,72 +140,11 @@ export class Logger {
   }
 
   /**
-   * Logs an informational message with timestamp and level prefix.
+   * Creates a new module-scoped Logger instance.
    *
-   * @param args - The arguments to log.
+   * @param moduleName - Name of the module or component.
    */
-  static log(...args: unknown[]): void {
-    if (REPLACERS.isProduction) return;
-    const msg = Helper.getMessage(...args);
-    let skip = false;
-    for (const interceptor of interceptors) {
-      if (interceptor("log", msg)) skip = true;
-    }
-    if (!skip) {
-      // eslint-disable-next-line no-console
-      console.log(
-        chalk.gray(getTimestamp()),
-        chalk.green.bold("INFO") + ":",
-        msg,
-      );
-    }
+  constructor(moduleName: string) {
+    this.#moduleName = moduleName;
   }
-
-  /**
-   * Logs a warning message with timestamp and level prefix.
-   *
-   * @param args - The arguments to log.
-   */
-  static warn(...args: unknown[]): void {
-    if (REPLACERS.isProduction) return;
-    const msg = Helper.getMessage(...args);
-    let skip = false;
-    for (const interceptor of interceptors) {
-      if (interceptor("warn", msg)) skip = true;
-    }
-    if (!skip) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        chalk.gray(getTimestamp()),
-        chalk.yellow.bold("WARN") + ":",
-        msg,
-      );
-    }
-  }
-
-  /**
-   * Logs an error message with timestamp and level prefix.
-   *
-   * @param args - The arguments to log.
-   */
-  static error(...args: unknown[]): void {
-    if (REPLACERS.isProduction) return;
-    const msg = Helper.getMessage(...args);
-    let skip = false;
-    for (const interceptor of interceptors) {
-      if (interceptor("error", msg)) skip = true;
-    }
-    if (!skip) {
-      // eslint-disable-next-line no-console
-      console.error(
-        chalk.gray(getTimestamp()),
-        chalk.red.bold("ERROR") + ":",
-        msg,
-      );
-    }
-  }
-}
-
-if (!REPLACERS.isProduction) {
-  REPLACERS["Logger"] = Logger;
 }

@@ -8,6 +8,8 @@ chalk.blue = (s) => `\x1b[34m${s}\x1b[39m`;
 chalk.gray = (s) => `\x1b[90m${s}\x1b[39m`;
 chalk.white = (s) => `\x1b[37m${s}\x1b[39m`;
 chalk.bold = (s) => `\x1b[1m${s}\x1b[22m`;
+chalk.cyan = (s) => `\x1b[36m${s}\x1b[39m`;
+chalk.magenta = (s) => `\x1b[35m${s}\x1b[39m`;
 
 chalk.green.bold = (s) => `\x1b[32m\x1b[1m${s}\x1b[22m\x1b[39m`;
 chalk.yellow.bold = (s) => `\x1b[33m\x1b[1m${s}\x1b[22m\x1b[39m`;

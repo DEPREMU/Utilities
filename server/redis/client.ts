@@ -1,8 +1,9 @@
 import chalk from "chalk";
 import { Redis } from "ioredis";
 import { Logger } from "@common";
-import { getEnvValue } from "../env.ts";
+import { getEnvValue } from "../env";
 
+const logger = new Logger("Redis");
 let redisInstance: Redis | null = null;
 
 /**
@@ -26,11 +27,11 @@ export const getRedisClient = (): Redis => {
   });
 
   redisInstance.on("connect", () => {
-    Logger.log(chalk.green("Redis connected successfully"));
+    logger.log(chalk.green("Redis connected successfully"));
   });
 
   redisInstance.on("error", (error) => {
-    Logger.error(chalk.red("Redis connection error:"), error);
+    logger.error(chalk.red("Redis connection error:"), error);
   });
 
   return redisInstance;

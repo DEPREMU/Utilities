@@ -8,11 +8,12 @@ import React, {
   createContext,
 } from "react";
 import { cloneDeep } from "lodash";
-import { REPLACERS } from "@common";
 import { useBackground } from "./BackgroundContext";
-import { getFormattedDate } from "@utils";
 import { DeviceInformation } from "@types";
 import DeviceInfo, { PowerState } from "react-native-device-info";
+import { Logger, getFormattedDate } from "@utils";
+
+const logger = new Logger("DeviceInformationContext");
 
 interface DeviceInformationContextType {
   deviceInfo: DeviceInformation | null;
@@ -75,7 +76,7 @@ const getDeviceInformation = async (): Promise<DeviceInformation> => {
 
         return [key, value];
       } catch (error) {
-        REPLACERS.Logger.error(`Error getting device info for ${key}:`, error);
+        logger.error(`Error getting device info for ${key}:`, error);
         return [key, null];
       }
     }),
@@ -96,7 +97,7 @@ export const DeviceInformationProvider: React.FC<
       const info = await getDeviceInformation();
       setDeviceInfo(info);
     } catch (error) {
-      REPLACERS.Logger.error("Error getting device information:", error);
+      logger.error("Error getting device information:", error);
     }
   });
 

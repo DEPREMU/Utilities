@@ -1,16 +1,18 @@
 import {
-  describe,
   it,
-  expect,
-  beforeEach,
-  afterAll,
   jest,
+  expect,
+  afterAll,
+  describe,
+  beforeEach,
 } from "@jest/globals";
-import { args } from "../arguments.ts";
-import * as rootCommands from "../root-commands.ts";
-import child_process from "child_process";
 import fs from "fs";
+import { args } from "../arguments.ts";
 import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
+import child_process from "child_process";
+import * as rootCommands from "../root-commands.ts";
+
+const logger = new Logger("root-commands-test");
 
 jest.mock("child_process", () => ({
   ...(jest.requireActual("child_process") as Record<string, unknown>),
@@ -32,13 +34,17 @@ jest.mock("fs", () => ({
   },
 }));
 
-jest.mock("@commonSrc/serverOrElectron/logger.ts", () => ({
-  Logger: {
+jest.mock("@commonSrc/serverOrElectron/logger.ts", () => {
+  const instance = {
     log: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  },
-}));
+    secret: jest.fn((v: unknown) => String(v)),
+  };
+  return {
+    Logger: jest.fn().mockImplementation(() => instance),
+  };
+});
 
 jest.mock("prettier", () => ({
   format: jest.fn<() => Promise<string>>().mockResolvedValue(""),
@@ -68,7 +74,7 @@ describe("root-commands", () => {
     args.editArg("action", "compile-check");
     await rootCommands.run();
     expect(child_process.exec).not.toHaveBeenCalled();
-    expect(Logger.log).toHaveBeenCalledWith(
+    expect(logger.log).toHaveBeenCalledWith(
       expect.stringContaining("Testing mode: Skipping compile-check commands"),
     );
   });

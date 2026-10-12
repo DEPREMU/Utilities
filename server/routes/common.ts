@@ -11,7 +11,9 @@ import {
 } from "@types";
 import chalk from "chalk";
 import { Router } from "express";
-import { Helper, Logger, Timers, REPLACERS } from "@common";
+import { Helper, Timers, Logger, REPLACERS } from "@common";
+
+const logger = new Logger("RoutesCommon");
 
 const ROUTES: Record<string, { url: string; method: MethodsAPI }[]> | null =
   REPLACERS.isDev ? {} : null;
@@ -142,7 +144,7 @@ if (REPLACERS.isDev)
       .map((route) => `\t- ${route.method.toUpperCase()} ${route.path}`)
       .join("\n");
 
-    Logger.log(
+    logger.log(
       chalk.blue("Registered API endpoints:\n"),
       chalk.green(string || "\tNo routes registered."),
     );

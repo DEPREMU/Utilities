@@ -12,6 +12,8 @@ import { RequestError } from "@commonSrc/both/errors/Error";
 import { sendAccelRedirect } from "../downloads";
 import { dataUpdates, getFinalFileName } from "../variables";
 
+const logger = new Logger("UpdatesGet");
+
 export const handleIsUpdateAvailable = getHandlerGet(
   "/updates",
   "/is-update-available/:version/:buildType",
@@ -39,7 +41,7 @@ export const handleIsUpdateAvailable = getHandlerGet(
 
       sendResponse(STATUS_RESPONSE.SUCCESS, res);
     } catch (error) {
-      Logger.error(chalk.red("Error in handleIsUpdateAvailable:"), error);
+      logger.error(chalk.red("Error in handleIsUpdateAvailable:"), error);
       sendResponse(STATUS_RESPONSE.INTERNAL_SERVER_ERROR, res);
     }
   },
@@ -85,7 +87,7 @@ export const handleDownload = getHandlerGet(
       res.download(filePath, (err) => {
         if (!err) return;
 
-        Logger.error(chalk.red("Error in handleDownload:"), err);
+        logger.error(chalk.red("Error in handleDownload:"), err);
       });
     } else await sendAccelRedirect(res, filePath, filename);
   },

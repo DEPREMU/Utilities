@@ -7,6 +7,8 @@ import { ServerError } from "@commonSrc/both/errors/Error";
 import { Directory, File, Logger } from "@commonSrc/serverOrElectron";
 import { ServerFetch, Validations } from "@commonSrc/both";
 
+const logger = new Logger("build-upload-android");
+
 const script = new Script();
 
 script.addStep("Check if server is alive", async () => {
@@ -38,9 +40,9 @@ script.addStep("Check if new version exists", async () => {
     );
 
   if (!isGreater) {
-    Logger.log("Version already exists on the server or is not newer.");
+    logger.log("Version already exists on the server or is not newer.");
     script.stop("Version already exists on the server or is not newer.");
-  } else Logger.log("New version detected. Proceeding with build and upload.");
+  } else logger.log("New version detected. Proceeding with build and upload.");
 });
 
 script.addValue(
@@ -74,7 +76,7 @@ script.addStep(`Upload APK ${script.appConfig.version}`, async () => {
     buildType: "android",
   };
 
-  Logger.log(`Uploading Android build...`, data);
+  logger.log(`Uploading Android build...`, data);
 
   const formData = new FormData();
   formData.append("data", JSON.stringify(data));
@@ -101,7 +103,7 @@ script.addStep(`Upload APK ${script.appConfig.version}`, async () => {
     },
   );
 
-  Logger.log("Upload successful:", response.data);
+  logger.log("Upload successful:", response.data);
 
   if (response.data.error) {
     throw new Error(`Upload failed: ${response.data.error}`);

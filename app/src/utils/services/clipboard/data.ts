@@ -3,6 +3,7 @@ import {
   keyboardModule,
   BackgroundModule,
 } from "@/utils/modules";
+import { Logger } from "@/utils/TOP_LEVEL";
 import { cloneDeep } from "lodash";
 import { deviceInfo } from "../deviceInfo";
 import { ClipboardItem } from "@types";
@@ -11,6 +12,8 @@ import { sessionManager } from "../session";
 import { storageManagement } from "../storage";
 import { ClipboardWebSocket } from "./websocket";
 import { Timers, REPLACERS, ServerFetch, ClipboardStorage } from "@common";
+
+const logger = new Logger("ServicesClipboardData");
 
 const getItemWithMaxSize = (
   item: ClipboardItem,
@@ -124,10 +127,7 @@ export class DataClipboard extends ClipboardWebSocket {
       );
 
       if ("error" in res.data) {
-        REPLACERS.Logger.error(
-          "Error fetching clipboard items:",
-          res.data.error,
-        );
+        logger.error("Error fetching clipboard items:", res.data.error);
         return;
       }
 
@@ -183,7 +183,7 @@ export class DataClipboard extends ClipboardWebSocket {
 
       this.initClipboardItems();
     } catch (error) {
-      REPLACERS.Logger.error(
+      logger.error(
         "CLIPBOARD",
         "Error initializing ClipboardManager",
         error instanceof Error ? error.message : String(error),

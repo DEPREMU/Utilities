@@ -1,13 +1,15 @@
 import chalk from "chalk";
-import { prisma } from "@/database/postgres.ts";
-import { sendFCMNotification } from "@/firebase/admin.ts";
+import { prisma } from "@/database/postgres";
+import { sendFCMNotification } from "@/firebase/admin";
 import { getPagination, IntervalTimer } from "./utils";
 import { LanguagesSupported, ReasonNotification } from "@types";
-import { t, Logger, languagesSupported, Network, Helper } from "@common";
+import { t, Helper, Logger, Network, languagesSupported } from "@common";
+
+const logger = new Logger("DownDetector");
 
 const handleCheckDownServers = async () => {
   try {
-    Logger.log("Running DownDetector check...");
+    logger.log("Running DownDetector check...");
 
     const reason = "downDetector" satisfies ReasonNotification;
 
@@ -107,9 +109,9 @@ const handleCheckDownServers = async () => {
       });
     }
 
-    Logger.log(chalk.green("DownDetector check completed"));
+    logger.log(chalk.green("DownDetector check completed"));
   } catch (error) {
-    Logger.error(chalk.red("Error in handleCheckDownServers:"), error);
+    logger.error(chalk.red("Error in handleCheckDownServers:"), error);
   }
 };
 

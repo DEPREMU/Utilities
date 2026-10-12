@@ -55,44 +55,48 @@ export const deleteDownloadedUpdate = async () => {
 
 const openInstallerOrInstall = async (filePath: string) => {
   logger.log(`Opening installer at path: ${filePath}`);
-  if (dataApp.getValue("isWindows")) {
-    await new Promise<void>((resolve) =>
-      Timers.setTimeout(async () => {
-        try {
-          const child = spawn(filePath, [], {
-            detached: true,
-            stdio: "ignore",
-          });
+  try {
+    if (dataApp.getValue("isWindows")) {
+      await new Promise<void>((resolve) =>
+        Timers.setTimeout(async () => {
+          try {
+            const child = spawn(filePath, [], {
+              detached: true,
+              stdio: "ignore",
+            });
 
-          child.unref();
-          logger.log("Installer spawned on Windows.");
-          await handleShutdown();
-        } catch (e) {
-          logger.error("Error spawning installer on Windows: ", e);
-        } finally {
-          resolve();
-        }
-      }, 5000),
-    );
-  } else {
-    try {
-      const cmd = `sudo dpkg -i "${filePath}" && sudo apt-get install -f -y && ${path.join(
-        dataApp.getValue("userHome"),
-        ".config",
-        "utilities-for-pc-autostart.sh",
-      )}`;
+            child.unref();
+            logger.log("Installer spawned on Windows.");
+            await handleShutdown();
+          } catch (e) {
+            logger.error("Error spawning installer on Windows:", e);
+          } finally {
+            resolve();
+          }
+        }, 5000),
+      );
+    } else {
+      try {
+        const cmd = `sudo dpkg -i "${filePath}" && sudo apt-get install -f -y && ${path.join(
+          dataApp.getValue("userHome"),
+          ".config",
+          "utilities-for-pc-autostart.sh",
+        )}`;
 
-      logger.log(`Executing Linux install command: ${cmd}`);
-      const child = spawn(cmd, [], {
-        shell: true,
-        stdio: "ignore",
-        detached: true,
-      });
-      child.unref();
-      await handleShutdown();
-    } catch (e) {
-      logger.error("Error installing on Linux:", e);
+        logger.log(`Executing Linux install command: ${cmd}`);
+        const child = spawn(cmd, [], {
+          shell: true,
+          stdio: "ignore",
+          detached: true,
+        });
+        child.unref();
+        await handleShutdown();
+      } catch (e) {
+        logger.error("Error installing on Linux:", e);
+      }
     }
+  } finally {
+    dataApp.setValue("isUpdating", false);
   }
 };
 
@@ -187,7 +191,7 @@ export const updateWeb = async (downloadUrl: string): Promise<void> => {
         .pipe(unzipper.Extract({ path: distPath }))
         .on("close", async () => {
           logger.log("Web update extracted successfully.");
-          await Promise.all([dirBackup.rm(), file.rm()]);
+          await dirBackup.rm({ force: true, recursive: true });
           resolve();
         });
     });
@@ -201,6 +205,8 @@ export const updateWeb = async (downloadUrl: string): Promise<void> => {
     await dirBackup.rename(distPath);
 
     logger.error("Error updating Web HTML:", error);
+  } finally {
+    dataApp.setValue("isUpdating", false);
   }
 };
 
@@ -237,7 +243,7 @@ export const verifyNewUpdate = async (buildType: Enums["UpdateType"]) => {
       return;
     }
 
-    if (!data?.isUpdateAvailable || !data.downloadUrl) return;
+    if (!data.isUpdateAvailable || !data.downloadUrl) return;
     dataApp.setValue("isUpdating", true);
 
     if (buildType !== "web") {
