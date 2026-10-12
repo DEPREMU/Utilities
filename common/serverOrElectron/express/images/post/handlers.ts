@@ -5,6 +5,8 @@ import { t, supportedFormatsImages, STATUS_RESPONSE } from "@commonSrc/both";
 import { changeFormat, isImageBuffer } from "../utils";
 import { ServerError } from "@commonSrc/both/errors/Error";
 
+const logger = new Logger("ExpressImagesPost");
+
 export const handleChangeImageFormat = getHandlerPost(
   "/images",
   "/change-format",
@@ -52,7 +54,7 @@ export const handleChangeImageFormat = getHandlerPost(
         });
       }
     } catch (error) {
-      Logger.error(chalk?.red("Error changing image format:"), error);
+      logger.error(chalk?.red("Error changing image format:"), error);
     }
     sendResponse(
       STATUS_RESPONSE.INTERNAL_SERVER_ERROR,

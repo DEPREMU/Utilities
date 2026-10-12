@@ -1,18 +1,20 @@
-import { z, ZodError } from "zod";
+import type {
+  Get,
+  Put,
+  Post,
+  Delete,
+  MethodsAPI,
+  GetHandlerType,
+} from "@types";
 import chalk from "chalk";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { SCHEMAS } from "../middlewares/schemas";
+import { z, ZodError } from "zod";
 import { sendResponse } from "./common";
 import { Helper, STATUS_RESPONSE } from "@commonSrc/both";
-import type {
-  Delete,
-  Get,
-  GetHandlerType,
-  MethodsAPI,
-  Post,
-  Put,
-} from "@types";
 import { RequestError, ServerError } from "@commonSrc/both/errors/Error";
+
+const logger = new Logger("ExpressGetHandler");
 
 export const getHandlerGet: GetHandlerType<Get, "GET"> = (
   path,
@@ -61,7 +63,7 @@ export const getHandlerGet: GetHandlerType<Get, "GET"> = (
           ? error.statusCode
           : STATUS_RESPONSE.INTERNAL_SERVER_ERROR;
 
-      Logger.error(chalk.red(`Error processing request: ${path}${url}`), error);
+      logger.error(chalk.red(`Error processing request: ${path}${url}`), error);
       sendResponse(
         res,
         statusCode,

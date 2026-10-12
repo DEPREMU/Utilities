@@ -1,4 +1,3 @@
-import { REPLACERS } from "@REPLACERS";
 import humanizeDuration from "humanize-duration";
 
 export class DebugTime {
@@ -39,7 +38,8 @@ export class DebugTime {
 
   logAverageTaken() {
     const averageTaken = this.getAverageTaken();
-    REPLACERS.Logger.log(
+    // eslint-disable-next-line no-console
+    console.log(
       `Average taken for ${this.#name}: ${humanizeDuration(averageTaken, {
         units: ["h", "m", "s", "ms"],
       })}`,

@@ -10,6 +10,8 @@ import chalk from "chalk";
 import { Helper } from "../../../both/helpers";
 import { Logger } from "../../../serverOrElectron/logger";
 
+const logger = new Logger("LoggerTest");
+
 describe("Logger & Helper.stripAnsi", () => {
   describe("Helper.stripAnsi", () => {
     test("strips standard ANSI escape sequences from colored text", () => {
@@ -50,7 +52,7 @@ describe("Logger & Helper.stripAnsi", () => {
 
     test("logs info message preserving caller-provided colored message", () => {
       const message = chalk.green("Redis connected successfully");
-      Logger.log(message);
+      logger.log(message);
 
       expect(logSpy).toHaveBeenCalledTimes(1);
       const callArgs = logSpy.mock.calls[0];
@@ -65,7 +67,7 @@ describe("Logger & Helper.stripAnsi", () => {
 
     test("logs warn message with WARN prefix", () => {
       const message = chalk.yellow("Warning message");
-      Logger.warn(message);
+      logger.warn(message);
 
       expect(warnSpy).toHaveBeenCalledTimes(1);
       const callArgs = warnSpy.mock.calls[0];
@@ -77,7 +79,7 @@ describe("Logger & Helper.stripAnsi", () => {
 
     test("logs error message with ERROR prefix", () => {
       const message = chalk.red("Error message");
-      Logger.error(message);
+      logger.error(message);
 
       expect(errorSpy).toHaveBeenCalledTimes(1);
       const callArgs = errorSpy.mock.calls[0];
@@ -93,11 +95,11 @@ describe("Logger & Helper.stripAnsi", () => {
       });
       Logger.addInterceptor(interceptor);
 
-      Logger.log("suppress-me test");
+      logger.log("suppress-me test");
       expect(interceptor).toHaveBeenCalledWith("log", "suppress-me test");
       expect(logSpy).not.toHaveBeenCalled();
 
-      Logger.log("allow-me test");
+      logger.log("allow-me test");
       expect(logSpy).toHaveBeenCalledTimes(1);
     });
   });

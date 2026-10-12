@@ -1,6 +1,7 @@
 import { JSON } from "./JSON.ts";
 import { Arrays } from "./Array.ts";
 import { Objects } from "./Object.ts";
+import { REPLACERS } from "@REPLACERS";
 
 export class Helper {
   static getMessage(...args: unknown[]) {
@@ -21,6 +22,19 @@ export class Helper {
         return String(arg);
       })
       .join(" ");
+  }
+
+  static secret(value: unknown): string {
+    if (REPLACERS.isDev) return String(value ?? "");
+
+    if (value === null || value === undefined) return "***";
+
+    const str = String(value);
+    if (str.length <= 2) return "***";
+
+    if (str.length < 6) return `${str.slice(0, 3)}***`;
+
+    return `${str.slice(0, 3)}***${str.slice(-3)}`;
   }
 
   /**
