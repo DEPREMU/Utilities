@@ -29,10 +29,7 @@ const handleInitWebSocket = (
 
     userDevice.sendMessage({ type: "init-success" });
   } catch (error) {
-    logger.error(
-      chalk.red("Error in handleInitWebSocket:"),
-      error instanceof Error ? error.message : error,
-    );
+    logger.error(chalk.red("Error in handleInitWebSocket:"), error);
   }
 };
 
@@ -59,14 +56,14 @@ const onMessage = (
         userDevice.pongReceived();
         break;
       default:
-        logger.log(chalk.yellow("Unknown message type:"), message);
+        logger.log(
+          chalk.yellow("Unknown message type:"),
+          logger.secret(message),
+        );
         break;
     }
   } catch (error) {
-    logger.error(
-      chalk.red("Error handling WebSocket message:"),
-      error instanceof Error ? error.message : error,
-    );
+    logger.error(chalk.red("Error handling WebSocket message:"), error);
   }
 };
 
@@ -85,7 +82,7 @@ const connectionWss = (ws: WebSocket) => {
       if (!isErrorClose)
         logger.log(
           chalk.red("Client"),
-          chalk.yellow(userDevice.userId),
+          chalk.yellow(logger.secret(userDevice.userId)),
           chalk.red("disconnected:"),
           code,
           chalk.yellow(reason.toString()),
@@ -97,17 +94,14 @@ const connectionWss = (ws: WebSocket) => {
       isErrorClose = true;
       logger.log(
         chalk.red("WebSocket error for client:"),
-        chalk.yellow(userDevice.userId),
+        chalk.yellow(logger.secret(userDevice.userId)),
         chalk.red("-"),
         error,
       );
       ws.close();
     });
   } catch (error) {
-    logger.error(
-      chalk.red("Error in connectionWss:"),
-      error instanceof Error ? error.message : error,
-    );
+    logger.error(chalk.red("Error in connectionWss:"), error);
   }
 };
 

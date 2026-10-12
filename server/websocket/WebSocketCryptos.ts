@@ -78,10 +78,7 @@ const getNotificationCrypto = async (
     });
     return notification;
   } catch (error) {
-    logger.error(
-      chalk.red("Error in getNotificationCrypto:"),
-      error instanceof Error ? error.message : String(error),
-    );
+    logger.error(chalk.red("Error in getNotificationCrypto:"), error);
     return null;
   }
 };
@@ -257,9 +254,9 @@ const sendCryptos = async (
   } catch (error) {
     logger.error(
       "Failed to fetch cryptos for user:",
-      userDevice.userId,
+      logger.secret(userDevice.userId),
       "error:",
-      error instanceof Error ? error.message : error,
+      error,
     );
   }
 };
@@ -371,11 +368,15 @@ const handleAddCrypto = async (
   } catch (error) {
     logger.error(
       "Failed to add crypto for user:",
-      userData.userId,
+      logger.secret(userData.userId),
       "crypto:",
-      message.crypto,
+      logger.secret(
+        typeof message.crypto === "object"
+          ? JSON.stringify(message.crypto)
+          : null,
+      ),
       "error:",
-      error instanceof Error ? error.message : error,
+      error,
     );
   }
 };
@@ -400,11 +401,11 @@ const handleDeleteCrypto = async (
   } catch (error) {
     logger.error(
       "Failed to delete crypto for user:",
-      userDevice.userId,
+      logger.secret(userDevice.userId),
       "symbol:",
       message.symbol,
       "error:",
-      error instanceof Error ? error.message : error,
+      error,
     );
   }
 };
@@ -418,7 +419,10 @@ const handleMessage = async (
       JSON.parse(message);
 
     if (parsedMessage.type !== "init" && !userDevice.isValidUserData()) {
-      logger.error("Received message before initialization:", message);
+      logger.error(
+        "Received message before initialization:",
+        logger.secret(message),
+      );
       userDevice.handleClose(4001, "Initialization required");
       return;
     }
@@ -430,7 +434,7 @@ const handleMessage = async (
           if (!userId || !deviceId) {
             logger.error(
               "Initialization message missing userId or deviceId:",
-              message,
+              logger.secret(message),
             );
             userDevice.handleClose(4002, "Invalid initialization data");
             return;
@@ -463,10 +467,7 @@ const handleMessage = async (
         break;
     }
   } catch (error) {
-    logger.error(
-      "Failed to parse WebSocket message:",
-      error instanceof Error ? error.message : error,
-    );
+    logger.error("Failed to parse WebSocket message:", error);
   }
 };
 

@@ -33,9 +33,9 @@ const handleInit = (
 
   logger.log(
     chalk.green("New clipboard client connected:"),
-    chalk.yellow(userDevice.userId),
+    chalk.yellow(logger.secret(userDevice.userId)),
     chalk.green("Device ID:"),
-    chalk.yellow(userDevice.deviceId),
+    chalk.yellow(logger.secret(userDevice.deviceId)),
   );
 };
 
@@ -106,7 +106,10 @@ const onMessage = async (
         userDevice.pongReceived();
         break;
       default:
-        logger.log(chalk.yellow("Unknown clipboard message type:"), message);
+        logger.log(
+          chalk.yellow("Unknown clipboard message type:"),
+          logger.secret(message),
+        );
         break;
     }
   } catch (error) {
@@ -125,9 +128,9 @@ const onConnection = (wsClipboard: WebSocket) => {
   wsClipboard.on("close", () => {
     logger.log(
       chalk.red("Clipboard client disconnected:"),
-      chalk.yellow(userDevice.userId),
+      chalk.yellow(logger.secret(userDevice.userId)),
       chalk.green("Device ID:"),
-      chalk.yellow(userDevice.deviceId),
+      chalk.yellow(logger.secret(userDevice.deviceId)),
     );
     userDevice.handleClose();
   });
@@ -188,7 +191,7 @@ export const initWebSocketClipboard = () => {
   } catch (error) {
     logger.error(
       chalk.red("Error initializing Clipboard WebSocket server:"),
-      error instanceof Error ? error.message : error,
+      error,
     );
     throw error;
   }
