@@ -1,5 +1,5 @@
-import type { REPLACERS_TYPE, Paths } from "@types";
 import type { ConfigFunction } from "@babel/core";
+import type { REPLACERS_TYPE, Paths, Logger } from "@types";
 
 const config: ConfigFunction = (api) => {
   api.cache.never();
@@ -29,11 +29,33 @@ const config: ConfigFunction = (api) => {
       .map(([key, value]) => [`REPLACERS.${key}`, value]),
   );
 
-  const finalReplacers = {
-    ...REPLACERS,
+  const logger: Record<Paths<Logger>, string> = {
+    log: "(()=>void 0)",
+    warn: "(()=>void 0)",
+    error: "(()=>void 0)",
+    secret: "(()=>void 0)",
+  };
+
+  const LOGGER_REPLACERS = Object.fromEntries(
+    Object.entries(logger).map(([key, value]) => [`logger.${key}`, value]),
+  );
+
+  const finalReplacers: Record<string, string> = {
     "Platform.OS": JSON.stringify(platform),
     "process.env.BUILD_PROFILE": JSON.stringify(BUILD_PROFILE),
   };
+
+  Object.assign(finalReplacers, REPLACERS);
+
+  const prodPlugins: string[] = [];
+
+  if (process.env.BUILD_PROFILE === "production") {
+    Object.assign(finalReplacers, LOGGER_REPLACERS);
+    prodPlugins.push(
+      "./plugins/removeLoggerInstance.js",
+      "babel-plugin-transform-remove-console",
+    );
+  }
 
   return {
     presets: ["babel-preset-expo"],
@@ -61,7 +83,7 @@ const config: ConfigFunction = (api) => {
           },
         },
       ],
-      "./plugins/removeLoggerInstance.js",
+      ...prodPlugins,
       [
         "babel-plugin-transform-replace-expressions",
         {
