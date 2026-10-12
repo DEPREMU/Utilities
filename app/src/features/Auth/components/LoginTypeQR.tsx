@@ -5,20 +5,19 @@ import Animated, {
   FadeOutRight,
   LinearTransition,
 } from "react-native-reanimated";
-import { REPLACERS } from "@common";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import { ReconnectingWebSocket } from "@/utils/reconnecting-websocket";
 import { MessageWebSocketQRLogin } from "@types";
-import { URLS, storageManagement } from "@utils";
+import { Logger, URLS, storageManagement } from "@utils";
 import React, { useEffect, useRef, useState } from "react";
+
+const logger = new Logger("LoginTypeQR");
 
 interface LoginTypeQRProps {
   rememberMe: boolean;
 }
-
-const TAG = "LoginTypeQR";
 
 const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
   const { t } = useLanguage();
@@ -37,11 +36,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
   const handleCloseWebSocketRef = useRef((reason?: "timeout" | "error") => {
     if (!wsRef.current) return;
 
-    REPLACERS.Logger.log(
-      TAG,
-      "Closing QR login WebSocket connection with reason:",
-      reason,
-    );
+    logger.log("Closing QR login WebSocket connection with reason:", reason);
     wsRef.current.close();
     setIsValidQR(false);
   });
@@ -50,7 +45,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
     const deviceId = storageManagement.get("DEVICE_ID");
 
     const handleError = (message: string) => {
-      REPLACERS.Logger.error(message);
+      logger.error(message);
       handleCloseWebSocketRef.current();
       wsRef.current?.reconnect();
     };
@@ -95,10 +90,7 @@ const LoginTypeQR: React.FC<LoginTypeQRProps> = ({ rememberMe }) => {
             break;
         }
       } catch (error) {
-        REPLACERS.Logger.error(
-          "Error parsing WebSocket message for QR login",
-          error,
-        );
+        logger.error("Error parsing WebSocket message for QR login", error);
         handleError(
           "Error parsing WebSocket message for QR login" +
             (error instanceof Error ? ": " + error.message : String(error)),

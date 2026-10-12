@@ -18,6 +18,9 @@ import { cloneDeep } from "lodash";
 import { windowModule } from "@modules";
 import * as SecureStore from "expo-secure-store";
 import { reloadAppAsync } from "expo";
+import { Logger } from "../TOP_LEVEL";
+
+const logger = new Logger("ServicesStorage");
 
 type SaveDataStorage = {
   <T extends ALL_KEYS_STORAGE_TYPE>(
@@ -123,7 +126,7 @@ const saveDataStorage: SaveDataStorage = wrapFunctionWithError(
     const callback = args?.[1]; // [value, callback]
     if (typeof callback === "function") return callback(err, errMsg);
 
-    REPLACERS.Logger.error(`saveDataStorage("${keyStorage}") => ${errMsg}`);
+    logger.error(`saveDataStorage("${keyStorage}") => ${errMsg}`);
   },
 );
 
@@ -169,7 +172,7 @@ const loadDataStorage: LoadDataStorage = wrapFunctionWithError(
     if (typeof arg === "function") return arg(null, err, errMsg);
     if (keyStorage === "DEVICE_ID" && !REPLACERS.isDev) reloadAppAsync();
 
-    REPLACERS.Logger.error(`loadDataStorage("${keyStorage}") => ${errMsg}`);
+    logger.error(`loadDataStorage("${keyStorage}") => ${errMsg}`);
 
     if (typeof arg !== "undefined") return arg;
     return null;
@@ -222,7 +225,7 @@ const removeDataStorage: RemoveDataStorage = wrapFunctionWithError(
     const errCallback = args?.[0];
     if (typeof errCallback === "function") return errCallback(err, errMsg);
 
-    REPLACERS.Logger.error(`removeDataStorage("${keyStorage}") => ${errMsg}`);
+    logger.error(`removeDataStorage("${keyStorage}") => ${errMsg}`);
   },
 );
 
@@ -258,7 +261,7 @@ const cleanAllStorageData = wrapFunctionWithError(
   },
   true,
   async (_, errMsg) => {
-    REPLACERS.Logger.error(`cleanAllStorageData() => ${errMsg}`);
+    logger.error(`cleanAllStorageData() => ${errMsg}`);
   },
 );
 
@@ -288,11 +291,7 @@ class StorageManagement extends ServiceClass<never> {
         if (hasElapsed) break;
       }
     } catch (error) {
-      REPLACERS.Logger.error(
-        "StorageManagement",
-        "Initialization error:",
-        error,
-      );
+      logger.error("StorageManagement", "Initialization error:", error);
     }
   }
 
@@ -324,7 +323,7 @@ class StorageManagement extends ServiceClass<never> {
             },
             true,
             async (_, errMsg, key) => {
-              REPLACERS.Logger.error(
+              logger.error(
                 "STORAGE",
                 `#loadData() => loadDataStorage("${key}") => ` + errMsg,
               );
@@ -336,7 +335,7 @@ class StorageManagement extends ServiceClass<never> {
 
       this.#data = data as ExpectedStorageTypes<"BOTH">;
     } catch (e) {
-      REPLACERS.Logger.error("STORAGE", "Failed to load storage data.", e);
+      logger.error("STORAGE", "Failed to load storage data.", e);
       if (!REPLACERS.isDev) reloadAppAsync("Failed to load storage data.");
     }
   };
@@ -414,10 +413,7 @@ class StorageManagement extends ServiceClass<never> {
         return;
       }
 
-      REPLACERS.Logger.error(
-        `STORAGE`,
-        `saveDataStorage("${key}") => ` + errMsg,
-      );
+      logger.error(`STORAGE`, `saveDataStorage("${key}") => ` + errMsg);
     });
   };
 
@@ -453,10 +449,7 @@ class StorageManagement extends ServiceClass<never> {
         this.#data[key as "USER_DATA"] = null;
         return;
       }
-      REPLACERS.Logger.error(
-        `STORAGE`,
-        `removeDataStorage("${key}") => ` + errMsg,
-      );
+      logger.error(`STORAGE`, `removeDataStorage("${key}") => ` + errMsg);
     });
   };
 

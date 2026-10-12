@@ -8,7 +8,10 @@ import i18n from "i18next";
 import * as Localization from "expo-localization";
 import { initReactI18next } from "react-i18next";
 import { storageManagement } from "../services/storage";
-import { enApp, esApp, languagesSupported, REPLACERS } from "@common";
+import { enApp, esApp, languagesSupported } from "@common";
+import { Logger } from "../TOP_LEVEL";
+
+const logger = new Logger("TranslatesI18n");
 
 i18n.use(initReactI18next).init({
   lng: "en",
@@ -21,57 +24,6 @@ i18n.use(initReactI18next).init({
 });
 
 /**
- * Retrieves the user's preferred language from storage.
- *
- * This function attempts to load the language preference stored under the
- * `LANGUAGE_KEY_STORAGE` key. If a valid language is found and is included
- * in the list of supported languages, it returns the language. Otherwise,
- * it returns `null`.
- *
- * @returns {Promise<LanguagesSupported | null>} A promise that resolves to the stored language if available and supported, or `null` otherwise.
- */
-export const getLanguageFromStorage =
-  async (): Promise<LanguagesSupported | null> => {
-    await storageManagement.waitUntilInitialized();
-    const data = storageManagement.get("LANGUAGE");
-    if (!data) return null;
-
-    const languageAvailable = languagesSupported.includes(data);
-    return languageAvailable ? data : null;
-  };
-
-/**
- * Retrieves the device's current language and saves it to storage if it is supported.
- *
- * @returns {Promise<LanguagesSupported | null>} The detected and supported language code, or "en" if detection fails.
- *
- * @remarks
- * - Uses the first locale from the device's localization settings.
- * - Checks if the detected language is among the supported languages.
- * - Saves the language to storage using a predefined key.
- * - Returns "en" as a fallback if detection or saving fails.
- *
- * @throws Will log an error if there is an issue during language detection or storage.
- */
-export const getLanguageFromDevice = (): LanguagesSupported => {
-  try {
-    const locales = Localization.getLocales()[0];
-    const language = locales.languageCode as LanguagesSupported;
-    if (language && languagesSupported.includes(language || "")) {
-      storageManagement.save("LANGUAGE", language);
-      return language;
-    }
-    return "en";
-  } catch (error) {
-    REPLACERS.Logger.error(
-      `getLanguageFromDevice() => ${error instanceof Error ? error.message : String(error)}`,
-    );
-
-    return "en";
-  }
-};
-
-/**
  * Checks the user's language preference and saves it if not already set.
  *
  * @returns The user's preferred language, or "en" if not found.
@@ -82,8 +34,36 @@ export const getLanguageFromDevice = (): LanguagesSupported => {
  * - If no language is found, it defaults to "en".
  */
 export const checkLanguage = async (): Promise<LanguagesSupported> => {
+  const getLanguageFromStorage =
+    async (): Promise<LanguagesSupported | null> => {
+      await storageManagement.waitUntilInitialized();
+      const data = storageManagement.get("LANGUAGE");
+      if (!data) return null;
+
+      const languageAvailable = languagesSupported.includes(data);
+      return languageAvailable ? data : null;
+    };
+
   let lang: LanguagesSupported | null = await getLanguageFromStorage();
   if (lang) return lang;
+
+  const getLanguageFromDevice = (): LanguagesSupported => {
+    try {
+      const locales = Localization.getLocales()[0];
+      const language = locales.languageCode as LanguagesSupported;
+      if (language && languagesSupported.includes(language || "")) {
+        storageManagement.save("LANGUAGE", language);
+        return language;
+      }
+      return "en";
+    } catch (error) {
+      logger.error(
+        `getLanguageFromDevice() => ${error instanceof Error ? error.message : String(error)}`,
+      );
+
+      return "en";
+    }
+  };
 
   lang = getLanguageFromDevice();
   if (lang) return lang;
@@ -99,7 +79,7 @@ const configureLanguage = async () => {
     await i18n.changeLanguage(lng);
   } catch (error) {
     await i18n.changeLanguage("en");
-    REPLACERS.Logger.error?.(
+    logger.error?.(
       "Error configuring language:",
       error instanceof Error ? error.message : String(error),
     );

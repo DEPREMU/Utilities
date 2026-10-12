@@ -1,5 +1,6 @@
 import {
   tTyped,
+  Logger,
   Network,
   deviceInfo,
   navigation,
@@ -11,13 +12,15 @@ import ComputerItem from "../components/ComputerItem";
 import { useLanguage } from "@context/LanguageContext";
 import { Timers, REPLACERS } from "@common";
 import Zeroconf, { Service } from "react-native-zeroconf";
-import { useStylesComputerControl } from "@screens/Phone/ComputesControl/styles/useStylesComputerControl";
+import { useStylesComputerControl } from "@screens/Phone/ComputersControl/styles/useStylesComputerControl";
 import { AdvertisementTXT, Screens } from "@types";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import { ActivityIndicator, Text, FAB } from "react-native-paper";
 // eslint-disable-next-line react-native/split-platform-components
 import { View, PermissionsAndroid, Platform, Permission } from "react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+
+const logger = new Logger("PhoneComputesControl");
 
 export type Device = ServiceAdvertisementTXT & {
   url: string;
@@ -30,8 +33,6 @@ export type ExecuteCommandOnDevice = (
   deviceId: string,
   command: "turn-off-computer" | "restart-computer",
 ) => Promise<void>;
-
-const TAG = "ComputerControl";
 
 const getUrl = (host: string, port: number): string => {
   return `http://${host}:${port}/status`;
@@ -68,11 +69,7 @@ const tryUrls = async (
           }
         }
       } catch (error) {
-        REPLACERS.Logger.error(
-          TAG,
-          `Error while fetching ${url}:`,
-          (error as Error).message,
-        );
+        logger.error(`Error while fetching ${url}:`, (error as Error).message);
       }
     });
   });
@@ -125,7 +122,7 @@ const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
   });
 
   const handleStopRef = useRef(async () => {
-    REPLACERS.Logger.log(TAG, "Scan stopped");
+    logger.log("Scan stopped");
     setLoading(false);
     setScanning(false);
   });
@@ -196,7 +193,7 @@ const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
         );
         success = res?.data?.success;
       } catch (error) {
-        REPLACERS.Logger.error(
+        logger.error(
           `Error sending "${command}" command to "${baseUrl}":`,
           error instanceof Error ? error.message : String(error),
         );
@@ -277,8 +274,7 @@ const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
         const isGranted = locationGranted && nearbyGranted;
 
         if (!isGranted) {
-          REPLACERS.Logger.error(
-            TAG,
+          logger.error(
             "Location permissions not granted, cannot scan for devices",
           );
           modalRef.openSnackBar?.(
@@ -289,8 +285,7 @@ const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
 
         return isGranted;
       } catch (err) {
-        REPLACERS.Logger.error(
-          TAG,
+        logger.error(
           "Error while requesting permissions",
           err instanceof Error ? err.message : err,
         );
@@ -311,10 +306,7 @@ const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
 
       const validUrl = await tryUrls(service);
       if (!validUrl) {
-        REPLACERS.Logger.error(
-          "Could not find a valid service for",
-          service.name,
-        );
+        logger.error("Could not find a valid service for", service.name);
         return;
       }
 
@@ -346,7 +338,7 @@ const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
     zeroconfRef.current.on("stop", handleStopRef.current);
     zeroconfRef.current.on("resolved", handleResolved);
     zeroconfRef.current.on("error", (err) => {
-      REPLACERS.Logger.error(TAG, "Zeroconf error:", err?.message ?? err);
+      logger.error("Zeroconf error:", err?.message ?? err);
       zeroconfRef.current.stop("DNSSD");
     });
 

@@ -1,5 +1,8 @@
+import { Logger } from "../TOP_LEVEL";
 import { ResponseDebugAppAlive } from "@types";
 import { Timers, REPLACERS, DEBUG_SETTINGS, ServiceClass } from "@common";
+
+const logger = new Logger("DebugService");
 
 type ListenersDebug = {
   appAliveCheck:
@@ -7,8 +10,6 @@ type ListenersDebug = {
     | ((status: "error", error: Error) => void)
     | ((status: "result", result: ResponseDebugAppAlive | null) => void);
 };
-
-const TAG = "DEBUG_SERVICE";
 
 class Debug extends ServiceClass<ListenersDebug> {
   #getDefaultSettings(): DEBUG_SETTINGS {
@@ -45,17 +46,13 @@ class Debug extends ServiceClass<ListenersDebug> {
             },
           },
         );
-        REPLACERS.Logger.log(TAG, "App alive check result:", res.ok);
+        logger.log("App alive check result:", res.ok);
         this.emit("appAliveCheck", "result", {
           success: res.ok,
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
-        REPLACERS.Logger.error(
-          TAG,
-          "Error occurred while checking app alive status:",
-          error,
-        );
+        logger.error("Error occurred while checking app alive status:", error);
         this.emit(
           "appAliveCheck",
           "error",
@@ -119,7 +116,7 @@ class Debug extends ServiceClass<ListenersDebug> {
 
       await Promise.all([this._initAppAliveCheck()]);
     } catch (error) {
-      REPLACERS.Logger.error(
+      logger.error(
         "Error initializing Debug service",
         error instanceof Error ? error.message : String(error),
       );

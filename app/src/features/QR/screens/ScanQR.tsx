@@ -5,6 +5,13 @@ import {
   scanFromURLAsync,
   BarcodeScanningResult,
 } from "expo-camera";
+import {
+  Logger,
+  tTyped,
+  openURL,
+  navigation,
+  wrapFunctionWithError,
+} from "@utils";
 import { modalRef } from "@refs";
 import { REPLACERS } from "@common";
 import { Image, View } from "react-native";
@@ -16,7 +23,8 @@ import * as ExpoClipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import { Button, Divider, Text } from "react-native-paper";
 import React, { useEffect, useRef, useState } from "react";
-import { tTyped, openURL, navigation, wrapFunctionWithError } from "@utils";
+
+const logger = new Logger("FeaturesQRScanQR");
 
 type Corner = Point & {
   x2: number;
@@ -24,8 +32,6 @@ type Corner = Point & {
 };
 
 type ScanningType = "camera" | "image";
-
-const TAG = "SCAN_QR";
 
 const ScanQR = () => {
   const { t } = useLanguage();
@@ -58,11 +64,7 @@ const ScanQR = () => {
 
       await cameraRef.current.pausePreview();
     } catch (error) {
-      REPLACERS.Logger.error(
-        "SCAN_QR",
-        "Error pausing camera preview",
-        (error as Error).message,
-      );
+      logger.error("Error pausing camera preview", (error as Error).message);
     }
   });
 
@@ -111,7 +113,7 @@ const ScanQR = () => {
       setResult(null);
       setCorners(null);
     } catch (error) {
-      REPLACERS.Logger.error(TAG, "Error resuming camera preview", error);
+      logger.error("Error resuming camera preview", error);
     }
   });
 
@@ -130,7 +132,7 @@ const ScanQR = () => {
       const [qrData] = await scanFromURLAsync(uri);
       setResult(qrData ?? null);
     } catch (error) {
-      REPLACERS.Logger.error(TAG, "Error scanning image for QR scan", error);
+      logger.error("Error scanning image for QR scan", error);
     }
   });
 
@@ -147,11 +149,7 @@ const ScanQR = () => {
         }
       },
       async (_, errMsg) => {
-        REPLACERS.Logger.error(
-          TAG,
-          "Error requesting camera permissions",
-          errMsg,
-        );
+        logger.error("Error requesting camera permissions", errMsg);
       },
     );
   }, [scanningType]);

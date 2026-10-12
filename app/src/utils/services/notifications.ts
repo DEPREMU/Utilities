@@ -26,6 +26,9 @@ import * as notifications from "expo-notifications";
 import { AppState, Falsy } from "react-native";
 import { storageManagement } from "../services/storage";
 import { deviceInfo, EventsDeviceInfo } from "./deviceInfo";
+import { Logger } from "../TOP_LEVEL";
+
+const logger = new Logger("ServicesNotifications");
 
 export interface NotificationData {
   screen?: ScreensAvailable;
@@ -158,7 +161,7 @@ export const setupNotificationHandlers = () => {
 
   const foregroundListener = notifications.addNotificationReceivedListener(
     (notification) => {
-      REPLACERS.Logger.log(
+      logger.log(
         "Notification received in foreground:",
         notification.request.content,
       );
@@ -457,7 +460,7 @@ class NotificationsManager extends ServiceClass<never> {
 
           return String(notificationId);
         } catch (error) {
-          REPLACERS.Logger.error("Error sending native notification", error);
+          logger.error("Error sending native notification", error);
         }
       }
 
@@ -470,7 +473,7 @@ class NotificationsManager extends ServiceClass<never> {
         trigger: notification.trigger || null,
       });
     } catch (error) {
-      REPLACERS.Logger.error(
+      logger.error(
         "NOTIFICATIONS",
         "Error checking paused notifications",
         error,

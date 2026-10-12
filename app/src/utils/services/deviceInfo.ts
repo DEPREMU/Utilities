@@ -16,6 +16,7 @@ import {
   NotificationAction,
   ReasonNotification,
 } from "@types";
+import { Logger } from "../TOP_LEVEL";
 import { tTyped } from "../translates";
 import * as NetInfo from "@react-native-community/netinfo";
 import * as Location from "expo-location";
@@ -25,6 +26,8 @@ import * as DeviceInfoRN from "react-native-device-info";
 import { storageManagement } from "./storage";
 import { isLocationEnabled } from "../functions";
 import { AppState, AppStateStatus, DeviceEventEmitter } from "react-native";
+
+const logger = new Logger("ServicesDeviceInfo");
 
 export type typeDataReceivedState = { state: "suspended" | "resumed" };
 
@@ -308,7 +311,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
                 }),
               );
             } catch (error) {
-              REPLACERS.Logger.error("Error pausing notifications", error);
+              logger.error("Error pausing notifications", error);
             }
             break;
           case "stop":
@@ -517,7 +520,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
 
       await Promise.allSettled(promises);
     } catch (error) {
-      REPLACERS.Logger.error(
+      logger.error(
         "Error initializing DeviceInfo service",
         error instanceof Error ? error.message : String(error),
       );

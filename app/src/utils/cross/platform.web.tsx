@@ -1,10 +1,13 @@
 import { v4 } from "uuid";
+import { Timers } from "@common";
+import { Logger } from "../TOP_LEVEL";
 import { windowModule } from "@modules";
 import type { PdfProps } from "react-native-pdf";
-import { Timers, REPLACERS } from "@common";
 import { useResponsiveLayout } from "@context/LayoutContext";
 import React, { useEffect, useRef } from "react";
 import { CreatePdfFromImages, PlatformData } from "./platform";
+
+const logger = new Logger("CrossPlatformWeb");
 
 const PDF_PAGE_SIZES = {
   "4A0": [4767.87, 6740.79],
@@ -99,7 +102,7 @@ export const PDF: React.FC<PdfProps> = ({ source }) => {
     if (typeof source === "string") uri = source;
     else if (typeof source === "object" && source.uri) uri = source.uri;
     else {
-      REPLACERS.Logger.error("PDF_RENDER_WEB", "Invalid PDF source:", source);
+      logger.error("PDF_RENDER_WEB", "Invalid PDF source:", source);
       return;
     }
     if (height) heightPX = `${height - 200}px`;

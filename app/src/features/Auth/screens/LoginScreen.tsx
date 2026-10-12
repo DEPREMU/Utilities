@@ -3,6 +3,13 @@ import {
   KeyboardAvoidingView,
 } from "react-native-keyboard-controller";
 import {
+  tTyped,
+  Logger,
+  navigation,
+  Validations,
+  sessionManager,
+} from "@utils";
+import {
   Text,
   Switch,
   Button,
@@ -33,7 +40,8 @@ import { useUserContext } from "@context/UserContext";
 import { ScrollView, View } from "react-native";
 import { Timers, REPLACERS } from "@common";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
-import { tTyped, navigation, Validations, sessionManager } from "@utils";
+
+const logger = new Logger("LoginScreen");
 
 const originalPassword = REPLACERS.isDev ? "Test0123456789!" : "";
 
@@ -90,7 +98,7 @@ const LoginScreen: React.FC<Screens["Login"]> = () => {
       if (error) {
         setErrorMessage.current(error || "Login failed");
         setLoggingIn(false);
-        REPLACERS.Logger.error("AUTH", "Login failed:", error, email);
+        logger.error("Login failed:", error, email);
         return;
       }
 

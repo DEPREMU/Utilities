@@ -1,4 +1,4 @@
-import { TAG } from "./common";
+import { Logger } from "@/utils/TOP_LEVEL";
 import { DataClipboard } from "./data";
 import { sessionManager } from "../session";
 import * as ExpoClipboard from "expo-clipboard";
@@ -7,6 +7,8 @@ import { EventClipboardNative } from "@types";
 import { deviceInfo, EventsDeviceInfo } from "../deviceInfo";
 import { BackgroundModule, windowModule } from "@/utils/modules";
 import { DeviceEventEmitter, EmitterSubscription } from "react-native";
+
+const logger = new Logger("ServicesClipboardListeners");
 
 type Listener = ReturnType<typeof deviceInfo.addEventListener> | null;
 
@@ -134,11 +136,7 @@ export class ListenersClipboard extends DataClipboard {
 
       if (error instanceof Error && error.message.includes("denied")) return;
 
-      REPLACERS.Logger.error(
-        TAG,
-        "Error handling interval clipboard web",
-        error,
-      );
+      logger.error("Error handling interval clipboard web", error);
     }
   };
 

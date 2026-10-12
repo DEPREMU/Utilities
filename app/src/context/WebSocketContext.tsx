@@ -18,12 +18,14 @@ import {
   EventsDeviceInfo,
   storageManagement,
   notificationsManager,
+  Logger,
 } from "@utils";
 import { modalRef } from "@refs";
-import { REPLACERS } from "@common";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "./UserContext";
 import { WebSocketMessage } from "@types";
+
+const logger = new Logger("WebSocketContext");
 
 type SendMessageFunc = (
   message: WebSocketMessage<"sentByApp">,
@@ -115,11 +117,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           label: tTyped("common.close"),
         },
       );
-      REPLACERS.Logger.log("WebSocket initialized successfully.");
+      logger.log("WebSocket initialized successfully.");
     };
 
     socketRef.current.onOpen = async () => {
-      REPLACERS.Logger.log("WebSocket connection opened successfully");
+      logger.log("WebSocket connection opened successfully");
     };
 
     socketRef.current.onMessage = async (event) => {
@@ -127,13 +129,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         const parsedMessage: WebSocketMessage<"sentByServer"> | null =
           Helper.JSON.parseData(event.data.toString());
         if (!parsedMessage) return;
-        REPLACERS.Logger.log("Message from server:", parsedMessage);
+        logger.log("Message from server:", parsedMessage);
 
         if (!parsedMessage.type) {
-          REPLACERS.Logger.error(
-            "Received message without type:",
-            parsedMessage,
-          );
+          logger.error("Received message without type:", parsedMessage);
           return;
         }
 
@@ -142,10 +141,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
             handleInitSuccessWebSocket();
             break;
           case "not-user-id":
-            REPLACERS.Logger.error(
-              "No user ID provided:",
-              parsedMessage.message,
-            );
+            logger.error("No user ID provided:", parsedMessage.message);
             break;
           case "notification":
             await notificationsManager.sendNotification(
@@ -156,24 +152,20 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
             sendMessageRef.current({ type: "pong" });
             break;
           default:
-            REPLACERS.Logger.log("Unknown message type:", parsedMessage);
+            logger.log("Unknown message type:", parsedMessage);
             break;
         }
       } catch (error) {
-        REPLACERS.Logger.error("Error processing WebSocket message:", error);
+        logger.error("Error processing WebSocket message:", error);
       }
     };
 
     socketRef.current.onError = (error) => {
-      REPLACERS.Logger.error("WebSocket error:", error.message);
+      logger.error("WebSocket error:", error.message);
     };
 
     socketRef.current.onClose = (event) => {
-      REPLACERS.Logger.log(
-        "WebSocket connection closed:",
-        event.reason,
-        event.code,
-      );
+      logger.log("WebSocket connection closed:", event.reason, event.code);
     };
 
     return () => {

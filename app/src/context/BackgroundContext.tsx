@@ -1,6 +1,7 @@
 import {
   tTyped,
   Timers,
+  Logger,
   REPLACERS,
   deviceInfo,
   navigation,
@@ -9,6 +10,8 @@ import {
 import { reloadAppAsync } from "expo";
 import { BackgroundModule } from "@modules";
 import React, { useRef, useEffect, createContext } from "react";
+
+const logger = new Logger("BackgroundContext");
 
 type dataTimeControl = {
   fn: (...args: unknown[]) => void;
@@ -124,7 +127,7 @@ export const BackgroundProvider: React.FC<BackgroundProviderProps> = ({
       while (!BackgroundModule.start && attempt < 5) {
         attempt++;
         await Timers.sleep(1000);
-        REPLACERS.Logger.log(
+        logger.log(
           `Waiting for BackgroundModule to be ready... Attempt ${attempt}`,
         );
       }

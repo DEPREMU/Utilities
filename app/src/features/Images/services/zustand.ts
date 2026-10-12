@@ -6,6 +6,7 @@ import {
   RequestChangeImageFormat,
 } from "@types";
 import {
+  Logger,
   tTyped,
   REPLACERS,
   selectImage,
@@ -17,6 +18,8 @@ import { create } from "zustand";
 import { modalRef } from "@/app/refs";
 import { ServerError } from "@commonSrc/both/errors/Error";
 import { getValueState, ServerFetch, wrapFunctionWithError } from "@common";
+
+const logger = new Logger("ImagesZustand");
 
 export type Images = Exclude<ReturnSelectImage, { canceled: true }>;
 export type ImagesConverted = {
@@ -73,7 +76,7 @@ const getDataChangeImageFormat = async (
 
     return res.data;
   } catch (error) {
-    REPLACERS.Logger.error("Error in getDataChangeImageFormat:", error);
+    logger.error("Error in getDataChangeImageFormat:", error);
     return ServerError.requestError(
       tTyped("images.errorWhileConvertingImageMessage"),
     );
@@ -125,20 +128,15 @@ export const useImagesStore = create<States & Actions>()((set, get) => {
           directory: "images",
         });
 
-        REPLACERS.Logger.log("Image saved:", image.name);
+        logger.log("Image saved:", image.name);
         modalRef.openSnackBar?.(tTyped("images.downloadImageSuccessMessage"));
       } catch (error) {
-        REPLACERS.Logger.error("Failed to download image:", error);
+        logger.error("Failed to download image:", error);
       }
     },
 
     changeImageFormat: async (image, format) => {
-      REPLACERS.Logger.log(
-        "Changing format for image:",
-        image.name,
-        "to",
-        format,
-      );
+      logger.log("Changing format for image:", image.name, "to", format);
       set((prev) => ({
         converting: [...prev.converting, image.uri],
       }));
@@ -153,10 +151,7 @@ export const useImagesStore = create<States & Actions>()((set, get) => {
       }));
 
       if (!data) {
-        REPLACERS.Logger.error(
-          "Failed to change image format, data fetched:",
-          data,
-        );
+        logger.error("Failed to change image format, data fetched:", data);
         return;
       }
 
@@ -195,7 +190,7 @@ export const useImagesStore = create<States & Actions>()((set, get) => {
         base64: true,
       });
       if (!Array.isArray(selectedImages) || selectedImages.length === 0) {
-        REPLACERS.Logger.error("Image selection was canceled or failed.");
+        logger.error("Image selection was canceled or failed.");
         return;
       }
 

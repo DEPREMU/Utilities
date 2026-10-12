@@ -15,7 +15,9 @@ import { useLanguage } from "@context/LanguageContext";
 import { useStylesAuthScreens } from "@screens/Auth/styles/useStylesAuthScreens";
 import { Text, Button, ActivityIndicator } from "react-native-paper";
 import React, { useRef, useState, useCallback } from "react";
-import { Validations, requestCode, tTyped, REPLACERS, Timers } from "@utils";
+import { Validations, requestCode, tTyped, Timers, Logger } from "@utils";
+
+const logger = new Logger("EmailCodeForm");
 
 export type EmailCodeFormProps = {
   email: string;
@@ -101,7 +103,7 @@ export const EmailCodeForm: React.FC<EmailCodeFormProps> = ({
       setIsRequesting(false);
       const errMsg = err instanceof Error ? err.message : String(err);
       setErrorMessage(errMsg);
-      REPLACERS.Logger.error("AUTH_CODE", "Error requesting code:", errMsg);
+      logger.error("Error requesting code:", errMsg);
     }
   }, [email, isRequesting, onSuccessRequest, setErrorMessage, t, triggerShake]);
 
