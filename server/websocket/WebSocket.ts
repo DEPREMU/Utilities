@@ -87,7 +87,10 @@ const connectionWss = (ws: WebSocket) => {
           code,
           chalk.yellow(reason.toString()),
         );
+
       userDevice.handleClose(code, reason.toString());
+
+      users.removeUserDevice(userDevice);
     });
 
     ws.on("error", (error) => {

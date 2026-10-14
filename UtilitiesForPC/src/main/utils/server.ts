@@ -98,7 +98,9 @@ export const handleShutdown = async () => {
   logger.log("Shutting down gracefully...");
   cleanAdAndServer();
   stopMemoryMonitor();
-  Timers.setTimeout(() => process.exit(0), 500);
+
+  await Timers.sleep(500);
+  process.exit(0);
 };
 
 export const cleanAdAndServer = (): void => {

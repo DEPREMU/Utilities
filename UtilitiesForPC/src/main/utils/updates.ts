@@ -191,7 +191,10 @@ export const updateWeb = async (downloadUrl: string): Promise<void> => {
         .pipe(unzipper.Extract({ path: distPath }))
         .on("close", async () => {
           logger.log("Web update extracted successfully.");
-          await dirBackup.rm({ force: true, recursive: true });
+          await Promise.all([
+            file.rm({ force: true, recursive: true }),
+            dirBackup.rm({ force: true, recursive: true }),
+          ]);
           resolve();
         });
     });

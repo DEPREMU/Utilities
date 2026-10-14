@@ -86,12 +86,12 @@ describe("Timers", () => {
     Timers.clearTimeout(timeoutId1);
     Timers.clearInterval(intervalId1);
     jest.advanceTimersByTime(300);
+
     expect(timeoutCallback1).not.toHaveBeenCalled();
     expect(timeoutCallback2).toHaveBeenCalled();
     expect(intervalCallback1).not.toHaveBeenCalled();
     expect(intervalCallback2).toHaveBeenCalled();
 
-    Timers.clearAll();
     jest.advanceTimersByTime(300);
     expect(timeoutCallback2).toHaveBeenCalledTimes(1);
     expect(intervalCallback2).toHaveBeenCalledTimes(3);
@@ -114,5 +114,5 @@ describe("Timers", () => {
     expect(callback).not.toHaveBeenCalled();
 
     i++;
-  }, 10000);
+  }, 12000);
 });

@@ -62,8 +62,6 @@ export class Timers {
 
   static setInterval: SetTimeoutFunction = (...args) => {
     const id = globalThis.setInterval(() => {
-      this.#intervals.delete(id);
-
       (args[0] as (...args: unknown[]) => void)?.(...args.slice(2));
     }, args[1]) as never;
 

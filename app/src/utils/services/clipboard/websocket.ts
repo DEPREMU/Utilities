@@ -70,6 +70,8 @@ export class ClipboardWebSocket extends ClipboardServer {
     const { userData } = sessionManager.getSessionData();
 
     if (!userData?.userId) return;
+    if (this.#clipboardSocket.isConnected || this.#clipboardSocket.isConnecting)
+      return;
 
     this.#clipboardSocket.onOpen = async () => {
       this.emit("connection-status", true);
@@ -123,21 +125,20 @@ export class ClipboardWebSocket extends ClipboardServer {
     _item: ClipboardItem,
   ): Promise<void> {}
 
-  override async resume(): Promise<void> {
+  override async suspend(): Promise<void> {
+    if (!this.isInitialized) return;
     this.#shouldConnect = false;
 
     this.#clipboardSocket.close();
     this.emit("connection-status", false);
   }
 
-  override async suspend(): Promise<void> {
-    if (!this.isInitialized) return;
-
+  override async resume(): Promise<void> {
+    if (this.isInitialized) return;
     this.#shouldConnect = true;
 
-    const currentSocket = this.#clipboardSocket;
-    currentSocket.reconnect();
-    this._reInit();
+    await this.#clipboardSocket.reconnect();
+    await this._reInit();
   }
 
   override async destroy(): Promise<void> {
