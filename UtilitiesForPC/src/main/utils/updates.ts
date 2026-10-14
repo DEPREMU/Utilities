@@ -16,9 +16,9 @@ import { Logger } from "./logger";
 import { pipeline } from "node:stream/promises";
 import { ServerError } from "@commonSrc/both/errors/Error";
 import type { Readable } from "node:stream";
-import { handleShutdown } from "./server";
 import { execFile, spawn } from "child_process";
 import { nativeData, Paths } from "@utils";
+import { gracefullyShutdown } from "./server";
 
 const logger = new Logger("Updates");
 
@@ -67,7 +67,7 @@ const openInstallerOrInstall = async (filePath: string) => {
 
             child.unref();
             logger.log("Installer spawned on Windows.");
-            await handleShutdown();
+            await gracefullyShutdown.shutdown();
           } catch (e) {
             logger.error("Error spawning installer on Windows:", e);
           } finally {
@@ -90,7 +90,7 @@ const openInstallerOrInstall = async (filePath: string) => {
           detached: true,
         });
         child.unref();
-        await handleShutdown();
+        await gracefullyShutdown.shutdown();
       } catch (e) {
         logger.error("Error installing on Linux:", e);
       }

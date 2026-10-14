@@ -14,6 +14,7 @@ export * from "./typesTranslations";
 export * from "./typesNotifications";
 export * from "./typesNativeModules";
 export * from "./typesUtilitiesForPC";
+export * from "./typesGracefullyShutdown";
 export * from "./typesThirdPartyStateManager";
 
 export type LoggerInterceptor = (

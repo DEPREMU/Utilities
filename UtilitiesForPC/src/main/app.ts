@@ -23,7 +23,7 @@ import dataApp, {
   Logger,
   initServer,
   getLanguage,
-  handleShutdown,
+  gracefullyShutdown,
   executeTerminalCommands,
 } from "@utils";
 import os from "os";
@@ -320,7 +320,7 @@ const createTray = (): void => {
         label: t("exit"),
         click: async () => {
           dataApp.setValue("isQuitting", true);
-          await handleShutdown();
+          await gracefullyShutdown.shutdown();
         },
       },
     ]);
@@ -358,7 +358,7 @@ app.whenReady().then(async () => {
   registerClipboardShortcuts();
 });
 
-app.on("window-all-closed", handleShutdown);
+app.on("window-all-closed", () => gracefullyShutdown.shutdown());
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length) return;

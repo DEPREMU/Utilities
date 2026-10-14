@@ -1,5 +1,11 @@
+import {
+  Logger,
+  Timers,
+  Directory,
+  REPLACERS,
+  GracefullyShutdown,
+} from "@common";
 import path from "path";
-import { Directory, Logger, REPLACERS, Timers } from "@common";
 
 const logger = new Logger("Config");
 
@@ -99,6 +105,11 @@ class Config {
     Config.instance = this;
   }
 }
+
+const shutdownLogger = new Logger("Shutdown");
+export const gracefullyShutdown = new GracefullyShutdown({
+  logger: shutdownLogger,
+});
 
 const config = new Config();
 void config.init();

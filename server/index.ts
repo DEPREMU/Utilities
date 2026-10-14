@@ -25,12 +25,12 @@ import { URL } from "url";
 import express from "express";
 import routerAPI from "./routes/index.ts";
 import rateLimit from "express-rate-limit";
-import { config } from "./config.ts";
 import compression from "compression";
 import { getEnvValue } from "./env.ts";
-import { handleInitDB } from "./database/postgres.ts";
 import { closeAuthEmailQueue } from "./queue/authEmailQueue.ts";
+import { handleInitDB, prisma } from "./database/postgres.ts";
 import { initializeFirebaseAdmin } from "./firebase/admin.ts";
+import { config, gracefullyShutdown } from "./config.ts";
 import { getRedisClient, closeRedisConnection } from "./redis/client.ts";
 import { CryptosWebSocketMessage, WebSocketPathname } from "@types";
 
@@ -159,16 +159,38 @@ const startApp = async () => {
     );
   }
 
-  const gracefulShutdown = async () => {
-    logger.log("Shutting down server services...");
-    await closeAuthEmailWorker();
-    await closeAuthEmailQueue();
-    await closeRedisConnection();
-    process.exit(0);
-  };
+  gracefullyShutdown.addFunction(
+    () =>
+      new Promise<void>((resolve) => {
+        server.close(() => resolve());
+      }),
+    "HTTP/WebSocket Server Close",
+    "HIGH",
+  );
 
-  process.on("SIGTERM", gracefulShutdown);
-  process.on("SIGINT", gracefulShutdown);
+  gracefullyShutdown.addFunction(
+    () => closeAuthEmailWorker(),
+    "Auth Email Worker Close",
+    "NORMAL",
+  );
+
+  gracefullyShutdown.addFunction(
+    () => closeAuthEmailQueue(),
+    "Auth Email Queue Close",
+    "NORMAL",
+  );
+
+  gracefullyShutdown.addFunction(
+    () => closeRedisConnection(),
+    "Redis Connection Close",
+    "LOW",
+  );
+
+  gracefullyShutdown.addFunction(
+    () => prisma.$disconnect(),
+    "Prisma Database Disconnect",
+    "LOW",
+  );
 
   server.listen(config.port, config.host, async () => {
     logger.log(

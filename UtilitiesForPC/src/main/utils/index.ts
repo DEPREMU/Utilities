@@ -2,8 +2,8 @@ import dataApp from "./vars/variables";
 import { exec } from "child_process";
 import { Timers } from "@common";
 import { Logger } from "./logger";
-import { handleShutdown } from "./server";
 import { app, powerMonitor } from "electron";
+import { gracefullyShutdown } from "./server";
 
 const logger = new Logger("Main");
 
@@ -16,7 +16,7 @@ powerMonitor.on("unlock-screen", () => {
 
   logger.warn("Restarting whole Electron app due to screen unlock...");
   app.relaunch();
-  handleShutdown();
+  void gracefullyShutdown.shutdown();
 });
 
 const elevatePrivileges = (): void => {
@@ -39,8 +39,7 @@ const elevatePrivileges = (): void => {
 
     exec(command, (e) => {
       Timers.setTimeout(() => {
-        app.quit();
-        process.exit(0);
+        void gracefullyShutdown.shutdown();
       }, 1000);
 
       if (!e) {
