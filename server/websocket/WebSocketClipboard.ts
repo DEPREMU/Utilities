@@ -133,6 +133,7 @@ const onConnection = (wsClipboard: WebSocket) => {
       chalk.yellow(logger.secret(userDevice.deviceId)),
     );
     userDevice.handleClose();
+    usersClipboard.removeUserDevice(userDevice);
   });
 
   wsClipboard.on("error", (error) => {

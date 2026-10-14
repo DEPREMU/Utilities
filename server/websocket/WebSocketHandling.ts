@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import { getValueState } from "@common";
+import { getValueState, Timers as TimersCommon } from "@common";
 import type { CommonUserDataWS, StateFunction } from "@types";
 
 const TIMEOUT_PING = 10000; // 10 seconds
@@ -7,9 +7,7 @@ const INTERVAL_PING = 30000; // 30 seconds
 
 type Timeout<T extends "timeout" | "interval"> = Map<
   string,
-  T extends "timeout"
-    ? { timeoutId: ReturnType<typeof setTimeout> }
-    : { intervalId: ReturnType<typeof setInterval> }
+  T extends "timeout" ? { timeoutId: number } : { intervalId: number }
 >;
 
 type ReturnTimeout = {
@@ -24,7 +22,7 @@ class Timers {
     if (!this.#intervals.has(id)) return;
 
     const intervalId = this.#intervals.get(id)?.intervalId;
-    if (intervalId) clearInterval(intervalId);
+    if (intervalId) TimersCommon.clearInterval(intervalId);
     this.#intervals.delete(id);
   }
 
@@ -39,10 +37,7 @@ class Timers {
   ): ReturnTimeout {
     this.clearInterval(uniqueId);
 
-    const intervalId: ReturnType<typeof setInterval> = setInterval(() => {
-      func();
-      this.clearInterval(uniqueId);
-    }, delay);
+    const intervalId: number = TimersCommon.setInterval(func, delay);
 
     this.#intervals.set(uniqueId, { intervalId });
 
@@ -57,7 +52,7 @@ class Timers {
     if (!this.#timeouts.has(id)) return;
 
     const timeoutId = this.#timeouts.get(id)?.timeoutId;
-    if (timeoutId) clearTimeout(timeoutId);
+    if (timeoutId) TimersCommon.clearTimeout(timeoutId);
     this.#timeouts.delete(id);
   }
 
@@ -71,7 +66,7 @@ class Timers {
   ): ReturnTimeout {
     this.clearTimeout(uniqueId);
 
-    const timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => {
+    const timeoutId: number = TimersCommon.setTimeout(() => {
       func();
       this.clearTimeout(uniqueId);
     }, delay);
@@ -90,13 +85,13 @@ class Timers {
    */
   public clearAllTimers() {
     this.#intervals.forEach((value, key) => {
-      if (value.intervalId) clearInterval(value.intervalId);
+      if (value.intervalId) TimersCommon.clearInterval(value.intervalId);
 
       this.#intervals.delete(key);
     });
 
     this.#timeouts.forEach((value, key) => {
-      if (value.timeoutId) clearTimeout(value.timeoutId);
+      if (value.timeoutId) TimersCommon.clearTimeout(value.timeoutId);
 
       this.#timeouts.delete(key);
     });
@@ -138,8 +133,8 @@ class Device<
 > extends AdditionalData<AdditionalData> {
   ws: WebSocket;
 
-  #pingTimeout: ReturnType<typeof this.setTimeout> | null = null;
-  #pingInterval: ReturnType<typeof this.setInterval> | null = null;
+  #pingTimeout: ReturnTimeout | null = null;
+  #pingInterval: ReturnTimeout | null = null;
 
   #userData: CommonUserDataWS = {
     userId: "",
@@ -182,11 +177,11 @@ class Device<
         this.#pingTimeout = this.setTimeout(
           () => this.handleClose(1000, "Ping response timeout"),
           TIMEOUT_PING,
-          "ping-timeout",
+          `ping-timeout-${this.#userData.userId}-${this.#userData.deviceId}`,
         );
       },
       INTERVAL_PING,
-      "ping-interval",
+      `ping-interval-${this.#userData.userId}-${this.#userData.deviceId}`,
     );
   }
 
@@ -320,15 +315,17 @@ export class Users<
   /**
    * Removes a device from a user. If the device exists, it will be removed from the user's devices. If the user has no more devices after removal, the user will also be removed from the users list.
    */
-  public removeUserDevice(user: Device<MessagesDevice, AdditionalDataDevice>) {
-    const userId = user.userId;
-    const deviceId = user.deviceId;
+  public removeUserDevice(
+    userDevice: Device<MessagesDevice, AdditionalDataDevice>,
+  ) {
+    const userId = userDevice.userId;
+    const deviceId = userDevice.deviceId;
 
-    if (!this.users.get(userId)?.devices.get(deviceId)) return;
+    const user = this.users.get(userId);
+    if (!user) return;
 
-    this.users.get(userId)?.devices.delete(deviceId);
-
-    if (this.users.get(userId)?.devices?.size === 0) this.users.delete(userId);
+    user.devices.delete(deviceId);
+    if (user.devices.size === 0) this.users.delete(userId);
   }
 
   /**

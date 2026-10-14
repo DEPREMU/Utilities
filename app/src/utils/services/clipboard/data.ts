@@ -132,9 +132,7 @@ export class DataClipboard extends ClipboardWebSocket {
       }
 
       const { clipboardItems } = res.data;
-      if (!clipboardItems) return;
-
-      if (clipboardItems.length === 0) continue;
+      if (!clipboardItems || clipboardItems.length === 0) break;
 
       await this.addItemToClipboard(
         clipboardItems
