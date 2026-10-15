@@ -3,10 +3,13 @@
   "compilerOptions": {
     "types": ["node", "../types/index.d.ts"],
     "paths": {
+      "@/*": ["../frontend/src/*"],
       "@types": ["../types/index.d.ts"],
+      "@common": ["../common/both/index.ts"],
       "@appSrc/*": ["../app/*"],
       "@REPLACERS": ["../common/both/REPLACERS/REPLACERS.server.ts"],
       "@commonSrc/*": ["../common/*"],
+      "@frontendSrc/*": ["../frontend/*"],
       "@utilitiesSrc/*": ["../UtilitiesForPC/*"]
     }
   },

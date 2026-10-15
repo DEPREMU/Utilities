@@ -144,3 +144,16 @@ export type MessageWebSocketQRLogin<T extends "sentByApp" | "sentByServer"> =
           type: "qr-code";
           dataURL: string;
         };
+
+export type ExponentialBackoffOptions = {
+  initialDelay?: number;
+  maxDelay?: number;
+  multiplier?: number;
+  jitter?: number;
+};
+
+export type CalculateExponentialBackoffFn = (
+  attempt: number,
+  options?: ExponentialBackoffOptions,
+) => number;
+

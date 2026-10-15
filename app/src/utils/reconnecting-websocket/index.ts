@@ -1,6 +1,6 @@
-import { Timers } from "@common";
 import { Logger } from "../TOP_LEVEL";
 import type WebSocketType from "ws";
+import { calculateExponentialBackoff, Timers } from "@common";
 
 const logger = new Logger("reconnecting-websocket");
 
@@ -11,42 +11,57 @@ type FunctionOnOpenMessage<T = string> = (
 export type OptionsReconnectingWS<T = string> = {
   /**
    * The maximum number of reconnection attempts before giving up, negatives mean infinite.
-   * @default -1 // meaning it will keep trying indefinitely.
+   * @default -1
    */
   maxRetries?: number;
   /**
-   * The delay in milliseconds between reconnection attempts.
-   * @default 1000 // (1 second).
+   * The initial delay in milliseconds between reconnection attempts.
+   * @default 1000
    */
   retryDelay?: number;
   /**
-   * Whether to start the WebSocket connection in a closed state. If `true`, the connection will not be established until the `reconnect()` method is called.
+   * The maximum delay ceiling in milliseconds for exponential backoff.
+   * @default 30000
+   */
+  maxRetryDelay?: number;
+  /**
+   * The exponential backoff multiplication factor.
+   * @default 1.5
+   */
+  backoffMultiplier?: number;
+  /**
+   * The proportional jitter ratio applied to backoff delays.
+   * @default 0.1
+   */
+  backoffJitter?: number;
+  /**
+   * Whether to start the WebSocket connection in a closed state.
    * @default false
    */
   startClosed?: boolean;
   /**
-   * A value or a function that returns a T value (or a Promise that resolves to a T value) to be converted in string and be sent immediately after the WebSocket connection is opened. This can be used for authentication or initialization purposes, every time the connection is established, this value will be sent. If a function is provided, and the function returns a falsy value or null, no message will be sent.
-   * @default undefined // meaning no message will be sent after opening the connection.
+   * Messages or functions yielding messages to send immediately after open.
+   * @default undefined
    */
   messagesAfterOpen?: (T | FunctionOnOpenMessage<T>)[];
   /**
-   * Optional subprotocols parameter to specify the WebSocket subprotocols. This can be a single string or an array of strings, depending on the server's requirements.
-   * @default undefined // meaning no subprotocols will be specified.
+   * Optional subprotocols parameter.
+   * @default undefined
    */
   protocols?: string | string[];
   /**
-   * Whether the WebSocket should automatically attempt to reconnect when a connection error occurs. If `true`, the WebSocket will try to reconnect according to the specified `maxRetries` and `retryDelay` options. If `false`, the WebSocket will not attempt to reconnect and will require manual intervention to establish a new connection.
+   * Whether the WebSocket should automatically attempt to reconnect when a connection error occurs.
    * @default true
    */
   reconnectOnError?: boolean;
   /**
-   * Whether the WebSocket should automatically attempt to reconnect when the connection is closed. If `true`, the WebSocket will try to reconnect according to the specified `maxRetries` and `retryDelay` options whenever the connection is closed, regardless of the reason for closure. If `false`, the WebSocket will not attempt to reconnect when the connection is closed and will require manual intervention to establish a new connection.
+   * Whether the WebSocket should automatically attempt to reconnect when the connection is closed.
    * @default true
    */
   reconnectOnClose?: boolean;
   /**
-   * Whether to enable automatic ping-pong messages to keep the WebSocket connection alive and detect disconnections. If timeout and interval, the WebSocket will send a ping message after the specified interval and wait for a pong response within the specified timeout. If the expected message is not received within the timeout period, the WebSocket will be considered disconnected and will trigger the reconnection logic if enabled. If only expectedMessage and expectedResponse are provided, the WebSocket will listen for incoming messages and automatically respond with the expectedResponse whenever a message matching the expectedMessage is received. This can be used to implement a custom keep-alive mechanism or to respond to specific server messages without having to set up manual event listeners.
-   * @default undefined // meaning no automatic ping-pong mechanism will be enabled.
+   * Ping-pong keepalive configuration.
+   * @default undefined
    */
   pingPong?:
     | {
@@ -60,7 +75,7 @@ export type OptionsReconnectingWS<T = string> = {
         expectedResponse: string;
       };
   /**
-   * Whether to queue messages sent while the WebSocket is not open and automatically send them once the connection is established. If `true`, any messages sent using the `send()` method while the WebSocket is not in the OPEN state will be stored in a queue and sent in order once the connection is successfully established. If `false`, messages sent while the WebSocket is not open will be discarded, and a warning will be logged to indicate that the message could not be sent due to the WebSocket's state.
+   * Whether to queue messages sent while not connected.
    * @default true
    */
   queueMessages?: boolean;
@@ -71,6 +86,9 @@ export type ReasonCloseWS = "timeout" | "error" | "reconnect" | "manual";
 const DEFAULT_OPTIONS: OptionsReconnectingWS = {
   maxRetries: -1,
   retryDelay: 1000,
+  maxRetryDelay: 30000,
+  backoffMultiplier: 1.5,
+  backoffJitter: 0.1,
   startClosed: false,
   queueMessages: true,
   reconnectOnError: true,
@@ -89,6 +107,10 @@ export class ReconnectingWebSocket<T = string> {
   #connected = false;
   #connecting = false;
   #shouldReconnect = true;
+  #attemptId = 0;
+  #reconnectingPromise: Promise<void> | null = null;
+  #inFlightResolver: (() => void) | null = null;
+  #retryTimeoutId: number | null = null;
   #pongSettings = {
     timeoutId: null as number | null,
     intervalId: null as number | null,
@@ -100,6 +122,44 @@ export class ReconnectingWebSocket<T = string> {
   #onError: WebSocketType["onerror"] | null = null;
   #onMessage: WebSocketType["onmessage"] | null = null;
 
+  /**
+   * Clears any active reconnection timer.
+   */
+  #clearRetryTimer = () => {
+    if (this.#retryTimeoutId !== null) {
+      Timers.clearTimeout(this.#retryTimeoutId);
+      this.#retryTimeoutId = null;
+    }
+  };
+
+  /**
+   * Clears active keepalive interval and timeout handles.
+   */
+  #clearPingPong = () => {
+    if (this.#pongSettings.intervalId !== null) {
+      Timers.clearInterval(this.#pongSettings.intervalId);
+      this.#pongSettings.intervalId = null;
+    }
+    if (this.#pongSettings.timeoutId !== null) {
+      Timers.clearTimeout(this.#pongSettings.timeoutId);
+      this.#pongSettings.timeoutId = null;
+    }
+  };
+
+  /**
+   * Settles the pending in-flight connection promise.
+   */
+  #settleInFlight = () => {
+    if (this.#inFlightResolver) {
+      const resolver = this.#inFlightResolver;
+      this.#inFlightResolver = null;
+      resolver();
+    }
+  };
+
+  /**
+   * Flushes queued messages through the open transport.
+   */
   #unQueueMessages = () => {
     if (!this.#ws || this.#ws.readyState !== WebSocket.OPEN) return;
 
@@ -109,39 +169,70 @@ export class ReconnectingWebSocket<T = string> {
     }
   };
 
+  /**
+   * Sets the target endpoint URL and reconnects if active.
+   */
   public set url(newURL: string) {
     if (this.#url === newURL) return;
     this.#url = newURL;
     if (this.#ws) {
       this.#closeWs("manual");
-      if (this.#shouldReconnect) this.reconnect();
+      if (this.#shouldReconnect) void this.reconnect();
     }
   }
 
+  /**
+   * Retrieves the target endpoint URL.
+   */
+  public get url() {
+    return this.#url;
+  }
+
+  /**
+   * Sets the onOpen event callback.
+   */
   public set onOpen(callback: WebSocketType["onopen"] | null) {
     this.#onOpen = callback;
   }
 
+  /**
+   * Sets the onClose event callback.
+   */
   public set onClose(callback: WebSocketType["onclose"] | null) {
     this.#onClose = callback;
   }
 
+  /**
+   * Sets the onError event callback.
+   */
   public set onError(callback: WebSocketType["onerror"] | null) {
     this.#onError = callback;
   }
 
+  /**
+   * Sets the onMessage event callback.
+   */
   public set onMessage(callback: WebSocketType["onmessage"] | null) {
     this.#onMessage = callback;
   }
 
+  /**
+   * Returns whether a connection handshake is currently in progress.
+   */
   public get isConnecting() {
     return this.#connecting && this.#ws?.readyState === WebSocket.CONNECTING;
   }
 
+  /**
+   * Returns whether the connection is currently open and active.
+   */
   public get isConnected() {
     return this.#connected && this.#ws?.readyState === WebSocket.OPEN;
   }
 
+  /**
+   * Sends a message through the connection or queues it if offline.
+   */
   public send = (data: T, doNotQueue?: boolean) => {
     const msg = typeof data === "string" ? data : JSON.stringify(data);
 
@@ -157,8 +248,9 @@ export class ReconnectingWebSocket<T = string> {
     }
   };
 
-  #reconnectingPromise: Promise<void> | null = null;
-
+  /**
+   * Sets up periodic ping-pong keepalive messages.
+   */
   #handlePingPong = () => {
     if (!this.#options.pingPong || this.#pongSettings.intervalId) return;
 
@@ -177,227 +269,300 @@ export class ReconnectingWebSocket<T = string> {
             "Ping timeout: No pong response received within expected time.",
           );
           this.#closeWs("timeout");
-          this.reconnect();
+          void this.reconnect();
         }, timeout);
       }, interval);
     }
   };
 
-  #_reconnect = async () => {
-    try {
-      if (!this.#shouldReconnect) return;
-      if (this.#reconnectingPromise) return this.#reconnectingPromise;
-      if (this.#connecting) return;
-      this.#connecting = true;
+  /**
+   * Schedules a delayed reconnection using exponential backoff.
+   */
+  #scheduleReconnect = () => {
+    if (!this.#shouldReconnect) return;
 
-      while (
-        !this.#connected &&
-        this.#shouldReconnect &&
-        (!this.#options.maxRetries ||
-          this.#options.maxRetries < 0 ||
-          this.#retries < this.#options.maxRetries)
-      ) {
-        await new Promise<void>((resolve) => {
-          let resolved = false;
-          let handleResolve = (success: boolean) => {
-            if (resolved) return;
-            resolved = true;
-
-            this.#connected = success;
-            this.#connecting = false;
-            if (success) this.#reconnectingPromise = null;
-
-            resolve();
-            handleResolve = () => {};
-          };
-
-          if (
-            this.#options.maxRetries &&
-            this.#options.maxRetries >= 0 &&
-            this.#retries >= this.#options.maxRetries
-          ) {
-            logger.warn(
-              "Maximum reconnection attempts reached. Stopping further attempts.",
-            );
-            this.#shouldReconnect = false;
-            handleResolve(false);
-            return;
-          }
-
-          this.#ws = new WebSocket(
-            this.#url,
-            this.#options.protocols || undefined,
-          );
-
-          this.#ws.onopen = async (event) => {
-            if (!this.#ws) return;
-
-            logger.log(TAG, "WebSocket connection established:", this.#url);
-
-            this.#retries = 0;
-            for (
-              let i = 0;
-              i < (this.#options.messagesAfterOpen?.length || 0);
-              i++
-            ) {
-              const messageOrFunc = this.#options.messagesAfterOpen?.[i];
-              const message =
-                typeof messageOrFunc !== "function"
-                  ? messageOrFunc
-                  : await (messageOrFunc as FunctionOnOpenMessage<T>)?.(this);
-
-              if (!message) continue;
-              this.#ws.send(
-                typeof message === "string" ? message : JSON.stringify(message),
-              );
-            }
-
-            if (this.#onOpen) this.#onOpen.call(this.#ws, event as never);
-            this.#handlePingPong();
-            this.#unQueueMessages();
-            handleResolve(true);
-          };
-
-          this.#ws.onclose = (event) => {
-            if (!this.#ws) return;
-
-            logger.warn(
-              "WebSocket connection closed:",
-              this.#url,
-              "Code:",
-              event.code ?? "No code provided",
-              "Reason:",
-              event.reason ?? "No reason provided",
-            );
-
-            if (this.#options.reconnectOnClose) {
-              this.#closeWs("reconnect");
-              this.#retries++;
-              this.#connected = false;
-              this.#connecting = false;
-            } else {
-              this.#shouldReconnect = false;
-              this.#onClose?.call(this.#ws, event as never);
-              this.#closeWs();
-            }
-            handleResolve(false);
-          };
-
-          this.#ws.onerror = (event) => {
-            if (!this.#ws) return;
-
-            logger.error(
-              "WebSocket error occurred:",
-              this.#url,
-              "Event:",
-              event,
-            );
-
-            if (this.#options.reconnectOnError) {
-              this.#closeWs("error");
-            } else {
-              this.#shouldReconnect = false;
-              this.#onError?.call(this.#ws, event as never);
-              this.#closeWs();
-            }
-          };
-
-          this.#ws.onmessage = (event) => {
-            if (!this.#ws) return;
-
-            if (this.#options.pingPong) {
-              const expectedMessage = this.#options.pingPong.expectedMessage;
-
-              if (expectedMessage && event.data === expectedMessage) {
-                if (this.#pongSettings.timeoutId) {
-                  Timers.clearTimeout(this.#pongSettings.timeoutId);
-                  this.#pongSettings.timeoutId = null;
-                }
-                if ("expectedResponse" in this.#options.pingPong && this.#ws) {
-                  this.#ws.send(this.#options.pingPong.expectedResponse);
-                }
-                return;
-              }
-            }
-
-            if (this.#onMessage) this.#onMessage.call(this.#ws, event as never);
-          };
-        });
-        if (!this.#connected)
-          await Timers.sleep(
-            this.#options.retryDelay || (DEFAULT_OPTIONS.retryDelay as number),
-          );
-      }
-    } catch (error) {
-      logger.error(
-        "Error during WebSocket reconnection:",
-        error instanceof Error ? error.message : String(error),
+    if (
+      this.#options.maxRetries !== undefined &&
+      this.#options.maxRetries >= 0 &&
+      this.#retries >= this.#options.maxRetries
+    ) {
+      logger.warn(
+        "Maximum reconnection attempts reached. Stopping further attempts.",
       );
-    } finally {
-      this.#reconnectingPromise = null;
+      this.#shouldReconnect = false;
+      return;
     }
+
+    this.#clearRetryTimer();
+
+    const delay = calculateExponentialBackoff(this.#retries, {
+      initialDelay: this.#options.retryDelay,
+      maxDelay: this.#options.maxRetryDelay,
+      multiplier: this.#options.backoffMultiplier,
+      jitter: this.#options.backoffJitter,
+    });
+
+    this.#retryTimeoutId = Timers.setTimeout(() => {
+      this.#retryTimeoutId = null;
+      void this.reconnect();
+    }, delay);
   };
 
+  /**
+   * Performs an individual connection attempt.
+   */
+  #executeConnect = async (): Promise<void> => {
+    if (!this.#shouldReconnect) return;
+    if (this.isConnected) return;
+
+    this.#clearRetryTimer();
+    this.#connecting = true;
+
+    const attemptToken = ++this.#attemptId;
+
+    return new Promise<void>((resolve) => {
+      this.#inFlightResolver = resolve;
+
+      if (
+        this.#options.maxRetries !== undefined &&
+        this.#options.maxRetries >= 0 &&
+        this.#retries >= this.#options.maxRetries
+      ) {
+        logger.warn(
+          "Maximum reconnection attempts reached. Stopping further attempts.",
+        );
+        this.#shouldReconnect = false;
+        this.#connecting = false;
+        this.#settleInFlight();
+        return;
+      }
+
+      let wsInstance: WebSocket;
+      try {
+        wsInstance = new WebSocket(
+          this.#url,
+          this.#options.protocols || undefined,
+        );
+      } catch (error) {
+        logger.error("Failed to construct WebSocket:", error);
+        this.#connecting = false;
+        this.#settleInFlight();
+        if (this.#options.reconnectOnError && this.#shouldReconnect) {
+          this.#scheduleReconnect();
+          this.#retries++;
+        }
+        return;
+      }
+
+      this.#ws = wsInstance;
+
+      wsInstance.onopen = async (event) => {
+        if (this.#attemptId !== attemptToken || this.#ws !== wsInstance) {
+          return;
+        }
+
+        logger.log(TAG, "WebSocket connection established:", this.#url);
+
+        this.#retries = 0;
+        this.#connected = true;
+        this.#connecting = false;
+
+        for (
+          let i = 0;
+          i < (this.#options.messagesAfterOpen?.length || 0);
+          i++
+        ) {
+          const messageOrFunc = this.#options.messagesAfterOpen?.[i];
+          const message =
+            typeof messageOrFunc !== "function"
+              ? messageOrFunc
+              : await (messageOrFunc as FunctionOnOpenMessage<T>)?.(this);
+
+          if (!message) continue;
+          if (this.#ws?.readyState === WebSocket.OPEN) {
+            this.#ws.send(
+              typeof message === "string" ? message : JSON.stringify(message),
+            );
+          }
+        }
+
+        if (this.#onOpen) {
+          this.#onOpen.call(wsInstance, event as never);
+        }
+        this.#handlePingPong();
+        this.#unQueueMessages();
+        this.#settleInFlight();
+      };
+
+      wsInstance.onclose = (event) => {
+        if (this.#attemptId !== attemptToken) {
+          return;
+        }
+
+        logger.warn(
+          "WebSocket connection closed:",
+          this.#url,
+          "Code:",
+          event.code ?? "No code provided",
+          "Reason:",
+          event.reason ?? "No reason provided",
+        );
+
+        const wasConnected = this.#connected;
+        this.#connected = false;
+        this.#connecting = false;
+        this.#clearPingPong();
+        this.#ws = null;
+        this.#settleInFlight();
+
+        if (this.#onClose) {
+          this.#onClose.call(wsInstance, event as never);
+        }
+
+        const shouldAttemptRetry =
+          this.#shouldReconnect &&
+          (wasConnected
+            ? this.#options.reconnectOnClose
+            : this.#options.reconnectOnError);
+
+        if (shouldAttemptRetry) {
+          this.#scheduleReconnect();
+          this.#retries++;
+        } else {
+          this.#shouldReconnect = false;
+        }
+      };
+
+      wsInstance.onerror = (event) => {
+        if (this.#attemptId !== attemptToken) {
+          return;
+        }
+
+        logger.error("WebSocket error occurred:", this.#url, "Event:", event);
+
+        if (this.#onError) {
+          this.#onError.call(wsInstance, event as never);
+        }
+
+        if (!this.#connected && wsInstance.readyState !== WebSocket.OPEN) {
+          try {
+            wsInstance.close();
+          } catch {
+            if (this.#attemptId === attemptToken && this.#inFlightResolver) {
+              this.#connecting = false;
+              this.#settleInFlight();
+              if (this.#options.reconnectOnError && this.#shouldReconnect) {
+                this.#scheduleReconnect();
+                this.#retries++;
+              }
+            }
+          }
+        }
+      };
+
+      wsInstance.onmessage = (event) => {
+        if (this.#attemptId !== attemptToken || this.#ws !== wsInstance) {
+          return;
+        }
+
+        if (this.#options.pingPong) {
+          const expectedMessage = this.#options.pingPong.expectedMessage;
+
+          if (expectedMessage && event.data === expectedMessage) {
+            if (this.#pongSettings.timeoutId) {
+              Timers.clearTimeout(this.#pongSettings.timeoutId);
+              this.#pongSettings.timeoutId = null;
+            }
+            if ("expectedResponse" in this.#options.pingPong && this.#ws) {
+              this.#ws.send(this.#options.pingPong.expectedResponse);
+            }
+            return;
+          }
+        }
+
+        if (this.#onMessage) {
+          this.#onMessage.call(wsInstance, event as never);
+        }
+      };
+    }).finally(() => {
+      if (this.#attemptId === attemptToken) {
+        this.#connecting = false;
+        this.#reconnectingPromise = null;
+      }
+    });
+  };
+
+  /**
+   * Shuts down the transport and clears pending connection state.
+   */
   #closeWs = (reason?: ReasonCloseWS, alreadyClosed?: boolean) => {
-    if (!this.#ws) return;
+    this.#attemptId++;
+    this.#clearPingPong();
+    this.#connected = false;
+    this.#connecting = false;
+    this.#settleInFlight();
+    this.#reconnectingPromise = null;
 
     const ws = this.#ws;
     this.#ws = null;
-    this.#connected = false;
+
+    if (!ws) return;
 
     logger.log(
       "Closing WebSocket connection:",
       this.#url,
       "Reason:",
-      reason || "No specified",
+      reason || "Not specified",
     );
-
-    if (this.#pongSettings.intervalId) {
-      Timers.clearInterval(this.#pongSettings.intervalId);
-      this.#pongSettings.intervalId = null;
-    }
-    if (this.#pongSettings.timeoutId) {
-      Timers.clearTimeout(this.#pongSettings.timeoutId);
-      this.#pongSettings.timeoutId = null;
-    }
 
     if (alreadyClosed) return;
 
-    ws.close();
+    try {
+      ws.close();
+    } catch {
+      // Ignored
+    }
   };
 
   /**
-   * Manually initiates a reconnection attempt to establish a new WebSocket connection. If the WebSocket is already connected or in the process of connecting, this method will have no effect. If the WebSocket is currently disconnected and not attempting to reconnect, calling this method will start the reconnection process according to the specified options (such as `maxRetries` and `retryDelay`). The method returns a Promise that resolves once the reconnection attempt has completed, whether it was successful or not.
+   * Manually initiates a reconnection attempt.
    */
   public reconnect = async (): Promise<void> => {
     this.#shouldReconnect = true;
+    this.#clearRetryTimer();
 
+    if (this.isConnected) return;
     if (this.#reconnectingPromise) return this.#reconnectingPromise;
 
-    this.#reconnectingPromise = this.#_reconnect();
+    this.#reconnectingPromise = this.#executeConnect();
     return this.#reconnectingPromise;
   };
 
   /**
-   * Manually closes the WebSocket connection and prevents any further automatic reconnection attempts. After calling this method, the WebSocket will remain closed until the `reconnect()` method is called again to establish a new connection.
+   * Manually closes the WebSocket connection and disables automatic reconnection.
    */
   public close = () => {
     this.#shouldReconnect = false;
+    this.#clearRetryTimer();
     this.#closeWs("manual");
   };
 
   /**
-   * Sets whether the WebSocket should automatically attempt to reconnect when the connection is closed or an error occurs. If set to `true`, the WebSocket will try to reconnect according to the specified `maxRetries` and `retryDelay` options whenever the connection is closed or an error occurs, regardless of the reason for closure or error. If set to `false`, the WebSocket will not attempt to reconnect when the connection is closed or an error occurs and will require manual intervention (by calling the `reconnect()` method) to establish a new connection.
+   * Sets whether automatic reconnection is enabled.
    */
   public set shouldReconnect(value: boolean) {
     this.#shouldReconnect = value;
     if (!value) {
+      this.#clearRetryTimer();
       this.#closeWs("manual");
     } else {
-      this.reconnect();
+      void this.reconnect();
     }
   }
 
+  /**
+   * Returns whether automatic reconnection is currently enabled.
+   */
   public get shouldReconnect() {
     return this.#shouldReconnect;
   }
@@ -407,6 +572,6 @@ export class ReconnectingWebSocket<T = string> {
     this.#options = { ...this.#options, ...options };
 
     if (this.#options.startClosed) return;
-    this.reconnect();
+    void this.reconnect();
   }
 }
