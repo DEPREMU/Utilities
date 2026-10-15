@@ -9,14 +9,13 @@ import { Logger } from "./logger";
 import { ROUTER_IMAGES } from "@commonSrc/serverOrElectron/express/images";
 import { AdvertisementTXT } from "@types";
 import Bonjour, { ServiceConfig } from "bonjour-service";
-import { Timers, stopMemoryMonitor } from "@common";
 import { clearTempFiles, executeTerminalCommands } from "./storage";
+import { Timers, stopMemoryMonitor, GracefullyShutdown } from "@common";
 
 const logger = new Logger("Server");
 
 let idTimeoutServer: NodeJS.Timeout | number | null = null;
 let isReconnecting = false;
-let isShuttingDown = false;
 
 export const turnOffComputer = async (): Promise<boolean> => {
   logger.warn("Received turn-off-computer request");
@@ -85,23 +84,46 @@ const hasPermissionsMiddleware = (
   next();
 };
 
-export const handleShutdown = async () => {
-  if (isShuttingDown) return;
-  isShuttingDown = true;
-  try {
-    logger.log("Executing shutdown commands...");
-    await executeTerminalCommands("Shut-down");
-  } catch (err) {
-    logger.error("Error executing shutdown commands:", err);
-  }
-  await clearTempFiles();
-  logger.log("Shutting down gracefully...");
-  cleanAdAndServer();
-  stopMemoryMonitor();
+const shutdownLogger = new Logger("Shutdown");
 
-  await Timers.sleep(500);
-  process.exit(0);
-};
+export const gracefullyShutdown = new GracefullyShutdown({
+  logger: shutdownLogger,
+  onExit: async (code) => {
+    app.quit();
+    process.exit(code);
+  },
+});
+
+gracefullyShutdown.addFunction(
+  () => cleanAdAndServer(),
+  "Clean mDNS Advertisement and Server",
+  "HIGH",
+);
+
+gracefullyShutdown.addFunction(
+  async () => {
+    try {
+      logger.log("Executing shutdown commands...");
+      await executeTerminalCommands("Shut-down");
+    } catch (err) {
+      logger.error("Error executing shutdown commands:", err);
+    }
+  },
+  "Execute Terminal Shutdown Commands",
+  "NORMAL",
+);
+
+gracefullyShutdown.addFunction(
+  () => clearTempFiles(),
+  "Clear Temporary Files",
+  "NORMAL",
+);
+
+gracefullyShutdown.addFunction(
+  () => stopMemoryMonitor(),
+  "Stop Memory Monitor",
+  "NORMAL",
+);
 
 export const cleanAdAndServer = (): void => {
   const ad: Bonjour | null = dataApp.getValue("ad");
@@ -129,9 +151,9 @@ export const cleanAdAndServer = (): void => {
 };
 
 export const scheduleReconnect = (reason: string) => {
-  if (isReconnecting || isShuttingDown) {
+  if (isReconnecting || gracefullyShutdown.isShuttingDown) {
     logger.log(
-      `Reconnect ignored: (Reason: ${reason}, isReconnecting: ${isReconnecting}, isShuttingDown: ${isShuttingDown})`,
+      `Reconnect ignored: (Reason: ${reason}, isReconnecting: ${isReconnecting}, isShuttingDown: ${gracefullyShutdown.isShuttingDown})`,
     );
     return;
   }
@@ -185,7 +207,7 @@ const initDevServer = (): void => {
   devApp.get("/close-app", (_, res) => {
     res.json({ success: true });
 
-    Timers.setTimeout(handleShutdown, 1000);
+    Timers.setTimeout(() => gracefullyShutdown.shutdown(), 1000);
     serverDev?.close();
   });
 
@@ -195,7 +217,7 @@ const initDevServer = (): void => {
 };
 
 export const initServer = (): void => {
-  if (isShuttingDown) {
+  if (gracefullyShutdown.isShuttingDown) {
     logger.warn("Shutdown in progress. Aborting server init.");
     return;
   }
@@ -318,7 +340,7 @@ export const initServer = (): void => {
       logger.log("Server 'close' event fired.");
       dataApp.setValue("server", null);
 
-      if (isReconnecting || isShuttingDown) {
+      if (isReconnecting || gracefullyShutdown.isShuttingDown) {
         logger.log("Server close was expected.");
       } else {
         logger.warn("Server closed unexpectedly. Scheduling reconnect...");
@@ -344,6 +366,3 @@ process.on("unhandledRejection", (reason) => {
   logger.error("Unhandled promise rejection:", reason);
   scheduleReconnect("unhandledRejection");
 });
-
-process.on("SIGINT", handleShutdown); // Ctrl+C
-process.on("SIGTERM", handleShutdown); // 'kill'

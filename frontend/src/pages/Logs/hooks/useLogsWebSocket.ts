@@ -1,8 +1,15 @@
 import { logger } from "@/utils";
 import type { LogEntry } from "../types";
 import type { LogsWebSocketMessage } from "@types";
+import { calculateExponentialBackoff, REPLACERS } from "@common";
 import { useState, useEffect, useRef, useCallback } from "react";
 
+/**
+ * Manages the real-time diagnostic log streaming connection.
+ * Automatically closes transport and cancels reconnection timers upon unmount.
+ *
+ * @returns State and helper callbacks for logs view.
+ */
 export function useLogsWebSocket() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [connected, setConnected] = useState(false);
@@ -11,18 +18,38 @@ export function useLogsWebSocket() {
 
   const wsRef = useRef<WebSocket | null>(null);
   const listRef = useRef<HTMLDivElement>(null as unknown as HTMLDivElement);
+  const isDisposedRef = useRef(false);
+  const retryTimerRef = useRef<number | null>(null);
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
+    isDisposedRef.current = false;
+
+    const clearRetryTimer = () => {
+      if (retryTimerRef.current !== null) {
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
+
     const connect = () => {
+      if (isDisposedRef.current) return;
+      clearRetryTimer();
+
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const host = window.location.hostname;
-      const port = import.meta.env.DEV ? "3000" : window.location.port;
+      const port = REPLACERS.isDev ? "3000" : window.location.port;
       const wsUrl = `${protocol}//${host}${port ? `:${port}` : ""}/ws-logs`;
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
+        if (isDisposedRef.current) {
+          ws.close();
+          return;
+        }
+        retryCountRef.current = 0;
         setConnected(true);
       };
 
@@ -57,7 +84,7 @@ export function useLogsWebSocket() {
                 const idSet = new Set(message.payload.ids);
                 setLogs((prev) => prev.filter((l) => !idSet.has(l.id)));
               } else {
-                setLogs([]); // delete all
+                setLogs([]);
               }
               break;
           }
@@ -67,16 +94,39 @@ export function useLogsWebSocket() {
       };
 
       ws.onclose = () => {
+        if (isDisposedRef.current) return;
+
         setConnected(false);
-        setTimeout(connect, 3000);
+
+        const delay = calculateExponentialBackoff(retryCountRef.current, {
+          initialDelay: 1000,
+          maxDelay: 30000,
+          multiplier: 1.5,
+          jitter: 0.1,
+        });
+        retryCountRef.current += 1;
+
+        retryTimerRef.current = window.setTimeout(() => {
+          retryTimerRef.current = null;
+          connect();
+        }, delay);
       };
     };
 
     connect();
 
     return () => {
+      isDisposedRef.current = true;
+      clearRetryTimer();
+
       if (wsRef.current) {
-        wsRef.current.close();
+        const activeWs = wsRef.current;
+        wsRef.current = null;
+        activeWs.onopen = null;
+        activeWs.onclose = null;
+        activeWs.onerror = null;
+        activeWs.onmessage = null;
+        activeWs.close();
       }
     };
   }, []);

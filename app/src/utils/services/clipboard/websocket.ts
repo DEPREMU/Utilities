@@ -126,19 +126,24 @@ export class ClipboardWebSocket extends ClipboardServer {
   ): Promise<void> {}
 
   override async suspend(): Promise<void> {
-    if (!this.isInitialized) return;
-    this.#shouldConnect = false;
+    if (
+      !this.#clipboardSocket.isConnected &&
+      !this.#clipboardSocket.isConnecting
+    )
+      return;
 
     this.#clipboardSocket.close();
     this.emit("connection-status", false);
   }
 
   override async resume(): Promise<void> {
-    if (this.isInitialized) return;
-    this.#shouldConnect = true;
+    if (this.#clipboardSocket.isConnected || this.#clipboardSocket.isConnecting)
+      return;
 
     await this.#clipboardSocket.reconnect();
     await this._reInit();
+
+    this.emit("connection-status", this.#clipboardSocket.isConnected);
   }
 
   override async destroy(): Promise<void> {

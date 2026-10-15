@@ -10,7 +10,10 @@ export default {
   },
   moduleNameMapper: {
     "^@types$": "<rootDir>/../types/index.d.ts",
+    "^@common$": "<rootDir>/../common/both/index.ts",
     "^@appSrc/(.*)$": "<rootDir>/../app/$1",
+    "^@frontendSrc/(.*)$": "<rootDir>/../frontend/$1",
+    "^@/(.*)$": "<rootDir>/../frontend/src/$1",
     "^@commonSrc/(.*)$": "<rootDir>/../common/$1",
     "^@utilitiesSrc/(.*)$": "<rootDir>/../UtilitiesForPC/$1",
     "^chalk$": "<rootDir>/tests/__mocks__/chalk.js",

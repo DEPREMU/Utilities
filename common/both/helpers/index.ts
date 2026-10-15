@@ -3,6 +3,8 @@ import { Arrays } from "./Array.ts";
 import { Objects } from "./Object.ts";
 import { REPLACERS } from "@REPLACERS";
 
+export * from "./backoff.ts";
+
 export class Helper {
   static getMessage(...args: unknown[]) {
     return args

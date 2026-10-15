@@ -127,7 +127,7 @@ class AdditionalData<T extends Record<string, unknown>> extends Timers {
   }
 }
 
-class Device<
+export class Device<
   Messages extends Record<string, unknown>,
   AdditionalData extends Record<string, unknown>,
 > extends AdditionalData<AdditionalData> {
@@ -135,6 +135,7 @@ class Device<
 
   #pingTimeout: ReturnTimeout | null = null;
   #pingInterval: ReturnTimeout | null = null;
+  #onCleanup: (() => void) | null = null;
 
   #userData: CommonUserDataWS = {
     userId: "",
@@ -189,20 +190,43 @@ class Device<
     if (this.#userData.isClosing) return;
     this.#userData.isClosing = true;
 
+    this.#clearPing();
+    this.clearAllTimers();
+
+    if (this.#onCleanup) {
+      try {
+        this.#onCleanup();
+      } catch {
+        // Ignored
+      }
+      this.#onCleanup = null;
+    }
+
+    if (onClose) {
+      try {
+        onClose();
+      } catch {
+        // Ignored
+      }
+    }
+
     const ws = this.ws;
 
     try {
       ws.removeAllListeners();
-      if (ws.readyState !== WebSocket.OPEN) ws.close(reason, message);
+      if (
+        ws.readyState === WebSocket.OPEN ||
+        ws.readyState === WebSocket.CONNECTING
+      )
+        ws.close(reason, message);
+      else ws.terminate();
     } catch {
-      // Ignore
+      try {
+        ws.terminate();
+      } catch {
+        // Ignored
+      }
     }
-
-    if (!this.isValidUserData(this.#userData)) return;
-
-    this.#clearPing();
-    this.clearAllTimers();
-    if (onClose) onClose();
   }
 
   public get userData() {
@@ -247,14 +271,20 @@ class Device<
     try {
       this.ws.send(JSON.stringify(msg));
     } catch {
-      // Ignore
+      // Ignored
     }
   }
 
-  constructor(ws: WebSocket, userId?: string, deviceId?: string) {
+  constructor(
+    ws: WebSocket,
+    userId?: string,
+    deviceId?: string,
+    onCleanup?: () => void,
+  ) {
     super();
 
     this.ws = ws;
+    this.#onCleanup = onCleanup || null;
     this.#userData.userId = userId || "";
     this.#userData.deviceId = deviceId || "";
   }
@@ -306,10 +336,10 @@ export class Users<
     const user = this.#getValidUser(device.userId, true);
 
     const prevDevice = user.devices.get(device.deviceId);
+    user.devices.set(device.deviceId, device);
+
     if (prevDevice && prevDevice !== device)
       prevDevice.handleClose(4000, "New device connected with same ID");
-
-    user.devices.set(device.deviceId, device);
   }
 
   /**
@@ -324,7 +354,8 @@ export class Users<
     const user = this.users.get(userId);
     if (!user) return;
 
-    user.devices.delete(deviceId);
+    if (user.devices.get(deviceId) === userDevice)
+      user.devices.delete(deviceId);
     if (user.devices.size === 0) this.users.delete(userId);
   }
 
@@ -354,6 +385,7 @@ export class Users<
       ws,
       userId,
       deviceId,
+      () => this.removeUserDevice(user),
     );
 
     if (userId && deviceId) this.addDeviceUser(user);
