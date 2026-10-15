@@ -6,7 +6,7 @@ const logger = new Logger("Env");
 
 dotenv.config({ path: "../.env" });
 
-export const validateServerEnv = () => {
+const envTranslated = ExecuteOnce.execute("env-init", undefined, () => {
   const REQUIRED_VARS: (keyof Env)[] = [
     "IV",
     "WS_URL",
@@ -40,10 +40,6 @@ export const validateServerEnv = () => {
     throw new Error(
       `IV must be a valid 16-byte hex string. "${iv}" ${iv?.length}`,
     );
-};
-
-const envTranslated = ExecuteOnce.execute("env-init", undefined, () => {
-  validateServerEnv();
 
   const env: Env = {
     __DEV__: process.env.__DEV__ || "false",

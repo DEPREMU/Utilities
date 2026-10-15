@@ -2,14 +2,14 @@ import React from "react";
 import { motion } from "motion/react";
 import { useTranslations } from "@/pages/context/useTranslations";
 
-interface UpdateInfo {
+interface DownloadsInfo {
   downloadUrl: string;
   latestVersion: string;
 }
 
-interface UpdatesGridProps {
+interface DownloadsGridProps {
   isLoading: boolean;
-  updates: Record<"linux" | "android" | "windows", UpdateInfo | null>;
+  downloads: Record<"linux" | "android" | "windows", DownloadsInfo | null>;
 }
 
 const platformIcons: Record<"windows" | "linux" | "android", string> = {
@@ -18,9 +18,9 @@ const platformIcons: Record<"windows" | "linux" | "android", string> = {
   android: "/assets/platforms/android.svg",
 };
 
-export const UpdatesGrid: React.FC<UpdatesGridProps> = ({
+export const DownloadsGrid: React.FC<DownloadsGridProps> = ({
   isLoading,
-  updates,
+  downloads,
 }) => {
   const { t } = useTranslations();
 
@@ -28,7 +28,7 @@ export const UpdatesGrid: React.FC<UpdatesGridProps> = ({
     return <div className="updates-loading">{t("updatesWebPage.loading")}</div>;
   }
 
-  const hasUpdates = Object.values(updates).some((u) => u !== null);
+  const hasUpdates = Object.values(downloads).some((u) => u !== null);
 
   if (!hasUpdates) {
     return (
@@ -40,7 +40,7 @@ export const UpdatesGrid: React.FC<UpdatesGridProps> = ({
 
   return (
     <div className="updates-grid">
-      {Object.entries(updates).map(([platform, info]) => {
+      {Object.entries(downloads).map(([platform, info]) => {
         if (!info) return null;
         const platformKey = platform as "windows" | "linux" | "android";
         const btnText =

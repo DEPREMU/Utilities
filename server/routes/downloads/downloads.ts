@@ -1,5 +1,5 @@
-import { File, STATUS_RESPONSE } from "@common";
 import type { Response } from "express";
+import { File, STATUS_RESPONSE } from "@common";
 
 export interface AccelRedirectOptions {
   contentType?: string;

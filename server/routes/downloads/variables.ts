@@ -1,12 +1,12 @@
 import path from "path";
 import chalk from "chalk";
 import { v4 } from "uuid";
-import { prisma } from "@/database/postgres";
 import { config } from "@/config";
+import { prisma } from "@/database/postgres";
 import { Prisma, RequestUploadUpdate } from "@types";
 import { File, Logger, ServerFetch, Validations } from "@common";
 
-const logger = new Logger("UpdatesVariables");
+const logger = new Logger("DownloadsVariables");
 
 const extensions = {
   web: "web-{{version}}.zip",
@@ -121,7 +121,7 @@ class DataUpdates {
   public createTempDownloadUrl = (version: string, buildType: Data["type"]) => {
     try {
       const id = v4();
-      const url = ServerFetch.getRoute("GET", "/updates/download/:id", {
+      const url = ServerFetch.getRoute("GET", "/downloads/download/:id", {
         params: { id },
       });
 

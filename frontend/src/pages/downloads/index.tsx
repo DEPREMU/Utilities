@@ -2,21 +2,21 @@ import "./index.css";
 import { logger } from "@/utils";
 import { TopNav } from "./components/TopNav";
 import type { Enums } from "@types";
-import { UpdatesGrid } from "./components/UpdatesGrid";
+import { DownloadsGrid } from "./components/DownloadsGrid";
 import { useTranslations } from "@/pages/context/useTranslations";
 import { Helper, ServerFetch } from "@common";
 import React, { useEffect, useState } from "react";
 
-interface UpdateInfo {
+interface DownloadsInfo {
   downloadUrl: string;
   latestVersion: string;
 }
 
-const Updates: React.FC = () => {
+const Downloads: React.FC = () => {
   const { t } = useTranslations();
 
   const [updates, setUpdates] = useState<
-    Record<Exclude<Enums["UpdateType"], "web">, UpdateInfo | null>
+    Record<Exclude<Enums["UpdateType"], "web">, DownloadsInfo | null>
   >({
     linux: null,
     android: null,
@@ -28,7 +28,7 @@ const Updates: React.FC = () => {
     const fetchUpdates = async () => {
       const results: Record<
         Exclude<Enums["UpdateType"], "web">,
-        UpdateInfo | null
+        DownloadsInfo | null
       > = {
         linux: null,
         android: null,
@@ -39,7 +39,7 @@ const Updates: React.FC = () => {
         Helper.Object.keys(results).map(async (buildType) => {
           try {
             const res = await ServerFetch.get(
-              `/updates/is-update-available/:version/:buildType`,
+              `/downloads/is-update-available/:version/:buildType`,
               { params: { version: "0.0.0", buildType } },
             );
             if ("downloadUrl" in res.data && res.data.downloadUrl) {
@@ -68,11 +68,11 @@ const Updates: React.FC = () => {
           <h2>{t("updatesWebPage.downloadLatestVersion")}</h2>
         </div>
         <div className="updates-main-area">
-          <UpdatesGrid isLoading={isLoading} updates={updates} />
+          <DownloadsGrid isLoading={isLoading} downloads={updates} />
         </div>
       </div>
     </div>
   );
 };
 
-export default Updates;
+export default Downloads;

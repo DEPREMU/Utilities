@@ -71,7 +71,7 @@ const startApp = async () => {
     app.set("trust proxy", 1);
   } else {
     app.get("/", (_, res) => {
-      res.redirect(301, "/updates");
+      res.redirect(301, "/downloads");
     });
   }
   app.use(cors());

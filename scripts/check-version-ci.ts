@@ -129,7 +129,7 @@ export const fetchServerVersion = async (
     );
 
     const fetchPromise = ServerFetch.get(
-      "/updates/is-update-available/:version/:buildType",
+      "/downloads/is-update-available/:version/:buildType",
       {
         params: {
           version,

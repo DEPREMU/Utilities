@@ -12,10 +12,10 @@ import { RequestError } from "@commonSrc/both/errors/Error";
 import { sendAccelRedirect } from "../downloads";
 import { dataUpdates, getFinalFileName } from "../variables";
 
-const logger = new Logger("UpdatesGet");
+const logger = new Logger("DownloadsGet");
 
 export const handleIsUpdateAvailable = getHandlerGet(
-  "/updates",
+  "/downloads",
   "/is-update-available/:version/:buildType",
   async ({ params }, sendResponse) => {
     const res: Parameters<typeof sendResponse>[1] = {
@@ -48,7 +48,7 @@ export const handleIsUpdateAvailable = getHandlerGet(
 );
 
 export const handleDownload = getHandlerGet(
-  "/updates",
+  "/downloads",
   "/download/:id",
   async ({ params }, _sendResponse, { res }) => {
     const { id } = params;

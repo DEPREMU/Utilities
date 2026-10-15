@@ -252,6 +252,7 @@ proxy_set_header Host \$host; \
 proxy_set_header X-Real-IP \$remote_addr; \
 proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
 proxy_set_header X-Forwarded-Proto \$scheme; \
+proxy_http_version 1.1; \
 proxy_set_header Upgrade \$http_upgrade; \
 proxy_set_header Connection \"upgrade\";"
 
@@ -283,7 +284,7 @@ server {
     ssl_ciphers HIGH:!aNULL:!MD5;
 
     location = / {
-        return 302 /updates;
+        return 302 /downloads;
     }
 
     location ^~ /internal-downloads/ {
@@ -295,7 +296,7 @@ server {
         limit_rate $DOWNLOAD_RATE_LIMIT_VAL;
     }
 
-    location /api/updates/upload {
+    location /api/downloads/upload {
         client_max_body_size 500M;
         $DEFAULT_CONFIG
     }

@@ -25,7 +25,7 @@ if (!versionElectron) throw new Error("Version electron not found");
 const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
   try {
     const res = await ServerFetch.get(
-      "/updates/is-update-available/:version/:buildType",
+      "/downloads/is-update-available/:version/:buildType",
       {
         params: {
           version: versionElectron,
@@ -182,7 +182,7 @@ script.addStep("Upload Electron Builds", async () => {
       });
 
       const response = await axios.post(
-        ServerFetch.getRoute("POST", "/updates/upload"),
+        ServerFetch.getRoute("POST", "/downloads/upload"),
         formData,
         {
           headers: {

@@ -13,7 +13,7 @@ import { randomUUID } from "node:crypto";
 import { RequestUploadUpdate } from "@types";
 import { dataUpdates, getFinalFileName } from "../variables";
 
-const logger = new Logger("UpdatesPost");
+const logger = new Logger("DownloadsPost");
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
 
@@ -25,7 +25,7 @@ const VALID_BUILD_TYPES = new Set<RequestUploadUpdate["buildType"]>([
 ]);
 
 export const handleUpload = getHandlerPost(
-  "/updates",
+  "/downloads",
   "/upload",
   async (_, sendResponse, { req }) => {
     const uploadDir = path.resolve(config.getRoutes("UPLOAD_DIR"));

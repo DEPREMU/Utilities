@@ -92,7 +92,11 @@ export type TranslateFetch = GetUrlFetch<
   { translatedText: string }
 >;
 
-export type UpdatesFetch = GetUrlFetch<"/upload", null, Record<string, never>>;
+export type DownloadsFetch = GetUrlFetch<
+  "/upload",
+  null,
+  Record<string, never>
+>;
 
 export type ImagesFetch = GetUrlFetch<
   "/change-format",
@@ -153,7 +157,7 @@ export type Post = {
   "/logs": LogsFetch;
   "/admin": AdminFetch;
   "/images": ImagesFetch;
-  "/updates": UpdatesFetch;
+  "/downloads": DownloadsFetch;
   "/languages": TranslateFetch;
   "/clipboard": ClipboardFetch;
   "/streamers": StreamersFetch;

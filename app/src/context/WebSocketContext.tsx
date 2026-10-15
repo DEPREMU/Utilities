@@ -13,12 +13,13 @@ import {
   URLS,
   tTyped,
   Helper,
+  Logger,
+  REPLACERS,
   deviceInfo,
   sessionManager,
   EventsDeviceInfo,
   storageManagement,
   notificationsManager,
-  Logger,
 } from "@utils";
 import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
@@ -73,7 +74,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const { language } = useLanguage();
   const { isLoggedIn } = useUserContext();
 
-  const [socketURL, setSocketURL] = useState<string | null>(null);
+  const [socketURL, setSocketURL] = useState<string | null>(
+    storageManagement.get("WEBSOCKET_URL", null),
+  );
 
   const socketRef = useRef<ReconnectingWebSocket>(
     new ReconnectingWebSocket(URLS.ws, OPTIONS_RECONNECT_WS),
@@ -86,18 +89,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   });
 
   useEffect(() => {
-    const initialURL = storageManagement.get("WEBSOCKET_URL", null);
-
-    setSocketURL(initialURL);
-
     const isBackgroundListener = deviceInfo.addEventListener(
       EventsDeviceInfo.isBackgroundChange,
       (isBackground) => {
-        if (isBackground) {
-          socketRef.current.shouldReconnect = false;
-        } else {
-          socketRef.current.reconnect();
-        }
+        if (REPLACERS.isWeb) return;
+
+        socketRef.current.shouldReconnect = !isBackground;
       },
     );
     const sessionListener = sessionManager.addEventListener("login", (err) => {
@@ -180,10 +177,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     const { isLoggedIn } = sessionManager.getSessionData();
 
     const currentSocket = socketRef.current;
-    currentSocket.shouldReconnect = isLoggedIn;
 
     const targetURL = socketURL || URLS.ws;
     currentSocket.url = targetURL;
+    currentSocket.shouldReconnect = isLoggedIn;
   }, [socketURL]);
 
   useEffect(() => {
