@@ -116,7 +116,7 @@ type UsersWebSocketQR = {
     ws: WebSocket;
     qrCode: {
       dataURL: string;
-      timeoutId: NodeJS.Timeout | number | null;
+      timeoutId: number | null;
     };
   };
 };
@@ -165,4 +165,3 @@ export type CalculateExponentialBackoffFn = (
   attempt: number,
   options?: ExponentialBackoffOptions,
 ) => number;
-

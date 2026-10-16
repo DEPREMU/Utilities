@@ -4,9 +4,9 @@ import {
   downloadContentFromMessage,
 } from "@whiskeysockets/baileys";
 import chalk from "chalk";
-import { Logger } from "@common";
 import { prisma } from "@/database/postgres";
 import { saveTempMedia } from "./tempMedia";
+import { Logger, Timers } from "@common";
 import { isServiceEnabled } from "./gateway";
 import { handleLinkCommand } from "./commands/linkCommand";
 import { validateImagePayload } from "@commonSrc/serverOrElectron/whatsapp/validator";
@@ -19,6 +19,18 @@ import { enforceWhatsAppQuota, notifyUserQuotaUpdate } from "./quotaMiddleware";
 const logger = new Logger("WhatsAppMessageHandler");
 
 const processedMessageIds = new Set<string>();
+
+const isMatchingPhone = (phoneA: string, phoneB: string): boolean => {
+  if (!phoneA || !phoneB) return false;
+  if (phoneA === phoneB) return true;
+  const normalizedA = phoneA.startsWith("521")
+    ? `52${phoneA.slice(3)}`
+    : phoneA;
+  const normalizedB = phoneB.startsWith("521")
+    ? `52${phoneB.slice(3)}`
+    : phoneB;
+  return normalizedA === normalizedB;
+};
 
 /**
  * Sends a reply message back to the sender with an unquoted fallback.
@@ -57,14 +69,35 @@ export const handleIncomingServerMessage = async (
 ): Promise<void> => {
   for (const message of upsert.messages) {
     const key = message.key;
-    if (!key || key.fromMe || !key.remoteJid) continue;
+    if (!key || !key.remoteJid || key.remoteJid === "status@broadcast")
+      continue;
+
+    const myUser = sock.user;
+    const myPhone = myUser?.id
+      ? myUser.id.split(":")[0].split("@")[0].replace(/\D/g, "")
+      : "";
+    const myLid = myUser?.lid
+      ? myUser.lid.split(":")[0].split("@")[0].replace(/\D/g, "")
+      : "";
+    const remoteDigits = key.remoteJid
+      .split(":")[0]
+      .split("@")[0]
+      .replace(/\D/g, "");
+
+    const isSelfChat =
+      isMatchingPhone(myPhone, remoteDigits) ||
+      Boolean(
+        myLid && (remoteDigits === myLid || key.remoteJid.startsWith(myLid)),
+      );
+
+    if (key.fromMe && !isSelfChat) continue;
 
     if (key.remoteJid.endsWith("@g.us")) continue;
 
     const messageId = key.id || `${Date.now()}`;
     if (processedMessageIds.has(messageId)) continue;
     processedMessageIds.add(messageId);
-    setTimeout(
+    Timers.setTimeout(
       () => {
         processedMessageIds.delete(messageId);
       },

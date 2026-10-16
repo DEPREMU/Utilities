@@ -1,6 +1,7 @@
+import fs from "fs/promises";
 import chalk from "chalk";
 import { prisma } from "@/database/postgres";
-import { File, Logger } from "@common";
+import { Logger } from "@common";
 import { deleteTempFile } from "../tempMedia";
 import { getRedisClient } from "../../redis/client";
 import { Queue, Worker, Job } from "bullmq";
@@ -43,18 +44,9 @@ export const getDeliveryQueue = (): Queue<WhatsAppStickerDeliveryJobData> => {
       connection: redisConnection,
       defaultJobOptions: {
         attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 2000,
-        },
-        removeOnComplete: {
-          age: 3600,
-          count: 200,
-        },
-        removeOnFail: {
-          age: 86400,
-          count: 500,
-        },
+        backoff: { type: "exponential", delay: 2000 },
+        removeOnFail: { age: 86400, count: 500 },
+        removeOnComplete: { age: 3600, count: 200 },
       },
     },
   );
@@ -87,7 +79,7 @@ export const processDeliveryJob = async (
 
   let stickerBuffer: Buffer;
   try {
-    stickerBuffer = Buffer.from(await new File(tempStickerPath).readFile());
+    stickerBuffer = await fs.readFile(tempStickerPath);
   } catch (error) {
     logger.error(
       chalk.red(`Failed to read sticker file at ${tempStickerPath}:`),

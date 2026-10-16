@@ -10,13 +10,13 @@ import {
   closeProcessWorker,
   setProcessErrorSender,
 } from "./queues/processQueue";
-import makeWASocketImport, {
-  makeWASocket as makeWASocketNamed,
+import {
   WASocket,
   Browsers,
+  makeWASocket,
   DisconnectReason,
   useMultiFileAuthState,
-  fetchLatestBaileysVersion,
+  fetchLatestWaWebVersion,
 } from "@whiskeysockets/baileys";
 import pino from "pino";
 import path from "path";
@@ -25,14 +25,6 @@ import qrcode from "qrcode";
 import { Directory, Logger, Timers } from "@common";
 import { handleIncomingServerMessage } from "./messageHandler";
 import { startHourlyTempCleanup, stopHourlyTempCleanup } from "./tempMedia";
-
-const makeWASocket =
-  typeof makeWASocketNamed === "function"
-    ? makeWASocketNamed
-    : typeof makeWASocketImport === "function"
-      ? makeWASocketImport
-      : (makeWASocketImport as unknown as { default: typeof makeWASocketNamed })
-          .default;
 
 const logger = new Logger("WhatsAppGateway");
 
@@ -180,18 +172,18 @@ export const initSharedGateway = async (): Promise<void> => {
 
   let version: [number, number, number] | undefined;
   try {
-    const latest = await fetchLatestBaileysVersion();
+    const latest = await fetchLatestWaWebVersion();
     version = latest.version;
   } catch {
-    version = [2, 3000, 1043857760];
+    version = [2, 3000, 1050532919];
   }
 
   sock = makeWASocket({
     version,
     auth: state,
-    printQRInTerminal: false,
-    browser: Browsers.windows("Desktop"),
     logger: pino({ level: "silent" }),
+    browser: Browsers.windows("Chrome"),
+    printQRInTerminal: false,
   });
 
   setDeliveryGatewaySender({

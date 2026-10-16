@@ -1,11 +1,10 @@
-import chalk from "chalk";
 import fs from "fs/promises";
+import chalk from "chalk";
 import { Logger } from "@common";
 import { prisma } from "@/database/postgres";
 import { getBotMessage } from "../language";
 import { getRedisClient } from "../../redis/client";
 import { Queue, Worker, Job } from "bullmq";
-import { injectExifIntoWebp } from "@commonSrc/serverOrElectron/whatsapp/metadata";
 import { convertImageToStickerWebp } from "@commonSrc/serverOrElectron/whatsapp/converter";
 import { enqueueWhatsAppDeliveryJob } from "./deliveryQueue";
 import { WhatsAppStickerProcessJobData } from "@types";
@@ -95,15 +94,12 @@ export const processStickerJob = async (
   }
 
   try {
-    const convertedWebp = await convertImageToStickerWebp(inputBuffer, {
+    const finalWebp = await convertImageToStickerWebp(inputBuffer, {
       isAnimated,
+      emojis: options.emojis,
       quality: options.quality,
-    });
-
-    const finalWebp = await injectExifIntoWebp(convertedWebp, {
       packName: options.packName,
       authorName: options.authorName,
-      emojis: options.emojis,
     });
 
     const tempStickerPath = await saveTempMedia(finalWebp, "webp");
@@ -111,14 +107,14 @@ export const processStickerJob = async (
     await deleteTempFile(tempInputPath);
 
     await enqueueWhatsAppDeliveryJob({
+      lang,
       jobId,
       messageId,
-      recipientId: senderId,
-      tempStickerPath,
       isAnimated,
-      lang,
-      processingDurationMs: Date.now() - enqueuedAt,
       enqueuedAt,
+      tempStickerPath,
+      recipientId: senderId,
+      processingDurationMs: Date.now() - enqueuedAt,
     });
   } catch (error) {
     logger.error(
@@ -133,10 +129,10 @@ export const processStickerJob = async (
         data: {
           senderId,
           isLinked,
-          status: "FAILED",
           isAnimated,
-          durationMs: Date.now() - enqueuedAt,
+          status: "FAILED",
           errorCode: "CONVERSION_FAILED",
+          durationMs: Date.now() - enqueuedAt,
         },
       });
     } catch {
