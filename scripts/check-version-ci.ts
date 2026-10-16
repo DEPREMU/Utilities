@@ -1,10 +1,10 @@
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
-import { Timers } from "../common/both/timer";
+import { Timers } from "../common/both/timer.ts";
 import { execSync } from "child_process";
-import { Validations } from "../common/both/validations";
-import { ServerFetch } from "../common/both/fetch/fetch";
+import { Validations } from "../common/both/validations.ts";
+import { ServerFetch } from "../common/both/fetch/fetch.ts";
 
 if (fs.existsSync(path.join(process.cwd(), ".env")))
   dotenv.config({ path: path.join(process.cwd(), ".env") });
