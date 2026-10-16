@@ -5,6 +5,7 @@ import { args } from "../arguments";
 import { Script } from "../common";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { Directory } from "@commonSrc/serverOrElectron/fs";
+import { externalElectron } from "@commonSrc/serverOrElectron/build";
 
 const logger = new Logger("build-app-electron");
 
@@ -91,24 +92,11 @@ script.addStep("Init temp folder", async (instance) => {
     path.join(script.PATHS.utilitiesForPC, "dist"),
     path.join(script.PATHS.utilitiesForPC, "out"),
     path.join(script.PATHS.utilitiesForPC, "assets"),
-    path.join(script.PATHS.utilitiesForPC, "package.json"),
   ];
 
   await Promise.all(
     PATHS.map(async (localPath) => {
       const tempPath = path.join(TEMP_FOLDER, path.basename(localPath));
-
-      if (localPath.endsWith("package.json")) {
-        const file = new instance.File(localPath);
-
-        if (!(await file.exists()))
-          throw new Error(`Failed to find a file required for build: ${file}`);
-
-        const result = await file.copyFile(tempPath);
-        if (result instanceof Error) throw result;
-
-        return;
-      }
 
       const dir = new instance.Directory(localPath);
 
@@ -123,6 +111,47 @@ script.addStep("Init temp folder", async (instance) => {
   );
 
   executeCleanup = true;
+});
+
+script.addStep("Create dynamic package.json", async () => {
+  const [main, server, utilities] = await Promise.all([
+    script.getPackageJson("root"),
+    script.getPackageJson("server"),
+    script.getPackageJson("utilitiesForPC"),
+  ]);
+
+  const allDeps = {
+    ...server.dependencies,
+    ...utilities.dependencies,
+    ...main.dependencies,
+  };
+
+  const set = new Set(externalElectron);
+
+  const externalDeps = Object.keys(allDeps).filter((dep) => set.has(dep));
+
+  const newUtilities = { ...utilities };
+
+  externalDeps.forEach((dep) => {
+    const refNewUtilities = newUtilities as {
+      dependencies: Record<string, unknown>;
+    };
+
+    if (refNewUtilities.dependencies[dep]) return;
+
+    refNewUtilities.dependencies[dep] = (allDeps as Record<string, unknown>)[
+      dep
+    ];
+  });
+
+  const file = new script.File(path.join(TEMP_FOLDER, "package.json"));
+
+  const result = await file.writeFile(
+    JSON.stringify(newUtilities, null, 2),
+    "utf-8",
+  );
+
+  if (!result) throw new Error("Failed to create dynamic package.json");
 });
 
 script.addStep("Install dependencies", async (instance, abortController) => {

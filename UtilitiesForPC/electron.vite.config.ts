@@ -3,8 +3,9 @@ import path from "path";
 import type { Plugin } from "vite";
 import { defineConfig } from "electron-vite";
 import { getAllPathsSync } from "../common/serverOrElectron/fs";
+import { externalElectron } from "../common/serverOrElectron/build";
 
-const { utilitiesForPC, app, common, types } = getAllPathsSync();
+const { app, common, types, utilitiesForPC } = getAllPathsSync();
 
 const packageJsonPath = path.resolve(utilitiesForPC, "package.json");
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8")) as {
@@ -133,19 +134,6 @@ const discoverPiscinaWorkers = (): Record<string, string> => {
 
   return workers;
 };
-
-const externalElectron = [
-  "pino",
-  "sharp",
-  "pdfkit",
-  "piscina",
-  "node-7z",
-  "7zip-bin",
-  "electron",
-  "unzipper",
-  "bonjour-service",
-  "electron-edge-js",
-];
 
 export default defineConfig({
   main: {
