@@ -487,6 +487,23 @@ const SettingsScreen: React.FC = () => {
             </View>
           )}
 
+          <View style={styles.section}>
+            <Text style={styles.subtitle}>{t("whatsappStickers.title")}</Text>
+
+            <Text style={styles.infoText}>
+              {t("whatsappStickers.description")}
+            </Text>
+
+            <Button
+              label={t("whatsappStickers.title")}
+              disabled={!isLoggedIn}
+              handlePress={() => {
+                if (!isLoggedIn) return;
+                navigation.replace("WhatsAppStickers");
+              }}
+            />
+          </View>
+
           {!REPLACERS.isProduction && isLoggedIn && <DebugComponent />}
 
           {!hasAdmin && (

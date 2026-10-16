@@ -17,6 +17,7 @@ import {
   REPLACERS,
   deviceInfo,
   sessionManager,
+  whatsAppEvents,
   EventsDeviceInfo,
   storageManagement,
   notificationsManager,
@@ -147,6 +148,17 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
             break;
           case "ping":
             sendMessageRef.current({ type: "pong" });
+            break;
+          case "whatsapp-quota-update":
+            whatsAppEvents.emitQuotaUpdate({
+              resetAt: parsedMessage.resetAt,
+              isLinked: parsedMessage.isLinked,
+              dailyQuota: parsedMessage.dailyQuota,
+              consumedToday: parsedMessage.consumedToday,
+              resetInSeconds: 0,
+              remainingToday: parsedMessage.remainingToday,
+              linkedPhoneNumber: parsedMessage.linkedPhoneNumber,
+            });
             break;
           default:
             logger.log("Unknown message type:", parsedMessage);

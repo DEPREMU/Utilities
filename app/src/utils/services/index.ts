@@ -18,6 +18,7 @@ export * from "./clipboard";
 export * from "./deviceInfo";
 export * from "./navigation";
 export * from "./notifications";
+export * from "./whatsappEvents";
 
 export const cleanupServices = async () => {
   const [vaultManager, cryptoManager] = await Promise.all([
