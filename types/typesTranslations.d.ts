@@ -929,6 +929,7 @@ export type AppTranslations = BatteryStateTranslations &
       statusDisconnected: string;
       statusError: string;
       autoReplyEnabled: string;
+      autoConnectEnabled: string;
       packName: string;
       authorName: string;
       quality: string;

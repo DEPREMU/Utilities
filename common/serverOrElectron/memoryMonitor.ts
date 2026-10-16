@@ -1,11 +1,12 @@
 import chalk from "chalk";
 import pidUsage from "pidusage";
 import { Logger } from "./logger";
+import { Timers } from "../both/timer";
 import bytes, { BytesOptions } from "bytes";
 
 const logger = new Logger("CommonMemoryMonitor");
 
-let monitorIntervalId: ReturnType<typeof setInterval> | null = null;
+let monitorIntervalId: number | null = null;
 const MEMORY_THRESHOLD = 750 * 1024 * 1024; // Alert if RSS exceeds 750MB
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // Check every 5 minutes
 
@@ -59,13 +60,13 @@ export const startMemoryMonitor = (): void => {
   };
 
   checkMemoryUsage();
-  monitorIntervalId = setInterval(checkMemoryUsage, CHECK_INTERVAL_MS);
+  monitorIntervalId = Timers.setInterval(checkMemoryUsage, CHECK_INTERVAL_MS);
 };
 
 export const stopMemoryMonitor = (): void => {
   if (!monitorIntervalId) return;
 
-  clearInterval(monitorIntervalId);
+  Timers.clearInterval(monitorIntervalId);
   monitorIntervalId = null;
   logger.log("Memory monitor stopped");
 };

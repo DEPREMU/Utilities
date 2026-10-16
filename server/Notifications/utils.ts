@@ -1,6 +1,6 @@
 import chalk from "chalk";
-import { Logger } from "@common";
 import { cloneDeep } from "lodash";
+import { Logger, Timers } from "@common";
 
 const logger = new Logger("NotificationsUtils");
 
@@ -59,7 +59,7 @@ export class IntervalTimer {
 
   #options: OptionsIntervalTimer = cloneDeep(IntervalTimer.DEFAULT_OPTIONS);
   #promise: Promise<void> | null = null;
-  #timer: ReturnType<typeof setInterval> | null = null;
+  #timer: number | null = null;
   #lastExecFinished: number = 0;
 
   #callback: () => Promise<void>;
@@ -112,13 +112,16 @@ export class IntervalTimer {
     logger.log(chalk.blue(`Starting ${this.#options.name} interval...`));
 
     await this.#executeFunction();
-    this.#timer = setInterval(() => this.#executeFunction(), this.#interval);
+    this.#timer = Timers.setInterval(
+      () => this.#executeFunction(),
+      this.#interval,
+    );
   }
 
   public stop() {
     if (!this.#timer) return;
 
-    clearInterval(this.#timer);
+    Timers.clearInterval(this.#timer);
     this.#timer = null;
   }
 }

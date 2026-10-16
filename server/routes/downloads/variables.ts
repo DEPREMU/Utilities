@@ -4,7 +4,7 @@ import { v4 } from "uuid";
 import { config } from "@/config";
 import { prisma } from "@/database/postgres";
 import { Prisma, RequestUploadUpdate } from "@types";
-import { File, Logger, ServerFetch, Validations } from "@common";
+import { File, Logger, ServerFetch, Timers, Validations } from "@common";
 
 const logger = new Logger("DownloadsVariables");
 
@@ -45,7 +45,7 @@ class DataUpdates {
 
   #tempUrls: TempUrl = new Map();
 
-  _intervalId = setInterval(() => {
+  _intervalId = Timers.setInterval(() => {
     const now = Date.now();
 
     this.#tempUrls.forEach((info, id) => {

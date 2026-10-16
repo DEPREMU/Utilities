@@ -1055,6 +1055,7 @@ export const enApp: AppTranslations = {
     statusDisconnected: "Disconnected",
     statusError: "Connection Error",
     autoReplyEnabled: "Automatic Sticker Reply",
+    autoConnectEnabled: "Auto-Connect on Startup",
     packName: "Sticker Pack Name",
     authorName: "Sticker Author",
     quality: "Output Quality",

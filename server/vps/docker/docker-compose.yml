@@ -37,6 +37,7 @@ services:
       # Host path: $HOME/Utilities/server/vps/docker/
       - ../../uploads:/server/uploads
       - ../../backups:/server/backups
+      - whatsapp_session_data:/server/.temp/whatsapp-shared-session
 
   postgres:
     image: postgres:17
@@ -91,3 +92,4 @@ services:
 volumes:
   redis_data:
   postgres_data:
+  whatsapp_session_data:

@@ -1075,6 +1075,7 @@ export const esApp: AppTranslations = {
     statusDisconnected: "Desconectado",
     statusError: "Error de Conexión",
     autoReplyEnabled: "Respuesta Automática de Stickers",
+    autoConnectEnabled: "Conectar Automáticamente al Iniciar",
     packName: "Nombre del Paquete",
     authorName: "Autor del Sticker",
     quality: "Calidad de Salida",
