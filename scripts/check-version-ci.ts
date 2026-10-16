@@ -1,9 +1,10 @@
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { Timers } from "../common/both/timer";
 import { execSync } from "child_process";
-import { Validations } from "../common/both/validations.ts";
-import { ServerFetch } from "../common/both/fetch/fetch.ts";
+import { Validations } from "../common/both/validations";
+import { ServerFetch } from "../common/both/fetch/fetch";
 
 if (fs.existsSync(path.join(process.cwd(), ".env")))
   dotenv.config({ path: path.join(process.cwd(), ".env") });
@@ -117,7 +118,7 @@ export const fetchServerVersion = async (
       status: number;
       data: { error: string };
     }>((resolve) =>
-      setTimeout(
+      Timers.setTimeout(
         () =>
           resolve({
             ok: false,
@@ -129,7 +130,7 @@ export const fetchServerVersion = async (
     );
 
     const fetchPromise = ServerFetch.get(
-      "/updates/is-update-available/:version/:buildType",
+      "/downloads/is-update-available/:version/:buildType",
       {
         params: {
           version,
@@ -349,7 +350,7 @@ export const runCheckVersion = async (): Promise<void> => {
     try {
       const alivePromise = ServerFetch.isServerAlive();
       const timeoutPromise = new Promise<boolean>((resolve) =>
-        setTimeout(() => resolve(false), 3000),
+        Timers.setTimeout(() => resolve(false), 3000),
       );
       return await Promise.race([alivePromise, timeoutPromise]);
     } catch {

@@ -7,10 +7,11 @@ import { ROUTER_INFO } from "./info";
 import { ROUTER_ADMIN } from "./admin";
 import { ROUTER_IMAGES } from "@commonSrc/serverOrElectron/express/images";
 import { ROUTER_CRYPTOS } from "./cryptos";
-import { ROUTER_UPDATES } from "./updates";
+import { ROUTER_WHATSAPP } from "./whatsapp";
+import { ROUTER_CLIPBOARD } from "./clipboard";
+import { ROUTER_DOWNLOADS } from "./downloads";
 import { ROUTER_STREAMERS } from "./streamers";
 import { ROUTER_LANGUAGES } from "./languages";
-import { ROUTER_CLIPBOARD } from "./clipboard";
 import { ROUTER_ENCRYPTION } from "./encryption";
 import { ROUTER_USER_CONFIG } from "./userconfig";
 import { ROUTER_DOWN_DETECTOR } from "./downdetector";
@@ -32,7 +33,8 @@ const router = getMainRouter({
   "/admin": { router: ROUTER_ADMIN },
   "/images": { router: ROUTER_IMAGES },
   "/cryptos": { router: ROUTER_CRYPTOS },
-  "/updates": { router: ROUTER_UPDATES },
+  "/whatsapp": { router: ROUTER_WHATSAPP },
+  "/downloads": { router: ROUTER_DOWNLOADS },
   "/languages": { router: ROUTER_LANGUAGES },
   "/streamers": { router: ROUTER_STREAMERS },
   "/clipboard": { router: ROUTER_CLIPBOARD },

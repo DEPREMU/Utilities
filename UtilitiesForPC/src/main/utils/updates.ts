@@ -227,7 +227,7 @@ export const verifyNewUpdate = async (buildType: Enums["UpdateType"]) => {
     }
 
     const res = await ServerFetch.get(
-      "/updates/is-update-available/:version/:buildType",
+      "/downloads/is-update-available/:version/:buildType",
       {
         params: {
           version: currentVersion,

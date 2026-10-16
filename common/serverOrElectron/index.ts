@@ -1,12 +1,14 @@
-export * from "./fs.ts";
+import { Timers } from "../both/timer";
+
+export * from "./fs";
+export * from "./Task";
+export * from "../both";
+export * from "./logger";
+export * from "./piscina";
 export * from "./express";
-export * from "./Task.ts";
-export * from "./logger.ts";
-export * from "./piscina.ts";
-export * from "../both/index.ts";
-export * from "./memoryMonitor.ts";
-export * from "./gracefullyShutdown.ts";
-export * from "./ThirdPartyStateManager/index.ts";
+export * from "./memoryMonitor";
+export * from "./gracefullyShutdown";
+export * from "./ThirdPartyStateManager/index";
 
 type Function = () => unknown;
 
@@ -16,9 +18,9 @@ export const onDebounce = (
 ): {
   cleanup: () => void;
 } => {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let timeoutId: number | null = null;
 
-  timeoutId = setTimeout(() => {
+  timeoutId = Timers.setTimeout(() => {
     timeoutId = null;
     fn?.();
   }, delay);
@@ -26,7 +28,7 @@ export const onDebounce = (
   return {
     cleanup: () => {
       if (!timeoutId) return;
-      clearTimeout(timeoutId);
+      Timers.clearTimeout(timeoutId);
     },
   };
 };

@@ -36,6 +36,7 @@ export type Screens = {
   ComputerControl: Record<string, never>;
   VerifyResetCode: GetRouteParams<{ email: string }>;
   TerminalCommands: Record<string, never>;
+  WhatsAppStickers: Record<string, never>;
   DeviceInformation: Record<string, never>;
 };
 

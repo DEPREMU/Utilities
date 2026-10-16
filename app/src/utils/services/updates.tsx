@@ -400,7 +400,7 @@ class Updates extends ServiceClass<never> {
           await import("@utils");
 
         const res = await ServerFetch.get(
-          "/updates/is-update-available/:version/:buildType",
+          "/downloads/is-update-available/:version/:buildType",
           {
             params: {
               version: APP_VERSION,

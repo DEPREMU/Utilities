@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import { prisma } from "@/database/postgres";
-import { t, Logger } from "@common";
 import { getEnvValue } from "../env";
 import { getPagination } from "./utils";
+import { t, Logger, Timers } from "@common";
 import { ReasonNotification } from "@types";
 import { sendFCMNotification } from "@/firebase/admin";
 
@@ -95,4 +95,4 @@ const handleSendNotificationToAdmin = async () => {
   }
 };
 
-export default setTimeout(handleSendNotificationToAdmin, 30000);
+export default Timers.setTimeout(handleSendNotificationToAdmin, 30000);

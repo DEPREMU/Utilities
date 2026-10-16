@@ -41,7 +41,7 @@ const checkIsNewVersion = async (
 ): Promise<boolean> => {
   try {
     const res = await ServerFetch.get(
-      "/updates/is-update-available/:version/:buildType",
+      "/downloads/is-update-available/:version/:buildType",
       {
         params: {
           version: versionExpo,
@@ -139,7 +139,7 @@ const uploadWeb = async (): Promise<boolean> => {
         });
       });
 
-      const url = ServerFetch.getRoute("POST", "/updates/upload");
+      const url = ServerFetch.getRoute("POST", "/downloads/upload");
       const response = await axios.post(url, formData, {
         headers: {
           ...formData.getHeaders(),

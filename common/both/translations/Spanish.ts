@@ -124,6 +124,23 @@ export const esServer: ServerTranslations = {
     invalidImageFormat: "Formato de imagen inválido",
     invalidImageBuffer: "Buffer de imagen inválido proporcionado",
   },
+  whatsapp: {
+    quotaExceeded:
+      "Has alcanzado tu cuota diaria de conversión de stickers. Vincula tu cuenta de Utilities o espera al reinicio diario.",
+    rateLimitExceeded:
+      "Por favor espera unos momentos antes de enviar otra solicitud de sticker.",
+    linkSuccess:
+      "¡Tu cuenta de WhatsApp se ha vinculado exitosamente a tu cuenta de Utilities!",
+    linkInvalidOrExpired:
+      "El código de vinculación es inválido o ha expirado. Por favor genera un nuevo código desde la app Utilities.",
+    unsupportedMedia:
+      "Formato no compatible. Por favor envía una imagen estática (JPEG, PNG, WebP) o un gráfico animado (GIF, WebP animado).",
+    processingError:
+      "Ocurrió un error al crear tu sticker. Por favor intenta de nuevo.",
+    maintenanceNotice:
+      "El servicio de stickers se encuentra temporalmente en mantenimiento programado.",
+    stickerReady: "¡Aquí está tu sticker!",
+  },
 };
 
 export const esApp: AppTranslations = {
@@ -1042,4 +1059,49 @@ export const esApp: AppTranslations = {
     },
   },
   verifications: { pleaseEnterSomeText: "Por favor, ingresa algún texto" },
+  whatsappStickers: {
+    title: "Stickers de WhatsApp",
+    description: "Crea y convierte stickers personalizados de WhatsApp automáticamente.",
+    keyWords: "whatsapp, stickers, bot, baileys, webp",
+    personalMode: "Modo Personal",
+    sharedMode: "Modo Compartido",
+    connect: "Conectar WhatsApp",
+    disconnect: "Desconectar",
+    logoutAndPurge: "Desconectar y Eliminar Credenciales",
+    scanQrCode: "Escanea este código QR con WhatsApp",
+    connectedAs: "Conectado como {{phoneNumber}}",
+    statusConnected: "Conectado",
+    statusConnecting: "Conectando...",
+    statusDisconnected: "Desconectado",
+    statusError: "Error de Conexión",
+    autoReplyEnabled: "Respuesta Automática de Stickers",
+    autoConnectEnabled: "Conectar Automáticamente al Iniciar",
+    packName: "Nombre del Paquete",
+    authorName: "Autor del Sticker",
+    quality: "Calidad de Salida",
+    allowedChats: "Chats Permitidos",
+    allowedChatsDirect: "Solo Mensajes Directos",
+    allowedChatsAll: "Mensajes Directos y Grupos",
+    dailyQuota: "Cuota Diaria",
+    dailyQuotaWithCount: "Cuota Diaria: {{count}}",
+    remainingQuota: "Cuota Restante",
+    remainingQuotaWithCount: "Cuota Restante: {{count}}",
+    quotaResetIn: "Se reinicia en {{time}}",
+    generateLinkCode: "Vincular Cuenta de WhatsApp",
+    linkCodeInstructions: "Envía '/link {{code}}' al bot compartido en WhatsApp",
+    unlinkLabel: "Desvincular Cuenta",
+    serviceAvailable: "Servicio Operativo",
+    serviceMaintenance: "Servicio en Mantenimiento",
+    openInWhatsApp: "Abrir en WhatsApp",
+    refresh: "Actualizar",
+    preferences: "Preferencias",
+    loginRequired:
+      "Debes iniciar sesión para vincular tu cuenta de WhatsApp y usar el bot de stickers.",
+    goToLogin: "Ir a Iniciar Sesión",
+    infiniteQuota: "Infinito",
+    savePreferences: "Guardar Preferencias",
+    savedSuccess: "¡Guardado!",
+    copied: "¡Copiado!",
+    copyLinkCommand: "Copiar '/link {{code}}'",
+  },
 };

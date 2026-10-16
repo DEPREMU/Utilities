@@ -73,7 +73,7 @@ const Clipboard: React.FC = () => {
     try {
       windowTyped.clipboard.set(item.content);
       showSnackbar(t("clipboard.copiedToClipboard"));
-      setTimeout(() => {
+      Timers.setTimeout(() => {
         if (windowTyped?.clipboard.hideWindow) {
           windowTyped.clipboard.hideWindow();
         }
@@ -106,7 +106,7 @@ const Clipboard: React.FC = () => {
 
   const showSnackbar = (message: string) => {
     setSnackbarMessage(message);
-    setTimeout(() => {
+    Timers.setTimeout(() => {
       setSnackbarMessage(null);
     }, 2000);
   };

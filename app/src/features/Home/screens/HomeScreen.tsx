@@ -174,6 +174,13 @@ const buttons: ButtonType[] = [
     noNeedsSession: true,
     noNeedsInternet: true,
   },
+  {
+    label: "whatsappStickers.title",
+    screen: "WhatsAppStickers",
+    keyWords: "whatsappStickers.keyWords",
+    description: "whatsappStickers.description",
+    noNeedsSession: REPLACERS.isWeb,
+  },
 
   ...(REPLACERS.isNative ? buttonsNative : buttonsWeb),
   ...(REPLACERS.isDev ? buttonsDev : []),

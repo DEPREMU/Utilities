@@ -7,8 +7,8 @@ import {
 import chalk from "chalk";
 import QRCode from "qrcode";
 import { prisma } from "@/database/postgres";
-import { Helper, Logger } from "@common";
 import { getStorageData, JWT } from "@/routes/auth/variables";
+import { Helper, Logger, Timers } from "@common";
 import WebSocket, { WebSocketServer } from "ws";
 
 const logger = new Logger("WebSocketQRLogin");
@@ -195,7 +195,7 @@ export const initWebSocketLoginQRCode = () => {
         logger.secret(deviceId),
       );
       const timeoutId = usersActive[deviceId]?.qrCode.timeoutId;
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) Timers.clearTimeout(timeoutId);
 
       delete usersActive[deviceId];
     });

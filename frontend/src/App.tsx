@@ -6,7 +6,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 if (!REPLACERS.typeBuild) throw new Error("REPLACERS.typeBuild is not defined");
 
 import Logs from "./pages/Logs";
-import Updates from "./pages/updates";
+import Downloads from "./pages/downloads";
 import Clipboard from "./pages/Clipboard";
 
 const App: React.FC = () => {
@@ -31,7 +31,7 @@ const App: React.FC = () => {
         <Route path="/logs" element={<Logs />} />
       )}
 
-      <Route path="/updates" element={<Updates />} />
+      <Route path="/downloads" element={<Downloads />} />
 
       {"UtilitiesForPC" in window && (
         <Route
@@ -42,7 +42,7 @@ const App: React.FC = () => {
         />
       )}
 
-      <Route path="*" element={<Navigate to="/updates" replace />} />
+      <Route path="*" element={<Navigate to="/downloads" replace />} />
     </Routes>
   );
 };

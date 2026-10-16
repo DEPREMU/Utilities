@@ -1,6 +1,3 @@
-import { Helper } from "@commonSrc/both";
-import { REPLACERS } from "@REPLACERS";
-import { REPLACERS_TYPE } from "@types";
 import type { BuildOptions } from "esbuild";
 
 export const options: BuildOptions = {
@@ -26,11 +23,13 @@ export const externalServer = [
   "@prisma/client",
   "@node-rs/bcrypt",
   "@prisma/adapter-pg",
+  "@whiskeysockets/baileys",
 ];
 
 export const externalElectron = [
-  ...commonExternal,
-
+  "pino",
+  "sharp",
+  "piscina",
   "pdfkit",
   "node-7z",
   "7zip-bin",
@@ -38,35 +37,7 @@ export const externalElectron = [
   "unzipper",
   "bonjour-service",
   "electron-edge-js",
+  "@whiskeysockets/baileys",
 ];
 
 export const externalWorkers = [...commonExternal];
-
-const REPLACERS_REPLACED: Record<keyof REPLACERS_TYPE, string> = {
-  isDev: `${REPLACERS.isDev}`,
-  isWeb: `${REPLACERS.isWeb}`,
-  isLinux: `${REPLACERS.isLinux}`,
-  isServer: `${REPLACERS.isServer}`,
-  isNative: `${REPLACERS.isNative}`,
-  isWindows: `${REPLACERS.isWindows}`,
-  isPreview: `${REPLACERS.isPreview}`,
-  typeBuild: `"${REPLACERS.typeBuild}"`,
-  isProduction: `${REPLACERS.isProduction}`,
-};
-
-export const REPLACERS_PLUGIN: Parameters<
-  typeof import("@espcom/esbuild-plugin-replace").pluginReplace
->[0] = [
-  ...Helper.Object.entries(REPLACERS_REPLACED).map(([key, value]) => {
-    return {
-      filter: /\.ts|\.js|\.cjs$/,
-      replace: new RegExp(`REPLACERS.${key}`, "g"),
-      replacer: () => value,
-    };
-  }),
-  {
-    filter: /\.ts|\.js|\.cjs$/,
-    replace: /process\.env\.BUILD_PROFILE/g,
-    replacer: () => JSON.stringify(process.env.BUILD_PROFILE || "production"),
-  },
-];

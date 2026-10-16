@@ -14,7 +14,7 @@ import { Timers, stopMemoryMonitor, GracefullyShutdown } from "@common";
 
 const logger = new Logger("Server");
 
-let idTimeoutServer: NodeJS.Timeout | number | null = null;
+let idTimeoutServer: number | null = null;
 let isReconnecting = false;
 
 export const turnOffComputer = async (): Promise<boolean> => {
@@ -169,7 +169,7 @@ export const scheduleReconnect = (reason: string) => {
   );
 
   if (idTimeoutServer) {
-    clearTimeout(idTimeoutServer);
+    Timers.clearTimeout(idTimeoutServer);
     idTimeoutServer = null;
   }
 
@@ -289,7 +289,7 @@ export const initServer = (): void => {
 
     const server = app.listen(dataApp.getValue("PORT"), "0.0.0.0", () => {
       if (idTimeoutServer) {
-        clearTimeout(idTimeoutServer);
+        Timers.clearTimeout(idTimeoutServer);
         idTimeoutServer = null;
       }
 

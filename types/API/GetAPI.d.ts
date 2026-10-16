@@ -2,9 +2,10 @@ import { Router } from "express";
 import { Delete } from "./DeleteAPI";
 import { GetRouterObj } from "./Helpers";
 import { PriceBinanceAPI } from "@common";
+import { WhatsAppGetFetch } from "./whatsapp";
 import { Put, Post, Enums, GetUrlFetch, ResponseHealth } from "@types";
 
-export type UpdatesFetch =
+export type DownloadsFetch =
   | GetUrlFetch<
       "/is-update-available/:version/:buildType",
       {
@@ -113,7 +114,8 @@ export type Get = {
   "/info": ServerInfoFetch;
   "/logs": LogsFetch;
   "/cryptos": CryptosFetch;
-  "/updates": UpdatesFetch;
+  "/whatsapp": WhatsAppGetFetch;
+  "/downloads": DownloadsFetch;
   "/streamers": StreamersFetch;
   "/clipboard": ClipboardFetch;
   "/down-detector": DownDetectorFetch;

@@ -14,7 +14,7 @@ Node.js Express backend with PostgreSQL, WebSocket channels, update delivery end
 This workspace is responsible for:
 
 - REST API under `/api`
-- Update service endpoints under `/updates`
+- Download and release service endpoints under `/downloads` (with `/updates` legacy redirects)
 - WebSocket services on `/ws`, `/clipboard`, `/ws-cryptos`, and `/ws-login-qr`
 - Database initialization and access
 - Auth/session, admin, encryption, clipboard, config, and notification-related server flows
@@ -66,7 +66,7 @@ Behavior:
 Based on current config/runtime:
 
 - API base: `http://localhost:3000/api`
-- Updates base: `http://localhost:3000/updates`
+- Downloads base: `http://localhost:3000/downloads`
 - WS: `ws://localhost:3000/ws`
 - Clipboard WS: `ws://localhost:3000/clipboard`
 - Crypto WS: `ws://localhost:3000/ws-cryptos`
@@ -90,7 +90,7 @@ Registered in [routes/index.ts](routes/index.ts):
 - Down detector: routes under `/down-detector`
 - User notifications config: routes under `/user-notifications-config`
 - Dev-only: `POST /dev/executeQuery` when `__DEV__` is enabled
-- Updates: `GET /updates/is-update-available/:version/:buildType`, `GET /updates/is-update-available/:version/:buildType/:platform`, `GET /updates/download/:id`, `POST /updates/upload`
+- Downloads: `GET /downloads/is-update-available/:version/:buildType`, `GET /downloads/download/:id`, `POST /downloads/upload` (legacy `/updates/*` redirects to `/downloads/*`)
 
 ## Route Modules
 
@@ -102,7 +102,8 @@ The top-level router currently mounts these modules:
 - `/admin`
 - `/images`
 - `/cryptos`
-- `/updates`
+- `/downloads`
+- `/updates` (legacy redirect to `/downloads`)
 - `/languages`
 - `/streamers`
 - `/clipboard`

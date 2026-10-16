@@ -1,5 +1,6 @@
-import axios, { AxiosError } from "axios";
+import { Timers } from "./timer.ts";
 import { EventHandler } from "./classes/events.ts";
+import axios, { AxiosError } from "axios";
 import type { PriceBinanceAPI, SelectedCryptos } from "./keysStorage";
 
 export type ResponseExchangeInfo = {
@@ -170,10 +171,10 @@ export class Cryptos extends EventHandler<Listeners> {
 
   public startAutoUpdate(interval: number = this.#autoUpdateInterval) {
     if (interval <= 0) return;
-    if (this.#intervalId) clearInterval(this.#intervalId);
+    if (this.#intervalId) Timers.clearInterval(this.#intervalId);
 
     this.#autoUpdateInterval = interval;
-    this.#intervalId = setInterval(() => {
+    this.#intervalId = Timers.setInterval(() => {
       void this.fetchDataBinance();
     }, interval) as never;
   }
@@ -181,13 +182,13 @@ export class Cryptos extends EventHandler<Listeners> {
   public stopAutoUpdate() {
     if (!this.#intervalId) return;
 
-    clearInterval(this.#intervalId);
+    Timers.clearInterval(this.#intervalId);
     this.#intervalId = null;
   }
 
   public destroy() {
     super.destroy();
-    if (this.#intervalId) clearInterval(this.#intervalId);
+    if (this.#intervalId) Timers.clearInterval(this.#intervalId);
   }
 
   constructor(autoUpdateInterval?: number) {

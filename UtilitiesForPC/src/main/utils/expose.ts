@@ -6,18 +6,20 @@ import { vaultIpcHandlers } from "../ipc/vault";
 import { systemIpcHandlers } from "../ipc/system";
 import { storageIpcHandlers } from "../ipc/storage";
 import { networkIpcHandlers } from "../ipc/network";
+import { whatsappIpcHandlers } from "../ipc/whatsapp";
 import { clipboardIpcHandlers } from "../ipc/clipboard";
 import { notificationIpcHandlers } from "../ipc/notification";
 
 export const allIpcHandlers = {
-  ...clipboardIpcHandlers,
   ...pdfIpcHandlers,
-  ...storageIpcHandlers,
-  ...vaultIpcHandlers,
   ...fileIpcHandlers,
+  ...vaultIpcHandlers,
   ...systemIpcHandlers,
-  ...notificationIpcHandlers,
+  ...storageIpcHandlers,
   ...networkIpcHandlers,
+  ...whatsappIpcHandlers,
+  ...clipboardIpcHandlers,
+  ...notificationIpcHandlers,
 };
 
 Object.entries(allIpcHandlers).forEach(([channel, handler]) => {

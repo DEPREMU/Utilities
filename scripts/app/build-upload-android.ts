@@ -19,7 +19,7 @@ script.addStep("Check if server is alive", async () => {
 
 script.addStep("Check if new version exists", async () => {
   const res = await ServerFetch.get(
-    "/updates/is-update-available/:version/:buildType",
+    "/downloads/is-update-available/:version/:buildType",
     {
       params: {
         version: script.appConfig.version || "",
@@ -90,7 +90,7 @@ script.addStep(`Upload APK ${script.appConfig.version}`, async () => {
   });
 
   const response = await axios.post(
-    ServerFetch.getRoute("POST", "/updates/upload"),
+    ServerFetch.getRoute("POST", "/downloads/upload"),
     formData,
     {
       headers: {

@@ -1,5 +1,6 @@
 import { GetUrlFetch } from "@types";
 import { GetRouterObj } from "./Helpers";
+import { WhatsAppDeleteFetch } from "./whatsapp";
 
 export type LogsDelete = GetUrlFetch<"/:logId", null, { auth: true }>;
 
@@ -17,6 +18,7 @@ export type StreamersDelete = GetUrlFetch<
 
 export type Delete = {
   "/logs": LogsDelete;
+  "/whatsapp": WhatsAppDeleteFetch;
   "/streamers": StreamersDelete;
   "/down-detector": DownDetectorDelete;
 };
