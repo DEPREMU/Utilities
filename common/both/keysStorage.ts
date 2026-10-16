@@ -5,7 +5,9 @@ import type {
   Notifications,
   VaultSettings,
   LanguagesSupported,
+  PersonalStickerConfig,
 } from "@types";
+import { Helper } from "./helpers";
 
 export type SECURE_KEYS_STORAGE_TYPE = keyof ExpectedSecureStorageTypes;
 export type UNSECURE_KEYS_STORAGE_TYPE = keyof ExpectedUnsecureStorageTypes;
@@ -80,6 +82,7 @@ export type ExpectedSecureStorageTypes = {
   NOTES_PASSWORD: string | null;
   VAULT_PASSWORD: { [folder: string]: string } | null;
   VAULT_DIRECTORY: string | null;
+  WHATSAPP_CONFIG: PersonalStickerConfig | null;
   CRYPTOS_SETTINGS: DB["TablesClient"]["CryptosSettings"] | null;
   NETWORK_SETTINGS: NetworkSettings | null;
   PERMISSIONS_DATA: PermissionsData | null;
@@ -135,6 +138,7 @@ export const SECURE_KEYS_STORAGE: Record<
   SESSION_EXPIRY: "_sessionExpiry",
   VAULT_PASSWORD: "_vaultPassword",
   NOTES_PASSWORD: "_notesPassword",
+  WHATSAPP_CONFIG: "_whatsappConfig",
   VAULT_DIRECTORY: "_vaultDirectory",
   CRYPTOS_SETTINGS: "_cryptosSettings",
   PERMISSIONS_DATA: "_permissionsData",
@@ -145,9 +149,9 @@ export const SECURE_KEYS_STORAGE: Record<
   USER_SESSION_TOKEN_STORAGE: "_userSessionTokenStorage",
 };
 
-export const SECURE_KEYS_STORAGE_KEYS = Object.keys(
-  SECURE_KEYS_STORAGE,
-) as SECURE_KEYS_STORAGE_TYPE[];
+export const SECURE_KEYS_STORAGE_KEYS = new Set<SECURE_KEYS_STORAGE_TYPE>(
+  Helper.Object.keys(SECURE_KEYS_STORAGE),
+);
 
 export const SECURE_KEYS_STORAGE_VALUES: string[] =
   Object.values(SECURE_KEYS_STORAGE);
@@ -169,14 +173,6 @@ export const UNSECURE_KEYS_STORAGE: Record<
   CLIPBOARD_WEBSOCKET_URL: "@clipboardWebSocketURL",
 };
 
-export const UNSECURE_KEYS_STORAGE_KEYS = Object.keys(
-  UNSECURE_KEYS_STORAGE,
-) as UNSECURE_KEYS_STORAGE_TYPE[];
-
-export const UNSECURE_KEYS_STORAGE_VALUES: string[] = Object.values(
-  UNSECURE_KEYS_STORAGE,
-);
-
 export const ALL_KEYS_STORAGE = {
   ...SECURE_KEYS_STORAGE,
   ...UNSECURE_KEYS_STORAGE,
@@ -196,6 +192,7 @@ export const DO_NOT_DELETE_OR_SAVE: ALL_KEYS_STORAGE_TYPE[] = [
   "VAULT_PASSWORD",
   "NOTES_PASSWORD",
   "VAULT_DIRECTORY",
+  "WHATSAPP_CONFIG",
   "NETWORK_SETTINGS",
 ] as const;
 
@@ -208,5 +205,5 @@ export const DO_NOT_DELETE_OR_SAVE: ALL_KEYS_STORAGE_TYPE[] = [
 export const isSecureKey = (
   key: ALL_KEYS_STORAGE_TYPE,
 ): key is SECURE_KEYS_STORAGE_TYPE => {
-  return SECURE_KEYS_STORAGE_KEYS.includes(key as SECURE_KEYS_STORAGE_TYPE);
+  return SECURE_KEYS_STORAGE_KEYS.has(key as SECURE_KEYS_STORAGE_TYPE);
 };

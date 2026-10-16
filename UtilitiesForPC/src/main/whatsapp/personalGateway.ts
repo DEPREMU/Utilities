@@ -1,26 +1,23 @@
-import makeWASocketImport, {
+import {
+  hasPersonalSession,
+  purgePersonalSession,
+  initPersonalAuthState,
+} from "./personalSession";
+import {
   WASocket,
   Browsers,
+  makeWASocket,
   ConnectionState,
   DisconnectReason,
-  fetchLatestBaileysVersion,
-  makeWASocket as makeWASocketNamed,
+  fetchLatestWaWebVersion,
 } from "@whiskeysockets/baileys";
 import qrcode from "qrcode";
 import dataApp from "../utils/vars/variables";
 import { Helper } from "@common";
 import { BrowserWindow } from "electron";
 import { PersonalWhatsAppStatus } from "@types";
+import { getPersonalStickerConfig } from "./personalConfig";
 import { handlePersonalIncomingMessage } from "./personalMessageListener";
-import { initPersonalAuthState, purgePersonalSession } from "./personalSession";
-
-const makeWASocket =
-  typeof makeWASocketNamed === "function"
-    ? makeWASocketNamed
-    : typeof makeWASocketImport === "function"
-      ? makeWASocketImport
-      : (makeWASocketImport as unknown as { default: typeof makeWASocketNamed })
-          .default;
 
 let activeSocket: WASocket | null = null;
 let currentStatus: PersonalWhatsAppStatus = {
@@ -124,17 +121,17 @@ export const connectPersonalWhatsApp =
 
       let version: [number, number, number] | undefined;
       try {
-        const latest = await fetchLatestBaileysVersion();
+        const latest = await fetchLatestWaWebVersion();
         version = latest.version;
       } catch {
-        version = [2, 3000, 1043857760];
+        version = [2, 3000, 1050532919];
       }
 
       const sock = makeWASocket({
         version,
         auth: state,
+        browser: Browsers.windows("Chrome"),
         printQRInTerminal: false,
-        browser: Browsers.windows("Desktop"),
       });
       activeSocket = sock;
 
@@ -217,3 +214,21 @@ export const connectPersonalWhatsApp =
       return errorStatus;
     }
   };
+
+/**
+ * Automatically initiates personal WhatsApp connection if autoConnect is enabled
+ * in the configuration and an active credentials session is already present.
+ */
+export const checkAutoConnectPersonalWhatsApp = async (): Promise<void> => {
+  try {
+    const config = await getPersonalStickerConfig();
+    if (!config.autoConnect) return;
+
+    const hasSession = await hasPersonalSession();
+    if (!hasSession) return;
+
+    await connectPersonalWhatsApp();
+  } catch {
+    return;
+  }
+};

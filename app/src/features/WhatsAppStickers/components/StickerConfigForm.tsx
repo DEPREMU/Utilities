@@ -7,9 +7,9 @@ import {
   SegmentedButtons,
 } from "react-native-paper";
 import { View } from "react-native";
+import { Timers } from "@common";
 import { useLanguage } from "@context/LanguageContext";
 import { windowModule } from "@modules";
-import { REPLACERS, Timers } from "@common";
 import { PersonalStickerConfig } from "@types";
 import { useStylesStickerConfigForm } from "@screens/WhatsAppStickers/styles/useStylesStickerConfigForm";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -23,6 +23,7 @@ export const StickerConfigForm = () => {
     quality: 80,
     packName: "Utilities",
     authorName: "Utilities App",
+    autoConnect: false,
     allowedChats: "direct_only",
     enabledAutoReply: true,
   });
@@ -34,7 +35,6 @@ export const StickerConfigForm = () => {
   const successTimerRef = useRef<number | null>(null);
 
   const handleSave = useCallback(async () => {
-    if (!windowModule?.whatsapp) return;
     setSaving(true);
 
     try {
@@ -57,18 +57,21 @@ export const StickerConfigForm = () => {
   }, [packName, authorName]);
 
   const handleToggleAutoReply = useCallback(async (value: boolean) => {
-    if (!windowModule?.whatsapp) return;
-
     const updated = await windowModule.whatsapp.updateConfig({
       enabledAutoReply: value,
     });
     setConfig(updated);
   }, []);
 
+  const handleToggleAutoConnect = useCallback(async (value: boolean) => {
+    const updated = await windowModule.whatsapp.updateConfig({
+      autoConnect: value,
+    });
+    setConfig(updated);
+  }, []);
+
   const handleAllowedChatsChange = useCallback(
     async (value: "direct_only" | "all") => {
-      if (!windowModule?.whatsapp) return;
-
       const allowed = value;
       const updated = await windowModule.whatsapp.updateConfig({
         allowedChats: allowed,
@@ -79,8 +82,6 @@ export const StickerConfigForm = () => {
   );
 
   useEffect(() => {
-    if (!REPLACERS.isWeb || !windowModule?.whatsapp) return;
-
     void windowModule.whatsapp.getConfig().then((loaded) => {
       setConfig(loaded);
       setPackName(loaded.packName);
@@ -94,8 +95,6 @@ export const StickerConfigForm = () => {
       successTimerRef.current = null;
     };
   }, []);
-
-  if (!REPLACERS.isWeb) return null;
 
   return (
     <Card style={styles.card}>
@@ -111,6 +110,16 @@ export const StickerConfigForm = () => {
           <Switch
             value={config.enabledAutoReply}
             onValueChange={handleToggleAutoReply}
+          />
+        </View>
+
+        <View style={styles.switchRow}>
+          <Text variant="bodyMedium">
+            {t("whatsappStickers.autoConnectEnabled")}
+          </Text>
+          <Switch
+            value={config.autoConnect}
+            onValueChange={handleToggleAutoConnect}
           />
         </View>
 

@@ -36,10 +36,10 @@ export const whatsappIpcHandlers: IpcHandlersRecord<
   },
   "whatsapp.getConfig": {
     type: "handle",
-    func: async () => getPersonalStickerConfig(),
+    func: async () => await getPersonalStickerConfig(),
   },
   "whatsapp.updateConfig": {
     type: "handle",
-    func: async (_event, config) => updatePersonalStickerConfig(config),
+    func: async (_event, config) => await updatePersonalStickerConfig(config),
   },
 };

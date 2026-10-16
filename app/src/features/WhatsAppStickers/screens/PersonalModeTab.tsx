@@ -29,6 +29,7 @@ export const PersonalModeTab = () => {
     authorName: "Utilities App",
     allowedChats: "direct_only",
     enabledAutoReply: true,
+    autoConnect: false,
   });
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -76,6 +77,14 @@ export const PersonalModeTab = () => {
     if (!windowModule?.whatsapp) return;
     const updated = await windowModule.whatsapp.updateConfig({
       enabledAutoReply: value,
+    });
+    setConfig(updated);
+  }, []);
+
+  const handleToggleAutoConnect = useCallback(async (value: boolean) => {
+    if (!windowModule?.whatsapp) return;
+    const updated = await windowModule.whatsapp.updateConfig({
+      autoConnect: value,
     });
     setConfig(updated);
   }, []);
@@ -182,6 +191,16 @@ export const PersonalModeTab = () => {
                 </Button>
               </>
             )}
+          </View>
+
+          <View style={styles.switchRow}>
+            <Text variant="bodyLarge">
+              {t("whatsappStickers.autoConnectEnabled")}
+            </Text>
+            <Switch
+              value={config.autoConnect}
+              onValueChange={handleToggleAutoConnect}
+            />
           </View>
 
           {isConnected && (

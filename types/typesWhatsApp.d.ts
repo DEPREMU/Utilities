@@ -18,6 +18,7 @@ export interface PersonalStickerConfig {
   authorName: string;
   allowedChats: "direct_only" | "all";
   enabledAutoReply: boolean;
+  autoConnect: boolean;
 }
 
 export type WhatsAppStatusListener = (status: PersonalWhatsAppStatus) => void;
@@ -97,13 +98,6 @@ export interface WhatsAppOperationalStatus {
   sharedGateway: {
     connected: boolean;
     reconnectAttempts: number;
-  };
-  queueDepth: {
-    processActive: number;
-    processWaiting: number;
-    deliveryWaiting: number;
-    processFailed24h: number;
-    processCompleted24h: number;
   };
   queueDepth: {
     processActive: number;
