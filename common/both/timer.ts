@@ -1,4 +1,4 @@
-import { ClearTimeoutFunction, SetTimeoutFunction } from "@types";
+import type { ClearTimeoutFunction, SetTimeoutFunction } from "@types";
 
 export class Timers {
   static #timeouts: Set<number> = new Set();
