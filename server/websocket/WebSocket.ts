@@ -108,6 +108,13 @@ const connectionWss = (ws: WebSocket) => {
   }
 };
 
+export const sendWebSocketMessageToUser = (
+  userId: string,
+  message: WebSocketMessage<"sentByServer">,
+): void => {
+  users.sendMessageToUser(message, userId);
+};
+
 export const initWebSocket = () => {
   try {
     const wss = new WebSocketServer({ noServer: true });
