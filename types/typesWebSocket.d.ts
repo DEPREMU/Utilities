@@ -35,6 +35,15 @@ export type WebSocketMessage<T extends "sentByApp" | "sentByServer"> =
           type: "notification";
           notification: Notification;
         }
+      | {
+          type: "whatsapp-quota-update";
+          resetAt: string;
+          isLinked: boolean;
+          dailyQuota: number;
+          consumedToday: number;
+          remainingToday: number;
+          linkedPhoneNumber?: string;
+        }
       | { type: "ping" };
 
 export type ClipboardWebSocketMessage<T extends "sentByApp" | "sentByServer"> =

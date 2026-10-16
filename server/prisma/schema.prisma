@@ -74,6 +74,9 @@ model Users {
 
   userConfig      UserConfig?
   cryptosSettings CryptosSettings?
+  whatsappLinks        WhatsAppAccountLink[]
+  whatsappLinkTokens   WhatsAppLinkToken[]
+  whatsappUsages       WhatsAppUsage[]
 
   @@map("users")
 }
@@ -396,3 +399,65 @@ model ServerLogs {
 
   @@map("server_logs")
 }
+
+model WhatsAppAccountLink {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  whatsappId  String   @unique
+  phoneNumber String
+  verifiedAt  DateTime @default(now()) @db.Timestamptz
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("whatsapp_account_links")
+}
+
+model WhatsAppLinkToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  code      String    @unique
+  expiresAt DateTime  @db.Timestamptz
+  usedAt    DateTime? @db.Timestamptz
+  createdAt DateTime  @default(now()) @db.Timestamptz
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([code])
+  @@index([userId])
+  @@map("whatsapp_link_tokens")
+}
+
+model WhatsAppUsage {
+  id            String    @id @default(uuid()) @db.Uuid
+  identifier    String
+  userId        String?   @db.Uuid
+  date          String
+  consumedCount Int       @default(0)
+  lastRequestAt DateTime  @default(now()) @db.Timestamptz
+  createdAt     DateTime  @default(now()) @db.Timestamptz
+  updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamptz
+
+  user Users? @relation(fields: [userId], references: [userId], onDelete: SetNull)
+
+  @@unique([identifier, date])
+  @@index([userId, date])
+  @@map("whatsapp_usage")
+}
+
+model WhatsAppJobAudit {
+  id          String   @id @default(uuid()) @db.Uuid
+  senderId    String
+  isLinked    Boolean  @default(false)
+  status      String
+  isAnimated  Boolean  @default(false)
+  durationMs  Int
+  errorCode   String?
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("whatsapp_job_audits")
+}

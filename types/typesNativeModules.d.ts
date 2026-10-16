@@ -7,12 +7,17 @@ import {
   PdfCreateRequest,
   ExpectedNativeWebData,
 } from "./typesUtilitiesForPC";
+import {
+  WhatsAppBridge,
+  PersonalStickerConfig,
+  PersonalWhatsAppStatus,
+} from "./typesWhatsApp";
+import { Function } from "@types";
 import { FolderFiles } from "./typesVault";
 import { ClipboardItem } from "./screens";
 import { LanguagesSupported } from "./typesTranslations";
 import type { FileInfo, PickedFile } from "./typesVault";
 import { ActionNotification, ReasonNotification } from "./typesNotifications";
-import { Function } from "@types";
 
 export type EventNativeModule = {
   actionId: ActionNotification;
@@ -248,6 +253,37 @@ export type ChannelsIpcRenderer<
     functionArgs: [];
     typeIpc: "invoke";
   };
+
+  "whatsapp.connect": {
+    functionReturn: Promise<PersonalWhatsAppStatus>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "whatsapp.disconnect": {
+    functionReturn: Promise<boolean>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "whatsapp.logoutAndPurge": {
+    functionReturn: Promise<boolean>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "whatsapp.getStatus": {
+    functionReturn: Promise<PersonalWhatsAppStatus>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "whatsapp.getConfig": {
+    functionReturn: Promise<PersonalStickerConfig>;
+    functionArgs: [];
+    typeIpc: "invoke";
+  };
+  "whatsapp.updateConfig": {
+    functionReturn: Promise<PersonalStickerConfig>;
+    functionArgs: [config: Partial<PersonalStickerConfig>];
+    typeIpc: "invoke";
+  };
 };
 
 export type NotificationElectron = {
@@ -365,14 +401,15 @@ export type NetworkBridge = {
 
 export type ContextBridgeType = {
   UtilitiesForPC: {
-    clipboard: ClipboardBridge;
     pdf: PdfBridge;
-    storage: StorageBridge;
-    vault: VaultBridge;
     file: FileBridge;
+    vault: VaultBridge;
     system: SystemBridge;
-    notification: NotificationBridge;
+    storage: StorageBridge;
     network: NetworkBridge;
+    whatsapp: WhatsAppBridge;
+    clipboard: ClipboardBridge;
+    notification: NotificationBridge;
   };
 };
 

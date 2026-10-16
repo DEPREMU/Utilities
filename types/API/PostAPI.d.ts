@@ -15,6 +15,7 @@ import {
 } from "@types";
 import { GetRouterObj } from "./Helpers";
 import { RequestSignOut } from "./Request";
+import { WhatsAppPostFetch } from "./whatsapp";
 
 export type AuthFetch =
   | GetUrlFetch<
@@ -157,6 +158,7 @@ export type Post = {
   "/logs": LogsFetch;
   "/admin": AdminFetch;
   "/images": ImagesFetch;
+  "/whatsapp": WhatsAppPostFetch;
   "/downloads": DownloadsFetch;
   "/languages": TranslateFetch;
   "/clipboard": ClipboardFetch;
