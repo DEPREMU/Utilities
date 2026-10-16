@@ -8,6 +8,7 @@ export * from "./database";
 export * from "./typesVault";
 export * from "./typesNotes";
 export * from "./typesStorage";
+export * from "./typesWhatsApp";
 export * from "./typesWebSocket";
 export * from "./typesTaskRegistry";
 export * from "./typesTranslations";

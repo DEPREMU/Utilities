@@ -35,6 +35,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    volumes:
+      - ../../.temp/whatsapp-shared-session:/server/.temp/whatsapp-shared-session
 
   postgres:
     image: postgres:17
@@ -73,3 +75,4 @@ services:
 volumes:
   redis_data:
   postgres_data:
+  whatsapp_session_data:

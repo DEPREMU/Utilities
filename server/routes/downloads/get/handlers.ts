@@ -26,10 +26,7 @@ export const handleIsUpdateAvailable = getHandlerGet(
     try {
       const { version, buildType } = params;
 
-      res.isUpdateAvailable = dataUpdates.isUpdateAvailable(
-        version,
-        buildType as Parameters<typeof dataUpdates.isUpdateAvailable>[1],
-      );
+      res.isUpdateAvailable = dataUpdates.isUpdateAvailable(version, buildType);
       res.latestVersion = dataUpdates.getLatestVersion(buildType) || "";
 
       if (res.isUpdateAvailable) {

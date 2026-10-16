@@ -1,6 +1,7 @@
 import {
   Task,
   File,
+  Timers,
   Logger,
   Directory,
   REPLACERS,
@@ -23,7 +24,7 @@ export const getInterval = () => {
   logger.log("Starting database backup interval...");
 
   config.executeFunctionAfterInit(handleBackupDatabase);
-  return setInterval(handleBackupDatabase, timeIntervalBackup);
+  return Timers.setInterval(handleBackupDatabase, timeIntervalBackup);
 };
 
 const encryptionManager = new InstanceManager(

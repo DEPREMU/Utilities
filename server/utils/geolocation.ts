@@ -1,3 +1,5 @@
+import { Timers } from "@common";
+
 const LOCATION_FALLBACK = "Location unavailable";
 
 /**
@@ -53,7 +55,7 @@ export const getApproximateLocation = async (
 
   const cleanIp = ip.replace(/^::ffff:/, "");
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 1500);
+  const timeoutId = Timers.setTimeout(() => controller.abort(), 1500);
 
   try {
     const response = await fetch(
@@ -61,7 +63,7 @@ export const getApproximateLocation = async (
       { signal: controller.signal },
     );
 
-    clearTimeout(timeoutId);
+    Timers.clearTimeout(timeoutId);
 
     if (!response.ok) {
       return LOCATION_FALLBACK;
@@ -82,7 +84,7 @@ export const getApproximateLocation = async (
 
     return LOCATION_FALLBACK;
   } catch {
-    clearTimeout(timeoutId);
+    Timers.clearTimeout(timeoutId);
     return LOCATION_FALLBACK;
   }
 };

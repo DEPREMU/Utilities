@@ -2,6 +2,7 @@ import { Router } from "express";
 import { Delete } from "./DeleteAPI";
 import { GetRouterObj } from "./Helpers";
 import { PriceBinanceAPI } from "@common";
+import { WhatsAppGetFetch } from "./whatsapp";
 import { Put, Post, Enums, GetUrlFetch, ResponseHealth } from "@types";
 
 export type DownloadsFetch =
@@ -113,6 +114,7 @@ export type Get = {
   "/info": ServerInfoFetch;
   "/logs": LogsFetch;
   "/cryptos": CryptosFetch;
+  "/whatsapp": WhatsAppGetFetch;
   "/downloads": DownloadsFetch;
   "/streamers": StreamersFetch;
   "/clipboard": ClipboardFetch;

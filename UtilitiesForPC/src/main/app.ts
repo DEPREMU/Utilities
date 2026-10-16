@@ -29,6 +29,7 @@ import dataApp, {
 import os from "os";
 import path from "path";
 import { exec, spawn } from "child_process";
+import { checkAutoConnectPersonalWhatsApp } from "./whatsapp/personalGateway";
 import { verifyNewUpdate, deleteDownloadedUpdate } from "./utils/updates";
 
 const logger = new Logger("APP");
@@ -356,6 +357,7 @@ app.whenReady().then(async () => {
   initServer();
   startMemoryMonitor();
   registerClipboardShortcuts();
+  void checkAutoConnectPersonalWhatsApp();
 });
 
 app.on("window-all-closed", () => gracefullyShutdown.shutdown());

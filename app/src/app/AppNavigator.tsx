@@ -39,6 +39,7 @@ import SocialMediaNavigator from "@screens/SocialMedia/screens";
 import ForgotPasswordScreen from "@screens/Auth/screens/ForgotPasswordScreen";
 import DownDetectorNavigator from "@screens/DownDetector/screens";
 import VerifyResetCodeScreen from "@screens/Auth/screens/VerifyResetCodeScreen";
+import WhatsAppStickersScreen from "@screens/WhatsAppStickers/screens/WhatsAppStickersScreen";
 import { NavigationContainer } from "@react-navigation/native";
 import { NativeFunctionsModule } from "@/utils/modules";
 import { Screens as RootStackParamList, ScreensAvailable } from "@types";
@@ -115,6 +116,7 @@ const screens: Screens = {
   VerifyCode: { component: VerifyCodeScreen },
   ResetPassword: { component: ResetPasswordScreen },
   VerifyResetCode: { component: VerifyResetCodeScreen },
+  WhatsAppStickers: { component: WhatsAppStickersScreen },
 };
 
 const allScreens = Object.entries(screens).map(

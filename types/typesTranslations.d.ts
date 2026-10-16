@@ -913,6 +913,50 @@ export type AppTranslations = BatteryStateTranslations &
         enableClipboard: string;
       };
     };
+    whatsappStickers: {
+      title: string;
+      description: string;
+      keyWords: string;
+      personalMode: string;
+      sharedMode: string;
+      connect: string;
+      disconnect: string;
+      logoutAndPurge: string;
+      scanQrCode: string;
+      connectedAs: `${string}{{phoneNumber}}${string}`;
+      statusConnected: string;
+      statusConnecting: string;
+      statusDisconnected: string;
+      statusError: string;
+      autoReplyEnabled: string;
+      autoConnectEnabled: string;
+      packName: string;
+      authorName: string;
+      quality: string;
+      allowedChats: string;
+      allowedChatsDirect: string;
+      allowedChatsAll: string;
+      dailyQuota: string;
+      dailyQuotaWithCount: `${string}{{count}}${string}`;
+      remainingQuota: string;
+      remainingQuotaWithCount: `${string}{{count}}${string}`;
+      quotaResetIn: `${string}{{time}}${string}`;
+      generateLinkCode: string;
+      linkCodeInstructions: `${string}{{code}}${string}`;
+      unlinkLabel: string;
+      serviceAvailable: string;
+      serviceMaintenance: string;
+      openInWhatsApp: string;
+      refresh: string;
+      preferences: string;
+      loginRequired: string;
+      goToLogin: string;
+      infiniteQuota: string;
+      savePreferences: string;
+      savedSuccess: string;
+      copied: string;
+      copyLinkCommand: `${string}{{code}}${string}`;
+    };
   };
 
 export type ServerTranslations = {
@@ -963,6 +1007,16 @@ export type ServerTranslations = {
     formatChangeError: string;
     invalidImageFormat: string;
     invalidImageBuffer: string;
+  };
+  whatsapp: {
+    quotaExceeded: string;
+    rateLimitExceeded: string;
+    linkSuccess: string;
+    linkInvalidOrExpired: string;
+    unsupportedMedia: string;
+    processingError: string;
+    maintenanceNotice: string;
+    stickerReady: string;
   };
 };
 

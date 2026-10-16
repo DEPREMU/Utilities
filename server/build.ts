@@ -4,13 +4,14 @@ import {
   options,
   externalServer,
   externalWorkers,
-  REPLACERS_PLUGIN,
 } from "@commonSrc/serverOrElectron/build";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import { exec } from "child_process";
+import { REPLACERS } from "@commonSrc/both/REPLACERS";
 import { pluginReplace } from "@espcom/esbuild-plugin-replace";
+import { REPLACERS_TYPE } from "@types";
 import { getAllPathsSync } from "@commonSrc/serverOrElectron/fs";
 import { build, type Plugin } from "esbuild";
 
@@ -20,6 +21,35 @@ const {
   common: COMMON_PATH,
   frontend: FRONTEND_PATH,
 } = getAllPathsSync();
+
+const REPLACERS_REPLACED: Record<keyof REPLACERS_TYPE, string> = {
+  isDev: `${REPLACERS.isDev}`,
+  isWeb: `${REPLACERS.isWeb}`,
+  isLinux: `${REPLACERS.isLinux}`,
+  isServer: `${REPLACERS.isServer}`,
+  isNative: `${REPLACERS.isNative}`,
+  isWindows: `${REPLACERS.isWindows}`,
+  isPreview: `${REPLACERS.isPreview}`,
+  typeBuild: `"${REPLACERS.typeBuild}"`,
+  isProduction: `${REPLACERS.isProduction}`,
+};
+
+export const REPLACERS_PLUGIN: Parameters<
+  typeof import("@espcom/esbuild-plugin-replace").pluginReplace
+>[0] = [
+  ...Object.entries(REPLACERS_REPLACED).map(([key, value]) => {
+    return {
+      filter: /\.ts|\.js|\.cjs$/,
+      replace: new RegExp(`REPLACERS.${key}`, "g"),
+      replacer: () => value,
+    };
+  }),
+  {
+    filter: /\.ts|\.js|\.cjs$/,
+    replace: /process\.env\.BUILD_PROFILE/g,
+    replacer: () => JSON.stringify(process.env.BUILD_PROFILE || "production"),
+  },
+];
 
 dotenv.config({ path: path.join(root, ".env") });
 

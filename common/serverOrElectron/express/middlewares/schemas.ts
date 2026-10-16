@@ -61,6 +61,9 @@ export const SCHEMAS: APIInput = {
   GET: {
     "/info/health": {},
     "/info/generate204": {},
+    "/whatsapp/quota": {},
+    "/whatsapp/health": {},
+    "/whatsapp/status": {},
     "/info/appAlive/:deviceId/:pushToken": {
       params: { deviceId, pushToken: z.string().min(10) },
     },
@@ -333,6 +336,13 @@ export const SCHEMAS: APIInput = {
         streamerName: z.string().min(1, "Invalid streamer name"),
       },
     },
+    "/whatsapp/link/generate": {},
+    "/whatsapp/admin/toggle": {
+      body: {
+        enabled: z.boolean(),
+        maintenanceMessage: z.string().optional(),
+      },
+    },
   },
   DELETE: {
     "/down-detector/:deviceId/:downDetectorId": {
@@ -350,5 +360,6 @@ export const SCHEMAS: APIInput = {
         streamerId: z.uuid(),
       },
     },
+    "/whatsapp/link": {},
   },
 };

@@ -3,6 +3,10 @@ import {
   closeAuthEmailWorker,
 } from "./queue/authEmailWorker.ts";
 import {
+  initSharedGateway,
+  closeSharedGateway,
+} from "./whatsapp/gateway.ts";
+import {
   Helper,
   Logger,
   REPLACERS,
@@ -152,6 +156,7 @@ const startApp = async () => {
   try {
     getRedisClient();
     startAuthEmailWorker();
+    void initSharedGateway();
   } catch (error) {
     logger.error(
       chalk.red("Failed to initialize Redis or BullMQ worker:"),
@@ -166,6 +171,12 @@ const startApp = async () => {
       }),
     "HTTP/WebSocket Server Close",
     "HIGH",
+  );
+
+  gracefullyShutdown.addFunction(
+    () => closeSharedGateway(),
+    "WhatsApp Bot Gateway Close",
+    "NORMAL",
   );
 
   gracefullyShutdown.addFunction(

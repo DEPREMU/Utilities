@@ -1,12 +1,12 @@
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling";
-import { Logger } from "@common";
 import { prisma } from "@/database/postgres";
+import { Logger, Timers } from "@common";
 import { ClipboardWebSocketMessage } from "@types";
 import { WebSocket, WebSocketServer } from "ws";
 
 const logger = new Logger("WebSocketClipboard");
-let idIntervalClipboard: NodeJS.Timeout | number | null = null;
+let idIntervalClipboard: number | null = null;
 
 const usersClipboard = new Users<
   Record<string, unknown>,
@@ -146,8 +146,8 @@ export const initWebSocketClipboard = () => {
   try {
     const wss = new WebSocketServer({ noServer: true });
 
-    if (idIntervalClipboard) clearInterval(idIntervalClipboard);
-    idIntervalClipboard = setInterval(async () => {
+    if (idIntervalClipboard) Timers.clearInterval(idIntervalClipboard);
+    idIntervalClipboard = Timers.setInterval(async () => {
       const users = usersClipboard.getAllUsers();
 
       users.forEach(async (data, userId) => {
