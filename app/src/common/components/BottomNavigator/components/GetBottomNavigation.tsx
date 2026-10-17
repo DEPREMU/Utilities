@@ -40,8 +40,8 @@ const GetBottomNavigation = <FC extends Record<string, unknown>>(
 
     return (
       <BottomNavigation
-        shifting
-        sceneAnimationEnabled
+      sceneAnimationEnabled
+        shifting={routes.length > 1}
         barStyle={{ backgroundColor: colors.primary }}
         renderScene={renderScene}
         activeColor={colors.background}
