@@ -2,10 +2,9 @@ import path from "path";
 import axios from "axios";
 import FormData from "form-data";
 import { Script } from "../common";
-import type * as Types from "@types";
-import { ServerError } from "@commonSrc/both/errors/Error";
 import { Directory, File, Logger } from "@commonSrc/serverOrElectron";
-import { ServerFetch, Validations } from "@commonSrc/both";
+import type { RequestUploadUpdate } from "@types";
+import { ServerFetch, Validations, ServerError } from "@commonSrc/both";
 
 const logger = new Logger("build-upload-android");
 
@@ -71,7 +70,7 @@ script.addStep("Find APK", async () => {
 script.addStep(`Upload APK ${script.appConfig.version}`, async () => {
   const apkFile = script.getValue("apkFile") as File;
 
-  const data: Types.RequestUploadUpdate = {
+  const data: RequestUploadUpdate = {
     version: script.appConfig.version || "",
     buildType: "android",
   };

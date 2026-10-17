@@ -1,4 +1,10 @@
 import {
+  ServerError,
+  ServerFetch,
+  getValueState,
+  wrapFunctionWithError,
+} from "@common";
+import {
   AlbumsImages,
   GetRouteData,
   GetStatesZustand,
@@ -16,8 +22,6 @@ import {
 import axios from "axios";
 import { create } from "zustand";
 import { modalRef } from "@/app/refs";
-import { ServerError } from "@commonSrc/both/errors/Error";
-import { getValueState, ServerFetch, wrapFunctionWithError } from "@common";
 
 const logger = new Logger("ImagesZustand");
 

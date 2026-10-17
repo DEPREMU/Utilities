@@ -1,9 +1,8 @@
 import { create } from "zustand";
 import { openURL } from "expo-linking";
 import { modalRef } from "@/app/refs";
-import { ServerError } from "@commonSrc/both/errors/Error";
 import { GetStatesZustand } from "@types";
-import { ServerFetch, Timers, getValueState } from "@common";
+import { Timers, ServerError, ServerFetch, getValueState } from "@common";
 import { tTyped, sessionManager, storageManagement, Logger } from "@utils";
 
 const logger = new Logger("DownDetectorZustand");

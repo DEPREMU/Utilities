@@ -1,11 +1,10 @@
 import { prisma } from "@/database/postgres";
-import { RequestError } from "@commonSrc/both/errors/Error";
 import { getRedisClient } from "@/redis/client";
 import { getProcessQueue } from "@/whatsapp/queues/processQueue";
 import { getDeliveryQueue } from "@/whatsapp/queues/deliveryQueue";
 import { getUserQuotaStatus } from "@/whatsapp/quotaMiddleware";
-import { getHandlerGet, STATUS_RESPONSE } from "@common";
 import { getSharedGatewayStatus, isServiceEnabled } from "@/whatsapp/gateway";
+import { RequestError, getHandlerGet, STATUS_RESPONSE } from "@common";
 
 export const handleWhatsAppHealth = getHandlerGet(
   "/whatsapp",

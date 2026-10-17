@@ -1,6 +1,11 @@
+import {
+  Task,
+  Logger,
+  RequestError,
+  getHandlerPost,
+  STATUS_RESPONSE,
+} from "@common";
 import chalk from "chalk";
-import { RequestError } from "@commonSrc/both/errors/Error";
-import { Task, Logger, getHandlerPost, STATUS_RESPONSE } from "@common";
 
 const logger = new Logger("EncryptionPost");
 

@@ -3,31 +3,31 @@ import {
   normalizeEmail,
   verifyAuthCode,
   generateAuthCode,
-} from "@/utils/authCode.ts";
+} from "@/utils/authCode";
 import {
   JWT,
   DATA_REASONS,
   getStorageData,
   AUTH_CODE_EXPIRATION,
   AUTH_CODE_MAX_ATTEMPTS,
-} from "../variables.ts";
+} from "../variables";
 import {
   t,
   Helper,
   Logger,
   Validations,
+  RequestError,
   getHandlerPost,
   STATUS_RESPONSE,
 } from "@common";
 import chalk from "chalk";
 import crypto from "node:crypto";
 import bcrypt from "@node-rs/bcrypt";
-import { prisma } from "@/database/postgres.ts";
-import { RequestError } from "@commonSrc/both/errors/Error.ts";
-import { getRedisClient } from "@/redis/client.ts";
-import { withTransaction } from "@/database/transaction.ts";
-import { enqueueAuthEmail } from "@/queue/authEmailQueue.ts";
-import { getApproximateLocation } from "@/utils/geolocation.ts";
+import { prisma } from "@/database/postgres";
+import { getRedisClient } from "@/redis/client";
+import { withTransaction } from "@/database/transaction";
+import { enqueueAuthEmail } from "@/queue/authEmailQueue";
+import { getApproximateLocation } from "@/utils/geolocation";
 
 const logger = new Logger("AuthPost");
 

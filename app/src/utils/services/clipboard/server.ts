@@ -1,7 +1,6 @@
 import { Logger } from "@/utils/TOP_LEVEL/debug";
-import { ServerError } from "@commonSrc/both/errors/Error";
 import { ClipboardItem } from "@types";
-import { ServerFetch, ServiceClass } from "@common";
+import { ServerFetch, ServiceClass, ServerError } from "@common";
 
 const logger = new Logger("ClipboardServer");
 

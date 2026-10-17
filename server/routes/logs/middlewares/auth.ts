@@ -1,7 +1,6 @@
 import chalk from "chalk";
 import { JWT } from "@/routes/auth/variables";
-import { RequestError } from "@commonSrc/both/errors/Error";
-import { Logger, STATUS_RESPONSE, getHandlerGet } from "@common";
+import { Logger, RequestError, STATUS_RESPONSE, getHandlerGet } from "@common";
 
 const logger = new Logger("LogsMiddlewaresAuth");
 

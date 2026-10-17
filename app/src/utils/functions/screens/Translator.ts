@@ -1,6 +1,5 @@
 import { Logger } from "@/utils/TOP_LEVEL";
-import { ServerFetch } from "@common";
-import { ServerError } from "@commonSrc/both/errors/Error";
+import { ServerError, ServerFetch } from "@common";
 
 const logger = new Logger("FunctionsTranslator");
 

@@ -1,7 +1,6 @@
 import axios from "axios";
 import { getEnvValue } from "@/env";
-import { RequestError } from "@commonSrc/both/errors/Error";
-import { STATUS_RESPONSE, getHandlerPost } from "@common";
+import { RequestError, STATUS_RESPONSE, getHandlerPost } from "@common";
 
 const url = "https://api-free.deepl.com/v2/translate";
 const headers = {

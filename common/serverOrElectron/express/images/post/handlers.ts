@@ -1,9 +1,13 @@
+import {
+  t,
+  ServerError,
+  STATUS_RESPONSE,
+  supportedFormatsImages,
+} from "@commonSrc/both";
 import chalk from "chalk";
-import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
+import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { getHandlerPost } from "@commonSrc/serverOrElectron/express/functions";
-import { t, supportedFormatsImages, STATUS_RESPONSE } from "@commonSrc/both";
 import { changeFormat, isImageBuffer } from "../utils";
-import { ServerError } from "@commonSrc/both/errors/Error";
 
 const logger = new Logger("ExpressImagesPost");
 
