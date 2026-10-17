@@ -3,15 +3,13 @@ import {
   isAppLint,
   isAppStart,
   isAppBuildDev,
-  //TODO: Delete if not necessary to build android on github actions.
-  // isBuildAndroid,
   isUploadElectron,
   isAndroidPrebuild,
   isBuildAppElectron,
   isBuildUploadAndroid,
   isBuildResourcesElectron,
-} from "./filesCalled.ts";
-import { Helper } from "@commonSrc/both/index.ts";
+} from "./filesCalled";
+import { Helper } from "@commonSrc/both";
 
 export type TYPE_ARGS = {
   dev?: boolean;

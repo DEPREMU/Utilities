@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { JWT } from "./variables.ts";
+import { JWT } from "./variables";
 import { Request, Response, NextFunction } from "express";
 import { Logger, sendResponse, STATUS_RESPONSE } from "@common";
 

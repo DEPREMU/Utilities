@@ -1,8 +1,7 @@
 import chalk from "chalk";
 import { prisma } from "@/database/postgres";
 import { getEnvValue } from "@/env";
-import { RequestError } from "@commonSrc/both/errors/Error";
-import { Logger, getHandlerPost, STATUS_RESPONSE } from "@common";
+import { Logger, RequestError, getHandlerPost, STATUS_RESPONSE } from "@common";
 
 const logger = new Logger("AdminPost");
 

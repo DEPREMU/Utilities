@@ -1,9 +1,9 @@
-import { JSON } from "./JSON.ts";
-import { Arrays } from "./Array.ts";
-import { Objects } from "./Object.ts";
+import { JSON } from "./JSON";
+import { Arrays } from "./Array";
+import { Objects } from "./Object";
 import { REPLACERS } from "@REPLACERS";
 
-export * from "./backoff.ts";
+export * from "./backoff";
 
 export class Helper {
   static getMessage(...args: unknown[]) {

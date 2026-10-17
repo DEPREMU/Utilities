@@ -1,11 +1,7 @@
 import {
   startAuthEmailWorker,
   closeAuthEmailWorker,
-} from "./queue/authEmailWorker.ts";
-import {
-  initSharedGateway,
-  closeSharedGateway,
-} from "./whatsapp/gateway.ts";
+} from "./queue/authEmailWorker";
 import {
   Helper,
   Logger,
@@ -17,9 +13,9 @@ import {
   initWebSocket,
   initWebSocketCryptos,
   initWebSocketClipboard,
-  initWebSocketLoginQRCode,
   initWebSocketServerLogs,
-} from "./websocket/index.ts";
+  initWebSocketLoginQRCode,
+} from "./websocket";
 import path from "path";
 import cors from "cors";
 import http from "http";
@@ -27,15 +23,16 @@ import chalk from "chalk";
 import helmet from "helmet";
 import { URL } from "url";
 import express from "express";
-import routerAPI from "./routes/index.ts";
+import routerAPI from "./routes";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
-import { getEnvValue } from "./env.ts";
-import { closeAuthEmailQueue } from "./queue/authEmailQueue.ts";
-import { handleInitDB, prisma } from "./database/postgres.ts";
-import { initializeFirebaseAdmin } from "./firebase/admin.ts";
-import { config, gracefullyShutdown } from "./config.ts";
-import { getRedisClient, closeRedisConnection } from "./redis/client.ts";
+import { getEnvValue } from "./env";
+import { closeAuthEmailQueue } from "./queue/authEmailQueue";
+import { handleInitDB, prisma } from "./database/postgres";
+import { initializeFirebaseAdmin } from "./firebase/admin";
+import { config, gracefullyShutdown } from "./config";
+import { getRedisClient, closeRedisConnection } from "./redis/client";
+import { initSharedGateway, closeSharedGateway } from "./whatsapp/gateway";
 import { CryptosWebSocketMessage, WebSocketPathname } from "@types";
 
 type ServerWebSocket = ReturnType<typeof initWebSocket>;
@@ -222,7 +219,7 @@ const startApp = async () => {
       }),
     );
 
-    if (REPLACERS.isDev) await import("@/dev/index.ts");
+    if (REPLACERS.isDev) await import("@/dev");
 
     await config.executeFunctions();
   });

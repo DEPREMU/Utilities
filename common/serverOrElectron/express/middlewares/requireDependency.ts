@@ -1,5 +1,5 @@
 import { STATUS_RESPONSE } from "@commonSrc/both";
-import { ThirdPartyStateManager } from "@commonSrc/serverOrElectron/ThirdPartyStateManager/index.ts";
+import { ThirdPartyStateManager } from "@commonSrc/serverOrElectron/ThirdPartyStateManager";
 import type { Request, Response, NextFunction } from "express";
 import type { AvailableServices, ResponseUnavailableService } from "@types";
 

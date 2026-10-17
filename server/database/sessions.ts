@@ -1,6 +1,6 @@
 import chalk from "chalk";
-import { config } from "@/config.ts";
-import { prisma } from "./postgres.ts";
+import { config } from "@/config";
+import { prisma } from "./postgres";
 import { Logger, Timers, getDateWithTimeAhead } from "@common";
 
 const logger = new Logger("Database");

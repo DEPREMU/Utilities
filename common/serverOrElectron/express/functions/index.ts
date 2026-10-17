@@ -1,3 +1,3 @@
-export * from "./common.ts";
-export * from "./routes.ts";
-export * from "./getHandler.ts";
+export * from "./common";
+export * from "./routes";
+export * from "./getHandler";

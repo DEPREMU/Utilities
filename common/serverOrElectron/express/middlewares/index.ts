@@ -1,1 +1,1 @@
-export * from "./requireDependency.ts";
+export * from "./requireDependency";

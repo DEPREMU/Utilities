@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import admin from "firebase-admin";
-import { prisma } from "@/database/postgres.ts";
-import { getEnvValue } from "../env.ts";
+import { prisma } from "@/database/postgres";
+import { getEnvValue } from "../env";
 import { Logger, REPLACERS } from "@common";
 import { ScreensAvailable, ChannelsId } from "@types";
 

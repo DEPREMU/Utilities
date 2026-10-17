@@ -22,8 +22,7 @@ const router = getMainRouter({
   "/dev": {
     router: REPLACERS.isDev
       ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-        (require("./dev/index.ts") as typeof import("./dev/index.ts"))
-          .ROUTER_DEV
+        (require("./dev") as typeof import("./dev")).ROUTER_DEV
       : Router(),
   },
 

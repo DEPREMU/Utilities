@@ -1,7 +1,7 @@
 import chalk from "chalk";
-import { user } from "./utils.ts";
+import { user } from "./utils";
 import { config } from "@/config";
-import { prisma } from "@/database/postgres.ts";
+import { prisma } from "@/database/postgres";
 import { createFakeData } from "./createFakeData";
 import { Logger, ServerFetch } from "@common";
 
@@ -27,4 +27,4 @@ const initDev = async () => {
 
 config.executeFunctionAfterInit(initDev);
 
-export * from "./createFakeData.ts";
+export * from "./createFakeData";

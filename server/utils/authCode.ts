@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { getEnvValue } from "../env.ts";
+import { getEnvValue } from "../env";
 
 const CODE_LENGTH = 8;
 const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";

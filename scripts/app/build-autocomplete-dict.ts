@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Script } from "../common";
-import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
+import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { Directory, File } from "@commonSrc/serverOrElectron";
 
 const logger = new Logger("build-autocomplete-dict");

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Timers } from "../timer.ts";
+import { Timers } from "../timer";
 
 export const enum STATUS_RESPONSE {
   SUCCESS = 200,

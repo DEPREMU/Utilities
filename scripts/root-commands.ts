@@ -1,10 +1,10 @@
 import path from "path";
 import chalk from "chalk";
-import { args } from "./arguments.ts";
+import { args } from "./arguments";
 import { Script } from "./common";
-import { Helper } from "@commonSrc/both/index.ts";
-import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { formatFolder } from "./format-folder.ts";
+import { Helper } from "@commonSrc/both";
+import { Logger } from "@commonSrc/serverOrElectron/logger";
+import { formatFolder } from "./format-folder";
 
 const script = new Script();
 const logger = new Logger("root-commands");

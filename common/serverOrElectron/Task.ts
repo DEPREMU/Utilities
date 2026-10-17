@@ -1,8 +1,8 @@
 import Piscina from "piscina";
-import { File } from "./fs.ts";
-import { Logger } from "./logger.ts";
-import { ServiceClass, Timers } from "../both/index.ts";
-import { getPiscinaWorkerPath } from "./piscina.ts";
+import { File } from "./fs";
+import { Logger } from "./logger";
+import { ServiceClass, Timers } from "../both";
+import { getPiscinaWorkerPath } from "./piscina";
 import { WorkerData, WorkerFiles } from "@types";
 
 const logger = new Logger("CommonTask");

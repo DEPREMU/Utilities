@@ -1,5 +1,5 @@
-import { Timers } from "./timer.ts";
-import { EventHandler } from "./classes/events.ts";
+import { Timers } from "./timer";
+import { EventHandler } from "./classes/events";
 import axios, { AxiosError } from "axios";
 import type { PriceBinanceAPI, SelectedCryptos } from "./keysStorage";
 

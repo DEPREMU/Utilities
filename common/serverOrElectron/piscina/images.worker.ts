@@ -4,7 +4,7 @@ import type {
 } from "@types";
 import chalk from "chalk";
 import sharp from "sharp";
-import { Logger } from "../logger.ts";
+import { Logger } from "../logger";
 
 const logger = new Logger("PiscinaImagesWorker");
 

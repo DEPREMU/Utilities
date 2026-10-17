@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { Users } from "./WebSocketHandling.ts";
+import { Users } from "./WebSocketHandling";
 import { Logger } from "@common";
 import { prisma } from "@/database/postgres";
 import { WebSocketMessage } from "@types";
