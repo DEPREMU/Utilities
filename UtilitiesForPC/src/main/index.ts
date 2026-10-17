@@ -1,18 +1,16 @@
-import dataApp from "@/utils/vars/variables.ts";
+import dataApp from "@/utils/vars/variables";
 
 await dataApp.waitUntilInitialized();
 try {
-  const { nativeData } = await import("@/utils/nativeData/index.ts");
+  const { nativeData } = await import("@/utils/nativeData");
 
   await nativeData.waitUntilInitialized();
 
-  await import("./app.ts");
+  await import("./app");
 } catch (error) {
-  try {
-    import("@/utils/logger.ts").then(({ Logger }) => {
+  import("@/utils/logger")
+    .then(({ Logger }) => {
       new Logger("MAIN").error("Error importing app module:", error);
-    });
-  } catch {
-    // Ignore error
-  }
+    })
+    .catch(() => {});
 }

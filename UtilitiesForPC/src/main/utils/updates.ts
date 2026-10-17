@@ -4,17 +4,17 @@ import {
   Network,
   REPLACERS,
   Directory,
+  ServerError,
   ServerFetch,
+  getAllPathsSync,
 } from "@common";
 import path from "path";
 import axios from "axios";
 import dotenv from "dotenv";
-import { app } from "electron";
 import dataApp from "./vars/variables";
 import { Enums } from "@types";
 import { Logger } from "./logger";
 import { pipeline } from "node:stream/promises";
-import { ServerError } from "@commonSrc/both/errors/Error";
 import type { Readable } from "node:stream";
 import { execFile, spawn } from "child_process";
 import { nativeData, Paths } from "@utils";
@@ -22,8 +22,10 @@ import { gracefullyShutdown } from "./server";
 
 const logger = new Logger("Updates");
 
-if (!app.isPackaged)
-  dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
+if (REPLACERS.isDev) {
+  const { root } = getAllPathsSync();
+  dotenv.config({ path: path.join(root, ".env") });
+}
 
 export const deleteDownloadedUpdate = async () => {
   if (!dataApp) return;
