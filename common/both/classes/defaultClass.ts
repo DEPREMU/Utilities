@@ -1,4 +1,4 @@
-import { EventHandler, EventsHandler } from "./events.ts";
+import { EventHandler, EventsHandler } from "./events";
 
 /**
  * Base class for services that require initialization and event handling.

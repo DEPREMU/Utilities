@@ -59,8 +59,11 @@ await build({
   ...options,
   plugins,
   external: externalServer,
+  banner: {
+    js: `import{createRequire}from"node:module";let require=createRequire(import.meta.url);`,
+  },
 
-  outfile: path.join(SERVER_PATH, "build", "index.cjs"),
+  outfile: path.join(SERVER_PATH, "build", "index.mjs"),
   entryPoints: [path.join(SERVER_PATH, "index.ts")],
 }).catch((err) => {
   // eslint-disable-next-line no-console
@@ -122,7 +125,7 @@ fs.readdir(piscinaWorkerPath, async (err, files) => {
           SERVER_PATH,
           "build",
           "piscina",
-          file.replace(".ts", ".cjs"),
+          file.replace(".ts", ".mjs"),
         ),
         entryPoints: [path.join(piscinaWorkerPath, file)],
       });

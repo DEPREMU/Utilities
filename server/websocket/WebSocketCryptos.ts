@@ -440,6 +440,7 @@ const handleMessage = async (
             return;
           }
 
+          userDevice.clearTimeoutToInit();
           userDevice.setUserData({ userId, deviceId });
           users.addDeviceUser(userDevice);
 
@@ -473,6 +474,8 @@ const handleMessage = async (
 
 const handleConnection = (ws: WebSocket) => {
   const user = users.createUser(ws);
+
+  user.initTimeoutToInit();
 
   ws.on("message", (message) => {
     handleMessage(message.toString(), user);

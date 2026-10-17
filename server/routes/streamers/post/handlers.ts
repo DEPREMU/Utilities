@@ -1,4 +1,4 @@
-import { withTransaction } from "@/database/transaction.ts";
+import { withTransaction } from "@/database/transaction";
 import { getHandlerPost, STATUS_RESPONSE } from "@common";
 import { getLinkImageStreamer, isLiveStreamer } from "../common";
 

@@ -3,8 +3,8 @@ import type {
   ServerTranslations,
   ServerTranslationsKeys,
 } from "@types";
-import { esServer } from "./Spanish.ts";
-import { enServer } from "./English.ts";
+import { esServer } from "./Spanish";
+import { enServer } from "./English";
 
 /**
  * Translates a given key into the specified language, with optional replacements.
@@ -71,6 +71,6 @@ export const t = <T extends ServerTranslationsKeys>(
   return value;
 };
 
-export * from "./English.ts";
-export * from "./Spanish.ts";
-export * from "./translates.ts";
+export * from "./English";
+export * from "./Spanish";
+export * from "./translates";

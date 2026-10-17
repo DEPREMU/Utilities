@@ -10,7 +10,7 @@
     "sleep": "run-script-os",
     "sleep:windows": "powershell -Command \"Start-Sleep -Seconds 5\"",
     "sleep:linux": "sleep 5",
-    "start": "tsx ./build.ts && node ./build/index.cjs",
+    "start": "tsx ./build.ts && node ./build/index.mjs",
     "start-dev": "docker-compose -f vps/docker/docker-compose.dev.yml up -d && yarn nodemon",
     "format-all": "yarn prettier --write \"**/*.{ts,json}\" --ignore-path ../.gitignore",
     "before-commit": "yarn run lint:fix && yarn run type-check",

@@ -2,13 +2,6 @@ import {
   ReconnectingWebSocket,
   OptionsReconnectingWS,
 } from "@/utils/reconnecting-websocket";
-import React, {
-  useRef,
-  useState,
-  useEffect,
-  useContext,
-  createContext,
-} from "react";
 import {
   URLS,
   tTyped,
@@ -26,6 +19,7 @@ import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "./UserContext";
 import { WebSocketMessage } from "@types";
+import React, { useRef, useEffect, useContext, createContext } from "react";
 
 const logger = new Logger("WebSocketContext");
 
@@ -34,7 +28,6 @@ type SendMessageFunc = (
 ) => Promise<void>;
 
 interface WebSocketContextType {
-  setSocketURL: React.Dispatch<React.SetStateAction<string | null>>;
   sendMessageRef: React.RefObject<SendMessageFunc>;
 }
 
@@ -74,10 +67,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 }) => {
   const { language } = useLanguage();
   const { isLoggedIn } = useUserContext();
-
-  const [socketURL, setSocketURL] = useState<string | null>(
-    storageManagement.get("WEBSOCKET_URL", null),
-  );
 
   const socketRef = useRef<ReconnectingWebSocket>(
     new ReconnectingWebSocket(URLS.ws, OPTIONS_RECONNECT_WS),
@@ -184,18 +173,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, []);
 
   useEffect(() => {
-    if (deviceInfo.isBackground) return;
-
-    const { isLoggedIn } = sessionManager.getSessionData();
-
-    const currentSocket = socketRef.current;
-
-    const targetURL = socketURL || URLS.ws;
-    currentSocket.url = targetURL;
-    currentSocket.shouldReconnect = isLoggedIn;
-  }, [socketURL]);
-
-  useEffect(() => {
     if (!socketRef.current.isConnected) return;
 
     sendMessageRef.current({
@@ -209,7 +186,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, [isLoggedIn]);
 
   const valueRef = useRef<WebSocketContextType>({
-    setSocketURL,
     sendMessageRef,
   });
 

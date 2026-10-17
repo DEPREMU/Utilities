@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { Users } from "./WebSocketHandling.ts";
+import { Users } from "./WebSocketHandling";
 import { Logger } from "@common";
 import { prisma } from "@/database/postgres";
 import { WebSocketMessage } from "@types";
@@ -20,6 +20,7 @@ const handleInitWebSocket = (
 
   try {
     userDevice.clearAllTimers();
+    userDevice.clearTimeoutToInit();
 
     userDevice.setUserData({
       userId: data.userId,
@@ -70,6 +71,7 @@ const onMessage = (
 const connectionWss = (ws: WebSocket) => {
   let isErrorClose = false;
   const userDevice = users.createUser(ws);
+  userDevice.initTimeoutToInit();
 
   logger.log(chalk.green("New client connected"));
 

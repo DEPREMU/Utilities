@@ -2,13 +2,13 @@ import {
   File,
   Logger,
   REPLACERS,
+  RequestError,
   getHandlerGet,
   STATUS_RESPONSE,
 } from "@common";
 import path from "path";
 import chalk from "chalk";
 import { config } from "@/config";
-import { RequestError } from "@commonSrc/both/errors/Error";
 import { sendAccelRedirect } from "../downloads";
 import { dataUpdates, getFinalFileName } from "../variables";
 

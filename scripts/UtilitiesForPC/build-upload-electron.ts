@@ -3,11 +3,10 @@ import axios from "axios";
 import chalk from "chalk";
 import FormData from "form-data";
 import { args } from "../arguments";
-import { File } from "@commonSrc/serverOrElectron/fs.ts";
+import { File } from "@commonSrc/serverOrElectron/fs";
 import { Script } from "../common";
-import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { ServerFetch } from "@commonSrc/both/index.ts";
-import { ServerError } from "@commonSrc/both/errors/Error";
+import { Logger } from "@commonSrc/serverOrElectron/logger";
+import { ServerFetch, ServerError } from "@commonSrc/both";
 import type { Enums, RequestUploadUpdate } from "@types";
 
 let isNewVersionLinux: boolean;

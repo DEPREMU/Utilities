@@ -1,6 +1,6 @@
 import path from "path";
-import { File } from "@common";
 import { app, dialog } from "electron";
+import { ExecuteOnce, File } from "@common";
 
 type ValidPaths = {
   [K in keyof typeof StaticPaths]: (typeof StaticPaths)[K] extends string
@@ -8,7 +8,7 @@ type ValidPaths = {
     : never;
 }[keyof typeof StaticPaths];
 
-const getMainPath = async () => {
+const mainPath = await ExecuteOnce.execute("mainPath", undefined, async () => {
   let mainPath = process.cwd();
   try {
     mainPath = __dirname;
@@ -28,8 +28,7 @@ const getMainPath = async () => {
   }
 
   return mainPath;
-};
-const mainPath = await getMainPath();
+});
 
 class StaticPaths {
   static readonly MAIN_PATH = app.isPackaged

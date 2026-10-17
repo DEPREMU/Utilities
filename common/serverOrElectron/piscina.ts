@@ -3,7 +3,8 @@ import path from "path";
 import { REPLACERS } from "@REPLACERS";
 import { WorkerFiles } from "@types";
 
-let mainPath = process.cwd();
+let mainPath = path.join(process.cwd(), REPLACERS.isDev ? "build" : "");
+
 try {
   mainPath = __dirname;
 } catch {
@@ -13,7 +14,7 @@ try {
 let exists = false;
 let attempts = 3;
 
-const ext = REPLACERS.isServer ? "cjs" : "js";
+const ext = REPLACERS.isServer ? "mjs" : "js";
 
 export const PiscinaWorkerFiles: Record<WorkerFiles, string> = {
   IMAGES: `images.worker.${ext}`,

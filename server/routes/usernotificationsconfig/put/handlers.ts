@@ -1,6 +1,5 @@
 import { prisma } from "@/database/postgres";
-import { RequestError } from "@commonSrc/both/errors/Error";
-import { getHandlerPut, STATUS_RESPONSE } from "@common";
+import { RequestError, getHandlerPut, STATUS_RESPONSE } from "@common";
 
 export const handleUpdateUserNotificationsConfig = getHandlerPut(
   "/user-notifications-config",

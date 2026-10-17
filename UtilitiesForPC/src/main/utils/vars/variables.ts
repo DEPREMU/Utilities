@@ -1,7 +1,7 @@
 import os from "os";
 import { Paths } from "./paths";
 import MachineId from "node-machine-id";
-import { Logger } from "@/utils/logger.ts";
+import { Logger } from "@/utils/logger";
 import { DataAppElectron } from "@types";
 import { Task, ServiceClass } from "@common";
 

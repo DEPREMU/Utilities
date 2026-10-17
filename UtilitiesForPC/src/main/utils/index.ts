@@ -62,8 +62,8 @@ export * from "./expose";
 export * from "./logger";
 export * from "./server";
 export * from "./storage";
+export * from "./nativeData";
 export * from "./translations";
 export * from "./notifications";
-export * from "./nativeData/index";
 
 export default dataApp;

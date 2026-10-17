@@ -1,9 +1,9 @@
 import path from "path";
 import prettier from "prettier";
 import { Script } from "./common";
-import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
-import { Directory, File } from "@commonSrc/serverOrElectron/fs.ts";
 import { Helper } from "@commonSrc/both";
+import { Logger } from "@commonSrc/serverOrElectron/logger";
+import { Directory, File } from "@commonSrc/serverOrElectron/fs";
 
 const script = new Script();
 const logger = new Logger("format-folder");

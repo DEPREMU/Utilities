@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import { Logger } from "@common";
 import { Queue, Job } from "bullmq";
-import { QUEUE_NAME } from "./variables.ts";
-import { getRedisClient } from "../redis/client.ts";
+import { QUEUE_NAME } from "./variables";
+import { getRedisClient } from "../redis/client";
 
 const logger = new Logger("AuthEmailQueue");
 

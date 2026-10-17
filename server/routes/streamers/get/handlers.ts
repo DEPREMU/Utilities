@@ -1,7 +1,6 @@
 import { prisma } from "@/database/postgres";
-import { RequestError } from "@commonSrc/both/errors/Error";
 import { isLiveStreamer } from "../common";
-import { Helper, STATUS_RESPONSE, getHandlerGet } from "@common";
+import { Helper, RequestError, STATUS_RESPONSE, getHandlerGet } from "@common";
 
 export const handleGetStreamers = getHandlerGet(
   "/streamers",

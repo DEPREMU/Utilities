@@ -93,15 +93,12 @@ export type ExpectedSecureStorageTypes = {
 };
 
 export type ExpectedUnsecureStorageTypes = {
-  API_URL: string | null;
   DEBUG: DEBUG_SETTINGS;
   LANGUAGE: LanguagesSupported;
   NOTIFICATIONS: Notifications;
-  WEBSOCKET_URL: string | null;
   VAULT_SETTINGS: VaultSettings | null;
   NOTES_SETTINGS: NotesSettings | null;
   HAS_ADMIN_ACCESS: boolean | null;
-  CLIPBOARD_WEBSOCKET_URL: string | null;
   RECORDER_DATA: {
     lastUri: string;
     quality: "low" | "medium" | "high" | "lossless";
@@ -161,16 +158,13 @@ export const UNSECURE_KEYS_STORAGE: Record<
   string
 > = {
   DEBUG: "@debug",
-  API_URL: "@API_URL",
   LANGUAGE: "@languageKeyStorage",
   APP_BEHAVIOR: "@appBehavior",
-  WEBSOCKET_URL: "@webSocketURL",
   NOTIFICATIONS: "@notifications",
   RECORDER_DATA: "@recorderData",
   VAULT_SETTINGS: "@vaultSettings",
   NOTES_SETTINGS: "@notesSettings",
   HAS_ADMIN_ACCESS: "@hasAdminAccess",
-  CLIPBOARD_WEBSOCKET_URL: "@clipboardWebSocketURL",
 };
 
 export const ALL_KEYS_STORAGE = {

@@ -9,6 +9,7 @@ import {
   Network,
   REPLACERS,
   ServerFetch,
+  ServerError,
   ServiceClass,
   KeyStorageValues,
   ExpectedStorageTypes,
@@ -19,7 +20,6 @@ import {
 import { Logger } from "../TOP_LEVEL";
 import { cloneDeep } from "lodash";
 import { navigation } from "./navigation";
-import { ServerError } from "@commonSrc/both/errors/Error";
 import { EventsDeviceInfo } from "./deviceInfo";
 import { storageManagement } from "./storage";
 import { notificationsManager } from "./notifications";

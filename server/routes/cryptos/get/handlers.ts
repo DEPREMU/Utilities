@@ -1,6 +1,5 @@
-import { RequestError } from "@commonSrc/both/errors/Error.ts";
-import { cryptos } from "../variables.ts";
-import { getHandlerGet, STATUS_RESPONSE } from "@common";
+import { cryptos } from "../variables";
+import { getHandlerGet, STATUS_RESPONSE, RequestError } from "@common";
 
 export const handleGetCryptos = getHandlerGet(
   "/cryptos",

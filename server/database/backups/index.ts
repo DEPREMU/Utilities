@@ -13,7 +13,7 @@ import chalk from "chalk";
 import { spawn } from "child_process";
 import { config } from "@/config";
 import { prisma } from "../postgres";
-import { getEnvValue } from "@/env.ts";
+import { getEnvValue } from "@/env";
 import { getDbConfig } from "../functions";
 
 const logger = new Logger("DatabaseBackup");

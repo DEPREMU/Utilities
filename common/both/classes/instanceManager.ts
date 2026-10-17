@@ -1,5 +1,5 @@
-import { Timers } from "../timer.ts";
-import { Function } from "@types";
+import { Timers } from "../timer";
+import type { Function } from "@types";
 
 export class InstanceManager<T> {
   #deleteInstanceAfter: number;

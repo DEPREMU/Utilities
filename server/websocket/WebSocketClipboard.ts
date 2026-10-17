@@ -1,24 +1,24 @@
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling";
+import { Logger } from "@common";
 import { prisma } from "@/database/postgres";
-import { Logger, Timers } from "@common";
 import { ClipboardWebSocketMessage } from "@types";
 import { WebSocket, WebSocketServer } from "ws";
 
 const logger = new Logger("WebSocketClipboard");
-let idIntervalClipboard: number | null = null;
 
 const usersClipboard = new Users<
-  Record<string, unknown>,
+  { lastSyncGlobal: Record<string, number> },
   ClipboardWebSocketMessage<"sentByServer">,
-  { lastItem: string }
+  { lastSync?: number }
 >();
+usersClipboard.setAdditionalData("lastSyncGlobal", {});
 
 const handleInit = (
-  message: ClipboardWebSocketMessage<"sentByApp">,
+  message: Extract<ClipboardWebSocketMessage<"sentByApp">, { type: "init" }>,
   userDevice: NonNullable<ReturnType<typeof usersClipboard.getUser>>,
 ) => {
-  if (message.type !== "init") return;
+  userDevice.clearTimeoutToInit();
 
   if (!message.userId || !message.deviceId) {
     userDevice.handleClose(1000, "Invalid init data");
@@ -40,13 +40,15 @@ const handleInit = (
 };
 
 const handleAddNewItem = async (
-  message: ClipboardWebSocketMessage<"sentByApp">,
+  message: Extract<
+    ClipboardWebSocketMessage<"sentByApp">,
+    { type: "add-new-item" }
+  >,
   userDevice: NonNullable<ReturnType<typeof usersClipboard.getUser>>,
 ) => {
-  if (message.type !== "add-new-item") return;
-
   try {
     const res = await prisma.clipboardSync.upsert({
+      select: { id: true },
       where: {
         userId_deviceId_content: {
           userId: userDevice.userId,
@@ -65,6 +67,11 @@ const handleAddNewItem = async (
       },
     });
 
+    const now = Date.now();
+    usersClipboard.setAdditionalData("lastSyncGlobal", (prev) => ({
+      ...prev,
+      [userDevice.userId]: now,
+    }));
     usersClipboard.sendMessageToUser(
       {
         id: res.id,
@@ -73,7 +80,7 @@ const handleAddNewItem = async (
       },
       userDevice.userId,
       (device) => {
-        device.setAdditionalData("lastItem", message.content);
+        device.setAdditionalData("lastSync", now);
 
         return true;
       },
@@ -123,6 +130,8 @@ const onMessage = async (
 const onConnection = (wsClipboard: WebSocket) => {
   const userDevice = usersClipboard.createUser(wsClipboard);
 
+  userDevice.initTimeoutToInit();
+
   wsClipboard.on("message", (buffer) => onMessage(buffer, userDevice));
 
   wsClipboard.on("close", () => {
@@ -145,46 +154,6 @@ const onConnection = (wsClipboard: WebSocket) => {
 export const initWebSocketClipboard = () => {
   try {
     const wss = new WebSocketServer({ noServer: true });
-
-    if (idIntervalClipboard) Timers.clearInterval(idIntervalClipboard);
-    idIntervalClipboard = Timers.setInterval(async () => {
-      const users = usersClipboard.getAllUsers();
-
-      users.forEach(async (data, userId) => {
-        try {
-          if (data.devices.size === 0) return;
-
-          const lastItem = await prisma.clipboardSync.findFirst({
-            take: 1,
-            where: { userId, deleted: false },
-            orderBy: { createdAt: "desc" },
-          });
-
-          if (!lastItem) return;
-
-          usersClipboard.sendMessageToUser(
-            {
-              id: lastItem.id,
-              type: "new-clipboard-item",
-              content: lastItem.content,
-            },
-            userId,
-            (device) => {
-              if (device.getAdditionalData("lastItem") === lastItem.content)
-                return false;
-
-              device.setAdditionalData("lastItem", lastItem.content);
-              return true;
-            },
-          );
-        } catch (error) {
-          logger.error(
-            chalk.red("Error sending clipboard data via WebSocket:"),
-            error,
-          );
-        }
-      });
-    }, 750);
 
     wss.on("connection", onConnection);
 

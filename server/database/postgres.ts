@@ -1,13 +1,13 @@
-import "./backups/index.ts";
+import "./backups";
 
 import path from "path";
 import chalk from "chalk";
 import { File } from "@common";
 import { exec } from "child_process";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { getEnvValue } from "@/env.ts";
-import { PrismaClient } from "@/generated/prisma/index.js";
-import { getDbConfig } from "./functions.ts";
+import { getEnvValue } from "@/env";
+import { getDbConfig } from "./functions";
+import { PrismaClient } from "@/generated/prisma";
 
 export let dbInitialized = false;
 

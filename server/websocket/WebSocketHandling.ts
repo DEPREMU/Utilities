@@ -1,6 +1,6 @@
 import { WebSocket } from "ws";
-import { getValueState, Timers as TimersCommon } from "@common";
 import type { CommonUserDataWS, StateFunction } from "@types";
+import { getValueState, Timers as TimersCommon } from "@common";
 
 const TIMEOUT_PING = 10000; // 10 seconds
 const INTERVAL_PING = 30000; // 30 seconds
@@ -131,6 +131,8 @@ export class Device<
   Messages extends Record<string, unknown>,
   AdditionalData extends Record<string, unknown>,
 > extends AdditionalData<AdditionalData> {
+  #timeoutId: number | null = null;
+
   ws: WebSocket;
 
   #pingTimeout: ReturnTimeout | null = null;
@@ -142,6 +144,22 @@ export class Device<
     deviceId: "",
     isClosing: false,
   };
+
+  public initTimeoutToInit() {
+    if (this.#timeoutId) return;
+
+    this.#timeoutId = TimersCommon.setTimeout(
+      () => this.handleClose(1000, "Not initialized on time"),
+      5000,
+    );
+  }
+
+  public clearTimeoutToInit() {
+    if (!this.#timeoutId) return;
+
+    TimersCommon.clearTimeout(this.#timeoutId);
+    this.#timeoutId = null;
+  }
 
   public setUserData(data: Partial<CommonUserDataWS>) {
     this.#userData = { ...this.#userData, ...data };
@@ -262,14 +280,14 @@ export class Device<
     );
   }
 
-  public sendMessage(msg: Messages) {
+  public sendMessage(msg: Messages | string) {
     if (this.ws.readyState !== WebSocket.OPEN) {
       this.handleClose(1000, "WebSocket not open");
       return;
     }
 
     try {
-      this.ws.send(JSON.stringify(msg));
+      this.ws.send(typeof msg === "string" ? msg : JSON.stringify(msg));
     } catch {
       // Ignored
     }
@@ -372,8 +390,9 @@ export class Users<
     const user = this.#getValidUser(userId, false);
     if (!user) return;
 
+    const str = typeof msg === "string" ? msg : JSON.stringify(msg);
     user.devices.forEach((device) => {
-      if (!shouldSend || shouldSend(device)) device.sendMessage(msg);
+      if (!shouldSend || shouldSend(device)) device.sendMessage(str);
     });
   }
 
@@ -400,13 +419,6 @@ export class Users<
     if (!user) return null;
 
     return user.devices.get(deviceId) || null;
-  }
-
-  /**
-   * Returns the entire users object, which contains all users and their associated devices and additional data. This can be useful for debugging purposes or when you need to perform operations that involve multiple users or devices. However, it should be used with caution to avoid exposing sensitive information or overwhelming the system with too much data at once.
-   */
-  public getAllUsers() {
-    return this.users;
   }
 
   constructor() {

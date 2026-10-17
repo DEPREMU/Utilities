@@ -4,12 +4,12 @@ import chalk from "chalk";
 import FormData from "form-data";
 import { args } from "./arguments";
 import { Script } from "./common";
-import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
+import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { ZipArchive } from "archiver";
 import { ServerError } from "@commonSrc/both/errors/Error";
 import { Directory, File } from "@commonSrc/serverOrElectron";
 import type { RequestUploadUpdate } from "@types";
-import { ServerFetch, Validations } from "@commonSrc/both/index.ts";
+import { ServerFetch, Validations } from "@commonSrc/both";
 
 const platform = {
   web: false,

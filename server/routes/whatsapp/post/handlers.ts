@@ -1,8 +1,7 @@
 import { prisma } from "@/database/postgres";
-import { RequestError } from "@commonSrc/both/errors/Error";
 import { setServiceEnabled } from "@/whatsapp/gateway";
 import { generateLinkToken } from "@/whatsapp/linkManager";
-import { getHandlerPost, STATUS_RESPONSE } from "@common";
+import { RequestError, getHandlerPost, STATUS_RESPONSE } from "@common";
 
 export const handleGenerateLink = getHandlerPost(
   "/whatsapp",

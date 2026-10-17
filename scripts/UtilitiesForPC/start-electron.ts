@@ -1,8 +1,8 @@
 import axios from "axios";
 import chalk from "chalk";
 import { Script } from "../common";
-import { Helper } from "@commonSrc/both/index.ts";
-import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
+import { Helper } from "@commonSrc/both";
+import { Logger } from "@commonSrc/serverOrElectron/logger";
 import * as readline from "readline";
 import { args, TYPE_ARGS } from "../arguments";
 import { spawn, ChildProcess, SpawnOptions, execSync } from "child_process";

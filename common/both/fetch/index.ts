@@ -1,2 +1,2 @@
-export * from "./fetch.ts";
-export * from "./network.ts";
+export * from "./fetch";
+export * from "./network";
