@@ -19,11 +19,9 @@ import {
 import Button from "@components/Button/screens";
 import ThemePicker from "@screens/Settings/components/ThemePicker";
 import { cloneDeep } from "lodash";
-import { background } from "@/utils/services/background";
 import LanguagePicker from "@screens/Settings/components/LanguagePicker";
 import { useLanguage } from "@context/LanguageContext";
 import { ServerError } from "@commonSrc/both/errors/Error";
-import { useWebSocket } from "@context/WebSocketContext";
 import { useUserContext } from "@context/UserContext";
 import { useAppBehavior } from "@context/AppBehaviorContext";
 import { ScrollView, View } from "react-native";
@@ -121,23 +119,16 @@ const DebugComponent: React.FC = memoDeep(() => {
 const SettingsScreen: React.FC = () => {
   const { isLoggedIn } = useUserContext();
   const { t, dynamicT } = useLanguage();
-  const { setSocketURL } = useWebSocket();
   const { styles, colors } = useStylesSettingsScreen();
   const { appBehavior, setAppBehavior } = useAppBehavior();
 
   const [hasInternet, setHasInternet] = useState<boolean>(
     deviceInfo.hasInternet,
   );
-  const [apiURL, setApiURL] = useState<string>(
-    storageManagement.get("API_URL", ""),
-  );
   const [hasAdmin, setHasAdmin] = useState<boolean>(
     storageManagement.get("HAS_ADMIN_ACCESS", false),
   );
   const [errorAdmin, setErrorAdmin] = useState<string | null>(null);
-  const [socketURL, setSocketURLState] = useState<string>(
-    storageManagement.get("WEBSOCKET_URL", ""),
-  );
   const [updatesData, setUpdatesData] = useState<UpdatesData>(
     getDefaultUpdatesData(),
   );
@@ -181,7 +172,7 @@ const SettingsScreen: React.FC = () => {
   });
 
   const openUrlUpdatesWebPageRef = useRef(async () => {
-    const updatesWebPageUrl = URLS.api.replace("api", "updates/web-page");
+    const updatesWebPageUrl = URLS.api.replace("api", "");
     logger.log("Opening updates web page URL:", updatesWebPageUrl);
     openURL(updatesWebPageUrl);
   });
@@ -234,99 +225,8 @@ const SettingsScreen: React.FC = () => {
     }
   }, [password]);
 
-  const saveApiURL = useCallback(async () => {
-    const { userData, sessionToken } = sessionManager.getSessionData();
-
-    if (!apiURL || !userData?.userId) return;
-
-    background.addTaskQueue(
-      {
-        arguments: [],
-        function: async () => {
-          if (!userData?.userId) return;
-          if (!sessionToken) return;
-
-          const deviceId = storageManagement.get("DEVICE_ID");
-
-          try {
-            const res = await ServerFetch.put(
-              "/user-config/update",
-              {
-                body: { values: { API_URL: apiURL }, deviceId },
-              },
-              sessionToken,
-            );
-
-            if (Helper.Object.getValue(res.data, "success"))
-              storageManagement.save("API_URL", apiURL);
-          } catch (error) {
-            logger.error("Error updating user config:", error);
-          }
-        },
-      },
-      true,
-    );
-  }, [apiURL]);
-
-  const saveSocketURL = useCallback(async () => {
-    const { userData, sessionToken } = sessionManager.getSessionData();
-
-    if (!socketURL || !userData?.userId) return;
-
-    setSocketURL(socketURL);
-    background.addTaskQueue(
-      {
-        arguments: [],
-        function: async () => {
-          if (!userData?.userId) return;
-          if (!sessionToken) return;
-
-          const deviceId = storageManagement.get("DEVICE_ID");
-
-          try {
-            const res = await ServerFetch.put(
-              "/user-config/update",
-              {
-                body: {
-                  values: { webSocketURL: socketURL },
-                  deviceId,
-                },
-              },
-              sessionToken,
-            );
-
-            if (Helper.Object.getValue(res.data, "success"))
-              storageManagement.save("WEBSOCKET_URL", socketURL);
-          } catch (error) {
-            logger.error("Error updating user config:", error);
-          }
-        },
-      },
-      true,
-    );
-  }, [socketURL, setSocketURL]);
-
   const renderSectionsAdmin = useCallback(() => {
-    const sections: Section[] = [
-      {
-        subtitle: "settings.setApiURL",
-        labelTextInput: "settings.apiURL",
-        value: apiURL,
-        onChangeText: setApiURL,
-        placeholder: "https://api.example.com",
-        handlePress: saveApiURL,
-        labelButton: "labels.save",
-      },
-      {
-        subtitle: "settings.setWebSocketURL",
-        labelTextInput: "settings.webSocketURL",
-        value: socketURL,
-        onChangeText: setSocketURLState,
-        placeholder: "wss://socket.example.com",
-        handlePress: saveSocketURL,
-        labelButton: "labels.save",
-      },
-    ];
+    const sections: Section[] = [];
 
     return sections.map((section, index) => (
       <View style={styles.section} key={index}>
@@ -351,7 +251,7 @@ const SettingsScreen: React.FC = () => {
         </View>
       </View>
     ));
-  }, [apiURL, socketURL, styles, dynamicT, saveApiURL, saveSocketURL]);
+  }, [styles, dynamicT]);
 
   useEffect(() => {
     const hasInternetListener = deviceInfo.addEventListener(

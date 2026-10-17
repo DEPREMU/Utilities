@@ -66,12 +66,9 @@ export const getStorageData = async (
     };
 
     if (userConfig.hasAdmin) {
+      //TODO: Implement admin sections
       storageData = {
         ...storageData,
-        API_URL: userConfig.API_URL || undefined,
-        WEBSOCKET_URL: userConfig.webSocketURL || undefined,
-        CLIPBOARD_WEBSOCKET_URL:
-          userConfig.webSocketURL?.replace("/ws", "/clipboard") || undefined,
       };
     }
 
