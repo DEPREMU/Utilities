@@ -2,7 +2,7 @@ import type { BuildOptions } from "esbuild";
 
 export const options: BuildOptions = {
   bundle: true,
-  format: "cjs",
+  format: "esm",
   minify: process.env.NODE_ENV === "production",
   platform: "node",
   legalComments: "none",
@@ -27,9 +27,8 @@ export const externalServer = [
 ];
 
 export const externalElectron = [
-  "pino",
-  "sharp",
-  "piscina",
+  ...commonExternal,
+
   "pdfkit",
   "node-7z",
   "7zip-bin",

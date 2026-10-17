@@ -48,7 +48,7 @@ const startServerProcess = (): ChildProcess[] => {
     env: { ...process.env, __DEV__: "true" },
   });
 
-  const child = spawn("node", ["./build/index.cjs"], {
+  const child = spawn("node", ["./build/index.mjs"], {
     cwd: serverDir,
     stdio: "inherit",
     env: { ...process.env, __DEV__: "true" },
