@@ -3,27 +3,27 @@ import { LanguagesSupported } from "./typesTranslations";
 export type PersonalWhatsAppConnectionState =
   "error" | "qr_ready" | "connected" | "connecting" | "disconnected";
 
-export interface PersonalWhatsAppStatus {
+export type PersonalWhatsAppStatus = {
   state: PersonalWhatsAppConnectionState;
-  phoneNumber?: string;
   name?: string;
   qrDataUrl?: string;
+  phoneNumber?: string;
   errorMessage?: string;
-}
+};
 
-export interface PersonalStickerConfig {
+export type PersonalStickerConfig = {
   emojis: string[];
   quality: number;
   packName: string;
   authorName: string;
+  autoConnect: boolean;
   allowedChats: "direct_only" | "all";
   enabledAutoReply: boolean;
-  autoConnect: boolean;
-}
+};
 
 export type WhatsAppStatusListener = (status: PersonalWhatsAppStatus) => void;
 
-export interface WhatsAppBridge {
+export type WhatsAppBridge = {
   updateConfig: (
     config: Partial<PersonalStickerConfig>,
   ) => Promise<PersonalStickerConfig>;
@@ -34,26 +34,26 @@ export interface WhatsAppBridge {
   disconnect: () => Promise<boolean>;
   logoutAndPurge: () => Promise<boolean>;
   onStatusChanged: (listener: WhatsAppStatusListener) => () => void;
-}
+};
 
-export interface WhatsAppStickerProcessJobData {
+export type WhatsAppStickerProcessJobData = {
+  lang: LanguagesSupported;
   jobId: string;
-  messageId: string;
   senderId: string;
   isLinked: boolean;
+  messageId: string;
+  enqueuedAt: number;
   isAnimated: boolean;
   tempInputPath: string;
-  lang: "en" | "es";
   options: {
     emojis: string[];
     quality: number;
     packName: string;
     authorName: string;
   };
-  enqueuedAt: number;
-}
+};
 
-export interface WhatsAppStickerDeliveryJobData {
+export type WhatsAppStickerDeliveryJobData = {
   lang: LanguagesSupported;
   jobId: string;
   messageId: string;
@@ -62,9 +62,9 @@ export interface WhatsAppStickerDeliveryJobData {
   recipientId: string;
   tempStickerPath: string;
   processingDurationMs: number;
-}
+};
 
-export interface WhatsAppQuotaInfo {
+export type WhatsAppQuotaInfo = {
   resetAt: string;
   isLinked: boolean;
   dailyQuota: number;
@@ -72,32 +72,29 @@ export interface WhatsAppQuotaInfo {
   remainingToday: number;
   resetInSeconds: number;
   linkedPhoneNumber?: string;
-}
+};
 
-export interface WhatsAppHealthStatus {
+export type WhatsAppHealthStatus = {
+  redis: { connected: boolean };
   status: "healthy" | "degraded";
   timestamp: string;
-  gateway: {
-    connected: boolean;
-    state: "open" | "close" | "connecting";
-    uptimeSeconds: number;
-  };
-  redis: { connected: boolean };
   queues: {
     processQueueHealthy: boolean;
     deliveryQueueHealthy: boolean;
   };
-}
+  gateway: {
+    state: "open" | "close" | "connecting";
+    connected: boolean;
+    uptimeSeconds: number;
+  };
+};
 
-export interface WhatsAppOperationalStatus {
+export type WhatsAppOperationalStatus = {
+  sharedGateway: { connected: boolean; reconnectAttempts: number };
   serviceEnabled: boolean;
   workers: {
     processWorkersActive: number;
     deliveryWorkersActive: number;
-  };
-  sharedGateway: {
-    connected: boolean;
-    reconnectAttempts: number;
   };
   queueDepth: {
     processActive: number;
@@ -106,16 +103,16 @@ export interface WhatsAppOperationalStatus {
     processFailed24h: number;
     processCompleted24h: number;
   };
-}
+};
 
-export interface WhatsAppLinkTokenResult {
+export type WhatsAppLinkTokenResult = {
   code: string;
   expiresAt: string;
   instructions: Record<LanguagesSupported, string>;
   expiresInSeconds: number;
-}
+};
 
-export interface WhatsAppQuotaUpdateMessage {
+export type WhatsAppQuotaUpdateMessage = {
   type: "whatsapp-quota-update";
   resetAt: string;
   isLinked: boolean;
@@ -123,14 +120,14 @@ export interface WhatsAppQuotaUpdateMessage {
   consumedToday: number;
   remainingToday: number;
   linkedPhoneNumber?: string;
-}
+};
 
-export interface WhatsAppGatewayStatusMessage {
+export type WhatsAppGatewayStatusMessage = {
   type: "whatsapp-gateway-status";
   connected: boolean;
   serviceEnabled: boolean;
   maintenanceMessage?: string;
-}
+};
 
 export type WhatsAppWebSocketMessage =
   WhatsAppQuotaUpdateMessage | WhatsAppGatewayStatusMessage;
