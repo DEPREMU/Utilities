@@ -20,6 +20,7 @@ const handleInitWebSocket = (
 
   try {
     userDevice.clearAllTimers();
+    userDevice.clearTimeoutToInit();
 
     userDevice.setUserData({
       userId: data.userId,
@@ -70,6 +71,7 @@ const onMessage = (
 const connectionWss = (ws: WebSocket) => {
   let isErrorClose = false;
   const userDevice = users.createUser(ws);
+  userDevice.initTimeoutToInit();
 
   logger.log(chalk.green("New client connected"));
 
