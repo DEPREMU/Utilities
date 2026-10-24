@@ -1,0 +1,107 @@
+name: Promote Main to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: promote-main-to-production
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  verify-and-promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      BASE_BRANCH: production
+      HEAD_BRANCH: main
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: yarn workspace utilities-server run db-generate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+      - name: Run quality gate and tests
+        run: yarn run before-commit:testing
+
+      - name: Check branch divergence
+        id: divergence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$BASE_BRANCH" "$HEAD_BRANCH"
+          pending_commits=$(git rev-list --count "origin/$BASE_BRANCH..origin/$HEAD_BRANCH")
+          echo "pending_commits=$pending_commits" >> "$GITHUB_OUTPUT"
+          if [ "$pending_commits" -eq 0 ]; then
+            echo "::notice::$BASE_BRANCH is already up to date with $HEAD_BRANCH. Skipping PR creation."
+          else
+            echo "Found $pending_commits commit(s) on $HEAD_BRANCH not yet in $BASE_BRANCH."
+          fi
+
+      - name: Create or reuse promotion pull request
+        if: steps.divergence.outputs.pending_commits != '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          existing_pr_url=$(gh pr list \
+            --base "$BASE_BRANCH" \
+            --head "$HEAD_BRANCH" \
+            --state open \
+            --json url \
+            --jq '.[0].url // empty')
+
+          if [ -n "$existing_pr_url" ]; then
+            echo "::notice::Promotion PR already open: $existing_pr_url"
+            echo "### Promotion PR already open" >> "$GITHUB_STEP_SUMMARY"
+            echo "$existing_pr_url" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          pr_body=$(cat <<EOF
+          ## Automated promotion: \`$HEAD_BRANCH\` → \`$BASE_BRANCH\`
+
+          All checks in \`yarn run before-commit:testing\` passed on \`$HEAD_BRANCH\`.
+
+          - **Trigger commit**: $COMMIT_SHA
+          - **Workflow run**: $RUN_URL
+
+          This pull request requires maintainer review and a manual merge.
+          EOF
+          )
+
+          created_pr_url=$(gh pr create \
+            --base "$BASE_BRANCH" \
+            --head "$HEAD_BRANCH" \
+            --title "chore(release): promote $HEAD_BRANCH to $BASE_BRANCH" \
+            --body "$pr_body")
+
+          echo "::notice::Created promotion PR: $created_pr_url"
+          echo "### Promotion PR created" >> "$GITHUB_STEP_SUMMARY"
+          echo "$created_pr_url" >> "$GITHUB_STEP_SUMMARY"
