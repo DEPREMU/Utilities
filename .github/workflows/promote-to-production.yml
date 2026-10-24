@@ -16,12 +16,14 @@ permissions:
 
 jobs:
   verify-and-promote:
+    environment: promote-main-to-production
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     env:
       BASE_BRANCH: production
       HEAD_BRANCH: main
+      NORD_TOKEN: ${{ secrets.NORD_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -41,11 +43,34 @@ jobs:
       - name: Configure CI environment files
         shell: bash
         run: |
+          mkdir -p server/.temp/whatsapp-shared-session .temp/whatsapp-shared-session
+
           cat << 'EOF' > server/vps/docker/.env
           POSTGRES_USER=postgres
           POSTGRES_PASS=postgres
           POSTGRES_DB=UtilitiesDB
+          DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/UtilitiesDB?schema=public"
+          REDIS_URL="redis://127.0.0.1:6379"
+          IV=0123456789abcdef
+          __DEV__=false
+          USE_HTTPS=false
+          JWT_SECRET=ci-jwt-secret-key-1234567890abcdef
+          ADMIN_EMAIL=ci-admin@example.com
+          ADMIN_PASSWORD=ci-admin-password
+          DEEPL_TRANSLATOR_API=ci-deepl-key
+          SECRET_KEY_TO_ENCRYPTION=0123456789abcdef0123456789abcdef
+          FIREBASE_SERVICE_ACCOUNT={}
+          DB_ENCRYPTION_PASS=ci-db-encryption-pass
+          WS_URL=ws://localhost:3000/ws
+          API_URL=http://localhost:3000/api
+          SMTP_HOST=localhost
+          SMTP_PORT=587
+          SMTP_USER=ci-smtp@example.com
+          SMTP_PASSWORD=ci-smtp-pass
+          FCM_SERVER_KEY=ci-fcm-key
+          DOWNLOAD_RATE_LIMIT=5m
           EOF
+          echo "NORD_TOKEN=${NORD_TOKEN}" >> server/vps/docker/.env
 
           cat << 'EOF' > .env
           IV=0123456789abcdef
@@ -79,19 +104,22 @@ jobs:
           fi
           docker-compose --version
 
-      - name: Start Postgres and Redis containers
+      - name: Build server Docker image
+        run: docker build -f server/vps/docker/Dockerfile -t utilities-server . --build-arg API_URL="http://localhost:3000/api"
+
+      - name: Start server test stack behind NordVPN
         shell: bash
         run: |
-          docker compose -f server/vps/docker/docker-compose.dev.yml up -d
-          echo "Waiting for Postgres to be ready..."
-          until docker exec utilities-postgres pg_isready -U postgres -d UtilitiesDB; do
-            sleep 1
-          done
-          echo "Waiting for Redis to be ready..."
-          until docker exec utilities-redis redis-cli ping; do
-            sleep 1
-          done
-          echo "Postgres and Redis are up and healthy!"
+          docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml up -d
+          echo "Waiting for server to become healthy behind NordVPN..."
+          timeout 180s bash -c '
+            until curl -sf http://localhost:3000/api/info/health > /dev/null 2>&1; do
+              echo "Waiting for http://localhost:3000/api/info/health..."
+              sleep 3
+            done
+          '
+          echo "Server is healthy!"
+          curl -s http://localhost:3000/api/info/health
 
       - name: Generate Prisma client
         run: yarn workspace utilities-server run db-generate
@@ -121,6 +149,19 @@ jobs:
           SMTP_USER: ci-smtp@example.com
           SMTP_PASSWORD: ci-smtp-pass
           FCM_SERVER_KEY: ci-fcm-key
+
+      - name: Dump container logs on failure
+        if: failure()
+        shell: bash
+        run: |
+          docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml ps
+          docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml logs
+
+      - name: Tear down test stack
+        if: always()
+        shell: bash
+        run: |
+          docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml down -v || true
 
       - name: Check branch divergence
         id: divergence
