@@ -15,21 +15,64 @@ permissions:
   pull-requests: write
 
 jobs:
-  verify-and-promote:
+  quality-gate:
+    name: Code Quality (before-commit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Configure minimal environment file
+        shell: bash
+        run: |
+          cat << 'EOF' > .env
+          IV=0123456789abcdef
+          __DEV__=true
+          USE_HTTPS=false
+          JWT_SECRET=ci-jwt-secret-key-1234567890abcdef
+          ADMIN_EMAIL=ci-admin@example.com
+          ADMIN_PASSWORD=ci-admin-password
+          DEEPL_TRANSLATOR_API=ci-deepl-key
+          SECRET_KEY_TO_ENCRYPTION=0123456789abcdef0123456789abcdef
+          FIREBASE_SERVICE_ACCOUNT={}
+          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public"
+          DB_ENCRYPTION_PASS=ci-db-encryption-pass
+          WS_URL=ws://localhost:3000/ws
+          API_URL=http://localhost:3000/api
+          REDIS_URL=redis://localhost:6379
+          SMTP_HOST=localhost
+          SMTP_PORT=587
+          SMTP_USER=ci-smtp@example.com
+          SMTP_PASSWORD=ci-smtp-pass
+          FCM_SERVER_KEY=ci-fcm-key
+          EOF
+
+      - name: Run code quality checks
+        run: yarn run before-commit
+
+  integration-tests:
+    name: Tests & Containers (Docker + NordVPN)
     environment: promote-main-to-production
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     env:
-      BASE_BRANCH: production
-      HEAD_BRANCH: main
       NORD_TOKEN: ${{ secrets.NORD_TOKEN }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -126,8 +169,8 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
 
-      - name: Run quality gate and tests
-        run: yarn run before-commit:testing
+      - name: Run workspace tests
+        run: yarn run tests
         env:
           CI: true
           IV: 0123456789abcdef
@@ -162,6 +205,25 @@ jobs:
         shell: bash
         run: |
           docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml down -v || true
+
+  promote-to-production:
+    name: Promote to Production
+    needs:
+      - quality-gate
+      - integration-tests
+    environment: promote-main-to-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      BASE_BRANCH: production
+      HEAD_BRANCH: main
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Check branch divergence
         id: divergence
@@ -204,7 +266,7 @@ jobs:
           pr_body=$(cat <<EOF
           ## Automated promotion: \`$HEAD_BRANCH\` → \`$BASE_BRANCH\`
 
-          All checks in \`yarn run before-commit:testing\` passed on \`$HEAD_BRANCH\`.
+          All checks in \`yarn run before-commit\` and \`yarn run tests\` passed on \`$HEAD_BRANCH\`.
 
           - **Trigger commit**: $COMMIT_SHA
           - **Workflow run**: $RUN_URL
@@ -222,7 +284,7 @@ jobs:
             if echo "$created_pr_url" | grep -qi "not permitted to create or approve pull requests"; then
               echo "::error::GitHub Actions is not allowed to create pull requests in this repository."
               echo "::error::To fix this: Go to Settings -> Actions -> General -> Workflow permissions -> Check 'Allow GitHub Actions to create and approve pull requests' and Save."
-              echo "::error::Alternatively, provide a Personal Access Token in secrets as PROMOTION_TOKEN or GH_PAT."
+              echo "::error::Alternatively, provide a Personal Access Token in secrets as PROMOTION_TOKEN."
             fi
             exit 1
           fi
