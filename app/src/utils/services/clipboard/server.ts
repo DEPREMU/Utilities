@@ -88,7 +88,7 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
     return await this.toggleDeleteAllItems(true);
   };
 
-  readonly getClipboard = async (pageNumber?: number) => {
+  readonly getClipboard = async (lastId?: string) => {
     try {
       const { sessionManager, storageManagement } = await import("@utils");
 
@@ -97,8 +97,8 @@ export abstract class ClipboardServer extends ServiceClass<ListenersClipboard> {
 
       const deviceId = storageManagement.get("DEVICE_ID");
       const res = await ServerFetch.get(
-        "/clipboard/:deviceId{/:page}",
-        { params: { deviceId, page: pageNumber }, query: {} },
+        "/clipboard/:deviceId{/:lastId}",
+        { params: { deviceId, lastId }, query: {} },
         token,
       );
 

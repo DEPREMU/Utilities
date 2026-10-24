@@ -16,17 +16,27 @@ export const handleGetStreamers = getHandlerGet(
   },
 );
 
-const STREAMERS_PER_PAGE = 10;
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 20;
 
 export const handleGetStreamersPage = getHandlerGet(
   "/streamers",
-  "/page{/:page}",
-  async ({ params }, sendResponse) => {
-    const page = Helper.Object.getValue(params, "page", 1);
+  "/page{/:lastId}",
+  async ({ params, query }, sendResponse) => {
+    const lastId = Helper.Object.getValue(params, "lastId");
+    const take = Math.max(
+      1,
+      Math.min(
+        MAX_PAGE_SIZE,
+        Helper.Object.getValue(query, "pageSize", DEFAULT_PAGE_SIZE),
+      ),
+    );
 
     const streamers = await prisma.streamers.findMany({
-      take: STREAMERS_PER_PAGE,
-      skip: (page - 1) * STREAMERS_PER_PAGE,
+      take,
+      skip: lastId ? 1 : 0,
+      cursor: lastId ? { id: lastId } : undefined,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     });
 
     sendResponse(STATUS_RESPONSE.SUCCESS, {

@@ -6,6 +6,67 @@ import type {
 } from "@types";
 import axios from "axios";
 
+const replaceParams = (
+  value: string,
+  optional = false,
+  params: Record<string, unknown>,
+): string | null => {
+  let missing = false;
+  const result = value.replace(/:([a-zA-Z0-9_]+)/g, (_, paramName: string) => {
+    if (!(paramName in params) || !params[paramName]) {
+      missing = true;
+      return "";
+    }
+
+    return encodeURIComponent(String(params[paramName]));
+  });
+
+  if (optional && missing) return null;
+  if (missing) throw new Error(`Missing parameter: ${value}`);
+
+  return result;
+};
+
+const resolveOptionals = (
+  value: string,
+  params: Record<string, unknown>,
+  route: string,
+): string => {
+  let result = "";
+  let i = 0;
+  while (i < value.length) {
+    if (value[i] !== "{") {
+      result += value[i];
+      i++;
+      continue;
+    }
+
+    let depth = 1;
+    let j = i + 1;
+
+    while (j < value.length && depth > 0) {
+      if (value[j] === "{") depth++;
+      else if (value[j] === "}") depth--;
+
+      j++;
+    }
+
+    if (depth !== 0)
+      throw new Error(`Invalid route: unclosed optional group in "${route}"`);
+
+    const content = value.slice(i + 1, j - 1);
+    const resolved = resolveOptionals(content, params, route);
+    const replaced = replaceParams(resolved, true, params);
+
+    if (replaced !== null) {
+      result += replaced;
+    }
+    i = j;
+  }
+
+  return result;
+};
+
 /**
  * Fetch class to handle server requests using axios. It provides methods for GET, POST, DELETE, and PUT requests, ensuring type safety and proper route handling.
  * Before using this class, make sure to set the `API_URL` static property to the base URL of your API.
@@ -21,66 +82,15 @@ export class ServerFetch {
     if (!route.startsWith("/")) {
       route = `/${route}` as T;
     }
-    const replaceParams = (value: string, optional = false): string | null => {
-      let missing = false;
-      const result = value.replace(
-        /:([a-zA-Z0-9_]+)/g,
-        (_, paramName: string) => {
-          if (!(paramName in params)) {
-            missing = true;
-            return "";
-          }
-          return encodeURIComponent(String(params[paramName]));
-        },
-      );
-      if (optional && missing) {
-        return null;
-      }
-      if (missing) {
-        throw new Error(`Missing parameter: ${value}`);
-      }
-      return result;
-    };
-    const resolveOptionals = (value: string): string => {
-      let result = "";
-      let i = 0;
-      while (i < value.length) {
-        if (value[i] !== "{") {
-          result += value[i];
-          i++;
-          continue;
-        }
-        let depth = 1;
-        let j = i + 1;
-        while (j < value.length && depth > 0) {
-          if (value[j] === "{") {
-            depth++;
-          } else if (value[j] === "}") {
-            depth--;
-          }
-          j++;
-        }
-        if (depth !== 0) {
-          throw new Error(
-            `Invalid route: unclosed optional group in "${route}"`,
-          );
-        }
-        const content = value.slice(i + 1, j - 1);
-        const resolved = resolveOptionals(content);
-        const replaced = replaceParams(resolved, true);
-        if (replaced !== null) {
-          result += replaced;
-        }
-        i = j;
-      }
-      return result;
-    };
-    const resolvedRoute = replaceParams(resolveOptionals(route)) ?? "";
+
+    const resolvedRoute =
+      replaceParams(resolveOptionals(route, params, route), false, params) ??
+      "";
     const searchParams = new URLSearchParams();
+
     Object.entries(query).forEach(([key, value]) => {
-      if (value === undefined || value === null) {
-        return;
-      }
+      if (!value && typeof value !== "boolean") return;
+
       if (Array.isArray(value)) {
         value.forEach((item) => {
           searchParams.append(key, String(item));
@@ -89,6 +99,7 @@ export class ServerFetch {
         searchParams.append(key, String(value));
       }
     });
+
     const queryString = searchParams.toString();
     return queryString ? `${resolvedRoute}?${queryString}` : resolvedRoute;
   }

@@ -12,7 +12,7 @@ describe("GET /clipboard", () => {
   describe("/clipboard/:deviceId", () => {
     it("should return clipboard items for a valid device", async () => {
       const res = await ServerFetch.get(
-        "/clipboard/:deviceId{/:page}",
+        "/clipboard/:deviceId{/:lastId}",
         { params: { deviceId: testUser.deviceId }, query: {} },
         testUser.token,
       );
@@ -22,7 +22,7 @@ describe("GET /clipboard", () => {
 
     it("should return an array of clipboard items", async () => {
       const res = await ServerFetch.get(
-        "/clipboard/:deviceId{/:page}",
+        "/clipboard/:deviceId{/:lastId}",
         { params: { deviceId: testUser.deviceId }, query: {} },
         testUser.token,
       );
@@ -31,12 +31,11 @@ describe("GET /clipboard", () => {
       }
     });
 
-    it("should support optional page parameter", async () => {
+    it("should support optional lastId parameter", async () => {
       const res = await ServerFetch.get(
-        "/clipboard/:deviceId{/:page}",
+        "/clipboard/:deviceId{/:lastId}",
         {
           params: {
-            page: 1,
             deviceId: testUser.deviceId,
           },
           query: {},
