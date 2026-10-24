@@ -132,19 +132,23 @@ jobs:
             echo "[VPS-Deploy] Recreating server container..."
             docker compose up -d --force-recreate server
 
-            echo "[VPS-Deploy] Verifying server health at http://127.0.0.1:3000/api/info/health..."
+            check_server_health() {
+              docker compose exec -T server node -e "fetch('http://127.0.0.1:3000/api/info/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1));" >/dev/null 2>&1
+            }
+
+            echo "[VPS-Deploy] Verifying server health inside container (http://127.0.0.1:3000/api/info/health)..."
             HEALTHY=false
             MAX_RETRIES=20
             RETRY_DELAY=5
 
             for i in $(seq 1 $MAX_RETRIES); do
-              STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/api/info/health 2>/dev/null || true)
-              if [ "$STATUS" = "200" ]; then
+              if check_server_health; then
                 echo "[VPS-Deploy] Server health check passed on attempt $i (HTTP 200)!"
+                docker compose exec -T server node -e "fetch('http://127.0.0.1:3000/api/info/health').then(r => r.text()).then(d => console.log('[VPS-Deploy] Health response:', d)).catch(() => {});" 2>/dev/null || true
                 HEALTHY=true
                 break
               fi
-              echo "[VPS-Deploy] Attempt $i/$MAX_RETRIES: HTTP status ${STATUS:-unavailable}. Retrying in ${RETRY_DELAY}s..."
+              echo "[VPS-Deploy] Attempt $i/$MAX_RETRIES: Server not ready or migrations in progress. Retrying in ${RETRY_DELAY}s..."
               sleep $RETRY_DELAY
             done
 
@@ -158,7 +162,11 @@ jobs:
                 docker tag depremu/utilities-server:rollback-previous depremu/utilities-server:latest
                 docker compose up -d --force-recreate server
                 sleep 5
-                curl -sf http://127.0.0.1:3000/api/info/health && echo "[VPS-Deploy] Rollback verified healthy!" || echo "[VPS-Deploy] Rollback health check failed."
+                if check_server_health; then
+                  echo "[VPS-Deploy] Rollback verified healthy!"
+                else
+                  echo "[VPS-Deploy] Rollback health check failed."
+                fi
               fi
               exit 1
             fi
