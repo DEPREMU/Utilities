@@ -4,22 +4,32 @@ import { ServerFetch } from "@common";
 describe("GET /streamers", () => {
   describe("/streamers/page{/:page}", () => {
     it("should return paginated streamers", async () => {
-      const res = await ServerFetch.get("/streamers/page{/:page}", {
+      const res = await ServerFetch.get("/streamers/page{/:lastId}", {
         params: {},
       });
       expect(res.status).toBeDefined();
       expect(res.data).toBeDefined();
     });
 
-    it("should support the optional page-number parameter", async () => {
-      const res = await ServerFetch.get("/streamers/page{/:page}", {
-        params: { page: 1 },
+    it("should support the optional lastId parameter", async () => {
+      const r = await ServerFetch.get("/streamers/page{/:lastId}", {
+        params: {},
+      });
+
+      const res = await ServerFetch.get("/streamers/page{/:lastId}", {
+        params: {
+          lastId: (
+            (r.data as Record<string, unknown>).streamers as Array<{
+              id: string;
+            }>
+          ).pop()?.id,
+        },
       });
       expect(res.status).toBeDefined();
     });
 
     it("should return streamers or an error", async () => {
-      const res = await ServerFetch.get("/streamers/page{/:page}", {
+      const res = await ServerFetch.get("/streamers/page{/:lastId}", {
         params: {},
       });
       const hasStreamers = "streamers" in res.data;

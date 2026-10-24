@@ -17,19 +17,27 @@ export const handleGetLogs = getHandlerGet(
   },
 );
 
-const LOGS_PER_PAGE = 10;
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 20;
 
 export const handleGetLogsPage = getHandlerGet(
   "/logs",
-  "/page{/:page}",
-  async ({ params }, sendResponse) => {
-    const page = Helper.Object.getValue(params, "page", 1);
-    const skip = (page - 1) * LOGS_PER_PAGE;
+  "/page{/:lastId}",
+  async ({ params, query }, sendResponse) => {
+    const lastId = Helper.Object.getValue(params, "lastId");
+    const take = Math.max(
+      1,
+      Math.min(
+        MAX_PAGE_SIZE,
+        Helper.Object.getValue(query, "pageSize", DEFAULT_PAGE_SIZE),
+      ),
+    );
 
     const logs = await prisma.logs.findMany({
-      skip,
-      take: LOGS_PER_PAGE,
-      orderBy: { timestamp: "desc" },
+      take,
+      skip: lastId ? 1 : 0,
+      cursor: lastId ? { id: lastId } : undefined,
+      orderBy: [{ timestamp: "desc" }, { id: "desc" }],
     });
 
     sendResponse(STATUS_RESPONSE.SUCCESS, {

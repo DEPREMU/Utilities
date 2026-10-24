@@ -3,7 +3,7 @@ import { authMiddlewareGet } from "@/routes/auth/middlewares";
 import { handleGetClipboard } from "./handlers";
 
 export const routerClipboardGet = getRouterGet("/clipboard", {
-  "/:deviceId{/:page}": {
+  "/:deviceId{/:lastId}": {
     handler: handleGetClipboard,
     middlewares: [authMiddlewareGet],
   },

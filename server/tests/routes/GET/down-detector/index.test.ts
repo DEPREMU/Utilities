@@ -12,7 +12,7 @@ describe("GET /down-detector", () => {
   describe("/down-detector/:deviceId", () => {
     it("should return down-detector items for a valid device", async () => {
       const res = await ServerFetch.get(
-        "/down-detector/:deviceId{/:page}",
+        "/down-detector/:deviceId{/:lastId}",
         { params: { deviceId: testUser.deviceId } },
         testUser.token,
       );
@@ -22,7 +22,7 @@ describe("GET /down-detector", () => {
 
     it("should return an array of down detectors", async () => {
       const res = await ServerFetch.get(
-        "/down-detector/:deviceId{/:page}",
+        "/down-detector/:deviceId{/:lastId}",
         { params: { deviceId: testUser.deviceId } },
         testUser.token,
       );
@@ -31,13 +31,27 @@ describe("GET /down-detector", () => {
       }
     });
 
-    it("should support optional page-number parameter", async () => {
-      const res = await ServerFetch.get(
-        "/down-detector/:deviceId{/:page}",
+    it("should support optional lastId parameter", async () => {
+      const r = await ServerFetch.get(
+        "/down-detector/:deviceId{/:lastId}",
         {
           params: {
             deviceId: testUser.deviceId,
-            page: 1,
+          },
+        },
+        testUser.token,
+      );
+
+      const res = await ServerFetch.get(
+        "/down-detector/:deviceId{/:lastId}",
+        {
+          params: {
+            deviceId: testUser.deviceId,
+            lastId: (
+              (r.data as Record<string, unknown>).downDetectors as Array<{
+                id: string;
+              }>
+            ).pop()?.id,
           },
         },
         testUser.token,

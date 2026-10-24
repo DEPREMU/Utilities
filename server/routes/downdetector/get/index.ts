@@ -3,7 +3,7 @@ import { authMiddlewareGet } from "@/routes/auth/middlewares";
 import { handleGetDownDetector } from "./handlers";
 
 export const routerDownDetectorGet = getRouterGet("/down-detector", {
-  "/:deviceId{/:page}": {
+  "/:deviceId{/:lastId}": {
     handler: handleGetDownDetector,
     middlewares: [authMiddlewareGet],
   },
