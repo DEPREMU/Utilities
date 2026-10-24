@@ -2,6 +2,9 @@
   "name": "utilities-server",
   "version": "0.0.0",
   "private": true,
+  "ci": {
+    "requiresDocker": true
+  },
   "scripts": {
     "db-update": "yarn run db-migrate:dev && prisma generate",
     "db-migrate:dev": "prisma migrate dev",
