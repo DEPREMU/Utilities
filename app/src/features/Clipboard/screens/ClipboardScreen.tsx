@@ -15,6 +15,7 @@ import Animated, {
 import { useLanguage } from "@context/LanguageContext";
 import { ServerError } from "@commonSrc/both/errors/Error";
 import RenderClipboardItem from "@screens/Clipboard/components/RenderClipboardItem";
+import { useClipboardFetch } from "../hooks/useClipboardFetch";
 import { useStylesClipboardScreen } from "@screens/Clipboard/styles";
 import { Timers, ServerFetch, REPLACERS } from "@common";
 import { FAB, Searchbar, Switch, Text, Button } from "react-native-paper";
@@ -39,63 +40,36 @@ const getSkeletonData = (deleted: boolean) => {
   });
 };
 
-const limitLoadMore = REPLACERS.isWeb ? 20 : 15;
-
 const ClipboardScreen: React.FC = () => {
   const { t } = useLanguage();
   const { styles, colors } = useStylesClipboardScreen();
 
-  const [deleted, setDeleted] = useState(false);
+  const { pagination, searchText, setSearchText, deleted, setDeleted } =
+    useClipboardFetch();
+
   const [refreshing, setRefreshing] = useState(false);
-  const [searchText, setSearchText] = useState<string>("");
   const [noMoreData, setNoMoreData] = useState<boolean>(false);
   const [isFarFromStart, setIsFarFromStart] = useState(false);
-  const [searchData, setSearchData] = useState<
-    DB["TablesClient"]["ClipboardSync"][] | null
-  >(null);
   const [clipboardData, setClipboardData] = useState<
     DB["TablesClient"]["ClipboardSync"][] | null
   >(getSkeletonData(deleted));
 
-  const pageRef = useRef<number | null>(1);
-  const deletedRef = useRef<boolean | null>(deleted);
   const flatListRef = useRef<FlatList | null>(null);
   const isLoadingRef = useRef<boolean | null>(false);
-  const pageRefSearch = useRef<number | null>(1);
-  const hasNoMoreData = useRef<boolean | null>(false);
-  const prevSearchTextRef = useRef<string | null>("");
-  const hasNoMoreDataSearch = useRef<boolean | null>(false);
   const isScrollingToTopRef = useRef<boolean | null>(false);
-  const allClipboardDataRef = useRef<
-    DB["TablesClient"]["ClipboardSync"][] | null
-  >(null);
+
   const isLoadingSkeletonRef = useRef<boolean | null>(true);
 
   const idTimeoutRef = useRef<number | null>(null);
   const idTimeoutSearch = useRef<number | null>(null);
 
-  const setDefaultStates = useRef<null | ((setNull?: boolean) => void)>(
-    (setNull?: boolean) => {
-      if (!setNull) {
-        setSearchText("");
-        setSearchData(null);
-        setRefreshing(false);
-        setNoMoreData(false);
-        setClipboardData(getSkeletonData(!!deletedRef.current));
-      }
+  const handleGoToTopRef = useRef(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    isScrollingToTopRef.current = true;
+    setIsFarFromStart(false);
+  });
 
-      pageRef.current = setNull ? null : 1;
-      isLoadingRef.current = setNull ? null : false;
-      pageRefSearch.current = setNull ? null : 1;
-      hasNoMoreData.current = setNull ? null : false;
-      prevSearchTextRef.current = setNull ? null : "";
-      hasNoMoreDataSearch.current = setNull ? null : false;
-      allClipboardDataRef.current = null;
-      isLoadingSkeletonRef.current = setNull ? null : true;
-    },
-  );
-
-  const changeClipboardItemDeletedRef = useRef(
+  const changeClipboardItemDeleted = useCallback(
     async (id: string, deleted: boolean) => {
       if (!id) return logger.error("No ID provided for deletion");
 
@@ -123,96 +97,49 @@ const ClipboardScreen: React.FC = () => {
         (prevData) => prevData?.filter((item) => item.id !== id) ?? null,
       );
     },
+    [],
   );
 
-  const fetchClipboardFromDatabaseRef = useRef(async (searchText?: string) => {
-    if (
-      isLoadingRef.current ||
-      hasNoMoreData.current ||
-      hasNoMoreDataSearch.current
-    )
-      return;
+  const fetchClipboard = useCallback(
+    async (searchText?: string) => {
+      if (pagination.isLatest) {
+        if (!searchText) return;
+        if (pagination.totalItems === 0) return;
 
-    const { userData, sessionToken } = sessionManager.getSessionData();
-    if (!sessionToken || !userData?.userId) return;
-
-    const deviceId = storageManagement.get("DEVICE_ID");
-
-    isLoadingRef.current = true;
-    setNoMoreData(false);
-
-    const page = (searchText ? pageRefSearch.current : pageRef.current) || 1;
-    if (page === 1) {
-      isLoadingSkeletonRef.current = true;
-      if (searchText) setSearchData(getSkeletonData(!!deletedRef.current));
-      else setClipboardData(getSkeletonData(!!deletedRef.current));
-    }
-
-    const res = await ServerFetch.get(
-      "/clipboard/:deviceId{/:page}",
-      {
-        params: {
-          page: page,
-          deviceId,
-        },
-        query: {
-          query: searchText || undefined,
-          deleted: deletedRef.current || undefined,
-        },
-      },
-      sessionToken,
-    );
-
-    const handleSetVars = (data?: DB["TablesClient"]["ClipboardSync"][]) => {
-      isLoadingRef.current = false;
-      setRefreshing(false);
-
-      const prevIsLoadingSkeleton = isLoadingSkeletonRef.current;
-      isLoadingSkeletonRef.current = false;
-
-      if (!data) return;
-
-      const refSet = searchText ? setSearchData : setClipboardData;
-      refSet((prev) => {
-        const oldData = prevIsLoadingSkeleton ? [] : prev || [];
-
-        const newData = [...oldData];
-
-        data.forEach((item) => {
-          if (!newData.some((i) => i.id === item.id)) newData.push(item);
-        });
-
-        allClipboardDataRef.current = newData;
-        return newData;
-      });
-
-      if (data.length === 0 || data.length < limitLoadMore) {
-        setNoMoreData(true);
-        if (searchText) hasNoMoreDataSearch.current = true;
-        else hasNoMoreData.current = true;
-      } else {
-        if (searchText) pageRefSearch.current = page + 1;
-        else pageRef.current = page + 1;
+        setClipboardData(
+          pagination.allData.filter(
+            (item) =>
+              !!item.content?.toLowerCase()?.includes(searchText.toLowerCase()),
+          ),
+        );
+        return;
       }
-    };
 
-    if ("error" in res.data) {
-      logger.error("Error fetching clipboard data:", res.data.error);
-      handleSetVars();
-      return;
-    }
+      if (isLoadingRef.current) return;
+      isLoadingRef.current = true;
 
-    const data = res.data.clipboardItems;
+      const data = await pagination.next();
 
-    Timers.clearTimeout(idTimeoutRef.current);
+      idTimeoutRef.current = Timers.setTimeout(
+        () => {
+          try {
+            setRefreshing(false);
 
-    idTimeoutRef.current = Timers.setTimeout(
-      () => handleSetVars(data || undefined),
-      page > 0 ? 100 : data ? 3000 : 2000,
-    );
-  });
+            if (!data) return;
 
-  const handleScrollRef = useRef(
+            setClipboardData(pagination.allData);
+          } finally {
+            isLoadingRef.current = false;
+            isLoadingSkeletonRef.current = false;
+          }
+        },
+        pagination.page >= 0 ? 100 : data ? 3000 : 2000,
+      );
+    },
+    [pagination],
+  );
+
+  const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { layoutMeasurement, contentOffset, contentSize } =
         event.nativeEvent;
@@ -224,68 +151,38 @@ const ClipboardScreen: React.FC = () => {
 
       setIsFarFromStart(contentOffset.y > 500);
 
-      if (isLoadingRef.current || hasNoMoreData.current) return;
+      if (isLoadingRef.current || pagination.isLatest) return;
 
       const distanceFromEnd =
         contentSize.height - (layoutMeasurement.height + contentOffset.y);
 
-      if (distanceFromEnd < 750) fetchClipboardFromDatabaseRef.current();
+      if (distanceFromEnd < 750) fetchClipboard();
     },
+    [pagination, fetchClipboard, setIsFarFromStart],
   );
 
-  const handleRefreshRef = useRef(() => {
-    setDefaultStates.current?.();
+  const handleSearch = useCallback(
+    (text: string) => {
+      setSearchText(text);
 
-    fetchClipboardFromDatabaseRef.current();
-  });
+      if (isLoadingSkeletonRef.current || isLoadingRef.current) return;
 
-  const handleGoToTopRef = useRef(() => {
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    isScrollingToTopRef.current = true;
-    setIsFarFromStart(false);
-  });
+      Timers.clearTimeout(idTimeoutSearch.current);
 
-  const handleSearchingRef = useRef((text: string) => {
-    setSearchText(text);
+      if (!pagination.isLatest || text.length < 3) pagination.clear();
 
-    const prevSearch = prevSearchTextRef.current || "";
-    prevSearchTextRef.current = text;
+      idTimeoutSearch.current = Timers.setTimeout(() => {
+        fetchClipboard(text);
+      }, 2000);
+    },
+    [fetchClipboard, setSearchText, pagination],
+  );
 
-    if (isLoadingSkeletonRef.current || isLoadingRef.current) return;
+  const handleRefresh = useCallback(() => {
+    pagination.clear();
 
-    if (text.length < 3) {
-      setSearchData(null);
-      hasNoMoreDataSearch.current = false;
-      return;
-    }
-
-    if (hasNoMoreData.current)
-      return setSearchData(
-        allClipboardDataRef.current?.filter(
-          (item) => !!item.content?.toLowerCase()?.includes(text.toLowerCase()),
-        ) || [],
-      );
-    if (hasNoMoreDataSearch.current) {
-      if (text.includes(prevSearch) || prevSearch.includes(text)) {
-        return setSearchData(
-          allClipboardDataRef.current?.filter(
-            (item) =>
-              !!item.content?.toLowerCase()?.includes(text.toLowerCase()),
-          ) || [],
-        );
-      } else {
-        hasNoMoreDataSearch.current = false;
-        pageRefSearch.current = 0;
-        setSearchData(getSkeletonData(!!deletedRef.current));
-      }
-    }
-
-    Timers.clearTimeout(idTimeoutSearch.current);
-
-    idTimeoutSearch.current = Timers.setTimeout(() => {
-      fetchClipboardFromDatabaseRef.current(text);
-    }, 2000);
-  });
+    fetchClipboard();
+  }, [pagination, fetchClipboard]);
 
   const handleDeleteRestoreAll = useCallback(async () => {
     const { sessionToken } = sessionManager.getSessionData();
@@ -293,7 +190,7 @@ const ClipboardScreen: React.FC = () => {
 
     const deviceId = storageManagement.get("DEVICE_ID");
 
-    const newDeleted = !deletedRef.current;
+    const newDeleted = !deleted;
 
     const res = await ServerFetch.put(
       "/clipboard/delete/toggle-deleted-all",
@@ -314,20 +211,18 @@ const ClipboardScreen: React.FC = () => {
       return;
     }
 
-    fetchClipboardFromDatabaseRef.current(searchText);
+    fetchClipboard(searchText);
     setDeleted(newDeleted);
-    setDefaultStates.current?.();
-    deletedRef.current = newDeleted;
-  }, [searchText]);
+  }, [deleted, searchText, setDeleted, fetchClipboard]);
 
   const renderItems = useCallback(
     ({ item }: { item: DB["TablesClient"]["ClipboardSync"] }) => (
       <RenderClipboardItem
         item={item}
-        deleteItem={changeClipboardItemDeletedRef.current}
+        deleteItem={changeClipboardItemDeleted}
       />
     ),
-    [],
+    [changeClipboardItemDeleted],
   );
 
   const renderEmptyComponent = useCallback(() => {
@@ -348,26 +243,18 @@ const ClipboardScreen: React.FC = () => {
   }, [t, styles]);
 
   useEffect(() => {
-    if (deleted === deletedRef.current) return;
-
-    deletedRef.current = deleted;
-
-    setDefaultStates.current?.();
-
-    Timers.clearTimeout(idTimeoutSearch.current);
-    idTimeoutSearch.current = Timers.setTimeout(() => {
-      fetchClipboardFromDatabaseRef.current(searchText);
-    }, 1000);
-  }, [searchText, deleted]);
+    void fetchClipboard();
+  }, [fetchClipboard]);
 
   useEffect(() => {
-    fetchClipboardFromDatabaseRef.current();
+    const listener = pagination.addEventListener("lastDataUpdate", (isLast) => {
+      setNoMoreData(isLast);
+    });
 
     return () => {
-      Timers.clearTimeout(idTimeoutRef.current);
-      Timers.clearTimeout(idTimeoutSearch.current);
+      listener.remove();
     };
-  }, []);
+  }, [pagination]);
 
   const isLoading =
     refreshing || !!isLoadingRef.current || !!isLoadingSkeletonRef.current;
@@ -386,7 +273,7 @@ const ClipboardScreen: React.FC = () => {
           style={styles.searchBar}
           editable={!isLoading}
           placeholder={t("labels.search")}
-          onChangeText={handleSearchingRef.current}
+          onChangeText={handleSearch}
         />
 
         <View style={styles.showDeletedContainer}>
@@ -414,8 +301,8 @@ const ClipboardScreen: React.FC = () => {
       <FlatList
         nestedScrollEnabled
         ref={flatListRef}
-        data={searchData || clipboardData}
-        onScroll={handleScrollRef.current}
+        data={clipboardData}
+        onScroll={handleScroll}
         renderItem={renderItems}
         scrollEnabled={!isLoading}
         ListEmptyComponent={renderEmptyComponent}
@@ -423,7 +310,7 @@ const ClipboardScreen: React.FC = () => {
         refreshControl={
           <RefreshControl
             enabled={!isLoading}
-            onRefresh={handleRefreshRef.current}
+            onRefresh={handleRefresh}
             refreshing={refreshing}
           />
         }
@@ -468,7 +355,7 @@ const ClipboardScreen: React.FC = () => {
             icon="refresh"
             color={colors.primary}
             style={styles.FAB}
-            onPress={handleRefreshRef.current}
+            onPress={handleRefresh}
             disabled={isLoading}
           />
         </Animated.View>

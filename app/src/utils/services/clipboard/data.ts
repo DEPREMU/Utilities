@@ -11,7 +11,13 @@ import { getRandomUUID } from "@/utils/cross";
 import { sessionManager } from "../session";
 import { storageManagement } from "../storage";
 import { ClipboardWebSocket } from "./websocket";
-import { Timers, REPLACERS, ServerFetch, ClipboardStorage } from "@common";
+import {
+  Timers,
+  REPLACERS,
+  ServerFetch,
+  ClipboardStorage,
+  Pagination,
+} from "@common";
 
 const logger = new Logger("ServicesClipboardData");
 
@@ -115,27 +121,35 @@ export class DataClipboard extends ClipboardWebSocket {
 
     if (!sessionToken) return;
 
-    let page = 0;
+    const pagination = new Pagination(
+      async (lastId) => {
+        const res = await ServerFetch.get(
+          "/clipboard/:deviceId{/:lastId}",
+          { params: { deviceId, lastId: lastId ?? undefined }, query: {} },
+          sessionToken,
+        );
+
+        if ("error" in res.data) {
+          logger.error("Error fetching clipboard items:", res.data.error);
+          return [];
+        }
+
+        return res.data.clipboardItems;
+      },
+      (currentData, addId, isLatest) => {
+        if (currentData.length === 0) return isLatest();
+
+        addId(currentData[currentData.length - 1].id);
+      },
+      { take: 10 },
+    );
+
     while (
-      page < 5 &&
-      this.listItemsClipboard.length < this.clipboardData.maxClipboardItems
+      this.listItemsClipboard.length < this.clipboardData.maxClipboardItems &&
+      (await pagination.next())
     ) {
-      const res = await ServerFetch.get(
-        "/clipboard/:deviceId{/:page}",
-        { params: { deviceId, page: ++page }, query: {} },
-        sessionToken,
-      );
-
-      if ("error" in res.data) {
-        logger.error("Error fetching clipboard items:", res.data.error);
-        return;
-      }
-
-      const { clipboardItems } = res.data;
-      if (!clipboardItems || clipboardItems.length === 0) break;
-
       await this.addItemToClipboard(
-        clipboardItems
+        pagination.currentData
           .filter((item) => !!item.content)
           .slice(
             0,
