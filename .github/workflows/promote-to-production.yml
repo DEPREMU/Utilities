@@ -11,8 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   quality-gate:
@@ -24,7 +23,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -33,30 +32,8 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Configure minimal environment file
-        shell: bash
-        run: |
-          cat << 'EOF' > .env
-          IV=0123456789abcdef
-          __DEV__=true
-          USE_HTTPS=false
-          JWT_SECRET=ci-jwt-secret-key-1234567890abcdef
-          ADMIN_EMAIL=ci-admin@example.com
-          ADMIN_PASSWORD=ci-admin-password
-          DEEPL_TRANSLATOR_API=ci-deepl-key
-          SECRET_KEY_TO_ENCRYPTION=0123456789abcdef0123456789abcdef
-          FIREBASE_SERVICE_ACCOUNT={}
-          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public"
-          DB_ENCRYPTION_PASS=ci-db-encryption-pass
-          WS_URL=ws://localhost:3000/ws
-          API_URL=http://localhost:3000/api
-          REDIS_URL=redis://localhost:6379
-          SMTP_HOST=localhost
-          SMTP_PORT=587
-          SMTP_USER=ci-smtp@example.com
-          SMTP_PASSWORD=ci-smtp-pass
-          FCM_SERVER_KEY=ci-fcm-key
-          EOF
+      - name: Configure minimal CI environment
+        run: node scripts/ci/setup-ci-env.ts --target=root
 
       - name: Generate Prisma client
         run: yarn workspace utilities-server run db-generate
@@ -79,7 +56,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -88,59 +65,16 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Configure CI environment files
-        shell: bash
-        run: |
-          mkdir -p server/.temp/whatsapp-shared-session .temp/whatsapp-shared-session
+      - name: Configure centralized CI environment files
+        run: node scripts/ci/setup-ci-env.ts --target=all
 
-          cat << 'EOF' > server/vps/docker/.env
-          POSTGRES_USER=postgres
-          POSTGRES_PASS=postgres
-          POSTGRES_DB=UtilitiesDB
-          DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/UtilitiesDB?schema=public"
-          REDIS_URL="redis://127.0.0.1:6379"
-          IV=0123456789abcdef
-          __DEV__=false
-          USE_HTTPS=false
-          JWT_SECRET=ci-jwt-secret-key-1234567890abcdef
-          ADMIN_EMAIL=ci-admin@example.com
-          ADMIN_PASSWORD=ci-admin-password
-          DEEPL_TRANSLATOR_API=ci-deepl-key
-          SECRET_KEY_TO_ENCRYPTION=0123456789abcdef0123456789abcdef
-          FIREBASE_SERVICE_ACCOUNT={}
-          DB_ENCRYPTION_PASS=ci-db-encryption-pass
-          WS_URL=ws://localhost:3000/ws
-          API_URL=http://localhost:3000/api
-          SMTP_HOST=localhost
-          SMTP_PORT=587
-          SMTP_USER=ci-smtp@example.com
-          SMTP_PASSWORD=ci-smtp-pass
-          FCM_SERVER_KEY=ci-fcm-key
-          DOWNLOAD_RATE_LIMIT=5m
-          EOF
-          echo "NORD_TOKEN=${NORD_TOKEN}" >> server/vps/docker/.env
+      - name: Generate Prisma client
+        run: yarn workspace utilities-server run db-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
 
-          cat << 'EOF' > .env
-          IV=0123456789abcdef
-          __DEV__=true
-          USE_HTTPS=false
-          JWT_SECRET=ci-jwt-secret-key-1234567890abcdef
-          ADMIN_EMAIL=ci-admin@example.com
-          ADMIN_PASSWORD=ci-admin-password
-          DEEPL_TRANSLATOR_API=ci-deepl-key
-          SECRET_KEY_TO_ENCRYPTION=0123456789abcdef0123456789abcdef
-          FIREBASE_SERVICE_ACCOUNT={}
-          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public"
-          DB_ENCRYPTION_PASS=ci-db-encryption-pass
-          WS_URL=ws://localhost:3000/ws
-          API_URL=http://localhost:3000/api
-          REDIS_URL=redis://localhost:6379
-          SMTP_HOST=localhost
-          SMTP_PORT=587
-          SMTP_USER=ci-smtp@example.com
-          SMTP_PASSWORD=ci-smtp-pass
-          FCM_SERVER_KEY=ci-fcm-key
-          EOF
+      - name: Run independent workspace tests (Phase B)
+        run: node scripts/ci/test-orchestrator.ts --phase=independent
 
       - name: Ensure docker-compose compatibility
         shell: bash
@@ -152,10 +86,10 @@ jobs:
           fi
           docker-compose --version
 
-      - name: Build server Docker image
+      - name: Build server Docker image for tests
         run: docker build -f server/vps/docker/Dockerfile -t utilities-server . --build-arg API_URL="http://localhost:3000/api"
 
-      - name: Start server test stack behind NordVPN
+      - name: Start server test stack behind NordVPN (Phase C)
         shell: bash
         run: |
           docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml up -d
@@ -169,40 +103,20 @@ jobs:
           echo "Server is healthy!"
           curl -s http://localhost:3000/api/info/health
 
-      - name: Generate Prisma client
-        run: yarn workspace utilities-server run db-generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
+      - name: Run Docker-dependent workspace tests (Phase D)
+        run: node scripts/ci/test-orchestrator.ts --phase=dependent
 
-      - name: Run workspace tests
-        run: yarn run tests
-        env:
-          CI: true
-          IV: 0123456789abcdef
-          __DEV__: true
-          USE_HTTPS: false
-          JWT_SECRET: ci-jwt-secret-key-1234567890abcdef
-          ADMIN_EMAIL: ci-admin@example.com
-          ADMIN_PASSWORD: ci-admin-password
-          DEEPL_TRANSLATOR_API: ci-deepl-key
-          SECRET_KEY_TO_ENCRYPTION: 0123456789abcdef0123456789abcdef
-          FIREBASE_SERVICE_ACCOUNT: "{}"
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
-          DB_ENCRYPTION_PASS: ci-db-encryption-pass
-          WS_URL: ws://localhost:3000/ws
-          API_URL: http://localhost:3000/api
-          REDIS_URL: redis://localhost:6379
-          SMTP_HOST: localhost
-          SMTP_PORT: 587
-          SMTP_USER: ci-smtp@example.com
-          SMTP_PASSWORD: ci-smtp-pass
-          FCM_SERVER_KEY: ci-fcm-key
+      - name: Aggregate & report all workspace test results (Phase E)
+        if: always()
+        run: node scripts/ci/test-orchestrator.ts --phase=report
 
       - name: Dump container logs on failure
         if: failure()
         shell: bash
         run: |
+          echo "[Container Diagnostics] Running services:"
           docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml ps
+          echo "[Container Diagnostics] Logs:"
           docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml logs
 
       - name: Tear down test stack
@@ -212,13 +126,16 @@ jobs:
           docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml down -v || true
 
   promote-to-production:
-    name: Promote to Production
+    name: Promote to Production PR
     needs:
       - quality-gate
       - integration-tests
     environment: promote-main-to-production
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
 
     env:
       BASE_BRANCH: production
@@ -271,7 +188,7 @@ jobs:
           pr_body=$(cat <<EOF
           ## Automated promotion: \`$HEAD_BRANCH\` → \`$BASE_BRANCH\`
 
-          All checks in \`yarn run before-commit\` and \`yarn run tests\` passed on \`$HEAD_BRANCH\`.
+          All checks in \`yarn run before-commit\` and dynamic workspace integration tests passed on \`$HEAD_BRANCH\`.
 
           - **Trigger commit**: $COMMIT_SHA
           - **Workflow run**: $RUN_URL

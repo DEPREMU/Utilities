@@ -5,19 +5,38 @@ on:
     branches:
       - production
   workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - both
+          - windows
+          - linux
+      force_build:
+        description: "Force rebuild regardless of version change"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
   check-version:
+    name: Evaluate Electron Platforms
     runs-on: ubuntu-latest
     environment: build-electron
+    timeout-minutes: 10
 
     outputs:
       changed: ${{ steps.version-check.outputs.changed }}
       build_linux: ${{ steps.version-check.outputs.build_linux }}
       build_windows: ${{ steps.version-check.outputs.build_windows }}
+      matrix: ${{ steps.version-check.outputs.matrix }}
 
     steps:
       - name: Checkout code
@@ -25,63 +44,106 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Setup Node.js
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: "yarn"
 
-      - name: Install Dependencies
-        run: yarn install
-
-      - name: Check if version changed
+      - name: Check version change & generate dynamic matrix
         id: version-check
         shell: bash
-        run: node scripts/check-version-ci.ts --platform=electron
+        run: |
+          PLATFORM_ARG="electron"
+          FORCE_ARG=""
+
+          if [ "${{ inputs.platform }}" = "linux" ]; then
+            PLATFORM_ARG="linux"
+            FORCE_ARG="--force"
+          elif [ "${{ inputs.platform }}" = "windows" ]; then
+            PLATFORM_ARG="windows"
+            FORCE_ARG="--force"
+          elif [ "${{ inputs.platform }}" = "both" ]; then
+            PLATFORM_ARG="electron"
+            FORCE_ARG="--force"
+          elif [ "${{ inputs.force_build }}" = "true" ]; then
+            FORCE_ARG="--force"
+          fi
+
+          echo "Running version check: platform=$PLATFORM_ARG force=$FORCE_ARG"
+          node scripts/check-version-ci.ts "--platform=$PLATFORM_ARG" $FORCE_ARG
         env:
           API_URL: ${{ secrets.API_URL }}
 
-  build-and-upload:
-    needs: check-version
+      - name: Record version check summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Electron Version Evaluation Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Changed**: \`${{ steps.version-check.outputs.changed }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Build Linux**: \`${{ steps.version-check.outputs.build_linux }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Build Windows**: \`${{ steps.version-check.outputs.build_windows }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Generated Matrix**: \`${{ steps.version-check.outputs.matrix }}\`" >> "$GITHUB_STEP_SUMMARY"
 
-    if: needs.check-version.outputs.changed == 'true'
+  build-and-upload:
+    name: Build & Upload (${{ matrix.platform }})
+    needs: check-version
+    if: needs.check-version.outputs.changed == 'true' && toJson(fromJson(needs.check-version.outputs.matrix).include) != '[]'
 
     strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
+      fail-fast: false
+      matrix: ${{ fromJson(needs.check-version.outputs.matrix) }}
 
     runs-on: ${{ matrix.os }}
-
     environment: build-electron
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: "yarn"
 
+      - name: Cache Electron and electron-builder
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('UtilitiesForPC/package.json', 'yarn.lock') }}
+          restore-keys: |
+            electron-cache-${{ runner.os }}-
+
       - name: Install Dependencies
-        if: (matrix.os == 'ubuntu-latest' && needs.check-version.outputs.build_linux == 'true') || (matrix.os == 'windows-latest' && needs.check-version.outputs.build_windows == 'true')
-        run: yarn install
+        run: yarn install --frozen-lockfile
 
       - name: Build and Upload Electron App
-        if: (matrix.os == 'ubuntu-latest' && needs.check-version.outputs.build_linux == 'true') || (matrix.os == 'windows-latest' && needs.check-version.outputs.build_windows == 'true')
         run: yarn run build-upload-electron
         env:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
           BUILD_PROFILE: ${{ vars.BUILD_PROFILE }}
 
+      - name: Verify build artifacts exist
+        shell: bash
+        run: |
+          echo "Verifying output directory UtilitiesForPC/dist-electron/..."
+          if [ ! -d "UtilitiesForPC/dist-electron" ] || [ -z "$(ls -A UtilitiesForPC/dist-electron 2>/dev/null)" ]; then
+            echo "::error::No installer or package artifact found in UtilitiesForPC/dist-electron!"
+            exit 1
+          fi
+          ls -lah UtilitiesForPC/dist-electron
+
       - name: Upload Fallback Artifacts
-        if: failure() && ((matrix.os == 'ubuntu-latest' && needs.check-version.outputs.build_linux == 'true') || (matrix.os == 'windows-latest' && needs.check-version.outputs.build_windows == 'true'))
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: electron-builds-${{ matrix.os }}
+          name: electron-builds-${{ matrix.platform }}-${{ matrix.os }}
           path: UtilitiesForPC/dist-electron/
           retention-days: 7
+          if-no-files-found: warn

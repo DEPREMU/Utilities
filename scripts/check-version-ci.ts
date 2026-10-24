@@ -1,13 +1,7 @@
 import fs from "fs";
 import path from "path";
-import dotenv from "dotenv";
-import { Timers } from "../common/both/timer.ts";
 import { execSync } from "child_process";
 import { Validations } from "../common/both/validations.ts";
-import { ServerFetch } from "../common/both/fetch/fetch.ts";
-
-if (fs.existsSync(path.join(process.cwd(), ".env")))
-  dotenv.config({ path: path.join(process.cwd(), ".env") });
 
 export type VersionAction = "build" | "update" | "skip";
 
@@ -19,6 +13,189 @@ export interface VersionEvaluation {
   currentVersion: string;
   previousVersion: string;
 }
+
+export interface HttpResponse<T = unknown> {
+  ok: boolean;
+  status: number;
+  data: T;
+}
+
+export interface HttpClient {
+  get<T = unknown>(
+    url: string,
+    options?: { timeoutMs?: number; headers?: Record<string, string> },
+  ): Promise<HttpResponse<T>>;
+}
+
+export type HttpTransportType = "axios" | "fetch";
+
+export interface HttpClientHolder {
+  client: HttpClient;
+  transport: HttpTransportType;
+}
+
+export const isModuleNotFoundError = (err: unknown): boolean => {
+  if (!err || typeof err !== "object") return false;
+  const errorObj = err as { code?: string; message?: string };
+  if (
+    errorObj.code === "ERR_MODULE_NOT_FOUND" ||
+    errorObj.code === "MODULE_NOT_FOUND"
+  ) {
+    return true;
+  }
+  const msg = String(errorObj.message || "");
+  return (
+    msg.includes("Cannot find package 'axios'") ||
+    msg.includes("Cannot find module 'axios'") ||
+    msg.includes("Failed to resolve module specifier 'axios'")
+  );
+};
+
+export const createAxiosClient = (axiosModule: unknown): HttpClient => {
+  const axiosInstance =
+    (axiosModule as { default?: unknown }).default || axiosModule;
+  const axios = axiosInstance as {
+    get: (
+      url: string,
+      config?: {
+        headers?: Record<string, string>;
+        timeout?: number;
+        validateStatus?: () => boolean;
+      },
+    ) => Promise<{ status: number; data: unknown }>;
+  };
+
+  return {
+    async get<T = unknown>(
+      url: string,
+      options?: { timeoutMs?: number; headers?: Record<string, string> },
+    ): Promise<HttpResponse<T>> {
+      const response = await axios.get(url, {
+        headers: options?.headers,
+        timeout: options?.timeoutMs ?? 3000,
+        validateStatus: () => true,
+      });
+
+      return {
+        ok: response.status >= 200 && response.status < 400,
+        status: response.status,
+        data: response.data as T,
+      };
+    },
+  };
+};
+
+export const createFetchClient = (): HttpClient => {
+  return {
+    async get<T = unknown>(
+      url: string,
+      options?: { timeoutMs?: number; headers?: Record<string, string> },
+    ): Promise<HttpResponse<T>> {
+      const controller = new AbortController();
+      const timeoutMs = options?.timeoutMs ?? 3000;
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: options?.headers,
+          signal: controller.signal,
+        });
+
+        let data: T;
+        const contentType = response.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          data = (await response.json()) as T;
+        } else {
+          const text = await response.text();
+          try {
+            data = JSON.parse(text) as T;
+          } catch {
+            data = text as unknown as T;
+          }
+        }
+
+        return {
+          ok: response.status >= 200 && response.status < 400,
+          status: response.status,
+          data,
+        };
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    },
+  };
+};
+
+let cachedClientHolder: HttpClientHolder | null = null;
+
+export const resolveHttpClient = async (
+  customImport?: () => Promise<unknown>,
+): Promise<HttpClientHolder> => {
+  const importFn = customImport ?? (() => import("axios"));
+  try {
+    const axiosModule = await importFn();
+    return {
+      client: createAxiosClient(axiosModule),
+      transport: "axios",
+    };
+  } catch (err) {
+    if (isModuleNotFoundError(err)) {
+      return {
+        client: createFetchClient(),
+        transport: "fetch",
+      };
+    }
+    throw err;
+  }
+};
+
+export const getOrCreateHttpClient = async (
+  customImport?: () => Promise<unknown>,
+): Promise<HttpClient> => {
+  if (!cachedClientHolder || customImport) {
+    cachedClientHolder = await resolveHttpClient(customImport);
+  }
+  return cachedClientHolder.client;
+};
+
+export const resetHttpClientCache = (): void => {
+  cachedClientHolder = null;
+};
+
+export const loadEnvironmentVariables = async (): Promise<void> => {
+  const envPath = path.join(process.cwd(), ".env");
+  if (!fs.existsSync(envPath)) return;
+
+  try {
+    const dotenv = await import("dotenv");
+    dotenv.config({ path: envPath });
+  } catch {
+    try {
+      const content = fs.readFileSync(envPath, "utf8");
+      content.split("\n").forEach((line) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) return;
+        const eqIdx = trimmed.indexOf("=");
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          let value = trimmed.slice(eqIdx + 1).trim();
+          if (
+            (value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))
+          ) {
+            value = value.slice(1, -1);
+          }
+          if (!(key in process.env)) {
+            process.env[key] = value;
+          }
+        }
+      });
+    } catch {
+      // Ignore if local .env cannot be read
+    }
+  }
+};
 
 export const compareSemver = (
   prevVersion: string,
@@ -103,9 +280,26 @@ export const compareSemver = (
   };
 };
 
+export const isServerAlive = async (
+  client?: HttpClient,
+  apiUrl = process.env.API_URL || "http://localhost:3000/api",
+): Promise<boolean> => {
+  try {
+    const httpClient = client ?? (await getOrCreateHttpClient());
+    const baseUrl = apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
+    const url = `${baseUrl}/info/generate204`;
+    const res = await httpClient.get(url, { timeoutMs: 3000 });
+    return res.status === 204 || res.status === 200;
+  } catch {
+    return false;
+  }
+};
+
 export const fetchServerVersion = async (
   version: string,
   buildType: string,
+  client?: HttpClient,
+  apiUrl = process.env.API_URL || "http://localhost:3000/api",
 ): Promise<{
   reachable: boolean;
   latestVersion?: string;
@@ -113,42 +307,31 @@ export const fetchServerVersion = async (
   error?: string;
 }> => {
   try {
-    const timeoutPromise = new Promise<{
-      ok: false;
-      status: number;
-      data: { error: string };
-    }>((resolve) =>
-      Timers.setTimeout(
-        () =>
-          resolve({
-            ok: false,
-            status: 408,
-            data: { error: "Request timeout after 3000ms" },
-          }),
-        3000,
-      ),
-    );
+    const httpClient = client ?? (await getOrCreateHttpClient());
+    const baseUrl = apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
+    const url = `${baseUrl}/downloads/is-update-available/${encodeURIComponent(version)}/${encodeURIComponent(buildType)}`;
 
-    const fetchPromise = ServerFetch.get(
-      "/downloads/is-update-available/:version/:buildType",
-      {
-        params: {
-          version,
-          buildType: buildType as never,
-        },
-      },
-    );
+    const res = await httpClient.get<{
+      latestVersion?: string;
+      isUpdateAvailable?: boolean;
+      error?: string;
+    }>(url, { timeoutMs: 3000 });
 
-    const res = await Promise.race([fetchPromise, timeoutPromise]);
-    if (!res.ok || "error" in res.data) {
+    if (
+      !res.ok ||
+      (res.data && typeof res.data === "object" && "error" in res.data)
+    ) {
       return {
         reachable: false,
         error:
-          "error" in res.data ? String(res.data.error) : `HTTP ${res.status}`,
+          res.data && typeof res.data === "object" && "error" in res.data
+            ? String((res.data as { error: string }).error)
+            : `HTTP ${res.status}`,
       };
     }
+
     const data = res.data;
-    const serverVersion = data.latestVersion || "";
+    const serverVersion = data?.latestVersion || "";
     const isGreater = Validations.isNewVersion(serverVersion, version);
     return { reachable: true, latestVersion: serverVersion, isGreater };
   } catch (err) {
@@ -204,13 +387,15 @@ export const checkElectronFallback = (
   }
 
   const evaluation = compareSemver(prevVersion, currentVersion);
+  // For Electron, any newer version (including patch increments) requires building installers
+  const shouldBuild = evaluation.isNewer;
 
   // eslint-disable-next-line no-console
   console.log(
-    `[Electron Fallback] Previous version: "${prevVersion}", Current version: "${currentVersion}" -> Action: "${evaluation.action}", shouldBuild: ${evaluation.shouldBuild}`,
+    `[Electron Fallback] Previous version: "${prevVersion}", Current version: "${currentVersion}" -> isNewer: ${evaluation.isNewer}, shouldBuild: ${shouldBuild}`,
   );
 
-  return evaluation.shouldBuild;
+  return shouldBuild;
 };
 
 export const setGithubOutput = (key: string, value: string | boolean): void => {
@@ -261,13 +446,18 @@ export const evaluateAndroid = async (
   isServerUp: boolean,
   currentVersion: string,
   cwd = process.cwd(),
+  client?: HttpClient,
 ): Promise<VersionEvaluation> => {
   if (isServerUp) {
     // eslint-disable-next-line no-console
     console.log(
       `[android] Checking version against server: ${process.env.API_URL}...`,
     );
-    const serverResult = await fetchServerVersion(currentVersion, "android");
+    const serverResult = await fetchServerVersion(
+      currentVersion,
+      "android",
+      client,
+    );
     if (serverResult.reachable) {
       const serverVersion = serverResult.latestVersion ?? "";
       const evaluation = compareSemver(serverVersion, currentVersion);
@@ -296,9 +486,15 @@ export const evaluateBuildType = async (
   buildType: "android" | "linux" | "windows",
   currentVersion: string,
   cwd = process.cwd(),
+  client?: HttpClient,
 ): Promise<boolean> => {
   if (buildType === "android") {
-    const evalRes = await evaluateAndroid(isServerUp, currentVersion, cwd);
+    const evalRes = await evaluateAndroid(
+      isServerUp,
+      currentVersion,
+      cwd,
+      client,
+    );
     return evalRes.shouldBuild;
   }
 
@@ -307,15 +503,21 @@ export const evaluateBuildType = async (
     console.log(
       `[${buildType}] Checking version against server: ${process.env.API_URL}...`,
     );
-    const serverResult = await fetchServerVersion(currentVersion, buildType);
+    const serverResult = await fetchServerVersion(
+      currentVersion,
+      buildType,
+      client,
+    );
     if (serverResult.reachable) {
       const serverVersion = serverResult.latestVersion ?? "";
       const evaluation = compareSemver(serverVersion, currentVersion);
+      // For Electron platforms (linux and windows), patch version increments require a build
+      const shouldBuild = evaluation.isNewer;
       // eslint-disable-next-line no-console
       console.log(
-        `[${buildType}] Server check success -> Current: "${currentVersion}", Server: "${serverVersion}" -> Action: "${evaluation.action}", shouldBuild: ${evaluation.shouldBuild}`,
+        `[${buildType}] Server check success -> Current: "${currentVersion}", Server: "${serverVersion}" -> isNewer: ${evaluation.isNewer}, shouldBuild: ${shouldBuild}`,
       );
-      return evaluation.shouldBuild;
+      return shouldBuild;
     }
     // eslint-disable-next-line no-console
     console.log(
@@ -332,12 +534,17 @@ export const evaluateBuildType = async (
 };
 
 export const runCheckVersion = async (): Promise<void> => {
+  await loadEnvironmentVariables();
+
   const args = process.argv.slice(2);
   let platform = "android";
+  let forceBuild = process.env.FORCE_BUILD === "true";
 
   for (const arg of args) {
     if (arg.startsWith("--platform=")) {
       platform = arg.split("=")[1].toLowerCase();
+    } else if (arg === "--force") {
+      forceBuild = true;
     } else if (!arg.startsWith("-")) {
       platform = arg.toLowerCase();
     }
@@ -346,20 +553,13 @@ export const runCheckVersion = async (): Promise<void> => {
   const rootPath = process.cwd();
   const apiUrl = process.env.API_URL ?? "";
 
-  const isServerUp = await (async () => {
-    try {
-      const alivePromise = ServerFetch.isServerAlive();
-      const timeoutPromise = new Promise<boolean>((resolve) =>
-        Timers.setTimeout(() => resolve(false), 3000),
-      );
-      return await Promise.race([alivePromise, timeoutPromise]);
-    } catch {
-      return false;
-    }
-  })();
-
+  const clientHolder = await resolveHttpClient();
   // eslint-disable-next-line no-console
-  console.log(`Server alive status: ${isServerUp} (API_URL: "${apiUrl}")`);
+  console.log(`[check-version-ci] Using HTTP transport: ${clientHolder.transport}`);
+
+  const isUp = await isServerAlive(clientHolder.client, apiUrl);
+  // eslint-disable-next-line no-console
+  console.log(`Server alive status: ${isUp} (API_URL: "${apiUrl}")`);
 
   const commitMessage = getCommitMessage(rootPath);
   setGithubOutput("commit_message", commitMessage);
@@ -368,37 +568,61 @@ export const runCheckVersion = async (): Promise<void> => {
     const version = getAndroidVersion(rootPath);
     // eslint-disable-next-line no-console
     console.log(`Detected Android version: "${version}"`);
-    const evaluation = await evaluateAndroid(isServerUp, version, rootPath);
+    const evaluation = await evaluateAndroid(
+      isUp,
+      version,
+      rootPath,
+      clientHolder.client,
+    );
+    const shouldBuild = forceBuild || evaluation.shouldBuild;
+    const shouldUpdate = !forceBuild && evaluation.shouldUpdate;
     // eslint-disable-next-line no-console
     console.log(
-      `Final Android evaluation -> should_build: ${evaluation.shouldBuild}, should_update: ${evaluation.shouldUpdate}, action: ${evaluation.action}`,
+      `Final Android evaluation -> should_build: ${shouldBuild}, should_update: ${shouldUpdate}, action: ${forceBuild ? "build" : evaluation.action}`,
     );
-    setGithubOutput("should_build", evaluation.shouldBuild);
-    setGithubOutput("should_update", evaluation.shouldUpdate);
-    setGithubOutput("action", evaluation.action);
-    setGithubOutput(
-      "changed",
-      evaluation.shouldBuild || evaluation.shouldUpdate,
-    );
+    setGithubOutput("should_build", shouldBuild);
+    setGithubOutput("should_update", shouldUpdate);
+    setGithubOutput("action", forceBuild ? "build" : evaluation.action);
+    setGithubOutput("changed", shouldBuild || shouldUpdate);
   } else if (platform === "electron") {
     const version = getElectronVersion(rootPath);
     // eslint-disable-next-line no-console
     console.log(`Detected Electron version: "${version}"`);
 
-    const [shouldBuildLinux, shouldBuildWindows] = await Promise.all([
-      evaluateBuildType(isServerUp, "linux", version, rootPath),
-      evaluateBuildType(isServerUp, "windows", version, rootPath),
+    const [shouldBuildLinuxRaw, shouldBuildWindowsRaw] = await Promise.all([
+      evaluateBuildType(isUp, "linux", version, rootPath, clientHolder.client),
+      evaluateBuildType(
+        isUp,
+        "windows",
+        version,
+        rootPath,
+        clientHolder.client,
+      ),
     ]);
 
+    const shouldBuildLinux = forceBuild || shouldBuildLinuxRaw;
+    const shouldBuildWindows = forceBuild || shouldBuildWindowsRaw;
     const changed = shouldBuildLinux || shouldBuildWindows;
+
+    const matrixInclude: Array<{ os: string; platform: string }> = [];
+    if (shouldBuildLinux) {
+      matrixInclude.push({ os: "ubuntu-latest", platform: "linux" });
+    }
+    if (shouldBuildWindows) {
+      matrixInclude.push({ os: "windows-latest", platform: "windows" });
+    }
+
+    const matrixJson = JSON.stringify({ include: matrixInclude });
+
     // eslint-disable-next-line no-console
     console.log(
-      `Final Electron outputs -> changed: ${changed}, build_linux: ${shouldBuildLinux}, build_windows: ${shouldBuildWindows}`,
+      `Final Electron outputs -> changed: ${changed}, build_linux: ${shouldBuildLinux}, build_windows: ${shouldBuildWindows}, matrix: ${matrixJson}`,
     );
 
     setGithubOutput("changed", changed);
     setGithubOutput("build_linux", shouldBuildLinux);
     setGithubOutput("build_windows", shouldBuildWindows);
+    setGithubOutput("matrix", matrixJson);
     setGithubOutput("should_build", changed);
     setGithubOutput("should_update", false);
     setGithubOutput("action", changed ? "build" : "skip");
@@ -407,12 +631,15 @@ export const runCheckVersion = async (): Promise<void> => {
     // eslint-disable-next-line no-console
     console.log(`Detected ${platform} version: "${version}"`);
 
-    const shouldBuild = await evaluateBuildType(
-      isServerUp,
+    const shouldBuildRaw = await evaluateBuildType(
+      isUp,
       platform,
       version,
       rootPath,
+      clientHolder.client,
     );
+    const shouldBuild = forceBuild || shouldBuildRaw;
+
     // eslint-disable-next-line no-console
     console.log(`Final ${platform} should_build: ${shouldBuild}`);
     setGithubOutput("should_build", shouldBuild);
@@ -420,6 +647,10 @@ export const runCheckVersion = async (): Promise<void> => {
     setGithubOutput("action", shouldBuild ? "build" : "skip");
     setGithubOutput("changed", shouldBuild);
     setGithubOutput(`build_${platform}`, shouldBuild);
+
+    const osName = platform === "linux" ? "ubuntu-latest" : "windows-latest";
+    const matrixInclude = shouldBuild ? [{ os: osName, platform }] : [];
+    setGithubOutput("matrix", JSON.stringify({ include: matrixInclude }));
   } else {
     throw new Error(
       `Unknown platform: ${platform}. Expected: android, electron, linux, or windows.`,
@@ -434,3 +665,4 @@ if (process.env.NODE_ENV !== "test") {
     process.exit(1);
   });
 }
+
