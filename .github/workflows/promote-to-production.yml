@@ -58,6 +58,11 @@ jobs:
           FCM_SERVER_KEY=ci-fcm-key
           EOF
 
+      - name: Generate Prisma client
+        run: yarn workspace utilities-server run db-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
+
       - name: Run code quality checks
         run: yarn run before-commit
 
