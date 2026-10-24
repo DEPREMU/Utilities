@@ -2,9 +2,6 @@
   "name": "utilities-common",
   "version": "0.0.0",
   "private": true,
-  "ci": {
-    "requiresDocker": false
-  },
   "scripts": {
     "test": "jest",
     "type-check": "tsc --noEmit",

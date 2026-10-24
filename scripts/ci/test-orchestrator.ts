@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 
 export type WorkspacePackageJson = {
   name: string;
@@ -159,7 +159,7 @@ export const discoverWorkspaces = (
     if (typeof item.packageJson.ci?.requiresDocker === "boolean") {
       requiresDocker = item.packageJson.ci.requiresDocker;
     } else {
-      requiresDocker = true;
+      requiresDocker = false;
     }
 
     return {
@@ -336,6 +336,36 @@ export const generateReport = (
   return { markdown: md, allPassed };
 };
 
+export const ensurePrismaClient = (rootDir: string): void => {
+  const prismaClientDir = path.join(rootDir, "server", "generated", "prisma");
+  if (!fs.existsSync(prismaClientDir)) {
+    // eslint-disable-next-line no-console
+    console.log(
+      "[test-orchestrator] Prisma client not detected. Generating Prisma client...",
+    );
+    try {
+      execSync("yarn workspace utilities-server run db-generate", {
+        cwd: rootDir,
+        stdio: "inherit",
+        env: {
+          ...process.env,
+          DATABASE_URL:
+            process.env.DATABASE_URL ||
+            "postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public",
+        },
+      });
+      // eslint-disable-next-line no-console
+      console.log("[test-orchestrator] Prisma client generated successfully.");
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[test-orchestrator] Warning: Failed to generate Prisma client:",
+        err,
+      );
+    }
+  }
+};
+
 export const runOrchestrator = async (): Promise<void> => {
   const args = process.argv.slice(2);
   let phase: "independent" | "dependent" | "report" | "all" = "all";
@@ -382,6 +412,8 @@ export const runOrchestrator = async (): Promise<void> => {
     }
     return;
   }
+
+  ensurePrismaClient(rootDir);
 
   const independent = testableWorkspaces.filter((w) => !w.requiresDocker);
   const dependent = testableWorkspaces.filter((w) => w.requiresDocker);

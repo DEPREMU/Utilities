@@ -68,6 +68,11 @@ jobs:
       - name: Configure centralized CI environment files
         run: node scripts/ci/setup-ci-env.ts --target=all
 
+      - name: Generate Prisma client
+        run: yarn workspace utilities-server run db-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
+
       - name: Run independent workspace tests (Phase B)
         run: node scripts/ci/test-orchestrator.ts --phase=independent
 
@@ -97,11 +102,6 @@ jobs:
           '
           echo "Server is healthy!"
           curl -s http://localhost:3000/api/info/health
-
-      - name: Generate Prisma client
-        run: yarn workspace utilities-server run db-generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
 
       - name: Run Docker-dependent workspace tests (Phase D)
         run: node scripts/ci/test-orchestrator.ts --phase=dependent

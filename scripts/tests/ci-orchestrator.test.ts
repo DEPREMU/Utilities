@@ -123,7 +123,7 @@ describe("CI Orchestrator & Environment Setup", () => {
       expect(pkg).toBeDefined();
       expect(pkg?.hasTest).toBe(true);
       // Conservative default
-      expect(pkg?.requiresDocker).toBe(true);
+      expect(pkg?.requiresDocker).toBe(false);
     });
   });
 
