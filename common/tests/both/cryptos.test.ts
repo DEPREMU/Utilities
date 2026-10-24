@@ -77,3 +77,9 @@ if (process.env.CI === undefined)
       cryptos.destroy();
     });
   });
+else
+  describe("Cryptos", () => {
+    it("should not run tests in CI", async () => {
+      expect(null).toBeNull();
+    });
+  });
