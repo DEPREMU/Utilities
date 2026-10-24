@@ -4,72 +4,157 @@ on:
   push:
     branches:
       - production
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: "Force Android native compilation regardless of version check"
+        required: false
+        default: false
+        type: boolean
+      force_update:
+        description: "Force Android OTA asset update regardless of version check"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  check-version:
+    name: Check Android Version
     runs-on: ubuntu-latest
     environment: build-android
+    timeout-minutes: 10
+
+    outputs:
+      should_build: ${{ steps.version_check.outputs.should_build }}
+      should_update: ${{ steps.version_check.outputs.should_update }}
+      commit_message: ${{ steps.version_check.outputs.commit_message }}
+      action: ${{ steps.version_check.outputs.action }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: Setup Node
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: "yarn"
-
-      - name: Install dependencies
-        run: yarn install
 
       - name: Check version change
         id: version_check
         run: node scripts/check-version-ci.ts --platform=android
         env:
           API_URL: ${{ secrets.API_URL }}
+          FORCE_BUILD: ${{ inputs.force_build }}
+
+      - name: Handle manual force update override
+        if: inputs.force_update == true
+        shell: bash
+        run: |
+          echo "should_update=true" >> "$GITHUB_OUTPUT"
+          echo "action=update" >> "$GITHUB_OUTPUT"
+
+      - name: Record version check summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Android Version Evaluation Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Action**: \`${{ steps.version_check.outputs.action }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Should Native Build**: \`${{ steps.version_check.outputs.should_build }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Should OTA Update**: \`${{ steps.version_check.outputs.should_update }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-ota-update:
+    name: Deploy OTA Asset Update
+    needs: check-version
+    if: needs.check-version.outputs.should_update == 'true'
+    runs-on: ubuntu-latest
+    environment: build-android
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
       - name: Deploy Patch Update
-        if: steps.version_check.outputs.should_update == 'true'
-        run: yarn run update-assets --platform-update-assets=both --message="${{ steps.version_check.outputs.commit_message }}"
+        run: yarn run update-assets --platform-update-assets=both --message="$MESSAGE_TEXT"
         env:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           BUILD_PROFILE: production
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          MESSAGE_TEXT: ${{ needs.check-version.outputs.commit_message }}
+
+  build-and-upload-native:
+    name: Build & Upload Native Android APK
+    needs: check-version
+    if: needs.check-version.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    environment: build-android
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Update Web Assets
-        if: steps.version_check.outputs.should_build == 'true'
-        run: yarn run update-assets --platform-update-assets=web --message="${{ steps.version_check.outputs.commit_message }}"
+        run: yarn run update-assets --platform-update-assets=web --message="$MESSAGE_TEXT"
         env:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           BUILD_PROFILE: production
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          MESSAGE_TEXT: ${{ needs.check-version.outputs.commit_message }}
 
       - name: Pre-build Android
-        if: steps.version_check.outputs.should_build == 'true'
         run: yarn run app-prebuild-android
         env:
           BUILD_PROFILE: production
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Clear android and google-services.json from .gitignore
-        if: steps.version_check.outputs.should_build == 'true'
         run: sed -i '/^android\/$/d; /^google-services.json$/d' .gitignore
 
       - name: Build Android App (Docker)
-        if: steps.version_check.outputs.should_build == 'true'
         run: |
+          set -euo pipefail
           mkdir -p "${{ github.workspace }}/app/builds"
-          chmod -R 777 "${{ github.workspace }}/app/builds"
-          docker build -f scripts/app/Dockerfile.android -t app-android-build .
+          chmod 775 "${{ github.workspace }}/app/builds"
+
+          docker build \
+            --cache-from type=gha,scope=android-docker \
+            --cache-to type=gha,mode=max,scope=android-docker \
+            -f scripts/app/Dockerfile.android \
+            -t app-android-build .
+
           docker run --rm \
             -v "${{ github.workspace }}/.git:/utilities/.git" \
             -v "${{ github.workspace }}/app/builds:/utilities/app/builds" \
@@ -78,14 +163,20 @@ jobs:
             -e BUILD_PROFILE=production \
             -e EXPO_TOKEN="${EXPO_TOKEN}" \
             app-android-build
+
           ls -lah "${{ github.workspace }}/app/builds"
+
+          # Verify expected APK exists before upload
+          if [ ! -f "${{ github.workspace }}/app/builds/android-production.apk" ] && [ -z "$(ls -A ${{ github.workspace }}/app/builds/*.apk 2>/dev/null)" ]; then
+            echo "::error::No APK artifact produced in app/builds!"
+            exit 1
+          fi
         env:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Upload Artifact (Primary)
-        if: steps.version_check.outputs.should_build == 'true'
         run: yarn run build-upload-android
         env:
           WS_URL: ${{ secrets.WS_URL }}
@@ -93,7 +184,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Upload Artifact (Fallback)
-        if: failure() && steps.version_check.outputs.should_build == 'true'
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: android-build-fallback
