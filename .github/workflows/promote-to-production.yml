@@ -1,0 +1,299 @@
+name: Promote Main to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: promote-main-to-production
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  quality-gate:
+    name: Code Quality (before-commit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Configure minimal environment file
+        shell: bash
+        run: |
+          cat << 'EOF' > .env
+          IV=0123456789abcdef
+          __DEV__=true
+          USE_HTTPS=false
+          JWT_SECRET=ci-jwt-secret-key-1234567890abcdef
+          ADMIN_EMAIL=ci-admin@example.com
+          ADMIN_PASSWORD=ci-admin-password
+          DEEPL_TRANSLATOR_API=ci-deepl-key
+          SECRET_KEY_TO_ENCRYPTION=0123456789abcdef0123456789abcdef
+          FIREBASE_SERVICE_ACCOUNT={}
+          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public"
+          DB_ENCRYPTION_PASS=ci-db-encryption-pass
+          WS_URL=ws://localhost:3000/ws
+          API_URL=http://localhost:3000/api
+          REDIS_URL=redis://localhost:6379
+          SMTP_HOST=localhost
+          SMTP_PORT=587
+          SMTP_USER=ci-smtp@example.com
+          SMTP_PASSWORD=ci-smtp-pass
+          FCM_SERVER_KEY=ci-fcm-key
+          EOF
+
+      - name: Generate Prisma client
+        run: yarn workspace utilities-server run db-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
+
+      - name: Run code quality checks
+        run: yarn run before-commit
+
+  integration-tests:
+    name: Tests & Containers (Docker + NordVPN)
+    environment: promote-main-to-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      NORD_TOKEN: ${{ secrets.NORD_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Configure CI environment files
+        shell: bash
+        run: |
+          mkdir -p server/.temp/whatsapp-shared-session .temp/whatsapp-shared-session
+
+          cat << 'EOF' > server/vps/docker/.env
+          POSTGRES_USER=postgres
+          POSTGRES_PASS=postgres
+          POSTGRES_DB=UtilitiesDB
+          DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/UtilitiesDB?schema=public"
+          REDIS_URL="redis://127.0.0.1:6379"
+          IV=0123456789abcdef
+          __DEV__=false
+          USE_HTTPS=false
+          JWT_SECRET=ci-jwt-secret-key-1234567890abcdef
+          ADMIN_EMAIL=ci-admin@example.com
+          ADMIN_PASSWORD=ci-admin-password
+          DEEPL_TRANSLATOR_API=ci-deepl-key
+          SECRET_KEY_TO_ENCRYPTION=0123456789abcdef0123456789abcdef
+          FIREBASE_SERVICE_ACCOUNT={}
+          DB_ENCRYPTION_PASS=ci-db-encryption-pass
+          WS_URL=ws://localhost:3000/ws
+          API_URL=http://localhost:3000/api
+          SMTP_HOST=localhost
+          SMTP_PORT=587
+          SMTP_USER=ci-smtp@example.com
+          SMTP_PASSWORD=ci-smtp-pass
+          FCM_SERVER_KEY=ci-fcm-key
+          DOWNLOAD_RATE_LIMIT=5m
+          EOF
+          echo "NORD_TOKEN=${NORD_TOKEN}" >> server/vps/docker/.env
+
+          cat << 'EOF' > .env
+          IV=0123456789abcdef
+          __DEV__=true
+          USE_HTTPS=false
+          JWT_SECRET=ci-jwt-secret-key-1234567890abcdef
+          ADMIN_EMAIL=ci-admin@example.com
+          ADMIN_PASSWORD=ci-admin-password
+          DEEPL_TRANSLATOR_API=ci-deepl-key
+          SECRET_KEY_TO_ENCRYPTION=0123456789abcdef0123456789abcdef
+          FIREBASE_SERVICE_ACCOUNT={}
+          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public"
+          DB_ENCRYPTION_PASS=ci-db-encryption-pass
+          WS_URL=ws://localhost:3000/ws
+          API_URL=http://localhost:3000/api
+          REDIS_URL=redis://localhost:6379
+          SMTP_HOST=localhost
+          SMTP_PORT=587
+          SMTP_USER=ci-smtp@example.com
+          SMTP_PASSWORD=ci-smtp-pass
+          FCM_SERVER_KEY=ci-fcm-key
+          EOF
+
+      - name: Ensure docker-compose compatibility
+        shell: bash
+        run: |
+          if ! command -v docker-compose &> /dev/null; then
+            echo '#!/bin/bash' | sudo tee /usr/local/bin/docker-compose
+            echo 'exec docker compose "$@"' | sudo tee -a /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+          fi
+          docker-compose --version
+
+      - name: Build server Docker image
+        run: docker build -f server/vps/docker/Dockerfile -t utilities-server . --build-arg API_URL="http://localhost:3000/api"
+
+      - name: Start server test stack behind NordVPN
+        shell: bash
+        run: |
+          docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml up -d
+          echo "Waiting for server to become healthy behind NordVPN..."
+          timeout 180s bash -c '
+            until curl -sf http://localhost:3000/api/info/health > /dev/null 2>&1; do
+              echo "Waiting for http://localhost:3000/api/info/health..."
+              sleep 3
+            done
+          '
+          echo "Server is healthy!"
+          curl -s http://localhost:3000/api/info/health
+
+      - name: Generate Prisma client
+        run: yarn workspace utilities-server run db-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
+
+      - name: Run workspace tests
+        run: yarn run tests
+        env:
+          CI: true
+          IV: 0123456789abcdef
+          __DEV__: true
+          USE_HTTPS: false
+          JWT_SECRET: ci-jwt-secret-key-1234567890abcdef
+          ADMIN_EMAIL: ci-admin@example.com
+          ADMIN_PASSWORD: ci-admin-password
+          DEEPL_TRANSLATOR_API: ci-deepl-key
+          SECRET_KEY_TO_ENCRYPTION: 0123456789abcdef0123456789abcdef
+          FIREBASE_SERVICE_ACCOUNT: "{}"
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
+          DB_ENCRYPTION_PASS: ci-db-encryption-pass
+          WS_URL: ws://localhost:3000/ws
+          API_URL: http://localhost:3000/api
+          REDIS_URL: redis://localhost:6379
+          SMTP_HOST: localhost
+          SMTP_PORT: 587
+          SMTP_USER: ci-smtp@example.com
+          SMTP_PASSWORD: ci-smtp-pass
+          FCM_SERVER_KEY: ci-fcm-key
+
+      - name: Dump container logs on failure
+        if: failure()
+        shell: bash
+        run: |
+          docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml ps
+          docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml logs
+
+      - name: Tear down test stack
+        if: always()
+        shell: bash
+        run: |
+          docker compose --env-file server/vps/docker/.env -f server/vps/docker/docker-compose.test.yml down -v || true
+
+  promote-to-production:
+    name: Promote to Production
+    needs:
+      - quality-gate
+      - integration-tests
+    environment: promote-main-to-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      BASE_BRANCH: production
+      HEAD_BRANCH: main
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check branch divergence
+        id: divergence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$BASE_BRANCH" "$HEAD_BRANCH"
+          pending_commits=$(git rev-list --count "origin/$BASE_BRANCH..origin/$HEAD_BRANCH")
+          echo "pending_commits=$pending_commits" >> "$GITHUB_OUTPUT"
+          if [ "$pending_commits" -eq 0 ]; then
+            echo "::notice::$BASE_BRANCH is already up to date with $HEAD_BRANCH. Skipping PR creation."
+          else
+            echo "Found $pending_commits commit(s) on $HEAD_BRANCH not yet in $BASE_BRANCH."
+          fi
+
+      - name: Create or reuse promotion pull request
+        if: steps.divergence.outputs.pending_commits != '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.PROMOTION_TOKEN || secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          existing_pr_url=$(gh pr list \
+            --base "$BASE_BRANCH" \
+            --head "$HEAD_BRANCH" \
+            --state open \
+            --json url \
+            --jq '.[0].url // empty')
+
+          if [ -n "$existing_pr_url" ]; then
+            echo "::notice::Promotion PR already open: $existing_pr_url"
+            echo "### Promotion PR already open" >> "$GITHUB_STEP_SUMMARY"
+            echo "$existing_pr_url" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          pr_body=$(cat <<EOF
+          ## Automated promotion: \`$HEAD_BRANCH\` → \`$BASE_BRANCH\`
+
+          All checks in \`yarn run before-commit\` and \`yarn run tests\` passed on \`$HEAD_BRANCH\`.
+
+          - **Trigger commit**: $COMMIT_SHA
+          - **Workflow run**: $RUN_URL
+
+          This pull request requires maintainer review and a manual merge.
+          EOF
+          )
+
+          if ! created_pr_url=$(gh pr create \
+            --base "$BASE_BRANCH" \
+            --head "$HEAD_BRANCH" \
+            --title "chore(release): promote $HEAD_BRANCH to $BASE_BRANCH" \
+            --body "$pr_body" 2>&1); then
+            echo "::error::Failed to create promotion PR: $created_pr_url"
+            if echo "$created_pr_url" | grep -qi "not permitted to create or approve pull requests"; then
+              echo "::error::GitHub Actions is not allowed to create pull requests in this repository."
+              echo "::error::To fix this: Go to Settings -> Actions -> General -> Workflow permissions -> Check 'Allow GitHub Actions to create and approve pull requests' and Save."
+              echo "::error::Alternatively, provide a Personal Access Token in secrets as PROMOTION_TOKEN."
+            fi
+            exit 1
+          fi
+
+          echo "::notice::Created promotion PR: $created_pr_url"
+          echo "### Promotion PR created" >> "$GITHUB_STEP_SUMMARY"
+          echo "$created_pr_url" >> "$GITHUB_STEP_SUMMARY"

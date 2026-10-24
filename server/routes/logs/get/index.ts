@@ -4,7 +4,7 @@ import { handleGetLogs, handleGetLogsPage } from "./handlers";
 
 export const routerLogsGet = getRouterGet("/logs", {
   "/": { handler: handleGetLogs, middlewares: [authMiddleware] },
-  "/page{/:page}": {
+  "/page{/:lastId}": {
     handler: handleGetLogsPage,
     middlewares: [authMiddleware],
   },

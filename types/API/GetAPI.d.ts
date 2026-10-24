@@ -53,14 +53,14 @@ export type ServerInfoFetch =
   | GetUrlFetch<"/appAlive/:deviceId/:pushToken", null, Record<string, never>>;
 
 export type ClipboardFetch = GetUrlFetch<
-  "/:deviceId{/:page-number}?deleted-boolean-optional;query-optional;",
+  "/:deviceId{/:lastId}?deleted-boolean-optional;query-optional;pageSize-number-optional",
   null,
   { auth: true },
   { clipboardItems: DB["TablesClient"]["ClipboardSync"][] }
 >;
 
 export type DownDetectorFetch = GetUrlFetch<
-  "/:deviceId{/:page-number}",
+  "/:deviceId{/:lastId}?pageSize-number-optional",
   null,
   { auth: true },
   { downDetectors: DB["TablesClient"]["DownDetector"][] }
@@ -74,7 +74,7 @@ export type LogsFetch =
       { logs: DB["TablesClient"]["Logs"][] }
     >
   | GetUrlFetch<
-      "/page{/:page-number}",
+      "/page{/:lastId}?pageSize-number-optional",
       null,
       { auth: true },
       { logs: DB["TablesClient"]["Logs"][] }
@@ -82,7 +82,7 @@ export type LogsFetch =
 
 export type StreamersFetch =
   | GetUrlFetch<
-      "/page{/:page-number}",
+      "/page{/:lastId}?pageSize-number-optional",
       null,
       Record<string, never>,
       { streamers: DB["TablesClient"]["Streamers"][] }

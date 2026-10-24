@@ -8,7 +8,7 @@ import { getRouterGet } from "@common";
 
 export const routerStreamersGet = getRouterGet("/streamers", {
   "/": { handler: handleGetStreamers },
-  "/page{/:page}": { handler: handleGetStreamersPage },
+  "/page{/:lastId}": { handler: handleGetStreamersPage },
   "/streamer/:streamerId": { handler: handleGetStreamerById },
   "/:userId{/:streamerId}": { handler: handleGetStreamersByUserId },
 });

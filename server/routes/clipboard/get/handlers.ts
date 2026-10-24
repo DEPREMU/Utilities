@@ -1,27 +1,34 @@
 import { prisma } from "@/database/postgres";
 import { getHandlerGet, Helper, STATUS_RESPONSE } from "@common";
 
-const PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 20;
 
 export const handleGetClipboard = getHandlerGet(
   "/clipboard",
-  "/:deviceId{/:page}",
+  "/:deviceId{/:lastId}",
   async ({ params, query }, sendResponse, { req }) => {
-    const page = Helper.Object.getValue(params, "page", (v) =>
-      typeof v === "number" && v > 0 ? v : 1,
-    );
+    const lastId = Helper.Object.getValue(params, "lastId");
     const deleted = !!query.deleted;
     const querySearch = Helper.Object.getValue(query, "query");
+    const take = Math.max(
+      1,
+      Math.min(
+        MAX_PAGE_SIZE,
+        Helper.Object.getValue(query, "pageSize", DEFAULT_PAGE_SIZE),
+      ),
+    );
 
     const result = await prisma.clipboardSync.findMany({
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
+      take,
+      skip: lastId ? 1 : 0,
+      cursor: lastId ? { id: lastId } : undefined,
       where: {
-        userId: req.user.token.data.userId,
         deleted,
+        userId: req.user.token.data.userId,
         content: { contains: querySearch },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     });
 
     sendResponse(STATUS_RESPONSE.SUCCESS, {

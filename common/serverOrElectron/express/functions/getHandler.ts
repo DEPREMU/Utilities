@@ -31,7 +31,7 @@ export const getHandlerGet: GetHandlerType<Get, "GET"> = (
 
       const schema =
         SCHEMAS[method as "GET"][
-          (path + url) as "/clipboard/:deviceId{/:page}"
+          (path + url) as "/clipboard/:deviceId{/:lastId}"
         ];
 
       const parsedKeys = await Promise.all(

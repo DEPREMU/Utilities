@@ -135,8 +135,8 @@ export const useDownDetector = create<States & Actions>((set, get) => {
 
       try {
         const res = await ServerFetch.get(
-          "/down-detector/:deviceId{/:page}",
-          { params: { deviceId } },
+          "/down-detector/:deviceId{/:lastId}",
+          { params: { deviceId }, query: {} },
           sessionToken,
         );
 

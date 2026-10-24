@@ -32,18 +32,31 @@ describe("GET /logs", () => {
   describe("/logs/page", () => {
     it("should return paginated logs", async () => {
       const res = await ServerFetch.get(
-        "/logs/page{/:page}",
-        { params: {} },
+        "/logs/page{/:lastId}",
+        { params: {}, query: {} },
         testUser.token,
       );
       expect(res.status).toBeDefined();
       expect(res.data).toBeDefined();
     });
 
-    it("should support the optional page-number parameter", async () => {
+    it("should support the optional lastId parameter", async () => {
+      const r = await ServerFetch.get(
+        "/logs/page{/:lastId}",
+        { params: {}, query: {} },
+        testUser.token,
+      );
+
       const res = await ServerFetch.get(
-        "/logs/page{/:page}",
-        { params: { page: 1 } },
+        "/logs/page{/:lastId}",
+        {
+          params: {
+            lastId: (
+              (r.data as Record<string, unknown>).logs as Array<{ id: string }>
+            ).pop()?.id,
+          },
+          query: {},
+        },
         testUser.token,
       );
       expect(res.status).toBeDefined();
@@ -51,8 +64,8 @@ describe("GET /logs", () => {
 
     it("should return logs or an error object", async () => {
       const res = await ServerFetch.get(
-        "/logs/page{/:page}",
-        { params: {} },
+        "/logs/page{/:lastId}",
+        { params: {}, query: {} },
         testUser.token,
       );
       const hasLogs = "logs" in res.data;
