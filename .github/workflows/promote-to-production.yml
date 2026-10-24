@@ -45,7 +45,6 @@ jobs:
 
   integration-tests:
     name: Tests & Containers (Docker + NordVPN)
-    needs: quality-gate
     environment: promote-main-to-production
     runs-on: ubuntu-latest
     timeout-minutes: 30
