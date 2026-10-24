@@ -3,18 +3,25 @@ FROM reactnativecommunity/react-native-android:latest
 WORKDIR /utilities
 
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
-  && apt-get install -y nodejs \
+  && apt-get install -y --no-install-recommends nodejs \
   && ln -sf /usr/bin/node /usr/local/bin/node \
   && node --version \
-  && npm --version
+  && npm --version \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g eas-cli
 
+# Copy workspace package manifests to optimize Docker layer caching
 COPY package.json yarn.lock ./
 COPY app/package.json ./app/package.json
 COPY common/package.json ./common/package.json
+COPY types/package.json ./types/package.json
+COPY server/package.json ./server/package.json
+COPY scripts/package.json ./scripts/package.json
+COPY frontend/package.json ./frontend/package.json
+COPY UtilitiesForPC/package.json ./UtilitiesForPC/package.json
 
-RUN yarn install --immutable
+RUN yarn install --frozen-lockfile
 
 COPY . .
 
