@@ -38,13 +38,89 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Configure CI environment files
+        shell: bash
+        run: |
+          cat << 'EOF' > server/vps/docker/.env
+          POSTGRES_USER=postgres
+          POSTGRES_PASS=postgres
+          POSTGRES_DB=UtilitiesDB
+          EOF
+
+          cat << 'EOF' > .env
+          IV=0123456789abcdef
+          __DEV__=true
+          USE_HTTPS=false
+          JWT_SECRET=ci-jwt-secret-key-1234567890abcdef
+          ADMIN_EMAIL=ci-admin@example.com
+          ADMIN_PASSWORD=ci-admin-password
+          DEEPL_TRANSLATOR_API=ci-deepl-key
+          SECRET_KEY_TO_ENCRYPTION=0123456789abcdef0123456789abcdef
+          FIREBASE_SERVICE_ACCOUNT={}
+          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public"
+          DB_ENCRYPTION_PASS=ci-db-encryption-pass
+          WS_URL=ws://localhost:3000/ws
+          API_URL=http://localhost:3000/api
+          REDIS_URL=redis://localhost:6379
+          SMTP_HOST=localhost
+          SMTP_PORT=587
+          SMTP_USER=ci-smtp@example.com
+          SMTP_PASSWORD=ci-smtp-pass
+          FCM_SERVER_KEY=ci-fcm-key
+          EOF
+
+      - name: Ensure docker-compose compatibility
+        shell: bash
+        run: |
+          if ! command -v docker-compose &> /dev/null; then
+            echo '#!/bin/bash' | sudo tee /usr/local/bin/docker-compose
+            echo 'exec docker compose "$@"' | sudo tee -a /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+          fi
+          docker-compose --version
+
+      - name: Start Postgres and Redis containers
+        shell: bash
+        run: |
+          docker compose -f server/vps/docker/docker-compose.dev.yml up -d
+          echo "Waiting for Postgres to be ready..."
+          until docker exec utilities-postgres pg_isready -U postgres -d UtilitiesDB; do
+            sleep 1
+          done
+          echo "Waiting for Redis to be ready..."
+          until docker exec utilities-redis redis-cli ping; do
+            sleep 1
+          done
+          echo "Postgres and Redis are up and healthy!"
+
       - name: Generate Prisma client
         run: yarn workspace utilities-server run db-generate
         env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
 
       - name: Run quality gate and tests
         run: yarn run before-commit:testing
+        env:
+          CI: true
+          IV: 0123456789abcdef
+          __DEV__: true
+          USE_HTTPS: false
+          JWT_SECRET: ci-jwt-secret-key-1234567890abcdef
+          ADMIN_EMAIL: ci-admin@example.com
+          ADMIN_PASSWORD: ci-admin-password
+          DEEPL_TRANSLATOR_API: ci-deepl-key
+          SECRET_KEY_TO_ENCRYPTION: 0123456789abcdef0123456789abcdef
+          FIREBASE_SERVICE_ACCOUNT: "{}"
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public
+          DB_ENCRYPTION_PASS: ci-db-encryption-pass
+          WS_URL: ws://localhost:3000/ws
+          API_URL: http://localhost:3000/api
+          REDIS_URL: redis://localhost:6379
+          SMTP_HOST: localhost
+          SMTP_PORT: 587
+          SMTP_USER: ci-smtp@example.com
+          SMTP_PASSWORD: ci-smtp-pass
+          FCM_SERVER_KEY: ci-fcm-key
 
       - name: Check branch divergence
         id: divergence

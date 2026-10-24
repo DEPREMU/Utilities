@@ -13,7 +13,7 @@ describe("GET /down-detector", () => {
     it("should return down-detector items for a valid device", async () => {
       const res = await ServerFetch.get(
         "/down-detector/:deviceId{/:lastId}",
-        { params: { deviceId: testUser.deviceId } },
+        { params: { deviceId: testUser.deviceId }, query: {} },
         testUser.token,
       );
       expect(res.ok).toBe(true);
@@ -23,7 +23,7 @@ describe("GET /down-detector", () => {
     it("should return an array of down detectors", async () => {
       const res = await ServerFetch.get(
         "/down-detector/:deviceId{/:lastId}",
-        { params: { deviceId: testUser.deviceId } },
+        { params: { deviceId: testUser.deviceId }, query: {} },
         testUser.token,
       );
       if ("downDetectors" in res.data) {
@@ -38,6 +38,7 @@ describe("GET /down-detector", () => {
           params: {
             deviceId: testUser.deviceId,
           },
+          query: {},
         },
         testUser.token,
       );
@@ -53,6 +54,7 @@ describe("GET /down-detector", () => {
               }>
             ).pop()?.id,
           },
+          query: {},
         },
         testUser.token,
       );
