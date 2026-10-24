@@ -181,7 +181,7 @@ jobs:
         if: steps.divergence.outputs.pending_commits != '0'
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PROMOTION_TOKEN || secrets.GITHUB_TOKEN }}
           COMMIT_SHA: ${{ github.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -213,11 +213,19 @@ jobs:
           EOF
           )
 
-          created_pr_url=$(gh pr create \
+          if ! created_pr_url=$(gh pr create \
             --base "$BASE_BRANCH" \
             --head "$HEAD_BRANCH" \
             --title "chore(release): promote $HEAD_BRANCH to $BASE_BRANCH" \
-            --body "$pr_body")
+            --body "$pr_body" 2>&1); then
+            echo "::error::Failed to create promotion PR: $created_pr_url"
+            if echo "$created_pr_url" | grep -qi "not permitted to create or approve pull requests"; then
+              echo "::error::GitHub Actions is not allowed to create pull requests in this repository."
+              echo "::error::To fix this: Go to Settings -> Actions -> General -> Workflow permissions -> Check 'Allow GitHub Actions to create and approve pull requests' and Save."
+              echo "::error::Alternatively, provide a Personal Access Token in secrets as PROMOTION_TOKEN or GH_PAT."
+            fi
+            exit 1
+          fi
 
           echo "::notice::Created promotion PR: $created_pr_url"
           echo "### Promotion PR created" >> "$GITHUB_STEP_SUMMARY"
