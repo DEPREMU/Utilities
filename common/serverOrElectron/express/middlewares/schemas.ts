@@ -17,19 +17,41 @@ type APIInput = {
   [K in MethodsAPI]: {
     [R in RoutesAPI[K]]: [ResolveRoute<FetchAPI<K>, R>] extends [never]
       ? never
-      : {
-          params?: RequestSchema<
+      : (RequestSchema<
+          ResolveRoute<FetchAPI<K>, R>["requestInput"]["query"]
+        > extends undefined
+          ? {
+              query?: never;
+            }
+          : {
+              query: Required<
+                RequestSchema<
+                  ResolveRoute<FetchAPI<K>, R>["requestInput"]["query"]
+                >
+              >;
+            }) &
+          (RequestSchema<
             ResolveRoute<FetchAPI<K>, R>["requestInput"]["params"]
-          >;
-
-          body?: RequestSchema<
+          > extends undefined
+            ? { params?: never }
+            : {
+                params: Required<
+                  RequestSchema<
+                    ResolveRoute<FetchAPI<K>, R>["requestInput"]["params"]
+                  >
+                >;
+              }) &
+          (RequestSchema<
             ResolveRoute<FetchAPI<K>, R>["requestInput"]["body"]
-          >;
-
-          query?: RequestSchema<
-            ResolveRoute<FetchAPI<K>, R>["requestInput"]["query"]
-          >;
-        };
+          > extends undefined
+            ? { body?: never }
+            : {
+                body: Required<
+                  RequestSchema<
+                    ResolveRoute<FetchAPI<K>, R>["requestInput"]["body"]
+                  >
+                >;
+              });
   };
 };
 
@@ -42,8 +64,19 @@ type RequestSchema<T> = [T] extends [never]
       : ZodField<T>;
 
 const lang = z.enum(languagesSupported).default("en");
-const page = z.coerce.number().optional().default(1);
+const lastId = z.string().optional();
 const deviceId = z.string().min(10, "Invalid device ID");
+
+const boolean = z
+  .preprocess((val) => {
+    if (typeof val === "boolean") return val;
+    if (val === "true" || val === "1") return true;
+    return false;
+  }, z.boolean())
+  .optional();
+
+const PAGE_SIZE = z.coerce.number().int().positive().optional();
+
 const notificationToken = z.string().min(3, "Invalid notification token");
 const password = z
   .string()
@@ -74,16 +107,18 @@ export const SCHEMAS: APIInput = {
     "/cryptos/price/:symbol": {
       params: { symbol: z.string().toUpperCase() },
     },
-    "/clipboard/:deviceId{/:page}": {
-      params: { page, deviceId },
+    "/clipboard/:deviceId{/:lastId}": {
+      params: { lastId, deviceId },
       query: {
         query: z.string().optional(),
-        deleted: z.coerce.boolean().optional().default(false),
+        deleted: boolean,
+        pageSize: PAGE_SIZE,
       },
     },
     "/logs/": {},
-    "/logs/page{/:page}": {
-      params: { page },
+    "/logs/page{/:lastId}": {
+      query: { pageSize: PAGE_SIZE },
+      params: { lastId },
     },
     "/streamers/": {},
     "/streamers/:userId{/:streamerId}": {
@@ -92,12 +127,14 @@ export const SCHEMAS: APIInput = {
         streamerId: z.uuid().optional(),
       },
     },
-    "/streamers/page{/:page}": {
-      params: { page },
+    "/streamers/page{/:lastId}": {
+      query: { pageSize: PAGE_SIZE },
+      params: { lastId },
     },
     "/streamers/streamer/:streamerId": { params: { streamerId: z.uuid() } },
-    "/down-detector/:deviceId{/:page}": {
-      params: { page, deviceId },
+    "/down-detector/:deviceId{/:lastId}": {
+      query: { pageSize: PAGE_SIZE },
+      params: { lastId, deviceId },
     },
     "/downloads/download/:id": { params: { id: z.string() } },
     "/downloads/is-update-available/:version/:buildType": {
@@ -112,13 +149,13 @@ export const SCHEMAS: APIInput = {
       body: {
         deviceId,
         id: z.union([z.uuid(), z.array(z.uuid())]),
-        deleted: z.boolean().optional(),
+        deleted: boolean,
       },
     },
     "/clipboard/delete/toggle-deleted-all": {
       body: {
         deviceId,
-        restore: z.boolean().optional().default(false),
+        restore: boolean,
       },
     },
     "/down-detector/update": {
