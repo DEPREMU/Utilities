@@ -1,9 +1,9 @@
 /* eslint-disable react/jsx-no-literals */
 /* eslint-disable react-native/no-inline-styles */
 import {
-  View,
   Pressable,
   StyleSheet,
+  ViewInstance,
   GestureResponderEvent,
 } from "react-native";
 import Animated, {
@@ -17,6 +17,7 @@ import { Timers } from "@common";
 import { memoDeep } from "@utils";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 interface AnimatedCircleProps {
@@ -81,7 +82,7 @@ const AnimatedCircle: React.FC<AnimatedCircleProps> = memoDeep(
 );
 
 const ButtonWithLiquidEffectAndAnimatedCircles = () => {
-  const pressRef = useRef<View>(null);
+  const pressRef = useRef<ViewInstance>(null);
   const lastPress = useRef<string[] | null>([]);
   const translateY = useSharedValue<number>(120);
   const [touches, setTouches] = useState<Touch[]>([]);

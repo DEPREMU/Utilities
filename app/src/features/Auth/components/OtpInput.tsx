@@ -1,5 +1,11 @@
 import { useStylesOtpInput } from "@screens/Auth/styles/useStylesOtpInput";
-import { View, Text, Pressable, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  TextInput,
+  TextInputInstance,
+} from "react-native";
 import React, { useRef, useState, useCallback } from "react";
 
 export type OtpInputProps = {
@@ -25,7 +31,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   autoFocus = true,
 }) => {
   const { styles, colors } = useStylesOtpInput();
-  const inputRef = useRef<TextInput | null>(null);
+  const inputRef = useRef<TextInputInstance | null>(null);
   const [isFocused, setIsFocused] = useState<boolean>(false);
 
   const handlePressContainer = useCallback(() => {

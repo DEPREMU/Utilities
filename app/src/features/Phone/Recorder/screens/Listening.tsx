@@ -381,7 +381,7 @@ const ListeningScreen: React.FC = () => {
                 </View>
               </View>
             </Animated.View>
-          ) : null
+          ) : undefined
         }
       />
     </View>

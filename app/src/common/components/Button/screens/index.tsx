@@ -3,8 +3,8 @@ import {
   Pressable,
   ViewStyle,
   TextStyle,
+  MouseEvent,
   TargetedEvent,
-  NativeMouseEvent,
   NativeSyntheticEvent,
 } from "react-native";
 import { memoDeep } from "@utils";
@@ -27,9 +27,9 @@ interface ButtonComponentProps<T extends PressHandler> {
   touchableOpacity?: boolean;
   touchableOpacityIntensity?: number;
   forceReplaceStyles?: boolean;
-  handlerHoverIn?: (event: NativeSyntheticEvent<NativeMouseEvent>) => void;
+  handlerHoverIn?: (event: MouseEvent) => void;
   handlerFocus?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
-  handlerHoverOut?: (event: NativeSyntheticEvent<NativeMouseEvent>) => void;
+  handlerHoverOut?: (event: MouseEvent) => void;
 
   handlePress: T;
   argsFuncHandlePress?: Parameters<T>;

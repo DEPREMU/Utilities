@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import path from "path";
-import { getDefaultConfig } from "expo/metro-config.js";
+import { getDefaultConfig } from "expo/metro-config";
 
 const projectRoot = path.resolve();
 const workspaceRoot = path.resolve(projectRoot, "..");

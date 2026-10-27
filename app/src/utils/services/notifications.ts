@@ -24,7 +24,7 @@ import { cloneDeep } from "lodash";
 import { navigation } from "./navigation";
 import * as DeviceInfo from "react-native-device-info";
 import * as notifications from "expo-notifications";
-import { AppState, Falsy } from "react-native";
+import { AppState } from "react-native";
 import { storageManagement } from "../services/storage";
 
 const logger = new Logger("ServicesNotifications");
@@ -52,7 +52,7 @@ export type RemoveNotification = (
  * @returns {boolean} - Returns true if notifications are already initialized, otherwise false.
  */
 export const isNotificationsAlreadyInitialized = (
-  notificationsData: Notifications | Falsy,
+  notificationsData: Notifications | null,
 ): notificationsData is Notifications => {
   if (!notificationsData) return false;
 

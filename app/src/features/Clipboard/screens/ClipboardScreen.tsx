@@ -51,7 +51,7 @@ const ClipboardScreen: React.FC = () => {
   const [noMoreData, setNoMoreData] = useState<boolean>(false);
   const [isFarFromStart, setIsFarFromStart] = useState(false);
   const [clipboardData, setClipboardData] = useState<
-    DB["TablesClient"]["ClipboardSync"][] | null
+    DB["TablesClient"]["ClipboardSync"][]
   >(getSkeletonData(deleted));
 
   const flatListRef = useRef<FlatList | null>(null);
