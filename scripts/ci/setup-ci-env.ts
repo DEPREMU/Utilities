@@ -6,6 +6,8 @@ export interface EnvConfigOptions {
   nordToken?: string;
 }
 
+const FCM_SERVER_KEY = `FIREBASE_SERVICE_ACCOUNT='{"type":"<TYPE>","project_id":"<PROJECT_ID>","private_key_id":"<PRIVATE_KEY_ID>","private_key":"<PRIVATE_KEY>","client_email":"<CLIENT_EMAIL>","client_id":"<CLIENT_ID>","auth_uri":"<AUTH_URI>","token_uri":"<TOKEN_URI>","auth_provider_x509_cert_url":"<AUTH_PROVIDER_X509_CERT_URL>","client_x509_cert_url":"<CLIENT_X509_CERT_URL>","universe_domain":"<UNIVERSE_DOMAIN>"}'`;
+
 export const getRootEnvContent = (): string => {
   return [
     "IV=0123456789abcdef",
@@ -26,7 +28,7 @@ export const getRootEnvContent = (): string => {
     "SMTP_PORT=587",
     "SMTP_USER=ci-smtp@example.com",
     "SMTP_PASSWORD=ci-smtp-pass",
-    "FCM_SERVER_KEY=ci-fcm-key",
+    FCM_SERVER_KEY,
     "",
   ].join("\n");
 };
@@ -54,7 +56,7 @@ export const getDockerEnvContent = (nordToken = ""): string => {
     "SMTP_PORT=587",
     "SMTP_USER=ci-smtp@example.com",
     "SMTP_PASSWORD=ci-smtp-pass",
-    "FCM_SERVER_KEY=ci-fcm-key",
+    FCM_SERVER_KEY,
     "DOWNLOAD_RATE_LIMIT=5m",
   ];
 
