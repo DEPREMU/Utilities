@@ -14,13 +14,13 @@
     "test": "echo \"No implemented yet\""
   },
   "dependencies": {
-    "motion": "^13.5.1",
+    "motion": "^14.7.1",
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "^0.2.4",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.1",
+    "@vitejs/plugin-react": "^6.1.2",
     "babel-plugin-react-compiler": "^1.0.0"
   }
 }
