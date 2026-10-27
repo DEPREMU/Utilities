@@ -1,50 +1,49 @@
 import chalk from "chalk";
-import admin from "firebase-admin";
 import { prisma } from "@/database/postgres";
 import { getEnvValue } from "../env";
-import { Logger, REPLACERS } from "@common";
+import { ExecuteOnce, Logger, REPLACERS } from "@common";
 import { ScreensAvailable, ChannelsId } from "@types";
+import { initializeApp, cert, type App } from "firebase-admin/app";
+import { getMessaging, type BatchResponse } from "firebase-admin/messaging";
 
 const logger = new Logger("FirebaseAdmin");
 
-let firebaseApp: admin.app.App | null = null;
+const firebaseApp: App = ExecuteOnce.execute(
+  "InitializeFirebaseAdmin",
+  undefined,
+  () => {
+    try {
+      const serviceAccount = JSON.parse(
+        getEnvValue("FIREBASE_SERVICE_ACCOUNT"),
+      );
 
-export const initializeFirebaseAdmin = () => {
-  if (firebaseApp) return firebaseApp;
+      const app = initializeApp({
+        credential: cert(serviceAccount),
+      });
 
-  try {
-    const serviceAccount = JSON.parse(getEnvValue("FIREBASE_SERVICE_ACCOUNT"));
-
-    firebaseApp = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-
-    logger.log(chalk.green("Firebase Admin SDK initialized successfully."));
-    return firebaseApp;
-  } catch (error) {
-    logger.error(chalk.red("Error initializing Firebase Admin SDK:"), error);
-    throw error;
-  }
-};
-
-export const getFirebaseAdmin = () => {
-  return firebaseApp || initializeFirebaseAdmin();
-};
+      logger.log(chalk.green("Firebase Admin SDK initialized successfully."));
+      return app;
+    } catch (error) {
+      logger.error(chalk.red("Error initializing Firebase Admin SDK:"), error);
+      throw error;
+    }
+  },
+);
 
 export const sendFCMNotification = async (
   tokens: string[],
   notification: {
-    title: string;
     body: string;
+    title: string;
     imageUrl?: string;
   },
   channelId: ChannelsId,
   data?: { screen: ScreensAvailable } & Record<string, string>,
-) => {
+): Promise<BatchResponse | undefined> => {
   if (REPLACERS.isDev) return;
 
   try {
-    const messaging = getFirebaseAdmin().messaging();
+    const messaging = getMessaging(firebaseApp);
     tokens = tokens.filter(
       (token) =>
         token &&
@@ -59,22 +58,16 @@ export const sendFCMNotification = async (
     const imageUrl =
       typeof data?.image === "string" ? data.image : notification.imageUrl;
 
-    const message: admin.messaging.MulticastMessage = {
-      tokens,
-      notification: {
-        body: notification.body,
-        title: notification.title,
-        imageUrl: notification.imageUrl,
-      },
+    const response = await messaging.sendEachForMulticast({
+      data,
+      notification,
+      fids: tokens,
       android: { notification: { imageUrl, channelId } },
       apns: {
         payload: { aps: { sound: "default", badge: 1 } },
         fcmOptions: { imageUrl },
       },
-      data: data || undefined,
-    };
-
-    const response = await messaging.sendEachForMulticast(message);
+    });
 
     logger.log(
       chalk.green(

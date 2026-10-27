@@ -18,6 +18,7 @@ import Animated, {
   WithTimingConfig,
 } from "react-native-reanimated";
 import { memoDeep } from "@utils";
+import { Writable } from "type-fest";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useRef, useState, useEffect, useMemo } from "react";
 
@@ -46,7 +47,7 @@ const SkeletonLoading: React.FC<SkeletonLoadingProps> = ({
   }));
 
   const dimensionStyle = useMemo(() => {
-    const dimensionStyles: StyleProp<ViewStyle> = {};
+    const dimensionStyles: StyleProp<Writable<ViewStyle>> = {};
     if (width) dimensionStyles.width = width;
     if (height) dimensionStyles.height = height;
     return dimensionStyles;
