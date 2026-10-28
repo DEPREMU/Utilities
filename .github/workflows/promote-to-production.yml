@@ -50,7 +50,8 @@ jobs:
     timeout-minutes: 30
 
     env:
-      NORD_TOKEN: ${{ secrets.NORD_TOKEN }}
+      OPENVPN_USER: ${{ secrets.OPENVPN_USER }}
+      OPENVPN_PASSWORD: ${{ secrets.OPENVPN_PASSWORD }}
 
     steps:
       - name: Checkout code
