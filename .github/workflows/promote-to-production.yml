@@ -50,7 +50,7 @@ jobs:
     timeout-minutes: 30
 
     env:
-      NORD_TOKEN: ${{ secrets.NORD_TOKEN }}
+      WIREGUARD_PRIVATE_KEY: ${{ secrets.WIREGUARD_PRIVATE_KEY }}
 
     steps:
       - name: Checkout code

@@ -1,19 +1,22 @@
 services:
   nordvpn:
-    image: ghcr.io/bubuntux/nordvpn
+    image: qmcgaw/gluetun
     container_name: utilities-nordvpn
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    env_file:
+      - .env
     environment:
-      - TOKEN=${NORD_TOKEN}
-      - CONNECT=Mexico
-      - TECHNOLOGY=NordLynx
-      - LOCAL_NETWORK=172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
       - PORTS=3000
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY:?WIREGUARD_PRIVATE_KEY is required}
+      - LOCAL_NETWORK=172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
+      - SERVER_COUNTRIES=Mexico
+      - VPN_SERVICE_PROVIDER=nordvpn
     healthcheck:
-      test: ["CMD", "curl", "-f", "https://icanhazip.com"]
-      interval: 30s
+      test: ["CMD", "/gluetun-entrypoint", "healthcheck"]
+      interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s

@@ -3,8 +3,10 @@ import path from "node:path";
 
 export interface EnvConfigOptions {
   rootDir?: string;
-  nordToken?: string;
+  wireguardToken?: string;
 }
+
+const FCM_SERVER_KEY = `FIREBASE_SERVICE_ACCOUNT='{"type":"<TYPE>","project_id":"<PROJECT_ID>","private_key_id":"<PRIVATE_KEY_ID>","private_key":"<PRIVATE_KEY>","client_email":"<CLIENT_EMAIL>","client_id":"<CLIENT_ID>","auth_uri":"<AUTH_URI>","token_uri":"<TOKEN_URI>","auth_provider_x509_cert_url":"<AUTH_PROVIDER_X509_CERT_URL>","client_x509_cert_url":"<CLIENT_X509_CERT_URL>","universe_domain":"<UNIVERSE_DOMAIN>"}'`;
 
 export const getRootEnvContent = (): string => {
   return [
@@ -26,12 +28,12 @@ export const getRootEnvContent = (): string => {
     "SMTP_PORT=587",
     "SMTP_USER=ci-smtp@example.com",
     "SMTP_PASSWORD=ci-smtp-pass",
-    "FCM_SERVER_KEY=ci-fcm-key",
+    FCM_SERVER_KEY,
     "",
   ].join("\n");
 };
 
-export const getDockerEnvContent = (nordToken = ""): string => {
+export const getDockerEnvContent = (wireguardToken: string): string => {
   const lines = [
     "POSTGRES_USER=postgres",
     "POSTGRES_PASS=postgres",
@@ -54,12 +56,12 @@ export const getDockerEnvContent = (nordToken = ""): string => {
     "SMTP_PORT=587",
     "SMTP_USER=ci-smtp@example.com",
     "SMTP_PASSWORD=ci-smtp-pass",
-    "FCM_SERVER_KEY=ci-fcm-key",
+    FCM_SERVER_KEY,
     "DOWNLOAD_RATE_LIMIT=5m",
   ];
 
-  if (nordToken) {
-    lines.push(`NORD_TOKEN=${nordToken}`);
+  if (wireguardToken) {
+    lines.push(`WIREGUARD_PRIVATE_KEY="${wireguardToken}"`);
   }
 
   lines.push("");
@@ -71,7 +73,8 @@ export const setupCiEnvironment = (
   options: EnvConfigOptions = {},
 ): void => {
   const rootDir = options.rootDir ?? process.cwd();
-  const nordToken = options.nordToken ?? process.env.NORD_TOKEN ?? "";
+  const wireguardToken =
+    options.wireguardToken ?? process.env.WIREGUARD_PRIVATE_KEY ?? "";
 
   if (target === "all" || target === "root") {
     const rootEnvPath = path.join(rootDir, ".env");
@@ -87,10 +90,14 @@ export const setupCiEnvironment = (
     }
 
     const dockerEnvPath = path.join(dockerDir, ".env");
-    fs.writeFileSync(dockerEnvPath, getDockerEnvContent(nordToken), "utf8");
+    fs.writeFileSync(
+      dockerEnvPath,
+      getDockerEnvContent(wireguardToken),
+      "utf8",
+    );
     // eslint-disable-next-line no-console
     console.log(
-      `[setup-ci-env] Configured Docker environment: ${dockerEnvPath} (NordVPN token: ${nordToken ? "provided" : "empty"})`,
+      `[setup-ci-env] Configured Docker environment: ${dockerEnvPath} (Wireguard credential: ${wireguardToken ? "provided" : "empty"})`,
     );
 
     const whatsappDirs = [

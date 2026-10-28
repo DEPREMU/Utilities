@@ -49,10 +49,7 @@ export const AppBehaviorProvider: React.FC<AppBehaviorProviderProps> = ({
         }
       />
       <PaperProvider theme={paperTheme}>
-        <StatusBar
-          barStyle={isLight ? "light-content" : "dark-content"}
-          backgroundColor={paperTheme.colors.background}
-        />
+        <StatusBar barStyle={isLight ? "light-content" : "dark-content"} />
         {children}
       </PaperProvider>
     </AppBehaviorContext.Provider>

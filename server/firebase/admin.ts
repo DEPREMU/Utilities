@@ -1,22 +1,23 @@
 import chalk from "chalk";
-import admin from "firebase-admin";
 import { prisma } from "@/database/postgres";
 import { getEnvValue } from "../env";
+import { getMessaging } from "firebase-admin/messaging";
+import admin, { App, cert } from "firebase-admin";
 import { Logger, REPLACERS } from "@common";
 import { ScreensAvailable, ChannelsId } from "@types";
 
 const logger = new Logger("FirebaseAdmin");
 
-let firebaseApp: admin.app.App | null = null;
+let firebaseApp: App | null = null;
 
-export const initializeFirebaseAdmin = () => {
+const initializeFirebaseAdmin = () => {
   if (firebaseApp) return firebaseApp;
 
   try {
     const serviceAccount = JSON.parse(getEnvValue("FIREBASE_SERVICE_ACCOUNT"));
 
     firebaseApp = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+      credential: cert(serviceAccount),
     });
 
     logger.log(chalk.green("Firebase Admin SDK initialized successfully."));
@@ -27,15 +28,15 @@ export const initializeFirebaseAdmin = () => {
   }
 };
 
-export const getFirebaseAdmin = () => {
+const getFirebaseAdmin = () => {
   return firebaseApp || initializeFirebaseAdmin();
 };
 
 export const sendFCMNotification = async (
   tokens: string[],
   notification: {
-    title: string;
     body: string;
+    title: string;
     imageUrl?: string;
   },
   channelId: ChannelsId,
@@ -44,7 +45,7 @@ export const sendFCMNotification = async (
   if (REPLACERS.isDev) return;
 
   try {
-    const messaging = getFirebaseAdmin().messaging();
+    const messaging = getMessaging(getFirebaseAdmin());
     tokens = tokens.filter(
       (token) =>
         token &&
@@ -59,22 +60,16 @@ export const sendFCMNotification = async (
     const imageUrl =
       typeof data?.image === "string" ? data.image : notification.imageUrl;
 
-    const message: admin.messaging.MulticastMessage = {
-      tokens,
-      notification: {
-        body: notification.body,
-        title: notification.title,
-        imageUrl: notification.imageUrl,
-      },
+    const response = await messaging.sendEachForMulticast({
+      data,
+      notification,
+      fids: tokens,
       android: { notification: { imageUrl, channelId } },
       apns: {
         payload: { aps: { sound: "default", badge: 1 } },
         fcmOptions: { imageUrl },
       },
-      data: data || undefined,
-    };
-
-    const response = await messaging.sendEachForMulticast(message);
+    });
 
     logger.log(
       chalk.green(

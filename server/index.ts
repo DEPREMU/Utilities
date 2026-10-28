@@ -1,3 +1,5 @@
+import "./firebase/admin";
+
 import {
   startAuthEmailWorker,
   closeAuthEmailWorker,
@@ -29,7 +31,6 @@ import compression from "compression";
 import { getEnvValue } from "./env";
 import { closeAuthEmailQueue } from "./queue/authEmailQueue";
 import { handleInitDB, prisma } from "./database/postgres";
-import { initializeFirebaseAdmin } from "./firebase/admin";
 import { config, gracefullyShutdown } from "./config";
 import { getRedisClient, closeRedisConnection } from "./redis/client";
 import { initSharedGateway, closeSharedGateway } from "./whatsapp/gateway";
@@ -41,12 +42,6 @@ const logger = new Logger("Server");
 const app = express();
 
 startMemoryMonitor();
-
-try {
-  initializeFirebaseAdmin();
-} catch (error) {
-  logger.error(chalk.red("Failed to initialize Firebase Admin SDK:"), error);
-}
 
 const sourceProtocol = getEnvValue("USE_HTTPS") ? "https" : "http";
 const sourceProtocolWs = getEnvValue("USE_HTTPS") ? "wss" : "ws";
