@@ -226,15 +226,25 @@ describe("CI Orchestrator & Environment Setup", () => {
     });
 
     it("getDockerEnvContent should include NordVPN token when provided", () => {
-      const content = getDockerEnvContent("sample-nord-token-123");
-      expect(content).toContain("NORD_TOKEN=sample-nord-token-123");
+      const user = `User-${Math.random()}`;
+      const pass = `Password-${Math.random()}`;
+
+      const content = getDockerEnvContent({
+        user,
+        pass,
+      });
+      expect(content).toContain(`OPENVPN_USER=${user}`);
+      expect(content).toContain(`OPENVPN_PASSWORD=${pass}`);
       expect(content).toContain("POSTGRES_USER=postgres");
     });
 
     it("setupCiEnvironment should create files and directories", () => {
       setupCiEnvironment("all", {
         rootDir: tempDir,
-        nordToken: "token-abc",
+        openVPN: {
+          user: "User",
+          pass: "Password",
+        },
       });
 
       expect(fs.existsSync(path.join(tempDir, ".env"))).toBe(true);
