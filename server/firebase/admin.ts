@@ -1,34 +1,36 @@
 import chalk from "chalk";
 import { prisma } from "@/database/postgres";
 import { getEnvValue } from "../env";
-import { ExecuteOnce, Logger, REPLACERS } from "@common";
+import { getMessaging } from "firebase-admin/messaging";
+import admin, { App, cert } from "firebase-admin";
+import { Logger, REPLACERS } from "@common";
 import { ScreensAvailable, ChannelsId } from "@types";
-import { initializeApp, cert, type App } from "firebase-admin/app";
-import { getMessaging, type BatchResponse } from "firebase-admin/messaging";
 
 const logger = new Logger("FirebaseAdmin");
 
-const firebaseApp: App = ExecuteOnce.execute(
-  "InitializeFirebaseAdmin",
-  undefined,
-  () => {
-    try {
-      const serviceAccount = JSON.parse(
-        getEnvValue("FIREBASE_SERVICE_ACCOUNT"),
-      );
+let firebaseApp: App | null = null;
 
-      const app = initializeApp({
-        credential: cert(serviceAccount),
-      });
+const initializeFirebaseAdmin = () => {
+  if (firebaseApp) return firebaseApp;
 
-      logger.log(chalk.green("Firebase Admin SDK initialized successfully."));
-      return app;
-    } catch (error) {
-      logger.error(chalk.red("Error initializing Firebase Admin SDK:"), error);
-      throw error;
-    }
-  },
-);
+  try {
+    const serviceAccount = JSON.parse(getEnvValue("FIREBASE_SERVICE_ACCOUNT"));
+
+    firebaseApp = admin.initializeApp({
+      credential: cert(serviceAccount),
+    });
+
+    logger.log(chalk.green("Firebase Admin SDK initialized successfully."));
+    return firebaseApp;
+  } catch (error) {
+    logger.error(chalk.red("Error initializing Firebase Admin SDK:"), error);
+    throw error;
+  }
+};
+
+const getFirebaseAdmin = () => {
+  return firebaseApp || initializeFirebaseAdmin();
+};
 
 export const sendFCMNotification = async (
   tokens: string[],
@@ -39,11 +41,11 @@ export const sendFCMNotification = async (
   },
   channelId: ChannelsId,
   data?: { screen: ScreensAvailable } & Record<string, string>,
-): Promise<BatchResponse | undefined> => {
+) => {
   if (REPLACERS.isDev) return;
 
   try {
-    const messaging = getMessaging(firebaseApp);
+    const messaging = getMessaging(getFirebaseAdmin());
     tokens = tokens.filter(
       (token) =>
         token &&
