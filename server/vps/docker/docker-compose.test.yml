@@ -9,11 +9,10 @@ services:
       - .env
     environment:
       - PORTS=3000
-      - VPN_TYPE=openvpn
-      - OPENVPN_USER=${OPENVPN_USER:?OPENVPN_USER is required}
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY:?WIREGUARD_PRIVATE_KEY is required}
       - LOCAL_NETWORK=172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
       - SERVER_COUNTRIES=Mexico
-      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD:?OPENVPN_PASSWORD is required}
       - VPN_SERVICE_PROVIDER=nordvpn
     healthcheck:
       test: ["CMD", "/gluetun-entrypoint", "healthcheck"]

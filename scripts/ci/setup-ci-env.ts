@@ -3,10 +3,7 @@ import path from "node:path";
 
 export interface EnvConfigOptions {
   rootDir?: string;
-  openVPN?: {
-    user: string;
-    pass: string;
-  };
+  wireguardToken?: string;
 }
 
 const FCM_SERVER_KEY = `FIREBASE_SERVICE_ACCOUNT='{"type":"<TYPE>","project_id":"<PROJECT_ID>","private_key_id":"<PRIVATE_KEY_ID>","private_key":"<PRIVATE_KEY>","client_email":"<CLIENT_EMAIL>","client_id":"<CLIENT_ID>","auth_uri":"<AUTH_URI>","token_uri":"<TOKEN_URI>","auth_provider_x509_cert_url":"<AUTH_PROVIDER_X509_CERT_URL>","client_x509_cert_url":"<CLIENT_X509_CERT_URL>","universe_domain":"<UNIVERSE_DOMAIN>"}'`;
@@ -36,9 +33,7 @@ export const getRootEnvContent = (): string => {
   ].join("\n");
 };
 
-export const getDockerEnvContent = (
-  openVPN: EnvConfigOptions["openVPN"],
-): string => {
+export const getDockerEnvContent = (wireguardToken: string): string => {
   const lines = [
     "POSTGRES_USER=postgres",
     "POSTGRES_PASS=postgres",
@@ -65,9 +60,8 @@ export const getDockerEnvContent = (
     "DOWNLOAD_RATE_LIMIT=5m",
   ];
 
-  if (openVPN?.user && openVPN.pass) {
-    lines.push(`OPENVPN_USER=${openVPN.user}`);
-    lines.push(`OPENVPN_PASSWORD=${openVPN.pass}`);
+  if (wireguardToken) {
+    lines.push(`WIREGUARD_PRIVATE_KEY="${wireguardToken}"`);
   }
 
   lines.push("");
@@ -79,10 +73,8 @@ export const setupCiEnvironment = (
   options: EnvConfigOptions = {},
 ): void => {
   const rootDir = options.rootDir ?? process.cwd();
-  const openVPN = options.openVPN ?? {
-    user: process.env.OPENVPN_USER || "",
-    pass: process.env.OPENVPN_PASSWORD || "",
-  };
+  const wireguardToken =
+    options.wireguardToken ?? process.env.WIREGUARD_PRIVATE_KEY ?? "";
 
   if (target === "all" || target === "root") {
     const rootEnvPath = path.join(rootDir, ".env");
@@ -98,10 +90,14 @@ export const setupCiEnvironment = (
     }
 
     const dockerEnvPath = path.join(dockerDir, ".env");
-    fs.writeFileSync(dockerEnvPath, getDockerEnvContent(openVPN), "utf8");
+    fs.writeFileSync(
+      dockerEnvPath,
+      getDockerEnvContent(wireguardToken),
+      "utf8",
+    );
     // eslint-disable-next-line no-console
     console.log(
-      `[setup-ci-env] Configured Docker environment: ${dockerEnvPath} (OpenVPN credentials: ${openVPN.user && openVPN.pass ? "provided" : "empty"})`,
+      `[setup-ci-env] Configured Docker environment: ${dockerEnvPath} (Wireguard credential: ${wireguardToken ? "provided" : "empty"})`,
     );
 
     const whatsappDirs = [

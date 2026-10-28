@@ -50,8 +50,7 @@ jobs:
     timeout-minutes: 30
 
     env:
-      OPENVPN_USER: ${{ secrets.OPENVPN_USER }}
-      OPENVPN_PASSWORD: ${{ secrets.OPENVPN_PASSWORD }}
+      WIREGUARD_PRIVATE_KEY: ${{ secrets.WIREGUARD_PRIVATE_KEY }}
 
     steps:
       - name: Checkout code
