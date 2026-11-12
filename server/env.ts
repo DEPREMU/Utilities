@@ -20,6 +20,7 @@ const envTranslated = ExecuteOnce.execute("env-init", undefined, () => {
     "JWT_SECRET",
     "ADMIN_EMAIL",
     "DATABASE_URL",
+    "UPLOAD_TOKEN",
     "SMTP_PASSWORD",
     "ADMIN_PASSWORD",
     "DB_ENCRYPTION_PASS",
@@ -50,6 +51,7 @@ const envTranslated = ExecuteOnce.execute("env-init", undefined, () => {
     DATABASE_URL:
       process.env.DATABASE_URL || "postgresql://user:password@localhost/db",
     BUILD_PROFILE: "",
+    UPLOAD_TOKEN: process.env.UPLOAD_TOKEN || "",
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || "",
     DB_ENCRYPTION_PASS: process.env.DB_ENCRYPTION_PASS || "",
     DEEPL_TRANSLATOR_API: process.env.DEEPL_TRANSLATOR_API || "",
@@ -78,6 +80,7 @@ const envTranslated = ExecuteOnce.execute("env-init", undefined, () => {
     JWT_SECRET: env.JWT_SECRET,
     TYPE_BUILD: env.TYPE_BUILD,
     ADMIN_EMAIL: env.ADMIN_EMAIL,
+    UPLOAD_TOKEN: env.UPLOAD_TOKEN,
     DATABASE_URL: env.DATABASE_URL,
     BUILD_PROFILE: env.BUILD_PROFILE,
     ADMIN_PASSWORD: env.ADMIN_PASSWORD,

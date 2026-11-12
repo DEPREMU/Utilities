@@ -297,7 +297,11 @@ export const handleUpload = getHandlerPost(
 
           logger.log(`Moving upload to: ${finalPath}`);
 
-          await tempPath.rename(finalPath);
+          const newFile = await tempPath.rename(finalPath);
+          if (newFile instanceof Error)
+            throw new Error("Error while moving uploaded file");
+
+          await newFile.chmod(0o644);
 
           tempFiles.delete(tempPath);
 

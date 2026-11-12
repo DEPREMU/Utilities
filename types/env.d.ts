@@ -3,6 +3,7 @@ export type Env<B extends boolean = false> = {
   JWT_SECRET: string;
   TYPE_BUILD: "normal" | "clipboard" | "test";
   ADMIN_EMAIL: string;
+  UPLOAD_TOKEN: string;
   BUILD_PROFILE: "production" | "development" | string;
   DEEPL_TRANSLATOR_API: string;
   SECRET_KEY_TO_ENCRYPTION: string;
