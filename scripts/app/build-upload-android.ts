@@ -10,6 +10,10 @@ const logger = new Logger("build-upload-android");
 
 const script = new Script();
 
+script.addStep("Check UPLOAD_TOKEN", () => {
+  if (!process.env.UPLOAD_TOKEN) throw new Error("UPLOAD_TOKEN is required");
+});
+
 script.addStep("Check if server is alive", async () => {
   const isAlive = await ServerFetch.isServerAlive();
 
@@ -95,6 +99,7 @@ script.addStep(`Upload APK ${script.appConfig.version}`, async () => {
       headers: {
         ...formData.getHeaders(),
         "Content-Length": contentLength,
+        Authorization: `Bearer ${process.env.UPLOAD_TOKEN}`,
       },
       timeout: 10 * 60 * 1000,
       maxBodyLength: Infinity,

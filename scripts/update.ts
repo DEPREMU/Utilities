@@ -145,6 +145,7 @@ const uploadWeb = async (): Promise<boolean> => {
         headers: {
           ...formData.getHeaders(),
           "Content-Length": contentLength,
+          Authorization: `Bearer ${process.env.UPLOAD_TOKEN}`,
         },
         timeout: 60000,
         maxBodyLength: Infinity,
@@ -192,6 +193,10 @@ const uploadAndroidAssets = async () => {
     },
   );
 };
+
+script.addStep("Check UPLOAD_TOKEN", () => {
+  if (!process.env.UPLOAD_TOKEN) throw new Error("UPLOAD_TOKEN is required");
+});
 
 script.addStep("Verify that arguments are valid", async () => {
   if (args.ARGS.testing) {
