@@ -96,6 +96,7 @@ jobs:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          UPLOAD_TOKEN: ${{ secrets.UPLOAD_TOKEN }}
           BUILD_PROFILE: production
           MESSAGE_TEXT: ${{ needs.check-version.outputs.commit_message }}
 
@@ -105,7 +106,7 @@ jobs:
     if: needs.check-version.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     environment: build-android
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout code
@@ -131,6 +132,7 @@ jobs:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          UPLOAD_TOKEN: ${{ secrets.UPLOAD_TOKEN }}
           BUILD_PROFILE: production
           MESSAGE_TEXT: ${{ needs.check-version.outputs.commit_message }}
 

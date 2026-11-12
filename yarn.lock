@@ -8005,21 +8005,21 @@ expo-constants@~58.0.16:
     "@expo/env" "~2.6.0"
     "@expo/require-utils" "^58.0.6"
 
-expo-dev-client@~58.0.19:
-  version "58.0.19"
-  resolved "https://registry.yarnpkg.com/expo-dev-client/-/expo-dev-client-58.0.19.tgz#21256a9b30c8f1eb8c0d14e47fb4eccf84144e0a"
-  integrity sha512-mtUFj8xq16uxbUUlUNb8FGCHYIcjCjCRXb1J2NTQKKUdLbRIdLIMEvX49pg4a/Tnwcy+qQTn4qI8ZLRe0AZBuQ==
+expo-dev-client@~58.0.20:
+  version "58.0.20"
+  resolved "https://registry.yarnpkg.com/expo-dev-client/-/expo-dev-client-58.0.20.tgz#69e25cd67a7017f639eadacbff2d8ad916300fe9"
+  integrity sha512-Wp1q6KfvfwQN72M4lGW5KNnnZtRO3XdgcHstX33NlUE5cV3tw3LGHX6hgHu0xN19zKBK9Wb6yiN7JU7mGApMwQ==
   dependencies:
-    expo-dev-launcher "~58.0.19"
+    expo-dev-launcher "~58.0.20"
     expo-dev-menu "~58.0.13"
     expo-dev-menu-interface "~58.0.2"
     expo-manifests "~58.0.1"
     expo-updates-interface "~58.0.1"
 
-expo-dev-launcher@~58.0.19:
-  version "58.0.19"
-  resolved "https://registry.yarnpkg.com/expo-dev-launcher/-/expo-dev-launcher-58.0.19.tgz#ece7adcfea05106705d16e0de5051cbbc1a951b8"
-  integrity sha512-TCjhLzRvOK3LPXAHwuyMV6zm03D53k2V4pqJxGG/tpo5CJglJOAX3NHwgge/RRahMCFij5C1kuCdAbf/eW7Rbw==
+expo-dev-launcher@~58.0.20:
+  version "58.0.20"
+  resolved "https://registry.yarnpkg.com/expo-dev-launcher/-/expo-dev-launcher-58.0.20.tgz#3841d513a9c747c5d55fb40741beec1043ac0f82"
+  integrity sha512-tm0K5l40cxYXIxYzcEuAKYnVx6T9o7aAb0gQdfooz4WYPgqf5dHfu5obdWwAvCU6j40hWSHEWaPGfPkoO9O7hQ==
   dependencies:
     "@expo/schema-utils" "^58.0.3"
     expo-dev-menu "~58.0.13"
@@ -8116,10 +8116,10 @@ expo-localization@~58.0.5:
   dependencies:
     rtl-detect "^1.0.2"
 
-expo-location@~58.0.21:
-  version "58.0.21"
-  resolved "https://registry.yarnpkg.com/expo-location/-/expo-location-58.0.21.tgz#a55f5213b690b2bbddaf210ee1e54d8ece73f8a5"
-  integrity sha512-9+tFlPO+brWFjCJqP2IlaaI3Y5egSo0yqAfLM94EIgSUfixtI3t4hNC3AtmuzySHuNpzSpiLAhDWXAF6yccMVg==
+expo-location@~58.0.22:
+  version "58.0.22"
+  resolved "https://registry.yarnpkg.com/expo-location/-/expo-location-58.0.22.tgz#4f1353bcce58bfbfa178c51cc67a92ef52750ee6"
+  integrity sha512-riZCEjY9//enExdweKSMNvjGS2AGCNG7Z8NJa+3GP5In+ZtrPdkbnhPo3JHwhWZE0NE72yv2t+AKPWauen3fkA==
   dependencies:
     "@expo/image-utils" "^0.12.7"
 
@@ -8208,10 +8208,10 @@ expo-sharing@~58.0.23:
     "@expo/config-types" "^58.0.3"
     "@expo/plist" "^0.10.2"
 
-expo-sqlite@~58.0.16:
-  version "58.0.16"
-  resolved "https://registry.yarnpkg.com/expo-sqlite/-/expo-sqlite-58.0.16.tgz#fb60f2a4a5041d5410383157508053fba12aa80f"
-  integrity sha512-ASQX8NBNDl/A40mcNdwsu3uHEWKmza8pvsQfuGbo/rgPULbhaiZTqrug+bK1XtoXT5In/4vjc5gHUQnHB+fsgg==
+expo-sqlite@~58.0.17:
+  version "58.0.17"
+  resolved "https://registry.yarnpkg.com/expo-sqlite/-/expo-sqlite-58.0.17.tgz#9195fec4afe4f7aba7a0407e611e77b0b81d2047"
+  integrity sha512-nzIS8doaxGYPBu+jJD1aa1wsF5vsafLEr3ji4wwR1MWd66KV3u4lKotJPylxJkP08DZWn2uUnTXyMw9t7BdGUA==
   dependencies:
     await-lock "^2.2.2"
 
@@ -8271,10 +8271,10 @@ expo-video@~58.0.14:
   resolved "https://registry.yarnpkg.com/expo-video/-/expo-video-58.0.14.tgz#6d083f8c23d9b6c090de02c43626babc8fd69378"
   integrity sha512-PYB85kvyvTN8E40TUOgHTI+nucp9O2aFYf4IULZUE71l0iW+YmXIAcp+ZwsLuMSYtdt5QRPqdpdvbyXWeEZLPw==
 
-expo@~58.0.24:
-  version "58.0.24"
-  resolved "https://registry.yarnpkg.com/expo/-/expo-58.0.24.tgz#8e08ae8030ab09ccb1a2942b2fc62c8db7c8c31a"
-  integrity sha512-EPgijeqjnK+eaoA9VzJvvodmKBxEcfNlRBxyZr5s1dmvjgF13p3HfEr6eRjsTtnXdz/GlKn2uffTM1uHZeaSVQ==
+expo@~58.0.25:
+  version "58.0.25"
+  resolved "https://registry.yarnpkg.com/expo/-/expo-58.0.25.tgz#617a7c19c307d3e82993176f399fe5db43612a44"
+  integrity sha512-Ih7pQYPS+2ZFS5APNtgOUp2AK/M+zfILK9Z5/wh6PoLn6XF3dh+nlcvugotytVzf8jX5/NBMcB7xJT+97oaNvw==
   dependencies:
     "@babel/runtime" "^7.20.0"
     "@expo/cli" "^58.1.20"
