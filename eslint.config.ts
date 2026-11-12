@@ -1,4 +1,6 @@
+import fs from "node:fs";
 import js from "@eslint/js";
+import path from "node:path";
 import globals from "globals";
 import tsconfig from "typescript-eslint";
 import tseslint from "@typescript-eslint/eslint-plugin";
@@ -11,10 +13,19 @@ import typescriptParser from "@typescript-eslint/parser";
 // @ts-expect-error - no types available for this package
 import pluginReactNative from "eslint-plugin-react-native";
 import pluginReactRefresh from "eslint-plugin-react-refresh";
+import { getAllPathsSync } from "./common/serverOrElectron/fs";
+
+const { root } = getAllPathsSync();
+
+const gitignore = fs
+  .readFileSync(path.join(root, ".gitignore"), "utf-8")
+  .split("\n")
+  .filter((l) => l.trim() !== "");
 
 export default defineConfig([
   {
     ignores: [
+      ...gitignore,
       "**/generated/prisma/**",
       "**/node_modules/**",
       "**/dist/**",
@@ -47,6 +58,9 @@ export default defineConfig([
         ecmaVersion: 2020,
         sourceType: "module",
         tsconfigRootDir: __dirname,
+        projectService: {
+          allowDefaultProject: ["common/both/REPLACERS/REPLACERS.d.ts"],
+        },
       },
       globals: {
         ...globals.browser,
@@ -83,6 +97,7 @@ export default defineConfig([
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-non-null-assertion": "warn",
+      "@typescript-eslint/no-deprecated": "error",
 
       "react/react-in-jsx-scope": "off",
       "react/jsx-no-literals": [
