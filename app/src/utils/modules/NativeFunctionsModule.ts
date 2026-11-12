@@ -9,7 +9,7 @@ type FileMetadata = {
   mimeType: DownloadableMimeType | null;
 };
 
-export interface Spec extends TurboModule {
+interface Spec extends TurboModule {
   getFileMetadata: (url: string) => Promise<FileMetadata>;
   checkOverlayPermission: () => Promise<boolean>;
   requestOverlayPermission: () => Promise<

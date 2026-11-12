@@ -35,7 +35,7 @@ const routes: Route[] = [
     : []),
 ];
 
-export const WhatsAppStickersScreen =
+const WhatsAppStickersScreen =
   GetBottomNavigation<Screens["WhatsAppStickers"]>(routes);
 
 export default WhatsAppStickersScreen;

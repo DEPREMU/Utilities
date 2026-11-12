@@ -1,4 +1,4 @@
-import useNotes from "@screens/Notes/hooks/useNotes";
+import { useNotes } from "@screens/Notes/hooks/useNotes";
 import React, { createContext, useContext } from "react";
 
 type NotesContextProps = ReturnType<typeof useNotes>;

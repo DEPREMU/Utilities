@@ -29,7 +29,7 @@ type ViewStyleFinder =
 
 type TextStyleFinder = "h3" | "title" | "subtitle" | "paragraph" | "error";
 
-export type CommonStyles = TextStyleFinder | ViewStyleFinder;
+type CommonStyles = TextStyleFinder | ViewStyleFinder;
 
 type StaticStyles = {
   FAB: ViewStyle;

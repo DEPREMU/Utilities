@@ -14,7 +14,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
 
   #removeListener?: () => void;
 
-  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Images" : "Home";
+  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Home" : "Home";
 
   public ref = createNavigationContainerRef<Screens>();
 
@@ -23,6 +23,8 @@ class Navigation extends ServiceClass<ListenersNavigation> {
   }
 
   #addListener() {
+    if (this.#removeListener) return;
+
     this.#removeListener = this.ref.addListener("state", (r) => {
       const state = r.data?.state;
       if (!state) return;
@@ -62,20 +64,13 @@ class Navigation extends ServiceClass<ListenersNavigation> {
 
   override async _init(): Promise<void> {
     try {
-      if (this.ref.isReady()) return;
-
       let attempts = 0;
-      while (!this.ref.isReady() && attempts <= 100) {
-        attempts++;
+      while (!this.ref.isReady() && attempts++ <= 100)
         await Timers.sleep(50 + attempts);
-      }
 
-      this.#addListener();
+      if (this.ref.isReady()) this.#addListener();
     } catch (error) {
-      logger.error(
-        "Navigation initialization failed:",
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error("Navigation initialization failed:", error);
     }
   }
 

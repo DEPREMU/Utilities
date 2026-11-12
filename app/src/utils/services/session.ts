@@ -96,7 +96,7 @@ export const saveStorageData = async (
         async ([keyStorage, value]) => {
           const keyTyped = keyStorage as ALL_KEYS_STORAGE_TYPE;
           if (!value) return;
-          if (DO_NOT_DELETE_OR_SAVE.includes(keyTyped)) return;
+          if (DO_NOT_DELETE_OR_SAVE.has(keyTyped as "DEVICE_ID")) return;
 
           const valueTyped = value as ExpectedStorageTypes<"BOTH">[Exclude<
             KeyStorageValues,
@@ -130,7 +130,7 @@ export const saveStorageData = async (
  *
  * @throws Will catch and return any unexpected errors that occur during the authentication process
  */
-export const signInWithEmail = async (
+const signInWithEmail = async (
   email: string,
   password: string,
   rememberMe: boolean = false,
@@ -225,7 +225,7 @@ export const requestCode = async (
  * @param rememberMe - Whether to persist the session for a longer duration
  * @returns Promise resolving to the verification response
  */
-export const verifyCode = async (
+const verifyCode = async (
   email: string,
   code: string,
   rememberMe: boolean = false,
@@ -275,7 +275,7 @@ export const verifyCode = async (
 /**
  * Signs up a new user with email and password using Database Auth
  */
-export const signUpWithEmail = async (
+const signUpWithEmail = async (
   email: string,
   password: string,
 ): Promise<GetRouteData<"POST", "/auth", "/signup">["response"]> => {
@@ -467,7 +467,7 @@ export const forgotPasswordWithEmail = async (
 /**
  * Signs out the current user
  */
-export const signOut = async (): Promise<{ error?: string | null }> => {
+const signOut = async (): Promise<{ error?: string | null }> => {
   try {
     const storedValues = [
       "USER_DATA",
@@ -499,7 +499,7 @@ export const signOut = async (): Promise<{ error?: string | null }> => {
 /**
  * Gets the current authenticated user
  */
-export const getCurrentUser = (): ResponseAuth<"login"> => {
+const getCurrentUser = (): ResponseAuth<"login"> => {
   try {
     const userData = storageManagement.get("USER_DATA");
 
@@ -517,7 +517,7 @@ export const getCurrentUser = (): ResponseAuth<"login"> => {
 /**
  * Refreshes the current session using a refresh token
  */
-export const refreshSession = async (
+const refreshSession = async (
   token: string,
 ): Promise<GetRouteData<"POST", "/auth", "/refreshSession">["response"]> => {
   try {
@@ -575,36 +575,6 @@ export const refreshSession = async (
     const errorMsg = `Unexpected error refreshing session: ${error}`;
     logger.error(errorMsg);
     return { success: false, error: errorMsg };
-  }
-};
-
-/**
- * Retrieves user data from the Users table by user ID.
- *
- * @param userId - The unique identifier of the user to retrieve data for
- * @returns A promise that resolves to an object containing either the user data or an error message
- * @returns userData - The user data if successfully retrieved, null if not found, undefined if error occurred
- * @returns error - Error message if an error occurred, null if successful
- */
-export const getUserData = async (
-  userId: string,
-): Promise<{
-  userData?: Omit<DB["TablesClient"]["Users"], "password"> | null;
-  error?: string | null;
-}> => {
-  try {
-    const userData = storageManagement.get("USER_DATA");
-    if (userData && userData?.userId === userId)
-      return { userData, error: null };
-
-    return {
-      userData: null,
-      error: "User data not found",
-    };
-  } catch (error) {
-    const errorMsg = `Unexpected error getting user data: ${error}`;
-    logger.error(errorMsg);
-    return { error: errorMsg };
   }
 };
 

@@ -63,5 +63,3 @@ export const useAppBehavior = () => {
   }
   return context;
 };
-
-export default AppBehaviorProvider;

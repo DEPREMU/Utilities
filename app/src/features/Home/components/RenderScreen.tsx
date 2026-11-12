@@ -4,16 +4,17 @@ import {
   Button,
   Dialog,
   Portal,
+  Switch,
   Tooltip,
   IconButton,
 } from "react-native-paper";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "@context/UserContext";
 import { useStylesHomeScreen } from "../styles/useStylesHomeScreen";
-import { memoDeep, navigation } from "@utils";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import React, { useCallback, useMemo, useState } from "react";
 import { ScreensAvailable, AppTranslationsKeys } from "@types";
+import { memoDeep, navigation, storageManagement } from "@utils";
 
 export type ButtonType = {
   label: AppTranslationsKeys;
@@ -29,12 +30,20 @@ type RenderScreenProps = {
   hasInternet: boolean;
 };
 
+const SETTINGS = storageManagement.get("SCREENS_CONFIG");
+if (!SETTINGS) throw new Error("Screen config is not set.");
+
 const RenderScreen: React.FC<RenderScreenProps> = ({ button, hasInternet }) => {
   const { t, dynamicT } = useLanguage();
   const { isLoggedIn } = useUserContext();
   const { styles, colors } = useStylesHomeScreen();
 
   const [showDialog, setShowDialog] = useState(false);
+  const [keepLoaded, setKeepLoaded] = useState<boolean>(
+    !!(button.screen === "Minesweeper"
+      ? SETTINGS?.Games.keepLoaded
+      : SETTINGS?.[button.screen]?.keepLoaded),
+  );
 
   const toggleShowDialog = useCallback(() => {
     setShowDialog((prev) => !prev);
@@ -62,6 +71,22 @@ const RenderScreen: React.FC<RenderScreenProps> = ({ button, hasInternet }) => {
   const description = useMemo(
     () => dynamicT(button.description),
     [button.description, dynamicT],
+  );
+
+  const toggleKeepLoaded = useCallback(
+    (value: boolean) => {
+      setKeepLoaded(value);
+
+      const settings = storageManagement.get("SCREENS_CONFIG");
+      if (!settings) throw new Error("Screen config is not set.");
+      if (button.screen === "Minesweeper") return;
+
+      settings[button.screen].keepLoaded = value;
+      SETTINGS[button.screen].keepLoaded = value;
+
+      storageManagement.save("SCREENS_CONFIG", settings);
+    },
+    [button.screen],
   );
 
   return (
@@ -105,6 +130,14 @@ const RenderScreen: React.FC<RenderScreenProps> = ({ button, hasInternet }) => {
                 keyWords: dynamicT(button.keyWords),
               })}
             </Animated.Text>
+          </Dialog.Content>
+
+          <Dialog.Content>
+            <Animated.Text style={styles.paragraph}>
+              {t("homeScreen.keepLoaded")}
+            </Animated.Text>
+
+            <Switch value={keepLoaded} onValueChange={toggleKeepLoaded} />
           </Dialog.Content>
         </Dialog>
       </Portal>

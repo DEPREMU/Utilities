@@ -4,10 +4,18 @@ import { Timers } from "@common";
 import { Logger } from "../TOP_LEVEL";
 import * as PDFLib from "pdf-lib";
 import { randomUUID } from "react-native-quick-crypto";
-import { Directories } from "./Directories";
 import * as ExpoFileSystem from "expo-file-system";
 import { ImageManipulator } from "expo-image-manipulator";
 import { CreatePdfFromImages, PlatformData } from "./platform";
+
+export enum Directories {
+  NOTES = "notes",
+  VAULT = ".vault",
+  TEMP_ZIP = "temp_zip",
+  DECRYPTED = "decrypted",
+  DIRECTORY_PICKER = "DirectoryPicker",
+  IMAGE_MANIPULATOR = "ImageManipulator",
+}
 
 const logger = new Logger("CrossPlatformNative");
 

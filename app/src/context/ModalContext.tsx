@@ -4,7 +4,6 @@ import React, {
   useState,
   useEffect,
   ReactNode,
-  useContext,
   createContext,
 } from "react";
 import { Timers } from "@common";
@@ -192,39 +191,3 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
 });
-
-/**
- * Custom hook to access the ModalContext.
- *
- * This hook provides the context value for managing modal state and actions.
- * It ensures that the hook is used within a `ModalProvider` by throwing an error
- * if the context is not available.
- *
- * @throws {Error} If the hook is used outside of a `ModalProvider`.
- * @returns {ModalContextProps} The context value for modal management.
- *
- * @example
- *  const { openModalRef, closeModalRef } = useModal();
- *
- *  const handlePress = () => {
- *    const customStyles = StyleSheet.create({
- *      button: { backgroundColor: "black" },
- *      textButton: { color: "green" },
- *    });
- *    openModalRef.current(
- *      "Test Modal",
- *      <Text>This is a test modal body</Text>,
- *      <ButtonComponent
- *        label="Close Modal"
- *        handlePress={closeModalRef}
- *        customStyles={customStyles}
- *      />
- *    );
- *  };
- */
-export const useModal = (): ModalContextProps => {
-  const context = useContext(ModalContext);
-  if (!context) throw new Error("useModal must be used within a ModalProvider");
-
-  return context;
-};

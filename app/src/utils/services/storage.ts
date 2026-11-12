@@ -13,12 +13,12 @@ import {
   DO_NOT_DELETE_OR_SAVE,
   SECURE_KEYS_STORAGE_TYPE,
 } from "@common";
+import { Logger } from "../TOP_LEVEL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { cloneDeep } from "lodash";
 import { windowModule } from "@modules";
 import * as SecureStore from "expo-secure-store";
 import { reloadAppAsync } from "expo";
-import { Logger } from "../TOP_LEVEL";
 
 const logger = new Logger("ServicesStorage");
 
@@ -239,7 +239,7 @@ const cleanAllStorageData = wrapFunctionWithError(
       await Promise.all(
         ALL_KEYS_STORAGE_KEYS.map(
           wrapFunctionWithError(async (keyStorage) => {
-            if (DO_NOT_DELETE_OR_SAVE.includes(keyStorage)) return;
+            if (DO_NOT_DELETE_OR_SAVE.has(keyStorage as "DEVICE_ID")) return;
 
             await windowModule.storage.remove(keyStorage);
           }, true),
@@ -340,6 +340,11 @@ class StorageManagement extends ServiceClass<never> {
     }
   };
 
+  #returnValue(value: unknown) {
+    if (typeof value === "object" && value !== null) return cloneDeep(value);
+    return value;
+  }
+
   /**
    * Loads data from storage based on the platform and key type.
    *
@@ -363,16 +368,12 @@ class StorageManagement extends ServiceClass<never> {
   ): U | R => {
     if (fallbackValue === undefined) {
       const returnValue = this.#data[key] as R;
-      if (typeof returnValue === "object" && returnValue !== null)
-        return cloneDeep(returnValue);
 
-      return returnValue;
+      return this.#returnValue(returnValue) as R;
     } else {
       const returnValue = (this.#data[key] || fallbackValue) as U;
-      if (typeof returnValue === "object" && returnValue !== null)
-        return cloneDeep(returnValue);
 
-      return returnValue;
+      return this.#returnValue(returnValue) as R;
     }
   };
 
@@ -439,7 +440,7 @@ class StorageManagement extends ServiceClass<never> {
     key: T,
     callback?: (err: Error | null) => void,
   ): void => {
-    if (DO_NOT_DELETE_OR_SAVE.includes(key))
+    if (DO_NOT_DELETE_OR_SAVE.has(key as "DEVICE_ID"))
       throw new Error(`Cannot remove protected key: "${key}"`);
 
     removeDataStorage(key, (err, errMsg) => {
@@ -481,7 +482,7 @@ class StorageManagement extends ServiceClass<never> {
    *
    * @returns A promise that resolves when the data has been reloaded.
    */
-  public reloadData = async (): Promise<void> => {
+  public reloadData = async (): Promise<this> => {
     return this._reInit();
   };
 
