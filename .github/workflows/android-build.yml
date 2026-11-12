@@ -96,6 +96,7 @@ jobs:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          UPLOAD_TOKEN: ${{ secrets.UPLOAD_TOKEN }}
           BUILD_PROFILE: production
           MESSAGE_TEXT: ${{ needs.check-version.outputs.commit_message }}
 
@@ -131,6 +132,7 @@ jobs:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          UPLOAD_TOKEN: ${{ secrets.UPLOAD_TOKEN }}
           BUILD_PROFILE: production
           MESSAGE_TEXT: ${{ needs.check-version.outputs.commit_message }}
 
