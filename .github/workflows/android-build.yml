@@ -182,6 +182,7 @@ jobs:
           WS_URL: ${{ secrets.WS_URL }}
           API_URL: ${{ secrets.API_URL }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          UPLOAD_TOKEN: ${{ secrets.UPLOAD_TOKEN }}
 
       - name: Upload Artifact (Fallback)
         if: failure()
