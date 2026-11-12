@@ -1,2 +1,2 @@
-export * from "./t";
+export * from "./i18n";
 export * from "./logger";

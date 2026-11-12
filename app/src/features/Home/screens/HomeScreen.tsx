@@ -14,6 +14,7 @@ import {
   EventsDeviceInfo,
 } from "@utils";
 import { useLanguage } from "@context/LanguageContext";
+import BackgroundShapes from "@components/BackgroundShapes/components";
 import { useUserContext } from "@context/UserContext";
 import { useStylesHomeScreen } from "@screens/Home/styles/useStylesHomeScreen";
 import RenderScreen, { ButtonType } from "../components/RenderScreen";
@@ -263,6 +264,7 @@ const HomeScreen: React.FC<Screens["Home"]> = () => {
       style={styles.container}
       layout={LinearTransition.duration(300).springify()}
     >
+      <BackgroundShapes />
       {isLoggedIn && (
         <Animated.View
           layout={LinearTransition.duration(200).springify()}

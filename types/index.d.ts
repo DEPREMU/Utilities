@@ -10,7 +10,6 @@ export * from "./typesNotes";
 export * from "./typesStorage";
 export * from "./typesWhatsApp";
 export * from "./typesWebSocket";
-export * from "./typesTaskRegistry";
 export * from "./typesTranslations";
 export * from "./typesNotifications";
 export * from "./typesNativeModules";

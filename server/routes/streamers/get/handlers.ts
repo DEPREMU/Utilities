@@ -1,4 +1,4 @@
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { isLiveStreamer } from "../common";
 import { Helper, RequestError, STATUS_RESPONSE, getHandlerGet } from "@common";
 

@@ -32,7 +32,7 @@ import NotesSelectionActions from "@screens/Notes/components/list/NotesSelection
 import { FAB, Icon, Text, TextInput } from "react-native-paper";
 import { tTyped, memoDeep, getFormattedDate } from "@utils";
 
-export interface NotesProps {
+interface NotesProps {
   onSelectedNote: () => void;
 }
 

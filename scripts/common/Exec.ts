@@ -1,5 +1,5 @@
 import { promisify } from "util";
-import { exec, ExecOptions } from "child_process";
+import { exec, spawn, SpawnOptions } from "child_process";
 
 const execAsync = promisify(exec);
 
@@ -21,10 +21,19 @@ export class Exec {
       this.onErrorData.add(fun);
       return this.async;
     },
-    run: (command: string, options?: ExecOptions) => {
-      const child = exec(command, options);
+    run: (command: string, options: SpawnOptions) => {
+      if (!options?.signal)
+        throw new Error(
+          "You must run a command with a AbortController signal.",
+        );
 
-      return new Promise<number | Error>((resolve, reject) => {
+      const child = spawn(command, {
+        ...options,
+        shell: true,
+        stdio: ["inherit", "pipe", "pipe"],
+      });
+
+      return new Promise((resolve, reject) => {
         child.stdout?.on("data", (chunk: Buffer) => {
           this.emitData(chunk.toString());
         });
@@ -36,8 +45,13 @@ export class Exec {
         child.on("error", reject);
 
         child.on("close", (code) => {
-          if (code === null) return reject();
-          return code === 0 ? resolve(code) : reject(code);
+          if (code === null) {
+            return reject(new Error("Process terminated"));
+          }
+
+          return code === 0
+            ? resolve(code)
+            : reject(new Error(`Process exited with code ${code}`));
         });
       });
     },

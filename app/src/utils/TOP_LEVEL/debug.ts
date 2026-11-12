@@ -2,7 +2,7 @@
 import DeviceInfo from "react-native-device-info";
 import { ILogger } from "@types";
 import { Platform } from "react-native";
-import { Helper, REPLACERS } from "@common";
+import { Helper, REPLACERS, Timers } from "@common";
 
 type ReturnDeviceInfo = {
   deviceId: string;
@@ -61,6 +61,9 @@ const uploadLogToServer = async (
     console.error("Failed to upload log to server:", error);
   }
 };
+
+const modulesLoaded = [] as string[];
+let timeoutId: number | null = null;
 
 export class Logger implements ILogger {
   #moduleName: string;
@@ -125,5 +128,16 @@ export class Logger implements ILogger {
 
   constructor(moduleName: string) {
     this.#moduleName = moduleName;
+
+    if (REPLACERS.isDev) {
+      modulesLoaded.push(`Logger initialized in module: "${moduleName}"`);
+
+      if (timeoutId) Timers.clearTimeout(timeoutId);
+      timeoutId = Timers.setTimeout(() => {
+        console.groupCollapsed("Modules Loaded");
+        modulesLoaded.forEach((m) => console.log(m));
+        console.groupEnd();
+      }, 1500);
+    }
   }
 }

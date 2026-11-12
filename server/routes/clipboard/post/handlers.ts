@@ -1,4 +1,4 @@
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getHandlerPost, Helper, STATUS_RESPONSE } from "@common";
 
 export const handleAddClipboardItem = getHandlerPost(

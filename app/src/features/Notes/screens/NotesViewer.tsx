@@ -544,18 +544,13 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
 
     const recorder = audioRecorderRef.current || new AudioRecorder();
     if (!audioRecorderRef.current) {
-      const result = recorder.enableFileOutput({
+      recorder.enableFileOutput({
         format: FileFormat.Wav,
         preset: FilePreset.High,
         directory: FileDirectory.Cache,
         subDirectory: "notes-recordings",
-        fileNamePrefix: "note-recording",
       });
 
-      if (result.status === "error") {
-        Alert.alert(tTyped("common.error"), result.message);
-        return;
-      }
       audioRecorderRef.current = recorder;
     }
 

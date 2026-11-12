@@ -8,7 +8,7 @@ import {
 } from "@common";
 import jwt from "jsonwebtoken";
 import chalk from "chalk";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getEnvValue } from "@/env";
 import { withTransaction } from "@/database/transaction";
 

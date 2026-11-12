@@ -6,7 +6,7 @@ import { useTranslations } from "@/pages/context/useTranslations";
 import type { ContextBridgeType } from "@types";
 import React, { useEffect, useState } from "react";
 
-export interface ClipboardItem {
+interface ClipboardItem {
   id: string;
   content: string;
 }

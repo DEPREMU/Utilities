@@ -96,13 +96,13 @@ const decryptFallback = async (text: string): Promise<string | null> => {
   }
 };
 
-const decryptSafeStorage = (text: string): string | null => {
+const decryptSafeStorage = async (text: string): Promise<string | null> => {
   try {
     if (!text.startsWith("ss:")) return null;
     const base64Payload = text.slice(3);
     if (!base64Payload) return null;
     const buffer = Buffer.from(base64Payload, "base64");
-    return safeStorage.decryptString(buffer);
+    return (await safeStorage.decryptStringAsync(buffer)).result;
   } catch (error) {
     logger.error("Error decrypting safeStorage:", error);
     return null;
@@ -140,13 +140,13 @@ export const getStorageValue = async (
     };
 
     if (storedValue.startsWith("ss:")) {
-      if (!safeStorage.isEncryptionAvailable()) {
+      if (!(await safeStorage.isAsyncEncryptionAvailable())) {
         logger.error(
           `Encryption not available for key ${String(key)}(${keyValue})`,
         );
         return null;
       }
-      const decrypted = decryptSafeStorage(storedValue);
+      const decrypted = await decryptSafeStorage(storedValue);
       if (!decrypted) return null;
       return tryVerifyCommands(decrypted);
     }
@@ -157,10 +157,10 @@ export const getStorageValue = async (
       return tryVerifyCommands(fallbackDecrypted);
     }
 
-    if (safeStorage.isEncryptionAvailable()) {
+    if (await safeStorage.isAsyncEncryptionAvailable()) {
       try {
         const buffer = Buffer.from(storedValue, "base64");
-        const decrypted = safeStorage.decryptString(buffer);
+        const decrypted = (await safeStorage.decryptStringAsync(buffer)).result;
         return tryVerifyCommands(decrypted);
       } catch (e) {
         const fallbackDecrypted = await decryptFallback(storedValue);
@@ -192,9 +192,9 @@ export const saveStorageValue = async <T extends ALL_KEYS_STORAGE_TYPE>(
 
     const jsonValue = typeof value === "string" ? value : JSON.stringify(value);
     if (isSecureKey(key)) {
-      if (safeStorage.isEncryptionAvailable()) {
+      if (await safeStorage.isAsyncEncryptionAvailable()) {
         try {
-          const encrypted = safeStorage.encryptString(jsonValue);
+          const encrypted = await safeStorage.encryptStringAsync(jsonValue);
           store.set(keyValue, `ss:${encrypted.toString("base64")}`);
         } catch {
           const fallbackEncrypted = await encryptFallback(jsonValue);
@@ -358,7 +358,7 @@ const encryptionTask = new Task<boolean, "ENCRYPTION">({
   doNotDestroy: true,
 });
 
-export const encryptFile = async (
+const encryptFile = async (
   inputPath: string,
   outputPath: string,
   password: string,
@@ -375,7 +375,7 @@ export const encryptFile = async (
   return true;
 };
 
-export const decryptFile = async (
+const decryptFile = async (
   inputPath: string,
   outputPath: string,
   password: string,
@@ -439,7 +439,7 @@ export const encryptFiles = async (
   }
 };
 
-export const getTempFolderPathForDecryptedFiles = async (
+const getTempFolderPathForDecryptedFiles = async (
   folderId: string,
 ): Promise<[string, string]> => {
   const directory = (await getStorageValue("VAULT_DIRECTORY")) as string;
@@ -590,16 +590,5 @@ export const getFileInfo = async (
   } catch (error) {
     logger.error(`Error getting file info for ${filePath}:`, error);
     return null;
-  }
-};
-
-export const clearDecryptedFolderDirectory = async (): Promise<void> => {
-  try {
-    const [tempFolder] = await getTempFolderPathForDecryptedFiles("");
-    const tempDir = new File(tempFolder);
-    if (tempFolder && (await tempDir.exists()))
-      await tempDir.rm({ recursive: true, force: true });
-  } catch (error) {
-    logger.error("Error clearing decrypted folder directory:", error);
   }
 };

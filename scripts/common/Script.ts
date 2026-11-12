@@ -7,6 +7,8 @@ import { Logger } from "@commonSrc/serverOrElectron/logger";
 import { execSync } from "child_process";
 import { Directory, File } from "@commonSrc/serverOrElectron/fs";
 
+type OnExit = (err?: Error) => Promise<void> | void;
+
 const logger = new Logger("CommonScript");
 
 export class Script extends Steps {
@@ -48,29 +50,26 @@ export class Script extends Steps {
     },
   );
 
-  private handleExitFromScript(
-    fun: (err?: Error) => Promise<void> | void,
-  ): Script {
+  #onExit: OnExit | null = null;
+
+  private handleExitFromScript(): Script {
     if (this.#initializedOnExit) return this;
     this.#initializedOnExit = true;
 
     const wrappedFun = async (err?: Error) => {
       if (this.#onExitExecuted) return;
-      this.stopped = true;
       this.#onExitExecuted = true;
-
-      this.stop(err?.message, err ? 1 : 0);
 
       if (!(err instanceof Error)) err = undefined;
 
       try {
-        await fun(err);
+        await this.#onExit?.(err);
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error("Error in exit handler", error);
-      } finally {
-        process.exit(err ? 1 : 0);
       }
+
+      this.stop(err?.message, err ? 1 : 0);
     };
 
     process.once("exit", wrappedFun);
@@ -83,8 +82,8 @@ export class Script extends Steps {
     return this;
   }
 
-  public onExit(fun: (err?: Error) => Promise<void> | void) {
-    this.handleExitFromScript(fun);
+  public onExit(fun: OnExit) {
+    this.#onExit = fun;
     return this;
   }
 
@@ -131,12 +130,13 @@ export class Script extends Steps {
     process.exit(0);
   }
 
-  constructor(onExit?: Parameters<Script["handleExitFromScript"]>[0]) {
+  constructor(onExit?: OnExit) {
     if (Script.instance) return Script.instance;
 
     super();
     Script.instance = this;
 
-    if (onExit) this.handleExitFromScript(onExit);
+    this.handleExitFromScript();
+    if (onExit) this.#onExit = onExit;
   }
 }

@@ -141,6 +141,20 @@ export const enServer: ServerTranslations = {
 };
 
 export const enApp: AppTranslations = {
+  suspenseScreen: {
+    phrases: [
+      "Preparing the magic...",
+      "Loading awesome things...",
+      "This is going to be worth it.",
+      "Making everything fit together...",
+      "Convincing the bits to cooperate...",
+      "Patience is a virtue. Almost there.",
+      "Putting on the finishing touches...",
+      "Almost ready... don't go anywhere 👀",
+      "Hold on, we're cooking something good.",
+      "Searching for unicorns in the database...",
+    ],
+  },
   appInfo: {
     InternetConnectionRestored: "Internet Connection Restored",
     YouAreBackOnline: "You are back online",
@@ -476,6 +490,7 @@ export const enApp: AppTranslations = {
     youWin: "You Win!",
   },
   homeScreen: {
+    keepLoaded: "Keep screen loaded. (This might use more resources)",
     help: "Press {{commandToHome}} to return to the home screen from anywhere in the app.",
     keyWords: "Keywords: {{keyWords}}",
     needsInternet: "{{featureName}} requires internet connection",

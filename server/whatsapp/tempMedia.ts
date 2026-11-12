@@ -31,7 +31,7 @@ export const deleteTempFile = async (filePath: string): Promise<boolean> => {
   return await new File(filePath).rm({ force: true });
 };
 
-export const cleanExpiredTempFiles = async (
+const cleanExpiredTempFiles = async (
   maxAgeMs: number = 60 * 60 * 1000,
 ): Promise<number> => {
   try {

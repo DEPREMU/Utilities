@@ -5,9 +5,12 @@
       "@commonSrc/*": ["./*"],
       "@types": ["../types/index.d.ts"],
       "@REPLACERS": ["./both/REPLACERS/REPLACERS"]
-    },
-    "typeRoots": ["../types/index.d.ts"]
+    }
   },
-  "include": ["./**/*.ts", "../app/app.config.ts"],
+  "include": [
+    "./**/*.ts",
+    "../app/app.config.ts",
+    "./both/REPLACERS/REPLACERS.d.ts"
+  ],
   "exclude": ["node_modules", "tests"]
 }

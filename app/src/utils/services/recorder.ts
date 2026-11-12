@@ -151,7 +151,7 @@ const createAudioPlayer = ({ uri = "" }: { uri?: string }): AudioPlayer => {
     startAt = context.currentTime;
     playing = true;
 
-    nextSource.onEnded = () => {
+    nextSource.onended = () => {
       if (source !== nextSource) return;
 
       source = null;
@@ -397,15 +397,12 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
 
   private recreateRecorder = () => {
     const recorder = new AudioRecorder();
-    const result = recorder.enableFileOutput({
+    recorder.enableFileOutput({
       format: FileFormat.Wav,
       preset: getRecordingPreset(this.#data.quality),
       directory: FileDirectory.Cache,
       subDirectory: "recordings",
-      fileNamePrefix: "recording",
     });
-
-    if (result.status === "error") throw new Error(result.message);
 
     this.#audioRecorder = recorder;
   };
@@ -434,7 +431,7 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
         const filename = `recording_${Date.now()}${file.extension || ".wav"}`;
 
         const newFile = new File(directory, filename);
-        file.move(newFile);
+        await file.move(newFile);
 
         return newFile.uri;
       },
@@ -543,9 +540,8 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
       ];
 
       if (this.#data.shouldAutoStart && hasPermission) {
-        AudioManager.setAudioSessionOptions({});
         await AudioManager.setAudioSessionActivity(true);
-        Timers.setTimeout(this.startRecording, 1000);
+        Timers.setTimeout(() => this.startRecording(), 1000);
 
         notificationsManager.sendNotification({
           actions,

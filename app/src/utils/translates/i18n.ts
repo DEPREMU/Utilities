@@ -1,15 +1,10 @@
-import {
-  typeT,
-  Function,
-  LanguagesSupported,
-  AppTranslationsKeys,
-} from "@types";
 import i18n from "i18next";
+import { Logger } from "../TOP_LEVEL";
 import * as Localization from "expo-localization";
 import { initReactI18next } from "react-i18next";
 import { storageManagement } from "../services/storage";
+import { typeT, LanguagesSupported } from "@types";
 import { enApp, esApp, languagesSupported } from "@common";
-import { Logger } from "../TOP_LEVEL";
 
 const logger = new Logger("TranslatesI18n");
 
@@ -88,21 +83,5 @@ const configureLanguage = async () => {
 configureLanguage();
 
 export const tTyped = i18n.t as typeT;
-
-/**
- * This function allows to use dynamic translations without needing to transform the key into a template string.
- * @usage
- * Instead of doing:
- * ```
- * const dynamicKey: AppTranslationsKeys = "welcome_message";
- * const translation = t(dynamicKey); // ts-error: It expected two arguments, but only one is given.
- * ```
- * You can do:
- * ```
- * const dynamicKey: AppTranslationsKeys = "welcome_message";
- * const translation = dynamicT(dynamicKey); // No ts-error, and it will return the correct translation.
- * ```
- */
-export const dynamicT = i18n.t as Function<[AppTranslationsKeys], string>;
 
 export { i18n };

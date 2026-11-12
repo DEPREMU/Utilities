@@ -1,4 +1,3 @@
-import { useStylesOtpInput } from "@screens/Auth/styles/useStylesOtpInput";
 import {
   View,
   Text,
@@ -6,6 +5,7 @@ import {
   TextInput,
   TextInputInstance,
 } from "react-native";
+import { useStylesOtpInput } from "@screens/Auth/styles/useStylesOtpInput";
 import React, { useRef, useState, useCallback } from "react";
 
 export type OtpInputProps = {
@@ -131,5 +131,3 @@ export const OtpInput: React.FC<OtpInputProps> = ({
     </Pressable>
   );
 };
-
-export default OtpInput;

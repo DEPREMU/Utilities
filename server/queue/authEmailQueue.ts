@@ -22,7 +22,7 @@ let authEmailQueue: Queue<AuthEmailJobData> | null = null;
  *
  * @returns {Queue<AuthEmailJobData>} The initialized BullMQ queue instance
  */
-export const getAuthEmailQueue = (): Queue<AuthEmailJobData> => {
+const getAuthEmailQueue = (): Queue<AuthEmailJobData> => {
   if (authEmailQueue) {
     return authEmailQueue;
   }

@@ -5,15 +5,13 @@ import React, {
   useCallback,
   createContext,
 } from "react";
-import i18n from "i18next";
-
-export type Theme = "dark" | "light";
-export type Language = "en" | "es";
+import { LanguagesSupported, Theme } from "@types";
+import { changeLanguage, language as lang } from "@/utils";
 
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
-  language: Language;
+  language: LanguagesSupported;
   toggleLanguage: () => void;
 }
 
@@ -23,7 +21,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [theme, setTheme] = useState<Theme>("dark");
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<LanguagesSupported>(lang);
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => {
@@ -37,7 +35,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const toggleLanguage = useCallback(() => {
     setLanguage((prev) => {
       const newLang = prev === "en" ? "es" : "en";
-      i18n.changeLanguage(newLang);
+      changeLanguage(newLang);
       return newLang;
     });
   }, []);
@@ -48,7 +46,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     document.documentElement.setAttribute("data-theme", storedTheme);
     setTheme(storedTheme);
 
-    const initialLang = i18n.language?.startsWith("es") ? "es" : "en";
+    const initialLang = lang.startsWith("es") ? "es" : "en";
     setLanguage(initialLang);
   }, []);
 

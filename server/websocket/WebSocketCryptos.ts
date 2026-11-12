@@ -7,7 +7,7 @@ import {
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling";
 import { config } from "@/config";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { cryptos } from "@/routes/cryptos/variables";
 import { sendFCMNotification } from "@/firebase/admin";
 import WebSocket, { WebSocketServer } from "ws";

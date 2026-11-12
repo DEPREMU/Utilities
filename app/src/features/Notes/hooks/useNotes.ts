@@ -400,5 +400,3 @@ export const useNotes = () => {
     validateUnlockPassword,
   };
 };
-
-export default useNotes;

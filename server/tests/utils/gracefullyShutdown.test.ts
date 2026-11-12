@@ -191,7 +191,7 @@ describe("GracefullyShutdown Coordinator", () => {
       expect(task3).toHaveBeenCalledTimes(1);
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining("Error in [HIGH] function \"Failing High Task\""),
+        expect.stringContaining('Error in [HIGH] function "Failing High Task"'),
         expect.any(Error),
       );
       expect(exitMock).toHaveBeenCalledWith(0);

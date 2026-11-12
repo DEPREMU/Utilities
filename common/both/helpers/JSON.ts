@@ -24,7 +24,7 @@ const getValidValue = (value: unknown): unknown => {
  * @param arr - The array to sort.
  * @returns The sorted array.
  */
-export const sortArray = <T extends unknown[]>(arr: T): T => {
+const sortArray = <T extends unknown[]>(arr: T): T => {
   if (!Array.isArray(arr)) return arr;
   return arr.map(getValidValue).sort() as T;
 };
@@ -35,7 +35,7 @@ export const sortArray = <T extends unknown[]>(arr: T): T => {
  * @param obj - The object to sort.
  * @returns The sorted object.
  */
-export const sortObject = <T extends Record<string, unknown>>(obj: T): T => {
+const sortObject = <T extends Record<string, unknown>>(obj: T): T => {
   if (typeof obj !== "object" || obj === null) return obj;
   const keys = Object.keys(obj).sort((a, b) => (a > b ? 1 : -1));
 
@@ -55,7 +55,7 @@ export const sortObject = <T extends Record<string, unknown>>(obj: T): T => {
  * @param value - The value to stringify.
  * @returns The stringified representation of the value.
  */
-export const stringifyData = (value: unknown): string => {
+const stringifyData = (value: unknown): string => {
   if (typeof value === "string") return value;
   try {
     if (value instanceof Date) return getValidValue(value) as string;
@@ -105,9 +105,7 @@ const getCorrectParsed = <T = object | null>(obj: object | null): T => {
     ) as T;
 };
 
-export const parseData = <T = object | null>(
-  value: string | null,
-): T | null => {
+const parseData = <T = object | null>(value: string | null): T | null => {
   let parsed: T;
   try {
     if (!value) return value as T;

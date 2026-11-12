@@ -1,3 +1,4 @@
+process.title = "Utilities - Server";
 import "./firebase/admin";
 
 import {
@@ -27,10 +28,10 @@ import { URL } from "url";
 import express from "express";
 import routerAPI from "./routes";
 import rateLimit from "express-rate-limit";
+import { prisma } from "./database";
 import compression from "compression";
 import { getEnvValue } from "./env";
 import { closeAuthEmailQueue } from "./queue/authEmailQueue";
-import { handleInitDB, prisma } from "./database/postgres";
 import { config, gracefullyShutdown } from "./config";
 import { getRedisClient, closeRedisConnection } from "./redis/client";
 import { initSharedGateway, closeSharedGateway } from "./whatsapp/gateway";
@@ -142,8 +143,6 @@ const startApp = async () => {
       wsCalled.emit("connection", ws, request);
     });
   });
-
-  await handleInitDB();
 
   try {
     getRedisClient();

@@ -73,7 +73,7 @@ export type TranslationsKeys =
   | "failedToFindAFolderRequiredForBuild"
   | "buildingWindowsFromLinuxRequiresWine";
 
-export type Translations = Record<
+type Translations = Record<
   Languages,
   Record<
     TranslationsKeys,
@@ -81,7 +81,7 @@ export type Translations = Record<
   >
 >;
 
-export const translations: Translations = {
+const translations: Translations = {
   en: {
     pressEnterToExit: {
       color: "yellow",

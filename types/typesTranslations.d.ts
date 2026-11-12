@@ -127,10 +127,11 @@ export type AppTranslations = BatteryStateTranslations &
     homeScreen: {
       help: `${string}{{commandToHome}}${string}`;
       keyWords: `${string}{{keyWords}}${string}`;
-      needsInternet: `${string}{{featureName}}${string}`;
-      noNeedsInternet: `${string}{{featureName}}${string}`;
+      keepLoaded: string;
       needSession: `${string}{{featureName}}${string}`;
+      needsInternet: `${string}{{featureName}}${string}`;
       noNeedsSession: `${string}{{featureName}}${string}`;
+      noNeedsInternet: `${string}{{featureName}}${string}`;
     };
     downDetector: {
       title: string;
@@ -956,6 +957,9 @@ export type AppTranslations = BatteryStateTranslations &
       savedSuccess: string;
       copied: string;
       copyLinkCommand: `${string}{{code}}${string}`;
+    };
+    suspenseScreen: {
+      phrases: string[];
     };
   };
 

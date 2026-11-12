@@ -15,8 +15,9 @@ import { Logger } from "@commonSrc/serverOrElectron/logger.ts";
 const logger = new Logger("build-app-electron-test");
 
 jest.mock("child_process", () => ({
+  ...(jest.requireActual("child_process") as Record<string, unknown>),
   execSync: jest.fn(),
-  exec: jest.fn().mockReturnValue({
+  spawn: jest.fn().mockReturnValue({
     stdout: { on: jest.fn() },
     stderr: { on: jest.fn() },
     on: jest.fn((event, cb) => {
@@ -95,15 +96,15 @@ describe("build-app-electron script", () => {
 
     await script.run();
 
-    expect(child_process.exec).toHaveBeenCalledWith(
+    expect(child_process.spawn).toHaveBeenCalledWith(
       expect.stringContaining("yarn run build-web-app-electron"),
       expect.anything(),
     );
-    expect(child_process.exec).toHaveBeenCalledWith(
+    expect(child_process.spawn).toHaveBeenCalledWith(
       expect.stringContaining("yarn run build-resources-electron"),
       expect.anything(),
     );
-    expect(child_process.exec).toHaveBeenCalledWith(
+    expect(child_process.spawn).toHaveBeenCalledWith(
       expect.stringContaining("yarn electron-builder"),
       expect.anything(),
     );

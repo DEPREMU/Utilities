@@ -29,16 +29,16 @@ import { storageManagement } from "../services/storage";
 
 const logger = new Logger("ServicesNotifications");
 
-export interface NotificationData {
+interface NotificationData {
   screen?: ScreensAvailable;
   [key: string]: unknown;
 }
 
-export type SendNotification = (
+type SendNotification = (
   notification: Omit<Notification, "id" | "timestamp">,
 ) => Promise<string | void>;
 
-export type RemoveNotification = (
+type RemoveNotification = (
   id: number,
   reasonNotification: ReasonNotification,
 ) => void;
@@ -51,7 +51,7 @@ export type RemoveNotification = (
  * @param {Notifications} notificationsData - The notifications data to check.
  * @returns {boolean} - Returns true if notifications are already initialized, otherwise false.
  */
-export const isNotificationsAlreadyInitialized = (
+const isNotificationsAlreadyInitialized = (
   notificationsData: Notifications | null,
 ): notificationsData is Notifications => {
   if (!notificationsData) return false;
@@ -108,29 +108,6 @@ const initializeNotificationsStorage = async (): Promise<Notifications> => {
 
   storageManagement.save("NOTIFICATIONS", newNotifications);
   return newNotifications;
-};
-
-/**
- * Checks if the application has permission to send push notifications.
- *
- * This function first checks the current notification permission status.
- * If permission is not granted, it requests permission from the user.
- * Returns `true` if permission is granted, otherwise `false`.
- *
- * @returns {Promise<boolean>} A promise that resolves to `true` if push notification permission is granted, otherwise `false`.
- */
-export const hasPushNotifications = async (): Promise<boolean> => {
-  const { status } = await notifications.requestPermissionsAsync();
-  const notificationsData =
-    notificationsManager.getNotification("allNotifications");
-
-  if (status === notifications.PermissionStatus.GRANTED)
-    return notificationsData.enabled;
-
-  const { status: newStatus } = await notifications.requestPermissionsAsync();
-  if (newStatus !== notifications.PermissionStatus.GRANTED) return false;
-
-  return notificationsData.enabled;
 };
 
 /**

@@ -166,7 +166,12 @@ const ComputerControl: React.FC<Screens["ComputerControl"]> = () => {
     setLoading(true);
     setScanning(true);
 
-    zeroconfRef.current.scan("http", "tcp", "local.", "DNSSD");
+    zeroconfRef.current.scan({
+      type: "http",
+      domain: "local.",
+      protocol: "tcp",
+      implType: "DNSSD",
+    });
   });
 
   const startRescanCycleRef = useRef(() => {

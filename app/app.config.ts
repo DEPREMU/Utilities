@@ -102,10 +102,11 @@ export default (
           },
         },
       ],
-      [
-        "expo-localization",
-        { supportedLocales: { web: ["en", "es"], android: ["en", "es"] } },
-      ],
+      //? Expo localization has a bug in its plugin.
+      // [
+      //   "expo-localization",
+      //   { supportedLocales: { web: ["en", "es"], android: ["en", "es"] } },
+      // ],
       [
         "react-native-audio-api",
         {

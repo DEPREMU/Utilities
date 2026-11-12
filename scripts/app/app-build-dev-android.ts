@@ -69,6 +69,7 @@ if (!args.ARGS["skip-build-android"]) {
       })
       .run("yarn run app-prebuild-android", {
         env: localEnv,
+        signal: script.signal,
       });
   });
 

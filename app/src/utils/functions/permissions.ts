@@ -97,7 +97,7 @@ const askLocationPermission = async (
   }));
 };
 
-export const waitForAppToBeActive = async (): Promise<void> => {
+const waitForAppToBeActive = async (): Promise<void> => {
   const { elapsedTime } = await import("@utils");
 
   await Timers.sleep(500);
@@ -342,7 +342,7 @@ const askDoNotDisturbPermission = async (): Promise<void> => {
   };
 };
 
-export const askPermissions = async (): Promise<void> => {
+const askPermissions = async (): Promise<void> => {
   if (REPLACERS.isWeb) return;
 
   await permissionsData.initializing;

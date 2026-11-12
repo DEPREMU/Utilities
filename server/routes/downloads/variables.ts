@@ -2,7 +2,7 @@ import path from "path";
 import chalk from "chalk";
 import { v4 } from "uuid";
 import { config } from "@/config";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { Prisma, RequestUploadUpdate } from "@types";
 import { File, Logger, ServerFetch, Timers, Validations } from "@common";
 

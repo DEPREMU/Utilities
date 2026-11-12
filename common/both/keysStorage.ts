@@ -4,6 +4,7 @@ import type {
   NotesSettings,
   Notifications,
   VaultSettings,
+  ScreensAvailable,
   LanguagesSupported,
   PersonalStickerConfig,
 } from "@types";
@@ -67,6 +68,11 @@ export type DEBUG_SETTINGS = {
   appAliveCheck: boolean;
 };
 
+export type ScreensConfig = Record<
+  Exclude<ScreensAvailable, "Minesweeper">,
+  { keepLoaded?: boolean }
+>;
+
 export type PermissionsData = Record<Permission, DataPermission>;
 
 export type ExpectedSecureStorageTypes = {
@@ -96,6 +102,7 @@ export type ExpectedUnsecureStorageTypes = {
   DEBUG: DEBUG_SETTINGS;
   LANGUAGE: LanguagesSupported;
   NOTIFICATIONS: Notifications;
+  SCREENS_CONFIG: ScreensConfig | null;
   VAULT_SETTINGS: VaultSettings | null;
   NOTES_SETTINGS: NotesSettings | null;
   HAS_ADMIN_ACCESS: boolean | null;
@@ -124,10 +131,7 @@ export type ExpectedStorageTypes<
     ? ExpectedSecureStorageTypes
     : ExpectedUnsecureStorageTypes;
 
-export const SECURE_KEYS_STORAGE: Record<
-  keyof ExpectedSecureStorageTypes,
-  string
-> = {
+export const SECURE_KEYS_STORAGE = {
   USER_DATA: "_userData",
   DEVICE_ID: "_deviceId",
   CLIPBOARD: "_clipboard",
@@ -144,42 +148,28 @@ export const SECURE_KEYS_STORAGE: Record<
   TERMINAL_COMMANDS: "_terminalCommands",
   DOWN_DETECTOR_DATA: "_downDetectorData",
   USER_SESSION_TOKEN_STORAGE: "_userSessionTokenStorage",
-};
+} satisfies Record<keyof ExpectedSecureStorageTypes, string>;
 
-export const SECURE_KEYS_STORAGE_KEYS = new Set<SECURE_KEYS_STORAGE_TYPE>(
-  Helper.Object.keys(SECURE_KEYS_STORAGE),
-);
-
-export const SECURE_KEYS_STORAGE_VALUES: string[] =
-  Object.values(SECURE_KEYS_STORAGE);
-
-export const UNSECURE_KEYS_STORAGE: Record<
-  keyof ExpectedUnsecureStorageTypes,
-  string
-> = {
+export const UNSECURE_KEYS_STORAGE = {
   DEBUG: "@debug",
   LANGUAGE: "@languageKeyStorage",
   APP_BEHAVIOR: "@appBehavior",
   NOTIFICATIONS: "@notifications",
   RECORDER_DATA: "@recorderData",
   VAULT_SETTINGS: "@vaultSettings",
+  SCREENS_CONFIG: "@screensConfig",
   NOTES_SETTINGS: "@notesSettings",
   HAS_ADMIN_ACCESS: "@hasAdminAccess",
-};
+} satisfies Record<keyof ExpectedUnsecureStorageTypes, string>;
 
 export const ALL_KEYS_STORAGE = {
   ...SECURE_KEYS_STORAGE,
   ...UNSECURE_KEYS_STORAGE,
 };
 
-export const ALL_KEYS_STORAGE_KEYS = Object.keys(
-  ALL_KEYS_STORAGE,
-) as ALL_KEYS_STORAGE_TYPE[];
+export const ALL_KEYS_STORAGE_KEYS = Helper.Object.keys(ALL_KEYS_STORAGE);
 
-export const ALL_KEYS_STORAGE_VALUES: string[] =
-  Object.values(ALL_KEYS_STORAGE);
-
-export const DO_NOT_DELETE_OR_SAVE: ALL_KEYS_STORAGE_TYPE[] = [
+export const DO_NOT_DELETE_OR_SAVE = new Set([
   "DEVICE_ID",
   "RECORDER_DATA",
   "VAULT_SETTINGS",
@@ -188,7 +178,11 @@ export const DO_NOT_DELETE_OR_SAVE: ALL_KEYS_STORAGE_TYPE[] = [
   "VAULT_DIRECTORY",
   "WHATSAPP_CONFIG",
   "NETWORK_SETTINGS",
-] as const;
+]) satisfies Set<ALL_KEYS_STORAGE_TYPE>;
+
+export const SECURE_KEYS_STORAGE_KEYS = new Set<SECURE_KEYS_STORAGE_TYPE>(
+  Helper.Object.keys(SECURE_KEYS_STORAGE),
+);
 
 /**
  * Checks if a given storage key is a secure key that requires encrypted storage.

@@ -16,10 +16,12 @@ export const COMMANDS = {
   "type-check": "scripts/root-commands.ts --action=type-check",
   "build-web": "scripts/root-commands.ts --action=build-web",
   "app-compile-check": "scripts/root-commands.ts --action=compile-check",
+  knip: "scripts/root-commands.ts --action=knip",
 
   //? App
   "app-prebuild-android": "scripts/app/app-prebuild.ts",
   "app-build-dev-android": "scripts/app/app-build-dev-android.ts",
+  "build-dev-android-docker": "scripts/app/build-dev-android-docker.ts",
 
   //? Utilities for PC
   "build-app-electron": "scripts/UtilitiesForPC/build-app-electron.ts",

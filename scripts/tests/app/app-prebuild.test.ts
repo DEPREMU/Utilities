@@ -12,8 +12,9 @@ import { script } from "../../app/app-prebuild.ts";
 import child_process from "child_process";
 
 jest.mock("child_process", () => ({
+  ...(jest.requireActual("child_process") as Record<string, unknown>),
   execSync: jest.fn(),
-  exec: jest.fn().mockReturnValue({
+  spawn: jest.fn().mockReturnValue({
     stdout: { on: jest.fn() },
     stderr: { on: jest.fn() },
     on: jest.fn((event, cb) => {
@@ -88,7 +89,7 @@ describe("app-prebuild script", () => {
     args.editArg("testing", false);
     await script.run();
 
-    expect(child_process.exec).toHaveBeenCalledWith(
+    expect(child_process.spawn).toHaveBeenCalledWith(
       expect.stringContaining("yarn expo prebuild"),
       expect.anything(),
     );

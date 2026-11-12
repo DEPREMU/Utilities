@@ -1,10 +1,10 @@
 import chalk from "chalk";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { Helper, Logger } from "@common";
 import { LogsWebSocketMessage } from "@types";
 import { WebSocket, WebSocketServer } from "ws";
 
-export const connectedLogClients = new Set<WebSocket>();
+const connectedLogClients = new Set<WebSocket>();
 const logger = new Logger("WebSocketLogs");
 
 Logger.addInterceptor((type, message) => {
@@ -158,7 +158,7 @@ const onConnection = async (ws: WebSocket) => {
   });
 };
 
-export const broadcastLogsMessage = (
+const broadcastLogsMessage = (
   message: LogsWebSocketMessage<"sentByServer">,
 ) => {
   const msgStr = JSON.stringify(message);

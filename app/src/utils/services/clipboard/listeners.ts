@@ -6,7 +6,7 @@ import { Timers, REPLACERS } from "@common";
 import { EventClipboardNative } from "@types";
 import { deviceInfo, EventsDeviceInfo } from "../deviceInfo";
 import { BackgroundModule, windowModule } from "@/utils/modules";
-import { DeviceEventEmitter, EmitterSubscription } from "react-native";
+import { DeviceEventEmitter, EventSubscription } from "react-native";
 
 const logger = new Logger("ServicesClipboardListeners");
 
@@ -15,7 +15,7 @@ type Listener = ReturnType<typeof deviceInfo.addEventListener> | null;
 export class ListenersClipboard extends DataClipboard {
   #intervalId: number | null = null;
 
-  #listenerClipboard: EmitterSubscription | null = null;
+  #listenerClipboard: EventSubscription | null = null;
   #listenerSession: Listener = null;
   #listenerItemsUpdated: Listener = null;
   #isRunningNativeService: boolean = false;

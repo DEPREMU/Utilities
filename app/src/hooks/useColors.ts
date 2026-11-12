@@ -76,5 +76,3 @@ export const useColors = (themeArg: "light" | "dark" | "auto" = "auto") => {
     ...colorsMemo,
   };
 };
-
-export default useColors;

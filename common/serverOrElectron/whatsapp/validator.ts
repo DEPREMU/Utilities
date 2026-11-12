@@ -9,17 +9,17 @@ export interface ImageValidationResult {
   height?: number;
 }
 
-export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
-export const MAX_ANIMATED_SIZE_BYTES = 15 * 1024 * 1024;
-export const MAX_DIMENSION_PIXELS = 4096;
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_ANIMATED_SIZE_BYTES = 15 * 1024 * 1024;
+const MAX_DIMENSION_PIXELS = 4096;
 
-export const SUPPORTED_IMAGE_FORMATS = [
+const SUPPORTED_IMAGE_FORMATS = new Set([
   "jpeg",
   "jpg",
   "png",
   "webp",
   "gif",
-] as const;
+] as const);
 
 /**
  * Validates an image buffer or file for size, dimensions, format, and animated frames.
@@ -46,8 +46,8 @@ export const validateImagePayload = async (
     }
 
     const format = metadata.format.toLowerCase();
-    const isSupported = SUPPORTED_IMAGE_FORMATS.includes(
-      format as (typeof SUPPORTED_IMAGE_FORMATS)[number],
+    const isSupported = SUPPORTED_IMAGE_FORMATS.has(
+      format as Parameters<typeof SUPPORTED_IMAGE_FORMATS.has>[0],
     );
 
     if (!isSupported) {

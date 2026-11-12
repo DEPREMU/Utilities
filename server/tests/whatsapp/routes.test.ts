@@ -13,7 +13,9 @@ describe("WhatsApp HTTP Route Contract Tests", () => {
         expect(["healthy", "degraded"]).toContain(res.data.status);
         expect(res.data.gateway).toBeDefined();
         expect(typeof res.data.gateway.connected).toBe("boolean");
-        expect(["open", "close", "connecting"]).toContain(res.data.gateway.state);
+        expect(["open", "close", "connecting"]).toContain(
+          res.data.gateway.state,
+        );
         expect(typeof res.data.gateway.uptimeSeconds).toBe("number");
 
         expect(res.data.redis).toBeDefined();

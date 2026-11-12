@@ -23,7 +23,7 @@ import {
 import chalk from "chalk";
 import crypto from "node:crypto";
 import bcrypt from "@node-rs/bcrypt";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getRedisClient } from "@/redis/client";
 import { withTransaction } from "@/database/transaction";
 import { enqueueAuthEmail } from "@/queue/authEmailQueue";

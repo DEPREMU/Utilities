@@ -1,4 +1,4 @@
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getHandlerGet, Helper, STATUS_RESPONSE } from "@common";
 
 const MAX_PAGE_SIZE = 100;

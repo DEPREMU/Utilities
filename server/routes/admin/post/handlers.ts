@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getEnvValue } from "@/env";
 import { Logger, RequestError, getHandlerPost, STATUS_RESPONSE } from "@common";
 

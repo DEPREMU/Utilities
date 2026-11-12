@@ -1,5 +1,6 @@
 import { JSON } from "./JSON";
 import { Arrays } from "./Array";
+import { Numbers } from "./Number";
 import { Objects } from "./Object";
 import { REPLACERS } from "@REPLACERS";
 
@@ -76,4 +77,6 @@ export class Helper {
   static readonly Arrays = Arrays;
 
   static readonly Object = Objects;
+
+  static readonly Number = Numbers;
 }

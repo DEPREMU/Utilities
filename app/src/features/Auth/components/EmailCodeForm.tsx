@@ -19,7 +19,7 @@ import { Validations, requestCode, tTyped, Timers, Logger } from "@utils";
 
 const logger = new Logger("EmailCodeForm");
 
-export type EmailCodeFormProps = {
+type EmailCodeFormProps = {
   email: string;
   setEmail: React.Dispatch<React.SetStateAction<string>>;
   onSuccessRequest: (email: string) => void;
@@ -29,7 +29,7 @@ export type EmailCodeFormProps = {
  * Reusable email entry form for passwordless authentication.
  * Prompts the user for their email address and requests an 8-character verification code.
  */
-export const EmailCodeForm: React.FC<EmailCodeFormProps> = ({
+const EmailCodeForm: React.FC<EmailCodeFormProps> = ({
   email,
   setEmail,
   onSuccessRequest,

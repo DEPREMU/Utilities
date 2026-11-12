@@ -21,6 +21,7 @@ import {
 import { Timers } from "@common";
 import { ProgressBar } from "react-native-paper";
 import { useStylesLoadingScreen } from "@screens/Loading/styles";
+import { waitForScreensToBeReady } from "@/app/AppNavigator";
 import { View, useWindowDimensions } from "react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
@@ -39,6 +40,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
   const isFinished = useRef(false);
 
   const functionsRef = useRef([
+    waitForScreensToBeReady,
     deviceInfo.waitUntilInitialized.bind(deviceInfo),
     sessionManager.waitUntilInitialized.bind(sessionManager),
     recorderManager.waitUntilInitialized.bind(recorderManager),
@@ -159,7 +161,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ setIsLoading }) => {
       idTimeout.current = Timers.setTimeout(onFinished, remaining);
     };
 
-    const executeWaiting = async (fun: () => Promise<void>) => {
+    const executeWaiting = async (fun: () => Promise<unknown>) => {
       await fun();
       setLoaded((prev) => {
         const newValue = prev + 1;
