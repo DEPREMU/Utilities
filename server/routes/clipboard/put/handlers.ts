@@ -1,4 +1,4 @@
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { Helper, RequestError, getHandlerPut, STATUS_RESPONSE } from "@common";
 
 export const handleToggleDeletedClipboardItem = getHandlerPut(

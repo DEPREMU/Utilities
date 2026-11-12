@@ -23,7 +23,6 @@ import path from "path";
 import chalk from "chalk";
 import qrcode from "qrcode";
 import { Directory, Logger, Timers } from "@common";
-import { handleIncomingServerMessage } from "./messageHandler";
 import { startHourlyTempCleanup, stopHourlyTempCleanup } from "./tempMedia";
 
 const logger = new Logger("WhatsAppGateway");
@@ -54,8 +53,7 @@ export const setServiceEnabled = (enabled: boolean): void => {
   );
 };
 
-export const isSharedGatewayConnected = (): boolean =>
-  connectionState === "open";
+const isSharedGatewayConnected = (): boolean => connectionState === "open";
 
 export const getSharedGatewayStatus = (): SharedGatewayStatus => ({
   connected: connectionState === "open",
@@ -67,9 +65,7 @@ export const getSharedGatewayStatus = (): SharedGatewayStatus => ({
   qrDataUrl,
 });
 
-export const getSharedSocket = (): WASocket | null => sock;
-
-export const sendSticker = async (
+const sendSticker = async (
   recipientId: string,
   stickerBuffer: Buffer,
   quotedMessageId?: string,
@@ -110,7 +106,7 @@ export const sendSticker = async (
   }
 };
 
-export const sendTextMessage = async (
+const sendTextMessage = async (
   recipientId: string,
   text: string,
   quotedMessageId?: string,
@@ -183,7 +179,6 @@ export const initSharedGateway = async (): Promise<void> => {
     auth: state,
     logger: pino({ level: "silent" }),
     browser: Browsers.windows("Chrome"),
-    printQRInTerminal: false,
   });
 
   setDeliveryGatewaySender({
@@ -255,6 +250,8 @@ export const initSharedGateway = async (): Promise<void> => {
     }
   });
 
+  const { handleIncomingServerMessage } = await import("./messageHandler");
+
   sock.ev.on("messages.upsert", async (upsert) => {
     if (sock) {
       await handleIncomingServerMessage(upsert, sock);
@@ -270,10 +267,12 @@ export const closeSharedGateway = async (): Promise<void> => {
   }
 
   stopHourlyTempCleanup();
-  await closeDeliveryWorker();
-  await closeDeliveryQueue();
-  await closeProcessWorker();
-  await closeProcessQueue();
+  await Promise.all([
+    closeProcessQueue(),
+    closeDeliveryQueue(),
+    closeProcessWorker(),
+    closeDeliveryWorker(),
+  ]);
 
   if (sock) {
     try {

@@ -253,5 +253,3 @@ export const AuthEmail = ({
     </Html>
   );
 };
-
-export default AuthEmail;

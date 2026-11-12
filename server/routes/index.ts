@@ -20,10 +20,7 @@ import { ROUTER_USER_NOTIFICATIONS_CONFIG } from "./usernotificationsconfig";
 
 const router = getMainRouter({
   "/dev": {
-    router: REPLACERS.isDev
-      ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-        (require("./dev") as typeof import("./dev")).ROUTER_DEV
-      : Router(),
+    router: REPLACERS.isDev ? (await import("./dev")).ROUTER_DEV : Router(),
   },
 
   "/auth": { router: ROUTER_AUTH },

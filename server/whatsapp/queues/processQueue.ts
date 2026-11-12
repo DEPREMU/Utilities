@@ -1,18 +1,18 @@
 import fs from "fs/promises";
 import chalk from "chalk";
 import { Logger } from "@common";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getBotMessage } from "../language";
 import { getRedisClient } from "../../redis/client";
 import { Queue, Worker, Job } from "bullmq";
-import { convertImageToStickerWebp } from "@commonSrc/serverOrElectron/whatsapp/converter";
+import { convertToSticker } from "@commonSrc/serverOrElectron/whatsapp/converter";
 import { enqueueWhatsAppDeliveryJob } from "./deliveryQueue";
 import { WhatsAppStickerProcessJobData } from "@types";
 import { deleteTempFile, saveTempMedia } from "../tempMedia";
 
 const logger = new Logger("WhatsAppProcessQueue");
 
-export const PROCESS_QUEUE_NAME = "whatsapp-sticker-process";
+const PROCESS_QUEUE_NAME = "whatsapp-sticker-process";
 
 let processQueue: Queue<WhatsAppStickerProcessJobData> | null = null;
 let processWorker: Worker<WhatsAppStickerProcessJobData> | null = null;
@@ -66,7 +66,7 @@ export const enqueueWhatsAppProcessJob = async (
   return job;
 };
 
-export const processStickerJob = async (
+const processStickerJob = async (
   job: Job<WhatsAppStickerProcessJobData>,
 ): Promise<void> => {
   const {
@@ -94,7 +94,7 @@ export const processStickerJob = async (
   }
 
   try {
-    const finalWebp = await convertImageToStickerWebp(inputBuffer, {
+    const finalWebp = await convertToSticker(inputBuffer, {
       isAnimated,
       emojis: options.emojis,
       quality: options.quality,

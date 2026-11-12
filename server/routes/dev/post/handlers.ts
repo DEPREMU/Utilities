@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { Prisma } from "@/generated/prisma";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { ResponseDoQuery } from "@types";
 import { Logger, REPLACERS, STATUS_RESPONSE, getHandlerPost } from "@common";
 

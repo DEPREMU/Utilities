@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { user } from "./utils";
 import { config } from "@/config";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { createFakeData } from "./createFakeData";
 import { Logger, ServerFetch } from "@common";
 

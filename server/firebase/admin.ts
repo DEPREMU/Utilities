@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getEnvValue } from "../env";
 import { getMessaging } from "firebase-admin/messaging";
 import admin, { App, cert } from "firebase-admin";
@@ -8,6 +8,7 @@ import { ScreensAvailable, ChannelsId } from "@types";
 
 const logger = new Logger("FirebaseAdmin");
 
+let errorsThrown = 0;
 let firebaseApp: App | null = null;
 
 const initializeFirebaseAdmin = () => {
@@ -24,6 +25,7 @@ const initializeFirebaseAdmin = () => {
     return firebaseApp;
   } catch (error) {
     logger.error(chalk.red("Error initializing Firebase Admin SDK:"), error);
+    errorsThrown++;
     throw error;
   }
 };
@@ -43,6 +45,7 @@ export const sendFCMNotification = async (
   data?: { screen: ScreensAvailable } & Record<string, string>,
 ) => {
   if (REPLACERS.isDev) return;
+  if (errorsThrown >= 10) return;
 
   try {
     const messaging = getMessaging(getFirebaseAdmin());

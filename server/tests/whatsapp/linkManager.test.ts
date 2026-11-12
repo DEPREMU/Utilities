@@ -1,6 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
 import { detectLanguageFromJid, getBotMessage } from "../../whatsapp/language";
-import { getUtcDateKey, getSecondsUntilMidnightUtc } from "../../whatsapp/rateLimiter";
+import {
+  getUtcDateKey,
+  getSecondsUntilMidnightUtc,
+} from "../../whatsapp/rateLimiter";
 
 describe("WhatsApp Language Detection and Quota Utilities", () => {
   it("should accurately detect Spanish country calling prefixes", () => {

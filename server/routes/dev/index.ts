@@ -1,9 +1,6 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-import { Router } from "express";
-import { REPLACERS, getRouterPerRoute } from "@common";
+import { routerDevPost } from "./post";
+import { getRouterPerRoute } from "@common";
 
-export const ROUTER_DEV = REPLACERS.isDev
-  ? getRouterPerRoute("/dev", {
-      POST: (require("./post") as typeof import("./post")).routerDevPost,
-    })
-  : Router();
+export const ROUTER_DEV = getRouterPerRoute("/dev", {
+  POST: routerDevPost,
+});

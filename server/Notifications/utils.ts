@@ -4,7 +4,7 @@ import { Logger, Timers } from "@common";
 
 const logger = new Logger("NotificationsUtils");
 
-export const PAGE_SIZE = 10;
+const PAGE_SIZE = 10;
 
 export const getPagination = <T>(
   callback: (skip: number, take: number) => T,

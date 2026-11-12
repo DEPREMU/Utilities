@@ -33,4 +33,4 @@ const deleteOldSessions = async () => {
 };
 
 config.executeFunctionAfterInit(deleteOldSessions);
-export default Timers.setInterval(deleteOldSessions, 24 * 60 * 60 * 1000);
+Timers.setInterval(deleteOldSessions, 24 * 60 * 60 * 1000);

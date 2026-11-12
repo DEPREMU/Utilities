@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { Logger, STATUS_RESPONSE, getHandlerDelete } from "@common";
 
 const logger = new Logger("LogsDelete");

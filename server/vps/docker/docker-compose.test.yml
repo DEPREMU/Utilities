@@ -40,6 +40,8 @@ services:
         condition: service_healthy
     volumes:
       - ../../.temp/whatsapp-shared-session:/server/.temp/whatsapp-shared-session
+      - ../../.temp/uploads:/server/uploads
+      - ../../.temp/backups:/server/backups
 
   postgres:
     image: postgres:17

@@ -1,4 +1,4 @@
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getHandlerGet, Helper, STATUS_RESPONSE } from "@common";
 
 export const handleGetLogs = getHandlerGet(
