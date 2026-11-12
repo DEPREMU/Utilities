@@ -106,7 +106,7 @@ jobs:
     if: needs.check-version.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     environment: build-android
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout code
