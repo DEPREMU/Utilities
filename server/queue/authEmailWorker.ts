@@ -20,7 +20,7 @@ let mailTransporter: Transporter | null = null;
  *
  * @returns {Transporter} The initialized mail transporter
  */
-export const getMailTransporter = (): Transporter => {
+const getMailTransporter = (): Transporter => {
   if (mailTransporter) {
     return mailTransporter;
   }
@@ -49,7 +49,7 @@ export const getMailTransporter = (): Transporter => {
  * @param job - The active email delivery job
  * @returns A promise resolving to the Nodemailer send response
  */
-export const processAuthEmailJob = async (
+const processAuthEmailJob = async (
   job: Job<AuthEmailJobData>,
 ): Promise<SentMessageInfo> => {
   const { to, code, flowType, approximateLocation, expirationMinutes, lang } =

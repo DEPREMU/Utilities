@@ -1,7 +1,7 @@
 import { EventHandler } from "@common";
 import { WhatsAppQuotaInfo } from "@types";
 
-export type WhatsAppEventsRecord = {
+type WhatsAppEventsRecord = {
   "quota-update": (quota: WhatsAppQuotaInfo) => void;
 };
 

@@ -28,11 +28,12 @@ export abstract class ServiceClass<
     }
   }
 
-  public waitUntilInitialized(): Promise<void> {
-    if (this.#isInitialized) return Promise.resolve();
+  public async waitUntilInitialized(): Promise<this> {
+    if (this.#isInitialized) return this;
 
     if (!this.#initPromise) this.#initPromise = this.#init();
-    return this.#initPromise;
+    await this.#initPromise;
+    return this;
   }
 
   public clearInit() {

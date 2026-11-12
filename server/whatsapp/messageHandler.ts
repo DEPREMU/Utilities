@@ -4,7 +4,7 @@ import {
   downloadContentFromMessage,
 } from "@whiskeysockets/baileys";
 import chalk from "chalk";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { saveTempMedia } from "./tempMedia";
 import { Logger, Timers } from "@common";
 import { isServiceEnabled } from "./gateway";

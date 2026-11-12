@@ -1,4 +1,4 @@
-import "./utils/t";
+import "./utils/i18n.ts";
 
 import App from "./App.tsx";
 import { REPLACERS } from "@common";

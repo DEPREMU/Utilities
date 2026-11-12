@@ -30,7 +30,7 @@ let isManualDisconnect = false;
  *
  * @param status - Updated connection status object
  */
-export const broadcastStatus = (status: PersonalWhatsAppStatus): void => {
+const broadcastStatus = (status: PersonalWhatsAppStatus): void => {
   currentStatus = { ...status };
   const mainWindow = dataApp.getValue("mainWindow") as BrowserWindow | null;
   if (!mainWindow || mainWindow.isDestroyed()) return;
@@ -131,7 +131,6 @@ export const connectPersonalWhatsApp =
         version,
         auth: state,
         browser: Browsers.windows("Chrome"),
-        printQRInTerminal: false,
       });
       activeSocket = sock;
 

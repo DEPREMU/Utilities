@@ -10,7 +10,7 @@ import { whatsappIpcHandlers } from "../ipc/whatsapp";
 import { clipboardIpcHandlers } from "../ipc/clipboard";
 import { notificationIpcHandlers } from "../ipc/notification";
 
-export const allIpcHandlers = {
+const allIpcHandlers = {
   ...pdfIpcHandlers,
   ...fileIpcHandlers,
   ...vaultIpcHandlers,

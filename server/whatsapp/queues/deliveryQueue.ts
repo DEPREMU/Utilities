@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import chalk from "chalk";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { Logger } from "@common";
 import { deleteTempFile } from "../tempMedia";
 import { getRedisClient } from "../../redis/client";
@@ -9,7 +9,7 @@ import { WhatsAppStickerDeliveryJobData } from "@types";
 
 const logger = new Logger("WhatsAppDeliveryQueue");
 
-export const DELIVERY_QUEUE_NAME = "whatsapp-sticker-delivery";
+const DELIVERY_QUEUE_NAME = "whatsapp-sticker-delivery";
 
 let deliveryQueue: Queue<WhatsAppStickerDeliveryJobData> | null = null;
 let deliveryWorker: Worker<WhatsAppStickerDeliveryJobData> | null = null;
@@ -67,7 +67,7 @@ export const enqueueWhatsAppDeliveryJob = async (
   return job;
 };
 
-export const processDeliveryJob = async (
+const processDeliveryJob = async (
   job: Job<WhatsAppStickerDeliveryJobData>,
 ): Promise<void> => {
   const { recipientId, tempStickerPath, messageId, isAnimated, enqueuedAt } =

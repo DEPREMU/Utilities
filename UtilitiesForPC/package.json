@@ -1,6 +1,6 @@
 {
   "name": "utilities-for-pc",
-  "version": "0.9.0-beta",
+  "version": "0.10.0-beta",
   "description": "A collection of useful utilities for PC users.",
   "main": "out/main/index.js",
   "private": true,
@@ -29,8 +29,7 @@
     "unzipper": "^0.12.5"
   },
   "devDependencies": {
-    "dmg-builder": "^26.18.0",
-    "electron": "45.1.0",
+    "electron": "45.3.0",
     "electron-builder": "^26.18.0",
     "electron-store": "^12.0.0",
     "electron-vite": "^6.0.0",

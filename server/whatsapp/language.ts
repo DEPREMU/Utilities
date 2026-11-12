@@ -2,7 +2,7 @@ import { enServer } from "@commonSrc/both/translations/English";
 import { esServer } from "@commonSrc/both/translations/Spanish";
 import { LanguagesSupported, ServerTranslations } from "@types";
 
-export const SPANISH_CALLING_PREFIXES = [
+const SPANISH_CALLING_PREFIXES = [
   "34",
   "52",
   "54",

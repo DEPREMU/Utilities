@@ -8,6 +8,6 @@
       "@REPLACERS": ["../common/both/REPLACERS/REPLACERS.ts"]
     }
   },
-  "include": ["./**/*.d.ts"],
+  "include": ["./**/*"],
   "exclude": []
 }

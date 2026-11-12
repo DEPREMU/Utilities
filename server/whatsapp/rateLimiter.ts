@@ -1,9 +1,9 @@
 import { getRedisClient } from "../redis/client";
 
+const QUOTA_TTL_SECONDS = 172800;
+const DEFAULT_MAX_PER_MINUTE = 6;
 export const DEFAULT_GUEST_DAILY_QUOTA = 5;
 export const DEFAULT_LINKED_DAILY_QUOTA = 50;
-export const DEFAULT_MAX_PER_MINUTE = 6;
-export const QUOTA_TTL_SECONDS = 172800;
 
 const LUA_ATOMIC_QUOTA = `
 local key = KEYS[1]
@@ -49,7 +49,10 @@ export const getSecondsUntilMidnightUtc = (): number => {
       0,
     ),
   );
-  return Math.max(1, Math.floor((nextMidnight.getTime() - now.getTime()) / 1000));
+  return Math.max(
+    1,
+    Math.floor((nextMidnight.getTime() - now.getTime()) / 1000),
+  );
 };
 
 /**

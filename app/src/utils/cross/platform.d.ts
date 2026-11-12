@@ -23,9 +23,9 @@ export declare const deleteDirectoryPickerFolder: DeleteDirectoryPickerFolder;
 /**
  * @platform `native`
  */
-export type DeleteDirectoryImageManipulatorFolder = () => void;
+type DeleteDirectoryImageManipulatorFolder = () => void;
 
-export declare const deleteDirectoryImageManipulatorFolder: DeleteDirectoryImageManipulatorFolder;
+declare const deleteDirectoryImageManipulatorFolder: DeleteDirectoryImageManipulatorFolder;
 
 export declare const PDF: typeof RNPDF;
 
@@ -54,7 +54,5 @@ export type CreatePdfFromImages = (
   options: PdfCreateOptions,
   onProgress?: (progress: number) => void,
 ) => Promise<PdfCreateResultWithCleanup | null>;
-
-export declare const createPDFFromImages: CreatePdfFromImages;
 
 export declare const ready: () => Promise<void>;

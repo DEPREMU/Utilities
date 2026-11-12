@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { sendFCMNotification } from "@/firebase/admin";
 import { getPagination, IntervalTimer } from "./utils";
 import { LanguagesSupported, ReasonNotification } from "@types";

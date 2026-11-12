@@ -1,4 +1,4 @@
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { setServiceEnabled } from "@/whatsapp/gateway";
 import { generateLinkToken } from "@/whatsapp/linkManager";
 import { RequestError, getHandlerPost, STATUS_RESPONSE } from "@common";

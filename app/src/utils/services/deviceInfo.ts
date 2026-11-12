@@ -29,14 +29,14 @@ import { AppState, AppStateStatus, DeviceEventEmitter } from "react-native";
 
 const logger = new Logger("ServicesDeviceInfo");
 
-export type typeDataReceivedState = { state: "suspended" | "resumed" };
+type typeDataReceivedState = { state: "suspended" | "resumed" };
 
-export type NetworkInfo = {
+type NetworkInfo = {
   type: NetInfo.NetInfoStateType;
   isCellular: boolean;
 } & ExpectedSecureStorageTypes["NETWORK_SETTINGS"];
 
-export type typeDeviceInfo = {
+type typeDeviceInfo = {
   statePhone: typeDataReceivedState["state"];
   hasInternet: boolean;
   isBackground: boolean;

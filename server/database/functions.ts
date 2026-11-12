@@ -1,5 +1,5 @@
-import { getEnvValue } from "@/env";
 import chalk from "chalk";
+import { getEnvValue } from "@/env";
 
 export const getDbConfig = () => {
   //? "postgresql://username:password@hostname:port/database"

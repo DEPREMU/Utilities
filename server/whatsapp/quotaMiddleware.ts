@@ -9,11 +9,10 @@ import {
   DEFAULT_LINKED_DAILY_QUOTA,
 } from "./rateLimiter";
 import { Helper } from "@common";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getEnvValue } from "@/env";
 import { WhatsAppQuotaInfo } from "@types";
 import { sendWebSocketMessageToUser } from "../websocket/WebSocket";
-import { broadcastWhatsAppQuotaUpdate } from "../websocket/WebSocketWhatsApp";
 import { detectLanguageFromJid, getBotMessage } from "./language";
 
 export interface QuotaCheckResult {
@@ -30,7 +29,7 @@ export interface QuotaCheckResult {
  * @param userId - Application user ID
  * @returns Promise resolving to boolean
  */
-export const isUserAdmin = async (userId: string): Promise<boolean> => {
+const isUserAdmin = async (userId: string): Promise<boolean> => {
   try {
     const adminEmail = getEnvValue("ADMIN_EMAIL")?.toLowerCase();
     if (!adminEmail) return false;
@@ -147,15 +146,6 @@ export const notifyUserQuotaUpdate = async (userId: string): Promise<void> => {
 
     sendWebSocketMessageToUser(userId, {
       type: "whatsapp-quota-update",
-      dailyQuota: quota.dailyQuota,
-      remainingToday: quota.remainingToday,
-      consumedToday: quota.consumedToday,
-      resetAt: quota.resetAt,
-      isLinked: quota.isLinked,
-      linkedPhoneNumber: quota.linkedPhoneNumber,
-    });
-
-    broadcastWhatsAppQuotaUpdate(userId, {
       dailyQuota: quota.dailyQuota,
       remainingToday: quota.remainingToday,
       consumedToday: quota.consumedToday,

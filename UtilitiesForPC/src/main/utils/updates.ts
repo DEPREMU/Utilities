@@ -102,7 +102,7 @@ const openInstallerOrInstall = async (filePath: string) => {
   }
 };
 
-export const downloadNewUpdate = async (
+const downloadNewUpdate = async (
   downloadUrl: string,
   target: string | File,
 ): Promise<"success" | "error"> => {
@@ -153,7 +153,7 @@ export const downloadNewUpdate = async (
   }
 };
 
-export const updateWeb = async (downloadUrl: string): Promise<void> => {
+const updateWeb = async (downloadUrl: string): Promise<void> => {
   const distPath = Paths.DIST;
   if (!distPath.endsWith("dist")) {
     logger.error(

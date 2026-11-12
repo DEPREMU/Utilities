@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import cliProgress from "cli-progress";
 import { TablesKeys } from "@types";
 import { randomUUID } from "node:crypto";

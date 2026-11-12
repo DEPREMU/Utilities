@@ -8,7 +8,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import {
-  Gesture,
+  usePanGesture,
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
@@ -27,9 +27,9 @@ import { useLanguage } from "@context/LanguageContext";
 import { scheduleOnRN } from "react-native-worklets";
 import { useStylesVaultScreen } from "@screens/Vault/styles/useStylesVaultScreen";
 import { useVideoPlayer, VideoView } from "expo-video";
+import React, { useCallback, useEffect, useState } from "react";
 import { Divider, IconButton, Modal, Portal, Text } from "react-native-paper";
 import { View, Image, Pressable, GestureResponderEvent } from "react-native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 type ModalComponentProps = {
   onDismiss: () => void;
@@ -50,6 +50,8 @@ const unknownInfo: FileInfo = {
   createdAt: new Date(),
   modifiedAt: new Date(),
 };
+
+const OPTIONS: Parameters<typeof withTiming>[1] = { duration: 200 };
 
 const VideoPlayerContent: React.FC<{
   uri: string;
@@ -151,74 +153,70 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
     });
   }, [onDismiss, translationY, height]);
 
-  const gesturePan = useMemo(
-    () =>
-      Gesture.Pan()
-        .onUpdate((event) => {
-          const { velocityX, velocityY } = event;
+  const gesturePan = usePanGesture({
+    onUpdate: (event) => {
+      const { velocityX, velocityY } = event;
 
-          const absX = Math.abs(velocityX);
-          const absY = Math.abs(velocityY);
+      const absX = Math.abs(velocityX);
+      const absY = Math.abs(velocityY);
 
-          if (absX > 20 && absX >= absY && !cappedTranslationShared.value.y) {
-            cappedTranslationShared.value.x = true;
-          } else if (
-            absY > 20 &&
-            absY >= absX &&
-            !cappedTranslationShared.value.x
-          ) {
-            cappedTranslationShared.value.y = true;
-          }
+      if (absX > 20 && absX >= absY && !cappedTranslationShared.value.y) {
+        cappedTranslationShared.value.x = true;
+      } else if (
+        absY > 20 &&
+        absY >= absX &&
+        !cappedTranslationShared.value.x
+      ) {
+        cappedTranslationShared.value.y = true;
+      }
 
-          if (cappedTranslationShared.value.x) {
-            translationX.value = event.translationX;
-          } else if (cappedTranslationShared.value.y) {
-            translationY.value = event.translationY;
-          }
-        })
-        .onEnd((event) => {
-          const { translationX: x, velocityX } = event;
+      if (cappedTranslationShared.value.x) {
+        translationX.value = event.translationX;
+      } else if (cappedTranslationShared.value.y) {
+        translationY.value = event.translationY;
+      }
+    },
+    onFinalize: (event) => {
+      const {
+        velocityX = 0,
+        velocityY = 0,
+        translationX: x = 0,
+        translationY: y = 0,
+      } = event as typeof event & {
+        velocityX?: number;
+        velocityY?: number;
+        translationX?: number;
+        translationY?: number;
+      };
 
-          const options = { duration: 200 };
+      if (cappedTranslationShared.value.x) {
+        const absVelocityX = Math.abs(velocityX);
+        const absTranslationX = Math.abs(x);
 
-          if (cappedTranslationShared.value.x) {
-            const absVelocityX = Math.abs(velocityX);
-            const absTranslationX = Math.abs(x);
+        if (absTranslationX < 50 && absVelocityX < 1000) {
+          translationX.value = withTiming(0, OPTIONS);
+        } else if (absTranslationX >= 50 || absVelocityX >= 1000) {
+          if (isTransitioningRef.value) return;
+          scheduleOnRN(renderNewItem, velocityX < 0 ? 1 : -1);
+        }
+      } else if (cappedTranslationShared.value.y) {
+        const absVelocityY = Math.abs(velocityY);
+        const absTranslationY = Math.abs(translationY.value);
 
-            if (absTranslationX < 50 && absVelocityX < 1000) {
-              translationX.value = withTiming(0, options);
-              return;
-            } else if (absTranslationX >= 50 || absVelocityX >= 1000) {
-              if (isTransitioningRef.value) return;
-              scheduleOnRN(renderNewItem, velocityX < 0 ? 1 : -1);
-            }
-          } else if (cappedTranslationShared.value.y) {
-            const absVelocityY = Math.abs(event.velocityY);
-            const absTranslationY = Math.abs(translationY.value);
+        if (absTranslationY < 50 && absVelocityY < 1000) {
+          translationY.value = withTiming(0, OPTIONS);
+        } else if (y) {
+          translationY.value = withTiming(
+            height * 2 * (y > 0 ? 1 : -1),
+            OPTIONS,
+            () => scheduleOnRN(onDismiss),
+          );
+        }
+      }
 
-            if (absTranslationY < 50 && absVelocityY < 1000) {
-              translationY.value = withTiming(0, options);
-            } else {
-              translationY.value = withTiming(
-                height * 2 * (event.translationY > 0 ? 1 : -1),
-                options,
-                () => scheduleOnRN(onDismiss),
-              );
-            }
-          }
-
-          cappedTranslationShared.value = { x: false, y: false };
-        }),
-    [
-      translationX,
-      renderNewItem,
-      height,
-      onDismiss,
-      translationY,
-      cappedTranslationShared,
-      isTransitioningRef,
-    ],
-  );
+      cappedTranslationShared.value = { x: false, y: false };
+    },
+  });
 
   useEffect(() => {
     switch (localModal.type) {

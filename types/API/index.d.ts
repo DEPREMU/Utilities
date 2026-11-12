@@ -6,13 +6,11 @@ import { Delete } from "./DeleteAPI";
 export * from "./Request";
 export * from "./Helpers";
 export * from "./Response";
-export * from "./typesAPI";
 export * from "./GetAPI";
 export * from "./PutAPI";
 export * from "./PostAPI";
 export * from "./whatsapp";
 export * from "./DeleteAPI";
-export * from "./typesUpdates";
 export * from "./WebSocketLogs";
 
 export type MethodsAPI = "GET" | "PUT" | "POST" | "DELETE";

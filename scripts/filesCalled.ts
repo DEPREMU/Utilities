@@ -1,9 +1,8 @@
-export const fileCalled = process.argv[1].split("/").pop();
+const fileCalled = process.argv[1].split("/").pop();
 
 export const isUpdate = fileCalled?.includes("update");
 export const isAppLint = fileCalled?.includes("app-lint");
 export const isAppStart = fileCalled?.includes("app-start");
-export const isBuildWeb = fileCalled?.includes("build-web");
 //TODO: Delete if not necessary to build android on github actions
 // export const isBuildAndroid = fileCalled?.includes("build-android");
 export const isUploadElectron = fileCalled?.includes("build-upload-electron");

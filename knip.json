@@ -1,0 +1,36 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreBinaries": [
+    "net",
+    "psql",
+    "upower",
+    "pkexec",
+    "pg_dump",
+    "schtasks",
+    "docker-compose",
+    "__________________________________",
+    "_______________________________________________"
+  ],
+  "includeEntryExports": true,
+  "exclude": ["unlisted"],
+  "ignoreDependencies": [
+    "eas-cli",
+    "expo-blur",
+    "pino-pretty",
+    "expo-doctor",
+    "@prisma/client",
+    "electron-builder",
+    "@expo/vector-icons",
+    "expo-image-manipulator",
+    "react-native-zip-archive",
+    "react-native-create-thumbnail"
+  ],
+  "ignoreExportsUsedInFile": false,
+  "ignoreFiles": [
+    "**/*.web.*",
+    "**/*.expo.*",
+    "**/*.native.*",
+    "scripts/**",
+    "server/vps/docker/create-container.ts"
+  ]
+}

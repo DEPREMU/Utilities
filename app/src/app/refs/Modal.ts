@@ -2,14 +2,14 @@ import { ReactNode } from "react";
 import { SnackbarProps } from "react-native-paper";
 import { Timers } from "@common";
 
-export type OpenModal = (
+type OpenModal = (
   title: string,
   body: ReactNode | string,
   buttons: ReactNode,
   onDismiss?: () => void,
 ) => void;
 
-export type OpenSnackBar = (
+type OpenSnackBar = (
   label: string,
   duration?: number,
   action?: SnackbarProps["action"],

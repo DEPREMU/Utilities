@@ -10,7 +10,11 @@ const logger = new Logger("CommonSteps");
 export abstract class Steps extends Data {
   protected stopped = false;
 
-  protected abortController: AbortController | null = null;
+  protected abortController: AbortController = new AbortController();
+
+  public get signal() {
+    return this.abortController.signal;
+  }
 
   protected stepFunctions: { label: string; func: StepFunctionType }[] = [];
 
@@ -22,8 +26,6 @@ export abstract class Steps extends Data {
 
     try {
       logger.log(chalk.cyan(`Executing: "${label}"`));
-
-      if (!this.abortController) this.abortController = new AbortController();
 
       const t = Date.now();
       await func(this as never, this.abortController);
@@ -39,8 +41,6 @@ export abstract class Steps extends Data {
     } catch (error) {
       logger.error(chalk.red(`Error in step: "${label}".`), error);
       if (stopOnError) throw error;
-    } finally {
-      this.abortController = null;
     }
   };
 

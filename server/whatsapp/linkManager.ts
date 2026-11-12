@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import crypto from "crypto";
 import { Logger } from "@common";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { WhatsAppLinkTokenResult } from "@types";
 
 const logger = new Logger("WhatsAppLinkManager");

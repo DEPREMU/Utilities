@@ -125,7 +125,7 @@ gracefullyShutdown.addFunction(
   "NORMAL",
 );
 
-export const cleanAdAndServer = (): void => {
+const cleanAdAndServer = (): void => {
   const ad: Bonjour | null = dataApp.getValue("ad");
   const server: Server | null = dataApp.getValue("server");
 

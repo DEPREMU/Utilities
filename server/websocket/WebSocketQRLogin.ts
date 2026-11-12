@@ -6,7 +6,7 @@ import {
 } from "@types";
 import chalk from "chalk";
 import QRCode from "qrcode";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getStorageData, JWT } from "@/routes/auth/variables";
 import { Helper, Logger, Timers } from "@common";
 import WebSocket, { WebSocketServer } from "ws";

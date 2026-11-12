@@ -18,7 +18,7 @@ import {
 } from "@types";
 import * as ZIP from "react-native-zip-archive";
 import { Logger } from "../TOP_LEVEL";
-import { Directories } from "../cross";
+import { Directories } from "../cross/platform.native";
 import * as ExpoFileSystem from "expo-file-system";
 import { createThumbnail } from "react-native-create-thumbnail";
 import { sanitizeFileName } from "../functions/appManagement";

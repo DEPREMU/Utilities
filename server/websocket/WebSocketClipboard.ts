@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { Users } from "./WebSocketHandling";
 import { Logger } from "@common";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { ClipboardWebSocketMessage } from "@types";
 import { WebSocket, WebSocketServer } from "ws";
 

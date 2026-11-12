@@ -1,4 +1,4 @@
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getRedisClient } from "@/redis/client";
 import { getProcessQueue } from "@/whatsapp/queues/processQueue";
 import { getDeliveryQueue } from "@/whatsapp/queues/deliveryQueue";

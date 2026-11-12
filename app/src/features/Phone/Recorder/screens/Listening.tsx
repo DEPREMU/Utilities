@@ -282,8 +282,7 @@ const ListeningScreen: React.FC = () => {
                     viewBox="0 0 160 120"
                   >
                     <Rect
-                      x="10"
-                      y="20"
+                      transform={[{ translateX: "10" }, { translateY: "20" }]}
                       width="120"
                       height="70"
                       rx="12"
@@ -291,8 +290,7 @@ const ListeningScreen: React.FC = () => {
                       opacity="0.35"
                     />
                     <Rect
-                      x="26"
-                      y="34"
+                      transform={[{ translateX: "26" }, { translateY: "34" }]}
                       width="88"
                       height="12"
                       rx="6"
@@ -300,8 +298,7 @@ const ListeningScreen: React.FC = () => {
                       opacity="0.65"
                     />
                     <Rect
-                      x="26"
-                      y="52"
+                      transform={[{ translateX: "26" }, { translateY: "52" }]}
                       width="60"
                       height="10"
                       rx="5"

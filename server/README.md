@@ -103,7 +103,6 @@ The top-level router currently mounts these modules:
 - `/images`
 - `/cryptos`
 - `/downloads`
-- `/updates` (legacy redirect to `/downloads`)
 - `/languages`
 - `/streamers`
 - `/clipboard`

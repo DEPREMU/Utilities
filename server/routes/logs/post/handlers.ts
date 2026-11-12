@@ -1,4 +1,4 @@
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getHandlerPost, Logger, STATUS_RESPONSE } from "@common";
 
 const logger = new Logger("LogsPost");

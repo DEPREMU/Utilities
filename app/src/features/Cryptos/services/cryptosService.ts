@@ -19,7 +19,7 @@ type AdditionsData = Omit<
   "id" | "datePurchased" | "userId"
 >[];
 
-export class CryptosService extends CryptosWs {
+class CryptosService extends CryptosWs {
   #pricesListener: ReturnType<typeof this.addEventListener> | null = null;
 
   #settings: DB["TablesClient"]["CryptosSettings"] | null = null;

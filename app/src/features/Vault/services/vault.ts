@@ -46,7 +46,7 @@ const TABLES = {
   },
 } as const;
 
-export type Tables = {
+type Tables = {
   Meta: typeof TABLES.Meta.default;
   EncryptedFiles: typeof TABLES.EncryptedFiles.default;
 };

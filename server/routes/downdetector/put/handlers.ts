@@ -1,4 +1,4 @@
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { getHandlerPut, STATUS_RESPONSE } from "@common";
 
 export const handleUpdateDownDetector = getHandlerPut(

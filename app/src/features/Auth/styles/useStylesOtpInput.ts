@@ -57,5 +57,3 @@ export const useStylesOtpInput = () => {
 
   return { styles, colors };
 };
-
-export default useStylesOtpInput;

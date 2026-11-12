@@ -20,7 +20,7 @@ import { vaultServiceManager } from "@screens/Vault/services/vault";
 import { deviceInfo, EventsDeviceInfo } from "@utils";
 import { PickedFile, FolderFiles, VaultSettings } from "@types";
 
-export type StatesObj = {
+type StatesObj = {
   data: VaultData | null;
   files: PickedFile[];
   service: ReturnType<typeof vaultServiceManager.getService>;

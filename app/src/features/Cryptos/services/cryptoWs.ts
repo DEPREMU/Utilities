@@ -20,7 +20,6 @@ import { CryptosWebSocketMessage } from "@types";
 const logger = new Logger("CryptosWs");
 
 export const enum TIMES {
-  PRICES_CACHE = 15 * 1000,
   INSTANCE_CACHE = 10 * 60 * 1000,
   OWNED_CRYPTOS_CACHE = 5 * 60 * 1000,
   AUTO_UPDATE_DEFAULT = 30 * 1000,

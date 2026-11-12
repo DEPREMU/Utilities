@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { prisma } from "@/database/postgres";
+import { prisma } from "@/database";
 import { isLiveStreamer } from "@/routes/streamers/common";
 import { sendFCMNotification } from "@/firebase/admin";
 import { ChannelsId, ScreensAvailable } from "@types";

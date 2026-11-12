@@ -14,5 +14,5 @@
     "noEmit": true,
     "isolatedModules": false
   },
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "android", ".temp", "dist"]
 }
