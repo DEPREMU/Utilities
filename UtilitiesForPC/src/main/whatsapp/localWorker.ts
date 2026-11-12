@@ -1,6 +1,6 @@
 import {
   convertToSticker,
-  StickerConversionOptions,
+  type StickerConversionOptions,
 } from "@commonSrc/serverOrElectron/whatsapp/converter";
 import { validateImagePayload } from "@commonSrc/serverOrElectron/whatsapp/validator";
 

@@ -4,7 +4,7 @@ import { Helper, File } from "@common";
 import { PersonalStickerConfig } from "@types";
 import { getStorageValue, saveStorageValue } from "@utils";
 
-export const DEFAULT_PERSONAL_CONFIG: PersonalStickerConfig = {
+const DEFAULT_PERSONAL_CONFIG: PersonalStickerConfig = {
   emojis: ["✨"],
   quality: 80,
   packName: "Utilities",
