@@ -4,7 +4,8 @@ services:
     container_name: utilities-postgres
     restart: always
     env_file:
-      - .env
+      - path: .env
+        format: raw
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASS}
