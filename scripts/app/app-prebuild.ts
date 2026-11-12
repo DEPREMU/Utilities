@@ -74,7 +74,7 @@ script.addStep("Run yarn expo prebuild", async () => {
     const exec = new script.Exec();
 
     exec.async.onData((chunk) => {
-      logger.log(chalk.cyan("Prebuild: "), chunk);
+      logger.log("[Prebuild]:", chunk);
     });
 
     await exec.async.run("yarn expo prebuild --platform android --clean", {
@@ -84,6 +84,7 @@ script.addStep("Run yarn expo prebuild", async () => {
         PLATFORM: "android",
         BUILD_PROFILE: process.env.BUILD_PROFILE || "production",
       },
+      signal: script.signal,
     });
 
     const android = new Directory(path.join(script.PATHS.app, "android"));

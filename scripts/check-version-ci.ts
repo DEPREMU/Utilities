@@ -555,7 +555,9 @@ export const runCheckVersion = async (): Promise<void> => {
 
   const clientHolder = await resolveHttpClient();
   // eslint-disable-next-line no-console
-  console.log(`[check-version-ci] Using HTTP transport: ${clientHolder.transport}`);
+  console.log(
+    `[check-version-ci] Using HTTP transport: ${clientHolder.transport}`,
+  );
 
   const isUp = await isServerAlive(clientHolder.client, apiUrl);
   // eslint-disable-next-line no-console
@@ -665,4 +667,3 @@ if (process.env.NODE_ENV !== "test") {
     process.exit(1);
   });
 }
-

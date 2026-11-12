@@ -4,6 +4,7 @@ import { args } from "./arguments";
 import { Script } from "./common";
 import { Helper } from "@commonSrc/both";
 import { Logger } from "@commonSrc/serverOrElectron/logger";
+import { execSync } from "child_process";
 import { formatFolder } from "./format-folder";
 
 const script = new Script();
@@ -34,6 +35,7 @@ export const run = async () => {
           .run("yarn run app-prebuild-android", {
             env: process.env,
             cwd: script.PATHS.root,
+            signal: script.signal,
           });
 
         await exec.async
@@ -43,6 +45,7 @@ export const run = async () => {
           .run("cd android && ./gradlew :app:compileDebugKotlin --no-daemon", {
             env: process.env,
             cwd: script.PATHS.app,
+            signal: script.signal,
           });
       } else {
         logger.log("Testing mode: Skipping compile-check commands");
@@ -69,6 +72,7 @@ export const run = async () => {
           .run("yarn expo start -c", {
             env: process.env,
             cwd: script.PATHS.app,
+            signal: script.signal,
           });
       } else {
         logger.log("Testing mode: Skipping yarn expo start");
@@ -85,6 +89,7 @@ export const run = async () => {
           .run("yarn run type-check", {
             env: process.env,
             cwd: script.PATHS.app,
+            signal: script.signal,
           });
       } else {
         logger.log("Testing mode: Skipping yarn run type-check");
@@ -105,7 +110,7 @@ export const run = async () => {
           })
           .run(
             `yarn expo export -c -p web ${envWeb.BUILD_PROFILE === "production" ? "" : "--dev --no-minify"}`,
-            { env: envWeb, cwd: script.PATHS.app },
+            { env: envWeb, cwd: script.PATHS.app, signal: script.signal },
           );
       } else {
         logger.log("Testing mode: Skipping yarn expo export");
@@ -131,6 +136,7 @@ export const run = async () => {
           .run("yarn run dev", {
             env: envWeb,
             cwd: script.PATHS.frontend,
+            signal: script.signal,
           });
       } else {
         logger.log("Testing mode: Skipping yarn run dev");
@@ -155,18 +161,40 @@ export const run = async () => {
           .run("yarn run build", {
             env: envWeb,
             cwd: script.PATHS.frontend,
+            signal: script.signal,
           });
       } else {
         logger.log("Testing mode: Skipping yarn run build");
       }
       break;
     }
+    case "knip":
+      {
+        if (!args.ARGS.testing) {
+          const envKnip = {
+            ...process.env,
+            PLATFORM: "android",
+            TYPE_BUILD: "normal",
+            BUILD_PROFILE: process.env.BUILD_PROFILE || "production",
+          };
+
+          execSync("yarn knip", {
+            env: envKnip,
+            cwd: script.PATHS.root,
+            stdio: "inherit",
+            encoding: "utf-8",
+          });
+        } else {
+          logger.log("Testing mode: Skipping yarn run build");
+        }
+      }
+      break;
     default:
       throw new Error(`Unknown action: ${action}`);
   }
 };
 
-export const clean = async () => {
+const clean = async () => {
   const dirs = [
     "dist",
     "build",
@@ -209,6 +237,7 @@ export const clean = async () => {
         })
         .run("yarn cache clean", {
           cwd: script.PATHS.root,
+          signal: script.signal,
         });
     } else {
       // eslint-disable-next-line no-console
@@ -237,6 +266,7 @@ const installAll = async () => {
       })
       .run("yarn install", {
         cwd: script.PATHS.root,
+        signal: script.signal,
       });
   } else {
     // eslint-disable-next-line no-console
@@ -244,7 +274,7 @@ const installAll = async () => {
   }
 };
 
-export const formatAll = async () => {
+const formatAll = async () => {
   await formatFolder(script.PATHS.root);
 };
 

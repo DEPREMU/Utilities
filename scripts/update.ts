@@ -80,6 +80,7 @@ const uploadWeb = async (): Promise<boolean> => {
       await exec.async.run("yarn run build-web-app-electron", {
         env: process.env,
         cwd: script.PATHS.root,
+        signal: script.signal,
       });
     }
     if (!(await build.exists()))
@@ -232,5 +233,3 @@ script.addStep("Upload Android assets if new", async () => {
 });
 
 if (process.env.NODE_ENV !== "test") script.run();
-
-export { script };
