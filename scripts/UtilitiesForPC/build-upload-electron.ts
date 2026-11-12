@@ -47,6 +47,10 @@ const isNewVersionPlatform = async (buildType: Enums["UpdateType"]) => {
 
 logger.log("=== Electron Build and Upload Process ===\n");
 
+script.addStep("Check UPLOAD_TOKEN", () => {
+  if (!process.env.UPLOAD_TOKEN) throw new Error("UPLOAD_TOKEN is required");
+});
+
 script.addStep("Check Platform", async () => {
   if (script.PLATFORM.isWindows) {
     isNewVersionWindows = await isNewVersionPlatform("windows");
@@ -187,6 +191,7 @@ script.addStep("Upload Electron Builds", async () => {
           headers: {
             ...formData.getHeaders(),
             "Content-Length": contentLength,
+            Authorization: `Bearer ${process.env.UPLOAD_TOKEN}`,
           },
           timeout: 10 * 60 * 1000,
           maxBodyLength: Infinity,
