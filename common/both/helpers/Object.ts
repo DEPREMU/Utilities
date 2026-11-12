@@ -10,10 +10,7 @@ type StrictEntries<T> = Array<{ [K in keyof T]: [K, T[K]] }[keyof T]>;
 type StrictKeys<T> = Array<keyof T>;
 type StrictValues<T> = Array<T[keyof T]>;
 
-export type TypesOfValue = keyof Omit<
-  TypeOfJS,
-  "function" | "symbol" | "bigint"
->;
+type TypesOfValue = keyof Omit<TypeOfJS, "function" | "symbol" | "bigint">;
 
 type ConvertOne<T, K extends keyof TypeOfJS> = K extends "string"
   ? T extends string

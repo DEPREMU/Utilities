@@ -10,9 +10,9 @@ export interface StickerConversionOptions extends StickerMetadataOptions {
   isAnimated?: boolean;
 }
 
-export const TARGET_CANVAS_DIMENSION = 512;
-export const DEFAULT_STATIC_QUALITY = 80;
-export const DEFAULT_ANIMATED_QUALITY = 55;
+const TARGET_CANVAS_DIMENSION = 512;
+const DEFAULT_STATIC_QUALITY = 80;
+const DEFAULT_ANIMATED_QUALITY = 55;
 
 /**
  * Converts a static or animated image input into a WhatsApp-compatible 512x512 WebP sticker.
@@ -55,5 +55,3 @@ export const convertToSticker = async (
 
   return await injectExifIntoWebp(baseWebpBuffer, exifBuffer);
 };
-
-export const convertImageToStickerWebp = convertToSticker;

@@ -8,7 +8,7 @@ const logger = new Logger("CommonMemoryMonitor");
 
 let monitorIntervalId: number | null = null;
 const MEMORY_THRESHOLD = 750 * 1024 * 1024; // Alert if RSS exceeds 750MB
-const CHECK_INTERVAL_MS = 5 * 60 * 1000; // Check every 5 minutes
+const CHECK_INTERVAL_MS = 60 * 1000; // Check every 1 minute
 
 const bytesOptions: BytesOptions = { unit: "MB", decimalPlaces: 2 };
 

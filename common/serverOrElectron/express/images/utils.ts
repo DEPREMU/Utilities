@@ -13,7 +13,7 @@ import { ServerError } from "@commonSrc/both/errors/Error";
 
 const logger = new Logger("ExpressImagesUtils");
 
-export class TaskImages extends Task<ResponseChangeImageFormat, "IMAGES"> {
+class TaskImages extends Task<ResponseChangeImageFormat, "IMAGES"> {
   static instance: TaskImages | null = null;
 
   constructor() {
@@ -27,20 +27,6 @@ export class TaskImages extends Task<ResponseChangeImageFormat, "IMAGES"> {
     TaskImages.instance = this;
   }
 }
-
-export const readImage = async (imagePath: string): Promise<string> => {
-  imagePath = path.resolve(imagePath);
-
-  try {
-    const file = new File(imagePath);
-    const imageStr = await file.readFile("base64");
-
-    return imageStr;
-  } catch (error) {
-    logger.error("Error reading image file:", error);
-    return "";
-  }
-};
 
 export const changeFormat = async (
   imageStr: string,

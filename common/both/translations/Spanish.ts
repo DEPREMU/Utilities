@@ -144,6 +144,20 @@ export const esServer: ServerTranslations = {
 };
 
 export const esApp: AppTranslations = {
+  suspenseScreen: {
+    phrases: [
+      "Preparando la magia...",
+      "Esto va a valer la pena.",
+      "Haciendo que todo encaje...",
+      "Cargando cosas increíbles...",
+      "Casi listo... no te vayas 👀",
+      "Dándole los últimos retoques...",
+      "Un momento, estamos cocinando algo bueno.",
+      "La paciencia es una virtud. Casi estamos.",
+      "Convenciendo a los bits de que cooperen...",
+      "Buscando unicornios en la base de datos...",
+    ],
+  },
   appInfo: {
     InternetConnectionRestored: "Conexión a Internet restaurada",
     YouAreBackOnline: "Has vuelto a estar en línea",
@@ -489,6 +503,7 @@ export const esApp: AppTranslations = {
     youWin: "¡Tú ganas!",
   },
   homeScreen: {
+    keepLoaded: "Mantener pantalla cargada. (Esto puede usar mas recursos)",
     help: "Presiona {{commandToHome}} para regresar a la pantalla de inicio desde cualquier lugar de la aplicación.",
     keyWords: "Palabras clave: {{keyWords}}",
     needsInternet: "{{featureName}} requiere conexión a Internet",
@@ -1061,7 +1076,8 @@ export const esApp: AppTranslations = {
   verifications: { pleaseEnterSomeText: "Por favor, ingresa algún texto" },
   whatsappStickers: {
     title: "Stickers de WhatsApp",
-    description: "Crea y convierte stickers personalizados de WhatsApp automáticamente.",
+    description:
+      "Crea y convierte stickers personalizados de WhatsApp automáticamente.",
     keyWords: "whatsapp, stickers, bot, baileys, webp",
     personalMode: "Modo Personal",
     sharedMode: "Modo Compartido",
@@ -1088,7 +1104,8 @@ export const esApp: AppTranslations = {
     remainingQuotaWithCount: "Cuota Restante: {{count}}",
     quotaResetIn: "Se reinicia en {{time}}",
     generateLinkCode: "Vincular Cuenta de WhatsApp",
-    linkCodeInstructions: "Envía '/link {{code}}' al bot compartido en WhatsApp",
+    linkCodeInstructions:
+      "Envía '/link {{code}}' al bot compartido en WhatsApp",
     unlinkLabel: "Desvincular Cuenta",
     serviceAvailable: "Servicio Operativo",
     serviceMaintenance: "Servicio en Mantenimiento",
