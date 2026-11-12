@@ -93,11 +93,7 @@ export type TranslateFetch = GetUrlFetch<
   { translatedText: string }
 >;
 
-export type DownloadsFetch = GetUrlFetch<
-  "/upload",
-  null,
-  Record<string, never>
->;
+export type DownloadsFetch = GetUrlFetch<"/upload", null, { auth: true }>;
 
 export type ImagesFetch = GetUrlFetch<
   "/change-format",
