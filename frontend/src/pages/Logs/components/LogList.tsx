@@ -1,5 +1,5 @@
 import React from "react";
-import { t } from "../../../utils/t";
+import { t } from "../../../utils/i18n";
 import type { GroupedLog } from "../types";
 import { LogEntryRow } from "./LogEntryRow";
 
