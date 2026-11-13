@@ -190,6 +190,7 @@ const uploadAndroidAssets = async () => {
         EAS_BUILD: "true",
         BUILD_PROFILE,
       },
+      signal: script.signal,
     },
   );
 };
