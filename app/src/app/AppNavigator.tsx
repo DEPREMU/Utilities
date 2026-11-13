@@ -131,7 +131,7 @@ let promise: Promise<void> | null = ExecuteOnce.execute(
           : () => import("@screens/Phone/ComputersControl/screens"),
       },
       TerminalCommands: {
-        component: REPLACERS.isWeb
+        component: !REPLACERS.isWeb
           ? ComponentToHomePromise
           : () => import("@screens/Web/TerminalCommands/screens"),
       },

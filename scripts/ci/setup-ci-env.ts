@@ -6,7 +6,7 @@ export interface EnvConfigOptions {
   wireguardToken?: string;
 }
 
-const FCM_SERVER_KEY = `FIREBASE_SERVICE_ACCOUNT='{"type":"<TYPE>","project_id":"<PROJECT_ID>","private_key_id":"<PRIVATE_KEY_ID>","private_key":"<PRIVATE_KEY>","client_email":"<CLIENT_EMAIL>","client_id":"<CLIENT_ID>","auth_uri":"<AUTH_URI>","token_uri":"<TOKEN_URI>","auth_provider_x509_cert_url":"<AUTH_PROVIDER_X509_CERT_URL>","client_x509_cert_url":"<CLIENT_X509_CERT_URL>","universe_domain":"<UNIVERSE_DOMAIN>"}'`;
+const FCM_SERVER_KEY = `FIREBASE_SERVICE_ACCOUNT={"type":"<TYPE>","project_id":"<PROJECT_ID>","private_key_id":"<PRIVATE_KEY_ID>","private_key":"<PRIVATE_KEY>","client_email":"<CLIENT_EMAIL>","client_id":"<CLIENT_ID>","auth_uri":"<AUTH_URI>","token_uri":"<TOKEN_URI>","auth_provider_x509_cert_url":"<AUTH_PROVIDER_X509_CERT_URL>","client_x509_cert_url":"<CLIENT_X509_CERT_URL>","universe_domain":"<UNIVERSE_DOMAIN>"}`;
 
 export const getRootEnvContent = (): string => {
   return [
@@ -19,7 +19,7 @@ export const getRootEnvContent = (): string => {
     "DEEPL_TRANSLATOR_API=ci-deepl-key",
     "SECRET_KEY_TO_ENCRYPTION=0123456789abcdef0123456789abcdef",
     "FIREBASE_SERVICE_ACCOUNT={}",
-    'DATABASE_URL="postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public"',
+    "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/UtilitiesDB?schema=public",
     "DB_ENCRYPTION_PASS=ci-db-encryption-pass",
     "WS_URL=ws://localhost:3000/ws",
     "API_URL=http://localhost:3000/api",
@@ -38,8 +38,8 @@ export const getDockerEnvContent = (wireguardToken: string): string => {
     "POSTGRES_USER=postgres",
     "POSTGRES_PASS=postgres",
     "POSTGRES_DB=UtilitiesDB",
-    'DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/UtilitiesDB?schema=public"',
-    'REDIS_URL="redis://127.0.0.1:6379"',
+    "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/UtilitiesDB?schema=public",
+    "REDIS_URL=redis://127.0.0.1:6379",
     "IV=0123456789abcdef",
     "__DEV__=false",
     "USE_HTTPS=false",
@@ -61,7 +61,7 @@ export const getDockerEnvContent = (wireguardToken: string): string => {
   ];
 
   if (wireguardToken) {
-    lines.push(`WIREGUARD_PRIVATE_KEY="${wireguardToken}"`);
+    lines.push(`WIREGUARD_PRIVATE_KEY=${wireguardToken}`);
   }
 
   lines.push("");
