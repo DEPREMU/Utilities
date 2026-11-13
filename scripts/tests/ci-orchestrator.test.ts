@@ -229,7 +229,7 @@ describe("CI Orchestrator & Environment Setup", () => {
       const wireguardToken = `WireguardToken-${Math.random()}`;
 
       const content = getDockerEnvContent(wireguardToken);
-      expect(content).toContain(`WIREGUARD_PRIVATE_KEY="${wireguardToken}"`);
+      expect(content).toContain(`WIREGUARD_PRIVATE_KEY=${wireguardToken}`);
       expect(content).toContain("POSTGRES_USER=postgres");
     });
 
