@@ -6,7 +6,8 @@ services:
       - NET_ADMIN
       - NET_RAW
     env_file:
-      - .env
+      - path: .env
+        format: raw
     environment:
       - PORTS=3000
       - VPN_TYPE=wireguard
@@ -30,7 +31,8 @@ services:
     restart: always
     network_mode: "service:nordvpn"
     env_file:
-      - .env
+      - path: .env
+        format: raw
     depends_on:
       redis:
         condition: service_healthy
@@ -49,7 +51,8 @@ services:
     restart: always
     network_mode: service:nordvpn
     env_file:
-      - .env
+      - path: .env
+        format: raw
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASS}
