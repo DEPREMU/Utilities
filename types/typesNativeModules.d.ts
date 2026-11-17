@@ -81,6 +81,11 @@ export type ChannelsIpcRenderer<
     functionArgs: [];
     typeIpc: "send";
   };
+  "clipboard.setDoubleCtrlCListener": {
+    functionReturn: void;
+    functionArgs: [enabled: boolean];
+    typeIpc: "send";
+  };
 
   "pdf.create": {
     functionReturn: Promise<PdfCreateResult | null>;
@@ -310,6 +315,10 @@ export type ClipboardBridge = {
     remove: () => void;
   };
   onItemsUpdated: (callback: (items: ClipboardItem[]) => void) => {
+    remove: () => void;
+  };
+  setDoubleCtrlCListener: (enabled: boolean) => void;
+  onDoubleCtrlC: (callback: (text: string) => void) => {
     remove: () => void;
   };
 };

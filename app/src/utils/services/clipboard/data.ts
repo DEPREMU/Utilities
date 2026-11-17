@@ -3,6 +3,14 @@ import {
   keyboardModule,
   BackgroundModule,
 } from "@/utils/modules";
+import {
+  Timers,
+  Helper,
+  REPLACERS,
+  Pagination,
+  ServerFetch,
+  ClipboardStorage,
+} from "@common";
 import { Logger } from "@/utils/TOP_LEVEL";
 import { cloneDeep } from "lodash";
 import { deviceInfo } from "../deviceInfo";
@@ -11,13 +19,6 @@ import { getRandomUUID } from "@/utils/cross";
 import { sessionManager } from "../session";
 import { storageManagement } from "../storage";
 import { ClipboardWebSocket } from "./websocket";
-import {
-  Timers,
-  REPLACERS,
-  ServerFetch,
-  ClipboardStorage,
-  Pagination,
-} from "@common";
 
 const logger = new Logger("ServicesClipboardData");
 
@@ -164,8 +165,27 @@ export class DataClipboard extends ClipboardWebSocket {
     }
   };
 
+  async #toggleClipboardEnabled() {
+    const { clipboardManager } = await import(".");
+
+    if (this.clipboardData.enabled) {
+      await clipboardManager.destroy();
+      if (REPLACERS.isNative) BackgroundModule.stopClipboardService();
+    } else {
+      if (REPLACERS.isNative) BackgroundModule.startClipboardService();
+      await clipboardManager._reInit();
+    }
+  }
+
+  protected syncWebClipboardListeners(): void {}
+
   public setClipboardData = (data: Partial<ClipboardStorage>) => {
-    this.clipboardData = { ...this.clipboardData, ...data };
+    this.clipboardData = Helper.Object.merge(this.clipboardData, data);
+
+    if (typeof data?.enabled === "boolean") this.#toggleClipboardEnabled();
+    else if (typeof data?.webSyncMode === "string") {
+      this.syncWebClipboardListeners();
+    }
 
     storageManagement.save("CLIPBOARD", this.clipboardData);
   };
@@ -175,31 +195,35 @@ export class DataClipboard extends ClipboardWebSocket {
       await super._init();
 
       this.clipboardData = storageManagement.get("CLIPBOARD");
-      if (!this.clipboardData) {
-        const data = {
-          enabled: true,
-          maxCharsInItem: -1,
-          maxClipboardItems: 10,
-        };
+
+      const data: ClipboardStorage = {
+        enabled: true,
+        webSyncMode: "doubleCtrlC",
+        maxCharsInItem: -1,
+        maxClipboardItems: 10,
+      };
+
+      if (!Helper.Object.isEqualObj(data, this.clipboardData)) {
+        this.clipboardData = Helper.Object.merge(
+          data,
+          this.clipboardData || {},
+        );
         storageManagement.save("CLIPBOARD", data);
-        this.clipboardData = data;
-        if (REPLACERS.isNative)
-          Timers.setTimeout(() => {
-            BackgroundModule.startClipboardService();
-          }, 10000);
       }
 
-      const { isLoggedIn } = sessionManager.getSessionData();
+      if (!this.clipboardData.enabled) return this.destroy();
 
+      if (REPLACERS.isNative)
+        Timers.setTimeout(() => {
+          BackgroundModule.startClipboardService();
+        }, 10000);
+
+      const { isLoggedIn } = sessionManager.getSessionData();
       if (!isLoggedIn) return;
 
       this.initClipboardItems();
     } catch (error) {
-      logger.error(
-        "CLIPBOARD",
-        "Error initializing ClipboardManager",
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error("Error initializing data", error);
     }
   }
 

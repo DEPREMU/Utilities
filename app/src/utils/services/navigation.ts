@@ -14,7 +14,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
 
   #removeListener?: () => void;
 
-  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Home" : "Home";
+  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Clipboard" : "Home";
 
   public ref = createNavigationContainerRef<Screens>();
 

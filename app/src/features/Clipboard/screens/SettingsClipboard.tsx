@@ -4,71 +4,89 @@ import {
 } from "react-native-keyboard-controller";
 import { View } from "react-native";
 import TextInput from "@components/TextInput";
-import { cloneDeep } from "lodash";
+import { REPLACERS } from "@common";
 import { useLanguage } from "@context/LanguageContext";
-import { clipboardManager } from "@utils";
-import { Divider, Switch, Text } from "react-native-paper";
-import React, { useRef, useState } from "react";
+import { useClipboardStore } from "@screens/Clipboard/services";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import { useStylesSettingsClipboard } from "@screens/Clipboard/styles";
+import React, { useCallback, useEffect, useState } from "react";
+import { Divider, List, RadioButton, Switch, Text } from "react-native-paper";
 
 const SettingsClipboard: React.FC = () => {
   const { t } = useLanguage();
   const { styles } = useStylesSettingsClipboard();
 
-  const [clipboardData, setClipboardData] = useState(
-    clipboardManager.getClipboardData(),
-  );
+  const settings = useClipboardStore((s) => s.settings);
+  const updateSettings = useClipboardStore((s) => s.updateSettings);
+
   const [maxCharsInput, setMaxCharsInput] = useState(
-    String(clipboardData.maxCharsInItem),
+    String(settings.maxCharsInItem),
   );
   const [maxItemsInput, setMaxItemsInput] = useState(
-    String(clipboardData.maxClipboardItems),
+    String(settings.maxClipboardItems),
   );
 
-  const handlePressSwitchRef = useRef(() => {
-    setClipboardData((prev) => {
-      const newValue = cloneDeep(prev);
-      newValue.enabled = !prev.enabled;
-
-      clipboardManager.setClipboardData({ enabled: newValue.enabled });
-
-      return newValue;
+  useEffect(() => {
+    setMaxItemsInput((prev) => {
+      const parsed = parseInt(prev, 10);
+      const normalized = !isNaN(parsed) && parsed > 0 ? parsed : -1;
+      if (!isNaN(parsed) && normalized === settings.maxClipboardItems) {
+        return prev;
+      }
+      return String(settings.maxClipboardItems);
     });
-  });
+  }, [settings.maxClipboardItems]);
 
-  const handleChangeMaxItemsRef = useRef((text: string) => {
-    const newNumber = parseInt(text, 10);
-
-    setMaxItemsInput(text);
-
-    if (isNaN(newNumber)) return;
-
-    setClipboardData((prev) => {
-      const newValue = cloneDeep(prev);
-      newValue.maxClipboardItems = newNumber > 0 ? newNumber : -1;
-
-      return newValue;
+  useEffect(() => {
+    setMaxCharsInput((prev) => {
+      const parsed = parseInt(prev, 10);
+      const normalized = !isNaN(parsed) && parsed > 0 ? parsed : -1;
+      if (!isNaN(parsed) && normalized === settings.maxCharsInItem) {
+        return prev;
+      }
+      return String(settings.maxCharsInItem);
     });
+  }, [settings.maxCharsInItem]);
 
-    clipboardManager.setClipboardData({ maxClipboardItems: newNumber });
-  });
+  const handlePressSwitch = useCallback(() => {
+    updateSettings({ enabled: !settings.enabled });
+  }, [settings.enabled, updateSettings]);
 
-  const handleChangeMaxCharsRef = useRef((text: string) => {
-    const newNumber = parseInt(text, 10);
+  const handleChangeMaxItems = useCallback(
+    (text: string) => {
+      setMaxItemsInput(text);
 
-    setMaxCharsInput(text);
+      const newNumber = parseInt(text, 10);
+      if (isNaN(newNumber)) return;
 
-    if (isNaN(newNumber)) return;
+      updateSettings({
+        maxClipboardItems: newNumber > 0 ? newNumber : -1,
+      });
+    },
+    [updateSettings],
+  );
 
-    setClipboardData((prev) => {
-      const newValue = cloneDeep(prev);
-      newValue.maxCharsInItem = newNumber > 0 ? newNumber : -1;
+  const handleChangeMaxChars = useCallback(
+    (text: string) => {
+      setMaxCharsInput(text);
 
-      return newValue;
-    });
-    clipboardManager.setClipboardData({ maxCharsInItem: newNumber });
-  });
+      const newNumber = parseInt(text, 10);
+      if (isNaN(newNumber)) return;
+
+      updateSettings({
+        maxCharsInItem: newNumber > 0 ? newNumber : -1,
+      });
+    },
+    [updateSettings],
+  );
+
+  const handleChangeWebSyncMode = useCallback(
+    (value: string) => {
+      if (value !== "all" && value !== "doubleCtrlC") return;
+      updateSettings({ webSyncMode: value });
+    },
+    [updateSettings],
+  );
 
   return (
     <KeyboardGestureArea style={styles.flex} interpolator="ios">
@@ -96,8 +114,8 @@ const SettingsClipboard: React.FC = () => {
               </Text>
 
               <Switch
-                value={clipboardData.enabled}
-                onValueChange={handlePressSwitchRef.current}
+                value={settings.enabled}
+                onValueChange={handlePressSwitch}
               />
             </View>
           </Animated.View>
@@ -118,7 +136,7 @@ const SettingsClipboard: React.FC = () => {
                 mode="outlined"
                 value={maxItemsInput}
                 keyboardType="number-pad"
-                onChangeText={handleChangeMaxItemsRef.current}
+                onChangeText={handleChangeMaxItems}
               />
             </Animated.View>
           </Animated.View>
@@ -139,10 +157,55 @@ const SettingsClipboard: React.FC = () => {
                 mode="outlined"
                 value={maxCharsInput}
                 keyboardType="number-pad"
-                onChangeText={handleChangeMaxCharsRef.current}
+                onChangeText={handleChangeMaxChars}
               />
             </Animated.View>
           </Animated.View>
+
+          {REPLACERS.isWeb && settings.enabled && (
+            <Animated.View layout={LinearTransition.duration(200).springify()}>
+              <Divider style={styles.divider} />
+
+              <Text style={styles.subtitle}>
+                {t("clipboard.settings.webSyncModeTitle")}
+              </Text>
+
+              <RadioButton.Group
+                value={settings.webSyncMode}
+                onValueChange={handleChangeWebSyncMode}
+              >
+                <List.Item
+                  title={t("clipboard.settings.webSyncModeAll")}
+                  onPress={() => handleChangeWebSyncMode("all")}
+                  right={() => (
+                    <RadioButton
+                      value="all"
+                      status={
+                        settings.webSyncMode === "all" ? "checked" : "unchecked"
+                      }
+                      onPress={() => handleChangeWebSyncMode("all")}
+                    />
+                  )}
+                />
+
+                <List.Item
+                  title={t("clipboard.settings.webSyncModeDoubleCtrlC")}
+                  onPress={() => handleChangeWebSyncMode("doubleCtrlC")}
+                  right={() => (
+                    <RadioButton
+                      value="doubleCtrlC"
+                      status={
+                        settings.webSyncMode === "doubleCtrlC"
+                          ? "checked"
+                          : "unchecked"
+                      }
+                      onPress={() => handleChangeWebSyncMode("doubleCtrlC")}
+                    />
+                  )}
+                />
+              </RadioButton.Group>
+            </Animated.View>
+          )}
         </Animated.ScrollView>
       </KeyboardAvoidingView>
     </KeyboardGestureArea>

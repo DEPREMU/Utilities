@@ -21,6 +21,7 @@ export class ListenersClipboard extends DataClipboard {
   #isRunningNativeService: boolean = false;
   #removeInternetListener: Listener = null;
   #removeStatePhoneListener: Listener = null;
+  #removeDoubleCtrlCListener: Listener = null;
   #removeMessageClipboardListener: Listener = null;
 
   private initClipboardNativeListener = () => {
@@ -159,6 +160,39 @@ export class ListenersClipboard extends DataClipboard {
     );
   };
 
+  protected override syncWebClipboardListeners(): void {
+    if (!REPLACERS.isWeb) return;
+
+    if (this.#intervalId) {
+      Timers.clearInterval(this.#intervalId);
+      this.#intervalId = null;
+    }
+
+    if (this.#removeDoubleCtrlCListener) {
+      this.#removeDoubleCtrlCListener.remove();
+      this.#removeDoubleCtrlCListener = null;
+    }
+
+    if (!this.clipboardData?.enabled) {
+      windowModule.clipboard.setDoubleCtrlCListener?.(false);
+      return;
+    }
+
+    if (this.clipboardData.webSyncMode === "doubleCtrlC") {
+      windowModule.clipboard.setDoubleCtrlCListener?.(true);
+      this.#removeDoubleCtrlCListener =
+        windowModule.clipboard.onDoubleCtrlC?.((text) => {
+          if (text) this.handleInsertItem(text);
+        }) ?? null;
+      return;
+    }
+
+    windowModule?.clipboard?.setDoubleCtrlCListener?.(false);
+    this.#intervalId = Timers.setInterval(() => {
+      this.handleIntervalClipboardWeb();
+    }, 500);
+  }
+
   override async resume(): Promise<void> {
     super.resume();
   }
@@ -209,6 +243,13 @@ export class ListenersClipboard extends DataClipboard {
       this.#listenerItemsUpdated.remove();
       this.#listenerItemsUpdated = null;
     }
+
+    if (this.#removeDoubleCtrlCListener) {
+      this.#removeDoubleCtrlCListener.remove();
+      this.#removeDoubleCtrlCListener = null;
+    }
+
+    if (REPLACERS.isWeb) windowModule.clipboard.setDoubleCtrlCListener?.(false);
   }
 
   override async _init(): Promise<void> {
@@ -224,12 +265,7 @@ export class ListenersClipboard extends DataClipboard {
     }
 
     if (REPLACERS.isWeb) {
-      if (this.#intervalId) Timers.clearInterval(this.#intervalId);
-
-      this.#intervalId = Timers.setInterval(() => {
-        this.handleIntervalClipboardWeb();
-      }, 500);
-
+      this.syncWebClipboardListeners();
       this.handleDeleteItem();
     } else {
       this.initClipboardNativeListener();

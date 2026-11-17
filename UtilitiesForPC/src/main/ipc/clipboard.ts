@@ -1,10 +1,13 @@
+import {
+  createWindowClipboard,
+  setDoubleCtrlCListener,
+} from "../utils/clipboard";
 import dataApp from "../utils/vars/variables";
 import { Helper } from "@common";
 import { Logger } from "../utils/logger";
 import { clipboard } from "electron";
 import { MessagesClipboard } from "@types";
 import { IpcHandlersRecord } from "./types";
-import { createWindowClipboard } from "../utils/clipboard";
 
 const logger = new Logger("IPC-Clipboard");
 
@@ -12,11 +15,12 @@ export const clipboardIpcHandlers: IpcHandlersRecord<
   | "clipboard.read"
   | "clipboard.set"
   | "clipboard.deleteItem"
-  | "clipboard.deleteAllItems"
   | "clipboard.getHistory"
   | "clipboard.setHistory"
   | "clipboard.hideWindow"
   | "clipboard.showWindow"
+  | "clipboard.deleteAllItems"
+  | "clipboard.setDoubleCtrlCListener"
 > = {
   "clipboard.read": {
     type: "handle",
@@ -112,6 +116,13 @@ export const clipboardIpcHandlers: IpcHandlersRecord<
         clipboardWindow.show();
         clipboardWindow.focus();
       } else createWindowClipboard(true);
+    },
+  },
+  "clipboard.setDoubleCtrlCListener": {
+    type: "on",
+    func: (_event, enabled) => {
+      logger.log(`Setting double Ctrl+C clipboard listener: ${enabled}`);
+      setDoubleCtrlCListener(enabled);
     },
   },
 };

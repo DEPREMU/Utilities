@@ -97,4 +97,24 @@ export const clipboardBridge: ClipboardBridge = {
       },
     };
   },
+  setDoubleCtrlCListener: async (enabled: boolean) => {
+    try {
+      await sendMessage("send", "clipboard.setDoubleCtrlCListener", enabled);
+    } catch {
+      // ignore
+    }
+  },
+  onDoubleCtrlC: (callback: (text: string) => void) => {
+    const listener = (_event: unknown, text: string) => {
+      callback(text);
+    };
+
+    ipcRenderer.on("clipboard-double-ctrl-c", listener);
+
+    return {
+      remove: () => {
+        ipcRenderer.removeListener("clipboard-double-ctrl-c", listener);
+      },
+    };
+  },
 };

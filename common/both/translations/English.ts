@@ -292,6 +292,9 @@ export const enApp: AppTranslations = {
       maxCharsInItem: "Max characters per content",
       maxItems: "Max items to save in memory",
       title: "Clipboard Settings",
+      webSyncModeTitle: "Web Clipboard Sync Mode",
+      webSyncModeAll: "Sync all copied content",
+      webSyncModeDoubleCtrlC: "Sync only when pressing Ctrl + C twice",
     },
   },
   colors: {

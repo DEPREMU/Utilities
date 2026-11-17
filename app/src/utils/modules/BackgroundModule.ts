@@ -14,20 +14,6 @@ interface Spec extends TurboModule {
   setReactAlive(alive: boolean): void;
 }
 
-const voidFunc = () => {};
-
-const defaultBackgroundModule: Spec = {
-  stop: voidFunc,
-  start: voidFunc,
-  isRunning: async () => false,
-  getMethods: async () => [],
-  setReactAlive: voidFunc,
-  setClipboardText: voidFunc,
-  stopClipboardService: voidFunc,
-  startClipboardService: voidFunc,
-  requestClipboardConfigEvent: voidFunc,
-};
-
 export const BackgroundModule = REPLACERS.isNative
   ? TurboModuleRegistry.getEnforcing<Spec>("BackgroundServiceModule")
-  : defaultBackgroundModule;
+  : (null as never);

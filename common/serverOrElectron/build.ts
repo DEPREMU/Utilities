@@ -34,6 +34,7 @@ export const externalElectron = [
   "7zip-bin",
   "electron",
   "unzipper",
+  "uiohook-napi",
   "bonjour-service",
   "electron-edge-js",
   "@whiskeysockets/baileys",

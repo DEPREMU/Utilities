@@ -911,7 +911,10 @@ export type AppTranslations = BatteryStateTranslations &
         enabled: string;
         maxItems: string;
         maxCharsInItem: string;
+        webSyncModeAll: string;
         enableClipboard: string;
+        webSyncModeTitle: string;
+        webSyncModeDoubleCtrlC: string;
       };
     };
     whatsappStickers: {
