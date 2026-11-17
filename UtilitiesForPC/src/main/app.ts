@@ -1,5 +1,6 @@
 import {
   createWindowClipboard,
+  stopDoubleCtrlCListener,
   registerClipboardShortcuts,
 } from "./utils/clipboard";
 import {
@@ -369,4 +370,5 @@ app.on("activate", () => {
 
 app.on("before-quit", () => {
   dataApp.setValue("isQuitting", true);
+  stopDoubleCtrlCListener();
 });
