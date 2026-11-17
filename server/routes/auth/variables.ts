@@ -1,5 +1,4 @@
 import {
-  Helper,
   Logger,
   Validations,
   reasonNotification,
@@ -7,10 +6,47 @@ import {
   getDateWithTimeAhead,
 } from "@common";
 import jwt from "jsonwebtoken";
+import { z } from "zod";
 import chalk from "chalk";
 import { prisma } from "@/database";
 import { getEnvValue } from "@/env";
+import type { ZodShape } from "@commonSrc/serverOrElectron/express/middlewares/schemas";
+import { CryptosSettings } from "@types";
+import { NonNullableDeep } from "type-fest";
 import { withTransaction } from "@/database/transaction";
+
+const SCHEMAS = {
+  USER_DATA: z.object({
+    name: z.string().nullable(),
+    email: z.string(),
+    phone: z.string().nullable(),
+    userId: z.string(),
+    createdAt: z.coerce.string(),
+    updatedAt: z.coerce.string(),
+    description: z.string().nullable(),
+  } satisfies ZodShape<
+    NonNullable<ExpectedStorageTypes<"SECURE">["USER_DATA"]>
+  >),
+  CRYPTOS_SETTINGS: z.object({
+    id: z.string(),
+    userId: z.string(),
+    createdAt: z.coerce.string(),
+    updatedAt: z.coerce.string(),
+    defaultCurrency: z.string(),
+    autoRefresh: z.object({
+      id: z.string(),
+      enabled: z.coerce.boolean(),
+      cryptosSettingsId: z.string(),
+      valueMs: z.coerce.number().default(-1),
+    } satisfies ZodShape<NonNullableDeep<CryptosSettings["autoRefresh"]>>),
+    notifications: z.object({
+      id: z.string(),
+      enabled: z.coerce.boolean(),
+      valueMs: z.coerce.number().default(-1),
+      cryptosSettingsId: z.string(),
+    } satisfies ZodShape<NonNullableDeep<CryptosSettings["notifications"]>>),
+  } satisfies ZodShape<NonNullableDeep<CryptosSettings>>),
+};
 
 const logger = new Logger("AuthVariables");
 
@@ -45,22 +81,19 @@ export const getStorageData = async (
     let date = -1;
     if (rememberMe) date = getDateWithTimeAhead({ days: 15 }).getTime();
 
+    const [USER_DATA, CRYPTOS_SETTINGS] = await Promise.all([
+      z.parseAsync(SCHEMAS.USER_DATA, user),
+      cryptosSettings
+        ? z.parseAsync(SCHEMAS.CRYPTOS_SETTINGS, cryptosSettings)
+        : Promise.resolve(null),
+    ]);
+
     let storageData: Partial<ExpectedStorageTypes<"BOTH">> = {
       LANGUAGE: userConfig.language,
-      USER_DATA: Helper.Object.changeType(user, {
-        updatedAt: "string",
-        createdAt: "string",
-      }),
+      USER_DATA,
       SESSION_EXPIRY: date,
       HAS_ADMIN_ACCESS: userConfig.hasAdmin,
-      CRYPTOS_SETTINGS: cryptosSettings
-        ? Helper.Object.changeType(cryptosSettings, {
-            createdAt: "string",
-            updatedAt: "string",
-            autoRefresh: "object",
-            notifications: "object",
-          })
-        : undefined,
+      CRYPTOS_SETTINGS,
       LAST_UPDATE_CHECK: Date.now(),
       USER_SESSION_TOKEN_STORAGE: token,
     };
