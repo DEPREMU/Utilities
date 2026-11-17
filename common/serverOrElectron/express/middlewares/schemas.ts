@@ -1,6 +1,13 @@
-import { languagesSupported, reasonNotification } from "@commonSrc/both";
-import { Enums, MethodsAPI, Prisma, ResolveRoute, Theme } from "@types";
+import {
+  Enums,
+  Theme,
+  Prisma,
+  Function,
+  MethodsAPI,
+  ResolveRoute,
+} from "@types";
 import { z } from "zod";
+import { languagesSupported, reasonNotification } from "@commonSrc/both";
 
 type ZodField<T> = [T] extends [never]
   ? z.ZodNever
@@ -9,8 +16,28 @@ type ZodField<T> = [T] extends [never]
     : // eslint-disable-next-line @typescript-eslint/no-explicit-any
       z.ZodType<T, any, any>;
 
-type ZodShape<T extends object> = {
+export type ZodShape<T extends object> = {
   [K in keyof T]: ZodField<T[K]>;
+};
+
+type IsPlainObject<T> = T extends object
+  ? T extends Date | RegExp | Function | readonly unknown[]
+    ? false
+    : true
+  : false;
+
+type DeepZodField<T> = [T] extends [never]
+  ? z.ZodNever
+  : unknown extends T
+    ? z.ZodNever
+    : IsPlainObject<NonNullable<T>> extends true
+      ? z.ZodType<T, unknown> | z.ZodObject<DeepZodShape<NonNullable<T>>>
+      : T extends readonly (infer Item)[]
+        ? z.ZodArray<DeepZodField<Item>> | z.ZodType<T, unknown>
+        : z.ZodType<T, unknown>;
+
+type DeepZodShape<T extends object> = {
+  [K in keyof T]-?: DeepZodField<T[K]>;
 };
 
 type APIInput = {

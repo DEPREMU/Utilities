@@ -301,6 +301,10 @@ export const esApp: AppTranslations = {
       maxCharsInItem: "Máxima cantidad de caracteres por elemento",
       maxItems: "Máxima cantidad de elementos por guardar en memoria",
       title: "Configuración del Portapapeles",
+      webSyncModeTitle: "Modo de sincronización en Web",
+      webSyncModeAll: "Sincronizar todo el contenido copiado",
+      webSyncModeDoubleCtrlC:
+        "Sincronizar solo al presionar Ctrl + C dos veces",
     },
   },
   colors: {

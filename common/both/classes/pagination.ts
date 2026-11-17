@@ -17,6 +17,7 @@ type PaginationOptions = {
 
 type Events<T> = {
   dataAdded: (data: T[]) => void;
+  dataCleared: () => void;
   dataRemoved: (data: T[]) => void;
   lastDataUpdate: (isLast: boolean) => void;
 };
@@ -139,6 +140,7 @@ export class Pagination<T> extends EventHandler<Events<T>> {
     this.#page = 0;
     this.#ids = [];
 
+    this.emit("dataCleared");
     this.emit("dataRemoved", this.#data);
     this.#data = [];
 

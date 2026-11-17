@@ -12,132 +12,50 @@ import Animated, {
   FadeOutRight,
   LinearTransition,
 } from "react-native-reanimated";
+import { REPLACERS } from "@common";
 import { useLanguage } from "@context/LanguageContext";
-import { ServerError } from "@commonSrc/both/errors/Error";
-import RenderClipboardItem from "@screens/Clipboard/components/RenderClipboardItem";
-import { useClipboardFetch } from "../hooks/useClipboardFetch";
+import { useClipboardStore } from "@screens/Clipboard/services";
 import { useStylesClipboardScreen } from "@screens/Clipboard/styles";
-import { Timers, ServerFetch, REPLACERS } from "@common";
+import RenderClipboardItem from "@screens/Clipboard/components/RenderClipboardItem";
 import { FAB, Searchbar, Switch, Text, Button } from "react-native-paper";
-import { Logger, sessionManager, storageManagement } from "@utils";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-
-const logger = new Logger("ClipboardScreen");
-
-const getSkeletonData = (deleted: boolean) => {
-  const createdAt = new Date().toISOString();
-
-  return Array.from({ length: 5 }).map((_, i) => {
-    const returnData: DB["TablesClient"]["ClipboardSync"] = {
-      deleted,
-      createdAt,
-      id: `id ${i}`,
-      userId: "userId",
-      content: "Loading...",
-      deviceId: "deviceId",
-    };
-    return returnData;
-  });
-};
+import React, { useCallback, useEffect, useRef } from "react";
 
 const ClipboardScreen: React.FC = () => {
   const { t } = useLanguage();
   const { styles, colors } = useStylesClipboardScreen();
 
-  const { pagination, searchText, setSearchText, deleted, setDeleted } =
-    useClipboardFetch();
+  const deleted = useClipboardStore((s) => s.deleted);
+  const noMoreData = useClipboardStore((s) => s.noMoreData);
+  const refreshing = useClipboardStore((s) => s.refreshing);
+  const searchText = useClipboardStore((s) => s.searchText);
+  const clipboardData = useClipboardStore((s) => s.clipboardData);
+  const isFarFromStart = useClipboardStore((s) => s.isFarFromStart);
+  const isLoadingStore = useClipboardStore((s) => s.isLoading);
+  const isLoadingSkeleton = useClipboardStore((s) => s.isLoadingSkeleton);
 
-  const [refreshing, setRefreshing] = useState(false);
-  const [noMoreData, setNoMoreData] = useState<boolean>(false);
-  const [isFarFromStart, setIsFarFromStart] = useState(false);
-  const [clipboardData, setClipboardData] = useState<
-    DB["TablesClient"]["ClipboardSync"][]
-  >(getSkeletonData(deleted));
+  const initListeners = useClipboardStore((s) => s.initListeners);
+  const handleSearch = useClipboardStore((s) => s.handleSearch);
+  const handleRefresh = useClipboardStore((s) => s.handleRefresh);
+  const fetchClipboard = useClipboardStore((s) => s.fetchClipboard);
+  const setIsFarFromStart = useClipboardStore((s) => s.setIsFarFromStart);
+  const handleToggleDeleted = useClipboardStore((s) => s.handleToggleDeleted);
+  const handleDeleteRestoreAll = useClipboardStore(
+    (s) => s.handleDeleteRestoreAll,
+  );
+  const changeClipboardItemDeleted = useClipboardStore(
+    (s) => s.changeClipboardItemDeleted,
+  );
 
   const flatListRef = useRef<FlatList | null>(null);
-  const isLoadingRef = useRef<boolean | null>(false);
-  const isScrollingToTopRef = useRef<boolean | null>(false);
+  const isScrollingToTopRef = useRef<boolean>(false);
 
-  const isLoadingSkeletonRef = useRef<boolean | null>(true);
+  const isLoading = refreshing || isLoadingStore || isLoadingSkeleton;
 
-  const idTimeoutRef = useRef<number | null>(null);
-  const idTimeoutSearch = useRef<number | null>(null);
-
-  const handleGoToTopRef = useRef(() => {
+  const handleGoToTop = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
     isScrollingToTopRef.current = true;
     setIsFarFromStart(false);
-  });
-
-  const changeClipboardItemDeleted = useCallback(
-    async (id: string, deleted: boolean) => {
-      if (!id) return logger.error("No ID provided for deletion");
-
-      const { sessionToken } = sessionManager.getSessionData();
-
-      if (!sessionToken) return logger.error("No session token available");
-
-      const deviceId = storageManagement.get("DEVICE_ID");
-
-      const res = await ServerFetch.put(
-        "/clipboard/delete/toggle-deleted",
-        { body: { id, deleted, deviceId } },
-        sessionToken,
-      );
-
-      if ("error" in res.data) {
-        logger.error(
-          "Error deleting clipboard item:",
-          ServerError.getMessage(res.data),
-        );
-        return;
-      }
-
-      setClipboardData(
-        (prevData) => prevData?.filter((item) => item.id !== id) ?? null,
-      );
-    },
-    [],
-  );
-
-  const fetchClipboard = useCallback(
-    async (searchText?: string) => {
-      if (pagination.isLatest) {
-        if (!searchText) return;
-        if (pagination.totalItems === 0) return;
-
-        setClipboardData(
-          pagination.allData.filter(
-            (item) =>
-              !!item.content?.toLowerCase()?.includes(searchText.toLowerCase()),
-          ),
-        );
-        return;
-      }
-
-      if (isLoadingRef.current) return;
-      isLoadingRef.current = true;
-
-      const data = await pagination.next();
-
-      idTimeoutRef.current = Timers.setTimeout(
-        () => {
-          try {
-            setRefreshing(false);
-
-            if (!data) return;
-
-            setClipboardData(pagination.allData);
-          } finally {
-            isLoadingRef.current = false;
-            isLoadingSkeletonRef.current = false;
-          }
-        },
-        pagination.page >= 0 ? 100 : data ? 3000 : 2000,
-      );
-    },
-    [pagination],
-  );
+  }, [setIsFarFromStart]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -151,69 +69,15 @@ const ClipboardScreen: React.FC = () => {
 
       setIsFarFromStart(contentOffset.y > 500);
 
-      if (isLoadingRef.current || pagination.isLatest) return;
+      if (isLoading || noMoreData) return;
 
       const distanceFromEnd =
         contentSize.height - (layoutMeasurement.height + contentOffset.y);
 
-      if (distanceFromEnd < 750) fetchClipboard();
+      if (distanceFromEnd < 750) void fetchClipboard();
     },
-    [pagination, fetchClipboard, setIsFarFromStart],
+    [isLoading, noMoreData, fetchClipboard, setIsFarFromStart],
   );
-
-  const handleSearch = useCallback(
-    (text: string) => {
-      setSearchText(text);
-
-      if (isLoadingSkeletonRef.current || isLoadingRef.current) return;
-
-      Timers.clearTimeout(idTimeoutSearch.current);
-
-      if (!pagination.isLatest || text.length < 3) pagination.clear();
-
-      idTimeoutSearch.current = Timers.setTimeout(() => {
-        fetchClipboard(text);
-      }, 2000);
-    },
-    [fetchClipboard, setSearchText, pagination],
-  );
-
-  const handleRefresh = useCallback(() => {
-    pagination.clear();
-
-    fetchClipboard();
-  }, [pagination, fetchClipboard]);
-
-  const handleDeleteRestoreAll = useCallback(async () => {
-    const { sessionToken } = sessionManager.getSessionData();
-    if (!sessionToken) return logger.error("No session token available");
-
-    const deviceId = storageManagement.get("DEVICE_ID");
-
-    const newDeleted = !deleted;
-
-    const res = await ServerFetch.put(
-      "/clipboard/delete/toggle-deleted-all",
-      {
-        body: {
-          restore: !newDeleted,
-          deviceId,
-        },
-      },
-      sessionToken,
-    );
-
-    if ("error" in res.data) {
-      logger.error(
-        "Error deleting clipboard item:",
-        ServerError.getMessage(res.data),
-      );
-      return;
-    }
-
-    fetchClipboard(searchText);
-    setDeleted(newDeleted);
-  }, [deleted, searchText, setDeleted, fetchClipboard]);
 
   const renderItems = useCallback(
     ({ item }: { item: DB["TablesClient"]["ClipboardSync"] }) => (
@@ -243,21 +107,15 @@ const ClipboardScreen: React.FC = () => {
   }, [t, styles]);
 
   useEffect(() => {
-    void fetchClipboard();
-  }, [fetchClipboard]);
-
-  useEffect(() => {
-    const listener = pagination.addEventListener("lastDataUpdate", (isLast) => {
-      setNoMoreData(isLast);
-    });
+    const cleanup = initListeners();
+    if (useClipboardStore.getState().isLoadingSkeleton) {
+      void fetchClipboard();
+    }
 
     return () => {
-      listener.remove();
+      cleanup();
     };
-  }, [pagination]);
-
-  const isLoading =
-    refreshing || !!isLoadingRef.current || !!isLoadingSkeletonRef.current;
+  }, [initListeners, fetchClipboard]);
 
   return (
     <Animated.View
@@ -282,7 +140,7 @@ const ClipboardScreen: React.FC = () => {
             value={deleted}
             color={colors.primary}
             disabled={isLoading}
-            onValueChange={setDeleted}
+            onValueChange={handleToggleDeleted}
           />
         </View>
 
@@ -338,7 +196,7 @@ const ClipboardScreen: React.FC = () => {
             icon="arrow-up"
             color={colors.primary}
             style={styles.FAB}
-            onPress={handleGoToTopRef.current}
+            onPress={handleGoToTop}
           />
         </Animated.View>
       )}

@@ -1,6 +1,12 @@
+import set from "lodash/set";
+import get from "lodash/get";
+import merge from "lodash/merge";
 import cloneDeep from "lodash/cloneDeep";
 import { Arrays } from "./Array";
+import isEqualWith from "lodash/isEqualWith";
+import isPlainObject from "lodash/isPlainObject";
 import type { TypeOfJS } from "@types";
+import { Get, Paths, PartialDeep } from "type-fest";
 
 type FromEntries<T extends ReadonlyArray<readonly [PropertyKey, unknown]>> = {
   [E in T[number] as E[0]]: E[1];
@@ -50,7 +56,7 @@ type Converted<
 };
 
 type ChangeType = <
-  T extends Record<string, unknown>,
+  const T extends Record<string, unknown>,
   M extends Partial<Record<keyof T, TypesOfValue | TypesOfValue[]>>,
 >(
   obj: T,
@@ -176,45 +182,43 @@ const changeType: ChangeType = (obj, newType) => {
   return copy as never;
 };
 
-type ValueOf<T, K extends PropertyKey> = T extends unknown
-  ? K extends keyof T
-    ? T[K]
-    : never
+function isEqualObj<const T extends object>(obj1: T, obj2: unknown): obj2 is T {
+  return isEqualWith(obj1, obj2, (val1, val2) => {
+    if (isPlainObject(val1) !== isPlainObject(val2)) return false;
+    if (!isPlainObject(val1) && !isPlainObject(val2)) return true;
+
+    return undefined;
+  });
+}
+
+type UnionGet<T, K extends string> = T extends unknown
+  ? unknown extends Get<T, K>
+    ? undefined
+    : Get<T, K>
   : never;
 
-function getValue<T extends object, K extends PropertyKey>(
+function getValue<const T extends object, K extends Paths<T> & string>(
   obj: T,
   key: K,
-): ValueOf<T, K> | undefined;
+): UnionGet<T, K>;
 function getValue<
-  T extends object,
-  K extends PropertyKey,
-  V extends ValueOf<T, K>,
->(obj: T, key: K, fallbackValue: V): NonNullable<ValueOf<T, K>>;
-function getValue<T extends object, K extends PropertyKey, R>(
+  const T extends object,
+  K extends Paths<T> & string,
+  V extends NonNullable<UnionGet<T, K>>,
+>(obj: T, key: K, fallbackValue: V): NonNullable<UnionGet<T, K>> | V;
+function getValue<const T extends object>(
   obj: T,
-  key: K,
-  fallbackValue: (value: ValueOf<T, K>) => R,
-): R;
-function getValue<T extends object, K extends PropertyKey>(
-  obj: T,
-  key: K,
-  fallbackValue?: unknown | ((value: ValueOf<T, K>) => unknown),
-) {
-  const value = (obj as Record<PropertyKey, unknown>)[key] as ValueOf<T, K>;
-
-  if (typeof fallbackValue === "function") {
-    return fallbackValue(value);
-  }
-
-  return value ?? fallbackValue;
+  key: string,
+  fallbackValue?: unknown,
+): unknown {
+  return get(obj, key, fallbackValue);
 }
 
 export class Objects {
-  static removeProperties<T extends Record<string, unknown>, K extends keyof T>(
-    obj: T,
-    ...keys: K[]
-  ): Omit<T, K> {
+  static removeProperties<
+    const T extends Record<string, unknown>,
+    K extends keyof T,
+  >(obj: T, ...keys: K[]): Omit<T, K> {
     const result = cloneDeep(obj);
     keys.forEach((key) => {
       delete result[key];
@@ -222,29 +226,46 @@ export class Objects {
     return result;
   }
 
-  static readonly fromEntries: <
-    const T extends ReadonlyArray<readonly [PropertyKey, unknown]>,
-  >(
-    entries: T,
-  ) => FromEntries<T> = globalThis.Object.fromEntries as <
+  static readonly fromEntries = globalThis.Object.fromEntries as <
     const T extends ReadonlyArray<readonly [PropertyKey, unknown]>,
   >(
     entries: T,
   ) => FromEntries<T>;
 
-  static readonly entries = globalThis.Object.entries as <T extends object>(
+  static readonly entries = globalThis.Object.entries as <
+    const T extends object,
+  >(
     obj: T,
   ) => StrictEntries<T>;
 
-  static readonly values = globalThis.Object.values as <T extends object>(
+  static readonly values = globalThis.Object.values as <const T extends object>(
     obj: T,
   ) => StrictValues<T>;
 
-  static readonly keys = globalThis.Object.keys as <T extends object>(
+  static readonly keys = globalThis.Object.keys as <const T extends object>(
     obj: T,
   ) => StrictKeys<T>;
 
   static readonly changeType = changeType;
 
   static readonly getValue = getValue;
+
+  static readonly setValue = set as <
+    const T extends object,
+    P extends Paths<T> & string,
+  >(
+    obj: T,
+    path: P,
+    value: Get<T, P>,
+  ) => T;
+
+  static readonly merge = merge as <
+    const T extends object,
+    V extends PartialDeep<T>,
+  >(
+    obj: T,
+    values: V,
+  ) => T & V;
+
+  static readonly isEqualObj = isEqualObj;
 }
