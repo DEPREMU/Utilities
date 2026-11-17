@@ -10,69 +10,28 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import TextInput from "@components/TextInput";
-import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
-import { ServerError } from "@commonSrc/both/errors/Error";
+import { useClipboardStore } from "@screens/Clipboard/services";
 import { useStylesSyncClipboard } from "@screens/Clipboard/styles";
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { Text, Button, TextInput as PaperTextInput } from "react-native-paper";
-import { Logger, ServerFetch, sessionManager, storageManagement } from "@utils";
-
-const logger = new Logger("SyncClipboardScreen");
 
 const SyncClipboardScreen: React.FC = () => {
   const { t } = useLanguage();
   const { styles, colors } = useStylesSyncClipboard();
 
-  const [inputText, setInputText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const inputText = useClipboardStore((s) => s.inputText);
+  const setInputText = useClipboardStore((s) => s.setInputText);
+  const isAddingItem = useClipboardStore((s) => s.isAddingItem);
+  const addItemToDatabase = useClipboardStore((s) => s.addItemToDatabase);
 
-  const handleAddToDatabase = useCallback(async () => {
-    const { userData, sessionToken } = sessionManager.getSessionData();
-
-    if (!userData?.userId)
-      return modalRef.openSnackBar?.(t("auth.youAreNotLoggedIn"));
-
-    if (!inputText.trim())
-      return modalRef.openSnackBar?.(t("verifications.pleaseEnterSomeText"));
-    if (!sessionToken)
-      return modalRef.openSnackBar?.(t("auth.youAreNotLoggedIn"));
-
-    setIsLoading(true);
-    try {
-      const deviceId = storageManagement.get("DEVICE_ID");
-
-      const res = await ServerFetch.post(
-        "/clipboard/add",
-        {
-          body: {
-            deviceId,
-            content: inputText,
-          },
-        },
-        sessionToken,
-      );
-
-      if ("error" in res.data) {
-        const errMsg = ServerError.getMessage(res.data);
-
-        logger.error("Error adding text to database:", errMsg);
-        modalRef.openSnackBar?.(t("common.errorOccurred", { error: errMsg }));
-        return;
-      }
-
-      modalRef.openSnackBar?.(t("common.textAddedToDatabase"));
-      setInputText("");
-    } catch {
-      modalRef.openSnackBar?.(t("common.failedToAddTextToDatabase"));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [inputText, t]);
+  const handleAddToDatabase = useCallback(() => {
+    void addItemToDatabase(t);
+  }, [addItemToDatabase, t]);
 
   const handleClearText = useCallback(() => {
     setInputText("");
-  }, []);
+  }, [setInputText]);
 
   return (
     <KeyboardGestureArea style={styles.flex} interpolator="ios">
@@ -95,7 +54,6 @@ const SyncClipboardScreen: React.FC = () => {
           />
 
           <Animated.View
-            style={styles.sectionContainer}
             layout={LinearTransition.duration(300).springify()}
             exiting={FadeOutDown.duration(300)}
             entering={FadeInDown.duration(300)}
@@ -110,6 +68,7 @@ const SyncClipboardScreen: React.FC = () => {
               onChangeText={setInputText}
               outlineColor={colors.border}
               selectionColor={colors.primary}
+              activeOutlineColor={colors.primary}
               right={
                 inputText.length > 10 && (
                   <PaperTextInput.Icon
@@ -119,10 +78,9 @@ const SyncClipboardScreen: React.FC = () => {
                   />
                 )
               }
-              activeOutlineColor={colors.primary}
             />
 
-            {!isLoading && !!inputText.trim() && (
+            {!isAddingItem && !!inputText.trim() && (
               <Animated.View
                 exiting={FadeOutUp.duration(200)}
                 entering={FadeInUp.delay(200).duration(200)}
@@ -130,10 +88,12 @@ const SyncClipboardScreen: React.FC = () => {
                 <Button
                   mode="contained"
                   onPress={handleAddToDatabase}
-                  disabled={isLoading || !inputText.trim()}
+                  disabled={isAddingItem || !inputText.trim()}
                 >
                   <Text style={styles.h3}>
-                    {isLoading ? t("common.adding") : t("common.addToDatabase")}
+                    {isAddingItem
+                      ? t("common.adding")
+                      : t("common.addToDatabase")}
                   </Text>
                 </Button>
               </Animated.View>

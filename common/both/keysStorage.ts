@@ -39,8 +39,11 @@ export type SelectedCryptos = {
   [symbol: string]: DB["TablesClient"]["Cryptos"];
 };
 
+export type WebClipboardSyncMode = "all" | "doubleCtrlC";
+
 export type ClipboardStorage = {
   enabled: boolean;
+  webSyncMode: WebClipboardSyncMode;
   maxCharsInItem: number;
   maxClipboardItems: number;
 };
