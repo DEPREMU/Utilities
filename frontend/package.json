@@ -14,8 +14,8 @@
     "test": "echo \"No implemented yet\""
   },
   "dependencies": {
-    "motion": "^14.12.0",
-    "react-router-dom": "^7.18.5"
+    "motion": "^14.14.0",
+    "react-router-dom": "^7.18.6"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "^0.3.1",

@@ -819,11 +819,19 @@ export const esApp: AppTranslations = {
     doNotUseAnimationsExplanation:
       "Si habilitas esta opción, la aplicación no usará animaciones, lo que puede ahorrar batería y mejorar el rendimiento. Esto es especialmente útil para usuarios con dispositivos más antiguos o aquellos que prefieren una interfaz más simple. La aplicación seguirá funcionando normalmente, pero sin animaciones.",
     notificationDetails: {
+      aggressive: "Agresivo",
+      aggressiveDescription:
+        "Mostrar notificaciones incluso si la notificación es la misma (persistente). Esto puede resultar en un comportamiento similar al spam.",
       behavior: "Comportamiento",
       bypassDoNotDisturb: "Omitir No molestar",
+      doubleCheck: "Doble verificación",
+      doubleCheckDescription:
+        "Verifica la conexión a internet dos veces para evitar falsos positivos. La notificación se retrasará, pero será más precisa.",
       enabled: "Habilitado",
       endHour: "Hora de fin",
       interval: "Intervalo (minutos)",
+      maxBatteryLevel: "Batería máxima (%)",
+      minBatteryLevel: "Batería mínima (%)",
       noStreamers: "No hay streamers configurados",
       onlyDuringSpecificHours: "Solo en horarios específicos",
       onlyWhenAppInBackground: "Solo cuando la app está en segundo plano",

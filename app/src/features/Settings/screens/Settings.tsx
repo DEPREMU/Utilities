@@ -25,8 +25,9 @@ import { ServerError } from "@commonSrc/both/errors/Error";
 import { useUserContext } from "@context/UserContext";
 import { useAppBehavior } from "@context/AppBehaviorContext";
 import { ScrollView, View } from "react-native";
-import { AppTranslationsKeys } from "@types";
 import useStylesSettingsScreen from "@screens/Settings/styles/useStylesSettingsScreen";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { AppTranslationsKeys, GetParamsScreen } from "@types";
 import { Timers, REPLACERS, ServerFetch, Helper } from "@common";
 import { ActivityIndicator, Switch, Text, TextInput } from "react-native-paper";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -121,6 +122,11 @@ const SettingsScreen: React.FC = () => {
   const { t, dynamicT } = useLanguage();
   const { styles, colors } = useStylesSettingsScreen();
   const { appBehavior, setAppBehavior } = useAppBehavior();
+  const route =
+    useRoute<
+      RouteProp<{ Settings: GetParamsScreen<"Settings"> }, "Settings">
+    >();
+  const nav = useNavigation();
 
   const [hasInternet, setHasInternet] = useState<boolean>(
     deviceInfo.hasInternet,
@@ -252,6 +258,19 @@ const SettingsScreen: React.FC = () => {
       </View>
     ));
   }, [styles, dynamicT]);
+
+  useEffect(() => {
+    const { installViaApp, updateNow } = route.params ?? {};
+    if (!installViaApp && !updateNow) return;
+
+    nav.setParams(undefined);
+
+    if (installViaApp) {
+      void updates?.installPendingUpdate();
+    } else if (updateNow) {
+      void handleCheckForUpdatesRef.current();
+    }
+  }, [route.params, nav]);
 
   useEffect(() => {
     const hasInternetListener = deviceInfo.addEventListener(

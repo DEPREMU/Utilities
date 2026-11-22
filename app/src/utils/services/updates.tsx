@@ -7,6 +7,7 @@ import {
   ServiceClass,
 } from "@common";
 import { openURL } from "expo-linking";
+import { Actions } from "./notifications";
 import { modalRef } from "@refs";
 import * as ExpoUpdates from "expo-updates";
 import { View, StyleSheet } from "react-native";
@@ -222,6 +223,49 @@ class Updates extends ServiceClass<never> {
   };
 
   /**
+   * Launches the installer for the pending downloaded update APK, or falls back
+   * to the newest cached APK newer than the current app version.
+   */
+  public installPendingUpdate = async (): Promise<void> => {
+    if (!REPLACERS.isNative) return;
+
+    if (this.#pendingDownloadedApk) {
+      const { filePath } = this.#pendingDownloadedApk;
+      this.#pendingDownloadedApk = null;
+      await this.installViaApp(filePath);
+      return;
+    }
+
+    try {
+      const updatesDir = new Directory(Paths.cache, "updates");
+      if (!updatesDir.exists) return;
+
+      const apkFiles = updatesDir
+        .list()
+        .filter(
+          (file): file is File =>
+            file instanceof File &&
+            file.name.endsWith(".apk") &&
+            file.size > 0,
+        )
+        .map((file) => ({
+          file,
+          versionSum: Validations.getSumVersion(file.name.replace(/\.apk$/, "")),
+        }))
+        .filter(
+          (item) => item.versionSum > Validations.getSumVersion(APP_VERSION),
+        )
+        .sort((a, b) => b.versionSum - a.versionSum);
+
+      if (apkFiles.length > 0) {
+        await this.installViaApp(apkFiles[0].file.uri);
+      }
+    } catch (error) {
+      logger.error("Error finding pending downloaded APK:", error);
+    }
+  };
+
+  /**
    * Relocates the downloaded update file from cache to public Downloads and opens it.
    */
   public viewUpdateFile = async (filePath: string): Promise<void> => {
@@ -343,13 +387,7 @@ class Updates extends ServiceClass<never> {
           message: tTyped("updates.downloadCompleteMessage"),
           channelId: "updateAvailable",
           reasonNotification: "updateAvailable",
-          overrideNotification: false,
-          actions: [
-            {
-              title: tTyped("updates.installViaApp"),
-              actionId: "info",
-            },
-          ],
+          actions: Actions.getActions(["installViaApp"]),
         });
       } else {
         modalRef.closeModal?.();
@@ -452,13 +490,7 @@ class Updates extends ServiceClass<never> {
             message: tTyped("updates.updateAvailableMessage"),
             channelId: "updateAvailable",
             reasonNotification: "updateAvailable",
-            overrideNotification: false,
-            actions: [
-              {
-                title: tTyped("updates.updateNow"),
-                actionId: "settings",
-              },
-            ],
+            actions: Actions.getActions(["updateNow"]),
           });
         } else {
           const { default: Button } =
@@ -531,13 +563,7 @@ class Updates extends ServiceClass<never> {
           type: "info",
           channelId: "updateAvailable",
           reasonNotification: "updateAvailable",
-          overrideNotification: false,
-          actions: [
-            {
-              actionId: "settings",
-              title: tTyped("updates.updateNow"),
-            },
-          ],
+          actions: Actions.getActions(["updateNow"]),
         });
       }
 

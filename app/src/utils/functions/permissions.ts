@@ -91,10 +91,9 @@ const askLocationPermission = async (
   ));
   permissionsData.permissions.location.enabled = granted;
 
-  notificationsManager.editNotification("locationEnabled", (prev) => ({
-    ...prev,
-    enabled: granted,
-  }));
+  notificationsManager.editNotifications({
+    locationEnabled: { enabled: granted },
+  });
 };
 
 const waitForAppToBeActive = async (): Promise<void> => {

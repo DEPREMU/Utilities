@@ -802,11 +802,19 @@ export const enApp: AppTranslations = {
     language: "Language",
     light: "Light",
     notificationDetails: {
+      aggressive: "Aggressive",
+      aggressiveDescription:
+        "Display notifications even if the notification is the same (persistent). This might result in spam-like behavior.",
       behavior: "Behavior",
       bypassDoNotDisturb: "Bypass Do Not Disturb",
+      doubleCheck: "Double Check",
+      doubleCheckDescription:
+        "Verify the internet connection twice to avoid false positives. The notification will be delayed, but more accurate.",
       enabled: "Enabled",
       endHour: "End Hour",
       interval: "Interval (minutes)",
+      maxBatteryLevel: "Max Battery (%)",
+      minBatteryLevel: "Min Battery (%)",
       noStreamers: "No streamers configured",
       onlyDuringSpecificHours: "Only During Specific Hours",
       onlyWhenAppInBackground: "Only When App In Background",

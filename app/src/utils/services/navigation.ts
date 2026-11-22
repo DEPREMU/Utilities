@@ -14,7 +14,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
 
   #removeListener?: () => void;
 
-  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Clipboard" : "Home";
+  #currentScreen: ScreensAvailable = REPLACERS.isDev ? "Settings" : "Home";
 
   public ref = createNavigationContainerRef<Screens>();
 
@@ -47,7 +47,7 @@ class Navigation extends ServiceClass<ListenersNavigation> {
     name: T,
     params?: GetParamsScreen<T>,
   ) => {
-    if (name === this.#currentScreen) return;
+    if (name === this.#currentScreen && !params) return;
 
     this.ref.navigate(...([name, params] as never));
   };

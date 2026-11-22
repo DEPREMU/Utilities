@@ -16,17 +16,8 @@ import { Function } from "@types";
 import { FolderFiles } from "./typesVault";
 import { ClipboardItem } from "./screens";
 import { LanguagesSupported } from "./typesTranslations";
+import { ReasonNotification } from "./typesNotifications";
 import type { FileInfo, PickedFile } from "./typesVault";
-import { ActionNotification, ReasonNotification } from "./typesNotifications";
-
-export type EventNativeModule = {
-  actionId: ActionNotification;
-  notificationId: number;
-  title: string;
-  message: string;
-  reasonNotification: ReasonNotification;
-  data: Record<string, unknown>;
-};
 
 export type MessagesClipboard =
   | {

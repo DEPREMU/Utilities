@@ -1,9 +1,14 @@
+import {
+  Helper,
+  Logger,
+  reasonNotification,
+  CRYPTO_NOTIFICATION_INTERVAL_OPTIONS,
+} from "@common";
 import chalk from "chalk";
 import { prisma } from "@/database";
 import cliProgress from "cli-progress";
 import { TablesKeys } from "@types";
 import { randomUUID } from "node:crypto";
-import { Helper, Logger, reasonNotification } from "@common";
 
 const logger = new Logger("CreateFakeData");
 
@@ -48,6 +53,10 @@ class Random {
     Math.random() < 0.5 ? Random.number(min, max) : null;
 
   static dateNullable = () => (Math.random() < 0.5 ? Random.date() : null);
+
+  static from = <T>(arr: Array<T>): T => {
+    return arr[Random.number(0, arr.length - 1)];
+  };
 }
 
 const getUserId = async (): Promise<string> => {
@@ -275,8 +284,8 @@ const insertFakeDataIntoTable = async (
                     defaultCurrency: "USDT",
                     notifications: {
                       create: {
+                        time: Random.from(CRYPTO_NOTIFICATION_INTERVAL_OPTIONS),
                         enabled: Random.bool(),
-                        valueMs: Random.number(1, 60) * 1000,
                       },
                     },
                     autoRefresh: {

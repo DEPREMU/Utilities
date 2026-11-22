@@ -399,8 +399,8 @@ script.addStep("add to xml", async () => {
   }
 
   await Promise.all([
-    await new File(stringsXMLPathEn).writeFile(newEn),
-    await new File(stringsXMLPathEs).writeFile(newEs),
+    new File(stringsXMLPathEn).writeFile(newEn),
+    new File(stringsXMLPathEs).writeFile(newEs),
   ]);
 });
 

@@ -11,7 +11,6 @@ import {
   ExecuteOnce,
   ScreensConfig,
   storageManagement,
-  setupNotificationHandlers,
 } from "@utils";
 import * as Linking from "expo-linking";
 import { useAppBehavior } from "@context/AppBehaviorContext";
@@ -258,13 +257,11 @@ const AppNavigator: React.FC = () => {
       const sub = Linking.addEventListener("url", ({ url }) => {
         handleNavigate(url);
       });
-      const notificationsListeners = setupNotificationHandlers();
 
       Linking.getInitialURL().then(handleNavigate);
 
       return () => {
         sub.remove();
-        notificationsListeners.remove();
       };
     }
 
