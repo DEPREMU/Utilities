@@ -41,9 +41,7 @@ class Background {
     try {
       const immediateTasks = this.#tasks.get("immediate") || [];
       if (immediateTasks.length) {
-        await Promise.all(
-          immediateTasks.map((task) => task.function(...task.arguments)),
-        );
+        immediateTasks.forEach((task) => task.function(...task.arguments));
         this.#tasks.set("immediate", []);
       }
 
@@ -52,9 +50,8 @@ class Background {
         const hasInternet = await Network.isOnline();
         if (!hasInternet) return;
 
-        await Promise.all(
-          internetTasks.map((task) => task.function(...task.arguments)),
-        );
+        internetTasks.forEach((task) => task.function(...task.arguments));
+
         this.#tasks.set("internet", []);
       }
     } catch (error) {

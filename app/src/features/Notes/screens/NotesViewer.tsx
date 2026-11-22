@@ -375,7 +375,7 @@ const NotesViewer: React.FC<NotesViewerProps> = ({ onBackToList }) => {
     if (player.currentTime >= player.duration && player.duration > 0)
       await player.seekTo(0);
 
-    await player.play();
+    player.play();
   });
   const clearInlinePreviewAudioRef = useRef(() => {
     Timers.clearInterval(inlinePreviewAudioTimerIdRef.current);

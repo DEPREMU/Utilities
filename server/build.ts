@@ -113,10 +113,10 @@ fs.readdir(piscinaWorkerPath, async (err, files) => {
   if (err) throw new Error(`Error reading workers directory: ${err.message}`);
 
   await Promise.all(
-    files.map((file) => {
+    files.map(async (file) => {
       if (!file.endsWith("worker.ts")) return;
 
-      return build({
+      return await build({
         ...options,
         plugins,
         external: externalWorkers,
