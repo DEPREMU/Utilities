@@ -19,7 +19,7 @@ import { modalRef } from "@refs";
 import { useLanguage } from "@context/LanguageContext";
 import { useUserContext } from "./UserContext";
 import { WebSocketMessage } from "@types";
-import React, { useRef, useEffect, useContext, createContext } from "react";
+import React, { useRef, useEffect, createContext } from "react";
 
 const logger = new Logger("WebSocketContext");
 
@@ -196,6 +196,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   );
 };
 
+/*
 export const useWebSocket = () => {
   const context = useContext(WebSocketContext);
   if (!context) {
@@ -203,3 +204,4 @@ export const useWebSocket = () => {
   }
   return context;
 };
+*/

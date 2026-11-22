@@ -40,7 +40,7 @@ const handleSendNotificationToAdmin = async () => {
         const reason = "downDetector" satisfies ReasonNotification;
 
         const results = await Promise.all(
-          USERS.map((user) => {
+          USERS.map(async (user) => {
             try {
               if (!user.userConfig) return;
 
@@ -49,7 +49,7 @@ const handleSendNotificationToAdmin = async () => {
                 .filter((token) => token && token.length > 10);
               if (validTokens.length === 0) return;
 
-              return sendFCMNotification(
+              return await sendFCMNotification(
                 validTokens,
                 {
                   title: t(

@@ -6,7 +6,7 @@ import { Arrays } from "./Array";
 import isEqualWith from "lodash/isEqualWith";
 import isPlainObject from "lodash/isPlainObject";
 import type { TypeOfJS } from "@types";
-import { Get, Paths, PartialDeep } from "type-fest";
+import { Get, Paths, PartialDeep, OmitDeep } from "type-fest";
 
 type FromEntries<T extends ReadonlyArray<readonly [PropertyKey, unknown]>> = {
   [E in T[number] as E[0]]: E[1];
@@ -215,15 +215,17 @@ function getValue<const T extends object>(
 }
 
 export class Objects {
-  static removeProperties<
-    const T extends Record<string, unknown>,
-    K extends keyof T,
-  >(obj: T, ...keys: K[]): Omit<T, K> {
+  static removeProperties<const T extends object, const K extends Paths<T>>(
+    obj: T,
+    ...keys: K[]
+  ): OmitDeep<T, K> {
     const result = cloneDeep(obj);
+
     keys.forEach((key) => {
-      delete result[key];
+      Objects.setValue(result, key as never, undefined as never);
     });
-    return result;
+
+    return result as never;
   }
 
   static readonly fromEntries = globalThis.Object.fromEntries as <
@@ -246,10 +248,74 @@ export class Objects {
     obj: T,
   ) => StrictKeys<T>;
 
+  /**
+   * Deep-clones an object and converts specified top-level properties to the target runtime types.
+   *
+   * How it works:
+   * - Clones `obj` using `cloneDeep` so the original object is not mutated.
+   * - For each key in `map` that exists on the object, normalizes the target type(s) into a `Set`
+   *   and skips conversion if `typeof copy[key]` is already one of the allowed types.
+   * - Converts values according to each target type (`"boolean"`, `"number"`, `"string"`, `"object"`,
+   *   or `"undefined"` to delete the key), supporting `Date` instances, `.toNumber()` objects, and
+   *   `JSON.stringify` for objects.
+   * - Deletes the key if none of the target types produce a matching `typeof` result.
+   *
+   * @param obj - Source object whose properties will be converted.
+   * @param map - Mapping of object keys to a target type or array of allowed types.
+   * @returns A new cloned object with converted property types.
+   *
+   * @example
+   * ```ts
+   * const parsed = Objects.changeType(
+   *   { count: "42", active: "true", createdAt: new Date(), temp: "remove" },
+   *   { count: "number", active: "boolean", createdAt: "string", temp: "undefined" },
+   * );
+   * // { count: 42, active: true, createdAt: "2026-...", }
+   * ```
+   */
   static readonly changeType = changeType;
 
+  /**
+   * Safely retrieves a property value from an object using a type-safe nested path.
+   *
+   * How it works:
+   * - Wraps `lodash/get` with `Paths<T>` path validation and `UnionGet<T, K>` return type inference.
+   * - Traverses `obj` along `key` and returns the resolved value, or `fallbackValue` when the
+   *   resolved value is `undefined`.
+   *
+   * @param obj - Source object to read from.
+   * @param key - Dot/bracket-notation path to the target property.
+   * @param fallbackValue - Optional value returned when the resolved property is `undefined`.
+   * @returns The value at `key`, or `fallbackValue` if provided and the property is `undefined`.
+   *
+   * @example
+   * ```ts
+   * const user = { profile: { name: "Alice" } };
+   * const name = Objects.getValue(user, "profile.name"); // "Alice"
+   * const role = Objects.getValue(settings, "user.role", "guest");
+   * ```
+   */
   static readonly getValue = getValue;
 
+  /**
+   * Sets a value at a type-safe nested path on an object in place.
+   *
+   * How it works:
+   * - Wraps `lodash/set` with `Paths<T>` and `Get<T, P>` type constraints.
+   * - Walks `path` on `obj` (creating missing intermediate objects or arrays as needed) and
+   *   assigns `value` directly on `obj`, mutating it.
+   *
+   * @param obj - Target object to mutate.
+   * @param path - Dot/bracket-notation path to the property to set.
+   * @param value - Value to assign at `path`, typed to match the target property.
+   * @returns The mutated `obj` reference.
+   *
+   * @example
+   * ```ts
+   * const state = { user: { name: "Alice" } };
+   * Objects.setValue(state, "user.name", "Bob");
+   * ```
+   */
   static readonly setValue = set as <
     const T extends object,
     P extends Paths<T> & string,
@@ -259,6 +325,26 @@ export class Objects {
     value: Get<T, P>,
   ) => T;
 
+  /**
+   * Recursively merges partial nested values into a target object in place.
+   *
+   * How it works:
+   * - Wraps `lodash/merge` with `PartialDeep<T>` typing for `values`.
+   * - Recursively merges own enumerable properties of `values` into `obj` (mutating `obj`).
+   * - Existing defined properties on `obj` are preserved when the corresponding source property
+   *   is `undefined`.
+   *
+   * @param obj - Destination object to mutate.
+   * @param values - Deep-partial object containing properties to merge into `obj`.
+   * @returns The mutated `obj` typed as `T & V`.
+   *
+   * @example
+   * ```ts
+   * const config = { enabled: true, nested: { retries: 3, timeout: 1000 } };
+   * Objects.merge(config, { nested: { timeout: 2000 } });
+   * // config is { enabled: true, nested: { retries: 3, timeout: 2000 } }
+   * ```
+   */
   static readonly merge = merge as <
     const T extends object,
     V extends PartialDeep<T>,
@@ -267,5 +353,29 @@ export class Objects {
     values: V,
   ) => T & V;
 
+  /**
+   * Checks whether `obj2` has the same nested plain-object key structure as `obj1`, ignoring leaf values.
+   *
+   * How it works:
+   * - Uses `lodash/isEqualWith` with a customizer checking `isPlainObject` on both sides:
+   *   - Returns `false` if one side is a plain object and the other is not.
+   *   - Returns `true` if neither side is a plain object (primitives, arrays, `null`, etc.),
+   *     treating differing leaf values as structurally equal.
+   *   - Returns `undefined` when both sides are plain objects so `isEqualWith` recurses into their keys.
+   * - Narrows `obj2` to `T` when it returns `true`.
+   *
+   * @param obj1 - Reference object defining the expected structure.
+   * @param obj2 - Unknown value to compare structurally against `obj1`.
+   * @returns `true` if `obj2` matches the plain-object key structure of `obj1`, acting as a type guard.
+   *
+   * @example
+   * ```ts
+   * const defaults = { enabled: true, limits: { max: 10 } };
+   * const stored: unknown = JSON.parse(raw);
+   * if (Objects.isEqualObj(defaults, stored)) {
+   *   // `stored` is narrowed to typeof defaults
+   * }
+   * ```
+   */
   static readonly isEqualObj = isEqualObj;
 }

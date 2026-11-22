@@ -16,8 +16,8 @@ import {
 import { tTyped } from "../translates";
 import { Logger } from "../TOP_LEVEL";
 import { modalRef } from "@refs";
+import { AndroidAction } from "react-native-notify-kit";
 import { storageManagement } from "./storage";
-import { NotificationAction } from "@types";
 import { notificationsManager } from "./notifications";
 import { Directory, File, Paths } from "expo-file-system";
 import { areEqualValues, downloadBase64 } from "../functions";
@@ -535,8 +535,12 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
       this.#player = createAudioPlayer({ uri: this.#data.lastUri });
       this.#statusPlayer = this.#player.currentStatus;
 
-      const actions: NotificationAction[] = [
-        { actionId: "stop", title: tTyped("recorder.stopRecording") },
+      const actions: AndroidAction[] = [
+        {
+          icon: "stop",
+          title: tTyped("recorder.stopRecording"),
+          pressAction: { id: "stop" },
+        },
       ];
 
       if (this.#data.shouldAutoStart && hasPermission) {
@@ -550,7 +554,6 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
           message: tTyped("recorder.autoStartedNotification"),
           channelId: "recorderNotification",
           reasonNotification: "recorderNotification",
-          overrideNotification: true,
         });
       } else if (this.#data.shouldAutoStart && !hasPermission) {
         notificationsManager.sendNotification({
@@ -560,7 +563,6 @@ class RecorderManager extends ServiceClass<ListenersRecorder> {
           message: tTyped("recorder.autoStartedFailedNotification"),
           channelId: "recorderNotification",
           reasonNotification: "recorderNotification",
-          overrideNotification: true,
         });
       }
 

@@ -23,32 +23,10 @@ const gitignore = fs
   .filter((l) => l.trim() !== "");
 
 export default defineConfig([
-  {
-    ignores: [
-      ...gitignore,
-      "**/generated/prisma/**",
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/out/**",
-      "**/.expo/**",
-      "**/.metro/**",
-      "**/.yarn/**",
-      "**/android/**",
-      "**/assets/**",
-      "**/images/**",
-      "**/coverage/**",
-      "**/*.generated.*",
-      "**/*.log",
-      "**/.env*",
-      "**/.DS_Store",
-      "**/Thumbs.db",
-    ],
-  },
   js.configs.recommended,
   tsconfig.configs.recommended,
   {
-    files: ["**/*.{js,ts,jsx,tsx}"],
+    files: ["**/*.{js,ts,tsx}"],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -57,7 +35,7 @@ export default defineConfig([
         },
         ecmaVersion: 2020,
         sourceType: "module",
-        tsconfigRootDir: __dirname,
+        tsconfigRootDir: root,
         projectService: {
           allowDefaultProject: ["common/both/REPLACERS/REPLACERS.d.ts"],
         },
@@ -93,11 +71,12 @@ export default defineConfig([
         },
       ],
 
-      "@typescript-eslint/explicit-function-return-type": "off",
-      "@typescript-eslint/explicit-module-boundary-types": "off",
+      "@typescript-eslint/no-deprecated": "error",
+      "@typescript-eslint/await-thenable": "error",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-non-null-assertion": "warn",
-      "@typescript-eslint/no-deprecated": "error",
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "off",
 
       "react/react-in-jsx-scope": "off",
       "react/jsx-no-literals": [
@@ -134,6 +113,28 @@ export default defineConfig([
         version: "detect",
       },
     },
+  },
+  {
+    ignores: [
+      ...gitignore,
+      "**/generated/prisma/**",
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/out/**",
+      "**/.expo/**",
+      "**/.metro/**",
+      "**/.yarn/**",
+      "**/android/**",
+      "**/assets/**",
+      "**/images/**",
+      "**/coverage/**",
+      "**/*.generated.*",
+      "**/*.log",
+      "**/.env*",
+      "**/.DS_Store",
+      "**/Thumbs.db",
+    ],
   },
   prettierConfig,
 ]);

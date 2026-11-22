@@ -88,6 +88,14 @@ export const useStylesNotifications = () => {
           fontWeight: "600",
           flex: 1,
         },
+        detailDescription: {
+          color: colors.text,
+          opacity: 0.7,
+          fontSize: getResponsiveValue(11, 12, 12),
+        },
+        detailGroup: {
+          gap: 4,
+        },
         detailValue: {
           color: colors.primary,
           fontSize: getResponsiveValue(13, 14, 14),

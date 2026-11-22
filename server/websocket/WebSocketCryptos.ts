@@ -1,6 +1,5 @@
 import {
   Notification,
-  CryptosSettings,
   LanguagesSupported,
   CryptosWebSocketMessage,
 } from "@types";
@@ -11,16 +10,18 @@ import { prisma } from "@/database";
 import { cryptos } from "@/routes/cryptos/variables";
 import { sendFCMNotification } from "@/firebase/admin";
 import WebSocket, { WebSocketServer } from "ws";
-import { t, Helper, Logger, SelectedCryptos } from "@common";
+import {
+  t,
+  Helper,
+  Logger,
+  CRYPTO_NOTIFICATION_INTERVALS,
+  CRYPTO_NOTIFICATION_INTERVAL_OPTIONS,
+} from "@common";
 
 const logger = new Logger("WebSocketCryptos");
 
 const users = new Users<
-  {
-    cryptoSettings?: {
-      [userId: string]: CryptosSettings;
-    };
-  },
+  Record<string, unknown>,
   CryptosWebSocketMessage<"sentByServer">
 >();
 
@@ -51,7 +52,6 @@ const getNotificationCrypto = async (
       channelId: "cryptos",
       timestamp: new Date(),
       reasonNotification: "cryptos",
-      overrideNotification: false,
     };
 
     if (userCryptos.length === 0) return notification;
@@ -83,142 +83,84 @@ const getNotificationCrypto = async (
   }
 };
 
-const handleSendNotification = async (userId: string) => {
-  const user = await prisma.users.findUnique({
-    where: { userId },
-    include: {
-      cryptos: true,
-      pushTokens: { select: { token: true } },
-      userConfig: { select: { language: true } },
-    },
-  });
-  if (!user) return;
-
-  const tokens = user.pushTokens
-    .map((t) => t.token)
-    .filter((t) => !t.startsWith("expo"));
-
-  if (!tokens.length || !user.userConfig || !user.cryptos.length) return;
-
-  const notification = await getNotificationCrypto(
-    user.cryptos,
-    user.userConfig.language,
-  );
-  if (!notification) return;
-
-  await sendFCMNotification(
-    tokens,
-    {
-      body: notification.message,
-      title: notification.title,
-    },
-    "cryptos",
-    { ...notification.data, screen: "Cryptos" },
-  );
-};
-
-const initUserInterval = async (userId: string) => {
+const handleSendNotificationsForInterval = async (
+  time: DB["Enums"]["CryptoInterval"],
+) => {
   try {
-    const user = await prisma.users.findUnique({
-      where: { userId },
-      include: {
+    const usersToNotify = await prisma.users.findMany({
+      where: {
         notificationsConfigs: {
-          where: { reason: "cryptos" },
+          some: {
+            reason: "cryptos",
+            enabled: true,
+          },
         },
         cryptosSettings: {
-          include: { notifications: true, autoRefresh: true },
+          notifications: {
+            enabled: true,
+            time,
+          },
         },
+        cryptos: {
+          some: {},
+        },
+        pushTokens: {
+          some: {},
+        },
+      },
+      include: {
+        cryptos: true,
+        pushTokens: { select: { token: true } },
+        userConfig: { select: { language: true } },
       },
     });
 
-    if (!user) return;
-    if (!user.notificationsConfigs || user.notificationsConfigs.length === 0)
-      return;
+    await Promise.all(
+      usersToNotify.map(async (user) => {
+        const tokens = user.pushTokens
+          .map((token) => token.token)
+          .filter((token) => !token.startsWith("expo"));
 
-    let settings = user.cryptosSettings;
+        if (!tokens.length || !user.userConfig || !user.cryptos.length) return;
 
-    if (!settings) {
-      const res = await prisma.cryptosSettings.create({
-        data: {
-          userId,
-          autoRefresh: { create: {} },
-          notifications: { create: {} },
-        },
-        include: { notifications: true, autoRefresh: true },
-      });
-      if (res) settings = res;
-    }
+        const notification = await getNotificationCrypto(
+          user.cryptos,
+          user.userConfig.language,
+        );
+        if (!notification) return;
 
-    if (!settings || !settings.notifications) return;
-
-    const id = "notification-interval-" + userId;
-
-    if (user.notificationsConfigs[0].enabled) {
-      users.setInterval(
-        () => handleSendNotification(userId),
-        settings.notifications.valueMs,
-        id,
-      );
-    } else {
-      users.clearInterval(id);
-    }
+        await sendFCMNotification(
+          tokens,
+          {
+            body: notification.message,
+            title: notification.title,
+          },
+          "cryptos",
+          { ...notification.data, screen: "Cryptos" },
+        );
+      }),
+    );
   } catch (error) {
     logger.error(
-      "Failed to initialize user notification interval for WebSocketCryptos:",
+      `Failed to send crypto notifications for interval ${time}:`,
       error,
     );
   }
 };
 
-const initUsersInterval = async () => {
-  try {
-    const users = await prisma.users.findMany({
-      select: { userId: true },
-    });
+const initNotificationIntervals = () => {
+  CRYPTO_NOTIFICATION_INTERVAL_OPTIONS.forEach((time) => {
+    const intervalMs = CRYPTO_NOTIFICATION_INTERVALS[time];
+    const id = `notification-interval-${time}`;
 
-    users.forEach((user) => {
-      if (!user.userId) return;
-
-      initUserInterval(user.userId);
-    });
-  } catch (error) {
-    logger.error(
-      "Failed to initialize users notifications for WebSocketCryptos:",
-      error,
+    users.setInterval(
+      () => handleSendNotificationsForInterval(time),
+      intervalMs,
+      id,
     );
-  }
+  });
 };
-config.executeFunctionAfterInit(initUsersInterval);
-
-const isCrypto = (
-  data: Record<string, unknown>,
-): data is SelectedCryptos[string] => {
-  const isObj = data !== null && typeof data === "object";
-
-  return (
-    isObj &&
-    (typeof data.symbol === "string" || typeof data.baseCoin === "string")
-  );
-};
-
-const getDiff = <T extends Record<string, unknown>>(
-  original: T,
-  update: Partial<T>,
-): Partial<T> => {
-  const diff = Object.fromEntries(
-    Object.entries(update).filter(([key, value]) => {
-      const existingValue = original[key as keyof T];
-      return JSON.stringify(existingValue) !== JSON.stringify(value);
-    }),
-  ) as Partial<T>;
-
-  if (isCrypto(original) && diff.amount && diff.amount !== original.amount) {
-    (diff as unknown as SelectedCryptos[string]).datePurchased =
-      new Date().toISOString();
-  }
-
-  return diff;
-};
+config.executeFunctionAfterInit(initNotificationIntervals);
 
 const sendCryptos = async (
   userDevice: NonNullable<ReturnType<typeof users.getUser>>,
@@ -268,12 +210,22 @@ const handleSyncSettings = async (
   if (message.type !== "sync-settings") return;
   const userId = userDevice.userId;
 
-  const res = await prisma.cryptosSettings.upsert({
+  await prisma.cryptosSettings.upsert({
     where: { userId },
     create: {
       userId,
-      autoRefresh: { create: {} },
-      notifications: { create: {} },
+      autoRefresh: {
+        create: {
+          enabled: message.settings?.autoRefresh?.enabled ?? undefined,
+          valueMs: message.settings?.autoRefresh?.valueMs ?? undefined,
+        },
+      },
+      notifications: {
+        create: {
+          enabled: message.settings?.notifications?.enabled ?? undefined,
+          time: message.settings?.notifications?.time ?? undefined,
+        },
+      },
       defaultCurrency: message.settings?.defaultCurrency ?? "USDT",
     },
     update: {
@@ -281,7 +233,10 @@ const handleSyncSettings = async (
       defaultCurrency: message.settings?.defaultCurrency,
       autoRefresh: {
         upsert: {
-          create: {},
+          create: {
+            enabled: message.settings?.autoRefresh?.enabled ?? undefined,
+            valueMs: message.settings?.autoRefresh?.valueMs ?? undefined,
+          },
           update: {
             enabled: message.settings?.autoRefresh?.enabled ?? undefined,
             valueMs: message.settings?.autoRefresh?.valueMs ?? undefined,
@@ -290,25 +245,19 @@ const handleSyncSettings = async (
       },
       notifications: {
         upsert: {
-          create: {},
+          create: {
+            enabled: message.settings?.notifications?.enabled ?? undefined,
+            time: message.settings?.notifications?.time ?? undefined,
+          },
           update: {
             enabled: message.settings?.notifications?.enabled ?? undefined,
-            valueMs: message.settings?.notifications?.valueMs ?? undefined,
+            time: message.settings?.notifications?.time ?? undefined,
           },
         },
       },
     },
     include: { notifications: true, autoRefresh: true },
   });
-
-  let existing = users.getAdditionalData("cryptoSettings")?.[userId];
-
-  if (!existing) {
-    existing = res;
-    users.setAdditionalData("cryptoSettings", (prev) => {
-      return { ...prev, [userId]: existing } as typeof prev;
-    });
-  }
 
   users.setTimeout(
     () => {
@@ -320,16 +269,6 @@ const handleSyncSettings = async (
     500,
     "sync-settings-timeout-" + userId,
   );
-
-  const existingNotifi =
-    users.getAdditionalData("cryptoSettings")?.[userId]?.notifications;
-  const incomingNotifi = message.settings?.notifications;
-
-  if (!existingNotifi || !incomingNotifi) return;
-
-  if (Object.keys(getDiff(existingNotifi, incomingNotifi)).length > 0) {
-    // initUserInterval(userId);
-  }
 };
 
 const handleAddCrypto = async (

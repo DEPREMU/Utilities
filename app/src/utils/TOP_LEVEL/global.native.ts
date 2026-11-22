@@ -1,9 +1,15 @@
 import _BackgroundTimer from "react-native-background-timer";
 
-const setTimeout = (fn: () => unknown, ms: number) =>
-  _BackgroundTimer.setTimeout(fn, ms);
-const setInterval = (fn: () => unknown, ms: number) =>
-  _BackgroundTimer.setInterval(fn, ms);
+const setTimeout = (
+  fn: (...args: unknown[]) => unknown,
+  ms: number,
+  ...args: unknown[]
+) => _BackgroundTimer.setTimeout(() => fn(...args), ms);
+const setInterval = (
+  fn: (...args: unknown[]) => unknown,
+  ms: number,
+  ...args: unknown[]
+) => _BackgroundTimer.setInterval(() => fn(...args), ms);
 
 const clearTimeout = (id: number) => _BackgroundTimer.clearTimeout(id);
 const clearInterval = (id: number) => _BackgroundTimer.clearInterval(id);

@@ -23,6 +23,12 @@ export const useStylesCryptosSettings = () => {
           ...getCommonStyles("shadow").shadow,
           maxHeight: 200,
         },
+        notifiOptionsContainer: {
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 8,
+          marginTop: 10,
+        },
         ...texts,
         ...getCommonStyles("divider"),
         ...getCommonStyles("container"),
