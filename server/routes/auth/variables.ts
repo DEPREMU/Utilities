@@ -11,6 +11,7 @@ import chalk from "chalk";
 import { prisma } from "@/database";
 import { getEnvValue } from "@/env";
 import type { ZodShape } from "@commonSrc/serverOrElectron/express/middlewares/schemas";
+import { CryptoInterval } from "@/generated/prisma";
 import { CryptosSettings } from "@types";
 import { NonNullableDeep } from "type-fest";
 import { withTransaction } from "@/database/transaction";
@@ -42,7 +43,7 @@ const SCHEMAS = {
     notifications: z.object({
       id: z.string(),
       enabled: z.coerce.boolean(),
-      valueMs: z.coerce.number().default(-1),
+      time: z.enum(CryptoInterval).default(CryptoInterval.m30),
       cryptosSettingsId: z.string(),
     } satisfies ZodShape<NonNullableDeep<CryptosSettings["notifications"]>>),
   } satisfies ZodShape<NonNullableDeep<CryptosSettings>>),

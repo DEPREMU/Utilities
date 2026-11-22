@@ -27,6 +27,21 @@ export enum CryptoEvents {
 
 const MAX_TIME_CRYPTOS = 2 * 60 * 1000;
 
+export const CRYPTO_NOTIFICATION_INTERVALS: Record<
+  DB["Enums"]["CryptoInterval"],
+  number
+> = {
+  m1: 1 * 60 * 1000,
+  m5: 5 * 60 * 1000,
+  m10: 10 * 60 * 1000,
+  m30: 30 * 60 * 1000,
+  m60: 60 * 60 * 1000,
+};
+
+export const CRYPTO_NOTIFICATION_INTERVAL_OPTIONS = Object.keys(
+  CRYPTO_NOTIFICATION_INTERVALS,
+) as DB["Enums"]["CryptoInterval"][];
+
 type Listeners = {
   [CryptoEvents.UPDATE]: (newData: PriceBinanceAPI) => void;
   [CryptoEvents.REFRESH]: (refreshing: boolean) => void;
