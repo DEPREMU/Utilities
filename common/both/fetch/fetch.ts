@@ -120,6 +120,7 @@ export class ServerFetch {
       ServerFetch.getRoute("GET", route, params as never),
       {
         ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+        timeout: 3000,
         validateStatus: () => true,
       },
     );

@@ -9,6 +9,12 @@ describe("Objects", () => {
       expect(result).toEqual({ a: 1 });
     });
 
+    it("should remove nested properties from an object", () => {
+      const obj = { a: 1, b: { c: 2, d: 3 } };
+      const result = Objects.removeProperties(obj, "b.c");
+      expect(result).toEqual({ a: 1, b: { d: 3 } });
+    });
+
     it("should return the original object if no properties are specified", () => {
       const obj = { a: 1, b: 2, c: 3 };
       const result = Objects.removeProperties(obj);
