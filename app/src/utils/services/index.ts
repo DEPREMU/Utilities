@@ -30,17 +30,14 @@ export const cleanupServices = async () => {
     ),
   ]);
 
-  await Promise.all([
-    debug?.destroy(),
-    updates?.destroy(),
-    deviceInfo?.destroy(),
-    navigation?.destroy(),
-    vaultManager?.destroy(),
-    cryptoManager?.destroy(),
-    sessionManager?.destroy(),
-    recorderManager?.destroy(),
-    clipboardManager?.destroy(),
-    storageManagement?.destroy(),
-    notificationsManager?.destroy(),
-  ]);
+  deviceInfo?.destroy();
+  navigation?.destroy();
+  vaultManager?.destroy();
+  cryptoManager?.destroy();
+  sessionManager?.destroy();
+  recorderManager?.destroy();
+  clipboardManager?.destroy();
+  storageManagement?.destroy();
+  notificationsManager?.destroy();
+  await Promise.allSettled([debug?.destroy(), updates?.destroy()]);
 };
