@@ -21,7 +21,7 @@ export type Screens = {
   Cryptos: Record<string, never>;
   Network: Record<string, never>;
   Recorder: Record<string, never>;
-  Settings: Record<string, never>;
+  Settings: GetRouteParams<{ installViaApp?: boolean; updateNow?: boolean }>;
   Clipboard: Record<string, never>;
   Calculator: Record<string, never>;
   ScanQRCode: Record<string, never>;

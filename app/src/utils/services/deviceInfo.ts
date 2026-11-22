@@ -1,31 +1,29 @@
 import {
-  BackgroundModule,
-  NotificationModule,
-  NativeFunctionsModule,
-} from "@modules";
-import {
   Timers,
   Network,
   REPLACERS,
   ServiceClass,
   ExpectedSecureStorageTypes,
 } from "@common";
-import {
-  ScreensAvailable,
-  EventNativeModule,
-  NotificationAction,
-  ReasonNotification,
-} from "@types";
 import { Logger } from "../TOP_LEVEL";
 import { tTyped } from "../translates";
+import { Actions } from "./notifications/actions";
 import * as NetInfo from "@react-native-community/netinfo";
 import * as Location from "expo-location";
 import { navigation } from "./navigation";
 import { DATA_PLATFORM } from "../cross";
 import * as DeviceInfoRN from "react-native-device-info";
+import { BackgroundModule } from "@modules";
 import { storageManagement } from "./storage";
 import { isLocationEnabled } from "../functions";
+import { ScreensAvailable, ReasonNotification } from "@types";
 import { AppState, AppStateStatus, DeviceEventEmitter } from "react-native";
+
+const enum DoubleCheckStatus {
+  checked = 0,
+  changed = 2,
+  restarted = 1,
+}
 
 const logger = new Logger("ServicesDeviceInfo");
 
@@ -52,7 +50,6 @@ export enum EventsDeviceInfo {
   statePhoneChange = "statePhone-change",
   hasInternetChange = "hasInternet-change",
   networkTypeChange = "networkType-change",
-  notificationAction = "notification-action",
   isBackgroundChange = "isBackground-change",
 }
 
@@ -71,42 +68,9 @@ type ListenersDeviceInfo = {
   >;
   [EventsDeviceInfo.hasInternetChange]: Function<[newState: boolean]>;
   [EventsDeviceInfo.isBackgroundChange]: Function<[newState: boolean]>;
-  [EventsDeviceInfo.notificationAction]: Function<[action: EventNativeModule]>;
   [EventsDeviceInfo.networkTypeChange]: Function<
     [type: NetInfo.NetInfoStateType]
   >;
-};
-
-const verifyLocation = async () => {
-  const { status } = await Location.getBackgroundPermissionsAsync();
-  const hasPermission = status === "granted";
-  if (!hasPermission) return;
-
-  const locationEnabled = await isLocationEnabled();
-  if (!locationEnabled) return;
-
-  const { notificationsManager } = await import("./notifications");
-
-  notificationsManager.sendNotification({
-    title: tTyped("notifications.LocationServicesEnabled"),
-    message: tTyped("notifications.LocationServicesEnabledMessage"),
-    type: "info",
-    channelId: "locationEnabled",
-    reasonNotification: "locationEnabled",
-    overrideNotification: false,
-    actions: [
-      {
-        actionId: "dismiss",
-        title: tTyped("labels.dismiss"),
-        icon: "delete",
-      },
-      {
-        actionId: "pause",
-        title: tTyped("labels.pause"),
-        icon: "pause",
-      },
-    ],
-  });
 };
 
 class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
@@ -143,6 +107,13 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     return this.#data.networkInfo;
   }
 
+  set #hasInternet(value: boolean) {
+    if (this.#data.hasInternet === value) return;
+
+    this.#data.hasInternet = value;
+    this.emit(EventsDeviceInfo.hasInternetChange, value);
+  }
+
   public setFetchWithCellularData(value?: boolean) {
     this.#data.networkInfo.fetchWithCellularData =
       value ?? !this.#data.networkInfo.fetchWithCellularData;
@@ -166,53 +137,89 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     this.#listeners[event] = appStateListener.remove;
   };
 
+  #running = {
+    hasInternet: false,
+    batteryAlerts: false,
+    verifyLocation: false,
+  };
+  #doubleCheck: DoubleCheckStatus = DoubleCheckStatus.checked;
   private _initHasInternet = async () => {
     const event = EventsDeviceInfo.hasInternetChange;
     if (this.#listeners[event]) return;
     const reason = "noInternetConnection" satisfies ReasonNotification;
 
-    const { notificationsManager } = await import("./notifications");
-
-    await notificationsManager.waitUntilInitialized();
-
     const hasInternetId = Timers.setInterval(
       async () => {
-        const prev = this.hasInternet;
-        const info = this.fetchNetworkInfo;
+        if (this.#running.hasInternet) return;
+        this.#running.hasInternet = true;
 
-        const current =
-          (!info.isCellular || info.fetchWithCellularData) &&
-          (await Network.isOnline());
-        if (prev === current) return;
+        try {
+          const { notificationsManager } = await import("./notifications");
+          await notificationsManager.waitUntilInitialized();
 
-        if (REPLACERS.isNative)
-          NotificationModule.cancelPreviousReasonNotification(reason);
+          const prev = this.hasInternet;
+          const info = this.fetchNetworkInfo;
 
-        const notification = notificationsManager.getNotification(reason);
-        if (notification.enabled) {
-          if (prev && !current) {
-            notificationsManager.sendNotification({
+          const current =
+            (!info.isCellular || info.fetchWithCellularData) &&
+            (await Network.isOnline());
+          this.#hasInternet = current;
+          const notification = notificationsManager.getNotification(reason);
+
+          if (!notification.enabled) return;
+
+          const { aggressive, doubleCheck } = notification.behavior;
+
+          if (
+            prev === current &&
+            !aggressive &&
+            (!doubleCheck || this.#doubleCheck === DoubleCheckStatus.restarted)
+          ) {
+            if (!doubleCheck) this.#doubleCheck = DoubleCheckStatus.changed;
+            return;
+          }
+          if (doubleCheck) {
+            if (prev === current) {
+              if (
+                this.#doubleCheck === DoubleCheckStatus.changed ||
+                this.#doubleCheck === DoubleCheckStatus.restarted
+              ) {
+                this.#doubleCheck = DoubleCheckStatus.checked;
+                return;
+              } else if (this.#doubleCheck === DoubleCheckStatus.checked) {
+                this.#doubleCheck = DoubleCheckStatus.restarted;
+              }
+            } else {
+              this.#doubleCheck = DoubleCheckStatus.changed;
+              return;
+            }
+          }
+
+          if (REPLACERS.isNative)
+            await notificationsManager.removeNotification({ reason });
+
+          if (!current) {
+            await notificationsManager.sendNotification({
               type: "warning",
               title: tTyped("common.NoInternetConnection"),
               message: tTyped("common.PleaseCheckInternetConnection"),
+              actions: Actions.getActions(["stop", "pause", "dismiss"]),
               channelId: reason,
               reasonNotification: reason,
-              overrideNotification: false,
             });
           } else {
-            notificationsManager.sendNotification({
+            await notificationsManager.sendNotification({
               type: "info",
               title: tTyped("appInfo.InternetConnectionRestored"),
               message: tTyped("appInfo.YouAreBackOnline"),
+              actions: Actions.getActions(["stop", "pause", "dismiss"]),
               channelId: reason,
               reasonNotification: reason,
-              overrideNotification: false,
             });
           }
+        } finally {
+          this.#running.hasInternet = false;
         }
-
-        this.#data.hasInternet = current;
-        this.emit(event, this.hasInternet);
       },
       REPLACERS.isNative ? 8000 : 5000,
     );
@@ -220,6 +227,109 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     this.#listeners[event] = () => {
       Timers.clearInterval(hasInternetId);
     };
+  };
+
+  private _initVerifyLocation = async () => {
+    const event = EventsDeviceInfo.verifyLocation;
+    if (this.#listeners[event]) return;
+    const reason = "locationEnabled" satisfies ReasonNotification;
+
+    const { notificationsManager } = await import("./notifications");
+    await notificationsManager.waitUntilInitialized();
+
+    const notification = notificationsManager.getNotification(reason);
+    if (!notification.enabled) return;
+
+    const id = Timers.setInterval(async () => {
+      if (this.#running.verifyLocation) return;
+      this.#running.verifyLocation = true;
+
+      try {
+        const [{ status }, { notificationsManager }] = await Promise.all([
+          Location.getBackgroundPermissionsAsync(),
+          import("./notifications"),
+        ]);
+
+        const hasPermission = status === "granted";
+        if (!hasPermission) {
+          await notificationsManager.toggleNotification("locationEnabled");
+          return;
+        }
+
+        const locationEnabled = await isLocationEnabled();
+        if (!locationEnabled) return;
+
+        await notificationsManager.sendNotification({
+          type: "info",
+          title: tTyped("notifications.LocationServicesEnabled"),
+          actions: Actions.getActions(["stop", "pause", "dismiss"]),
+          message: tTyped("notifications.LocationServicesEnabledMessage"),
+          channelId: reason,
+          reasonNotification: reason,
+        });
+      } finally {
+        this.#running.verifyLocation = false;
+      }
+    }, 15000);
+    this.#listeners[event] = () => Timers.clearInterval(id);
+  };
+
+  private _initBatteryAlerts = async () => {
+    const event = EventsDeviceInfo.batteryAlerts;
+    if (this.#listeners[event]) return;
+
+    const reason = "batteryAlerts" satisfies ReasonNotification;
+    const { notificationsManager } = await import("./notifications");
+    await notificationsManager.waitUntilInitialized();
+
+    const notification = notificationsManager.getNotification(reason);
+    if (!notification.enabled) return;
+
+    const id = Timers.setInterval(async () => {
+      if (this.#running.batteryAlerts) return;
+      this.#running.batteryAlerts = true;
+
+      try {
+        const powerState = await DeviceInfoRN.getPowerState();
+        const batteryLevel = powerState.batteryLevel;
+        const batteryState = powerState.batteryState || "unknown";
+
+        if (batteryLevel === undefined) return;
+
+        const { min, max } =
+          notificationsManager.getNotification(reason).behavior.batteryLevel;
+
+        if (batteryState === "charging" || batteryState === "full") {
+          if (batteryLevel <= Math.floor(max / 100)) return;
+
+          await notificationsManager.sendNotification({
+            type: "info",
+            title: tTyped("batteryState.BatteryFullyCharged"),
+            message: tTyped("batteryState.YouCanUnplugYourDevice"),
+            actions: Actions.getActions(["dismiss", "pause", "stop"]),
+            channelId: "batteryAlerts",
+            reasonNotification: reason,
+          });
+          return;
+        } else if (batteryLevel >= Math.floor(min / 100)) return;
+
+        await notificationsManager.sendNotification({
+          type: "warning",
+          title: tTyped("batteryState.BatteryLow"),
+          message: tTyped("batteryState.YourBatteryIsLow"),
+          actions: Actions.getActions(["dismiss", "pause", "stop"]),
+          channelId: "batteryAlerts",
+          reasonNotification: reason,
+        });
+      } finally {
+        this.#running.batteryAlerts = false;
+      }
+    }, 10000);
+
+    if (REPLACERS.isWeb && !DATA_PLATFORM.hasBattery) Timers.clearInterval(id);
+    else {
+      this.#listeners[event] = () => Timers.clearInterval(id);
+    }
   };
 
   private _initStatePhone = () => {
@@ -255,186 +365,6 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
     );
 
     this.#listeners[event] = queryAppStateListener.remove;
-  };
-
-  private _initNotificationEvents = () => {
-    if (!REPLACERS.isNative) return;
-
-    const event = EventsDeviceInfo.notificationAction;
-    if (this.#listeners[event]) return;
-
-    const subscription = DeviceEventEmitter.addListener(
-      "onNotificationAction",
-      async (event: EventNativeModule) => {
-        switch (event.actionId) {
-          case "dismiss":
-            // Handled below
-            break;
-          case "settings":
-            navigation.replace("Settings");
-            break;
-          case "pause":
-            try {
-              const getTimeWithReason = (reason: ReasonNotification) => {
-                const defaultTimes: Record<ReasonNotification, number> = {
-                  cryptos: 30,
-                  streamers: 30,
-                  downDetector: 15,
-                  batteryAlerts: 30,
-                  timeToDownload: 1,
-                  locationEnabled: 30,
-                  updateAvailable: 15,
-                  allNotifications: 60,
-                  noInternetConnection: 15,
-                  recorderNotification: 30,
-                  loggedInStatusChannel: 15,
-                };
-
-                return (defaultTimes[reason] || 60) * 60 * 1000;
-              };
-
-              if (event.reasonNotification === "streamers") break;
-
-              const { notificationsManager } = await import("./notifications");
-              await notificationsManager.waitUntilInitialized();
-
-              notificationsManager.editNotification(
-                event.reasonNotification,
-                (prev) => ({
-                  ...prev,
-                  paused: {
-                    ...prev.paused,
-                    isPaused: true,
-                    timePaused:
-                      Date.now() + getTimeWithReason(event.reasonNotification),
-                  },
-                }),
-              );
-            } catch (error) {
-              logger.error("Error pausing notifications", error);
-            }
-            break;
-          case "stop":
-            {
-              if (event.reasonNotification === "streamers") break;
-
-              if (event.reasonNotification === "recorderNotification") {
-                const { recorderManager } = await import("./recorder");
-                await recorderManager.stopRecording({
-                  keepService: true,
-                  silent: true,
-                });
-              }
-
-              const { notificationsManager } = await import("./notifications");
-              await notificationsManager.waitUntilInitialized();
-
-              notificationsManager.editNotification(
-                event.reasonNotification,
-                (prev) => ({
-                  ...prev,
-                  enabled: false,
-                }),
-              );
-            }
-            break;
-          default:
-            break;
-        }
-        NotificationModule.cancelNotification(
-          event.notificationId,
-          event.reasonNotification,
-        );
-      },
-    );
-
-    this.#listeners[event] = subscription.remove;
-  };
-
-  private _initVerifyLocation = async () => {
-    const event = EventsDeviceInfo.verifyLocation;
-    if (this.#listeners[event]) return;
-
-    const { notificationsManager } = await import("./notifications");
-    await notificationsManager.waitUntilInitialized();
-    const notification =
-      notificationsManager.getNotification("locationEnabled");
-    if (!notification.enabled) return;
-
-    const id = Timers.setInterval(verifyLocation, 15000);
-    this.#listeners[event] = () => Timers.clearInterval(id);
-  };
-
-  private _initBatteryAlerts = async () => {
-    const event = EventsDeviceInfo.batteryAlerts;
-    if (this.#listeners[event]) return;
-
-    const reasonNotification: ReasonNotification = event;
-    const { notificationsManager } = await import("./notifications");
-    await notificationsManager.waitUntilInitialized();
-
-    await notificationsManager.waitUntilInitialized();
-    const notification =
-      notificationsManager.getNotification(reasonNotification);
-    if (!notification.enabled) return;
-
-    const handleBatteryNotifications = async () => {
-      const actions: NotificationAction[] = [
-        {
-          actionId: "dismiss",
-          title: tTyped("labels.dismiss"),
-          icon: "delete",
-        },
-      ];
-
-      if (REPLACERS.isNative) {
-        if (await NativeFunctionsModule.checkOverlayPermission()) {
-          actions.push({
-            actionId: "pause",
-            title: tTyped("labels.pause"),
-            icon: "pause",
-          });
-        }
-        NotificationModule.cancelPreviousReasonNotification(reasonNotification);
-      }
-      const powerState = await DeviceInfoRN.getPowerState();
-      const batteryLevel = powerState.batteryLevel || 0;
-      const batteryState = powerState.batteryState || "unknown";
-
-      if (batteryState === "charging" || batteryState === "full") {
-        if (batteryLevel <= 0.8) return;
-
-        notificationsManager.sendNotification({
-          title: tTyped("batteryState.BatteryFullyCharged"),
-          message: tTyped("batteryState.YouCanUnplugYourDevice"),
-          type: "info",
-          channelId: "batteryAlerts",
-          reasonNotification,
-          actions,
-          overrideNotification: false,
-        });
-        return;
-      } else if (batteryLevel >= 0.3) return;
-
-      notificationsManager.sendNotification({
-        title: tTyped("batteryState.BatteryLow"),
-        message: tTyped("batteryState.YourBatteryIsLow"),
-        type: "warning",
-        channelId: "batteryAlerts",
-        overrideNotification: false,
-        reasonNotification,
-        actions: [
-          ...actions,
-          { actionId: "stop", title: tTyped("labels.stop"), icon: "stop" },
-        ],
-      });
-    };
-
-    const id = Timers.setInterval(handleBatteryNotifications, 10000);
-    if (REPLACERS.isWeb && !DATA_PLATFORM.hasBattery) Timers.clearInterval(id);
-    else {
-      this.#listeners[event] = () => Timers.clearInterval(id);
-    }
   };
 
   private _initScreenChange = async () => {
@@ -506,7 +436,6 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       if (REPLACERS.isNative) {
         this._initStatePhone();
         this._initQueryAppState();
-        this._initNotificationEvents();
       }
 
       promises.push(
@@ -537,7 +466,6 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       [EventsDeviceInfo.statePhoneChange]: this._initStatePhone,
       [EventsDeviceInfo.hasInternetChange]: this._initHasInternet,
       [EventsDeviceInfo.networkTypeChange]: this._initNetworkTypeChange,
-      [EventsDeviceInfo.notificationAction]: this._initNotificationEvents,
 
       [EventsDeviceInfo.isBackgroundChange]: () => {},
     };
@@ -558,7 +486,6 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
       case EventsDeviceInfo.statePhoneChange:
       case EventsDeviceInfo.hasInternetChange:
       case EventsDeviceInfo.networkTypeChange:
-      case EventsDeviceInfo.notificationAction:
         {
           const cleaner = this.#listeners[event];
           cleaner();

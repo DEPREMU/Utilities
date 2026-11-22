@@ -1,9 +1,10 @@
 import type { NotificationTriggerInput } from "expo-notifications";
+import type { AndroidAction } from "react-native-notify-kit";
 
 export type NotificationAction = {
-  actionId: "pause" | "stop" | "dismiss" | "info" | "settings";
   title: string;
   icon?: "pause" | "play" | "stop" | "delete" | "info" | "settings";
+  actionId: "pause" | "stop" | "dismiss" | "info" | "settings";
 };
 
 export type ReasonNotification =
@@ -26,33 +27,48 @@ export type typePausedNotification = {
   timePaused: number;
 };
 
-export type ActionNotification = "pause" | "stop" | "dismiss" | "settings";
+export type OnlyWhenSpecificHours = {
+  endHour: number;
+  enabled: boolean;
+  startHour: number;
+};
+
+export type OnlyWhen = {
+  screenOff: boolean;
+  specificHours: OnlyWhenSpecificHours;
+  appInBackground: boolean;
+  connectedToPower: boolean;
+  notInDoNotDisturb: boolean;
+};
 
 export type typeBehaviorNotification = {
-  onlyWhenScreenOff: boolean;
+  onlyWhen: OnlyWhen;
+  aggressive: boolean;
   bypassDoNotDisturb: boolean;
-  onlyWhenAppInBackground: boolean;
-  onlyWhenConnectedToPower: boolean;
-  onlyWhenNotInDoNotDisturb: boolean;
-  onlyDuringSpecificHours: {
-    enabled: boolean;
-    startHour: number;
-    endHour: number;
+};
+
+export type typeBehaviorHasInternet = {
+  doubleCheck: boolean;
+};
+
+export type typeBehaviorBatteryNotification = {
+  batteryLevel: {
+    min: number;
+    max: number;
   };
 };
 
-export type typeBehaviorBatteryNotification = Record<string, unknown>;
-
 export type Notifications = {
-  [reason in ReasonNotification]: {
+  [Reason in ReasonNotification]: {
     paused: typePausedNotification;
     enabled: boolean;
-    interval: number;
     behavior: typeBehaviorNotification &
-      (reason extends "batteryAlerts"
+      (Reason extends "batteryAlerts"
         ? typeBehaviorBatteryNotification
-        : unknown);
-  } & (reason extends "streamers"
+        : Reason extends "noInternetConnection"
+          ? typeBehaviorHasInternet
+          : unknown);
+  } & (Reason extends "streamers"
     ? { streamersList: typeStreamerNotification[] }
     : unknown);
 };
@@ -65,10 +81,9 @@ export type Notification = {
   channelId: ChannelsId;
   timestamp: Date;
   reasonNotification: ReasonNotification;
-  overrideNotification: boolean;
-  data?: Record<string, unknown>;
+  data?: Record<string, string | number | object>;
   trigger?: NotificationTriggerInput;
-  actions?: NotificationAction[];
+  actions?: AndroidAction[];
 };
 
 export type ChannelsId =

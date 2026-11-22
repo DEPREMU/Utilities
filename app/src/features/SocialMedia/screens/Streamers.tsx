@@ -64,22 +64,23 @@ const Streamers: React.FC = () => {
       return prev.filter((streamer) => streamer.id !== streamerId);
     });
 
-    notificationsManager.editNotification("streamers", (prev) => {
-      const streamer = streamers.find((s) => s.id === streamerId);
-      if (!streamer) return prev;
+    notificationsManager.editNotifications((prev) => {
+      const targetStreamer = streamers.find((s) => s.id === streamerId);
+      if (!targetStreamer) return {};
 
-      const streamerExists = prev.streamersList.find(
-        (streamer) => streamer.name === streamer.name,
+      const streamerExists = prev.streamers.streamersList.find(
+        (item) => item.name === targetStreamer.name,
       );
 
-      if (!streamerExists) return prev;
+      if (!streamerExists) return {};
 
-      const newStreamersList = prev.streamersList.filter(
-        (streamer) => streamer.name !== streamerExists?.name,
+      const newStreamersList = prev.streamers.streamersList.filter(
+        (item) => item.name !== streamerExists.name,
       );
       return {
-        ...prev,
-        streamersList: newStreamersList,
+        streamers: {
+          streamersList: newStreamersList,
+        },
       };
     });
   });
@@ -139,16 +140,13 @@ const Streamers: React.FC = () => {
     async (streamerName: string, newBool: boolean) => {
       if (!streamerName || !deviceInfo.hasInternet) return;
 
-      notificationsManager.editNotification("streamers", (prev) => {
-        return {
-          ...prev,
-          streamersList: prev.streamersList.map((streamer) =>
-            streamer.name === streamerName
-              ? { ...streamer, enabled: newBool }
-              : streamer,
+      notificationsManager.editNotifications((prev) => ({
+        streamers: {
+          streamersList: prev.streamers.streamersList.map((item) =>
+            item.name === streamerName ? { ...item, enabled: newBool } : item,
           ),
-        };
-      });
+        },
+      }));
 
       const { userData, sessionToken } = sessionManager.getSessionData();
       if (!userData?.userId || !sessionToken) return;
@@ -228,15 +226,14 @@ const Streamers: React.FC = () => {
 
       if (Object.keys(data.streamer || {}).length > 3) {
         setStreamers((prev) => [...prev, data.streamer as StreamerWithIsLive]);
-        notificationsManager.editNotification("streamers", (prev) => {
-          return {
-            ...prev,
+        notificationsManager.editNotifications((prev) => ({
+          streamers: {
             streamersList: [
-              ...(prev.streamersList || []),
+              ...(prev.streamers.streamersList || []),
               { name: data.streamer?.name || "", enabled: false },
             ],
-          };
-        });
+          },
+        }));
       }
     } catch (error) {
       logger.error(error);

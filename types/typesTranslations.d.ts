@@ -773,7 +773,13 @@ export type AppTranslations = BatteryStateTranslations &
         onlyDuringSpecificHours: string;
         startHour: string;
         endHour: string;
+        minBatteryLevel: string;
+        maxBatteryLevel: string;
         bypassDoNotDisturb: string;
+        aggressive: string;
+        aggressiveDescription: string;
+        doubleCheck: string;
+        doubleCheckDescription: string;
         streamers: string;
         noStreamers: string;
       };

@@ -1,10 +1,4 @@
 import {
-  ResponseAuth,
-  GetRouteData,
-  ErrorResponse,
-  NotificationAction,
-} from "@types";
-import {
   Timers,
   Network,
   REPLACERS,
@@ -20,12 +14,13 @@ import {
 import { Logger } from "../TOP_LEVEL";
 import { cloneDeep } from "lodash";
 import { navigation } from "./navigation";
+import { windowModule } from "@modules";
 import { EventsDeviceInfo } from "./deviceInfo";
 import { storageManagement } from "./storage";
-import { notificationsManager } from "./notifications";
 import { checkLanguage, tTyped } from "../translates";
 import { getDevicePushTokenAsync } from "expo-notifications";
-import { NativeFunctionsModule, windowModule } from "@modules";
+import { Actions, notificationsManager } from "./notifications";
+import { ResponseAuth, GetRouteData, ErrorResponse } from "@types";
 
 type SessionData = {
   userData: Omit<DB["TablesClient"]["Users"], "password"> | null;
@@ -610,10 +605,7 @@ class SessionManager extends ServiceClass<ListenersSession> {
         15 * 60 * 1000,
       );
     } catch (error) {
-      logger.error(
-        "Unexpected error initializing session manager:",
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error("Unexpected error initializing session manager:", error);
     }
   }
 
@@ -628,33 +620,14 @@ class SessionManager extends ServiceClass<ListenersSession> {
 
     this.#timeoutIdNotLoggedIn = Timers.setTimeout(async () => {
       this.clearTimeoutNotLoggedIn();
-      const actions: NotificationAction[] = [
-        {
-          actionId: "dismiss",
-          title: tTyped("labels.dismiss"),
-          icon: "delete",
-        },
-        { actionId: "stop", title: tTyped("labels.stop"), icon: "stop" },
-      ];
-      if (
-        REPLACERS.isNative &&
-        (await NativeFunctionsModule.checkOverlayPermission())
-      ) {
-        actions.push({
-          actionId: "pause",
-          title: tTyped("labels.pause"),
-          icon: "pause",
-        });
-      }
 
       notificationsManager.sendNotification({
         type: "info",
         title: tTyped("auth.youAreNotLoggedIn"),
-        actions,
         message: tTyped("auth.youAreNotLoggedInMessage"),
+        actions: Actions.getActions(["stop", "pause", "dismiss"]),
         channelId: "loggedInStatusChannel",
         reasonNotification: "loggedInStatusChannel",
-        overrideNotification: false,
       });
     }, 30000);
   };
