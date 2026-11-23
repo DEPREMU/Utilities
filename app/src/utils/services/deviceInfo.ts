@@ -300,7 +300,7 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
           notificationsManager.getNotification(reason).behavior.batteryLevel;
 
         if (batteryState === "charging" || batteryState === "full") {
-          if (batteryLevel <= Math.floor(max / 100)) return;
+          if (batteryLevel <= max / 100) return;
 
           await notificationsManager.sendNotification({
             type: "info",
@@ -311,7 +311,9 @@ class DeviceInfo extends ServiceClass<ListenersDeviceInfo> {
             reasonNotification: reason,
           });
           return;
-        } else if (batteryLevel >= Math.floor(min / 100)) return;
+        }
+
+        if (batteryLevel >= min / 100) return;
 
         await notificationsManager.sendNotification({
           type: "warning",
